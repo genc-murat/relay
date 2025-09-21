@@ -1,0 +1,38 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Common Build Properties -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>NU1701;NU1702</WarningsNotAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    
+    <!-- Version Information -->
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix Condition="'$(Configuration)' == 'Debug'">dev</VersionSuffix>
+    
+    <!-- Package Information -->
+    <Authors>Relay Framework Contributors</Authors>
+    <Company>Relay Framework</Company>
+    <Product>Relay Mediator Framework</Product>
+    <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
+    <PackageProjectUrl>https://github.com/relay-framework/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/relay-framework/relay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    
+    <!-- Source Link -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- Source Link Support -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

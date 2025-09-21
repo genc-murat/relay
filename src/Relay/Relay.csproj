@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    
+    <!-- Package Metadata -->
+    <PackageId>Relay</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Title>Relay - High-Performance Mediator Framework</Title>
+    <Authors>Relay Framework Contributors</Authors>
+    <Company>Relay Framework</Company>
+    <Product>Relay Mediator Framework</Product>
+    <Description>A high-performance, source-generator powered mediator and messaging framework for .NET. Provides compile-time code generation to eliminate runtime reflection overhead, enabling efficient request/response patterns, command handling, and event publishing with minimal performance impact.</Description>
+    <Summary>High-performance mediator framework with zero runtime reflection using Roslyn source generators.</Summary>
+    <PackageTags>mediator;cqrs;messaging;performance;source-generator;roslyn;dotnet;async;pipeline;notification</PackageTags>
+    <PackageProjectUrl>https://github.com/relay-framework/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/relay-framework/relay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
+    <PackageReleaseNotes>Initial release of Relay mediator framework with source generator support.</PackageReleaseNotes>
+    <!-- <PackageIcon>icon.png</PackageIcon> -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    
+    <!-- Build Configuration -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    
+    <!-- Source Link -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <!-- Package Files -->
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <!-- <None Include="..\..\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\..\icon.png')" /> -->
+  </ItemGroup>
+
+  <!-- Dependencies -->
+  <ItemGroup>
+    <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
+    <!-- Temporarily remove source generator reference -->
+    <!-- <ProjectReference Include="..\Relay.SourceGenerator\Relay.SourceGenerator.csproj" /> -->
+  </ItemGroup>
+
+
+
+</Project>

@@ -1,0 +1,88 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "restore solution",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"restore",
+				"Relay.sln"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build Relay.Core.Tests",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"tests/Relay.Core.Tests/Relay.Core.Tests.csproj",
+				"-v:minimal"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "test Relay.Core.Tests",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"tests/Relay.Core.Tests/Relay.Core.Tests.csproj",
+				"-v:minimal"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "test"
+		},
+		{
+			"label": "build Relay.Core.Tests",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"tests/Relay.Core.Tests/Relay.Core.Tests.csproj",
+				"-v:minimal"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build Relay.Core.Tests",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"tests/Relay.Core.Tests/Relay.Core.Tests.csproj",
+				"-v:minimal"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "test Relay.Core.Tests",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"tests/Relay.Core.Tests/Relay.Core.Tests.csproj",
+				"-v:minimal"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "test"
+		}
+	]
+}

@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    
+    <!-- Package Metadata -->
+    <PackageId>Relay.SourceGenerator</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Title>Relay.SourceGenerator - Compile-Time Code Generation</Title>
+    <Authors>Relay Framework Contributors</Authors>
+    <Company>Relay Framework</Company>
+    <Product>Relay Mediator Framework</Product>
+    <Description>Roslyn source generator for the Relay mediator framework. Generates compile-time handler registrations, dispatch code, and DI configurations to eliminate runtime reflection overhead.</Description>
+    <Summary>Roslyn source generator for compile-time mediator code generation.</Summary>
+    <PackageTags>mediator;cqrs;messaging;source-generator;roslyn;compile-time;codegen</PackageTags>
+    <PackageProjectUrl>https://github.com/relay-framework/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/relay-framework/relay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
+    <PackageReleaseNotes>Source generator for compile-time Relay mediator code generation.</PackageReleaseNotes>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    
+    <!-- Build Configuration -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <!-- Dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" PrivateAssets="all" />
+    <PackageReference Include="System.Text.Json" Version="6.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Source generators should not directly reference other projects with incompatible target frameworks -->
+  <!-- Instead, we'll include the necessary types directly or use shared source -->
+  <ItemGroup>
+    <!-- Remove direct project reference to avoid target framework conflicts -->
+    <!-- <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" /> -->
+  </ItemGroup>
+
+
+
+  <!-- Package the generator and analyzer -->
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\cs\$(AssemblyName).dll" Visible="false" />
+  </ItemGroup>
+
+  <!-- Add build targets for proper integration -->
+  <ItemGroup>
+    <None Include="build\Relay.SourceGenerator.targets" Pack="true" PackagePath="build\Relay.SourceGenerator.targets" />
+    <None Include="buildTransitive\Relay.SourceGenerator.targets" Pack="true" PackagePath="buildTransitive\Relay.SourceGenerator.targets" />
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+    <None Include="lib\netstandard2.0\_._" Pack="true" PackagePath="lib\netstandard2.0\_._" />
+  </ItemGroup>
+
+</Project>

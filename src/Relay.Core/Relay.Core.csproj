@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    
+    <!-- Package Metadata -->
+    <PackageId>Relay.Core</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Title>Relay.Core - Core Runtime Components</Title>
+    <Authors>Relay Framework Contributors</Authors>
+    <Company>Relay Framework</Company>
+    <Product>Relay Mediator Framework</Product>
+    <Description>Core runtime components for the Relay mediator framework. Provides high-performance request/response handling, notification publishing, and pipeline execution without runtime reflection.</Description>
+    <Summary>Core runtime components for high-performance mediator operations.</Summary>
+    <PackageTags>mediator;cqrs;messaging;performance;runtime;async;pipeline;notification</PackageTags>
+    <PackageProjectUrl>https://github.com/relay-framework/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/relay-framework/relay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
+    <PackageReleaseNotes>Core runtime components for Relay mediator framework.</PackageReleaseNotes>
+    
+    <!-- Build Configuration -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <!-- Dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
+    <PackageReference Include="Scrutor" Version="4.2.2" />
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="6.0.0" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" Condition="'$(TargetFramework)' == 'netstandard2.1'" />
+    <PackageReference Include="System.Text.Json" Version="6.0.0" Condition="'$(TargetFramework)' == 'netstandard2.1'" />
+  </ItemGroup>
+
+
+
+
+
+</Project>

@@ -141,6 +141,20 @@ namespace Relay.Core.Configuration
         }
 
         /// <summary>
+        /// Adds and configures in-memory caching for Relay requests.
+        /// This registers the <see cref="Caching.CachingPipelineBehavior{TRequest, TResponse}"/>
+        /// and the required <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> service.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayCaching(this IServiceCollection services)
+        {
+            services.AddMemoryCache();
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Caching.CachingPipelineBehavior<,>));
+            return services;
+        }
+
+        /// <summary>
         /// Validates the Relay configuration and throws an exception if invalid.
         /// </summary>
         /// <param name="services">The service collection.</param>

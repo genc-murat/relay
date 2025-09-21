@@ -64,51 +64,36 @@ private async ValueTask<User> LoadUserFromDatabaseAsync(int userId, Cancellation
 }
 ```
 
-### 2. Optimize Pipeline Order
+### 2. Use the Built-in Caching Pipeline
+
+For requests that are frequently called and return data that doesn't change often, caching is one of the most effective performance optimizations. Relay provides a built-in, in-memory caching pipeline that can be enabled with a single line of code.
+
+**Step 1: Enable Caching**
+
+In your `Program.cs` or startup configuration, add the caching services. This also registers the caching pipeline behavior globally.
 
 ```csharp
-public class PerformancePipeline
-{
-    // Execute caching early to short-circuit expensive operations
-    [Pipeline(Order = -1000)]
-    public async ValueTask<TResponse> CachingPipeline<TRequest, TResponse>(
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken)
-    {
-        var cacheKey = GenerateCacheKey(request);
-        if (_cache.TryGetValue(cacheKey, out TResponse cachedResponse))
-            return cachedResponse;
-        
-        var response = await next();
-        _cache.Set(cacheKey, response, TimeSpan.FromMinutes(5));
-        return response;
-    }
-    
-    // Execute logging late to capture all processing time
-    [Pipeline(Order = 1000)]
-    public async ValueTask<TResponse> LoggingPipeline<TRequest, TResponse>(
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken)
-    {
-        var stopwatch = Stopwatch.StartNew();
-        try
-        {
-            var response = await next();
-            _logger.LogInformation("Completed {RequestType} in {ElapsedMs}ms", 
-                typeof(TRequest).Name, stopwatch.ElapsedMilliseconds);
-            return response;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed {RequestType} after {ElapsedMs}ms", 
-                typeof(TRequest).Name, stopwatch.ElapsedMilliseconds);
-            throw;
-        }
-    }
-}
+services.AddRelay();
+services.AddRelayCaching(); // Enable caching
 ```
+
+**Step 2: Decorate Cacheable Requests**
+
+Apply the `[Cache]` attribute to any `IRequest` class whose response you want to cache.
+
+```csharp
+// This query result will be cached for 60 seconds.
+[Cache(60)]
+public record GetProductCategoriesQuery() : IRequest<List<Category>>;
+```
+
+**How it Works:**
+
+When a request decorated with `[Cache]` is sent, the `CachingPipelineBehavior` (which runs early due to its design) generates a unique key based on the request type and its content.
+- If a response is found in the cache for that key, it is returned immediately, and the actual handler is never executed.
+- If no response is found (a cache miss), the request proceeds through the pipeline to the handler. The handler's response is then stored in the cache with the specified duration before being returned.
+
+This dramatically reduces database load and improves response times for idempotent queries.
 
 ### 3. Efficient Streaming
 

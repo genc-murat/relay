@@ -261,6 +261,9 @@ services.AddRelay(options =>
 {
     options.EnableDiagnostics = true;
 });
+
+// Enable built-in caching
+services.AddRelayCaching();
 ```
 
 ## Telemetry and Observability

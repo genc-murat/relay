@@ -152,7 +152,7 @@ public class OrderService
 
 ### Pipeline Behaviors
 
-Add cross-cutting concerns with pipeline behaviors:
+Add cross-cutting concerns with pipeline behaviors. These are powerful tools for tasks like logging, validation, authorization, and caching.
 
 ```csharp
 public class LoggingPipeline
@@ -188,6 +188,17 @@ public class LoggingPipeline
         }
     }
 }
+```
+
+Relay also includes built-in behaviors for common scenarios. For example, you can enable response caching with just a few lines of code:
+
+```csharp
+// 1. Enable the caching pipeline in DI
+services.AddRelayCaching();
+
+// 2. Add an attribute to your request
+[Cache(60)] // Cache for 60 seconds
+public record GetStaticDataQuery() : IRequest<StaticData>;
 ```
 
 ## Advanced Features

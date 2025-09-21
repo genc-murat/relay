@@ -28,13 +28,13 @@ namespace Relay.Core
         /// <param name="cancellationToken">Cancellation token for the operation.</param>
         /// <returns>A ValueTask containing the response.</returns>
         public ValueTask<TResponse> ExecuteAsync<TRequest, TResponse>(
-            TRequest request, 
+            TRequest request,
             Func<TRequest, CancellationToken, ValueTask<TResponse>> handler,
             CancellationToken cancellationToken)
         {
             // Get all system modules and sort by order
             var systemModules = GetSystemModules().OrderBy(m => m.Order).ToList();
-            
+
             // Get all pipeline behaviors for this request type and de-duplicate by behavior type while preserving order
             var pipelineBehaviors = GetPipelineBehaviors<TRequest, TResponse>()
                 .Aggregate(new List<IPipelineBehavior<TRequest, TResponse>>(), (acc, b) =>
@@ -82,7 +82,7 @@ namespace Relay.Core
         {
             // Get all system modules and sort by order
             var systemModules = GetSystemModules().OrderBy(m => m.Order).ToList();
-            
+
             // Get all stream pipeline behaviors for this request type and de-duplicate by behavior type while preserving order
             var streamBehaviors = GetStreamPipelineBehaviors<TRequest, TResponse>()
                 .Aggregate(new List<IStreamPipelineBehavior<TRequest, TResponse>>(), (acc, b) =>
@@ -163,7 +163,7 @@ namespace Relay.Core
             {
                 // Fall back to empty collection if generated code is not available
             }
-            
+
             return Enumerable.Empty<IPipelineBehavior<TRequest, TResponse>>();
         }
 
@@ -206,7 +206,7 @@ namespace Relay.Core
             {
                 // Fall back to empty collection if generated code is not available
             }
-            
+
             return Enumerable.Empty<IStreamPipelineBehavior<TRequest, TResponse>>();
         }
     }

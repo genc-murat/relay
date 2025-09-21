@@ -15,9 +15,9 @@ public class DefaultMetricsProvider : IMetricsProvider
     private readonly ConcurrentDictionary<string, List<NotificationPublishMetrics>> _notificationPublishes = new();
     private readonly ConcurrentDictionary<string, List<StreamingOperationMetrics>> _streamingOperations = new();
     private readonly ConcurrentDictionary<string, TimingBreakdown> _timingBreakdowns = new();
-    
+
     private readonly ILogger<DefaultMetricsProvider>? _logger;
-    
+
     // Configuration for anomaly detection
     private readonly TimeSpan _anomalyDetectionWindow = TimeSpan.FromMinutes(15);
     private readonly double _slowExecutionThreshold = 2.0; // 2x average
@@ -26,18 +26,18 @@ public class DefaultMetricsProvider : IMetricsProvider
     // Overridable caps for memory usage
     protected virtual int MaxRecordsPerHandler => 1000;
     protected virtual int MaxTimingBreakdowns => 10000;
-    
+
     public DefaultMetricsProvider(ILogger<DefaultMetricsProvider>? logger = null)
     {
         _logger = logger;
     }
-    
+
     public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
     {
         var key = GetHandlerKey(metrics.RequestType, metrics.HandlerName);
-        _handlerExecutions.AddOrUpdate(key, 
+        _handlerExecutions.AddOrUpdate(key,
             new List<HandlerExecutionMetrics> { metrics },
-            (_, existing) => 
+            (_, existing) =>
             {
                 lock (existing)
                 {
@@ -50,11 +50,11 @@ public class DefaultMetricsProvider : IMetricsProvider
                     return existing;
                 }
             });
-        
-        _logger?.LogDebug("Recorded handler execution: {RequestType} -> {ResponseType} in {Duration}ms (Success: {Success})", 
+
+        _logger?.LogDebug("Recorded handler execution: {RequestType} -> {ResponseType} in {Duration}ms (Success: {Success})",
             metrics.RequestType.Name, metrics.ResponseType?.Name, metrics.Duration.TotalMilliseconds, metrics.Success);
     }
-    
+
     public void RecordNotificationPublish(NotificationPublishMetrics metrics)
     {
         var key = metrics.NotificationType.FullName ?? metrics.NotificationType.Name;
@@ -72,11 +72,11 @@ public class DefaultMetricsProvider : IMetricsProvider
                     return existing;
                 }
             });
-        
-        _logger?.LogDebug("Recorded notification publish: {NotificationType} to {HandlerCount} handlers in {Duration}ms (Success: {Success})", 
+
+        _logger?.LogDebug("Recorded notification publish: {NotificationType} to {HandlerCount} handlers in {Duration}ms (Success: {Success})",
             metrics.NotificationType.Name, metrics.HandlerCount, metrics.Duration.TotalMilliseconds, metrics.Success);
     }
-    
+
     public void RecordStreamingOperation(StreamingOperationMetrics metrics)
     {
         var key = GetHandlerKey(metrics.RequestType, metrics.HandlerName);
@@ -94,11 +94,11 @@ public class DefaultMetricsProvider : IMetricsProvider
                     return existing;
                 }
             });
-        
-        _logger?.LogDebug("Recorded streaming operation: {RequestType} -> {ResponseType} ({ItemCount} items) in {Duration}ms (Success: {Success})", 
+
+        _logger?.LogDebug("Recorded streaming operation: {RequestType} -> {ResponseType} ({ItemCount} items) in {Duration}ms (Success: {Success})",
             metrics.RequestType.Name, metrics.ResponseType.Name, metrics.ItemCount, metrics.Duration.TotalMilliseconds, metrics.Success);
     }
-    
+
     public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
     {
         var key = GetHandlerKey(requestType, handlerName);
@@ -110,13 +110,13 @@ public class DefaultMetricsProvider : IMetricsProvider
                 HandlerName = handlerName
             };
         }
-        
+
         List<HandlerExecutionMetrics> executionsCopy;
         lock (executions)
         {
             executionsCopy = executions.ToList();
         }
-        
+
         if (executionsCopy.Count == 0)
         {
             return new HandlerExecutionStats
@@ -125,11 +125,11 @@ public class DefaultMetricsProvider : IMetricsProvider
                 HandlerName = handlerName
             };
         }
-        
+
         var successful = executionsCopy.Where(e => e.Success).ToList();
         var failed = executionsCopy.Where(e => !e.Success).ToList();
         var durations = executionsCopy.Select(e => e.Duration).OrderBy(d => d).ToList();
-        
+
         return new HandlerExecutionStats
         {
             RequestType = requestType,
@@ -146,7 +146,7 @@ public class DefaultMetricsProvider : IMetricsProvider
             LastExecution = executionsCopy.Max(e => e.Timestamp)
         };
     }
-    
+
     public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
     {
         var key = notificationType.FullName ?? notificationType.Name;
@@ -157,13 +157,13 @@ public class DefaultMetricsProvider : IMetricsProvider
                 NotificationType = notificationType
             };
         }
-        
+
         List<NotificationPublishMetrics> publishesCopy;
         lock (publishes)
         {
             publishesCopy = publishes.ToList();
         }
-        
+
         if (publishesCopy.Count == 0)
         {
             return new NotificationPublishStats
@@ -171,11 +171,11 @@ public class DefaultMetricsProvider : IMetricsProvider
                 NotificationType = notificationType
             };
         }
-        
+
         var successful = publishesCopy.Where(p => p.Success).ToList();
         var failed = publishesCopy.Where(p => !p.Success).ToList();
         var durations = publishesCopy.Select(p => p.Duration).OrderBy(d => d).ToList();
-        
+
         return new NotificationPublishStats
         {
             NotificationType = notificationType,
@@ -189,7 +189,7 @@ public class DefaultMetricsProvider : IMetricsProvider
             LastPublish = publishesCopy.Max(p => p.Timestamp)
         };
     }
-    
+
     public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
     {
         var key = GetHandlerKey(requestType, handlerName);
@@ -201,13 +201,13 @@ public class DefaultMetricsProvider : IMetricsProvider
                 HandlerName = handlerName
             };
         }
-        
+
         List<StreamingOperationMetrics> operationsCopy;
         lock (operations)
         {
             operationsCopy = operations.ToList();
         }
-        
+
         if (operationsCopy.Count == 0)
         {
             return new StreamingOperationStats
@@ -216,12 +216,12 @@ public class DefaultMetricsProvider : IMetricsProvider
                 HandlerName = handlerName
             };
         }
-        
+
         var successful = operationsCopy.Where(o => o.Success).ToList();
         var failed = operationsCopy.Where(o => !o.Success).ToList();
         var totalItems = operationsCopy.Sum(o => o.ItemCount);
         var totalDuration = TimeSpan.FromTicks(operationsCopy.Sum(o => o.Duration.Ticks));
-        
+
         return new StreamingOperationStats
         {
             RequestType = requestType,
@@ -236,12 +236,12 @@ public class DefaultMetricsProvider : IMetricsProvider
             LastOperation = operationsCopy.Max(o => o.Timestamp)
         };
     }
-    
+
     public virtual IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
     {
         var anomalies = new List<PerformanceAnomaly>();
         var cutoffTime = DateTimeOffset.UtcNow - lookbackPeriod;
-        
+
         // Detect handler execution anomalies
         foreach (var kvp in _handlerExecutions)
         {
@@ -250,11 +250,11 @@ public class DefaultMetricsProvider : IMetricsProvider
             {
                 executions = kvp.Value.Where(e => e.Timestamp >= cutoffTime).ToList();
             }
-            
+
             if (executions.Count < 10) continue; // Need sufficient data
-            
+
             var stats = GetHandlerExecutionStats(executions.First().RequestType, executions.First().HandlerName);
-            
+
             // Check for slow executions
             var recentExecutions = executions.Skip(Math.Max(0, executions.Count - 5)).ToList();
             foreach (var execution in recentExecutions)
@@ -274,7 +274,7 @@ public class DefaultMetricsProvider : IMetricsProvider
                     });
                 }
             }
-            
+
             // Check for high failure rate
             if (stats.SuccessRate < (1.0 - _highFailureRateThreshold) && stats.TotalExecutions >= 10)
             {
@@ -288,21 +288,21 @@ public class DefaultMetricsProvider : IMetricsProvider
                 });
             }
         }
-        
+
         return anomalies.OrderByDescending(a => a.Severity);
     }
-    
+
     public TimingBreakdown GetTimingBreakdown(string operationId)
     {
-        return _timingBreakdowns.TryGetValue(operationId, out var breakdown) 
-            ? breakdown 
+        return _timingBreakdowns.TryGetValue(operationId, out var breakdown)
+            ? breakdown
             : new TimingBreakdown { OperationId = operationId };
     }
-    
+
     public void RecordTimingBreakdown(TimingBreakdown breakdown)
     {
         _timingBreakdowns.TryAdd(breakdown.OperationId, breakdown);
-        
+
         // Clean up old breakdowns to prevent memory growth
         if (_timingBreakdowns.Count > MaxTimingBreakdowns)
         {
@@ -314,18 +314,18 @@ public class DefaultMetricsProvider : IMetricsProvider
             }
         }
     }
-    
+
     private static string GetHandlerKey(Type requestType, string? handlerName)
     {
         var typeName = requestType.FullName ?? requestType.Name;
         return handlerName != null ? $"{typeName}:{handlerName}" : typeName;
     }
-    
+
     private static TimeSpan GetPercentile(List<TimeSpan> sortedDurations, double percentile)
     {
         if (sortedDurations.Count == 0) return TimeSpan.Zero;
         if (sortedDurations.Count == 1) return sortedDurations[0];
-        
+
         var index = (int)Math.Ceiling(sortedDurations.Count * percentile) - 1;
         index = Math.Max(0, Math.Min(index, sortedDurations.Count - 1));
         return sortedDurations[index];

@@ -1,7 +1,7 @@
-using Microsoft.Extensions.ObjectPool;
-using Relay.Core.Telemetry;
 using System;
 using System.Diagnostics;
+using Microsoft.Extensions.ObjectPool;
+using Relay.Core.Telemetry;
 
 namespace Relay.Core.Performance;
 
@@ -30,11 +30,11 @@ public static class TelemetryContextPool
     public static TelemetryContext Get()
     {
         var context = Pool.Get();
-        
+
         // Ensure fresh state
         context.RequestId = Guid.NewGuid().ToString();
         context.StartTime = DateTimeOffset.UtcNow;
-        
+
         return context;
     }
 

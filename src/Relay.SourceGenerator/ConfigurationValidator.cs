@@ -10,7 +10,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Validates configuration at compile time and reports configuration conflicts and issues.
     /// </summary>
-    internal class ConfigurationValidator
+    public class ConfigurationValidator
     {
         private readonly IDiagnosticReporter _diagnosticReporter;
 
@@ -22,7 +22,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates handler configurations for conflicts and completeness.
         /// </summary>
-        public void ValidateHandlerConfigurations(IEnumerable<HandlerRegistration> handlers)
+        internal void ValidateHandlerConfigurations(IEnumerable<HandlerRegistration> handlers)
         {
             var handlerGroups = handlers.GroupBy(h => new { h.RequestType, h.ResponseType });
 
@@ -74,7 +74,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates notification handler configurations.
         /// </summary>
-        public void ValidateNotificationConfigurations(IEnumerable<NotificationHandlerRegistration> notificationHandlers)
+        internal void ValidateNotificationConfigurations(IEnumerable<NotificationHandlerRegistration> notificationHandlers)
         {
             foreach (var handler in notificationHandlers)
             {
@@ -85,7 +85,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates pipeline configurations for ordering and scope conflicts.
         /// </summary>
-        public void ValidatePipelineConfigurations(IEnumerable<PipelineRegistration> pipelines)
+        internal void ValidatePipelineConfigurations(IEnumerable<PipelineRegistration> pipelines)
         {
             // Group pipelines by scope to check for ordering conflicts
             var pipelineGroups = pipelines.GroupBy(p => p.Scope);
@@ -122,7 +122,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates configuration completeness - ensures all required configurations are present.
         /// </summary>
-        public void ValidateConfigurationCompleteness(
+        internal void ValidateConfigurationCompleteness(
             IEnumerable<HandlerRegistration> handlers,
             IEnumerable<NotificationHandlerRegistration> notificationHandlers,
             IEnumerable<PipelineRegistration> pipelines)
@@ -144,7 +144,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates attribute parameter combinations for conflicts.
         /// </summary>
-        public void ValidateAttributeParameterConflicts(IEnumerable<HandlerRegistration> handlers)
+        internal void ValidateAttributeParameterConflicts(IEnumerable<HandlerRegistration> handlers)
         {
             foreach (var handler in handlers)
             {

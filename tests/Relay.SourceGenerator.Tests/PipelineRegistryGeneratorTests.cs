@@ -217,9 +217,9 @@ public class TestPipelineHandlers
 
         private class MockAttributeData : AttributeData
         {
-            public override INamedTypeSymbol? AttributeClass => null;
-            public override IMethodSymbol? AttributeConstructor => null;
-            public override SyntaxReference? ApplicationSyntaxReference => null;
+            protected override INamedTypeSymbol? CommonAttributeClass => null;
+            protected override IMethodSymbol? CommonAttributeConstructor => null;
+            protected override SyntaxReference? CommonApplicationSyntaxReference => null;
 
             protected override System.Collections.Immutable.ImmutableArray<TypedConstant> CommonConstructorArguments =>
                 System.Collections.Immutable.ImmutableArray<TypedConstant>.Empty;

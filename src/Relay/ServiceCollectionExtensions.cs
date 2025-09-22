@@ -25,7 +25,7 @@ namespace Relay
             services.AddTransient<IRelay, RelayImplementation>();
             
             // Register default dispatchers (will be replaced by generated ones if available)
-            services.AddTransient<IRequestDispatcher, FallbackDispatcher>();
+            services.AddTransient<IRequestDispatcher, FallbackRequestDispatcher>();
             services.AddTransient<IStreamDispatcher, StreamDispatcher>();
             services.AddTransient<INotificationDispatcher, NotificationDispatcher>();
 

@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Linq;
 using NuGet.Packaging;
 using Xunit;
 
@@ -66,8 +67,7 @@ public class PackageValidationTests
 
         foreach (var expectedFramework in expectedFrameworks)
         {
-            Assert.Contains(expectedFramework, actualFrameworks, 
-                $"Package {packageName} should support {expectedFramework}");
+            Assert.Contains(expectedFramework, actualFrameworks);
         }
     }
 
@@ -77,11 +77,12 @@ public class PackageValidationTests
         var packagePath = GetPackagePath("Relay.SourceGenerator");
         using var packageReader = new PackageArchiveReader(packagePath);
         
-        var analyzerItems = packageReader.GetAnalyzerItems().ToList();
+        // GetAnalyzerItems method not available in this version
+        var analyzerItems = packageReader.GetFiles().Where(f => f.StartsWith("analyzers/")).ToList();
         Assert.NotEmpty(analyzerItems);
 
-        var hasSourceGeneratorDll = analyzerItems.Any(item => 
-            item.Items.Any(file => file.EndsWith("Relay.SourceGenerator.dll")));
+        var hasSourceGeneratorDll = analyzerItems.Any(file =>
+            file.EndsWith("Relay.SourceGenerator.dll"));
         Assert.True(hasSourceGeneratorDll, "Source generator package should include analyzer DLL");
     }
 

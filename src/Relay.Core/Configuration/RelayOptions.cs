@@ -49,6 +49,36 @@ namespace Relay.Core.Configuration
         public AuthorizationOptions DefaultAuthorizationOptions { get; set; } = new();
 
         /// <summary>
+        /// Gets or sets the default configuration for retry behavior.
+        /// </summary>
+        public RetryOptions DefaultRetryOptions { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the default configuration for contract validation.
+        /// </summary>
+        public ContractValidationOptions DefaultContractValidationOptions { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the default configuration for distributed tracing.
+        /// </summary>
+        public DistributedTracingOptions DefaultDistributedTracingOptions { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the default configuration for handler versioning.
+        /// </summary>
+        public HandlerVersioningOptions DefaultHandlerVersioningOptions { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the default configuration for event sourcing.
+        /// </summary>
+        public EventSourcingOptions DefaultEventSourcingOptions { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the default configuration for message queue integration.
+        /// </summary>
+        public MessageQueueOptions DefaultMessageQueueOptions { get; set; } = new();
+
+        /// <summary>
         /// Gets or sets whether to enable telemetry by default.
         /// </summary>
         public bool EnableTelemetry { get; set; } = true;
@@ -97,6 +127,36 @@ namespace Relay.Core.Configuration
         /// Gets or sets authorization-specific configuration overrides.
         /// </summary>
         public Dictionary<string, AuthorizationOptions> AuthorizationOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets retry-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, RetryOptions> RetryOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets contract validation-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, ContractValidationOptions> ContractValidationOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets distributed tracing-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, DistributedTracingOptions> DistributedTracingOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets handler versioning-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, HandlerVersioningOptions> HandlerVersioningOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets event sourcing-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, EventSourcingOptions> EventSourcingOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets message queue-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, MessageQueueOptions> MessageQueueOverrides { get; set; } = new();
     }
 
     /// <summary>

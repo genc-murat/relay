@@ -227,6 +227,12 @@ foreach (var anomaly in anomalies)
 - **[Caching Guide](docs/caching-guide.md)** - Caching handler results for improved performance
 - **[Rate Limiting Guide](docs/rate-limiting-guide.md)** - Protect handlers from excessive requests
 - **[Authorization Guide](docs/authorization-guide.md)** - Secure handlers with role-based access control
+- **[Retry Guide](docs/retry-guide.md)** - Automatic retry logic for failed requests
+- **[Contract Validation Guide](docs/contract-validation-guide.md)** - Validate request and response contracts
+- **[Distributed Tracing Guide](docs/distributed-tracing-guide.md)** - Monitor requests with OpenTelemetry
+- **[Handler Versioning Guide](docs/handler-versioning-guide.md)** - Manage multiple versions of handlers
+- **[Event Sourcing Guide](docs/event-sourcing-guide.md)** - Implement event-sourced aggregates
+- **[Message Queue Guide](docs/message-queue-guide.md)** - Integrate with message queue systems
 - **[Examples](docs/examples/)** - Comprehensive examples and patterns
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 

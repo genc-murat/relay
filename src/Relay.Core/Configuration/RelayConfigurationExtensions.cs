@@ -199,6 +199,86 @@ namespace Relay.Core.Configuration
         }
 
         /// <summary>
+        /// Adds and configures retry behavior for Relay requests.
+        /// This registers the <see cref="Retry.RetryPipelineBehavior{TRequest, TResponse}"/>
+        /// and the required retry services.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayRetry(this IServiceCollection services)
+        {
+            services.AddTransient<IRetryStrategy, LinearRetryStrategy>();
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Retry.RetryPipelineBehavior<,>));
+            return services;
+        }
+
+        /// <summary>
+        /// Adds and configures contract validation for Relay requests.
+        /// This registers the <see cref="ContractValidation.ContractValidationPipelineBehavior{TRequest, TResponse}"/>
+        /// and the required contract validation services.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayContractValidation(this IServiceCollection services)
+        {
+            services.AddTransient<IContractValidator, DefaultContractValidator>();
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ContractValidation.ContractValidationPipelineBehavior<,>));
+            return services;
+        }
+
+        /// <summary>
+        /// Adds and configures distributed tracing for Relay requests.
+        /// This registers the <see cref="DistributedTracing.DistributedTracingPipelineBehavior{TRequest, TResponse}"/>
+        /// and the required distributed tracing services.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayDistributedTracing(this IServiceCollection services)
+        {
+            services.AddTransient<IDistributedTracingProvider, OpenTelemetryTracingProvider>();
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(DistributedTracing.DistributedTracingPipelineBehavior<,>));
+            return services;
+        }
+
+        /// <summary>
+        /// Adds and configures handler versioning for Relay requests.
+        /// This registers the <see cref="HandlerVersioning.VersionedRelay"/> service.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayHandlerVersioning(this IServiceCollection services)
+        {
+            services.AddTransient<IVersionedRelay, VersionedRelay>();
+            return services;
+        }
+
+        /// <summary>
+        /// Adds and configures event sourcing for Relay.
+        /// This registers the event sourcing services.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayEventSourcing(this IServiceCollection services)
+        {
+            services.AddTransient<IEventStore, InMemoryEventStore>();
+            services.AddTransient(typeof(IEventSourcedRepository<,>), typeof(EventSourcedRepository<,>));
+            return services;
+        }
+
+        /// <summary>
+        /// Adds and configures message queue integration for Relay.
+        /// This registers the message queue services.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayMessageQueue(this IServiceCollection services)
+        {
+            services.AddTransient<IMessageQueuePublisher, InMemoryMessageQueuePublisher>();
+            services.AddTransient<IMessageQueueConsumer, InMemoryMessageQueueConsumer>();
+            return services;
+        }
+
+        /// <summary>
         /// Validates the Relay configuration and throws an exception if invalid.
         /// </summary>
         /// <param name="services">The service collection.</param>

@@ -155,6 +155,50 @@ namespace Relay.Core.Configuration
         }
 
         /// <summary>
+        /// Adds and configures advanced caching for Relay requests.
+        /// This registers the <see cref="Caching.AdvancedCachingPipelineBehavior{TRequest, TResponse}"/>
+        /// and the required caching services.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayAdvancedCaching(this IServiceCollection services)
+        {
+            services.AddMemoryCache();
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Caching.AdvancedCachingPipelineBehavior<,>));
+            return services;
+        }
+
+        /// <summary>
+        /// Adds and configures rate limiting for Relay requests.
+        /// This registers the <see cref="RateLimiting.RateLimitingPipelineBehavior{TRequest, TResponse}"/>
+        /// and the required rate limiting services.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayRateLimiting(this IServiceCollection services)
+        {
+            services.AddMemoryCache();
+            services.AddTransient<IRateLimiter, InMemoryRateLimiter>();
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(RateLimiting.RateLimitingPipelineBehavior<,>));
+            return services;
+        }
+
+        /// <summary>
+        /// Adds and configures authorization for Relay requests.
+        /// This registers the <see cref="Authorization.AuthorizationPipelineBehavior{TRequest, TResponse}"/>
+        /// and the required authorization services.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayAuthorization(this IServiceCollection services)
+        {
+            services.AddTransient<IAuthorizationService, DefaultAuthorizationService>();
+            services.AddTransient<IAuthorizationContext, DefaultAuthorizationContext>();
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Authorization.AuthorizationPipelineBehavior<,>));
+            return services;
+        }
+
+        /// <summary>
         /// Validates the Relay configuration and throws an exception if invalid.
         /// </summary>
         /// <param name="services">The service collection.</param>

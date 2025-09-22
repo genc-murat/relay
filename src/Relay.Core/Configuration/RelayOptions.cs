@@ -34,6 +34,21 @@ namespace Relay.Core.Configuration
         public ValidationOptions DefaultValidationOptions { get; set; } = new();
 
         /// <summary>
+        /// Gets or sets the default configuration for caching.
+        /// </summary>
+        public CachingOptions DefaultCachingOptions { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the default configuration for rate limiting.
+        /// </summary>
+        public RateLimitingOptions DefaultRateLimitingOptions { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the default configuration for authorization.
+        /// </summary>
+        public AuthorizationOptions DefaultAuthorizationOptions { get; set; } = new();
+
+        /// <summary>
         /// Gets or sets whether to enable telemetry by default.
         /// </summary>
         public bool EnableTelemetry { get; set; } = true;
@@ -67,6 +82,21 @@ namespace Relay.Core.Configuration
         /// Gets or sets validation-specific configuration overrides.
         /// </summary>
         public Dictionary<string, ValidationOptions> ValidationOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets caching-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, CachingOptions> CachingOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets rate limiting-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, RateLimitingOptions> RateLimitingOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets authorization-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, AuthorizationOptions> AuthorizationOverrides { get; set; } = new();
     }
 
     /// <summary>

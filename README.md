@@ -224,6 +224,9 @@ foreach (var anomaly in anomalies)
 - **[Diagnostics Guide](docs/diagnostics-guide.md)** - Comprehensive monitoring and debugging
 - **[Testing Guide](docs/testing-guide.md)** - Advanced testing utilities and patterns
 - **[Validation Guide](docs/validation-guide.md)** - Automatic request validation with pipeline behaviors
+- **[Caching Guide](docs/caching-guide.md)** - Caching handler results for improved performance
+- **[Rate Limiting Guide](docs/rate-limiting-guide.md)** - Protect handlers from excessive requests
+- **[Authorization Guide](docs/authorization-guide.md)** - Secure handlers with role-based access control
 - **[Examples](docs/examples/)** - Comprehensive examples and patterns
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 

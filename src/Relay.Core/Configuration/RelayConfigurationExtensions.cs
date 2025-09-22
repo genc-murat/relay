@@ -178,7 +178,8 @@ namespace Relay.Core.Configuration
         public static IServiceCollection AddRelayRateLimiting(this IServiceCollection services)
         {
             services.AddMemoryCache();
-            services.AddTransient<IRateLimiter, InMemoryRateLimiter>();
+            // TODO: Implement missing interfaces
+            // services.AddTransient<IRateLimiter, InMemoryRateLimiter>();
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(RateLimiting.RateLimitingPipelineBehavior<,>));
             return services;
         }
@@ -192,8 +193,9 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayAuthorization(this IServiceCollection services)
         {
-            services.AddTransient<IAuthorizationService, DefaultAuthorizationService>();
-            services.AddTransient<IAuthorizationContext, DefaultAuthorizationContext>();
+            // TODO: Implement missing interfaces
+            // services.AddTransient<IAuthorizationService, DefaultAuthorizationService>();
+            // services.AddTransient<IAuthorizationContext, DefaultAuthorizationContext>();
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Authorization.AuthorizationPipelineBehavior<,>));
             return services;
         }
@@ -207,7 +209,8 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayRetry(this IServiceCollection services)
         {
-            services.AddTransient<IRetryStrategy, LinearRetryStrategy>();
+            // TODO: Implement missing interfaces
+            // services.AddTransient<IRetryStrategy, LinearRetryStrategy>();
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Retry.RetryPipelineBehavior<,>));
             return services;
         }
@@ -221,7 +224,8 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayContractValidation(this IServiceCollection services)
         {
-            services.AddTransient<IContractValidator, DefaultContractValidator>();
+            // TODO: Implement missing interfaces
+            // services.AddTransient<IContractValidator, DefaultContractValidator>();
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ContractValidation.ContractValidationPipelineBehavior<,>));
             return services;
         }
@@ -235,7 +239,8 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayDistributedTracing(this IServiceCollection services)
         {
-            services.AddTransient<IDistributedTracingProvider, OpenTelemetryTracingProvider>();
+            // TODO: Implement missing interfaces
+            // services.AddTransient<IDistributedTracingProvider, OpenTelemetryTracingProvider>();
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(DistributedTracing.DistributedTracingPipelineBehavior<,>));
             return services;
         }
@@ -248,7 +253,8 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayHandlerVersioning(this IServiceCollection services)
         {
-            services.AddTransient<IVersionedRelay, VersionedRelay>();
+            // TODO: Implement missing interfaces
+            // services.AddTransient<IVersionedRelay, VersionedRelay>();
             return services;
         }
 
@@ -260,8 +266,9 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayEventSourcing(this IServiceCollection services)
         {
-            services.AddTransient<IEventStore, InMemoryEventStore>();
-            services.AddTransient(typeof(IEventSourcedRepository<,>), typeof(EventSourcedRepository<,>));
+            // TODO: Implement missing interfaces
+            // services.AddTransient<IEventStore, InMemoryEventStore>();
+            // services.AddTransient(typeof(IEventSourcedRepository<,>), typeof(EventSourcedRepository<,>));
             return services;
         }
 
@@ -273,8 +280,9 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayMessageQueue(this IServiceCollection services)
         {
-            services.AddTransient<IMessageQueuePublisher, InMemoryMessageQueuePublisher>();
-            services.AddTransient<IMessageQueueConsumer, InMemoryMessageQueueConsumer>();
+            // TODO: Implement missing interfaces
+            // services.AddTransient<IMessageQueuePublisher, InMemoryMessageQueuePublisher>();
+            // services.AddTransient<IMessageQueueConsumer, InMemoryMessageQueueConsumer>();
             return services;
         }
 

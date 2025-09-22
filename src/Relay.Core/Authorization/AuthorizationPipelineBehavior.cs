@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,7 +39,7 @@ namespace Relay.Core.Authorization
         {
             // Get authorization configuration
             var authorizationOptions = GetAuthorizationOptions();
-            var authorizeAttributes = typeof(TRequest).GetCustomAttributes<AuthorizeAttribute>(true);
+            var authorizeAttributes = typeof(TRequest).GetCustomAttributes<AuthorizeAttribute>(true).ToArray();
 
             // Check if authorization is enabled for this request
             if (!IsAuthorizationEnabled(authorizationOptions, authorizeAttributes))

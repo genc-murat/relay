@@ -22,7 +22,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates handler configurations for conflicts and completeness.
         /// </summary>
-        internal void ValidateHandlerConfigurations(IEnumerable<HandlerRegistration> handlers)
+        public void ValidateHandlerConfigurations(IEnumerable<HandlerRegistration> handlers)
         {
             var handlerGroups = handlers.GroupBy(h => new { h.RequestType, h.ResponseType });
 
@@ -74,7 +74,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates notification handler configurations.
         /// </summary>
-        internal void ValidateNotificationConfigurations(IEnumerable<NotificationHandlerRegistration> notificationHandlers)
+        public void ValidateNotificationConfigurations(IEnumerable<NotificationHandlerRegistration> notificationHandlers)
         {
             foreach (var handler in notificationHandlers)
             {
@@ -85,7 +85,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates pipeline configurations for ordering and scope conflicts.
         /// </summary>
-        internal void ValidatePipelineConfigurations(IEnumerable<PipelineRegistration> pipelines)
+        public void ValidatePipelineConfigurations(IEnumerable<PipelineRegistration> pipelines)
         {
             // Group pipelines by scope to check for ordering conflicts
             var pipelineGroups = pipelines.GroupBy(p => p.Scope);
@@ -122,7 +122,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates configuration completeness - ensures all required configurations are present.
         /// </summary>
-        internal void ValidateConfigurationCompleteness(
+        public void ValidateConfigurationCompleteness(
             IEnumerable<HandlerRegistration> handlers,
             IEnumerable<NotificationHandlerRegistration> notificationHandlers,
             IEnumerable<PipelineRegistration> pipelines)
@@ -144,7 +144,7 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Validates attribute parameter combinations for conflicts.
         /// </summary>
-        internal void ValidateAttributeParameterConflicts(IEnumerable<HandlerRegistration> handlers)
+        public void ValidateAttributeParameterConflicts(IEnumerable<HandlerRegistration> handlers)
         {
             foreach (var handler in handlers)
             {
@@ -310,7 +310,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Represents a handler registration for validation.
     /// </summary>
-    internal class HandlerRegistration
+    public class HandlerRegistration
     {
         public ITypeSymbol RequestType { get; set; } = null!;
         public ITypeSymbol? ResponseType { get; set; }
@@ -325,7 +325,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Represents a notification handler registration for validation.
     /// </summary>
-    internal class NotificationHandlerRegistration
+    public class NotificationHandlerRegistration
     {
         public ITypeSymbol NotificationType { get; set; } = null!;
         public IMethodSymbol Method { get; set; } = null!;
@@ -337,7 +337,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Represents a pipeline registration for validation.
     /// </summary>
-    internal class PipelineRegistration
+    public class PipelineRegistration
     {
         public ITypeSymbol? PipelineType { get; set; }
         public IMethodSymbol? Method { get; set; }
@@ -350,7 +350,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Pipeline scope enumeration for validation.
     /// </summary>
-    internal enum PipelineScope
+    public enum PipelineScope
     {
         All,
         Requests,
@@ -361,7 +361,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Handler kind enumeration for validation.
     /// </summary>
-    internal enum HandlerKind
+    public enum HandlerKind
     {
         Request,
         Stream,

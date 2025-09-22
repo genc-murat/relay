@@ -848,7 +848,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Registry for tracking handlers during compilation analysis.
     /// </summary>
-    internal class HandlerRegistry
+    public class HandlerRegistry
     {
         public List<AnalyzerHandlerInfo> Handlers { get; } = new();
 
@@ -881,7 +881,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Information about a discovered handler method for analyzer purposes.
     /// </summary>
-    internal class AnalyzerHandlerInfo
+    public class AnalyzerHandlerInfo
     {
         public IMethodSymbol MethodSymbol { get; set; } = null!;
         public string MethodName { get; set; } = string.Empty;

@@ -10,7 +10,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Generates JSON schema definitions for types at compile time.
     /// </summary>
-    internal static class JsonSchemaGenerator
+    public static class JsonSchemaGenerator
     {
         /// <summary>
         /// Generates a JSON schema for the specified type symbol.

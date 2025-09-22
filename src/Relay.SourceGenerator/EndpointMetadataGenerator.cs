@@ -10,7 +10,7 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Generates endpoint metadata registration code for handlers marked with ExposeAsEndpoint attribute.
     /// </summary>
-    internal class EndpointMetadataGenerator
+    public class EndpointMetadataGenerator
     {
         private readonly Compilation _compilation;
         private readonly IDiagnosticReporter _diagnosticReporter;

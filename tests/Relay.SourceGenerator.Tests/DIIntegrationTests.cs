@@ -1,5 +1,5 @@
+extern alias RelayCore;
 using Microsoft.Extensions.DependencyInjection;
-using Relay.Core;
 using System;
 using Xunit;
 
@@ -12,16 +12,16 @@ namespace Relay.SourceGenerator.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            
+
             // Act & Assert - This should compile without errors
             // In a real scenario, this would use the generated AddRelay extension method
-            services.AddSingleton<IRelay, RelayImplementation>();
-            
+            services.AddSingleton<RelayCore::Relay.Core.IRelay, RelayCore::Relay.Core.RelayImplementation>();
+
             var serviceProvider = services.BuildServiceProvider();
-            var relay = serviceProvider.GetService<IRelay>();
-            
+            var relay = serviceProvider.GetService<RelayCore::Relay.Core.IRelay>();
+
             Assert.NotNull(relay);
-            Assert.IsType<RelayImplementation>(relay);
+            Assert.IsType<RelayCore::Relay.Core.RelayImplementation>(relay);
         }
 
         [Fact]
@@ -30,10 +30,10 @@ namespace Relay.SourceGenerator.Tests
             // Arrange
             var services = new ServiceCollection();
             var serviceProvider = services.BuildServiceProvider();
-            
+
             // Act
-            var relay = new RelayImplementation(serviceProvider);
-            
+            var relay = new RelayCore::Relay.Core.RelayImplementation(serviceProvider);
+
             // Assert
             Assert.NotNull(relay);
         }
@@ -42,7 +42,7 @@ namespace Relay.SourceGenerator.Tests
         public void RelayImplementation_ThrowsForNullServiceProvider()
         {
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new RelayImplementation(null!));
+            Assert.Throws<ArgumentNullException>(() => new RelayCore::Relay.Core.RelayImplementation(null!));
         }
     }
 }

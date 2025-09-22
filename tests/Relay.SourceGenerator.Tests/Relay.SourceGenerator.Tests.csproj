@@ -31,7 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Relay.SourceGenerator\Relay.SourceGenerator.csproj" />
     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj">
-      <Aliases>Core</Aliases>
+      <Aliases>RelayCore</Aliases>
     </ProjectReference>
   </ItemGroup>
 

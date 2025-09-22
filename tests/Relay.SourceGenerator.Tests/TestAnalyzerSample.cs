@@ -1,23 +1,21 @@
-extern alias Core;
-using System.Threading;
-using System.Threading.Tasks;
+extern alias RelayCore;
 
 namespace Relay.SourceGenerator.Tests
 {
     // Test classes for analyzer validation
 
-    public class ValidTestRequest : Core.IRequest<string> { }
-    public class ValidTestNotification : Core.INotification { }
+    public class ValidTestRequest : RelayCore::Relay.Core.IRequest<string> { }
+    public class ValidTestNotification : RelayCore::Relay.Core.INotification { }
 
     public class ValidTestHandler
     {
-        [Core.Handle]
+        [RelayCore::Relay.Core.Handle]
         public ValueTask<string> HandleValidRequest(ValidTestRequest request, CancellationToken cancellationToken)
         {
             return ValueTask.FromResult("test");
         }
 
-        [Core.Notification]
+        [RelayCore::Relay.Core.Notification]
         public ValueTask HandleValidNotification(ValidTestNotification notification, CancellationToken cancellationToken)
         {
             return ValueTask.CompletedTask;
@@ -28,21 +26,21 @@ namespace Relay.SourceGenerator.Tests
     public class InvalidTestHandler
     {
         // Missing request parameter
-        [Core.Handle]
+        [RelayCore::Relay.Core.Handle]
         public ValueTask<string> HandleMissingParameter()
         {
             return ValueTask.FromResult("test");
         }
 
         // Invalid return type
-        [Core.Handle]
+        [RelayCore::Relay.Core.Handle]
         public string HandleInvalidReturnType(ValidTestRequest request, CancellationToken cancellationToken)
         {
             return "test";
         }
 
         // Missing CancellationToken (should produce warning)
-        [Core.Handle]
+        [RelayCore::Relay.Core.Handle]
         public ValueTask<string> HandleMissingCancellationToken(ValidTestRequest request)
         {
             return ValueTask.FromResult("test");
@@ -52,7 +50,7 @@ namespace Relay.SourceGenerator.Tests
     // Duplicate handlers
     public class DuplicateTestHandler1
     {
-        [Core.Handle]
+        [RelayCore::Relay.Core.Handle]
         public ValueTask<string> HandleDuplicate(ValidTestRequest request, CancellationToken cancellationToken)
         {
             return ValueTask.FromResult("test1");
@@ -61,7 +59,7 @@ namespace Relay.SourceGenerator.Tests
 
     public class DuplicateTestHandler2
     {
-        [Core.Handle]
+        [RelayCore::Relay.Core.Handle]
         public ValueTask<string> HandleDuplicate(ValidTestRequest request, CancellationToken cancellationToken)
         {
             return ValueTask.FromResult("test2");

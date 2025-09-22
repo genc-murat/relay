@@ -95,6 +95,30 @@
 				"Release"
 			],
 			"group": "build"
+		},
+		{
+			"label": "rebuild Release after fixes",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"--no-restore",
+				"--configuration",
+				"Release"
+			],
+			"group": "build"
+		},
+		{
+			"label": "build after span fix",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"--no-restore",
+				"--configuration",
+				"Release"
+			],
+			"group": "build"
 		}
 	]
 }

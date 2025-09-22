@@ -30,7 +30,7 @@ namespace Relay.Core.RateLimiting
 
             var cacheKey = $"RateLimit:{key}";
             
-            if (!_cache.TryGetValue(cacheKey, out RateLimitInfo? info))
+            if (!_cache.TryGetValue(cacheKey, out RateLimitInfo? info) || info is null)
             {
                 info = new RateLimitInfo
                 {
@@ -75,7 +75,7 @@ namespace Relay.Core.RateLimiting
 
             var cacheKey = $"RateLimit:{key}";
             
-            if (!_cache.TryGetValue(cacheKey, out RateLimitInfo? info))
+            if (!_cache.TryGetValue(cacheKey, out RateLimitInfo? info) || info is null)
             {
                 return TimeSpan.Zero;
             }

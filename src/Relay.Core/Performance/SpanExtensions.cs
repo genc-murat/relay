@@ -24,6 +24,21 @@ public static class SpanExtensions
     }
 
     /// <summary>
+    /// Efficiently copies data to a span without additional allocations (mutable span overload)
+    /// </summary>
+    /// <typeparam name="T">The type of elements</typeparam>
+    /// <param name="source">Source span</param>
+    /// <param name="destination">Destination span</param>
+    /// <returns>Number of elements copied</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int CopyToSpan<T>(this Span<T> source, Span<T> destination)
+    {
+        var length = Math.Min(source.Length, destination.Length);
+        source.Slice(0, length).CopyTo(destination);
+        return length;
+    }
+
+    /// <summary>
     /// Efficiently slices a span with bounds checking
     /// </summary>
     /// <typeparam name="T">The type of elements</typeparam>

@@ -66,7 +66,7 @@ namespace Relay.Core.Validation
         public async IAsyncEnumerable<TResponse> HandleAsync(
             TRequest request, 
             StreamHandlerDelegate<TResponse> next, 
-            CancellationToken cancellationToken)
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             // Validate the request
             var errors = await _validator.ValidateAsync(request, cancellationToken);

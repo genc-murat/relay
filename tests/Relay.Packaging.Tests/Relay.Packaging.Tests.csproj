@@ -20,8 +20,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="NuGet.Packaging" Version="6.7.0" />
-    <PackageReference Include="NuGet.Protocol" Version="6.7.0" />
+    <PackageReference Include="NuGet.Packaging" Version="6.11.0" />
+    <PackageReference Include="NuGet.Protocol" Version="6.11.0" />
   </ItemGroup>
 
   <ItemGroup>

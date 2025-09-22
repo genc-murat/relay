@@ -223,6 +223,7 @@ foreach (var anomaly in anomalies)
 - **[Developer Experience](docs/developer-experience.md)** - Diagnostics, testing, and compile-time validation
 - **[Diagnostics Guide](docs/diagnostics-guide.md)** - Comprehensive monitoring and debugging
 - **[Testing Guide](docs/testing-guide.md)** - Advanced testing utilities and patterns
+- **[Validation Guide](docs/validation-guide.md)** - Automatic request validation with pipeline behaviors
 - **[Examples](docs/examples/)** - Comprehensive examples and patterns
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 

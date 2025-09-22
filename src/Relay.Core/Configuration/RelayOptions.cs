@@ -29,6 +29,11 @@ namespace Relay.Core.Configuration
         public EndpointOptions DefaultEndpointOptions { get; set; } = new();
 
         /// <summary>
+        /// Gets or sets the default configuration for validation.
+        /// </summary>
+        public ValidationOptions DefaultValidationOptions { get; set; } = new();
+
+        /// <summary>
         /// Gets or sets whether to enable telemetry by default.
         /// </summary>
         public bool EnableTelemetry { get; set; } = true;
@@ -57,6 +62,11 @@ namespace Relay.Core.Configuration
         /// Gets or sets pipeline-specific configuration overrides.
         /// </summary>
         public Dictionary<string, PipelineOptions> PipelineOverrides { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets validation-specific configuration overrides.
+        /// </summary>
+        public Dictionary<string, ValidationOptions> ValidationOverrides { get; set; } = new();
     }
 
     /// <summary>

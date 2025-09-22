@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dotnet --version)",
       "Bash(dotnet build)",
-      "Bash(dotnet restore:*)"
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

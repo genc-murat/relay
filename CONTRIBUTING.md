@@ -35,7 +35,7 @@ We welcome feature suggestions! Please:
 2. **Clone your fork** locally:
 
    ```bash
-   git clone https://github.com/your-username/relay.git
+   git clone https://github.com/genc-murat/relay.git
    cd relay
    ```
 

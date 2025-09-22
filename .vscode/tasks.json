@@ -83,6 +83,18 @@
 				"$msCompile"
 			],
 			"group": "test"
+		},
+		{
+			"label": "build Release for solution (no-restore)",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"--no-restore",
+				"--configuration",
+				"Release"
+			],
+			"group": "build"
 		}
 	]
 }

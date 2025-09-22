@@ -160,7 +160,7 @@ namespace TestProject
 
             // Assert
             result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage().Contains("exactly one parameter"));
+            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("exactly one parameter"));
         }
 
         [Fact]
@@ -187,7 +187,7 @@ namespace TestProject
 
             // Assert
             result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage().Contains("exactly one parameter"));
+            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("exactly one parameter"));
         }
 
         [Fact]
@@ -214,7 +214,7 @@ namespace TestProject
 
             // Assert
             result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage().Contains("Task, ValueTask, or void"));
+            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("Task, ValueTask, or void"));
         }
 
         [Fact]
@@ -331,7 +331,7 @@ namespace TestProject
 
             // Assert
             result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage().Contains("public or internal"));
+            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("public or internal"));
         }
 
         [Fact]
@@ -384,7 +384,7 @@ namespace TestProject
 
             // Assert
             result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage().Contains("at least two parameters"));
+            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("at least two parameters"));
         }
 
         [Fact]
@@ -441,7 +441,7 @@ namespace TestProject
 
             // Assert
             result.Handlers.Should().HaveCount(2); // Both handlers are discovered but marked as duplicates
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_005" && d.GetMessage().Contains("Multiple handlers"));
+            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_005" && d.GetMessage(null).Contains("Multiple handlers"));
         }
 
         private HandlerDiscoveryResult RunHandlerDiscovery(string source)

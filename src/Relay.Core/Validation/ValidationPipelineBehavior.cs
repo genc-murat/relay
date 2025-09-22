@@ -26,13 +26,13 @@ namespace Relay.Core.Validation
 
         /// <inheritdoc />
         public async ValueTask<TResponse> HandleAsync(
-            TRequest request, 
-            RequestHandlerDelegate<TResponse> next, 
+            TRequest request,
+            RequestHandlerDelegate<TResponse> next,
             CancellationToken cancellationToken)
         {
             // Validate the request
             var errors = await _validator.ValidateAsync(request, cancellationToken);
-            
+
             // If there are validation errors, throw a ValidationException
             if (errors.Any())
             {
@@ -64,13 +64,13 @@ namespace Relay.Core.Validation
 
         /// <inheritdoc />
         public async IAsyncEnumerable<TResponse> HandleAsync(
-            TRequest request, 
-            StreamHandlerDelegate<TResponse> next, 
+            TRequest request,
+            StreamHandlerDelegate<TResponse> next,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             // Validate the request
             var errors = await _validator.ValidateAsync(request, cancellationToken);
-            
+
             // If there are validation errors, throw a ValidationException
             if (errors.Any())
             {

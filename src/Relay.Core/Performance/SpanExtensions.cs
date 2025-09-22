@@ -51,7 +51,7 @@ public static class SpanExtensions
     {
         if (start < 0 || start >= span.Length)
             return Span<T>.Empty;
-            
+
         var actualLength = Math.Min(length, span.Length - start);
         return actualLength <= 0 ? Span<T>.Empty : span.Slice(start, actualLength);
     }
@@ -69,7 +69,7 @@ public static class SpanExtensions
     {
         if (start < 0 || start >= span.Length)
             return ReadOnlySpan<T>.Empty;
-            
+
         var actualLength = Math.Min(length, span.Length - start);
         return actualLength <= 0 ? ReadOnlySpan<T>.Empty : span.Slice(start, actualLength);
     }

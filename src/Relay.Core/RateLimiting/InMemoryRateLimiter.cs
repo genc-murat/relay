@@ -1,8 +1,8 @@
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Relay.Core.RateLimiting
 {
@@ -29,7 +29,7 @@ namespace Relay.Core.RateLimiting
             await Task.CompletedTask; // Make method async for interface compliance
 
             var cacheKey = $"RateLimit:{key}";
-            
+
             if (!_cache.TryGetValue(cacheKey, out RateLimitInfo? info) || info is null)
             {
                 info = new RateLimitInfo
@@ -37,7 +37,7 @@ namespace Relay.Core.RateLimiting
                     WindowStart = DateTime.UtcNow,
                     RequestCount = 1
                 };
-                
+
                 _cache.Set(cacheKey, info, TimeSpan.FromMinutes(5)); // Keep info for 5 minutes
                 return true;
             }
@@ -74,7 +74,7 @@ namespace Relay.Core.RateLimiting
             await Task.CompletedTask; // Make method async for interface compliance
 
             var cacheKey = $"RateLimit:{key}";
-            
+
             if (!_cache.TryGetValue(cacheKey, out RateLimitInfo? info) || info is null)
             {
                 return TimeSpan.Zero;
@@ -82,7 +82,7 @@ namespace Relay.Core.RateLimiting
 
             var now = DateTime.UtcNow;
             var windowEnd = info.WindowStart.AddSeconds(info.WindowSeconds);
-            
+
             if (now >= windowEnd)
             {
                 return TimeSpan.Zero;

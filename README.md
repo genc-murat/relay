@@ -337,7 +337,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 📖 **Documentation**: [docs/](docs/)
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/relay-framework/relay/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/relay-framework/relay/discussions)
-- 📧 **Email**: support@relay-framework.dev
 
 ---
 

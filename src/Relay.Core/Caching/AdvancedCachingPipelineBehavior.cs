@@ -53,10 +53,11 @@ namespace Relay.Core.Caching
             var cacheKey = GenerateCacheKey(request, cachingOptions.CacheKeyPrefix);
 
             // Try to get from cache
-            if (await TryGetFromCacheAsync(cacheKey, cachingOptions, out TResponse? cachedResponse))
+            var cacheResult = await TryGetFromCacheAsync(cacheKey, cachingOptions);
+            if (cacheResult.Success)
             {
                 _logger.LogDebug("Cache hit for key: {CacheKey}", cacheKey);
-                return cachedResponse!;
+                return cacheResult.Response!;
             }
 
             _logger.LogDebug("Cache miss for key: {CacheKey}. Executing handler.", cacheKey);
@@ -102,14 +103,12 @@ namespace Relay.Core.Caching
             return $"{cacheKeyPrefix}:{typeof(TRequest).FullName}:{serializedRequest}";
         }
 
-        private async Task<bool> TryGetFromCacheAsync(string cacheKey, CachingOptions cachingOptions, out TResponse? cachedResponse)
+        private async Task<(bool Success, TResponse? Response)> TryGetFromCacheAsync(string cacheKey, CachingOptions cachingOptions)
         {
-            cachedResponse = default;
-
             // Try memory cache first
-            if (_memoryCache.TryGetValue(cacheKey, out cachedResponse))
+            if (_memoryCache.TryGetValue(cacheKey, out TResponse? cachedResponse))
             {
-                return true;
+                return (true, cachedResponse);
             }
 
             // Try distributed cache if enabled
@@ -121,7 +120,7 @@ namespace Relay.Core.Caching
                     if (cachedData != null && cachedData.Length > 0)
                     {
                         cachedResponse = JsonSerializer.Deserialize<TResponse>(cachedData);
-                        return true;
+                        return (true, cachedResponse);
                     }
                 }
                 catch (Exception ex)
@@ -130,7 +129,7 @@ namespace Relay.Core.Caching
                 }
             }
 
-            return false;
+            return (false, default);
         }
 
         private async Task CacheResponseAsync(

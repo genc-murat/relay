@@ -12,7 +12,7 @@ public interface ITelemetryContextPool
     /// </summary>
     /// <returns>A pooled telemetry context</returns>
     TelemetryContext Get();
-    
+
     /// <summary>
     /// Returns a telemetry context to the pool
     /// </summary>

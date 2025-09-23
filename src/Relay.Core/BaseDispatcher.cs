@@ -72,7 +72,7 @@ namespace Relay.Core
                 return relayException;
             }
 
-            return new RelayException(requestType, handlerName, 
+            return new RelayException(requestType, handlerName,
                 $"An error occurred while processing request of type '{requestType}'", exception);
         }
 
@@ -218,7 +218,7 @@ namespace Relay.Core
         }
 
         /// <inheritdoc />
-        public abstract ValueTask DispatchAsync<TNotification>(TNotification notification, CancellationToken cancellationToken) 
+        public abstract ValueTask DispatchAsync<TNotification>(TNotification notification, CancellationToken cancellationToken)
             where TNotification : INotification;
 
         /// <summary>
@@ -230,7 +230,7 @@ namespace Relay.Core
         protected static async ValueTask ExecuteHandlersParallel(IEnumerable<ValueTask> handlers, CancellationToken cancellationToken)
         {
             var tasks = new List<Task>();
-            
+
             foreach (var handler in handlers)
             {
                 tasks.Add(handler.AsTask());

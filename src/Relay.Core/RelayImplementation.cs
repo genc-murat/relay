@@ -25,7 +25,7 @@ namespace Relay.Core
         public RelayImplementation(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            
+
             // Try to resolve generated dispatchers - they may not be available if no handlers are registered
             _requestDispatcher = _serviceProvider.GetService<IRequestDispatcher>();
             _streamDispatcher = _serviceProvider.GetService<IStreamDispatcher>();
@@ -98,7 +98,7 @@ namespace Relay.Core
         }
 
         /// <inheritdoc />
-        public ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default) 
+        public ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
             where TNotification : INotification
         {
             if (notification == null)

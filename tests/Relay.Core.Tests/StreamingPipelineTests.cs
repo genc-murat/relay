@@ -38,12 +38,12 @@ namespace Relay.Core.Tests
             public List<string> LogEntries { get; } = new List<string>();
 
             public async IAsyncEnumerable<string> HandleAsync(
-                StreamingTestRequest request, 
-                StreamHandlerDelegate<string> next, 
+                StreamingTestRequest request,
+                StreamHandlerDelegate<string> next,
                 [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 LogEntries.Add("Pipeline: Before streaming");
-                
+
                 var itemCount = 0;
                 await foreach (var item in next().WithCancellation(cancellationToken))
                 {
@@ -51,7 +51,7 @@ namespace Relay.Core.Tests
                     itemCount++;
                     yield return $"[Logged] {item}";
                 }
-                
+
                 LogEntries.Add($"Pipeline: After streaming, processed {itemCount} items");
             }
         }
@@ -59,8 +59,8 @@ namespace Relay.Core.Tests
         public class TransformStreamPipelineBehavior : IStreamPipelineBehavior<StreamingTestRequest, string>
         {
             public async IAsyncEnumerable<string> HandleAsync(
-                StreamingTestRequest request, 
-                StreamHandlerDelegate<string> next, 
+                StreamingTestRequest request,
+                StreamHandlerDelegate<string> next,
                 [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 await foreach (var item in next().WithCancellation(cancellationToken))
@@ -73,8 +73,8 @@ namespace Relay.Core.Tests
         public class FilterStreamPipelineBehavior : IStreamPipelineBehavior<StreamingTestRequest, string>
         {
             public async IAsyncEnumerable<string> HandleAsync(
-                StreamingTestRequest request, 
-                StreamHandlerDelegate<string> next, 
+                StreamingTestRequest request,
+                StreamHandlerDelegate<string> next,
                 [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 var index = 0;
@@ -93,8 +93,8 @@ namespace Relay.Core.Tests
         public class ExceptionHandlingStreamPipelineBehavior : IStreamPipelineBehavior<StreamingTestRequest, string>
         {
             public async IAsyncEnumerable<string> HandleAsync(
-                StreamingTestRequest request, 
-                StreamHandlerDelegate<string> next, 
+                StreamingTestRequest request,
+                StreamHandlerDelegate<string> next,
                 [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 // Simple pass-through for now - exception handling in async enumerables is complex
@@ -121,13 +121,13 @@ namespace Relay.Core.Tests
             public async IAsyncEnumerable<TResponse> ExecuteStreamAsync<TRequest, TResponse>(TRequest request, StreamHandlerDelegate<TResponse> next, [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 ExecutionLog.Add("SystemModule: Before streaming");
-                
+
                 await foreach (var item in next().WithCancellation(cancellationToken))
                 {
                     ExecutionLog.Add($"SystemModule: Processing item");
                     yield return item;
                 }
-                
+
                 ExecutionLog.Add("SystemModule: After streaming");
             }
         }
@@ -193,7 +193,7 @@ namespace Relay.Core.Tests
             private IEnumerable<IStreamPipelineBehavior<StreamingTestRequest, string>> GetStreamPipelineBehaviors<TResponse>(IStreamRequest<TResponse> request)
             {
                 var behaviors = new List<IStreamPipelineBehavior<StreamingTestRequest, string>>();
-                
+
                 // Only handle string response type for our test
                 if (typeof(TResponse) == typeof(string))
                 {
@@ -235,12 +235,12 @@ namespace Relay.Core.Tests
             var services = new ServiceCollection();
             services.AddSingleton<IStreamDispatcher, TestStreamingPipelineDispatcher>();
             services.AddSingleton<StreamingTestHandler>();
-            
+
             foreach (var service in additionalServices)
             {
                 services.AddSingleton(service.GetType(), service);
             }
-            
+
             return services.BuildServiceProvider();
         }
 
@@ -263,7 +263,7 @@ namespace Relay.Core.Tests
             // Assert
             Assert.Equal(3, results.Count);
             Assert.All(results, item => Assert.StartsWith("[Logged] Test", item));
-            
+
             // Verify pipeline logging
             Assert.Contains("Pipeline: Before streaming", loggingBehavior.LogEntries);
             Assert.Contains("Pipeline: After streaming, processed 3 items", loggingBehavior.LogEntries);
@@ -290,7 +290,7 @@ namespace Relay.Core.Tests
             // Assert
             Assert.Equal(2, results.Count);
             // Should be logged first, then transformed to uppercase
-            Assert.All(results, item => 
+            Assert.All(results, item =>
             {
                 Assert.StartsWith("[Logged] TEST", item);
             });
@@ -339,11 +339,11 @@ namespace Relay.Core.Tests
 
             // Assert
             Assert.Equal(2, results.Count);
-            
+
             // Verify system module executed
             Assert.Contains("SystemModule: Before streaming", systemModule.ExecutionLog);
             Assert.Contains("SystemModule: After streaming", systemModule.ExecutionLog);
-            
+
             // Verify pipeline behavior also executed
             Assert.Contains("Pipeline: Before streaming", loggingBehavior.LogEntries);
         }

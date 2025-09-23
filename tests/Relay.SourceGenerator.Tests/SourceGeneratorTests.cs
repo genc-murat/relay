@@ -158,7 +158,7 @@ namespace TestProject
             {
                 // Verify marker file was generated
                 result.GeneratedTrees.Should().Contain(tree => tree.FilePath.EndsWith("RelayGeneratorMarker.g.cs"));
-                
+
                 var markerFile = result.GeneratedTrees.First(tree => tree.FilePath.EndsWith("RelayGeneratorMarker.g.cs"));
                 var markerContent = markerFile.ToString();
                 markerContent.Should().Contain("RelayGeneratorMarker");
@@ -202,7 +202,7 @@ namespace TestProject
                 references.Add(MetadataReference.CreateFromFile(typeof(Relay.Core.IRelay).Assembly.Location));
             }
 
-            var syntaxTrees = source != null 
+            var syntaxTrees = source != null
                 ? new[] { CSharpSyntaxTree.ParseText(source) }
                 : System.Array.Empty<SyntaxTree>();
 

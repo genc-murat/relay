@@ -23,7 +23,7 @@ namespace Relay.Core.Tests
 
             // Create notification dispatcher with multiple handlers
             var dispatcher = new NotificationDispatcher(services.BuildServiceProvider());
-            
+
             var handler1Registration = new NotificationHandlerRegistration
             {
                 NotificationType = typeof(TestNotification),
@@ -82,7 +82,7 @@ namespace Relay.Core.Tests
             var timeLock = new object();
 
             var dispatcher = new NotificationDispatcher(services.BuildServiceProvider());
-            
+
             var handler1Registration = new NotificationHandlerRegistration
             {
                 NotificationType = typeof(TestNotification),
@@ -140,11 +140,11 @@ namespace Relay.Core.Tests
             Assert.True(startTimes.ContainsKey("Handler2"));
             Assert.True(endTimes.ContainsKey("Handler1"));
             Assert.True(endTimes.ContainsKey("Handler2"));
-            
+
             // Handlers should start around the same time (parallel execution)
             var timeDifference = Math.Abs((startTimes["Handler1"] - startTimes["Handler2"]).TotalMilliseconds);
             Assert.True(timeDifference < 50, $"Handlers should start concurrently, but time difference was {timeDifference}ms");
-            
+
             // Total execution time should be close to single handler time (not additive)
             Assert.True(totalTime.TotalMilliseconds < 150, $"Total time should be ~100ms for parallel execution, but was {totalTime.TotalMilliseconds}ms");
         }
@@ -158,7 +158,7 @@ namespace Relay.Core.Tests
             var executionLock = new object();
 
             var dispatcher = new NotificationDispatcher(services.BuildServiceProvider());
-            
+
             var sequentialHandler = new NotificationHandlerRegistration
             {
                 NotificationType = typeof(TestNotification),
@@ -215,7 +215,7 @@ namespace Relay.Core.Tests
             var mockLogger = new Mock<ILogger<NotificationDispatcher>>();
             var options = new NotificationDispatchOptions { ContinueOnException = true };
             var dispatcher = new NotificationDispatcher(services.BuildServiceProvider(), options, mockLogger.Object);
-            
+
             var successfulHandlerExecuted = false;
 
             var failingHandler = new NotificationHandlerRegistration
@@ -252,7 +252,7 @@ namespace Relay.Core.Tests
 
             // Assert
             Assert.True(successfulHandlerExecuted);
-            
+
             // Verify error was logged
             mockLogger.Verify(
                 x => x.Log(
@@ -273,7 +273,7 @@ namespace Relay.Core.Tests
             var executionLock = new object();
 
             var dispatcher = new NotificationDispatcher(services.BuildServiceProvider());
-            
+
             // Handler for TestNotification
             var testNotificationHandler = new NotificationHandlerRegistration
             {
@@ -332,7 +332,7 @@ namespace Relay.Core.Tests
             var executionLock = new object();
 
             var dispatcher = new NotificationDispatcher(services.BuildServiceProvider());
-            
+
             // Create handlers with different priorities
             var priorities = new[] { 1, 10, 5, 3 };
             foreach (var priority in priorities)
@@ -373,7 +373,7 @@ namespace Relay.Core.Tests
             // Arrange
             var services = new ServiceCollection();
             var dispatcher = new NotificationDispatcher(services.BuildServiceProvider());
-            
+
             var handler1 = new NotificationHandlerRegistration
             {
                 NotificationType = typeof(TestNotification),
@@ -412,7 +412,7 @@ namespace Relay.Core.Tests
             // Arrange
             var services = new ServiceCollection();
             var dispatcher = new NotificationDispatcher(services.BuildServiceProvider());
-            
+
             var handler1 = new NotificationHandlerRegistration
             {
                 NotificationType = typeof(TestNotification),

@@ -25,7 +25,7 @@ public class FullPipelineIntegrationTests
         var handler = new IntegrationTestHandler();
         var harness = new RelayTestHarness()
             .AddHandler(handler);
-        
+
         var relay = harness.Build();
         var request = new IntegrationTestRequest { Value = "test input" };
 
@@ -48,7 +48,7 @@ public class FullPipelineIntegrationTests
             .AddHandler(handler)
             .AddPipeline<IntegrationTestPipeline>()
             .AddSingleton(pipeline);
-        
+
         var relay = harness.Build();
         var request = new IntegrationTestRequest { Value = "test input" };
 
@@ -70,7 +70,7 @@ public class FullPipelineIntegrationTests
         var harness = new RelayTestHarness()
             .AddHandler(handler1)
             .AddHandler(handler2);
-        
+
         var relay = harness.Build();
         var notification = new IntegrationTestNotification { Message = "test message" };
 
@@ -94,7 +94,7 @@ public class FullPipelineIntegrationTests
             .AddHandler(handler)
             .AddPipeline<IntegrationTestStreamPipeline>()
             .AddSingleton(pipeline);
-        
+
         var relay = harness.Build();
         var request = new IntegrationTestStreamRequest { ItemCount = 3 };
 
@@ -118,7 +118,7 @@ public class FullPipelineIntegrationTests
         var handler = new IntegrationTestHandler();
         var harness = new RelayTestHarness()
             .AddHandler(handler); // Uses TestTelemetryProvider by default
-        
+
         var relay = harness.Build();
         var telemetryProvider = harness.GetTestTelemetryProvider();
         var request = new IntegrationTestRequest { Value = "test input" };
@@ -128,7 +128,7 @@ public class FullPipelineIntegrationTests
 
         // Assert
         result.Should().Be("Processed: test input");
-        
+
         // Verify telemetry was recorded
         telemetryProvider.Should().NotBeNull();
         TestUtilities.AssertTelemetryRecorded(telemetryProvider!, typeof(IntegrationTestRequest));
@@ -141,14 +141,14 @@ public class FullPipelineIntegrationTests
         var handler = new IntegrationTestFailingHandler();
         var harness = new RelayTestHarness()
             .AddHandler(handler);
-        
+
         var relay = harness.Build();
         var request = new IntegrationTestRequest { Value = "fail" };
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             relay.SendAsync(request).AsTask());
-        
+
         exception.Message.Should().Be("Handler failed");
         handler.WasCalled.Should().BeTrue();
     }
@@ -160,14 +160,14 @@ public class FullPipelineIntegrationTests
         var handler = new IntegrationTestDelayHandler();
         var harness = new RelayTestHarness()
             .AddHandler(handler);
-        
+
         var relay = harness.Build();
         var request = new IntegrationTestDelayRequest { DelayMs = 1000 };
-        
+
         using var cts = new CancellationTokenSource(100);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => 
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             relay.SendAsync(request, cts.Token).AsTask());
     }
 
@@ -180,7 +180,7 @@ public class FullPipelineIntegrationTests
         var harness = new RelayTestHarness()
             .AddHandler(stringHandler)
             .AddHandler(intHandler);
-        
+
         var relay = harness.Build();
         var stringRequest = new IntegrationTestRequest { Value = "test" };
         var intRequest = new IntegrationTestIntRequest { Value = 42 };
@@ -192,7 +192,7 @@ public class FullPipelineIntegrationTests
         // Assert
         stringResult.Should().Be("Processed: test");
         intResult.Should().Be(84); // Doubled
-        
+
         stringHandler.WasCalled.Should().BeTrue();
         intHandler.WasCalled.Should().BeTrue();
     }
@@ -204,7 +204,7 @@ public class FullPipelineIntegrationTests
         var handler = new IntegrationTestHandler();
         var harness = new RelayTestHarness()
             .AddHandler(handler);
-        
+
         var relay = harness.Build();
         var requests = Enumerable.Range(0, 10)
             .Select(i => new IntegrationTestRequest { Value = $"request-{i}" })
@@ -227,10 +227,10 @@ public class FullPipelineIntegrationTests
         var handler = new IntegrationTestStreamHandler();
         var harness = new RelayTestHarness()
             .AddHandler(handler);
-        
+
         var relay = harness.Build();
         var request = new IntegrationTestStreamRequest { ItemCount = 100, DelayMs = 50 };
-        
+
         using var cts = new CancellationTokenSource(200);
 
         // Act

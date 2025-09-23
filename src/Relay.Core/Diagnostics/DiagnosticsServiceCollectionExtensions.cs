@@ -16,7 +16,7 @@ public static class DiagnosticsServiceCollectionExtensions
     /// <param name="configureOptions">Optional configuration for diagnostics options</param>
     /// <returns>The service collection for chaining</returns>
     public static IServiceCollection AddRelayDiagnostics(
-        this IServiceCollection services, 
+        this IServiceCollection services,
         Action<DiagnosticsOptions>? configureOptions = null)
     {
         // Configure options
@@ -28,15 +28,15 @@ public static class DiagnosticsServiceCollectionExtensions
         {
             services.Configure<DiagnosticsOptions>(options => { });
         }
-        
+
         // Register core diagnostic services
         services.TryAddSingleton<IRequestTracer, RequestTracer>();
         services.TryAddSingleton<IRelayDiagnostics, DefaultRelayDiagnostics>();
         services.TryAddSingleton<RelayDiagnosticsService>();
-        
+
         return services;
     }
-    
+
     /// <summary>
     /// Adds Relay diagnostics services with request tracing enabled
     /// </summary>
@@ -53,7 +53,7 @@ public static class DiagnosticsServiceCollectionExtensions
             options.TraceBufferSize = traceBufferSize;
         });
     }
-    
+
     /// <summary>
     /// Adds Relay diagnostics services with performance metrics enabled
     /// </summary>
@@ -70,7 +70,7 @@ public static class DiagnosticsServiceCollectionExtensions
             options.MetricsRetentionPeriod = metricsRetentionPeriod ?? TimeSpan.FromHours(1);
         });
     }
-    
+
     /// <summary>
     /// Adds Relay diagnostics services with both tracing and metrics enabled
     /// </summary>
@@ -91,7 +91,7 @@ public static class DiagnosticsServiceCollectionExtensions
             options.MetricsRetentionPeriod = metricsRetentionPeriod ?? TimeSpan.FromHours(1);
         });
     }
-    
+
     /// <summary>
     /// Adds Relay diagnostics services with diagnostic endpoints enabled
     /// </summary>
@@ -111,7 +111,7 @@ public static class DiagnosticsServiceCollectionExtensions
             options.RequireAuthentication = requireAuthentication;
         });
     }
-    
+
     /// <summary>
     /// Adds full Relay diagnostics services with all features enabled
     /// </summary>
@@ -131,7 +131,7 @@ public static class DiagnosticsServiceCollectionExtensions
             options.MetricsRetentionPeriod = TimeSpan.FromHours(1);
             options.DiagnosticEndpointBasePath = "/relay";
             options.RequireAuthentication = true;
-            
+
             configureOptions?.Invoke(options);
         });
     }

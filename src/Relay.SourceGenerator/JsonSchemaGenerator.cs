@@ -29,7 +29,7 @@ namespace Relay.SourceGenerator
             if (typeSymbol is INamedTypeSymbol namedType)
             {
                 schema["title"] = namedType.Name;
-                
+
                 var properties = new Dictionary<string, object>();
                 var required = new List<string>();
 
@@ -43,7 +43,7 @@ namespace Relay.SourceGenerator
                 {
                     var memberName = ToCamelCase(member.Name);
                     var memberType = GetMemberType(member);
-                    
+
                     if (memberType != null)
                     {
                         var propertySchema = GeneratePropertySchema(memberType, compilation);
@@ -68,8 +68,8 @@ namespace Relay.SourceGenerator
                 }
             }
 
-            return JsonSerializer.Serialize(schema, new JsonSerializerOptions 
-            { 
+            return JsonSerializer.Serialize(schema, new JsonSerializerOptions
+            {
                 WriteIndented = true,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
@@ -176,8 +176,8 @@ namespace Relay.SourceGenerator
 
         private static bool IsNullableValueType(ITypeSymbol typeSymbol)
         {
-            return typeSymbol is INamedTypeSymbol namedType && 
-                   namedType.IsGenericType && 
+            return typeSymbol is INamedTypeSymbol namedType &&
+                   namedType.IsGenericType &&
                    namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T;
         }
 
@@ -196,7 +196,7 @@ namespace Relay.SourceGenerator
                     "System.Collections.Generic.IList"
                 };
 
-                return namedType.AllInterfaces.Any(i => 
+                return namedType.AllInterfaces.Any(i =>
                     collectionInterfaces.Contains(i.ConstructedFrom?.ToDisplayString()));
             }
 

@@ -153,7 +153,7 @@ namespace Relay.Core.Tests.Configuration
             var services = new ServiceCollection();
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => 
+            Assert.Throws<ArgumentException>(() =>
                 services.ConfigureHandler("", options => { }));
         }
 
@@ -164,7 +164,7 @@ namespace Relay.Core.Tests.Configuration
             var services = new ServiceCollection();
 
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => 
+            Assert.Throws<ArgumentNullException>(() =>
                 services.ConfigureHandler("key", null!));
         }
 

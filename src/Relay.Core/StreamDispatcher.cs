@@ -27,7 +27,7 @@ namespace Relay.Core
         public override IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken)
         {
             ValidateRequest(request);
-            
+
             // Execute through pipeline
             return _pipelineExecutor.ExecuteStreamAsync<IStreamRequest<TResponse>, TResponse>(
                 request,
@@ -40,7 +40,7 @@ namespace Relay.Core
         {
             ValidateRequest(request);
             ValidateHandlerName(handlerName);
-            
+
             // Execute through pipeline
             return _pipelineExecutor.ExecuteStreamAsync<IStreamRequest<TResponse>, TResponse>(
                 request,
@@ -64,7 +64,7 @@ namespace Relay.Core
         /// <param name="serviceProvider">The service provider for dependency resolution.</param>
         /// <param name="maxConcurrency">Maximum number of concurrent operations.</param>
         /// <param name="bufferSize">Size of the internal buffer for flow control.</param>
-        public BackpressureStreamDispatcher(IServiceProvider serviceProvider, int maxConcurrency = 10, int bufferSize = 100) 
+        public BackpressureStreamDispatcher(IServiceProvider serviceProvider, int maxConcurrency = 10, int bufferSize = 100)
             : base(serviceProvider)
         {
             _maxConcurrency = maxConcurrency > 0 ? maxConcurrency : throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
@@ -76,7 +76,7 @@ namespace Relay.Core
         public override IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken)
         {
             ValidateRequest(request);
-            
+
             // Execute through pipeline with backpressure
             return _pipelineExecutor.ExecuteStreamAsync<IStreamRequest<TResponse>, TResponse>(
                 request,
@@ -89,7 +89,7 @@ namespace Relay.Core
         {
             ValidateRequest(request);
             ValidateHandlerName(handlerName);
-            
+
             // Execute through pipeline with backpressure
             return _pipelineExecutor.ExecuteStreamAsync<IStreamRequest<TResponse>, TResponse>(
                 request,
@@ -106,8 +106,8 @@ namespace Relay.Core
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>An async enumerable with backpressure support.</returns>
         private async IAsyncEnumerable<TResponse> CreateBackpressureStream<TResponse>(
-            IStreamRequest<TResponse> request, 
-            string? handlerName, 
+            IStreamRequest<TResponse> request,
+            string? handlerName,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             // Try to resolve a handler for this request type
@@ -122,14 +122,14 @@ namespace Relay.Core
 
             // Create a semaphore for flow control
             using var semaphore = new SemaphoreSlim(_maxConcurrency, _maxConcurrency);
-            
+
             await foreach (var item in handler.HandleAsync(request, cancellationToken).ConfigureAwait(false))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 // Wait for available slot (backpressure)
                 await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                
+
                 try
                 {
                     yield return item;
@@ -149,7 +149,7 @@ namespace Relay.Core
         /// <param name="handlerName">Optional handler name.</param>
         /// <returns>The resolved handler, or null if not found.</returns>
         private IStreamHandler<IStreamRequest<TResponse>, TResponse>? TryResolveHandler<TResponse>(
-            IStreamRequest<TResponse> request, 
+            IStreamRequest<TResponse> request,
             string? handlerName)
         {
             // This is a fallback implementation - in practice, the generated dispatcher

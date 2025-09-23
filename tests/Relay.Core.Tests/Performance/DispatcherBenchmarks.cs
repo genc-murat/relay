@@ -25,7 +25,7 @@ public class DispatcherBenchmarks
     private TestRequest _request = null!;
     private TestHandler _handler = null!;
     private MethodInfo _handlerMethod = null!;
-    
+
     private class Config : ManualConfig
     {
         public Config()
@@ -41,7 +41,7 @@ public class DispatcherBenchmarks
         services.AddSingleton<TestHandler>();
         services.AddRelayPerformanceOptimizations();
         _serviceProvider = services.BuildServiceProvider();
-        
+
         _request = new TestRequest { Value = "test" };
         _handler = new TestHandler();
         _handlerMethod = typeof(TestHandler).GetMethod(nameof(TestHandler.HandleAsync))!;
@@ -142,7 +142,7 @@ public class BranchPredictionBenchmarks
     {
         // Simulate optimized handler selection with most common case first
         var handlerName = _handlerNames[_random.Next(_handlerNames.Length)];
-        
+
         // Most common case first (better branch prediction)
         if (handlerName == "default")
         {
@@ -175,7 +175,7 @@ public class BranchPredictionBenchmarks
     {
         // Simulate unoptimized handler selection with dictionary lookup
         var handlerName = _handlerNames[_random.Next(_handlerNames.Length)];
-        
+
         var handlers = new Dictionary<string, Func<TestRequest, string>>
         {
             ["default"] = ProcessWithDefaultHandler,
@@ -184,7 +184,7 @@ public class BranchPredictionBenchmarks
             ["handler3"] = ProcessWithHandler3,
             ["handler4"] = ProcessWithHandler4
         };
-        
+
         return handlers[handlerName](_request);
     }
 

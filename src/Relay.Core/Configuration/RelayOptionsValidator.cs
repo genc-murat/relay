@@ -68,8 +68,8 @@ namespace Relay.Core.Configuration
                 ValidatePipelineOptions(kvp.Value, $"PipelineOverrides[{kvp.Key}]", failures);
             }
 
-            return failures.Any() 
-                ? ValidateOptionsResult.Fail(failures) 
+            return failures.Any()
+                ? ValidateOptionsResult.Fail(failures)
                 : ValidateOptionsResult.Success;
         }
 

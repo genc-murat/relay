@@ -33,7 +33,7 @@ namespace Relay.Core
                 var requestType = request.GetType();
                 var handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
                 var handler = ServiceProvider.GetService(handlerType);
-                
+
                 if (handler == null)
                 {
                     return ValueTaskExtensions.FromException<TResponse>(CreateHandlerNotFoundException(requestType));
@@ -66,7 +66,7 @@ namespace Relay.Core
                 var requestType = request.GetType();
                 var handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
                 var handler = ServiceProvider.GetService(handlerType);
-                
+
                 if (handler == null)
                 {
                     return ValueTaskExtensions.FromException(CreateHandlerNotFoundException(requestType));
@@ -134,7 +134,7 @@ namespace Relay.Core
                 var requestType = request.GetType();
                 var handlerType = typeof(IStreamHandler<,>).MakeGenericType(requestType, typeof(TResponse));
                 var handler = ServiceProvider.GetService(handlerType);
-                
+
                 if (handler == null)
                 {
                     return ThrowHandlerNotFound<TResponse>(requestType);
@@ -206,7 +206,7 @@ namespace Relay.Core
             {
                 var handlers = ServiceProvider.GetServices<INotificationHandler<TNotification>>();
                 var handlerTasks = handlers.Select(h => h.HandleAsync(notification, cancellationToken));
-                
+
                 // Execute handlers in parallel by default
                 await ExecuteHandlersParallel(handlerTasks, cancellationToken);
             }

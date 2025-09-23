@@ -28,10 +28,10 @@ namespace Relay.Core.Tests
             // Assert
             requestType.Should().NotBeNull();
             requestType.IsInterface.Should().BeTrue();
-            
+
             requestVoidType.Should().NotBeNull();
             requestVoidType.IsInterface.Should().BeTrue();
-            
+
             streamRequestType.Should().NotBeNull();
             streamRequestType.IsInterface.Should().BeTrue();
         }
@@ -59,13 +59,13 @@ namespace Relay.Core.Tests
             // Assert
             requestHandlerType.Should().NotBeNull();
             requestHandlerType.IsInterface.Should().BeTrue();
-            
+
             requestVoidHandlerType.Should().NotBeNull();
             requestVoidHandlerType.IsInterface.Should().BeTrue();
-            
+
             streamHandlerType.Should().NotBeNull();
             streamHandlerType.IsInterface.Should().BeTrue();
-            
+
             notificationHandlerType.Should().NotBeNull();
             notificationHandlerType.IsInterface.Should().BeTrue();
         }

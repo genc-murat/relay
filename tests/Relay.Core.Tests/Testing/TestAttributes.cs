@@ -13,17 +13,17 @@ public class TestHandleAttribute : Attribute
     /// Optional name for the handler
     /// </summary>
     public string? Name { get; set; }
-    
+
     /// <summary>
     /// Priority for handler execution order
     /// </summary>
     public int Priority { get; set; } = 0;
-    
+
     /// <summary>
     /// Whether this handler should be used in integration tests
     /// </summary>
     public bool IntegrationTest { get; set; } = false;
-    
+
     /// <summary>
     /// Expected exception type for negative testing
     /// </summary>
@@ -40,12 +40,12 @@ public class TestNotificationAttribute : Attribute
     /// Dispatch mode for the notification
     /// </summary>
     public NotificationDispatchMode DispatchMode { get; set; } = NotificationDispatchMode.Parallel;
-    
+
     /// <summary>
     /// Priority for handler execution order
     /// </summary>
     public int Priority { get; set; } = 0;
-    
+
     /// <summary>
     /// Whether this handler should simulate failure
     /// </summary>
@@ -62,17 +62,17 @@ public class TestPipelineAttribute : Attribute
     /// Order of pipeline execution
     /// </summary>
     public int Order { get; set; } = 0;
-    
+
     /// <summary>
     /// Scope of the pipeline
     /// </summary>
     public PipelineScope Scope { get; set; } = PipelineScope.All;
-    
+
     /// <summary>
     /// Whether this pipeline should modify requests/responses
     /// </summary>
     public bool ModifyData { get; set; } = false;
-    
+
     /// <summary>
     /// Whether this pipeline should simulate failure
     /// </summary>
@@ -105,12 +105,12 @@ public class PerformanceTestAttribute : Attribute
     /// Maximum allowed execution time in milliseconds
     /// </summary>
     public int MaxExecutionTimeMs { get; set; } = 1000;
-    
+
     /// <summary>
     /// Maximum allowed memory allocation in bytes
     /// </summary>
     public long MaxAllocationBytes { get; set; } = 1024 * 1024; // 1MB default
-    
+
     /// <summary>
     /// Whether to run this test in release mode only
     /// </summary>
@@ -127,7 +127,7 @@ public class IntegrationTestAttribute : Attribute
     /// Category of integration test
     /// </summary>
     public string Category { get; set; } = "General";
-    
+
     /// <summary>
     /// Whether this test requires external dependencies
     /// </summary>

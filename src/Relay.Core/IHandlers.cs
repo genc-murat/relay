@@ -9,7 +9,7 @@ namespace Relay.Core
     /// </summary>
     /// <typeparam name="TRequest">The type of the request.</typeparam>
     /// <typeparam name="TResponse">The type of the response.</typeparam>
-    public interface IRequestHandler<in TRequest, TResponse> 
+    public interface IRequestHandler<in TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
         /// <summary>
@@ -25,7 +25,7 @@ namespace Relay.Core
     /// Interface for handling requests that do not return a response.
     /// </summary>
     /// <typeparam name="TRequest">The type of the request.</typeparam>
-    public interface IRequestHandler<in TRequest> 
+    public interface IRequestHandler<in TRequest>
         where TRequest : IRequest
     {
         /// <summary>
@@ -42,7 +42,7 @@ namespace Relay.Core
     /// </summary>
     /// <typeparam name="TRequest">The type of the streaming request.</typeparam>
     /// <typeparam name="TResponse">The type of the response items.</typeparam>
-    public interface IStreamHandler<in TRequest, out TResponse> 
+    public interface IStreamHandler<in TRequest, out TResponse>
         where TRequest : IStreamRequest<TResponse>
     {
         /// <summary>
@@ -58,7 +58,7 @@ namespace Relay.Core
     /// Interface for handling notifications.
     /// </summary>
     /// <typeparam name="TNotification">The type of the notification.</typeparam>
-    public interface INotificationHandler<in TNotification> 
+    public interface INotificationHandler<in TNotification>
         where TNotification : INotification
     {
         /// <summary>

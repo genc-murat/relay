@@ -23,7 +23,7 @@ public static class TestUtilities
         var stopwatch = Stopwatch.StartNew();
         await action();
         stopwatch.Stop();
-        
+
         stopwatch.Elapsed.Should().BeLessOrEqualTo(maxDuration, message ?? "Execution should complete within expected time");
     }
 
@@ -35,7 +35,7 @@ public static class TestUtilities
         var stopwatch = Stopwatch.StartNew();
         await action();
         stopwatch.Stop();
-        
+
         stopwatch.Elapsed.Should().BeLessOrEqualTo(maxDuration, message ?? "Execution should complete within expected time");
     }
 
@@ -77,15 +77,15 @@ public static class TestUtilities
     {
         var interval = pollInterval ?? TimeSpan.FromMilliseconds(10);
         var stopwatch = Stopwatch.StartNew();
-        
+
         while (stopwatch.Elapsed < timeout)
         {
             if (condition())
                 return;
-                
+
             await Task.Delay(interval);
         }
-        
+
         throw new TimeoutException($"Condition was not met within {timeout}");
     }
 
@@ -99,7 +99,7 @@ public static class TestUtilities
             telemetryProvider.Activities.Should().NotBeEmpty("Activities should be recorded");
             telemetryProvider.Activities.Should().Contain(a => a.Tags.ContainsValue(requestType.FullName ?? requestType.Name));
         }
-        
+
         if (telemetryProvider.HandlerExecutions.Any())
         {
             telemetryProvider.HandlerExecutions.Should().Contain(h => h.RequestType == requestType);
@@ -220,7 +220,7 @@ public class TestHandler<TRequest, TResponse> : IRequestHandler<TRequest, TRespo
 {
     private readonly TResponse? _response;
     private readonly Exception? _exception;
-    
+
     public bool WasCalled { get; private set; }
     public TRequest? LastRequest { get; private set; }
     public int CallCount { get; private set; }
@@ -267,7 +267,7 @@ public class TestNotificationHandler<TNotification> : INotificationHandler<TNoti
     where TNotification : INotification
 {
     private readonly Exception? _exception;
-    
+
     public bool WasCalled { get; private set; }
     public TNotification? LastNotification { get; private set; }
     public int CallCount { get; private set; }
@@ -321,7 +321,7 @@ public class TestStreamHandler<TRequest, TResponse> : IStreamHandler<TRequest, T
                 {
                     await Task.Delay(streamRequest.DelayBetweenItems.Value, cancellationToken);
                 }
-                
+
                 yield return item;
             }
         }

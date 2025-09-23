@@ -48,23 +48,23 @@ public class RelayBenchmarkRunner
     private static async Task RunAllBenchmarks(IConfig config)
     {
         Console.WriteLine("Running all performance benchmarks...");
-        
+
         Console.WriteLine("\n1. Running Relay Performance Benchmarks...");
         BenchmarkDotNet.Running.BenchmarkRunner.Run<RelayPerformanceBenchmarks>(config);
-        
+
         Console.WriteLine("\n2. Running Allocation Benchmarks...");
         BenchmarkDotNet.Running.BenchmarkRunner.Run<RelayAllocationBenchmarks>(config);
-        
+
         Console.WriteLine("\n3. Running Throughput Benchmarks...");
         BenchmarkDotNet.Running.BenchmarkRunner.Run<RelayThroughputBenchmarks>(config);
-        
+
         await Task.CompletedTask;
     }
 
     private static async Task RunSpecificBenchmark(string benchmarkName, IConfig config)
     {
         Console.WriteLine($"Running specific benchmark: {benchmarkName}");
-        
+
         switch (benchmarkName.ToLowerInvariant())
         {
             case "performance":
@@ -82,7 +82,7 @@ public class RelayBenchmarkRunner
                 Environment.Exit(1);
                 break;
         }
-        
+
         await Task.CompletedTask;
     }
 
@@ -149,8 +149,8 @@ public static class BenchmarkTestRunner
 
         // Quick validation - should complete 1000 requests in reasonable time
         var duration = await QuickPerformanceTest(
-            async b => await b.SendRequest(), 
-            benchmarks, 
+            async b => await b.SendRequest(),
+            benchmarks,
             1000);
 
         if (duration.TotalMilliseconds > 5000) // 5 seconds for 1000 requests

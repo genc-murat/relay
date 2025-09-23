@@ -28,7 +28,7 @@ namespace Relay.Core.EventSourcing
         public async ValueTask<TAggregate?> GetByIdAsync(TId id, CancellationToken cancellationToken = default)
         {
             var aggregate = new TAggregate();
-            
+
             // Set the ID using reflection (since it's protected)
             var idProperty = typeof(TAggregate).GetProperty(nameof(AggregateRoot<TId>.Id));
             if (idProperty != null && idProperty.CanWrite)
@@ -39,7 +39,7 @@ namespace Relay.Core.EventSourcing
             // Load events from the event store
             var events = _eventStore.GetEventsAsync(GetAggregateGuid(id), cancellationToken);
             var eventList = new List<Event>();
-            
+
             await foreach (var @event in events.WithCancellation(cancellationToken))
             {
                 eventList.Add(@event);
@@ -69,7 +69,7 @@ namespace Relay.Core.EventSourcing
             // Set aggregate ID and version on events
             var aggregateId = GetAggregateGuid(aggregate.Id);
             var expectedVersion = aggregate.Version;
-            
+
             for (int i = 0; i < uncommittedEvents.Count; i++)
             {
                 var @event = uncommittedEvents[i];

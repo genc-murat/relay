@@ -17,7 +17,7 @@ public class RelayTestBuilderTests
     {
         // Act
         var builder = RelayTestBuilder.Create();
-        
+
         // Assert
         builder.Should().NotBeNull();
     }
@@ -27,12 +27,12 @@ public class RelayTestBuilderTests
     {
         // Arrange
         var expectedResponse = "test response";
-        
+
         // Act
         var (relay, serviceProvider) = RelayTestBuilder.Create()
             .WithMockHandler<TestBuilderRequest, string>(expectedResponse)
             .BuildWithProvider();
-        
+
         // Assert
         var handler = serviceProvider.GetService<IRequestHandler<TestBuilderRequest, string>>();
         handler.Should().NotBeNull();
@@ -44,14 +44,14 @@ public class RelayTestBuilderTests
         // Arrange
         var expectedResponse = "test response";
         var request = new TestBuilderRequest();
-        
+
         var relay = RelayTestBuilder.Create()
             .WithMockHandler<TestBuilderRequest, string>(expectedResponse)
             .Build();
-        
+
         // Act
         var response = await relay.SendAsync(request);
-        
+
         // Assert
         response.Should().Be(expectedResponse);
     }
@@ -62,11 +62,11 @@ public class RelayTestBuilderTests
         // Arrange
         var expectedException = new InvalidOperationException("Test exception");
         var request = new TestBuilderRequest();
-        
+
         var relay = RelayTestBuilder.Create()
             .WithMockHandler<TestBuilderRequest, string>(expectedException)
             .Build();
-        
+
         // Act & Assert
         await relay.Invoking(r => r.SendAsync(request).AsTask())
             .Should().ThrowAsync<InvalidOperationException>()
@@ -80,7 +80,7 @@ public class RelayTestBuilderTests
         var (relay, serviceProvider) = RelayTestBuilder.Create()
             .WithTelemetry()
             .BuildWithProvider();
-        
+
         // Assert
         var telemetryProvider = serviceProvider.GetService<ITelemetryProvider>();
         telemetryProvider.Should().NotBeNull();
@@ -94,7 +94,7 @@ public class RelayTestBuilderTests
         var (relay, serviceProvider) = RelayTestBuilder.Create()
             .WithTracing()
             .BuildWithProvider();
-        
+
         // Assert
         var tracer = serviceProvider.GetService<IRequestTracer>();
         tracer.Should().NotBeNull();

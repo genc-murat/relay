@@ -18,15 +18,15 @@ public class CustomTelemetryProviderTests
         // Arrange
         var customMetricsProvider = new CustomMetricsProvider();
         var telemetryProvider = new DefaultTelemetryProvider(null, customMetricsProvider);
-        
+
         // Act
         telemetryProvider.RecordHandlerExecution(
-            typeof(TestRequest), 
-            typeof(string), 
-            "CustomHandler", 
-            TimeSpan.FromMilliseconds(150), 
+            typeof(TestRequest),
+            typeof(string),
+            "CustomHandler",
+            TimeSpan.FromMilliseconds(150),
             true);
-        
+
         // Assert
         Assert.Single(customMetricsProvider.RecordedMetrics);
         var metric = customMetricsProvider.RecordedMetrics[0];
@@ -36,36 +36,36 @@ public class CustomTelemetryProviderTests
         Assert.Equal(TimeSpan.FromMilliseconds(150), metric.Duration);
         Assert.True(metric.Success);
     }
-    
+
     [Fact]
     public void ExternalMetricsProvider_ShouldReceiveAllMetricTypes()
     {
         // Arrange
         var externalProvider = new ExternalMetricsProvider();
         var telemetryProvider = new DefaultTelemetryProvider(null, externalProvider);
-        
+
         // Act - Record different types of metrics
         telemetryProvider.RecordHandlerExecution(
             typeof(TestRequest), typeof(string), "Handler1", TimeSpan.FromMilliseconds(100), true);
-        
+
         telemetryProvider.RecordNotificationPublish(
             typeof(TestNotification), 3, TimeSpan.FromMilliseconds(50), true);
-        
+
         telemetryProvider.RecordStreamingOperation(
-            typeof(TestStreamRequest), typeof(string), "StreamHandler", 
+            typeof(TestStreamRequest), typeof(string), "StreamHandler",
             TimeSpan.FromMilliseconds(200), 100, true);
-        
+
         // Assert
         Assert.Single(externalProvider.HandlerMetrics);
         Assert.Single(externalProvider.NotificationMetrics);
         Assert.Single(externalProvider.StreamingMetrics);
-        
+
         // Verify external system integration
         Assert.Equal("EXTERNAL_HANDLER_100ms", externalProvider.HandlerMetrics[0].ExternalId);
         Assert.Equal("EXTERNAL_NOTIFICATION_50ms", externalProvider.NotificationMetrics[0].ExternalId);
         Assert.Equal("EXTERNAL_STREAM_200ms", externalProvider.StreamingMetrics[0].ExternalId);
     }
-    
+
     [Fact]
     public void AggregatingMetricsProvider_ShouldCombineMultipleProviders()
     {
@@ -73,62 +73,62 @@ public class CustomTelemetryProviderTests
         var provider1 = new CustomMetricsProvider();
         var provider2 = new ExternalMetricsProvider();
         var aggregatingProvider = new AggregatingMetricsProvider(provider1, provider2);
-        
+
         var telemetryProvider = new DefaultTelemetryProvider(null, aggregatingProvider);
-        
+
         // Act
         telemetryProvider.RecordHandlerExecution(
-            typeof(TestRequest), typeof(string), "AggregatedHandler", 
+            typeof(TestRequest), typeof(string), "AggregatedHandler",
             TimeSpan.FromMilliseconds(75), true);
-        
+
         // Assert - Both providers should receive the metrics
         Assert.Single(provider1.RecordedMetrics);
         Assert.Single(provider2.HandlerMetrics);
-        
+
         Assert.Equal("AggregatedHandler", provider1.RecordedMetrics[0].HandlerName);
         Assert.Equal("EXTERNAL_HANDLER_75ms", provider2.HandlerMetrics[0].ExternalId);
     }
-    
+
     [Fact]
     public void MetricsProviderWithFiltering_ShouldFilterBasedOnCriteria()
     {
         // Arrange
         var baseProvider = new CustomMetricsProvider();
-        var filteringProvider = new FilteringMetricsProvider(baseProvider, 
+        var filteringProvider = new FilteringMetricsProvider(baseProvider,
             metric => metric.Duration > TimeSpan.FromMilliseconds(100)); // Only record slow operations
-        
+
         var telemetryProvider = new DefaultTelemetryProvider(null, filteringProvider);
-        
+
         // Act - Record fast and slow operations
         telemetryProvider.RecordHandlerExecution(
-            typeof(TestRequest), typeof(string), "FastHandler", 
+            typeof(TestRequest), typeof(string), "FastHandler",
             TimeSpan.FromMilliseconds(50), true); // Should be filtered out
-        
+
         telemetryProvider.RecordHandlerExecution(
-            typeof(TestRequest), typeof(string), "SlowHandler", 
+            typeof(TestRequest), typeof(string), "SlowHandler",
             TimeSpan.FromMilliseconds(150), true); // Should be recorded
-        
+
         // Assert - Only the slow operation should be recorded
         Assert.Single(baseProvider.RecordedMetrics);
         Assert.Equal("SlowHandler", baseProvider.RecordedMetrics[0].HandlerName);
         Assert.Equal(TimeSpan.FromMilliseconds(150), baseProvider.RecordedMetrics[0].Duration);
     }
-    
+
     [Fact]
     public async Task AsyncMetricsProvider_ShouldHandleAsyncOperations()
     {
         // Arrange
         var asyncProvider = new AsyncMetricsProvider();
         var telemetryProvider = new DefaultTelemetryProvider(null, asyncProvider);
-        
+
         // Act
         telemetryProvider.RecordHandlerExecution(
-            typeof(TestRequest), typeof(string), "AsyncHandler", 
+            typeof(TestRequest), typeof(string), "AsyncHandler",
             TimeSpan.FromMilliseconds(200), true);
-        
+
         // Wait for async processing to complete
         await Task.Delay(100);
-        
+
         // Assert
         Assert.Single(asyncProvider.ProcessedMetrics);
         Assert.True(asyncProvider.ProcessedMetrics[0].ProcessedAt > DateTimeOffset.UtcNow.AddSeconds(-1));
@@ -143,36 +143,36 @@ public class CustomMetricsProvider : IMetricsProvider
     public List<HandlerExecutionMetrics> RecordedMetrics { get; } = new();
     public List<NotificationPublishMetrics> RecordedNotifications { get; } = new();
     public List<StreamingOperationMetrics> RecordedStreaming { get; } = new();
-    
+
     public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
     {
         RecordedMetrics.Add(metrics);
     }
-    
+
     public void RecordNotificationPublish(NotificationPublishMetrics metrics)
     {
         RecordedNotifications.Add(metrics);
     }
-    
+
     public void RecordStreamingOperation(StreamingOperationMetrics metrics)
     {
         RecordedStreaming.Add(metrics);
     }
-    
+
     public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
     {
         var executions = RecordedMetrics
             .Where(m => m.RequestType == requestType && (handlerName == null || m.HandlerName == handlerName))
             .ToList();
-        
+
         if (executions.Count == 0)
         {
             return new HandlerExecutionStats { RequestType = requestType, HandlerName = handlerName };
         }
-        
+
         var successful = executions.Where(e => e.Success).ToList();
         var durations = executions.Select(e => e.Duration).OrderBy(d => d).ToList();
-        
+
         return new HandlerExecutionStats
         {
             RequestType = requestType,
@@ -186,27 +186,27 @@ public class CustomMetricsProvider : IMetricsProvider
             LastExecution = executions.Max(e => e.Timestamp)
         };
     }
-    
+
     public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
     {
         return new NotificationPublishStats { NotificationType = notificationType };
     }
-    
+
     public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
     {
         return new StreamingOperationStats { RequestType = requestType, HandlerName = handlerName };
     }
-    
+
     public IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
     {
         return Enumerable.Empty<PerformanceAnomaly>();
     }
-    
+
     public TimingBreakdown GetTimingBreakdown(string operationId)
     {
         return new TimingBreakdown { OperationId = operationId };
     }
-    
+
     public void RecordTimingBreakdown(TimingBreakdown breakdown)
     {
         // Custom implementation could store breakdowns
@@ -221,7 +221,7 @@ public class ExternalMetricsProvider : IMetricsProvider
     public List<ExternalHandlerMetric> HandlerMetrics { get; } = new();
     public List<ExternalNotificationMetric> NotificationMetrics { get; } = new();
     public List<ExternalStreamingMetric> StreamingMetrics { get; } = new();
-    
+
     public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
     {
         // Simulate sending to external monitoring system
@@ -234,7 +234,7 @@ public class ExternalMetricsProvider : IMetricsProvider
             Timestamp = DateTimeOffset.UtcNow
         });
     }
-    
+
     public void RecordNotificationPublish(NotificationPublishMetrics metrics)
     {
         NotificationMetrics.Add(new ExternalNotificationMetric
@@ -246,7 +246,7 @@ public class ExternalMetricsProvider : IMetricsProvider
             Timestamp = DateTimeOffset.UtcNow
         });
     }
-    
+
     public void RecordStreamingOperation(StreamingOperationMetrics metrics)
     {
         StreamingMetrics.Add(new ExternalStreamingMetric
@@ -258,32 +258,32 @@ public class ExternalMetricsProvider : IMetricsProvider
             Timestamp = DateTimeOffset.UtcNow
         });
     }
-    
+
     public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
     {
         return new HandlerExecutionStats { RequestType = requestType, HandlerName = handlerName };
     }
-    
+
     public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
     {
         return new NotificationPublishStats { NotificationType = notificationType };
     }
-    
+
     public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
     {
         return new StreamingOperationStats { RequestType = requestType, HandlerName = handlerName };
     }
-    
+
     public IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
     {
         return Enumerable.Empty<PerformanceAnomaly>();
     }
-    
+
     public TimingBreakdown GetTimingBreakdown(string operationId)
     {
         return new TimingBreakdown { OperationId = operationId };
     }
-    
+
     public void RecordTimingBreakdown(TimingBreakdown breakdown)
     {
         // External system integration
@@ -296,12 +296,12 @@ public class ExternalMetricsProvider : IMetricsProvider
 public class AggregatingMetricsProvider : IMetricsProvider
 {
     private readonly IMetricsProvider[] _providers;
-    
+
     public AggregatingMetricsProvider(params IMetricsProvider[] providers)
     {
         _providers = providers;
     }
-    
+
     public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
     {
         foreach (var provider in _providers)
@@ -309,7 +309,7 @@ public class AggregatingMetricsProvider : IMetricsProvider
             provider.RecordHandlerExecution(metrics);
         }
     }
-    
+
     public void RecordNotificationPublish(NotificationPublishMetrics metrics)
     {
         foreach (var provider in _providers)
@@ -317,7 +317,7 @@ public class AggregatingMetricsProvider : IMetricsProvider
             provider.RecordNotificationPublish(metrics);
         }
     }
-    
+
     public void RecordStreamingOperation(StreamingOperationMetrics metrics)
     {
         foreach (var provider in _providers)
@@ -325,37 +325,37 @@ public class AggregatingMetricsProvider : IMetricsProvider
             provider.RecordStreamingOperation(metrics);
         }
     }
-    
+
     public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
     {
         // Return stats from the first provider (could be enhanced to aggregate)
-        return _providers.FirstOrDefault()?.GetHandlerExecutionStats(requestType, handlerName) 
+        return _providers.FirstOrDefault()?.GetHandlerExecutionStats(requestType, handlerName)
             ?? new HandlerExecutionStats { RequestType = requestType, HandlerName = handlerName };
     }
-    
+
     public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
     {
         return _providers.FirstOrDefault()?.GetNotificationPublishStats(notificationType)
             ?? new NotificationPublishStats { NotificationType = notificationType };
     }
-    
+
     public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
     {
         return _providers.FirstOrDefault()?.GetStreamingOperationStats(requestType, handlerName)
             ?? new StreamingOperationStats { RequestType = requestType, HandlerName = handlerName };
     }
-    
+
     public IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
     {
         return _providers.SelectMany(p => p.DetectAnomalies(lookbackPeriod));
     }
-    
+
     public TimingBreakdown GetTimingBreakdown(string operationId)
     {
         return _providers.FirstOrDefault()?.GetTimingBreakdown(operationId)
             ?? new TimingBreakdown { OperationId = operationId };
     }
-    
+
     public void RecordTimingBreakdown(TimingBreakdown breakdown)
     {
         foreach (var provider in _providers)
@@ -372,13 +372,13 @@ public class FilteringMetricsProvider : IMetricsProvider
 {
     private readonly IMetricsProvider _baseProvider;
     private readonly Func<HandlerExecutionMetrics, bool> _handlerFilter;
-    
+
     public FilteringMetricsProvider(IMetricsProvider baseProvider, Func<HandlerExecutionMetrics, bool> handlerFilter)
     {
         _baseProvider = baseProvider;
         _handlerFilter = handlerFilter;
     }
-    
+
     public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
     {
         if (_handlerFilter(metrics))
@@ -386,42 +386,42 @@ public class FilteringMetricsProvider : IMetricsProvider
             _baseProvider.RecordHandlerExecution(metrics);
         }
     }
-    
+
     public void RecordNotificationPublish(NotificationPublishMetrics metrics)
     {
         _baseProvider.RecordNotificationPublish(metrics);
     }
-    
+
     public void RecordStreamingOperation(StreamingOperationMetrics metrics)
     {
         _baseProvider.RecordStreamingOperation(metrics);
     }
-    
+
     public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
     {
         return _baseProvider.GetHandlerExecutionStats(requestType, handlerName);
     }
-    
+
     public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
     {
         return _baseProvider.GetNotificationPublishStats(notificationType);
     }
-    
+
     public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
     {
         return _baseProvider.GetStreamingOperationStats(requestType, handlerName);
     }
-    
+
     public IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
     {
         return _baseProvider.DetectAnomalies(lookbackPeriod);
     }
-    
+
     public TimingBreakdown GetTimingBreakdown(string operationId)
     {
         return _baseProvider.GetTimingBreakdown(operationId);
     }
-    
+
     public void RecordTimingBreakdown(TimingBreakdown breakdown)
     {
         _baseProvider.RecordTimingBreakdown(breakdown);
@@ -434,7 +434,7 @@ public class FilteringMetricsProvider : IMetricsProvider
 public class AsyncMetricsProvider : IMetricsProvider
 {
     public List<ProcessedMetric> ProcessedMetrics { get; } = new();
-    
+
     public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
     {
         // Simulate async processing
@@ -448,42 +448,42 @@ public class AsyncMetricsProvider : IMetricsProvider
             });
         });
     }
-    
+
     public void RecordNotificationPublish(NotificationPublishMetrics metrics)
     {
         // Async processing for notifications
     }
-    
+
     public void RecordStreamingOperation(StreamingOperationMetrics metrics)
     {
         // Async processing for streaming
     }
-    
+
     public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
     {
         return new HandlerExecutionStats { RequestType = requestType, HandlerName = handlerName };
     }
-    
+
     public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
     {
         return new NotificationPublishStats { NotificationType = notificationType };
     }
-    
+
     public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
     {
         return new StreamingOperationStats { RequestType = requestType, HandlerName = handlerName };
     }
-    
+
     public IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
     {
         return Enumerable.Empty<PerformanceAnomaly>();
     }
-    
+
     public TimingBreakdown GetTimingBreakdown(string operationId)
     {
         return new TimingBreakdown { OperationId = operationId };
     }
-    
+
     public void RecordTimingBreakdown(TimingBreakdown breakdown)
     {
         // Async processing for timing breakdowns

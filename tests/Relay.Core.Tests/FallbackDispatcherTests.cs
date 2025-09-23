@@ -180,7 +180,7 @@ namespace Relay.Core.Tests
             services.AddSingleton<INotificationHandler<TestNotification>>(handler1);
             services.AddSingleton<INotificationHandler<TestNotification>>(handler2);
             services.AddSingleton<INotificationHandler<TestNotification>>(handler3);
-            
+
             var serviceProvider = services.BuildServiceProvider();
             var dispatcher = new FallbackNotificationDispatcher(serviceProvider);
             var notification = new TestNotification { Message = "Test" };

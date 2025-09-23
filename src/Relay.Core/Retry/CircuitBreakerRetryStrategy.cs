@@ -41,7 +41,7 @@ namespace Relay.Core.Retry
 
             // Check with the inner strategy
             var shouldRetry = await _innerStrategy.ShouldRetryAsync(attempt, exception, cancellationToken);
-            
+
             // Update consecutive failures count
             if (shouldRetry)
             {

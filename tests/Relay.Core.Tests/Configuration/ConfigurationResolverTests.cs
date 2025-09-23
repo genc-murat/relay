@@ -28,7 +28,7 @@ namespace Relay.Core.Tests.Configuration
         public void ResolveHandlerConfiguration_WithNullHandlerType_ThrowsArgumentNullException()
         {
             // Arrange, Act & Assert
-            Assert.Throws<ArgumentNullException>(() => 
+            Assert.Throws<ArgumentNullException>(() =>
                 _resolver.ResolveHandlerConfiguration(null!, "method", null));
         }
 
@@ -36,7 +36,7 @@ namespace Relay.Core.Tests.Configuration
         public void ResolveHandlerConfiguration_WithEmptyMethodName_ThrowsArgumentException()
         {
             // Arrange, Act & Assert
-            Assert.Throws<ArgumentException>(() => 
+            Assert.Throws<ArgumentException>(() =>
                 _resolver.ResolveHandlerConfiguration(typeof(string), "", null));
         }
 
@@ -77,8 +77,8 @@ namespace Relay.Core.Tests.Configuration
         {
             // Arrange
             var key = $"{typeof(TestHandler).FullName}.HandleAsync";
-            _options.HandlerOverrides[key] = new HandlerOptions 
-            { 
+            _options.HandlerOverrides[key] = new HandlerOptions
+            {
                 DefaultPriority = 15,
                 EnableCaching = true,
                 DefaultTimeout = TimeSpan.FromMinutes(1)
@@ -129,10 +129,10 @@ namespace Relay.Core.Tests.Configuration
         public void ResolveNotificationConfiguration_WithAttribute_UsesAttributeValues()
         {
             // Arrange
-            var attribute = new NotificationAttribute 
-            { 
-                DispatchMode = NotificationDispatchMode.Parallel, 
-                Priority = 7 
+            var attribute = new NotificationAttribute
+            {
+                DispatchMode = NotificationDispatchMode.Parallel,
+                Priority = 7
             };
 
             // Act
@@ -164,10 +164,10 @@ namespace Relay.Core.Tests.Configuration
         public void ResolvePipelineConfiguration_WithAttribute_UsesAttributeValues()
         {
             // Arrange
-            var attribute = new PipelineAttribute 
-            { 
-                Order = 50, 
-                Scope = PipelineScope.Streams 
+            var attribute = new PipelineAttribute
+            {
+                Order = 50,
+                Scope = PipelineScope.Streams
             };
 
             // Act
@@ -199,9 +199,9 @@ namespace Relay.Core.Tests.Configuration
         public void ResolveEndpointConfiguration_WithAttribute_UsesAttributeValues()
         {
             // Arrange
-            var attribute = new ExposeAsEndpointAttribute 
-            { 
-                Route = "custom/route", 
+            var attribute = new ExposeAsEndpointAttribute
+            {
+                Route = "custom/route",
                 HttpMethod = "PUT",
                 Version = "v2"
             };

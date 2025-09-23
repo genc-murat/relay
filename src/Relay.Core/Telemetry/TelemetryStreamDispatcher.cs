@@ -14,19 +14,19 @@ public class TelemetryStreamDispatcher : IStreamDispatcher
 {
     private readonly IStreamDispatcher _inner;
     private readonly ITelemetryProvider _telemetryProvider;
-    
+
     public TelemetryStreamDispatcher(IStreamDispatcher inner, ITelemetryProvider telemetryProvider)
     {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         _telemetryProvider = telemetryProvider ?? throw new ArgumentNullException(nameof(telemetryProvider));
     }
-    
+
     public IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken)
     {
         var requestType = request.GetType();
         var responseType = typeof(TResponse);
         var correlationId = _telemetryProvider.GetCorrelationId();
-        
+
         return StreamWithTelemetryAsync(
             _inner.DispatchAsync(request, cancellationToken),
             requestType,
@@ -35,13 +35,13 @@ public class TelemetryStreamDispatcher : IStreamDispatcher
             correlationId,
             "Relay.Stream");
     }
-    
+
     public IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)
     {
         var requestType = request.GetType();
         var responseType = typeof(TResponse);
         var correlationId = _telemetryProvider.GetCorrelationId();
-        
+
         return StreamWithTelemetryAsync(
             _inner.DispatchAsync(request, handlerName, cancellationToken),
             requestType,
@@ -50,7 +50,7 @@ public class TelemetryStreamDispatcher : IStreamDispatcher
             correlationId,
             "Relay.NamedStream");
     }
-    
+
     private async IAsyncEnumerable<TResponse> StreamWithTelemetryAsync<TResponse>(
         IAsyncEnumerable<TResponse> source,
         Type requestType,
@@ -65,17 +65,17 @@ public class TelemetryStreamDispatcher : IStreamDispatcher
         {
             activity?.SetTag("relay.handler_name", handlerName);
         }
-        
+
         var stopwatch = Stopwatch.StartNew();
         var itemCount = 0L;
         Exception? exception = null;
-        
+
         await foreach (var item in source)
         {
             itemCount++;
             yield return item;
         }
-        
+
         stopwatch.Stop();
         _telemetryProvider.RecordStreamingOperation(requestType, responseType, handlerName, stopwatch.Elapsed, itemCount, exception == null, exception);
     }

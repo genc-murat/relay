@@ -29,7 +29,7 @@ namespace Relay.SourceGenerator
             foreach (var group in handlerGroups)
             {
                 var handlersInGroup = group.ToList();
-                
+
                 // Check for duplicate unnamed handlers
                 var unnamedHandlers = handlersInGroup.Where(h => string.IsNullOrEmpty(h.Name)).ToList();
                 if (unnamedHandlers.Count > 1)
@@ -93,7 +93,7 @@ namespace Relay.SourceGenerator
             foreach (var group in pipelineGroups)
             {
                 var pipelinesInScope = group.OrderBy(p => p.Order).ToList();
-                
+
                 // Check for duplicate orders within the same scope
                 var orderGroups = pipelinesInScope.GroupBy(p => p.Order);
                 foreach (var orderGroup in orderGroups)
@@ -134,8 +134,8 @@ namespace Relay.SourceGenerator
             }
 
             // Validate that request types have corresponding handlers
-            var requestTypes = handlers.Select(h => h.RequestType).Distinct().ToList();
-            var handlerRequestTypes = handlers.Select(h => h.RequestType).Distinct().ToList();
+            var requestTypes = handlers.Select(h => h.RequestType).Distinct(SymbolEqualityComparer.Default).ToList();
+            var handlerRequestTypes = handlers.Select(h => h.RequestType).Distinct(SymbolEqualityComparer.Default).ToList();
 
             // This validation would be more meaningful with actual usage analysis
             // For now, we ensure basic structural integrity
@@ -159,7 +159,7 @@ namespace Relay.SourceGenerator
         private void ValidateHandlerSignature(HandlerRegistration handler)
         {
             var method = handler.Method;
-            
+
             // Check return type
             if (handler.Kind == HandlerKind.Request)
             {
@@ -203,8 +203,8 @@ namespace Relay.SourceGenerator
             }
 
             // Check for CancellationToken parameter
-            var hasCancellationToken = parameters.Any(p => 
-                p.Type.Name == "CancellationToken" && 
+            var hasCancellationToken = parameters.Any(p =>
+                p.Type.Name == "CancellationToken" &&
                 p.Type.ContainingNamespace?.ToDisplayString() == "System.Threading");
 
             if (!hasCancellationToken)
@@ -218,7 +218,7 @@ namespace Relay.SourceGenerator
         private void ValidateNotificationHandlerSignature(NotificationHandlerRegistration handler)
         {
             var method = handler.Method;
-            
+
             // Check return type (should be Task or ValueTask)
             if (!IsValidNotificationHandlerReturnType(method.ReturnType))
             {
@@ -240,7 +240,7 @@ namespace Relay.SourceGenerator
         private void ValidatePipelineSignature(PipelineRegistration pipeline)
         {
             var method = pipeline.Method;
-            
+
             if (method == null) return; // System modules don't have methods
 
             // Validate pipeline method signature based on scope
@@ -265,7 +265,7 @@ namespace Relay.SourceGenerator
         {
             // Check for Task<T>, ValueTask<T>, T, Task, ValueTask
             var returnTypeName = returnType.Name;
-            
+
             if (returnTypeName == "Task" || returnTypeName == "ValueTask")
             {
                 if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
@@ -283,7 +283,7 @@ namespace Relay.SourceGenerator
         private static bool IsValidStreamHandlerReturnType(ITypeSymbol returnType, ITypeSymbol? expectedResponseType)
         {
             // Check for IAsyncEnumerable<T>
-            if (returnType is INamedTypeSymbol namedType && 
+            if (returnType is INamedTypeSymbol namedType &&
                 namedType.Name == "IAsyncEnumerable" &&
                 namedType.ContainingNamespace?.ToDisplayString() == "System.Collections.Generic")
             {

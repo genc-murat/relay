@@ -15,7 +15,7 @@ public class RelayDiagnosticsService
     private readonly IRelayDiagnostics _diagnostics;
     private readonly IRequestTracer _tracer;
     private readonly DiagnosticsOptions _options;
-    
+
     public RelayDiagnosticsService(
         IRelayDiagnostics diagnostics,
         IRequestTracer tracer,
@@ -25,7 +25,7 @@ public class RelayDiagnosticsService
         _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
     }
-    
+
     /// <summary>
     /// Gets information about all registered handlers
     /// </summary>
@@ -36,7 +36,7 @@ public class RelayDiagnosticsService
         {
             return DiagnosticResponse<HandlerRegistryInfo>.NotFound("Diagnostic endpoints are disabled");
         }
-        
+
         try
         {
             var registry = _diagnostics.GetHandlerRegistry();
@@ -47,7 +47,7 @@ public class RelayDiagnosticsService
             return DiagnosticResponse<HandlerRegistryInfo>.Error("Failed to retrieve handler registry", ex);
         }
     }
-    
+
     /// <summary>
     /// Gets performance metrics for all handlers
     /// </summary>
@@ -58,7 +58,7 @@ public class RelayDiagnosticsService
         {
             return DiagnosticResponse<IEnumerable<HandlerMetrics>>.NotFound("Diagnostic endpoints are disabled");
         }
-        
+
         try
         {
             var metrics = _diagnostics.GetHandlerMetrics();
@@ -69,7 +69,7 @@ public class RelayDiagnosticsService
             return DiagnosticResponse<IEnumerable<HandlerMetrics>>.Error("Failed to retrieve handler metrics", ex);
         }
     }
-    
+
     /// <summary>
     /// Gets performance metrics for a specific handler
     /// </summary>
@@ -81,17 +81,17 @@ public class RelayDiagnosticsService
         {
             return DiagnosticResponse<HandlerMetrics>.NotFound("Diagnostic endpoints are disabled");
         }
-        
+
         try
         {
             var metrics = _diagnostics.GetHandlerMetrics()
                 .FirstOrDefault(m => m.RequestType.Equals(requestType, StringComparison.OrdinalIgnoreCase));
-            
+
             if (metrics == null)
             {
                 return DiagnosticResponse<HandlerMetrics>.NotFound($"No metrics found for request type: {requestType}");
             }
-            
+
             return DiagnosticResponse<HandlerMetrics>.Success(metrics);
         }
         catch (Exception ex)
@@ -99,7 +99,7 @@ public class RelayDiagnosticsService
             return DiagnosticResponse<HandlerMetrics>.Error("Failed to retrieve handler metrics", ex);
         }
     }
-    
+
     /// <summary>
     /// Validates the current Relay configuration
     /// </summary>
@@ -110,11 +110,11 @@ public class RelayDiagnosticsService
         {
             return DiagnosticResponse<ValidationResult>.NotFound("Diagnostic endpoints are disabled");
         }
-        
+
         try
         {
             var validation = _diagnostics.ValidateConfiguration();
-            
+
             // Return appropriate status based on validation result
             if (validation.IsValid)
             {
@@ -134,7 +134,7 @@ public class RelayDiagnosticsService
             return DiagnosticResponse<ValidationResult>.Error("Failed to validate configuration", ex);
         }
     }
-    
+
     /// <summary>
     /// Gets diagnostic summary information
     /// </summary>
@@ -145,7 +145,7 @@ public class RelayDiagnosticsService
         {
             return DiagnosticResponse<DiagnosticSummary>.NotFound("Diagnostic endpoints are disabled");
         }
-        
+
         try
         {
             var summary = _diagnostics.GetDiagnosticSummary();
@@ -156,7 +156,7 @@ public class RelayDiagnosticsService
             return DiagnosticResponse<DiagnosticSummary>.Error("Failed to retrieve diagnostic summary", ex);
         }
     }
-    
+
     /// <summary>
     /// Gets request traces
     /// </summary>
@@ -169,22 +169,22 @@ public class RelayDiagnosticsService
         {
             return DiagnosticResponse<object>.NotFound("Diagnostic endpoints are disabled");
         }
-        
+
         if (!_options.EnableRequestTracing)
         {
             return DiagnosticResponse<object>.BadRequest("Request tracing is disabled");
         }
-        
+
         try
         {
             var traces = _tracer.GetCompletedTraces(since);
-            
+
             if (format.Equals("text", StringComparison.OrdinalIgnoreCase))
             {
                 var textOutput = TraceFormatter.FormatTraceSummary(traces);
                 return DiagnosticResponse<object>.Success(new { content = textOutput, contentType = "text/plain" });
             }
-            
+
             return DiagnosticResponse<object>.Success(traces);
         }
         catch (Exception ex)
@@ -192,7 +192,7 @@ public class RelayDiagnosticsService
             return DiagnosticResponse<object>.Error("Failed to retrieve traces", ex);
         }
     }
-    
+
     /// <summary>
     /// Gets a specific request trace by ID
     /// </summary>
@@ -205,28 +205,28 @@ public class RelayDiagnosticsService
         {
             return DiagnosticResponse<object>.NotFound("Diagnostic endpoints are disabled");
         }
-        
+
         if (!_options.EnableRequestTracing)
         {
             return DiagnosticResponse<object>.BadRequest("Request tracing is disabled");
         }
-        
+
         try
         {
             var trace = _tracer.GetCompletedTraces()
                 .FirstOrDefault(t => t.RequestId == traceId);
-            
+
             if (trace == null)
             {
                 return DiagnosticResponse<object>.NotFound($"Trace not found: {traceId}");
             }
-            
+
             if (format.Equals("text", StringComparison.OrdinalIgnoreCase))
             {
                 var textOutput = TraceFormatter.FormatTrace(trace, includeMetadata: true);
                 return DiagnosticResponse<object>.Success(new { content = textOutput, contentType = "text/plain" });
             }
-            
+
             return DiagnosticResponse<object>.Success(trace);
         }
         catch (Exception ex)
@@ -234,7 +234,7 @@ public class RelayDiagnosticsService
             return DiagnosticResponse<object>.Error("Failed to retrieve trace", ex);
         }
     }
-    
+
     /// <summary>
     /// Clears all diagnostic data
     /// </summary>
@@ -245,7 +245,7 @@ public class RelayDiagnosticsService
         {
             return DiagnosticResponse<object>.NotFound("Diagnostic endpoints are disabled");
         }
-        
+
         try
         {
             _diagnostics.ClearDiagnosticData();
@@ -256,7 +256,7 @@ public class RelayDiagnosticsService
             return DiagnosticResponse<object>.Error("Failed to clear diagnostic data", ex);
         }
     }
-    
+
     /// <summary>
     /// Runs a performance benchmark for a specific request type
     /// </summary>
@@ -268,12 +268,12 @@ public class RelayDiagnosticsService
         {
             return Task.FromResult(DiagnosticResponse<BenchmarkResult>.NotFound("Diagnostic endpoints are disabled"));
         }
-        
+
         if (request == null || string.IsNullOrEmpty(request.RequestType))
         {
             return Task.FromResult(DiagnosticResponse<BenchmarkResult>.BadRequest("Invalid benchmark request"));
         }
-        
+
         try
         {
             // This would need to be implemented based on the specific request type
@@ -298,12 +298,12 @@ public class BenchmarkRequest
     /// The request type to benchmark
     /// </summary>
     public string RequestType { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Number of iterations to run
     /// </summary>
     public int Iterations { get; set; } = 1000;
-    
+
     /// <summary>
     /// Optional request data as JSON
     /// </summary>

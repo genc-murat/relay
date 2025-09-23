@@ -12,27 +12,27 @@ public class DiagnosticResponse<T>
     /// Whether the operation was successful
     /// </summary>
     public bool IsSuccess { get; set; }
-    
+
     /// <summary>
     /// HTTP status code equivalent
     /// </summary>
     public int StatusCode { get; set; }
-    
+
     /// <summary>
     /// The response data (if successful)
     /// </summary>
     public T? Data { get; set; }
-    
+
     /// <summary>
     /// Error message (if unsuccessful)
     /// </summary>
     public string? ErrorMessage { get; set; }
-    
+
     /// <summary>
     /// Additional error details
     /// </summary>
     public object? ErrorDetails { get; set; }
-    
+
     /// <summary>
     /// Creates a successful response
     /// </summary>
@@ -45,7 +45,7 @@ public class DiagnosticResponse<T>
             Data = data
         };
     }
-    
+
     /// <summary>
     /// Creates an error response
     /// </summary>
@@ -56,14 +56,15 @@ public class DiagnosticResponse<T>
             IsSuccess = false,
             StatusCode = statusCode,
             ErrorMessage = message,
-            ErrorDetails = exception != null ? new { 
-                Type = exception.GetType().Name, 
+            ErrorDetails = exception != null ? new
+            {
+                Type = exception.GetType().Name,
                 Message = exception.Message,
-                StackTrace = exception.StackTrace 
+                StackTrace = exception.StackTrace
             } : null
         };
     }
-    
+
     /// <summary>
     /// Creates a not found response
     /// </summary>
@@ -76,7 +77,7 @@ public class DiagnosticResponse<T>
             ErrorMessage = message
         };
     }
-    
+
     /// <summary>
     /// Creates a bad request response
     /// </summary>
@@ -89,7 +90,7 @@ public class DiagnosticResponse<T>
             ErrorMessage = message
         };
     }
-    
+
     /// <summary>
     /// Creates a service unavailable response
     /// </summary>
@@ -120,7 +121,7 @@ public class DiagnosticResponse : DiagnosticResponse<object>
             StatusCode = statusCode
         };
     }
-    
+
     /// <summary>
     /// Creates a successful response with a message
     /// </summary>

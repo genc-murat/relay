@@ -34,7 +34,7 @@ namespace Relay.Core.Tests
         public async Task SendAsync_WithNullRequest_ThrowsArgumentNullException()
         {
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => 
+            await Assert.ThrowsAsync<ArgumentNullException>(() =>
                 _namedRelay.SendAsync<string>(null!, "handler").AsTask());
         }
 
@@ -45,7 +45,7 @@ namespace Relay.Core.Tests
             var request = new TestRequest();
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => 
+            await Assert.ThrowsAsync<ArgumentException>(() =>
                 _namedRelay.SendAsync(request, null!).AsTask());
         }
 
@@ -56,7 +56,7 @@ namespace Relay.Core.Tests
             var request = new TestRequest();
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => 
+            await Assert.ThrowsAsync<ArgumentException>(() =>
                 _namedRelay.SendAsync(request, "").AsTask());
         }
 
@@ -64,7 +64,7 @@ namespace Relay.Core.Tests
         public async Task SendAsync_WithoutResponse_WithNullRequest_ThrowsArgumentNullException()
         {
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => 
+            await Assert.ThrowsAsync<ArgumentNullException>(() =>
                 _namedRelay.SendAsync((IRequest)null!, "handler").AsTask());
         }
 
@@ -75,7 +75,7 @@ namespace Relay.Core.Tests
             var request = new TestVoidRequest();
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() => 
+            await Assert.ThrowsAsync<ArgumentException>(() =>
                 _namedRelay.SendAsync(request, null!).AsTask());
         }
 
@@ -86,9 +86,9 @@ namespace Relay.Core.Tests
             var request = new TestRequest();
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() => 
+            var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() =>
                 _namedRelay.SendAsync(request, "testHandler").AsTask());
-            
+
             Assert.Contains("IRequest`1", exception.RequestType);
             Assert.Equal("testHandler", exception.HandlerName);
         }
@@ -100,9 +100,9 @@ namespace Relay.Core.Tests
             var request = new TestVoidRequest();
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() => 
+            var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() =>
                 _namedRelay.SendAsync(request, "testHandler").AsTask());
-            
+
             Assert.Contains("IRequest", exception.RequestType);
             Assert.Equal("testHandler", exception.HandlerName);
         }
@@ -111,7 +111,7 @@ namespace Relay.Core.Tests
         public void StreamAsync_WithNullRequest_ThrowsArgumentNullException()
         {
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => 
+            Assert.Throws<ArgumentNullException>(() =>
                 _namedRelay.StreamAsync<string>(null!, "handler"));
         }
 
@@ -122,7 +122,7 @@ namespace Relay.Core.Tests
             var request = new TestStreamRequest();
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => 
+            Assert.Throws<ArgumentException>(() =>
                 _namedRelay.StreamAsync(request, null!));
         }
 
@@ -133,7 +133,7 @@ namespace Relay.Core.Tests
             var request = new TestStreamRequest();
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => 
+            Assert.Throws<ArgumentException>(() =>
                 _namedRelay.StreamAsync(request, ""));
         }
 
@@ -151,7 +151,7 @@ namespace Relay.Core.Tests
                     // Should not reach here
                 }
             });
-            
+
             Assert.Contains("IStreamRequest`1", exception.RequestType);
             Assert.Equal("testHandler", exception.HandlerName);
         }
@@ -163,7 +163,7 @@ namespace Relay.Core.Tests
             var mockDispatcher = new MockRequestDispatcher();
             var services = new ServiceCollection();
             services.AddSingleton<IRequestDispatcher>(mockDispatcher);
-            
+
             var serviceProvider = services.BuildServiceProvider();
             var relay = new RelayImplementation(serviceProvider);
             var namedRelay = new NamedRelay(relay, serviceProvider);
@@ -184,7 +184,7 @@ namespace Relay.Core.Tests
             var mockDispatcher = new MockStreamDispatcher();
             var services = new ServiceCollection();
             services.AddSingleton<IStreamDispatcher>(mockDispatcher);
-            
+
             var serviceProvider = services.BuildServiceProvider();
             var relay = new RelayImplementation(serviceProvider);
             var namedRelay = new NamedRelay(relay, serviceProvider);

@@ -20,14 +20,14 @@ namespace Relay.Core.MessageQueue
             await Task.CompletedTask; // Make method async for interface compliance
 
             var queue = _queues.GetOrAdd(queueName, _ => new ConcurrentQueue<string>());
-            
+
             var wrapper = new MessageWrapper
             {
                 MessageType = message.GetType().FullName ?? message.GetType().Name,
                 Content = JsonSerializer.Serialize(message),
                 CorrelationId = Activity.Current?.Id ?? Guid.NewGuid().ToString()
             };
-            
+
             var json = JsonSerializer.Serialize(wrapper);
             queue.Enqueue(json);
         }

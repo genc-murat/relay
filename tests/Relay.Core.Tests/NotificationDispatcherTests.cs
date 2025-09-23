@@ -98,7 +98,7 @@ namespace Relay.Core.Tests
 
             // Act & Assert
             await dispatcher.DispatchAsync(notification, CancellationToken.None);
-            
+
             // Verify debug log was called
             _mockLogger.Verify(
                 x => x.Log(
@@ -117,7 +117,7 @@ namespace Relay.Core.Tests
             var dispatcher = new NotificationDispatcher(_serviceProvider);
 
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => 
+            await Assert.ThrowsAsync<ArgumentNullException>(() =>
                 dispatcher.DispatchAsync<TestNotification>(null!, CancellationToken.None).AsTask());
         }
 
@@ -279,7 +279,7 @@ namespace Relay.Core.Tests
 
             // Assert
             Assert.True(successfulHandlerExecuted);
-            
+
             // Verify error was logged
             _mockLogger.Verify(
                 x => x.Log(
@@ -308,7 +308,7 @@ namespace Relay.Core.Tests
             // Act & Assert
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 dispatcher.DispatchAsync(notification, CancellationToken.None).AsTask());
-            
+
             Assert.Equal("Test exception", exception.Message);
         }
 

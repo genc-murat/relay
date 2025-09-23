@@ -91,14 +91,14 @@ namespace Relay.Core.Configuration
             if (string.IsNullOrEmpty(route) && globalDefaults.EnableAutoRouteGeneration)
             {
                 // Generate route from handler type and method name
-                var typeName = handlerType.Name.EndsWith("Handler") 
+                var typeName = handlerType.Name.EndsWith("Handler")
                     ? handlerType.Name.Substring(0, handlerType.Name.Length - 7) // Remove "Handler" suffix
                     : handlerType.Name;
-                
-                var prefix = !string.IsNullOrEmpty(globalDefaults.DefaultRoutePrefix) 
-                    ? $"{globalDefaults.DefaultRoutePrefix.TrimEnd('/')}/" 
+
+                var prefix = !string.IsNullOrEmpty(globalDefaults.DefaultRoutePrefix)
+                    ? $"{globalDefaults.DefaultRoutePrefix.TrimEnd('/')}/"
                     : "";
-                
+
                 route = $"{prefix}{typeName.ToLowerInvariant()}/{methodName.ToLowerInvariant()}";
             }
 

@@ -116,7 +116,7 @@ public class OptimizedRelay : IRelay
     /// Publishes a notification using optimized dispatch
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public async ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default) 
+    public async ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
         if (notification == null) throw new ArgumentNullException(nameof(notification));

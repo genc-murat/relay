@@ -95,7 +95,7 @@ namespace Relay.Core.Authorization
         {
             // Add request type information to the context
             _authorizationContext.Properties["RequestType"] = typeof(TRequest).FullName ?? typeof(TRequest).Name;
-            
+
             // In a real implementation, you would add more request-specific information here
         }
     }

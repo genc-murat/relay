@@ -30,17 +30,17 @@ namespace Relay.SourceGenerator
                 DiagnosticDescriptors.HandlerInvalidRequestParameter,
                 DiagnosticDescriptors.HandlerMissingCancellationToken,
                 DiagnosticDescriptors.NotificationHandlerMissingParameter,
-                
+
                 // Duplicate handler detection
                 DiagnosticDescriptors.DuplicateHandler,
                 DiagnosticDescriptors.NamedHandlerConflict,
-                
+
                 // Configuration validation
                 DiagnosticDescriptors.InvalidPriorityValue,
                 DiagnosticDescriptors.ConfigurationConflict,
                 DiagnosticDescriptors.InvalidPipelineScope,
                 DiagnosticDescriptors.DuplicatePipelineOrder,
-                
+
                 // Usage warnings
                 DiagnosticDescriptors.UnusedHandler,
                 DiagnosticDescriptors.PerformanceWarning
@@ -54,10 +54,10 @@ namespace Relay.SourceGenerator
         {
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
-            
+
             // Register syntax node actions for method declarations with Relay attributes
             context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
-            
+
             // Register compilation action for cross-method validation (duplicate handlers)
             context.RegisterCompilationAction(AnalyzeCompilation);
         }
@@ -73,7 +73,7 @@ namespace Relay.SourceGenerator
 
             var semanticModel = context.SemanticModel;
             var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration);
-            
+
             if (methodSymbol == null)
                 return;
 
@@ -147,7 +147,7 @@ namespace Relay.SourceGenerator
         {
             // Validate method signature
             ValidateHandlerSignature(context, methodDeclaration, methodSymbol);
-            
+
             // Validate attribute parameters
             ValidateHandleAttributeParameters(context, methodDeclaration, handleAttribute);
         }
@@ -163,7 +163,7 @@ namespace Relay.SourceGenerator
         {
             // Validate method signature for notifications
             ValidateNotificationHandlerSignature(context, methodDeclaration, methodSymbol);
-            
+
             // Validate attribute parameters
             ValidateNotificationAttributeParameters(context, methodDeclaration, notificationAttribute);
         }
@@ -179,7 +179,7 @@ namespace Relay.SourceGenerator
         {
             // Validate pipeline method signature
             ValidatePipelineSignature(context, methodDeclaration, methodSymbol);
-            
+
             // Validate attribute parameters
             ValidatePipelineAttributeParameters(context, methodDeclaration, pipelineAttribute);
         }
@@ -202,7 +202,7 @@ namespace Relay.SourceGenerator
             IMethodSymbol methodSymbol)
         {
             var parameters = methodSymbol.Parameters;
-            
+
             // Handler must have at least one parameter (the request)
             if (parameters.Length == 0)
             {
@@ -251,7 +251,7 @@ namespace Relay.SourceGenerator
             IMethodSymbol methodSymbol)
         {
             var parameters = methodSymbol.Parameters;
-            
+
             // Notification handler must have at least one parameter (the notification)
             if (parameters.Length == 0)
             {
@@ -307,12 +307,12 @@ namespace Relay.SourceGenerator
             // Pipeline validation logic will be implemented in future tasks
             // For now, just validate basic structure
             var parameters = methodSymbol.Parameters;
-            
+
             if (parameters.Length == 0)
             {
                 ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
-                    methodDeclaration.Identifier.GetLocation(), 
-                    methodSymbol.Name, 
+                    methodDeclaration.Identifier.GetLocation(),
+                    methodSymbol.Name,
                     "Pipeline methods must have at least one parameter");
             }
         }
@@ -328,7 +328,7 @@ namespace Relay.SourceGenerator
         {
             var returnType = methodSymbol.ReturnType;
             var requestInterfaces = requestType.AllInterfaces;
-            
+
             // Check if request implements IStreamRequest<TResponse>
             var streamRequestInterface = requestInterfaces
                 .FirstOrDefault(i => i.Name == "IStreamRequest" && i.TypeArguments.Length == 1);
@@ -419,7 +419,7 @@ namespace Relay.SourceGenerator
                 return (namedReturnType.Name == "Task" && namedReturnType.TypeArguments.Length == 0) ||
                        (namedReturnType.Name == "ValueTask" && namedReturnType.TypeArguments.Length == 0);
             }
-            
+
             return returnType.Name == "Task" || returnType.Name == "ValueTask";
         }
 
@@ -455,15 +455,15 @@ namespace Relay.SourceGenerator
         private static bool IsValidRequestType(ITypeSymbol type)
         {
             var interfaces = type.AllInterfaces;
-            
+
             // Check for IRequest interface
             if (interfaces.Any(i => i.Name == "IRequest" && i.TypeArguments.Length == 0))
                 return true;
-                
+
             // Check for IRequest<T> interface
             if (interfaces.Any(i => i.Name == "IRequest" && i.TypeArguments.Length == 1))
                 return true;
-                
+
             // Check for IStreamRequest<T> interface
             if (interfaces.Any(i => i.Name == "IStreamRequest" && i.TypeArguments.Length == 1))
                 return true;
@@ -489,7 +489,7 @@ namespace Relay.SourceGenerator
             IMethodSymbol methodSymbol)
         {
             var parameters = methodSymbol.Parameters;
-            
+
             // First parameter must be the request
             if (parameters.Length > 0)
             {
@@ -547,10 +547,10 @@ namespace Relay.SourceGenerator
             IMethodSymbol methodSymbol)
         {
             var returnType = methodSymbol.ReturnType;
-            
+
             // Check if method is marked as async but returns wrong type
             var isAsync = methodDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword));
-            
+
             if (isAsync)
             {
                 // Async methods should return Task or ValueTask (with or without generic parameter)
@@ -592,7 +592,7 @@ namespace Relay.SourceGenerator
             IMethodSymbol methodSymbol)
         {
             var parameters = methodSymbol.Parameters;
-            
+
             // First parameter must be the notification
             if (parameters.Length > 0)
             {
@@ -650,7 +650,7 @@ namespace Relay.SourceGenerator
             // Validate Priority parameter if present
             var priorityArg = handleAttribute.NamedArguments
                 .FirstOrDefault(arg => arg.Key == "Priority");
-            
+
             if (priorityArg.Key != null && priorityArg.Value.Value is not int)
             {
                 ReportDiagnostic(context, DiagnosticDescriptors.InvalidPriorityValue,
@@ -670,7 +670,7 @@ namespace Relay.SourceGenerator
             // Validate Priority parameter if present
             var priorityArg = notificationAttribute.NamedArguments
                 .FirstOrDefault(arg => arg.Key == "Priority");
-            
+
             if (priorityArg.Key != null && priorityArg.Value.Value is not int)
             {
                 ReportDiagnostic(context, DiagnosticDescriptors.InvalidPriorityValue,
@@ -690,7 +690,7 @@ namespace Relay.SourceGenerator
             // Validate Order parameter if present
             var orderArg = pipelineAttribute.NamedArguments
                 .FirstOrDefault(arg => arg.Key == "Order");
-            
+
             if (orderArg.Key != null && orderArg.Value.Value is not int)
             {
                 ReportDiagnostic(context, DiagnosticDescriptors.InvalidPriorityValue,
@@ -714,12 +714,12 @@ namespace Relay.SourceGenerator
             {
                 var handlers = group.ToList();
                 var requestTypeName = group.Key.ToDisplayString();
-                
+
                 // Check for unnamed duplicate handlers
                 var unnamedHandlers = handlers.Where(h => string.IsNullOrEmpty(h.Name)).ToList();
                 if (unnamedHandlers.Count > 1)
                 {
-                    var handlerLocations = string.Join(", ", unnamedHandlers.Select(h => 
+                    var handlerLocations = string.Join(", ", unnamedHandlers.Select(h =>
                         $"{h.MethodSymbol.ContainingType.Name}.{h.MethodName}"));
 
                     foreach (var handler in unnamedHandlers)
@@ -739,7 +739,7 @@ namespace Relay.SourceGenerator
                 {
                     if (namedGroup.Count() > 1)
                     {
-                        var conflictingHandlers = string.Join(", ", namedGroup.Select(h => 
+                        var conflictingHandlers = string.Join(", ", namedGroup.Select(h =>
                             $"{h.MethodSymbol.ContainingType.Name}.{h.MethodName}"));
 
                         foreach (var handler in namedGroup)
@@ -783,7 +783,7 @@ namespace Relay.SourceGenerator
             foreach (var group in handlerGroups)
             {
                 var handlers = group.ToList();
-                
+
                 // Check for handlers with very low or very high priorities that might indicate issues
                 foreach (var handler in handlers)
                 {
@@ -859,10 +859,10 @@ namespace Relay.SourceGenerator
 
             var nameArg = handleAttribute.NamedArguments
                 .FirstOrDefault(arg => arg.Key == "Name");
-            
+
             var priorityArg = handleAttribute.NamedArguments
                 .FirstOrDefault(arg => arg.Key == "Priority");
-            
+
             var name = nameArg.Key != null ? nameArg.Value.Value?.ToString() : null;
             var priority = priorityArg.Key != null && priorityArg.Value.Value is int p ? p : 0;
 

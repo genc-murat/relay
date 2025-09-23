@@ -28,13 +28,13 @@ namespace Relay.Core.DistributedTracing
         public Activity? StartActivity(string operationName, Type requestType, string? correlationId = null, IDictionary<string, object?>? tags = null)
         {
             var activityName = $"{_serviceName}.{operationName}";
-            var activity = Activity.Current?.Source.StartActivity(activityName, ActivityKind.Server) 
+            var activity = Activity.Current?.Source.StartActivity(activityName, ActivityKind.Server)
                           ?? new ActivitySource(_serviceName).StartActivity(activityName, ActivityKind.Server);
 
             if (activity != null)
             {
                 activity.SetTag("request.type", requestType.FullName ?? requestType.Name);
-                
+
                 if (!string.IsNullOrEmpty(correlationId))
                 {
                     activity.SetTag("correlation.id", correlationId);

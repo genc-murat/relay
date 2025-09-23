@@ -29,7 +29,7 @@ namespace Relay.Core.Tests
         public void RelayException_Constructor_WithNullRequestType_ThrowsArgumentNullException()
         {
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => 
+            Assert.Throws<ArgumentNullException>(() =>
                 new RelayException(null!, "handler", "message"));
         }
 

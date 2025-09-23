@@ -41,10 +41,10 @@ namespace Relay.Core.Tests
                 for (int i = 0; i < request.Count; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     if (request.DelayMs > 0)
                         await Task.Delay(request.DelayMs, cancellationToken);
-                    
+
                     yield return i;
                 }
             }
@@ -57,10 +57,10 @@ namespace Relay.Core.Tests
                 for (int i = 0; i < request.ItemCount; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     if (request.DelayBetweenItems > 0)
                         await Task.Delay(request.DelayBetweenItems, cancellationToken);
-                    
+
                     yield return $"Item {i}";
                 }
             }
@@ -71,17 +71,17 @@ namespace Relay.Core.Tests
             public async IAsyncEnumerable<byte[]> HandleAsync(BackpressureTestRequest request, [EnumeratorCancellation] CancellationToken cancellationToken)
             {
                 var random = new Random();
-                
+
                 for (int i = 0; i < request.ItemCount; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     // Create large data item
                     var data = new byte[request.ItemSizeKb * 1024];
                     random.NextBytes(data);
-                    
+
                     yield return data;
-                    
+
                     // Small delay to simulate processing
                     await Task.Delay(1, cancellationToken);
                 }
@@ -156,14 +156,14 @@ namespace Relay.Core.Tests
             var serviceProvider = CreateServiceProvider();
             var relay = new RelayImplementation(serviceProvider);
             var request = new LargeDatasetRequest { Count = 1000 };
-            
+
             // Act
             var results = new List<int>();
             await foreach (var item in relay.StreamAsync(request))
             {
                 results.Add(item);
             }
-            
+
             // Assert
             Assert.Equal(1000, results.Count);
             Assert.Equal(Enumerable.Range(0, 1000), results);
@@ -176,10 +176,10 @@ namespace Relay.Core.Tests
             var serviceProvider = CreateServiceProvider();
             var relay = new RelayImplementation(serviceProvider);
             var request = new CancellableStreamRequest { ItemCount = 100, DelayBetweenItems = 10 };
-            
+
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromMilliseconds(50)); // Cancel after 50ms
-            
+
             // Act & Assert
             var results = new List<string>();
             var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
@@ -189,7 +189,7 @@ namespace Relay.Core.Tests
                     results.Add(item);
                 }
             });
-            
+
             // Should have processed some items but not all
             Assert.True(results.Count > 0);
             Assert.True(results.Count < 100);
@@ -201,7 +201,7 @@ namespace Relay.Core.Tests
             // Arrange
             var serviceProvider = CreateServiceProvider();
             var relay = new RelayImplementation(serviceProvider);
-            
+
             // Act & Assert
             await Assert.ThrowsAsync<ArgumentNullException>(async () =>
             {
@@ -220,9 +220,9 @@ namespace Relay.Core.Tests
             services.AddSingleton<IStreamDispatcher, StreamDispatcher>();
             var serviceProvider = services.BuildServiceProvider();
             var relay = new RelayImplementation(serviceProvider);
-            
+
             var request = new LargeDatasetRequest();
-            
+
             // Act & Assert
             await Assert.ThrowsAsync<HandlerNotFoundException>(async () =>
             {
@@ -240,30 +240,30 @@ namespace Relay.Core.Tests
             var serviceProvider = CreateServiceProvider();
             var relay = new RelayImplementation(serviceProvider);
             var request = new LargeDatasetRequest { Count = 10000 };
-            
+
             // Act
             var processedCount = 0;
             var maxMemoryUsage = GC.GetTotalMemory(false);
-            
+
             await foreach (var item in relay.StreamAsync(request))
             {
                 processedCount++;
-                
+
                 // Check memory usage periodically
                 if (processedCount % 1000 == 0)
                 {
                     var currentMemory = GC.GetTotalMemory(false);
                     maxMemoryUsage = Math.Max(maxMemoryUsage, currentMemory);
                 }
-                
+
                 // Early exit to test streaming behavior
                 if (processedCount >= 5000)
                     break;
             }
-            
+
             // Assert
             Assert.Equal(5000, processedCount);
-            
+
             // Memory usage should be reasonable (not proportional to total item count)
             // This is a rough check - in practice, streaming should use constant memory
             // We just verify that we processed items incrementally without buffering all
@@ -276,9 +276,9 @@ namespace Relay.Core.Tests
             // Arrange
             var serviceProvider = CreateServiceProvider();
             var relay = new RelayImplementation(serviceProvider);
-            
+
             var request = new ExceptionRequest();
-            
+
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             {

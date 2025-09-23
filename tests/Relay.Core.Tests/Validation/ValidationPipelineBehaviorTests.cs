@@ -16,21 +16,21 @@ namespace Relay.Core.Tests.Validation
             services.AddRelayValidation();
             services.AddTransient<IValidator<string>, DefaultValidator<string>>();
             services.AddTransient<IValidationRule<string>, TestValidationRule>();
-            
+
             var serviceProvider = services.BuildServiceProvider();
             var validator = serviceProvider.GetRequiredService<IValidator<string>>();
             var behavior = new ValidationPipelineBehavior<string, int>(validator);
-            
+
             var request = "valid request";
             var next = new RequestHandlerDelegate<int>(() => new ValueTask<int>(42));
-            
+
             // Act
             var result = await behavior.HandleAsync(request, next, default);
-            
+
             // Assert
             Assert.Equal(42, result);
         }
-        
+
         [Fact]
         public async Task Should_Throw_ValidationException_When_Request_Is_Invalid()
         {
@@ -39,16 +39,16 @@ namespace Relay.Core.Tests.Validation
             services.AddRelayValidation();
             services.AddTransient<IValidator<string>, DefaultValidator<string>>();
             services.AddTransient<IValidationRule<string>, TestValidationRule>();
-            
+
             var serviceProvider = services.BuildServiceProvider();
             var validator = serviceProvider.GetRequiredService<IValidator<string>>();
             var behavior = new ValidationPipelineBehavior<string, int>(validator);
-            
+
             var request = "";
             var next = new RequestHandlerDelegate<int>(() => new ValueTask<int>(42));
-            
+
             // Act & Assert
-            await Assert.ThrowsAsync<ValidationException>(async () => 
+            await Assert.ThrowsAsync<ValidationException>(async () =>
                 await behavior.HandleAsync(request, next, default));
         }
     }

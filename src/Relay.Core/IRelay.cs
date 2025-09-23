@@ -44,7 +44,7 @@ namespace Relay.Core
         /// <param name="notification">The notification to publish.</param>
         /// <param name="cancellationToken">Cancellation token for the operation.</param>
         /// <returns>A ValueTask representing the completion of the operation.</returns>
-        ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default) 
+        ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
             where TNotification : INotification;
     }
 }

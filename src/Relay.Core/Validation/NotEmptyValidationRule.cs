@@ -27,7 +27,7 @@ namespace Relay.Core.Validation
         public ValueTask<IEnumerable<string>> ValidateAsync(TRequest request, CancellationToken cancellationToken = default)
         {
             var value = GetPropertyValue(request);
-            
+
             if (string.IsNullOrEmpty(value))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { $"{PropertyName} cannot be null or empty." });

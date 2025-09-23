@@ -17,10 +17,10 @@ public class OptimizedDispatcherTests
     {
         // This test verifies that the optimized dispatcher is generated
         // In a real scenario, this would test the generated code
-        
+
         // For now, we'll test that the concept works
         var dispatcher = new MockOptimizedDispatcher();
-        
+
         Assert.NotNull(dispatcher);
     }
 
@@ -29,10 +29,10 @@ public class OptimizedDispatcherTests
     {
         // This test would work with the generated optimized dispatcher
         // For now, we'll test the concept
-        
+
         var request = new TestRequest { Value = "test" };
         var result = await ProcessRequestOptimized(request);
-        
+
         Assert.Equal("test_processed", result.Result);
     }
 
@@ -43,7 +43,7 @@ public class OptimizedDispatcherTests
         var result1 = SelectHandlerOptimized("default");
         var result2 = SelectHandlerOptimized("handler1");
         var result3 = SelectHandlerOptimized("unknown");
-        
+
         Assert.Equal("default_handler", result1);
         Assert.Equal("handler1_handler", result2);
         Assert.Equal("fallback_handler", result3);
@@ -54,10 +54,10 @@ public class OptimizedDispatcherTests
     {
         // Test that inlined dispatching concept works
         var request = new TestRequest { Value = "test" };
-        
+
         // Simulate inlined dispatch (direct method call)
         var result = InlinedDispatch(request);
-        
+
         Assert.Equal("test_inlined", result.Result);
     }
 

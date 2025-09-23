@@ -21,7 +21,7 @@ public class AllocationBenchmarks
     private PooledTelemetryProvider _pooledProvider = null!;
     private DefaultTelemetryProvider _defaultProvider = null!;
     private DefaultPooledBufferManager _bufferManager = null!;
-    
+
     private class Config : ManualConfig
     {
         public Config()
@@ -36,7 +36,7 @@ public class AllocationBenchmarks
         var services = new ServiceCollection();
         services.AddRelayPerformanceOptimizations();
         var provider = services.BuildServiceProvider();
-        
+
         _pool = provider.GetRequiredService<ITelemetryContextPool>();
         _pooledProvider = new PooledTelemetryProvider(_pool);
         _defaultProvider = new DefaultTelemetryProvider();
@@ -61,10 +61,10 @@ public class AllocationBenchmarks
     public void RecordHandlerExecution_Default()
     {
         _defaultProvider.RecordHandlerExecution(
-            typeof(string), 
-            typeof(int), 
-            "TestHandler", 
-            TimeSpan.FromMilliseconds(50), 
+            typeof(string),
+            typeof(int),
+            "TestHandler",
+            TimeSpan.FromMilliseconds(50),
             true);
     }
 
@@ -72,10 +72,10 @@ public class AllocationBenchmarks
     public void RecordHandlerExecution_Pooled()
     {
         _pooledProvider.RecordHandlerExecution(
-            typeof(string), 
-            typeof(int), 
-            "TestHandler", 
-            TimeSpan.FromMilliseconds(50), 
+            typeof(string),
+            typeof(int),
+            "TestHandler",
+            TimeSpan.FromMilliseconds(50),
             true);
     }
 

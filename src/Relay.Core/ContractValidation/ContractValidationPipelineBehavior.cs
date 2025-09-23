@@ -53,7 +53,7 @@ namespace Relay.Core.ContractValidation
                 var requestErrors = await ValidateRequestContract(request, cancellationToken);
                 if (requestErrors.Any())
                 {
-                    _logger.LogWarning("Request contract validation failed for {RequestType}: {Errors}", 
+                    _logger.LogWarning("Request contract validation failed for {RequestType}: {Errors}",
                         typeof(TRequest).Name, string.Join(", ", requestErrors));
 
                     if (throwOnFailure)
@@ -72,7 +72,7 @@ namespace Relay.Core.ContractValidation
                 var responseErrors = await ValidateResponseContract(response, cancellationToken);
                 if (responseErrors.Any())
                 {
-                    _logger.LogWarning("Response contract validation failed for {ResponseType}: {Errors}", 
+                    _logger.LogWarning("Response contract validation failed for {ResponseType}: {Errors}",
                         typeof(TResponse).Name, string.Join(", ", responseErrors));
 
                     if (throwOnFailure)
@@ -114,11 +114,11 @@ namespace Relay.Core.ContractValidation
         {
             if (validateContractAttribute != null)
             {
-                return (validateContractAttribute.ValidateRequest, 
-                       validateContractAttribute.ValidateResponse, 
+                return (validateContractAttribute.ValidateRequest,
+                       validateContractAttribute.ValidateResponse,
                        validateContractAttribute.ThrowOnValidationFailure);
             }
-            
+
             return (contractValidationOptions.ValidateRequests,
                    contractValidationOptions.ValidateResponses,
                    contractValidationOptions.ThrowOnValidationFailure);
@@ -133,7 +133,7 @@ namespace Relay.Core.ContractValidation
                 Schema = "{}", // Simple schema for now
                 ContentType = "application/json"
             };
-            
+
             var errors = await _contractValidator.ValidateRequestAsync(request!, schema, cancellationToken);
             return errors.ToArray();
         }
@@ -147,7 +147,7 @@ namespace Relay.Core.ContractValidation
                 Schema = "{}", // Simple schema for now
                 ContentType = "application/json"
             };
-            
+
             var errors = await _contractValidator.ValidateResponseAsync(response!, schema, cancellationToken);
             return errors.ToArray();
         }

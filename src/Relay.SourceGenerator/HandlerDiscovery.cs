@@ -316,7 +316,7 @@ namespace Relay.SourceGenerator
             {
                 var requestType = group.Key;
                 var handlersForType = group.ToList();
-                
+
                 ValidateNamedHandlerConflicts(requestType, handlersForType, diagnosticReporter);
             }
         }
@@ -325,24 +325,24 @@ namespace Relay.SourceGenerator
         {
             // Get handler names
             var handlersByName = new Dictionary<string, List<HandlerInfo>>();
-            
+
             foreach (var handler in handlers)
             {
                 var handlerName = GetHandlerName(handler);
-                
+
                 if (!handlersByName.ContainsKey(handlerName))
                 {
                     handlersByName[handlerName] = new List<HandlerInfo>();
                 }
                 handlersByName[handlerName].Add(handler);
             }
-            
+
             // Check for conflicts
             foreach (var kvp in handlersByName)
             {
                 var handlerName = kvp.Key;
                 var handlersWithName = kvp.Value;
-                
+
                 if (handlersWithName.Count > 1)
                 {
                     // Multiple handlers with the same name for the same request type
@@ -364,13 +364,13 @@ namespace Relay.SourceGenerator
                 // Try to get the Name property from the attribute
                 var nameArg = handleAttribute.AttributeData.NamedArguments
                     .FirstOrDefault(arg => arg.Key == "Name");
-                
+
                 if (nameArg.Value.Value is string name && !string.IsNullOrEmpty(name))
                 {
                     return name;
                 }
             }
-            
+
             return "default";
         }
 

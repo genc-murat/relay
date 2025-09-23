@@ -19,20 +19,20 @@ public static class PerformanceServiceCollectionExtensions
     {
         // Add object pool provider if not already registered
         services.TryAddSingleton<ObjectPoolProvider, DefaultObjectPoolProvider>();
-        
+
         // Add telemetry context pool
         services.TryAddSingleton<ITelemetryContextPool, DefaultTelemetryContextPool>();
-        
+
         // Add buffer manager
-        services.TryAddSingleton<IPooledBufferManager>(provider => 
+        services.TryAddSingleton<IPooledBufferManager>(provider =>
             new DefaultPooledBufferManager(ArrayPool<byte>.Shared));
-        
+
         // Add optimized relay implementation
         services.TryAddSingleton<OptimizedRelay>();
-        
+
         // Add pooled telemetry provider
         services.TryAddSingleton<PooledTelemetryProvider>();
-        
+
         return services;
     }
 
@@ -57,15 +57,15 @@ public static class PerformanceServiceCollectionExtensions
         {
             services.TryAddSingleton<ObjectPoolProvider, DefaultObjectPoolProvider>();
         }
-        
+
         // Add telemetry context pool
         services.TryAddSingleton<ITelemetryContextPool, DefaultTelemetryContextPool>();
-        
+
         // Add buffer manager with custom array pool if provided
         var arrayPool = configureArrayPool ?? ArrayPool<byte>.Shared;
-        services.TryAddSingleton<IPooledBufferManager>(provider => 
+        services.TryAddSingleton<IPooledBufferManager>(provider =>
             new DefaultPooledBufferManager(arrayPool));
-        
+
         return services;
     }
 }

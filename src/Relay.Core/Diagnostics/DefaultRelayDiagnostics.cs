@@ -16,14 +16,14 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
     private readonly IRequestTracer _tracer;
     private readonly DiagnosticsOptions _options;
     private readonly DateTimeOffset _startTime;
-    
+
     public DefaultRelayDiagnostics(IRequestTracer tracer, DiagnosticsOptions options)
     {
         _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _startTime = DateTimeOffset.UtcNow;
     }
-    
+
     /// <inheritdoc />
     public HandlerRegistryInfo GetHandlerRegistry()
     {
@@ -38,7 +38,7 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
             Warnings = new List<string>()
         };
     }
-    
+
     /// <inheritdoc />
     public IEnumerable<HandlerMetrics> GetHandlerMetrics()
     {
@@ -46,90 +46,90 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
         {
             return Enumerable.Empty<HandlerMetrics>();
         }
-        
+
         return _handlerMetrics.Values.ToList();
     }
-    
+
     /// <inheritdoc />
     public RequestTrace? GetCurrentTrace()
     {
         return _tracer.GetCurrentTrace();
     }
-    
+
     /// <inheritdoc />
     public IEnumerable<RequestTrace> GetCompletedTraces(DateTimeOffset? since = null)
     {
         return _tracer.GetCompletedTraces(since);
     }
-    
+
     /// <inheritdoc />
     public ValidationResult ValidateConfiguration()
     {
         var result = new ValidationResult();
-        
+
         // Basic validation checks
         if (!_options.EnableRequestTracing && !_options.EnablePerformanceMetrics)
         {
             result.AddWarning("Both request tracing and performance metrics are disabled", "Configuration");
         }
-        
+
         if (_options.TraceBufferSize <= 0)
         {
             result.AddError("Trace buffer size must be greater than 0", "Configuration");
         }
-        
+
         if (_options.MetricsRetentionPeriod <= TimeSpan.Zero)
         {
             result.AddError("Metrics retention period must be greater than 0", "Configuration");
         }
-        
+
         // Check if diagnostic endpoints are enabled but authentication is disabled
         if (_options.EnableDiagnosticEndpoints && !_options.RequireAuthentication)
         {
             result.AddWarning("Diagnostic endpoints are enabled without authentication", "Security");
         }
-        
+
         return result;
     }
-    
+
     /// <inheritdoc />
     public async Task<BenchmarkResult> BenchmarkHandlerAsync<TRequest>(
-        TRequest request, 
-        int iterations = 1000, 
-        CancellationToken cancellationToken = default) 
+        TRequest request,
+        int iterations = 1000,
+        CancellationToken cancellationToken = default)
         where TRequest : Core.IRequest
     {
         if (iterations <= 0)
             throw new ArgumentException("Iterations must be greater than 0", nameof(iterations));
-        
+
         var requestType = typeof(TRequest).Name;
         var results = new List<TimeSpan>();
         var startTime = DateTimeOffset.UtcNow;
-        
+
         // This is a placeholder implementation
         // In a real implementation, this would execute the actual handler
         for (int i = 0; i < iterations; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             var iterationStart = DateTimeOffset.UtcNow;
-            
+
             // Simulate handler execution
             await Task.Delay(1, cancellationToken);
-            
+
             var iterationEnd = DateTimeOffset.UtcNow;
             results.Add(iterationEnd - iterationStart);
         }
-        
+
         var totalTime = results.Aggregate(TimeSpan.Zero, (sum, time) => sum + time);
         var minTime = results.Min();
         var maxTime = results.Max();
-        
+
         // Calculate standard deviation
         var avgTicks = totalTime.Ticks / iterations;
         var variance = results.Select(t => Math.Pow(t.Ticks - avgTicks, 2)).Average();
         var stdDev = TimeSpan.FromTicks((long)Math.Sqrt(variance));
-        
+
         return new BenchmarkResult
         {
             RequestType = requestType,
@@ -143,14 +143,14 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
             Timestamp = startTime
         };
     }
-    
+
     /// <inheritdoc />
     public void ClearDiagnosticData()
     {
         _handlerMetrics.Clear();
         _tracer.ClearTraces();
     }
-    
+
     /// <inheritdoc />
     public DiagnosticSummary GetDiagnosticSummary()
     {
@@ -158,14 +158,14 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
         var totalInvocations = metrics.Sum(m => m.InvocationCount);
         var totalSuccessful = metrics.Sum(m => m.SuccessCount);
         var totalFailed = metrics.Sum(m => m.ErrorCount);
-        
+
         var avgExecutionTime = TimeSpan.Zero;
         if (metrics.Any())
         {
             var totalTicks = metrics.Sum(m => m.TotalExecutionTime.Ticks);
             avgExecutionTime = TimeSpan.FromTicks(totalTicks / metrics.Count());
         }
-        
+
         return new DiagnosticSummary
         {
             TotalHandlers = GetHandlerRegistry().TotalHandlers,
@@ -182,7 +182,7 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
             IsMetricsEnabled = _options.EnablePerformanceMetrics
         };
     }
-    
+
     /// <summary>
     /// Records metrics for a handler execution
     /// </summary>
@@ -195,9 +195,9 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
     {
         if (!_options.EnablePerformanceMetrics)
             return;
-        
+
         var key = $"{requestType}:{handlerType}";
-        _handlerMetrics.AddOrUpdate(key, 
+        _handlerMetrics.AddOrUpdate(key,
             new HandlerMetrics
             {
                 RequestType = requestType,
@@ -219,12 +219,12 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
                 existing.MaxExecutionTime = executionTime > existing.MaxExecutionTime ? executionTime : existing.MaxExecutionTime;
                 existing.LastInvocation = DateTimeOffset.UtcNow;
                 existing.TotalAllocatedBytes += allocatedBytes;
-                
+
                 if (success)
                     existing.SuccessCount++;
                 else
                     existing.ErrorCount++;
-                
+
                 return existing;
             });
     }

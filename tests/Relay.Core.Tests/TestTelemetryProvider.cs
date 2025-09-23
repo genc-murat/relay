@@ -12,11 +12,11 @@ public class TestTelemetryProvider : ITelemetryProvider
     public List<HandlerExecution> HandlerExecutions { get; } = new();
     public List<NotificationPublish> NotificationPublishes { get; } = new();
     public List<StreamingOperation> StreamingOperations { get; } = new();
-    
+
     private string? _correlationId;
-    
+
     public IMetricsProvider? MetricsProvider { get; } = new TestMetricsProvider();
-    
+
     public Activity? StartActivity(string operationName, Type requestType, string? correlationId = null)
     {
         var testActivity = new TestActivity
@@ -28,15 +28,15 @@ public class TestTelemetryProvider : ITelemetryProvider
                 ["relay.operation"] = operationName
             }
         };
-        
+
         if (correlationId != null)
         {
             testActivity.Tags["relay.correlation_id"] = correlationId;
             SetCorrelationId(correlationId);
         }
-        
+
         Activities.Add(testActivity);
-        
+
         // Return a real Activity for integration with System.Diagnostics
         var activitySource = new ActivitySource("Test");
         var activity = activitySource.StartActivity(operationName);
@@ -47,10 +47,10 @@ public class TestTelemetryProvider : ITelemetryProvider
                 activity.SetTag(tag.Key, tag.Value);
             }
         }
-        
+
         return activity;
     }
-    
+
     public void RecordHandlerExecution(Type requestType, Type? responseType, string? handlerName, TimeSpan duration, bool success, Exception? exception = null)
     {
         HandlerExecutions.Add(new HandlerExecution
@@ -63,7 +63,7 @@ public class TestTelemetryProvider : ITelemetryProvider
             Exception = exception
         });
     }
-    
+
     public void RecordNotificationPublish(Type notificationType, int handlerCount, TimeSpan duration, bool success, Exception? exception = null)
     {
         NotificationPublishes.Add(new NotificationPublish
@@ -75,7 +75,7 @@ public class TestTelemetryProvider : ITelemetryProvider
             Exception = exception
         });
     }
-    
+
     public void RecordStreamingOperation(Type requestType, Type responseType, string? handlerName, TimeSpan duration, long itemCount, bool success, Exception? exception = null)
     {
         StreamingOperations.Add(new StreamingOperation
@@ -89,12 +89,12 @@ public class TestTelemetryProvider : ITelemetryProvider
             Exception = exception
         });
     }
-    
+
     public void SetCorrelationId(string correlationId)
     {
         _correlationId = correlationId;
     }
-    
+
     public string? GetCorrelationId()
     {
         return _correlationId;
@@ -144,28 +144,28 @@ public class TestMetricsProvider : IMetricsProvider
     public List<StreamingOperationMetrics> StreamingOperationMetrics { get; } = new();
     public List<PerformanceAnomaly> DetectedAnomalies { get; } = new();
     public Dictionary<string, TimingBreakdown> TimingBreakdowns { get; } = new();
-    
+
     public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
     {
         HandlerExecutionMetrics.Add(metrics);
     }
-    
+
     public void RecordNotificationPublish(NotificationPublishMetrics metrics)
     {
         NotificationPublishMetrics.Add(metrics);
     }
-    
+
     public void RecordStreamingOperation(StreamingOperationMetrics metrics)
     {
         StreamingOperationMetrics.Add(metrics);
     }
-    
+
     public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
     {
         var executions = HandlerExecutionMetrics
             .Where(m => m.RequestType == requestType && (handlerName == null || m.HandlerName == handlerName))
             .ToList();
-        
+
         if (executions.Count == 0)
         {
             return new HandlerExecutionStats
@@ -174,10 +174,10 @@ public class TestMetricsProvider : IMetricsProvider
                 HandlerName = handlerName
             };
         }
-        
+
         var successful = executions.Where(e => e.Success).ToList();
         var durations = executions.Select(e => e.Duration).OrderBy(d => d).ToList();
-        
+
         return new HandlerExecutionStats
         {
             RequestType = requestType,
@@ -194,13 +194,13 @@ public class TestMetricsProvider : IMetricsProvider
             LastExecution = executions.Max(e => e.Timestamp)
         };
     }
-    
+
     public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
     {
         var publishes = NotificationPublishMetrics
             .Where(m => m.NotificationType == notificationType)
             .ToList();
-        
+
         if (publishes.Count == 0)
         {
             return new NotificationPublishStats
@@ -208,10 +208,10 @@ public class TestMetricsProvider : IMetricsProvider
                 NotificationType = notificationType
             };
         }
-        
+
         var successful = publishes.Where(p => p.Success).ToList();
         var durations = publishes.Select(p => p.Duration).OrderBy(d => d).ToList();
-        
+
         return new NotificationPublishStats
         {
             NotificationType = notificationType,
@@ -225,13 +225,13 @@ public class TestMetricsProvider : IMetricsProvider
             LastPublish = publishes.Max(p => p.Timestamp)
         };
     }
-    
+
     public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
     {
         var operations = StreamingOperationMetrics
             .Where(m => m.RequestType == requestType && (handlerName == null || m.HandlerName == handlerName))
             .ToList();
-        
+
         if (operations.Count == 0)
         {
             return new StreamingOperationStats
@@ -240,11 +240,11 @@ public class TestMetricsProvider : IMetricsProvider
                 HandlerName = handlerName
             };
         }
-        
+
         var successful = operations.Where(o => o.Success).ToList();
         var totalItems = operations.Sum(o => o.ItemCount);
         var totalDuration = TimeSpan.FromTicks(operations.Sum(o => o.Duration.Ticks));
-        
+
         return new StreamingOperationStats
         {
             RequestType = requestType,
@@ -259,39 +259,39 @@ public class TestMetricsProvider : IMetricsProvider
             LastOperation = operations.Max(o => o.Timestamp)
         };
     }
-    
+
     public IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
     {
         return DetectedAnomalies.Where(a => a.DetectedAt >= DateTimeOffset.UtcNow - lookbackPeriod);
     }
-    
+
     public TimingBreakdown GetTimingBreakdown(string operationId)
     {
-        return TimingBreakdowns.TryGetValue(operationId, out var breakdown) 
-            ? breakdown 
+        return TimingBreakdowns.TryGetValue(operationId, out var breakdown)
+            ? breakdown
             : new TimingBreakdown { OperationId = operationId };
     }
-    
+
     public void RecordTimingBreakdown(TimingBreakdown breakdown)
     {
         TimingBreakdowns[breakdown.OperationId] = breakdown;
     }
-    
+
     public void AddAnomaly(PerformanceAnomaly anomaly)
     {
         DetectedAnomalies.Add(anomaly);
     }
-    
+
     public void AddTimingBreakdown(TimingBreakdown breakdown)
     {
         TimingBreakdowns[breakdown.OperationId] = breakdown;
     }
-    
+
     private static TimeSpan GetPercentile(List<TimeSpan> sortedDurations, double percentile)
     {
         if (sortedDurations.Count == 0) return TimeSpan.Zero;
         if (sortedDurations.Count == 1) return sortedDurations[0];
-        
+
         var index = (int)Math.Ceiling(sortedDurations.Count * percentile) - 1;
         index = Math.Max(0, Math.Min(index, sortedDurations.Count - 1));
         return sortedDurations[index];

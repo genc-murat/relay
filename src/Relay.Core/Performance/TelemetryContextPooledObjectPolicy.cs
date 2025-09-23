@@ -37,10 +37,10 @@ public class TelemetryContextPooledObjectPolicy : IPooledObjectPolicy<TelemetryC
         obj.HandlerName = null;
         obj.StartTime = DateTimeOffset.UtcNow;
         obj.Activity = null;
-        
+
         // Clear properties dictionary but keep the instance to avoid allocations
         obj.Properties.Clear();
-        
+
         return true;
     }
 }

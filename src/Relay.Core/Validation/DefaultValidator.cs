@@ -30,7 +30,7 @@ namespace Relay.Core.Validation
                 throw new ArgumentNullException(nameof(request));
 
             var errors = new List<string>();
-            
+
             // If no validation rules are registered, the request is considered valid
             if (!_validationRules.Any())
                 return errors;

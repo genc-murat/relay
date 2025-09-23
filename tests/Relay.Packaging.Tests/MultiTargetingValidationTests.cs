@@ -14,7 +14,7 @@ public class MultiTargetingValidationTests
         // This test validates that the assembly can be loaded for each target framework
         // In a real scenario, this would be run against the actual built assemblies
         var assemblyPath = GetAssemblyPath("Relay.Core", targetFramework);
-        
+
         if (File.Exists(assemblyPath))
         {
             var assembly = Assembly.LoadFrom(assemblyPath);
@@ -32,16 +32,16 @@ public class MultiTargetingValidationTests
     public void NetStandard20_ShouldIncludeTaskExtensions()
     {
         var assemblyPath = GetAssemblyPath("Relay.Core", "netstandard2.0");
-        
+
         if (File.Exists(assemblyPath))
         {
             var assembly = Assembly.LoadFrom(assemblyPath);
             var referencedAssemblies = assembly.GetReferencedAssemblies();
-            
-            var hasTaskExtensions = referencedAssemblies.Any(a => 
+
+            var hasTaskExtensions = referencedAssemblies.Any(a =>
                 a.Name?.Contains("System.Threading.Tasks.Extensions") == true);
-            
-            Assert.True(hasTaskExtensions, 
+
+            Assert.True(hasTaskExtensions,
                 "netstandard2.0 build should reference System.Threading.Tasks.Extensions");
         }
     }
@@ -52,16 +52,16 @@ public class MultiTargetingValidationTests
     public void ModernNet_ShouldNotIncludeTaskExtensions(string targetFramework)
     {
         var assemblyPath = GetAssemblyPath("Relay.Core", targetFramework);
-        
+
         if (File.Exists(assemblyPath))
         {
             var assembly = Assembly.LoadFrom(assemblyPath);
             var referencedAssemblies = assembly.GetReferencedAssemblies();
-            
-            var hasTaskExtensions = referencedAssemblies.Any(a => 
+
+            var hasTaskExtensions = referencedAssemblies.Any(a =>
                 a.Name?.Contains("System.Threading.Tasks.Extensions") == true);
-            
-            Assert.False(hasTaskExtensions, 
+
+            Assert.False(hasTaskExtensions,
                 $"{targetFramework} build should not reference System.Threading.Tasks.Extensions");
         }
     }
@@ -70,7 +70,7 @@ public class MultiTargetingValidationTests
     public void SourceGenerator_ShouldOnlyTargetNetStandard20()
     {
         var sourceGenDir = Path.Combine("../../../../src/Relay.SourceGenerator/bin/Release");
-        
+
         if (Directory.Exists(sourceGenDir))
         {
             var frameworkDirs = Directory.GetDirectories(sourceGenDir)

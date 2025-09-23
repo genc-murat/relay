@@ -14,7 +14,7 @@ namespace Relay.Core.Tests
             public void ValidateExposeAsEndpointAttribute_WithNullAttribute_ShouldThrowArgumentNullException()
             {
                 // Act & Assert
-                Assert.Throws<ArgumentNullException>(() => 
+                Assert.Throws<ArgumentNullException>(() =>
                     AttributeValidation.ValidateExposeAsEndpointAttribute(null!));
             }
 

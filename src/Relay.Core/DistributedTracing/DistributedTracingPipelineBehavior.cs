@@ -56,7 +56,7 @@ namespace Relay.Core.DistributedTracing
             };
 
             using var activity = _tracingProvider.StartActivity(operationName, typeof(TRequest), null, tags);
-            
+
             if (activity == null)
             {
                 // Tracing is not enabled, just proceed
@@ -136,7 +136,7 @@ namespace Relay.Core.DistributedTracing
                 var operationName = traceAttribute.OperationName ?? $"Process {typeof(TRequest).Name}";
                 return (traceAttribute.TraceRequest, traceAttribute.TraceResponse, operationName);
             }
-            
+
             var defaultOperationName = $"Process {typeof(TRequest).Name}";
             return (tracingOptions.TraceRequests, tracingOptions.TraceResponses, defaultOperationName);
         }

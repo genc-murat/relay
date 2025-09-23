@@ -48,7 +48,7 @@ namespace Relay.Core.Retry
             var (maxAttempts, retryDelay, retryStrategy) = GetRetryParameters(retryOptions, retryAttribute);
 
             var exceptions = new List<Exception>();
-            
+
             for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
                 try
@@ -58,8 +58,8 @@ namespace Relay.Core.Retry
                     {
                         var delay = await retryStrategy.GetRetryDelayAsync(attempt, exceptions[attempt - 1], cancellationToken);
                         await Task.Delay(delay, cancellationToken);
-                        
-                        _logger.LogInformation("Retrying request {RequestType}, attempt {Attempt}/{MaxAttempts}", 
+
+                        _logger.LogInformation("Retrying request {RequestType}, attempt {Attempt}/{MaxAttempts}",
                             typeof(TRequest).Name, attempt + 1, maxAttempts);
                     }
 
@@ -68,7 +68,7 @@ namespace Relay.Core.Retry
                 catch (Exception ex)
                 {
                     exceptions.Add(ex);
-                    _logger.LogWarning(ex, "Request {RequestType} failed on attempt {Attempt}/{MaxAttempts}", 
+                    _logger.LogWarning(ex, "Request {RequestType} failed on attempt {Attempt}/{MaxAttempts}",
                         typeof(TRequest).Name, attempt + 1, maxAttempts);
 
                     // If this is the last attempt, break
@@ -129,7 +129,7 @@ namespace Relay.Core.Retry
                 // Use parameters from attribute
                 var maxAttempts = retryAttribute.MaxRetryAttempts;
                 var retryDelay = TimeSpan.FromMilliseconds(retryAttribute.RetryDelayMilliseconds);
-                
+
                 // Create retry strategy
                 IRetryStrategy retryStrategy;
                 if (retryAttribute.RetryStrategyType != null)
@@ -141,25 +141,25 @@ namespace Relay.Core.Retry
                 {
                     retryStrategy = new LinearRetryStrategy(retryDelay);
                 }
-                
+
                 return (maxAttempts, retryDelay, retryStrategy);
             }
-            
+
             // Use default parameters
             var defaultMaxAttempts = retryOptions.DefaultMaxRetryAttempts;
             var defaultRetryDelay = TimeSpan.FromMilliseconds(retryOptions.DefaultRetryDelayMilliseconds);
-            
+
             // Create retry strategy based on configuration
             IRetryStrategy defaultRetryStrategy = retryOptions.DefaultRetryStrategy.ToLowerInvariant() switch
             {
                 "exponential" => new ExponentialBackoffRetryStrategy(
-                    defaultRetryDelay, 
+                    defaultRetryDelay,
                     TimeSpan.FromMilliseconds(defaultRetryDelay.TotalMilliseconds * 10)),
                 "circuitbreaker" => new CircuitBreakerRetryStrategy(
                     new LinearRetryStrategy(defaultRetryDelay)),
                 _ => new LinearRetryStrategy(defaultRetryDelay)
             };
-            
+
             return (defaultMaxAttempts, defaultRetryDelay, defaultRetryStrategy);
         }
     }

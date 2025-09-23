@@ -48,7 +48,7 @@ public class TestPipelineHandler
             var compilation = CreateTestCompilation(sourceCode);
             var context = new RelayCompilationContext(compilation, default);
             var generator = new PipelineRegistryGenerator(context);
-            
+
             // Create discovery result with pipeline handler
             var discoveryResult = CreateDiscoveryResultWithPipelineHandler(compilation, sourceCode);
 
@@ -91,7 +91,7 @@ public class TestStreamPipelineHandler
             var compilation = CreateTestCompilation(sourceCode);
             var context = new RelayCompilationContext(compilation, default);
             var generator = new PipelineRegistryGenerator(context);
-            
+
             // Create discovery result with stream pipeline handler
             var discoveryResult = CreateDiscoveryResultWithPipelineHandler(compilation, sourceCode);
 
@@ -137,7 +137,7 @@ public class TestPipelineHandlers
             var compilation = CreateTestCompilation(sourceCode);
             var context = new RelayCompilationContext(compilation, default);
             var generator = new PipelineRegistryGenerator(context);
-            
+
             // Create discovery result with multiple pipeline handlers
             var discoveryResult = CreateDiscoveryResultWithPipelineHandler(compilation, sourceCode);
 
@@ -154,7 +154,7 @@ public class TestPipelineHandlers
         private Compilation CreateTestCompilation(string sourceCode)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
-            
+
             var references = new[]
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
@@ -172,12 +172,12 @@ public class TestPipelineHandlers
         private HandlerDiscoveryResult CreateDiscoveryResultWithPipelineHandler(Compilation compilation, string sourceCode)
         {
             var result = new HandlerDiscoveryResult();
-            
+
             // Parse the source and find methods with Pipeline attributes
             var syntaxTree = compilation.SyntaxTrees.First();
             var semanticModel = compilation.GetSemanticModel(syntaxTree);
             var root = syntaxTree.GetRoot();
-            
+
             var methods = root.DescendantNodes()
                 .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
                 .Where(m => m.AttributeLists.Any())

@@ -29,11 +29,11 @@ public class DefaultTelemetryContextPool : ITelemetryContextPool
     public TelemetryContext Get()
     {
         var context = _pool.Get();
-        
+
         // Ensure fresh state even if policy didn't reset properly
         context.RequestId = Guid.NewGuid().ToString();
         context.StartTime = DateTimeOffset.UtcNow;
-        
+
         return context;
     }
 

@@ -7,7 +7,7 @@ namespace Relay.Core.Authorization
     /// <summary>
     /// Default implementation of IAuthorizationService.
     /// </summary>
-public class DefaultAuthorizationService : IAuthorizationService
+    public class DefaultAuthorizationService : IAuthorizationService
     {
         /// <inheritdoc />
         public async ValueTask<bool> AuthorizeAsync(IAuthorizationContext context, CancellationToken cancellationToken = default)

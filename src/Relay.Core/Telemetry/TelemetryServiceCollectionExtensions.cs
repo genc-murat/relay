@@ -20,18 +20,18 @@ public static class TelemetryServiceCollectionExtensions
     {
         // Register the default metrics provider
         services.TryAddSingleton<IMetricsProvider, DefaultMetricsProvider>();
-        
+
         // Register the default telemetry provider
         services.TryAddSingleton<ITelemetryProvider, DefaultTelemetryProvider>();
-        
+
         // Decorate existing dispatchers with telemetry
         services.Decorate<IRequestDispatcher, TelemetryRequestDispatcher>();
         services.Decorate<IStreamDispatcher, TelemetryStreamDispatcher>();
         services.Decorate<INotificationDispatcher, TelemetryNotificationDispatcher>();
-        
+
         // Decorate the main Relay interface with telemetry
         services.Decorate<IRelay, TelemetryRelay>();
-        
+
         // Configure telemetry if provided
         if (configureTelemetry != null)
         {
@@ -42,10 +42,10 @@ public static class TelemetryServiceCollectionExtensions
                 return telemetryProvider;
             });
         }
-        
+
         return services;
     }
-    
+
     /// <summary>
     /// Adds a custom telemetry provider
     /// </summary>
@@ -56,18 +56,18 @@ public static class TelemetryServiceCollectionExtensions
         where TTelemetryProvider : class, ITelemetryProvider
     {
         services.TryAddSingleton<ITelemetryProvider, TTelemetryProvider>();
-        
+
         // Decorate existing dispatchers with telemetry
         services.Decorate<IRequestDispatcher, TelemetryRequestDispatcher>();
         services.Decorate<IStreamDispatcher, TelemetryStreamDispatcher>();
         services.Decorate<INotificationDispatcher, TelemetryNotificationDispatcher>();
-        
+
         // Decorate the main Relay interface with telemetry
         services.Decorate<IRelay, TelemetryRelay>();
-        
+
         return services;
     }
-    
+
     /// <summary>
     /// Adds a custom telemetry provider with factory
     /// </summary>
@@ -78,18 +78,18 @@ public static class TelemetryServiceCollectionExtensions
     {
         services.TryAddSingleton<IMetricsProvider, DefaultMetricsProvider>();
         services.TryAddSingleton(factory);
-        
+
         // Decorate existing dispatchers with telemetry
         services.Decorate<IRequestDispatcher, TelemetryRequestDispatcher>();
         services.Decorate<IStreamDispatcher, TelemetryStreamDispatcher>();
         services.Decorate<INotificationDispatcher, TelemetryNotificationDispatcher>();
-        
+
         // Decorate the main Relay interface with telemetry
         services.Decorate<IRelay, TelemetryRelay>();
-        
+
         return services;
     }
-    
+
     /// <summary>
     /// Adds a custom metrics provider
     /// </summary>
@@ -102,7 +102,7 @@ public static class TelemetryServiceCollectionExtensions
         services.TryAddSingleton<IMetricsProvider, TMetricsProvider>();
         return services;
     }
-    
+
     /// <summary>
     /// Adds a custom metrics provider with factory
     /// </summary>

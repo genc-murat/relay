@@ -74,35 +74,35 @@ public class CoreInterfaceTests
 
         // Assert
         relayType.Should().BeInterface();
-        
+
         var methods = relayType.GetMethods();
         methods.Should().HaveCount(4);
-        
+
         // Check SendAsync with response
-        methods.Should().Contain(m => 
-            m.Name == "SendAsync" && 
-            m.IsGenericMethodDefinition && 
+        methods.Should().Contain(m =>
+            m.Name == "SendAsync" &&
+            m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
             m.ReturnType.IsGenericType &&
             m.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
-            
+
         // Check SendAsync without response
-        methods.Should().Contain(m => 
-            m.Name == "SendAsync" && 
-            !m.IsGenericMethodDefinition && 
+        methods.Should().Contain(m =>
+            m.Name == "SendAsync" &&
+            !m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
             m.ReturnType == typeof(ValueTask));
-            
+
         // Check StreamAsync
-        methods.Should().Contain(m => 
-            m.Name == "StreamAsync" && 
-            m.IsGenericMethodDefinition && 
+        methods.Should().Contain(m =>
+            m.Name == "StreamAsync" &&
+            m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2);
-            
+
         // Check PublishAsync
-        methods.Should().Contain(m => 
-            m.Name == "PublishAsync" && 
-            m.IsGenericMethodDefinition && 
+        methods.Should().Contain(m =>
+            m.Name == "PublishAsync" &&
+            m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
             m.ReturnType == typeof(ValueTask));
     }
@@ -117,10 +117,10 @@ public class CoreInterfaceTests
         handlerType.Should().BeInterface();
         handlerType.IsGenericTypeDefinition.Should().BeTrue();
         handlerType.GetGenericArguments().Should().HaveCount(2);
-        
+
         var methods = handlerType.GetMethods();
         methods.Should().HaveCount(1);
-        
+
         var handleMethod = methods[0];
         handleMethod.Name.Should().Be("HandleAsync");
         handleMethod.GetParameters().Should().HaveCount(2);
@@ -138,10 +138,10 @@ public class CoreInterfaceTests
         handlerType.Should().BeInterface();
         handlerType.IsGenericTypeDefinition.Should().BeTrue();
         handlerType.GetGenericArguments().Should().HaveCount(2);
-        
+
         var methods = handlerType.GetMethods();
         methods.Should().HaveCount(1);
-        
+
         var handleMethod = methods[0];
         handleMethod.Name.Should().Be("HandleAsync");
         handleMethod.GetParameters().Should().HaveCount(2);
@@ -159,10 +159,10 @@ public class CoreInterfaceTests
         handlerType.Should().BeInterface();
         handlerType.IsGenericTypeDefinition.Should().BeTrue();
         handlerType.GetGenericArguments().Should().HaveCount(1);
-        
+
         var methods = handlerType.GetMethods();
         methods.Should().HaveCount(1);
-        
+
         var handleMethod = methods[0];
         handleMethod.Name.Should().Be("HandleAsync");
         handleMethod.GetParameters().Should().HaveCount(2);
@@ -179,10 +179,10 @@ public class CoreInterfaceTests
         pipelineType.Should().BeInterface();
         pipelineType.IsGenericTypeDefinition.Should().BeTrue();
         pipelineType.GetGenericArguments().Should().HaveCount(2);
-        
+
         var methods = pipelineType.GetMethods();
         methods.Should().HaveCount(1);
-        
+
         var handleMethod = methods[0];
         handleMethod.Name.Should().Be("HandleAsync");
         handleMethod.GetParameters().Should().HaveCount(3);
@@ -200,10 +200,10 @@ public class CoreInterfaceTests
         pipelineType.Should().BeInterface();
         pipelineType.IsGenericTypeDefinition.Should().BeTrue();
         pipelineType.GetGenericArguments().Should().HaveCount(2);
-        
+
         var methods = pipelineType.GetMethods();
         methods.Should().HaveCount(1);
-        
+
         var handleMethod = methods[0];
         handleMethod.Name.Should().Be("HandleAsync");
         handleMethod.GetParameters().Should().HaveCount(3);

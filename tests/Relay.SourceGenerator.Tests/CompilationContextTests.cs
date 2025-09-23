@@ -132,7 +132,7 @@ namespace Relay.SourceGenerator.Tests
                 MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.ValueTask).Assembly.Location),
             };
 
-            var syntaxTrees = syntaxTree != null 
+            var syntaxTrees = syntaxTree != null
                 ? new[] { syntaxTree }
                 : System.Array.Empty<SyntaxTree>();
 

@@ -133,10 +133,10 @@ namespace Relay.Core.Caching
         }
 
         private async Task CacheResponseAsync(
-            string cacheKey, 
-            TResponse response, 
-            CachingOptions cachingOptions, 
-            CacheAttribute? cacheAttribute, 
+            string cacheKey,
+            TResponse response,
+            CachingOptions cachingOptions,
+            CacheAttribute? cacheAttribute,
             CancellationToken cancellationToken)
         {
             // Determine cache duration

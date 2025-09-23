@@ -16,12 +16,12 @@ namespace Relay.SourceGenerator.Tests
             var compilation = CreateCompilation("");
             var context = new RelayCompilationContext(compilation, default);
             var generator = new HandlerRegistryGenerator(context);
-            
+
             var discoveryResult = new HandlerDiscoveryResult();
-            
+
             // Act
             var result = generator.GenerateHandlerRegistry(discoveryResult);
-            
+
             // Assert
             Assert.NotNull(result);
             Assert.Contains("HandlerMetadata", result);
@@ -37,12 +37,12 @@ namespace Relay.SourceGenerator.Tests
             var compilation = CreateCompilation("");
             var context = new RelayCompilationContext(compilation, default);
             var generator = new HandlerRegistryGenerator(context);
-            
+
             var discoveryResult = new HandlerDiscoveryResult();
-            
+
             // Act
             var result = generator.GenerateHandlerRegistry(discoveryResult);
-            
+
             // Assert
             Assert.Contains("HandlerMetadata", result);
             Assert.Contains("HandlerRegistry", result);
@@ -58,12 +58,12 @@ namespace Relay.SourceGenerator.Tests
             var compilation = CreateCompilation("");
             var context = new RelayCompilationContext(compilation, default);
             var generator = new HandlerRegistryGenerator(context);
-            
+
             var discoveryResult = new HandlerDiscoveryResult();
-            
+
             // Act
             var result = generator.GenerateHandlerRegistry(discoveryResult);
-            
+
             // Assert
             Assert.Contains("Request,", result);
             Assert.Contains("Notification,", result);
@@ -74,7 +74,7 @@ namespace Relay.SourceGenerator.Tests
         private Compilation CreateCompilation(string source)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source);
-            
+
             var references = new[]
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),

@@ -21,7 +21,7 @@ namespace Relay.Core
         public static OpenApiDocument GenerateDocument(OpenApiGenerationOptions? options = null)
         {
             options ??= new OpenApiGenerationOptions();
-            
+
             var endpoints = EndpointMetadataRegistry.AllEndpoints;
             return GenerateDocument(endpoints, options);
         }
@@ -53,10 +53,10 @@ namespace Relay.Core
             };
 
             var endpointList = endpoints.ToList();
-            
+
             // Generate paths from endpoints
             GeneratePaths(document, endpointList, options);
-            
+
             // Generate component schemas
             GenerateComponentSchemas(document, endpointList, options);
 
@@ -93,7 +93,7 @@ namespace Relay.Core
                 foreach (var endpoint in pathGroup)
                 {
                     var operation = GenerateOperation(endpoint, options);
-                    
+
                     switch (endpoint.HttpMethod.ToUpperInvariant())
                     {
                         case "GET":
@@ -164,7 +164,7 @@ namespace Relay.Core
         {
             var method = endpoint.HttpMethod.ToLowerInvariant();
             var typeName = endpoint.RequestType.Name;
-            
+
             // Remove common suffixes
             if (typeName.EndsWith("Request"))
                 typeName = typeName.Substring(0, typeName.Length - 7);
@@ -180,7 +180,7 @@ namespace Relay.Core
         {
             var typeName = endpoint.RequestType.Name;
             var method = endpoint.HttpMethod.ToUpperInvariant();
-            
+
             return $"{method} {typeName}";
         }
 
@@ -188,7 +188,7 @@ namespace Relay.Core
         {
             var handlerName = endpoint.HandlerType.Name;
             var methodName = endpoint.HandlerMethodName;
-            
+
             return $"Handles {endpoint.RequestType.Name} via {handlerName}.{methodName}";
         }
 

@@ -15,12 +15,12 @@ namespace Relay.SourceGenerator.Tests
             var compilation = CreateCompilation("");
             var context = new RelayCompilationContext(compilation, default);
             var generator = new DIRegistrationGenerator(context);
-            
+
             var discoveryResult = new HandlerDiscoveryResult();
-            
+
             // Act
             var result = generator.GenerateDIRegistrations(discoveryResult);
-            
+
             // Assert
             Assert.NotNull(result);
             Assert.Contains("RelayServiceCollectionExtensions", result);
@@ -36,12 +36,12 @@ namespace Relay.SourceGenerator.Tests
             var compilation = CreateCompilation("");
             var context = new RelayCompilationContext(compilation, default);
             var generator = new DIRegistrationGenerator(context);
-            
+
             var discoveryResult = new HandlerDiscoveryResult();
-            
+
             // Act
             var result = generator.GenerateDIRegistrations(discoveryResult);
-            
+
             // Assert
             Assert.Contains("services.TryAddSingleton<IRelay, RelayImplementation>();", result);
         }
@@ -53,16 +53,16 @@ namespace Relay.SourceGenerator.Tests
             var compilation = CreateCompilation("");
             var context = new RelayCompilationContext(compilation, default);
             var generator = new DIRegistrationGenerator(context);
-            
+
             var discoveryResult = new HandlerDiscoveryResult();
-            
+
             // Act
             var result = generator.GenerateDIRegistrations(discoveryResult);
-            
+
             // Debug: Print the generated result
             System.Console.WriteLine("Generated DI registrations:");
             System.Console.WriteLine(result);
-            
+
             // Assert
             Assert.Contains("public static IServiceCollection AddRelay", result);
             // The AddScoped method is only generated when there are handlers, so let's check for the basic structure
@@ -72,7 +72,7 @@ namespace Relay.SourceGenerator.Tests
         private Compilation CreateCompilation(string source)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source);
-            
+
             var references = new[]
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),

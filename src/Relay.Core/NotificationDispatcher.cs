@@ -176,9 +176,9 @@ namespace Relay.Core
                 return;
             }
 
-            // Create tasks for parallel execution - use LINQ to avoid closure issues
+            // Create tasks for parallel execution without Task.Run overhead
             var tasks = handlers.Select(handler =>
-                Task.Run(async () => await ExecuteHandlerSafely(handler, notification, cancellationToken), cancellationToken))
+                ExecuteHandlerSafely(handler, notification, cancellationToken).AsTask())
                 .ToArray();
 
             // Wait for all tasks to complete

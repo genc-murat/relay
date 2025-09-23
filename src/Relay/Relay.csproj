@@ -50,7 +50,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
     <PackageReference Include="Relay.Core" Version="1.0.0" IncludeAssets="none" />
-    <PackageReference Include="Relay.SourceGenerator" Version="1.0.0" IncludeAssets="none" />
+    <!-- Use ProjectReference in Debug/CI builds, PackageReference for Release package builds -->
+    <PackageReference Include="Relay.SourceGenerator" Version="1.0.0" IncludeAssets="none" Condition="'$(UseLocalPackages)' == 'true'" />
+    <Analyzer Include="..\Relay.SourceGenerator\bin\$(Configuration)\netstandard2.0\Relay.SourceGenerator.dll" Condition="'$(UseLocalPackages)' != 'true'" />
   </ItemGroup>
 
 

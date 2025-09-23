@@ -176,24 +176,18 @@ namespace Relay.Core
                 return;
             }
 
-            // Create semaphore to ensure handlers start simultaneously
-            using var startSignal = new SemaphoreSlim(0, handlers.Count);
+            // Create tasks array and start all handlers immediately
             var tasks = new Task[handlers.Count];
-
-            // Start all handlers, but have them wait for the start signal
             for (int i = 0; i < handlers.Count; i++)
             {
                 var handler = handlers[i];
-                tasks[i] = Task.Run(async () =>
-                {
-                    // Wait for all handlers to be ready, then start together
-                    await startSignal.WaitAsync(cancellationToken);
-                    await ExecuteHandlerSafely(handler, notification, cancellationToken);
-                });
+                // Use Task.Factory.StartNew to ensure immediate scheduling
+                tasks[i] = Task.Factory.StartNew(
+                    async () => await ExecuteHandlerSafely(handler, notification, cancellationToken),
+                    cancellationToken,
+                    TaskCreationOptions.DenyChildAttach,
+                    TaskScheduler.Default).Unwrap();
             }
-
-            // Signal all handlers to start simultaneously
-            startSignal.Release(handlers.Count);
 
             // Wait for all tasks to complete
             await Task.WhenAll(tasks).ConfigureAwait(false);

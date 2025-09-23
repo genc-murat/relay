@@ -16,8 +16,8 @@
     <Description>Core runtime components for the Relay mediator framework. Provides high-performance request/response handling, notification publishing, and pipeline execution without runtime reflection.</Description>
     <Summary>Core runtime components for high-performance mediator operations.</Summary>
     <PackageTags>mediator;cqrs;messaging;performance;runtime;async;pipeline;notification</PackageTags>
-    <PackageProjectUrl>https://github.com/relay-framework/relay</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/relay-framework/relay</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

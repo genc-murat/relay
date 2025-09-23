@@ -18,8 +18,8 @@
     <Description>Roslyn source generator for the Relay mediator framework. Generates compile-time handler registrations, dispatch code, and DI configurations to eliminate runtime reflection overhead.</Description>
     <Summary>Roslyn source generator for compile-time mediator code generation.</Summary>
     <PackageTags>mediator;cqrs;messaging;source-generator;roslyn;compile-time;codegen</PackageTags>
-    <PackageProjectUrl>https://github.com/relay-framework/relay</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/relay-framework/relay</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

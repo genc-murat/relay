@@ -17,8 +17,8 @@
     <Description>A high-performance, source-generator powered mediator and messaging framework for .NET. Provides compile-time code generation to eliminate runtime reflection overhead, enabling efficient request/response patterns, command handling, and event publishing with minimal performance impact.</Description>
     <Summary>High-performance mediator framework with zero runtime reflection using Roslyn source generators.</Summary>
     <PackageTags>mediator;cqrs;messaging;performance;source-generator;roslyn;dotnet;async;pipeline;notification</PackageTags>
-    <PackageProjectUrl>https://github.com/relay-framework/relay</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/relay-framework/relay</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

@@ -33,6 +33,8 @@ namespace Relay.SourceGenerator
 
             // Usings
             sourceBuilder.AppendLine("using System;");
+            sourceBuilder.AppendLine("using Microsoft.AspNetCore.Builder;");
+            sourceBuilder.AppendLine("using Microsoft.AspNetCore.Hosting;");
             sourceBuilder.AppendLine("using Microsoft.Extensions.DependencyInjection;");
             sourceBuilder.AppendLine("using Microsoft.Extensions.DependencyInjection.Extensions;");
             sourceBuilder.AppendLine("using Relay.Core;");
@@ -72,6 +74,7 @@ namespace Relay.SourceGenerator
         {
             sourceBuilder.AppendLine("        /// <summary>");
             sourceBuilder.AppendLine("        /// Registers all Relay handlers and services with the DI container.");
+            sourceBuilder.AppendLine("        /// Enhanced with performance optimizations.");
             sourceBuilder.AppendLine("        /// </summary>");
             sourceBuilder.AppendLine("        /// <param name=\"services\">The service collection.</param>");
             sourceBuilder.AppendLine("        /// <returns>The service collection for chaining.</returns>");
@@ -80,8 +83,11 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine("            // Register core Relay services");
             sourceBuilder.AppendLine("            services.TryAddSingleton<IRelay, RelayImplementation>();");
             sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("            // Register endpoint metadata");
-            sourceBuilder.AppendLine("            Relay.Generated.GeneratedEndpointMetadata.RegisterEndpoints();");
+
+            // Register fallback dispatchers (optimized versions would be generated separately)
+            sourceBuilder.AppendLine("            // Register request and stream dispatchers");
+            sourceBuilder.AppendLine("            services.TryAddTransient<IRequestDispatcher, FallbackRequestDispatcher>();");
+            sourceBuilder.AppendLine("            services.TryAddTransient<IStreamDispatcher, StreamDispatcher>();");
 
             // Register notification dispatcher if we have notification handlers
             var hasNotificationHandlers = discoveryResult.Handlers
@@ -92,6 +98,9 @@ namespace Relay.SourceGenerator
                 sourceBuilder.AppendLine("            services.TryAddSingleton<INotificationDispatcher, Relay.Generated.GeneratedNotificationDispatcher>();");
             }
 
+            sourceBuilder.AppendLine();
+            sourceBuilder.AppendLine("            // Register endpoint metadata");
+            sourceBuilder.AppendLine("            Relay.Generated.GeneratedEndpointMetadata.RegisterEndpoints();");
             sourceBuilder.AppendLine();
 
             // Register all handler types
@@ -112,9 +121,17 @@ namespace Relay.SourceGenerator
                 sourceBuilder.AppendLine();
             }
 
+            // Pre-warm handler cache for better startup performance
+            sourceBuilder.AppendLine("            // Pre-warm handler cache for optimal performance");
+            sourceBuilder.AppendLine("            services.AddSingleton<IStartupFilter, RelayWarmupFilter>();");
+            sourceBuilder.AppendLine();
+
             sourceBuilder.AppendLine("            return services;");
             sourceBuilder.AppendLine("        }");
             sourceBuilder.AppendLine();
+
+            // Generate warmup filter
+            GenerateWarmupFilter(sourceBuilder, handlerTypes);
         }
 
         private void GenerateHandlerRegistrationMethods(StringBuilder sourceBuilder, HandlerDiscoveryResult discoveryResult)
@@ -166,11 +183,63 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine();
         }
 
+        private void GenerateWarmupFilter(StringBuilder sourceBuilder, List<string> handlerTypes)
+        {
+            sourceBuilder.AppendLine("        /// <summary>");
+            sourceBuilder.AppendLine("        /// Startup filter to pre-warm handler cache for optimal performance");
+            sourceBuilder.AppendLine("        /// </summary>");
+            sourceBuilder.AppendLine("        private sealed class RelayWarmupFilter : IStartupFilter");
+            sourceBuilder.AppendLine("        {");
+            sourceBuilder.AppendLine("            public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)");
+            sourceBuilder.AppendLine("            {");
+            sourceBuilder.AppendLine("                return app =>");
+            sourceBuilder.AppendLine("                {");
+            sourceBuilder.AppendLine("                    // Pre-warm handler cache");
+            sourceBuilder.AppendLine("                    var serviceProvider = app.ApplicationServices;");
+
+            foreach (var handlerType in handlerTypes)
+            {
+                sourceBuilder.AppendLine($"                    {_context.AssemblyName}.Generated.RelayPerformanceCache.WarmUpHandler<{handlerType}>(serviceProvider);");
+            }
+
+            sourceBuilder.AppendLine("                    next(app);");
+            sourceBuilder.AppendLine("                };");
+            sourceBuilder.AppendLine("            }");
+            sourceBuilder.AppendLine("        }");
+            sourceBuilder.AppendLine();
+        }
+
         private string GetHandlerLifetime(string handlerType, HandlerDiscoveryResult? discoveryResult)
         {
-            // For now, default to Scoped for handlers
-            // This could be enhanced to read from attributes or configuration
+            // Enhanced lifetime detection based on handler characteristics
+
+            // Check if handler is stateless and can be singleton
+            if (IsStatelessHandler(handlerType, discoveryResult))
+            {
+                return "Singleton";
+            }
+
+            // Check if handler needs per-request scope
+            if (IsRequestScopedHandler(handlerType, discoveryResult))
+            {
+                return "Scoped";
+            }
+
+            // Default to scoped for most handlers
             return "Scoped";
+        }
+
+        private bool IsStatelessHandler(string handlerType, HandlerDiscoveryResult? discoveryResult)
+        {
+            // Simple heuristic - handlers ending with "Query" are often stateless
+            // In a real implementation, this would analyze the handler class
+            return handlerType.Contains("Query") || handlerType.Contains("Reader");
+        }
+
+        private bool IsRequestScopedHandler(string handlerType, HandlerDiscoveryResult? discoveryResult)
+        {
+            // Handlers that need request scope (e.g., those using Entity Framework)
+            return handlerType.Contains("Command") || handlerType.Contains("Writer");
         }
     }
 }

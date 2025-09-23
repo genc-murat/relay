@@ -394,9 +394,9 @@ Update `CHANGELOG.md` with:
 
 **Questions about contributing?**
 
-- Create a [GitHub Discussion](https://github.com/relay-framework/relay/discussions)
+- Create a [GitHub Discussion](https://github.com/genc-murat/relay/discussions)
 - Join our community chat (link in README)
-- Email: <contributors@relay-framework.dev>
+- Email: <contributors@genc-murat.dev>
 
 **Before starting major work:**
 

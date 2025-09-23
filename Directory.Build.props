@@ -17,8 +17,8 @@
     <Company>Relay Framework</Company>
     <Product>Relay Mediator Framework</Product>
     <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
-    <PackageProjectUrl>https://github.com/relay-framework/relay</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/relay-framework/relay</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>

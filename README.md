@@ -314,7 +314,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 
 ```bash
-git clone https://github.com/relay-framework/relay.git
+git clone https://github.com/genc-murat/relay.git
 cd relay
 dotnet restore
 dotnet build
@@ -334,8 +334,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - 📖 **Documentation**: [docs/](docs/)
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/relay-framework/relay/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/relay-framework/relay/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/genc-murat/relay/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/genc-murat/relay/discussions)
 
 ---
 

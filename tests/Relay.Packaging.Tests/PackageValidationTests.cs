@@ -7,7 +7,8 @@ namespace Relay.Packaging.Tests;
 
 public class PackageValidationTests
 {
-    private const string PackageOutputPath = "../../../../src";
+    private static readonly string PackageOutputBase = Path.GetFullPath(
+        Path.Combine(AppContext.BaseDirectory, "../../../../../src"));
 
     [Theory]
     [InlineData("Relay")]
@@ -15,7 +16,7 @@ public class PackageValidationTests
     [InlineData("Relay.SourceGenerator")]
     public void Package_ShouldExist(string packageName)
     {
-        var packagePath = GetPackagePath(packageName);
+    var packagePath = GetPackagePath(packageName);
         Assert.True(File.Exists(packagePath), $"Package {packageName} should exist at {packagePath}");
     }
 
@@ -25,7 +26,7 @@ public class PackageValidationTests
     [InlineData("Relay.SourceGenerator")]
     public void Package_ShouldHaveValidMetadata(string packageName)
     {
-        var packagePath = GetPackagePath(packageName);
+    var packagePath = GetPackagePath(packageName);
         using var packageReader = new PackageArchiveReader(packagePath);
         var nuspec = packageReader.NuspecReader;
 
@@ -40,7 +41,7 @@ public class PackageValidationTests
     [Fact]
     public void RelayPackage_ShouldIncludeBothDependencies()
     {
-        var packagePath = GetPackagePath("Relay");
+    var packagePath = GetPackagePath("Relay");
         using var packageReader = new PackageArchiveReader(packagePath);
         var dependencies = packageReader.NuspecReader.GetDependencyGroups();
 
@@ -74,7 +75,7 @@ public class PackageValidationTests
     [Fact]
     public void SourceGeneratorPackage_ShouldIncludeAnalyzerFiles()
     {
-        var packagePath = GetPackagePath("Relay.SourceGenerator");
+    var packagePath = GetPackagePath("Relay.SourceGenerator");
         using var packageReader = new PackageArchiveReader(packagePath);
         
         // GetAnalyzerItems method not available in this version
@@ -92,7 +93,7 @@ public class PackageValidationTests
     [InlineData("Relay.SourceGenerator")]
     public void Package_ShouldIncludeSymbols(string packageName)
     {
-        var symbolsPackagePath = GetSymbolsPackagePath(packageName);
+    var symbolsPackagePath = GetSymbolsPackagePath(packageName);
         Assert.True(File.Exists(symbolsPackagePath), 
             $"Symbols package should exist for {packageName} at {symbolsPackagePath}");
     }
@@ -101,7 +102,7 @@ public class PackageValidationTests
     [InlineData("Relay.Core")]
     public void CorePackage_ShouldHaveCorrectDependencies(string packageName)
     {
-        var packagePath = GetPackagePath(packageName);
+    var packagePath = GetPackagePath(packageName);
         using var packageReader = new PackageArchiveReader(packagePath);
         var dependencies = packageReader.NuspecReader.GetDependencyGroups();
 
@@ -125,7 +126,7 @@ public class PackageValidationTests
     [Fact]
     public void SourceGeneratorPackage_ShouldBeDevelopmentDependency()
     {
-        var packagePath = GetPackagePath("Relay.SourceGenerator");
+    var packagePath = GetPackagePath("Relay.SourceGenerator");
         using var packageReader = new PackageArchiveReader(packagePath);
         var nuspec = packageReader.NuspecReader;
 
@@ -136,7 +137,7 @@ public class PackageValidationTests
     private static string GetPackagePath(string packageName)
     {
         var searchPattern = $"{packageName}.*.nupkg";
-        var packageDir = Path.Combine(PackageOutputPath, packageName, "bin", "Release");
+        var packageDir = Path.Combine(PackageOutputBase, packageName, "bin", "Release");
         
         if (!Directory.Exists(packageDir))
         {
@@ -156,8 +157,8 @@ public class PackageValidationTests
 
     private static string GetSymbolsPackagePath(string packageName)
     {
-        var searchPattern = $"{packageName}.*.symbols.nupkg";
-        var packageDir = Path.Combine(PackageOutputPath, packageName, "bin", "Release");
+    var searchPattern = $"{packageName}.*.symbols.nupkg";
+    var packageDir = Path.Combine(PackageOutputBase, packageName, "bin", "Release");
         
         var packageFiles = Directory.GetFiles(packageDir, searchPattern, SearchOption.AllDirectories);
         return packageFiles.FirstOrDefault() ?? throw new FileNotFoundException($"Symbols package not found: {searchPattern}");

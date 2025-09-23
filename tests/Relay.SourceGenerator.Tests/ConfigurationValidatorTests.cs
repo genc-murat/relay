@@ -264,7 +264,20 @@ namespace Relay.Core
 
         private static INamedTypeSymbol GetTypeSymbol(Compilation compilation, string typeName)
         {
-            return compilation.GetTypeByMetadataName(typeName) ?? 
+            // Handle C# builtin aliases
+            switch (typeName)
+            {
+                case "string":
+                    return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_String);
+                case "int":
+                    return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Int32);
+                case "bool":
+                    return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Boolean);
+                case "void":
+                    return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Void);
+            }
+
+            return compilation.GetTypeByMetadataName(typeName) ??
                    compilation.GetSymbolsWithName(typeName).OfType<INamedTypeSymbol>().First();
         }
     }

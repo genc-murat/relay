@@ -5,6 +5,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
     
     <!-- Package Metadata -->
     <PackageId>Relay</PackageId>
@@ -28,7 +29,7 @@
     
     <!-- Build Configuration -->
     <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     
@@ -40,13 +41,16 @@
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <!-- <None Include="..\..\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\..\icon.png')" /> -->
+    <None Include="lib\netstandard2.0\_._" Pack="true" PackagePath="lib\netstandard2.0\_._" />
+    <None Include="lib\net6.0\_._" Pack="true" PackagePath="lib\net6.0\_._" />
+    <None Include="lib\net8.0\_._" Pack="true" PackagePath="lib\net8.0\_._" />
   </ItemGroup>
 
   <!-- Dependencies -->
   <ItemGroup>
     <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
-    <!-- Temporarily remove source generator reference -->
-    <!-- <ProjectReference Include="..\Relay.SourceGenerator\Relay.SourceGenerator.csproj" /> -->
+    <PackageReference Include="Relay.Core" Version="1.0.0" IncludeAssets="none" />
+    <PackageReference Include="Relay.SourceGenerator" Version="1.0.0" />
   </ItemGroup>
 
 

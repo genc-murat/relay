@@ -78,7 +78,7 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine("        public static IServiceCollection AddRelay(this IServiceCollection services)");
             sourceBuilder.AppendLine("        {");
             sourceBuilder.AppendLine("            // Register core Relay services");
-            sourceBuilder.AppendLine("            services.TryAddSingleton<IRelay, Relay.Core.RelayImplementation>();");
+            sourceBuilder.AppendLine("            services.TryAddSingleton<IRelay, RelayImplementation>();");
             sourceBuilder.AppendLine();
             sourceBuilder.AppendLine("            // Register endpoint metadata");
             sourceBuilder.AppendLine("            Relay.Generated.GeneratedEndpointMetadata.RegisterEndpoints();");

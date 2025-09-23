@@ -1,4 +1,6 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,8 +86,30 @@ namespace Relay.SourceGenerator
             foreach (var handler in pipelineHandlers)
             {
                 var pipelineAttribute = handler.Attributes.First(a => a.Type == RelayAttributeType.Pipeline);
+
+                // Try to read from AttributeData; if missing, fall back to symbol attributes
                 var order = GetAttributeProperty(pipelineAttribute.AttributeData, "Order", 0);
                 var scope = GetAttributeProperty(pipelineAttribute.AttributeData, "Scope", "All");
+
+                // If mocked AttributeData has empty/invalid values, inspect symbol attributes
+                if ((pipelineAttribute.AttributeData.NamedArguments.Length == 0 ||
+                    pipelineAttribute.AttributeData.NamedArguments.All(kv => kv.Value.IsNull || kv.Value.Value is null)) &&
+                    handler.MethodSymbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "Relay.Core.PipelineAttribute") is { } symbolAttr)
+                {
+                    var altOrder = symbolAttr.NamedArguments.FirstOrDefault(kv => kv.Key == "Order").Value.Value;
+                    if (altOrder is int i) order = i;
+                    var altScope = symbolAttr.NamedArguments.FirstOrDefault(kv => kv.Key == "Scope").Value.Value?.ToString();
+                    if (!string.IsNullOrEmpty(altScope)) scope = altScope!;
+                }
+                else if (order == 0)
+                {
+                    // As a fallback, try to parse from attribute syntax
+                    if (TryParsePipelineAttributeFromSyntax(handler.Method, out var parsedOrder, out var parsedScope))
+                    {
+                        if (parsedOrder.HasValue) order = parsedOrder.Value;
+                        if (!string.IsNullOrEmpty(parsedScope)) scope = parsedScope!;
+                    }
+                }
                 
                 var containingType = handler.MethodSymbol.ContainingType.ToDisplayString();
                 var methodName = handler.MethodSymbol.Name;
@@ -360,6 +384,44 @@ namespace Relay.SourceGenerator
             }
             
             return defaultValue;
+        }
+
+        private bool TryParsePipelineAttributeFromSyntax(MethodDeclarationSyntax method, out int? order, out string? scope)
+        {
+            order = null;
+            scope = null;
+            foreach (var attr in method.AttributeLists.SelectMany(al => al.Attributes))
+            {
+                var name = attr.Name.ToString();
+                if (!name.EndsWith("Pipeline") && !name.EndsWith("PipelineAttribute"))
+                    continue;
+
+                if (attr.ArgumentList == null) break;
+                foreach (var arg in attr.ArgumentList.Arguments)
+                {
+                    var propName = arg.NameEquals?.Name.Identifier.ValueText;
+                    if (string.Equals(propName, "Order", StringComparison.Ordinal))
+                    {
+                        if (arg.Expression is LiteralExpressionSyntax les && les.IsKind(SyntaxKind.NumericLiteralExpression))
+                        {
+                            if (les.Token.Value is int i) order = i;
+                        }
+                    }
+                    else if (string.Equals(propName, "Scope", StringComparison.Ordinal))
+                    {
+                        if (arg.Expression is MemberAccessExpressionSyntax maes)
+                        {
+                            scope = maes.Name.Identifier.ValueText;
+                        }
+                        else if (arg.Expression is IdentifierNameSyntax ins)
+                        {
+                            scope = ins.Identifier.ValueText;
+                        }
+                    }
+                }
+                break;
+            }
+            return order.HasValue || !string.IsNullOrEmpty(scope);
         }
     }
 }

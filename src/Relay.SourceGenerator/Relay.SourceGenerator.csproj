@@ -5,9 +5,8 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <IncludeSymbols>false</IncludeSymbols>
-    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+  <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
     
     <!-- Package Metadata -->
     <PackageId>Relay.SourceGenerator</PackageId>
@@ -31,7 +30,7 @@
     
     <!-- Build Configuration -->
     <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
@@ -52,10 +51,17 @@
 
 
 
-  <!-- Package the generator and analyzer -->
+  <!-- Package the generator analyzer into the nupkg (do not self-reference as Analyzer during build) -->
   <ItemGroup>
-    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\cs\$(AssemblyName).dll" Visible="false" />
+    <None Include="$(TargetPath)" Pack="true" PackagePath="analyzers\dotnet\cs" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="contentFiles\any\any\readme.txt" Pack="true" PackagePath="contentFiles\any\any\readme.txt" />
+  </ItemGroup>
+
+  <!-- Include minimal shared interfaces to satisfy compile-time references -->
+  <!-- These types exist only in the analyzer load context and do not leak into consumers -->
 
   <!-- Add build targets for proper integration -->
   <ItemGroup>
@@ -63,6 +69,7 @@
     <None Include="buildTransitive\Relay.SourceGenerator.targets" Pack="true" PackagePath="buildTransitive\Relay.SourceGenerator.targets" />
     <None Include="README.md" Pack="true" PackagePath="README.md" />
     <None Include="lib\netstandard2.0\_._" Pack="true" PackagePath="lib\netstandard2.0\_._" />
+    <None Include="ref\netstandard2.0\_._" Pack="true" PackagePath="ref\netstandard2.0\_._" />
   </ItemGroup>
 
 </Project>

@@ -247,8 +247,37 @@ namespace Relay.SourceGenerator
         /// </summary>
         public bool HasRelayCoreReference()
         {
-            return Compilation.ReferencedAssemblyNames
-                .Any(name => name.Name.Equals("Relay.Core", StringComparison.OrdinalIgnoreCase));
+            // Allow the generator project itself to compile without Relay.Core
+            if (string.Equals(AssemblyName, "Relay.SourceGenerator", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (Compilation.ReferencedAssemblyNames
+                .Any(name => name.Name.Equals("Relay.Core", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            // Fallback: detect by presence of known Relay.Core types in the compilation
+            // Works in test scenarios using metadata references or embedded stubs
+            var knownTypeNames = new[]
+            {
+                "Relay.Core.IRelay",
+                "Relay.Core.IRequest`1",
+                // Attributes may be missing in some contexts; interfaces are sufficient to detect reference
+                "Relay.Core.INotification"
+            };
+
+            foreach (var typeName in knownTypeNames)
+            {
+                if (Compilation.GetTypeByMetadataName(typeName) is not null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -95,11 +95,11 @@ namespace Relay.SourceGenerator
                 sourceBuilder.AppendLine($"                Version = \"{EscapeString(version)}\",");
             }
             
-            sourceBuilder.AppendLine($"                RequestType = typeof({requestType.ToDisplayString()}),");
+            sourceBuilder.AppendLine($"                RequestType = typeof({FormatType(requestType)}),");
             
             if (responseType != null && !IsVoidType(responseType))
             {
-                sourceBuilder.AppendLine($"                ResponseType = typeof({responseType.ToDisplayString()}),");
+                sourceBuilder.AppendLine($"                ResponseType = typeof({FormatType(responseType)}),");
             }
             
             sourceBuilder.AppendLine($"                HandlerType = typeof({handlerType.ToDisplayString()}),");
@@ -194,8 +194,9 @@ namespace Relay.SourceGenerator
             return typeSymbol.SpecialType == SpecialType.System_Void;
         }
 
-        private string EscapeString(string input)
+        private string EscapeString(string? input)
         {
+            if (input == null) return string.Empty;
             return input.Replace("\"", "\\\"").Replace("\\", "\\\\");
         }
 
@@ -213,27 +214,44 @@ namespace Relay.SourceGenerator
         private ITypeSymbol? GetResponseType(IMethodSymbol method)
         {
             var returnType = method.ReturnType;
-            
+
             // Handle Task<T> and ValueTask<T>
-            if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
+            if (returnType is INamedTypeSymbol namedType)
             {
-                var typeName = namedType.ConstructedFrom.ToDisplayString();
-                if (typeName == "System.Threading.Tasks.Task<T>" || 
-                    typeName == "System.Threading.Tasks.ValueTask<T>")
+                if (namedType.IsGenericType &&
+                    namedType.ContainingNamespace?.ToDisplayString() == "System.Threading.Tasks" &&
+                    (namedType.Name == "Task" || namedType.Name == "ValueTask"))
                 {
                     return namedType.TypeArguments.FirstOrDefault();
                 }
             }
-            
+
             // Handle non-async return types (direct return)
-            if (returnType.SpecialType != SpecialType.System_Void &&
-                !returnType.ToDisplayString().StartsWith("System.Threading.Tasks.Task") &&
-                !returnType.ToDisplayString().StartsWith("System.Threading.Tasks.ValueTask"))
+            if (returnType.SpecialType != SpecialType.System_Void)
             {
-                return returnType;
+                if (returnType is INamedTypeSymbol nt)
+                {
+                    var isTaskLike = nt.ContainingNamespace?.ToDisplayString() == "System.Threading.Tasks" && (nt.Name == "Task" || nt.Name == "ValueTask");
+                    if (!isTaskLike)
+                    {
+                        return returnType;
+                    }
+                }
+                else
+                {
+                    return returnType;
+                }
             }
-            
+
             return null;
+        }
+
+        private string FormatType(ITypeSymbol type)
+        {
+            var format = SymbolDisplayFormat.MinimallyQualifiedFormat.WithMiscellaneousOptions(
+                SymbolDisplayFormat.MinimallyQualifiedFormat.MiscellaneousOptions |
+                SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
+            return type.ToDisplayString(format);
         }
     }
 

@@ -19,9 +19,33 @@ namespace Relay.SourceGenerator.Tests
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
+            // Minimal Relay.Core stubs to satisfy references in test sources
+            var relayCoreStubs = CSharpSyntaxTree.ParseText(@"
+using System;
+namespace Relay.Core
+{
+    public interface IRequest { }
+    public interface IRequest<out TResponse> { }
+    public interface INotification { }
+    [AttributeUsage(AttributeTargets.Method)]
+    public sealed class HandleAttribute : Attribute
+    {
+        public string? Name { get; set; }
+        public int Priority { get; set; }
+    }
+    [AttributeUsage(AttributeTargets.Method)]
+    public sealed class ExposeAsEndpointAttribute : Attribute
+    {
+        public string? Route { get; set; }
+        public string HttpMethod { get; set; } = ""POST"";
+        public string? Version { get; set; }
+    }
+}
+");
+
             var compilation = CSharpCompilation.Create(
                 assemblyName: "TestAssembly",
-                syntaxTrees: new[] { syntaxTree },
+                syntaxTrees: new[] { relayCoreStubs, syntaxTree },
                 references: new[]
                 {
                     MetadataReference.CreateFromFile(typeof(object).Assembly.Location),

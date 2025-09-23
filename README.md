@@ -1,7 +1,6 @@
 # Relay - High-Performance Mediator Framework
 
 [![NuGet](https://img.shields.io/nuget/v/Relay.svg)](https://www.nuget.org/packages/Relay/)
-[![Build Status](https://github.com/relay-framework/relay/workflows/CI/badge.svg)](https://github.com/relay-framework/relay/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Relay is a high-performance, source-generator powered mediator and messaging framework for .NET. It provides compile-time code generation to eliminate runtime reflection overhead, enabling efficient request/response patterns, command handling, and event publishing with minimal performance impact.

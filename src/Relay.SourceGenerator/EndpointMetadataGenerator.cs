@@ -1,9 +1,9 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Relay.SourceGenerator
 {
@@ -89,19 +89,19 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine("            {");
             sourceBuilder.AppendLine($"                Route = \"{EscapeString(route)}\",");
             sourceBuilder.AppendLine($"                HttpMethod = \"{EscapeString(httpMethod)}\",");
-            
+
             if (!string.IsNullOrEmpty(version))
             {
                 sourceBuilder.AppendLine($"                Version = \"{EscapeString(version)}\",");
             }
-            
+
             sourceBuilder.AppendLine($"                RequestType = typeof({FormatType(requestType)}),");
-            
+
             if (responseType != null && !IsVoidType(responseType))
             {
                 sourceBuilder.AppendLine($"                ResponseType = typeof({FormatType(responseType)}),");
             }
-            
+
             sourceBuilder.AppendLine($"                HandlerType = typeof({handlerType.ToDisplayString()}),");
             sourceBuilder.AppendLine($"                HandlerMethodName = \"{handler.MethodSymbol.Name}\",");
 
@@ -152,7 +152,7 @@ namespace Relay.SourceGenerator
         private string GenerateDefaultRoute(ITypeSymbol requestType)
         {
             var typeName = requestType.Name;
-            
+
             // Remove common suffixes
             if (typeName.EndsWith("Request"))
             {
@@ -207,7 +207,7 @@ namespace Relay.SourceGenerator
 
         private ITypeSymbol GetRequestType(IMethodSymbol method)
         {
-            return method.Parameters.FirstOrDefault()?.Type ?? 
+            return method.Parameters.FirstOrDefault()?.Type ??
                    _compilation.GetSpecialType(SpecialType.System_Object);
         }
 

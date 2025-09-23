@@ -67,7 +67,7 @@ namespace Relay.SourceGenerator.Tests
             _validator.ValidateHandlerConfigurations(handlers);
 
             // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d => 
+            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
                 d.Descriptor.Id == "RELAY_GEN_003")), Times.Exactly(2));
         }
 
@@ -118,7 +118,7 @@ namespace Relay.SourceGenerator.Tests
             _validator.ValidateHandlerConfigurations(handlers);
 
             // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d => 
+            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
                 d.Descriptor.Id == "RELAY_GEN_005")), Times.Exactly(2));
         }
 
@@ -162,7 +162,7 @@ namespace Relay.SourceGenerator.Tests
             _validator.ValidatePipelineConfigurations(pipelines);
 
             // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d => 
+            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
                 d.Descriptor.Id == "RELAY_GEN_201")), Times.Exactly(2));
         }
 
@@ -178,7 +178,7 @@ namespace Relay.SourceGenerator.Tests
             _validator.ValidateConfigurationCompleteness(emptyHandlers, emptyNotificationHandlers, emptyPipelines);
 
             // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d => 
+            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
                 d.Descriptor.Id == "RELAY_GEN_210")), Times.Once);
         }
 
@@ -217,7 +217,7 @@ namespace Relay.SourceGenerator.Tests
             _validator.ValidateHandlerConfigurations(handlers);
 
             // Assert - No error diagnostics should be reported
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d => 
+            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
                 d.Severity == DiagnosticSeverity.Error)), Times.Never);
         }
 

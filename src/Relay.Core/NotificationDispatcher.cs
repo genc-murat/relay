@@ -107,7 +107,7 @@ namespace Relay.Core
             }
 
             handlers.Add(registration);
-            
+
             // Sort by priority (higher priority first)
             handlers.Sort((x, y) => y.Priority.CompareTo(x.Priority));
         }
@@ -118,14 +118,14 @@ namespace Relay.Core
             ValidateRequest(notification, nameof(notification));
 
             var notificationType = typeof(TNotification);
-            
+
             if (!_handlerRegistrations.TryGetValue(notificationType, out var handlers) || handlers.Count == 0)
             {
                 _logger?.LogDebug("No handlers registered for notification type {NotificationType}", notificationType.Name);
                 return;
             }
 
-            _logger?.LogDebug("Dispatching notification {NotificationType} to {HandlerCount} handlers", 
+            _logger?.LogDebug("Dispatching notification {NotificationType} to {HandlerCount} handlers",
                 notificationType.Name, handlers.Count);
 
             // Group handlers by dispatch mode
@@ -201,12 +201,12 @@ namespace Relay.Core
             {
                 using var scope = CreateScope();
                 var handler = handlerRegistration.HandlerFactory(scope.ServiceProvider);
-                
+
                 _logger?.LogTrace("Executing handler {HandlerType} for notification {NotificationType}",
                     handlerRegistration.HandlerType.Name, typeof(TNotification).Name);
 
                 await handlerRegistration.ExecuteHandler(handler, notification, cancellationToken);
-                
+
                 _logger?.LogTrace("Successfully executed handler {HandlerType} for notification {NotificationType}",
                     handlerRegistration.HandlerType.Name, typeof(TNotification).Name);
             }
@@ -230,8 +230,8 @@ namespace Relay.Core
         /// <returns>The list of registered handlers, or empty list if none found.</returns>
         public IReadOnlyList<NotificationHandlerRegistration> GetHandlers(Type notificationType)
         {
-            return _handlerRegistrations.TryGetValue(notificationType, out var handlers) 
-                ? handlers.AsReadOnly() 
+            return _handlerRegistrations.TryGetValue(notificationType, out var handlers)
+                ? handlers.AsReadOnly()
                 : Array.Empty<NotificationHandlerRegistration>();
         }
 

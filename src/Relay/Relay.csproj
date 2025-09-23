@@ -50,7 +50,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
     <PackageReference Include="Relay.Core" Version="1.0.0" IncludeAssets="none" />
-    <PackageReference Include="Relay.SourceGenerator" Version="1.0.0" />
+    <PackageReference Include="Relay.SourceGenerator" Version="1.0.0" IncludeAssets="none" />
   </ItemGroup>
 
 

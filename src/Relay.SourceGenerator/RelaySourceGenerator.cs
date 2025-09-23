@@ -1,11 +1,11 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Relay.SourceGenerator
 {
@@ -88,7 +88,7 @@ namespace Relay.SourceGenerator
         {
             var registryGenerator = new HandlerRegistryGenerator(compilationContext);
             var registrySource = registryGenerator.GenerateHandlerRegistry(discoveryResult);
-            
+
             context.AddSource("HandlerRegistry.g.cs", registrySource);
             GeneratorLogger.LogDebug(context, "Generated handler registry");
         }
@@ -97,7 +97,7 @@ namespace Relay.SourceGenerator
         {
             var optimizedGenerator = new OptimizedDispatcherGenerator(compilationContext);
             var optimizedSource = optimizedGenerator.GenerateOptimizedDispatcher(discoveryResult);
-            
+
             context.AddSource("OptimizedDispatcher.g.cs", optimizedSource);
             GeneratorLogger.LogDebug(context, "Generated optimized dispatcher");
         }
@@ -106,7 +106,7 @@ namespace Relay.SourceGenerator
         {
             var notificationGenerator = new NotificationDispatcherGenerator(compilationContext);
             var notificationSource = notificationGenerator.GenerateNotificationDispatcher(discoveryResult);
-            
+
             if (!string.IsNullOrEmpty(notificationSource))
             {
                 context.AddSource("NotificationDispatcher.g.cs", notificationSource);
@@ -118,7 +118,7 @@ namespace Relay.SourceGenerator
         {
             var pipelineGenerator = new PipelineRegistryGenerator(compilationContext);
             var pipelineSource = pipelineGenerator.GeneratePipelineRegistry(discoveryResult);
-            
+
             if (!string.IsNullOrEmpty(pipelineSource))
             {
                 context.AddSource("PipelineRegistry.g.cs", pipelineSource);
@@ -131,7 +131,7 @@ namespace Relay.SourceGenerator
             var diagnosticReporter = new GeneratorExecutionContextDiagnosticReporter(context);
             var endpointGenerator = new EndpointMetadataGenerator(compilationContext.Compilation, diagnosticReporter);
             var endpointSource = endpointGenerator.GenerateEndpointMetadata(discoveryResult.Handlers);
-            
+
             if (!string.IsNullOrEmpty(endpointSource))
             {
                 context.AddSource("EndpointMetadata.g.cs", endpointSource);
@@ -143,7 +143,7 @@ namespace Relay.SourceGenerator
         {
             var diGenerator = new DIRegistrationGenerator(compilationContext);
             var diSource = diGenerator.GenerateDIRegistrations(discoveryResult);
-            
+
             context.AddSource("DIRegistrations.g.cs", diSource);
             GeneratorLogger.LogDebug(context, "Generated DI registrations");
         }

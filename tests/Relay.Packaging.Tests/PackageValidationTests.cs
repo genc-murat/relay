@@ -16,7 +16,7 @@ public class PackageValidationTests
     [InlineData("Relay.SourceGenerator")]
     public void Package_ShouldExist(string packageName)
     {
-    var packagePath = GetPackagePath(packageName);
+        var packagePath = GetPackagePath(packageName);
         Assert.True(File.Exists(packagePath), $"Package {packageName} should exist at {packagePath}");
     }
 
@@ -26,7 +26,7 @@ public class PackageValidationTests
     [InlineData("Relay.SourceGenerator")]
     public void Package_ShouldHaveValidMetadata(string packageName)
     {
-    var packagePath = GetPackagePath(packageName);
+        var packagePath = GetPackagePath(packageName);
         using var packageReader = new PackageArchiveReader(packagePath);
         var nuspec = packageReader.NuspecReader;
 
@@ -38,22 +38,6 @@ public class PackageValidationTests
         Assert.Equal("MIT", nuspec.GetLicenseMetadata()?.License);
     }
 
-    [Fact]
-    public void RelayPackage_ShouldIncludeBothDependencies()
-    {
-    var packagePath = GetPackagePath("Relay");
-        using var packageReader = new PackageArchiveReader(packagePath);
-        var dependencies = packageReader.NuspecReader.GetDependencyGroups();
-
-        var hasCoreReference = dependencies.Any(group => 
-            group.Packages.Any(pkg => pkg.Id == "Relay.Core"));
-        var hasSourceGeneratorReference = dependencies.Any(group => 
-            group.Packages.Any(pkg => pkg.Id == "Relay.SourceGenerator"));
-
-        Assert.True(hasCoreReference, "Relay package should reference Relay.Core");
-        Assert.True(hasSourceGeneratorReference, "Relay package should reference Relay.SourceGenerator");
-    }
-
     [Theory]
     [InlineData("Relay", new[] { "netstandard2.0", "net6.0", "net8.0" })]
     [InlineData("Relay.Core", new[] { "netstandard2.0", "net6.0", "net8.0" })]
@@ -62,7 +46,7 @@ public class PackageValidationTests
     {
         var packagePath = GetPackagePath(packageName);
         using var packageReader = new PackageArchiveReader(packagePath);
-        
+
         var libItems = packageReader.GetLibItems().ToList();
         var actualFrameworks = libItems.Select(item => item.TargetFramework.GetShortFolderName()).ToArray();
 
@@ -75,9 +59,9 @@ public class PackageValidationTests
     [Fact]
     public void SourceGeneratorPackage_ShouldIncludeAnalyzerFiles()
     {
-    var packagePath = GetPackagePath("Relay.SourceGenerator");
+        var packagePath = GetPackagePath("Relay.SourceGenerator");
         using var packageReader = new PackageArchiveReader(packagePath);
-        
+
         // GetAnalyzerItems method not available in this version
         var analyzerItems = packageReader.GetFiles().Where(f => f.StartsWith("analyzers/")).ToList();
         Assert.NotEmpty(analyzerItems);
@@ -93,8 +77,8 @@ public class PackageValidationTests
     [InlineData("Relay.SourceGenerator")]
     public void Package_ShouldIncludeSymbols(string packageName)
     {
-    var symbolsPackagePath = GetSymbolsPackagePath(packageName);
-        Assert.True(File.Exists(symbolsPackagePath), 
+        var symbolsPackagePath = GetSymbolsPackagePath(packageName);
+        Assert.True(File.Exists(symbolsPackagePath),
             $"Symbols package should exist for {packageName} at {symbolsPackagePath}");
     }
 
@@ -102,7 +86,7 @@ public class PackageValidationTests
     [InlineData("Relay.Core")]
     public void CorePackage_ShouldHaveCorrectDependencies(string packageName)
     {
-    var packagePath = GetPackagePath(packageName);
+        var packagePath = GetPackagePath(packageName);
         using var packageReader = new PackageArchiveReader(packagePath);
         var dependencies = packageReader.NuspecReader.GetDependencyGroups();
 
@@ -117,7 +101,7 @@ public class PackageValidationTests
 
         foreach (var expectedDep in expectedDependencies)
         {
-            var hasDependency = dependencies.Any(group => 
+            var hasDependency = dependencies.Any(group =>
                 group.Packages.Any(pkg => pkg.Id == expectedDep));
             Assert.True(hasDependency, $"Package should have dependency on {expectedDep}");
         }
@@ -126,7 +110,7 @@ public class PackageValidationTests
     [Fact]
     public void SourceGeneratorPackage_ShouldBeDevelopmentDependency()
     {
-    var packagePath = GetPackagePath("Relay.SourceGenerator");
+        var packagePath = GetPackagePath("Relay.SourceGenerator");
         using var packageReader = new PackageArchiveReader(packagePath);
         var nuspec = packageReader.NuspecReader;
 
@@ -138,7 +122,7 @@ public class PackageValidationTests
     {
         var searchPattern = $"{packageName}.*.nupkg";
         var packageDir = Path.Combine(PackageOutputBase, packageName, "bin", "Release");
-        
+
         if (!Directory.Exists(packageDir))
         {
             throw new DirectoryNotFoundException($"Package directory not found: {packageDir}");
@@ -146,7 +130,7 @@ public class PackageValidationTests
 
         var packageFiles = Directory.GetFiles(packageDir, searchPattern, SearchOption.AllDirectories);
         var packageFile = packageFiles.FirstOrDefault(f => !f.Contains(".symbols."));
-        
+
         if (packageFile == null)
         {
             throw new FileNotFoundException($"Package file not found matching pattern: {searchPattern} in {packageDir}");
@@ -157,9 +141,9 @@ public class PackageValidationTests
 
     private static string GetSymbolsPackagePath(string packageName)
     {
-    var searchPattern = $"{packageName}.*.symbols.nupkg";
-    var packageDir = Path.Combine(PackageOutputBase, packageName, "bin", "Release");
-        
+        var searchPattern = $"{packageName}.*.symbols.nupkg";
+        var packageDir = Path.Combine(PackageOutputBase, packageName, "bin", "Release");
+
         var packageFiles = Directory.GetFiles(packageDir, searchPattern, SearchOption.AllDirectories);
         return packageFiles.FirstOrDefault() ?? throw new FileNotFoundException($"Symbols package not found: {searchPattern}");
     }

@@ -176,10 +176,24 @@ namespace Relay.Core
                 return;
             }
 
-            // Create tasks for parallel execution without Task.Run overhead
-            var tasks = handlers.Select(handler =>
-                ExecuteHandlerSafely(handler, notification, cancellationToken).AsTask())
-                .ToArray();
+            // Create semaphore to ensure handlers start simultaneously
+            using var startSignal = new SemaphoreSlim(0, handlers.Count);
+            var tasks = new Task[handlers.Count];
+
+            // Start all handlers, but have them wait for the start signal
+            for (int i = 0; i < handlers.Count; i++)
+            {
+                var handler = handlers[i];
+                tasks[i] = Task.Run(async () =>
+                {
+                    // Wait for all handlers to be ready, then start together
+                    await startSignal.WaitAsync(cancellationToken);
+                    await ExecuteHandlerSafely(handler, notification, cancellationToken);
+                });
+            }
+
+            // Signal all handlers to start simultaneously
+            startSignal.Release(handlers.Count);
 
             // Wait for all tasks to complete
             await Task.WhenAll(tasks).ConfigureAwait(false);

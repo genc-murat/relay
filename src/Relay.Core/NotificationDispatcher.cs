@@ -176,13 +176,10 @@ namespace Relay.Core
                 return;
             }
 
-            // Create tasks for parallel execution on the thread pool to avoid SynchronizationContext serialization
-            var tasks = new Task[handlers.Count];
-            for (int i = 0; i < handlers.Count; i++)
-            {
-                var handler = handlers[i];
-                tasks[i] = Task.Run(() => ExecuteHandlerSafely(handler, notification, cancellationToken).AsTask(), cancellationToken);
-            }
+            // Create tasks for parallel execution - use LINQ to avoid closure issues
+            var tasks = handlers.Select(handler =>
+                Task.Run(async () => await ExecuteHandlerSafely(handler, notification, cancellationToken), cancellationToken))
+                .ToArray();
 
             // Wait for all tasks to complete
             await Task.WhenAll(tasks).ConfigureAwait(false);

@@ -1,5 +1,6 @@
 using SimpleCrudApi.Models;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace SimpleCrudApi.Data;
 
@@ -29,18 +30,25 @@ public class InMemoryUserRepository : IUserRepository
 
     public ValueTask<IEnumerable<User>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var skip = (page - 1) * pageSize;
-        var users = _users.Values
-            .OrderBy(u => u.Id)
-            .Skip(skip)
-            .Take(pageSize);
+        var list = new List<User>(pageSize);
+        var startId = (page - 1) * pageSize + 1;
+        var endId = startId + pageSize - 1;
 
-        return ValueTask.FromResult(users);
+        for (int id = startId; id <= endId; id++)
+        {
+            if (_users.TryGetValue(id, out var user))
+            {
+                list.Add(user);
+            }
+        }
+
+        return ValueTask.FromResult<IEnumerable<User>>(list);
     }
 
     public ValueTask<User> CreateAsync(User user, CancellationToken cancellationToken = default)
     {
-        var newUser = user with { Id = _nextId++ };
+        var id = Interlocked.Increment(ref _nextId) - 1;
+        var newUser = user with { Id = id };
         _users.TryAdd(newUser.Id, newUser);
         return ValueTask.FromResult(newUser);
     }

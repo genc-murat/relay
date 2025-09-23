@@ -121,7 +121,32 @@ namespace Relay.Core
 
             if (!_handlerRegistrations.TryGetValue(notificationType, out var handlers) || handlers.Count == 0)
             {
-                _logger?.LogDebug("No handlers registered for notification type {NotificationType}", notificationType.Name);
+                // Fallback: try DI-registered handlers
+                var diHandlers = ServiceProvider.GetServices(typeof(INotificationHandler<TNotification>))
+                    as IEnumerable<INotificationHandler<TNotification>>;
+                if (diHandlers != null && diHandlers.Any())
+                {
+                    _logger?.LogDebug("Dispatching notification {NotificationType} to {HandlerCount} DI handlers",
+                        notificationType.Name, diHandlers.Count());
+
+                    // Execute DI handlers sequentially to preserve order
+                    foreach (var handler in diHandlers)
+                    {
+                        try
+                        {
+                            await handler.HandleAsync(notification, cancellationToken);
+                        }
+                        catch (Exception ex) when (_options.ContinueOnException)
+                        {
+                            _logger?.LogError(ex, "DI handler {HandlerType} failed for notification {NotificationType}. Continuing.",
+                                handler.GetType().Name, notificationType.Name);
+                        }
+                    }
+                }
+                else
+                {
+                    _logger?.LogDebug("No handlers registered for notification type {NotificationType}", notificationType.Name);
+                }
                 return;
             }
 

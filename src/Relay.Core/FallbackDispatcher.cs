@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
+using System.Linq.Expressions;
 
 namespace Relay.Core
 {
@@ -14,6 +16,67 @@ namespace Relay.Core
     /// </summary>
     public class FallbackRequestDispatcher : BaseRequestDispatcher
     {
+        private static class ResponseInvokerCache<TResponse>
+        {
+            public sealed class Entry
+            {
+                public required Type HandlerInterfaceType { get; init; }
+                public required Func<object, object, CancellationToken, ValueTask<TResponse>> Invoke { get; init; }
+            }
+
+            public static readonly ConcurrentDictionary<Type, Entry> Cache = new();
+
+            public static Entry Create(Type requestType)
+            {
+                var handlerInterface = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
+
+                var handlerParam = Expression.Parameter(typeof(object), "handler");
+                var requestParam = Expression.Parameter(typeof(object), "request");
+                var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
+
+                var castedHandler = Expression.Convert(handlerParam, handlerInterface);
+                var castedRequest = Expression.Convert(requestParam, requestType);
+
+                var method = handlerInterface.GetMethod("HandleAsync");
+                if (method == null)
+                    throw new MissingMethodException(handlerInterface.FullName, "HandleAsync");
+
+                var call = Expression.Call(castedHandler, method, castedRequest, ctParam);
+                var lambda = Expression.Lambda<Func<object, object, CancellationToken, ValueTask<TResponse>>>(call, handlerParam, requestParam, ctParam);
+                return new Entry { HandlerInterfaceType = handlerInterface, Invoke = lambda.Compile() };
+            }
+        }
+
+        private static class VoidInvokerCache
+        {
+            public sealed class Entry
+            {
+                public required Type HandlerInterfaceType { get; init; }
+                public required Func<object, object, CancellationToken, ValueTask> Invoke { get; init; }
+            }
+
+            public static readonly ConcurrentDictionary<Type, Entry> Cache = new();
+
+            public static Entry Create(Type requestType)
+            {
+                var handlerInterface = typeof(IRequestHandler<>).MakeGenericType(requestType);
+
+                var handlerParam = Expression.Parameter(typeof(object), "handler");
+                var requestParam = Expression.Parameter(typeof(object), "request");
+                var ctParam = Expression.Parameter(typeof(CancellationToken), "ct");
+
+                var castedHandler = Expression.Convert(handlerParam, handlerInterface);
+                var castedRequest = Expression.Convert(requestParam, requestType);
+
+                var method = handlerInterface.GetMethod("HandleAsync");
+                if (method == null)
+                    throw new MissingMethodException(handlerInterface.FullName, "HandleAsync");
+
+                var call = Expression.Call(castedHandler, method, castedRequest, ctParam);
+                var lambda = Expression.Lambda<Func<object, object, CancellationToken, ValueTask>>(call, handlerParam, requestParam, ctParam);
+                return new Entry { HandlerInterfaceType = handlerInterface, Invoke = lambda.Compile() };
+            }
+        }
         /// <summary>
         /// Initializes a new instance of the FallbackRequestDispatcher class.
         /// </summary>
@@ -29,25 +92,12 @@ namespace Relay.Core
 
             try
             {
-                // Use the concrete request type to find the handler
                 var requestType = request.GetType();
-                var handlerType = typeof(IRequestHandler<,>).MakeGenericType(requestType, typeof(TResponse));
-                var handler = ServiceProvider.GetService(handlerType);
-
+                var entry = ResponseInvokerCache<TResponse>.Cache.GetOrAdd(requestType, ResponseInvokerCache<TResponse>.Create);
+                var handler = ServiceProvider.GetService(entry.HandlerInterfaceType);
                 if (handler == null)
-                {
                     return ValueTaskExtensions.FromException<TResponse>(CreateHandlerNotFoundException(requestType));
-                }
-
-                // Use reflection to call HandleAsync
-                var method = handlerType.GetMethod("HandleAsync");
-                if (method == null)
-                {
-                    return ValueTaskExtensions.FromException<TResponse>(CreateHandlerNotFoundException(requestType));
-                }
-
-                var result = method.Invoke(handler, new object[] { request, cancellationToken });
-                return (ValueTask<TResponse>)result!;
+                return entry.Invoke(handler, request, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -62,25 +112,12 @@ namespace Relay.Core
 
             try
             {
-                // Use the concrete request type to find the handler
                 var requestType = request.GetType();
-                var handlerType = typeof(IRequestHandler<>).MakeGenericType(requestType);
-                var handler = ServiceProvider.GetService(handlerType);
-
+                var entry = VoidInvokerCache.Cache.GetOrAdd(requestType, VoidInvokerCache.Create);
+                var handler = ServiceProvider.GetService(entry.HandlerInterfaceType);
                 if (handler == null)
-                {
                     return ValueTaskExtensions.FromException(CreateHandlerNotFoundException(requestType));
-                }
-
-                // Use reflection to call HandleAsync
-                var method = handlerType.GetMethod("HandleAsync");
-                if (method == null)
-                {
-                    return ValueTaskExtensions.FromException(CreateHandlerNotFoundException(requestType));
-                }
-
-                var result = method.Invoke(handler, new object[] { request, cancellationToken });
-                return (ValueTask)result!;
+                return entry.Invoke(handler, request, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -115,6 +152,45 @@ namespace Relay.Core
     /// </summary>
     public class FallbackStreamDispatcher : BaseStreamDispatcher
     {
+        private static class StreamInvokerCache<TResponse>
+        {
+            public sealed class Entry
+            {
+                public required Type HandlerInterfaceType { get; init; }
+                public required Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>> Invoke { get; init; }
+            }
+
+            private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Entry> Cache = new();
+
+            public static Entry GetOrCreate(Type requestType)
+            {
+                return Cache.GetOrAdd(requestType, static rt =>
+                {
+                    var handlerInterface = typeof(IStreamHandler<,>).MakeGenericType(rt, typeof(TResponse));
+
+                    var handlerParam = System.Linq.Expressions.Expression.Parameter(typeof(object), "handler");
+                    var requestParam = System.Linq.Expressions.Expression.Parameter(typeof(object), "request");
+                    var ctParam = System.Linq.Expressions.Expression.Parameter(typeof(CancellationToken), "ct");
+
+                    var castedHandler = System.Linq.Expressions.Expression.Convert(handlerParam, handlerInterface);
+                    var castedRequest = System.Linq.Expressions.Expression.Convert(requestParam, rt);
+
+                    var method = handlerInterface.GetMethod("HandleAsync");
+                    if (method == null)
+                        throw new MissingMethodException(handlerInterface.FullName, "HandleAsync");
+
+                    var call = System.Linq.Expressions.Expression.Call(castedHandler, method, castedRequest, ctParam);
+                    var lambda = System.Linq.Expressions.Expression.Lambda<Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>>>(
+                        call, handlerParam, requestParam, ctParam);
+
+                    return new Entry
+                    {
+                        HandlerInterfaceType = handlerInterface,
+                        Invoke = lambda.Compile()
+                    };
+                });
+            }
+        }
         /// <summary>
         /// Initializes a new instance of the FallbackStreamDispatcher class.
         /// </summary>
@@ -130,25 +206,14 @@ namespace Relay.Core
 
             try
             {
-                // Use the concrete request type to find the handler
                 var requestType = request.GetType();
-                var handlerType = typeof(IStreamHandler<,>).MakeGenericType(requestType, typeof(TResponse));
-                var handler = ServiceProvider.GetService(handlerType);
-
+                var entry = StreamInvokerCache<TResponse>.GetOrCreate(requestType);
+                var handler = ServiceProvider.GetService(entry.HandlerInterfaceType);
                 if (handler == null)
                 {
                     return ThrowHandlerNotFound<TResponse>(requestType);
                 }
-
-                // Use reflection to call HandleAsync
-                var method = handlerType.GetMethod("HandleAsync");
-                if (method == null)
-                {
-                    return ThrowHandlerNotFound<TResponse>(requestType);
-                }
-
-                var result = method.Invoke(handler, new object[] { request, cancellationToken });
-                return (IAsyncEnumerable<TResponse>)result!;
+                return entry.Invoke(handler, request, cancellationToken);
             }
             catch (Exception ex)
             {

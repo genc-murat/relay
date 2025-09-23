@@ -10,7 +10,11 @@
       "Bash(dotnet format:*)",
       "Bash(mkdir:*)",
       "Bash(dotnet run)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "Bash(dotnet add package MediatR)",
+      "Bash(dotnet add package:*)",
+      "Bash(del \"Models\\Requests\\ApiRequests.cs\")",
+      "Bash(dotnet clean:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,25 +1,26 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Relay.Core;
 using SimpleCrudApi.Models;
 using SimpleCrudApi.Models.Requests;
+using SimpleCrudApi.MediatR.Requests;
 
-namespace SimpleCrudApi.Controllers;
+namespace SimpleCrudApi.MediatR.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/mediatr/[controller]")]
 public class UsersController : ControllerBase
 {
-    private readonly IRelay _relay;
+    private readonly IMediator _mediator;
 
-    public UsersController(IRelay relay)
+    public UsersController(IMediator mediator)
     {
-        _relay = relay;
+        _mediator = mediator;
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<User>> GetUser(int id, CancellationToken cancellationToken)
     {
-        var user = await _relay.SendAsync(new GetUserQuery(id), cancellationToken);
+        var user = await _mediator.Send(new MediatRGetUserQuery(id), cancellationToken);
         return user == null ? NotFound() : Ok(user);
     }
 
@@ -29,7 +30,7 @@ public class UsersController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var users = await _relay.SendAsync(new GetUsersQuery(page, pageSize), cancellationToken);
+        var users = await _mediator.Send(new MediatRGetUsersQuery(page, pageSize), cancellationToken);
         return Ok(users);
     }
 
@@ -38,8 +39,8 @@ public class UsersController : ControllerBase
         [FromBody] CreateUserRequest request,
         CancellationToken cancellationToken)
     {
-        var user = await _relay.SendAsync(
-            new CreateUserCommand(request.Name, request.Email),
+        var user = await _mediator.Send(
+            new MediatRCreateUserCommand(request.Name, request.Email),
             cancellationToken);
 
         return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
@@ -51,8 +52,8 @@ public class UsersController : ControllerBase
         [FromBody] UpdateUserRequest request,
         CancellationToken cancellationToken)
     {
-        var user = await _relay.SendAsync(
-            new UpdateUserCommand(id, request.Name, request.Email),
+        var user = await _mediator.Send(
+            new MediatRUpdateUserCommand(id, request.Name, request.Email),
             cancellationToken);
 
         return user == null ? NotFound() : Ok(user);
@@ -61,7 +62,7 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id, CancellationToken cancellationToken)
     {
-        await _relay.SendAsync(new DeleteUserCommand(id), cancellationToken);
+        await _mediator.Send(new MediatRDeleteUserCommand(id), cancellationToken);
         return NoContent();
     }
 }

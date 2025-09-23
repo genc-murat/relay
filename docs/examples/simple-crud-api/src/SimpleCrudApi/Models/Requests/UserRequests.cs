@@ -16,3 +16,7 @@ public record DeleteUserCommand(int Id) : IRequest;
 public record UserCreatedNotification(User User) : INotification;
 public record UserUpdatedNotification(User User) : INotification;
 public record UserDeletedNotification(int UserId) : INotification;
+
+// API Request DTOs
+public record CreateUserRequest(string Name, string Email);
+public record UpdateUserRequest(string Name, string Email);

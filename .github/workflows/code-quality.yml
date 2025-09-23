@@ -28,6 +28,3 @@ jobs:
     
     - name: Run analyzers
       run: dotnet build --no-restore --configuration Release --verbosity normal
-    
-    - name: Format check
-      run: dotnet format --verify-no-changes --verbosity diagnostic

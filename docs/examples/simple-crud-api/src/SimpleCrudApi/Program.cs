@@ -11,6 +11,20 @@ if (args.Length > 0 && args[0] == "--benchmark")
     return;
 }
 
+// Check for quick performance test
+if (args.Length > 0 && args[0] == "--perftest")
+{
+    await SimpleCrudApi.QuickPerformanceTest.RunTest();
+    return;
+}
+
+// Check for direct performance test
+if (args.Length > 0 && args[0] == "--directtest")
+{
+    await SimpleCrudApi.QuickPerformanceTestDirect.RunTest();
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services

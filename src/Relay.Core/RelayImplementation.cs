@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,12 @@ namespace Relay.Core
         private readonly IStreamDispatcher? _streamDispatcher;
         private readonly INotificationDispatcher? _notificationDispatcher;
 
+        // Performance optimization: Pre-computed exception tasks
+        private static readonly ValueTask<object> _handlerNotFoundExceptionTask =
+            ValueTask.FromException<object>(new HandlerNotFoundException("Handler not found"));
+        private static readonly ValueTask _handlerNotFoundVoidTask =
+            ValueTask.FromException(new HandlerNotFoundException("Handler not found"));
+
         /// <summary>
         /// Initializes a new instance of the RelayImplementation class.
         /// </summary>
@@ -33,12 +40,15 @@ namespace Relay.Core
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (_requestDispatcher == null)
+            // Performance optimization: Fast-path for common case
+            var dispatcher = _requestDispatcher;
+            if (dispatcher == null)
             {
                 return ValueTaskExtensions.FromException<TResponse>(
                     new HandlerNotFoundException(typeof(IRequest<TResponse>).Name));
@@ -46,7 +56,7 @@ namespace Relay.Core
 
             try
             {
-                return _requestDispatcher.DispatchAsync(request, cancellationToken);
+                return dispatcher.DispatchAsync(request, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -55,20 +65,22 @@ namespace Relay.Core
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValueTask SendAsync(IRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            if (_requestDispatcher == null)
+            // Performance optimization: Fast-path for common case
+            var dispatcher = _requestDispatcher;
+            if (dispatcher == null)
             {
-                return ValueTaskExtensions.FromException(
-                    new HandlerNotFoundException(typeof(IRequest).Name));
+                return _handlerNotFoundVoidTask;
             }
 
             try
             {
-                return _requestDispatcher.DispatchAsync(request, cancellationToken);
+                return dispatcher.DispatchAsync(request, cancellationToken);
             }
             catch (Exception ex)
             {

@@ -14,7 +14,10 @@
       "Bash(dotnet add package MediatR)",
       "Bash(dotnet add package:*)",
       "Bash(del \"Models\\Requests\\ApiRequests.cs\")",
-      "Bash(dotnet clean:*)"
+      "Bash(dotnet clean:*)",
+      "Bash(.SimpleCrudApi.exe --benchmark)",
+      "Bash(SimpleCrudApi.exe --benchmark)",
+      "Bash(dotnet:*)"
     ],
     "deny": [],
     "ask": []

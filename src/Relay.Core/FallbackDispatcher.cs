@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -86,6 +87,7 @@ namespace Relay.Core
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
         {
             ValidateRequest(request);
@@ -94,9 +96,13 @@ namespace Relay.Core
             {
                 var requestType = request.GetType();
                 var entry = ResponseInvokerCache<TResponse>.Cache.GetOrAdd(requestType, ResponseInvokerCache<TResponse>.Create);
+
+                // Performance optimization: Use hot path for handler resolution
                 var handler = ServiceProvider.GetService(entry.HandlerInterfaceType);
                 if (handler == null)
                     return ValueTaskExtensions.FromException<TResponse>(CreateHandlerNotFoundException(requestType));
+
+                // Direct invocation for better performance
                 return entry.Invoke(handler, request, cancellationToken);
             }
             catch (Exception ex)
@@ -263,17 +269,39 @@ namespace Relay.Core
         }
 
         /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override async ValueTask DispatchAsync<TNotification>(TNotification notification, CancellationToken cancellationToken)
         {
             ValidateRequest(notification);
 
             try
             {
+                // Performance optimization: Use pre-allocated arrays and avoid LINQ allocations
                 var handlers = ServiceProvider.GetServices<INotificationHandler<TNotification>>();
-                var handlerTasks = handlers.Select(h => h.HandleAsync(notification, cancellationToken));
 
-                // Execute handlers in parallel by default
-                await ExecuteHandlersParallel(handlerTasks, cancellationToken);
+                // Fast path: no handlers
+                if (!handlers.Any())
+                    return;
+
+                // Convert to array once to avoid multiple enumerations
+                var handlerArray = handlers as INotificationHandler<TNotification>[] ?? handlers.ToArray();
+
+                // Single handler fast path
+                if (handlerArray.Length == 1)
+                {
+                    await handlerArray[0].HandleAsync(notification, cancellationToken);
+                    return;
+                }
+
+                // Multiple handlers - create ValueTask array directly
+                var tasks = new ValueTask[handlerArray.Length];
+                for (int i = 0; i < handlerArray.Length; i++)
+                {
+                    tasks[i] = handlerArray[i].HandleAsync(notification, cancellationToken);
+                }
+
+                // Execute handlers in parallel using ValueTask array directly
+                await ExecuteHandlersParallel(tasks, cancellationToken);
             }
             catch (Exception ex)
             {

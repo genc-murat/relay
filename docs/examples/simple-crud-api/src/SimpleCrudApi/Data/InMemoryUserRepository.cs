@@ -1,6 +1,6 @@
-using SimpleCrudApi.Models;
 using System.Collections.Concurrent;
 using System.Threading;
+using SimpleCrudApi.Models;
 
 namespace SimpleCrudApi.Data;
 

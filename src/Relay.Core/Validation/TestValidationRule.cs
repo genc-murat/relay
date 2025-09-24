@@ -13,7 +13,7 @@ namespace Relay.Core.Validation
         /// <inheritdoc />
         public ValueTask<IEnumerable<string>> ValidateAsync(string request, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(request))
+            if (string.IsNullOrWhiteSpace(request))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { "Request cannot be null or empty." });
             }

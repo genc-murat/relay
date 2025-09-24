@@ -35,7 +35,7 @@ namespace Relay.Core.DistributedTracing
             {
                 activity.SetTag("request.type", requestType.FullName ?? requestType.Name);
 
-                if (!string.IsNullOrEmpty(correlationId))
+                if (!string.IsNullOrWhiteSpace(correlationId))
                 {
                     activity.SetTag("correlation.id", correlationId);
                 }

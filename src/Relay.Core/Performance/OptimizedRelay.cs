@@ -72,7 +72,7 @@ public class OptimizedRelay : IRelay
     public async ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, string handlerName, CancellationToken cancellationToken = default)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
-        if (string.IsNullOrEmpty(handlerName)) throw new ArgumentException("Handler name cannot be null or empty", nameof(handlerName));
+        if (string.IsNullOrWhiteSpace(handlerName)) throw new ArgumentException("Handler name cannot be null or empty", nameof(handlerName));
 
         try
         {

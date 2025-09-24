@@ -194,7 +194,7 @@ namespace Relay.Core
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrEmpty(handlerName))
+            if (string.IsNullOrWhiteSpace(handlerName))
                 throw new ArgumentException("Handler name cannot be null or empty.", nameof(handlerName));
 
             if (_requestDispatcher == null)
@@ -224,7 +224,7 @@ namespace Relay.Core
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrEmpty(handlerName))
+            if (string.IsNullOrWhiteSpace(handlerName))
                 throw new ArgumentException("Handler name cannot be null or empty.", nameof(handlerName));
 
             if (_requestDispatcher == null)
@@ -255,7 +255,7 @@ namespace Relay.Core
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
-            if (string.IsNullOrEmpty(handlerName))
+            if (string.IsNullOrWhiteSpace(handlerName))
                 throw new ArgumentException("Handler name cannot be null or empty.", nameof(handlerName));
 
             if (_streamDispatcher == null)

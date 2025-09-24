@@ -28,7 +28,7 @@ namespace Relay.Core.Validation
         {
             var value = GetPropertyValue(request);
 
-            if (string.IsNullOrEmpty(value))
+            if (string.IsNullOrWhiteSpace(value))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { $"{PropertyName} cannot be null or empty." });
             }

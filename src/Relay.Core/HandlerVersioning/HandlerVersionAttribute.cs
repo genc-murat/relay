@@ -24,7 +24,7 @@ namespace Relay.Core.HandlerVersioning
         /// <param name="version">The version of the handler.</param>
         public HandlerVersionAttribute(string version)
         {
-            if (string.IsNullOrEmpty(version))
+            if (string.IsNullOrWhiteSpace(version))
             {
                 throw new ArgumentException("Version cannot be null or empty.", nameof(version));
             }

@@ -232,12 +232,12 @@ namespace Relay.Core
 
             var queueName = ToKebabCase(typeName);
 
-            if (!string.IsNullOrEmpty(options.QueuePrefix))
+            if (!string.IsNullOrWhiteSpace(options.QueuePrefix))
             {
                 queueName = $"{options.QueuePrefix}.{queueName}";
             }
 
-            if (!string.IsNullOrEmpty(endpoint.Version))
+            if (!string.IsNullOrWhiteSpace(endpoint.Version))
             {
                 queueName = $"{queueName}.{endpoint.Version}";
             }
@@ -265,7 +265,7 @@ namespace Relay.Core
             var typeName = endpoint.RequestType.Name;
             var routingKey = ToKebabCase(typeName);
 
-            if (!string.IsNullOrEmpty(endpoint.Version))
+            if (!string.IsNullOrWhiteSpace(endpoint.Version))
             {
                 routingKey = $"{endpoint.Version}.{routingKey}";
             }
@@ -275,7 +275,7 @@ namespace Relay.Core
 
         private static string ToKebabCase(string input)
         {
-            if (string.IsNullOrEmpty(input))
+            if (string.IsNullOrWhiteSpace(input))
                 return input;
 
             var result = new System.Text.StringBuilder();

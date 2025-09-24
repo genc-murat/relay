@@ -1,8 +1,8 @@
-using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
 namespace Relay.Core.Diagnostics;
 
@@ -269,7 +269,7 @@ public class RelayDiagnosticsService
             return Task.FromResult(DiagnosticResponse<BenchmarkResult>.NotFound("Diagnostic endpoints are disabled"));
         }
 
-        if (request == null || string.IsNullOrEmpty(request.RequestType))
+        if (request == null || string.IsNullOrWhiteSpace(request.RequestType))
         {
             return Task.FromResult(DiagnosticResponse<BenchmarkResult>.BadRequest("Invalid benchmark request"));
         }

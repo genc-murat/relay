@@ -12,40 +12,40 @@ namespace Relay.ContractValidation.Example
     // Example request with contract validation
     [ValidateContract]
     public record CreateUserRequest(string Name, string Email) : IRequest<User>;
-    
+
     // Example request without contract validation
     public record GetOrderRequest(int OrderId) : IRequest<Order>;
-    
+
     // Example responses
     public record User(int Id, string Name, string Email);
     public record Order(int Id, int UserId, decimal Total);
-    
+
     // Example handler
     public class DataService
     {
         private static int _userCallCount = 0;
         private static int _orderCallCount = 0;
-        
+
         [Handle]
         public async ValueTask<User> CreateUser(CreateUserRequest request, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _userCallCount);
             await Task.Delay(10, cancellationToken); // Simulate work
-            
+
             // Validate request manually for demo purposes
-            if (string.IsNullOrEmpty(request.Name))
+            if (string.IsNullOrWhiteSpace(request.Name))
             {
                 throw new ArgumentException("Name is required");
             }
-            
-            if (string.IsNullOrEmpty(request.Email) || !request.Email.Contains("@"))
+
+            if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains("@"))
             {
                 throw new ArgumentException("Valid email is required");
             }
-            
+
             return new User(_userCallCount, request.Name, request.Email);
         }
-        
+
         [Handle]
         public async ValueTask<Order> GetOrder(GetOrderRequest request, CancellationToken cancellationToken)
         {
@@ -53,11 +53,11 @@ namespace Relay.ContractValidation.Example
             await Task.Delay(10, cancellationToken); // Simulate work
             return new Order(request.OrderId, 1, 99.99m);
         }
-        
+
         public static int UserCallCount => _userCallCount;
         public static int OrderCallCount => _orderCallCount;
     }
-    
+
     class Program
     {
         static async Task Main(string[] args)
@@ -71,17 +71,17 @@ namespace Relay.ContractValidation.Example
                 services.AddRelayContractValidation();
                 services.AddScoped<DataService>();
             });
-            
+
             var host = builder.Build();
-            
+
             // Get relay instance
             var relay = host.Services.GetRequiredService<IRelay>();
-            
+
             Console.WriteLine("Testing contract validation behavior...");
-            
+
             // Test request with contract validation
             var userRequest = new CreateUserRequest("John Doe", "john.doe@example.com");
-            
+
             try
             {
                 var user = await relay.SendAsync(userRequest);
@@ -95,12 +95,12 @@ namespace Relay.ContractValidation.Example
             {
                 Console.WriteLine($"Contract validation request: Failed - {ex.Message}");
             }
-            
+
             Console.WriteLine($"User handler call count: {DataService.UserCallCount}");
-            
+
             // Test request without contract validation
             var orderRequest = new GetOrderRequest(1);
-            
+
             try
             {
                 var order = await relay.SendAsync(orderRequest);
@@ -110,7 +110,7 @@ namespace Relay.ContractValidation.Example
             {
                 Console.WriteLine($"Non-contract validation request: Failed - {ex.Message}");
             }
-            
+
             Console.WriteLine($"Order handler call count: {DataService.OrderCallCount}");
         }
     }

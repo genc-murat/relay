@@ -1,8 +1,8 @@
-using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis;
 
 namespace Relay.SourceGenerator;
 
@@ -450,7 +450,7 @@ public class OptimizedDispatcherGenerator
             var nameArg = handleAttribute.AttributeData.NamedArguments
                 .FirstOrDefault(arg => arg.Key == "Name");
 
-            if (nameArg.Value.Value is string name && !string.IsNullOrEmpty(name))
+            if (nameArg.Value.Value is string name && !string.IsNullOrWhiteSpace(name))
             {
                 return name;
             }

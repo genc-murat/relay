@@ -23,7 +23,7 @@ namespace Relay.Core.RateLimiting
         /// <inheritdoc />
         public async ValueTask<bool> IsAllowedAsync(string key, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrWhiteSpace(key))
                 throw new ArgumentException("Key cannot be null or empty.", nameof(key));
 
             await Task.CompletedTask; // Make method async for interface compliance
@@ -68,7 +68,7 @@ namespace Relay.Core.RateLimiting
         /// <inheritdoc />
         public async ValueTask<TimeSpan> GetRetryAfterAsync(string key, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(key))
+            if (string.IsNullOrWhiteSpace(key))
                 throw new ArgumentException("Key cannot be null or empty.", nameof(key));
 
             await Task.CompletedTask; // Make method async for interface compliance

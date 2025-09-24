@@ -23,7 +23,7 @@ namespace Relay.Core.Configuration
         public ResolvedHandlerConfiguration ResolveHandlerConfiguration(Type handlerType, string methodName, HandleAttribute? attribute)
         {
             if (handlerType == null) throw new ArgumentNullException(nameof(handlerType));
-            if (string.IsNullOrEmpty(methodName)) throw new ArgumentException("Method name cannot be null or empty.", nameof(methodName));
+            if (string.IsNullOrWhiteSpace(methodName)) throw new ArgumentException("Method name cannot be null or empty.", nameof(methodName));
 
             var key = $"{handlerType.FullName}.{methodName}";
             var globalDefaults = _options.DefaultHandlerOptions;
@@ -44,7 +44,7 @@ namespace Relay.Core.Configuration
         public ResolvedNotificationConfiguration ResolveNotificationConfiguration(Type handlerType, string methodName, NotificationAttribute? attribute)
         {
             if (handlerType == null) throw new ArgumentNullException(nameof(handlerType));
-            if (string.IsNullOrEmpty(methodName)) throw new ArgumentException("Method name cannot be null or empty.", nameof(methodName));
+            if (string.IsNullOrWhiteSpace(methodName)) throw new ArgumentException("Method name cannot be null or empty.", nameof(methodName));
 
             var key = $"{handlerType.FullName}.{methodName}";
             var globalDefaults = _options.DefaultNotificationOptions;
@@ -64,7 +64,7 @@ namespace Relay.Core.Configuration
         public ResolvedPipelineConfiguration ResolvePipelineConfiguration(Type pipelineType, string methodName, PipelineAttribute? attribute)
         {
             if (pipelineType == null) throw new ArgumentNullException(nameof(pipelineType));
-            if (string.IsNullOrEmpty(methodName)) throw new ArgumentException("Method name cannot be null or empty.", nameof(methodName));
+            if (string.IsNullOrWhiteSpace(methodName)) throw new ArgumentException("Method name cannot be null or empty.", nameof(methodName));
 
             var key = $"{pipelineType.FullName}.{methodName}";
             var globalDefaults = _options.DefaultPipelineOptions;
@@ -83,19 +83,19 @@ namespace Relay.Core.Configuration
         public ResolvedEndpointConfiguration ResolveEndpointConfiguration(Type handlerType, string methodName, ExposeAsEndpointAttribute? attribute)
         {
             if (handlerType == null) throw new ArgumentNullException(nameof(handlerType));
-            if (string.IsNullOrEmpty(methodName)) throw new ArgumentException("Method name cannot be null or empty.", nameof(methodName));
+            if (string.IsNullOrWhiteSpace(methodName)) throw new ArgumentException("Method name cannot be null or empty.", nameof(methodName));
 
             var globalDefaults = _options.DefaultEndpointOptions;
 
             var route = attribute?.Route;
-            if (string.IsNullOrEmpty(route) && globalDefaults.EnableAutoRouteGeneration)
+            if (string.IsNullOrWhiteSpace(route) && globalDefaults.EnableAutoRouteGeneration)
             {
                 // Generate route from handler type and method name
                 var typeName = handlerType.Name.EndsWith("Handler")
                     ? handlerType.Name.Substring(0, handlerType.Name.Length - 7) // Remove "Handler" suffix
                     : handlerType.Name;
 
-                var prefix = !string.IsNullOrEmpty(globalDefaults.DefaultRoutePrefix)
+                var prefix = !string.IsNullOrWhiteSpace(globalDefaults.DefaultRoutePrefix)
                     ? $"{globalDefaults.DefaultRoutePrefix.TrimEnd('/')}/"
                     : "";
 

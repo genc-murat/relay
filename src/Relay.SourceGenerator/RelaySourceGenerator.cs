@@ -111,7 +111,7 @@ namespace Relay.SourceGenerator
             var notificationGenerator = new NotificationDispatcherGenerator(compilationContext);
             var notificationSource = notificationGenerator.GenerateNotificationDispatcher(discoveryResult);
 
-            if (!string.IsNullOrEmpty(notificationSource))
+            if (!string.IsNullOrWhiteSpace(notificationSource))
             {
                 context.AddSource("NotificationDispatcher.g.cs", notificationSource);
                 GeneratorLogger.LogDebug(context, "Generated notification dispatcher");
@@ -123,7 +123,7 @@ namespace Relay.SourceGenerator
             var pipelineGenerator = new PipelineRegistryGenerator(compilationContext);
             var pipelineSource = pipelineGenerator.GeneratePipelineRegistry(discoveryResult);
 
-            if (!string.IsNullOrEmpty(pipelineSource))
+            if (!string.IsNullOrWhiteSpace(pipelineSource))
             {
                 context.AddSource("PipelineRegistry.g.cs", pipelineSource);
                 GeneratorLogger.LogDebug(context, "Generated pipeline registry");
@@ -136,7 +136,7 @@ namespace Relay.SourceGenerator
             var endpointGenerator = new EndpointMetadataGenerator(compilationContext.Compilation, diagnosticReporter);
             var endpointSource = endpointGenerator.GenerateEndpointMetadata(discoveryResult.Handlers);
 
-            if (!string.IsNullOrEmpty(endpointSource))
+            if (!string.IsNullOrWhiteSpace(endpointSource))
             {
                 context.AddSource("EndpointMetadata.g.cs", endpointSource);
                 GeneratorLogger.LogDebug(context, "Generated endpoint metadata");

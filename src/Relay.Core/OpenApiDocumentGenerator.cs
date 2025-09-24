@@ -197,7 +197,7 @@ namespace Relay.Core
             var tags = new List<string>();
 
             // Add version as tag if specified
-            if (!string.IsNullOrEmpty(endpoint.Version))
+            if (!string.IsNullOrWhiteSpace(endpoint.Version))
             {
                 tags.Add(endpoint.Version);
             }

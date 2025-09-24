@@ -90,7 +90,7 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine($"                Route = \"{EscapeString(route)}\",");
             sourceBuilder.AppendLine($"                HttpMethod = \"{EscapeString(httpMethod)}\",");
 
-            if (!string.IsNullOrEmpty(version))
+            if (!string.IsNullOrWhiteSpace(version))
             {
                 sourceBuilder.AppendLine($"                Version = \"{EscapeString(version)}\",");
             }
@@ -173,7 +173,7 @@ namespace Relay.SourceGenerator
 
         private string ToKebabCase(string input)
         {
-            if (string.IsNullOrEmpty(input))
+            if (string.IsNullOrWhiteSpace(input))
                 return input;
 
             var result = new StringBuilder();

@@ -37,11 +37,11 @@ namespace Relay.Core
         public override string ToString()
         {
             var result = base.ToString();
-            if (!string.IsNullOrEmpty(RequestType))
+            if (!string.IsNullOrWhiteSpace(RequestType))
             {
                 result = $"RequestType: {RequestType}\n{result}";
             }
-            if (!string.IsNullOrEmpty(HandlerName))
+            if (!string.IsNullOrWhiteSpace(HandlerName))
             {
                 result = $"HandlerName: {HandlerName}\n{result}";
             }

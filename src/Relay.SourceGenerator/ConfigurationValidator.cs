@@ -31,7 +31,7 @@ namespace Relay.SourceGenerator
                 var handlersInGroup = group.ToList();
 
                 // Check for duplicate unnamed handlers
-                var unnamedHandlers = handlersInGroup.Where(h => string.IsNullOrEmpty(h.Name)).ToList();
+                var unnamedHandlers = handlersInGroup.Where(h => string.IsNullOrWhiteSpace(h.Name)).ToList();
                 if (unnamedHandlers.Count > 1)
                 {
                     foreach (var handler in unnamedHandlers)
@@ -45,7 +45,7 @@ namespace Relay.SourceGenerator
 
                 // Check for duplicate named handlers
                 var namedHandlerGroups = handlersInGroup
-                    .Where(h => !string.IsNullOrEmpty(h.Name))
+                    .Where(h => !string.IsNullOrWhiteSpace(h.Name))
                     .GroupBy(h => h.Name);
 
                 foreach (var namedGroup in namedHandlerGroups)

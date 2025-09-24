@@ -61,7 +61,7 @@ public static class TraceFormatter
                 sb.AppendLine($"     Duration: {step.Duration.TotalMilliseconds:F2}ms");
                 sb.AppendLine($"     Timestamp: {step.Timestamp:HH:mm:ss.fff}");
 
-                if (!string.IsNullOrEmpty(step.HandlerType))
+                if (!string.IsNullOrWhiteSpace(step.HandlerType))
                 {
                     sb.AppendLine($"     Handler: {step.HandlerType}");
                 }

@@ -98,7 +98,7 @@ namespace Relay.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static void ValidateHandlerName(string? handlerName, string parameterName = "handlerName")
         {
-            if (string.IsNullOrEmpty(handlerName))
+            if (string.IsNullOrWhiteSpace(handlerName))
                 throw new ArgumentException("Handler name cannot be null or empty.", parameterName);
         }
     }

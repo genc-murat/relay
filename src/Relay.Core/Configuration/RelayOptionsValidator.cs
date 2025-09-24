@@ -35,7 +35,7 @@ namespace Relay.Core.Configuration
             // Validate handler overrides
             foreach (var kvp in options.HandlerOverrides)
             {
-                if (string.IsNullOrEmpty(kvp.Key))
+                if (string.IsNullOrWhiteSpace(kvp.Key))
                 {
                     failures.Add("Handler override keys cannot be null or empty.");
                     continue;
@@ -47,7 +47,7 @@ namespace Relay.Core.Configuration
             // Validate notification overrides
             foreach (var kvp in options.NotificationOverrides)
             {
-                if (string.IsNullOrEmpty(kvp.Key))
+                if (string.IsNullOrWhiteSpace(kvp.Key))
                 {
                     failures.Add("Notification override keys cannot be null or empty.");
                     continue;
@@ -59,7 +59,7 @@ namespace Relay.Core.Configuration
             // Validate pipeline overrides
             foreach (var kvp in options.PipelineOverrides)
             {
-                if (string.IsNullOrEmpty(kvp.Key))
+                if (string.IsNullOrWhiteSpace(kvp.Key))
                 {
                     failures.Add("Pipeline override keys cannot be null or empty.");
                     continue;
@@ -148,7 +148,7 @@ namespace Relay.Core.Configuration
                 return;
             }
 
-            if (string.IsNullOrEmpty(options.DefaultHttpMethod))
+            if (string.IsNullOrWhiteSpace(options.DefaultHttpMethod))
             {
                 failures.Add($"{path}.DefaultHttpMethod cannot be null or empty.");
             }
@@ -161,7 +161,7 @@ namespace Relay.Core.Configuration
                 }
             }
 
-            if (!string.IsNullOrEmpty(options.DefaultRoutePrefix))
+            if (!string.IsNullOrWhiteSpace(options.DefaultRoutePrefix))
             {
                 if (options.DefaultRoutePrefix.Contains("//"))
                 {

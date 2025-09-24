@@ -39,7 +39,7 @@ namespace Relay.Core.MessageQueue
         /// <param name="queueName">The name of the message queue.</param>
         public MessageQueueAttribute(string queueName)
         {
-            if (string.IsNullOrEmpty(queueName))
+            if (string.IsNullOrWhiteSpace(queueName))
             {
                 throw new ArgumentException("Queue name cannot be null or empty.", nameof(queueName));
             }

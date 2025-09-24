@@ -99,7 +99,7 @@ namespace Relay.SourceGenerator
                     var altOrder = symbolAttr.NamedArguments.FirstOrDefault(kv => kv.Key == "Order").Value.Value;
                     if (altOrder is int i) order = i;
                     var altScope = symbolAttr.NamedArguments.FirstOrDefault(kv => kv.Key == "Scope").Value.Value?.ToString();
-                    if (!string.IsNullOrEmpty(altScope)) scope = altScope!;
+                    if (!string.IsNullOrWhiteSpace(altScope)) scope = altScope!;
                 }
                 else if (order == 0)
                 {
@@ -107,7 +107,7 @@ namespace Relay.SourceGenerator
                     if (TryParsePipelineAttributeFromSyntax(handler.Method, out var parsedOrder, out var parsedScope))
                     {
                         if (parsedOrder.HasValue) order = parsedOrder.Value;
-                        if (!string.IsNullOrEmpty(parsedScope)) scope = parsedScope!;
+                        if (!string.IsNullOrWhiteSpace(parsedScope)) scope = parsedScope!;
                     }
                 }
 
@@ -421,7 +421,7 @@ namespace Relay.SourceGenerator
                 }
                 break;
             }
-            return order.HasValue || !string.IsNullOrEmpty(scope);
+            return order.HasValue || !string.IsNullOrWhiteSpace(scope);
         }
     }
 }

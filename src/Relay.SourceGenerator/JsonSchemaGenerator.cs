@@ -1,9 +1,9 @@
-using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using Microsoft.CodeAnalysis;
 
 namespace Relay.SourceGenerator
 {
@@ -221,7 +221,7 @@ namespace Relay.SourceGenerator
 
         private static string ToCamelCase(string input)
         {
-            if (string.IsNullOrEmpty(input) || char.IsLower(input[0]))
+            if (string.IsNullOrWhiteSpace(input) || char.IsLower(input[0]))
                 return input;
 
             return char.ToLowerInvariant(input[0]) + input.Substring(1);

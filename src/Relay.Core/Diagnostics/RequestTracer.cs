@@ -136,7 +136,7 @@ public class RequestTracer : IRequestTracer
         trace.Exception = exception;
 
         // Add an exception step if a step name is provided
-        if (!string.IsNullOrEmpty(stepName))
+        if (!string.IsNullOrWhiteSpace(stepName))
         {
             var step = new TraceStep
             {

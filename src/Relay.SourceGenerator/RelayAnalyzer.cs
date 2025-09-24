@@ -1,11 +1,11 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Relay.SourceGenerator
 {
@@ -716,7 +716,7 @@ namespace Relay.SourceGenerator
                 var requestTypeName = group.Key.ToDisplayString();
 
                 // Check for unnamed duplicate handlers
-                var unnamedHandlers = handlers.Where(h => string.IsNullOrEmpty(h.Name)).ToList();
+                var unnamedHandlers = handlers.Where(h => string.IsNullOrWhiteSpace(h.Name)).ToList();
                 if (unnamedHandlers.Count > 1)
                 {
                     var handlerLocations = string.Join(", ", unnamedHandlers.Select(h =>
@@ -732,7 +732,7 @@ namespace Relay.SourceGenerator
                 }
 
                 // Check for named handler conflicts
-                var namedHandlers = handlers.Where(h => !string.IsNullOrEmpty(h.Name))
+                var namedHandlers = handlers.Where(h => !string.IsNullOrWhiteSpace(h.Name))
                     .GroupBy(h => h.Name);
 
                 foreach (var namedGroup in namedHandlers)
@@ -753,7 +753,7 @@ namespace Relay.SourceGenerator
                 }
 
                 // Check for mixed named and unnamed handlers (potential issue)
-                if (unnamedHandlers.Count > 0 && handlers.Any(h => !string.IsNullOrEmpty(h.Name)))
+                if (unnamedHandlers.Count > 0 && handlers.Any(h => !string.IsNullOrWhiteSpace(h.Name)))
                 {
                     foreach (var unnamedHandler in unnamedHandlers)
                     {
@@ -804,7 +804,7 @@ namespace Relay.SourceGenerator
                 }
 
                 // Check for potential naming conflicts with common patterns
-                foreach (var handler in handlers.Where(h => !string.IsNullOrEmpty(h.Name)))
+                foreach (var handler in handlers.Where(h => !string.IsNullOrWhiteSpace(h.Name)))
                 {
                     if (handler.Name!.Equals("default", StringComparison.OrdinalIgnoreCase) ||
                         handler.Name.Equals("main", StringComparison.OrdinalIgnoreCase))

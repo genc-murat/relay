@@ -62,7 +62,7 @@ namespace Relay.Core.Configuration
         public static IServiceCollection ConfigureRelay(this IServiceCollection services, IConfiguration configuration, string sectionName)
         {
             if (configuration == null) throw new ArgumentNullException(nameof(configuration));
-            if (string.IsNullOrEmpty(sectionName)) throw new ArgumentException("Section name cannot be null or empty.", nameof(sectionName));
+            if (string.IsNullOrWhiteSpace(sectionName)) throw new ArgumentException("Section name cannot be null or empty.", nameof(sectionName));
 
             var section = configuration.GetSection(sectionName);
             return services.ConfigureRelay(section);
@@ -77,7 +77,7 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection ConfigureHandler(this IServiceCollection services, string handlerKey, Action<HandlerOptions> configureOptions)
         {
-            if (string.IsNullOrEmpty(handlerKey)) throw new ArgumentException("Handler key cannot be null or empty.", nameof(handlerKey));
+            if (string.IsNullOrWhiteSpace(handlerKey)) throw new ArgumentException("Handler key cannot be null or empty.", nameof(handlerKey));
             if (configureOptions == null) throw new ArgumentNullException(nameof(configureOptions));
 
             services.Configure<RelayOptions>(options =>
@@ -101,7 +101,7 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection ConfigureNotification(this IServiceCollection services, string notificationKey, Action<NotificationOptions> configureOptions)
         {
-            if (string.IsNullOrEmpty(notificationKey)) throw new ArgumentException("Notification key cannot be null or empty.", nameof(notificationKey));
+            if (string.IsNullOrWhiteSpace(notificationKey)) throw new ArgumentException("Notification key cannot be null or empty.", nameof(notificationKey));
             if (configureOptions == null) throw new ArgumentNullException(nameof(configureOptions));
 
             services.Configure<RelayOptions>(options =>
@@ -125,7 +125,7 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection ConfigurePipeline(this IServiceCollection services, string pipelineKey, Action<PipelineOptions> configureOptions)
         {
-            if (string.IsNullOrEmpty(pipelineKey)) throw new ArgumentException("Pipeline key cannot be null or empty.", nameof(pipelineKey));
+            if (string.IsNullOrWhiteSpace(pipelineKey)) throw new ArgumentException("Pipeline key cannot be null or empty.", nameof(pipelineKey));
             if (configureOptions == null) throw new ArgumentNullException(nameof(configureOptions));
 
             services.Configure<RelayOptions>(options =>

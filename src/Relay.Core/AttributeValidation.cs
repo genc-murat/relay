@@ -40,7 +40,7 @@ namespace Relay.Core
             }
 
             // Validate route template
-            if (!string.IsNullOrEmpty(attribute.Route))
+            if (!string.IsNullOrWhiteSpace(attribute.Route))
             {
                 if (attribute.Route.Contains("//"))
                 {
@@ -61,7 +61,7 @@ namespace Relay.Core
             }
 
             // Validate version
-            if (!string.IsNullOrEmpty(attribute.Version))
+            if (!string.IsNullOrWhiteSpace(attribute.Version))
             {
                 if (string.IsNullOrWhiteSpace(attribute.Version))
                 {
@@ -124,7 +124,7 @@ namespace Relay.Core
         {
             var errors = new List<string>();
 
-            if (!string.IsNullOrEmpty(name))
+            if (!string.IsNullOrWhiteSpace(name))
             {
                 if (string.IsNullOrWhiteSpace(name))
                 {

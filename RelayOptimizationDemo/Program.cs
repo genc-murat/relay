@@ -251,9 +251,14 @@ public class Program
             {
                 await OptimizedRelayDemo.RunComprehensiveTest();
             }
+            else if (args.Length > 0 && args[0] == "--advanced")
+            {
+                await AdvancedOptimizationDemo.RunAdvancedDemo();
+            }
             else
             {
                 await OptimizedRelayDemo.RunDemo();
+                await AdvancedOptimizationDemo.RunAdvancedDemo();
             }
         }
         catch (Exception ex)
@@ -262,7 +267,11 @@ public class Program
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
 
-        Console.WriteLine("\nPress any key to exit...");
-        Console.ReadKey();
+        // Don't wait for key in non-interactive environments
+        if (Environment.UserInteractive && args.Length == 0)
+        {
+            Console.WriteLine("\nPress any key to exit...");
+            Console.ReadKey();
+        }
     }
 }

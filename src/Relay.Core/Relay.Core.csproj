@@ -6,7 +6,30 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    
+
+    <!-- Performance Optimizations -->
+    <TieredCompilation>true</TieredCompilation>
+    <TieredPGO>true</TieredPGO>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <EventSourceSupport>false</EventSourceSupport>
+    <UseNETCoreAppRuntime>true</UseNETCoreAppRuntime>
+  </PropertyGroup>
+
+  <!-- Release-specific PGO Configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <OptimizationPreference>Speed</OptimizationPreference>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
+    <TieredCompilation>true</TieredCompilation>
+    <TieredPGO>true</TieredPGO>
+    <ReadyToRun>true</ReadyToRun>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <!-- Package Metadata -->
     <PackageId>Relay.Core</PackageId>
     <PackageVersion>1.0.0</PackageVersion>

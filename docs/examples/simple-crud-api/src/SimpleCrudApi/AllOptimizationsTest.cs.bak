@@ -1,0 +1,206 @@
+using System.Diagnostics;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Relay;
+using Relay.Core;
+using Relay.Core.Performance;
+using SimpleCrudApi.Data;
+using SimpleCrudApi.Models;
+using SimpleCrudApi.Models.Requests;
+using SimpleCrudApi.Services;
+using SimpleCrudApi.MediatR.Requests;
+using SimpleCrudApi.MediatR.Handlers;
+
+namespace SimpleCrudApi;
+
+public class AllOptimizationsTest
+{
+    public static async Task RunComprehensiveTest()
+    {
+        Console.WriteLine("🚀 COMPREHENSIVE RELAY PERFORMANCE OPTIMIZATION TEST");
+        Console.WriteLine("===================================================");
+
+        var services = new ServiceCollection();
+
+        // Common services
+        services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
+        services.AddSingleton<IUserRepository, InMemoryUserRepository>();
+
+        // Relay setup
+        services.AddRelay();
+        services.AddScoped<UserService>();
+        services.AddScoped<UserNotificationHandlers>();
+        services.AddRelayHandlers();
+
+        // MediatR setup
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(MediatRUserHandlers).Assembly));
+        services.AddScoped<MediatRUserHandlers>();
+        services.AddScoped<MediatRUserNotificationHandlers>();
+
+        // Register optimized implementations
+        // services.AddScoped<MemoryOptimizedRelay>(); // Disabled for now
+        // services.AddScoped<CacheOptimizedRelay>(); // Disabled for now
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Get all implementations
+        var standardRelay = serviceProvider.GetRequiredService<IRelay>();
+        // var memoryOptimizedRelay = serviceProvider.GetRequiredService<MemoryOptimizedRelay>(); // Disabled
+        // var cacheOptimizedRelay = serviceProvider.GetRequiredService<CacheOptimizedRelay>(); // Disabled
+        var structOptimizedRelay = new StructOptimizedRelay(serviceProvider);
+        // var ultraOptimizedRelay = serviceProvider.GetRequiredService<SimpleCrudApi.Optimizations.UltraOptimizedRelay>(); // Disabled
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        var userService = serviceProvider.GetRequiredService<UserService>();
+        var repository = serviceProvider.GetRequiredService<IUserRepository>();
+
+        // Pre-populate data
+        Console.WriteLine("📊 Populating test data...");
+        for (int i = 1; i <= 100; i++)
+        {
+            await repository.CreateAsync(new User
+            {
+                Id = i,
+                Name = $"User {i}",
+                Email = $"user{i}@example.com",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        const int iterations = 100000;
+        const int warmupIterations = 10000;
+
+        var query = new GetUserQuery(1);
+        var mediatrQuery = new MediatRGetUserQuery(1);
+
+        Console.WriteLine($"🔥 Warming up with {warmupIterations:N0} iterations...");
+
+        // Comprehensive warmup
+        for (int i = 0; i < warmupIterations; i++)
+        {
+            await standardRelay.SendAsync(query);
+            await memoryOptimizedRelay.SendAsync(query);
+            await cacheOptimizedRelay.SendAsync(query);
+            await structOptimizedRelay.SendAsync(query);
+            await ultraOptimizedRelay.SendAsync(query);
+            await mediator.Send(mediatrQuery);
+            await userService.GetUser(query, default);
+        }
+
+        Console.WriteLine($"⚡ Running performance tests with {iterations:N0} iterations each...");
+        Console.WriteLine();
+
+        var results = new List<(string Name, long ElapsedMs, double MicrosPerOp)>();
+
+        // Test Direct Call (baseline)
+        var stopwatch = Stopwatch.StartNew();
+        for (int i = 0; i < iterations; i++)
+        {
+            await userService.GetUser(query, default);
+        }
+        stopwatch.Stop();
+        results.Add(("Direct Call (Baseline)", stopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds * 1000.0 / iterations));
+        Console.WriteLine($"✅ Direct Call:           {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedMilliseconds * 1000.0 / iterations:F3} μs/op)");
+
+        // Test Standard Relay
+        stopwatch.Restart();
+        for (int i = 0; i < iterations; i++)
+        {
+            await standardRelay.SendAsync(query);
+        }
+        stopwatch.Stop();
+        results.Add(("Standard Relay", stopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds * 1000.0 / iterations));
+        Console.WriteLine($"🔧 Standard Relay:        {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedMilliseconds * 1000.0 / iterations:F3} μs/op)");
+
+        // Test Ultra Optimized Relay
+        stopwatch.Restart();
+        for (int i = 0; i < iterations; i++)
+        {
+            await ultraOptimizedRelay.SendAsync(query);
+        }
+        stopwatch.Stop();
+        results.Add(("Ultra Optimized Relay", stopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds * 1000.0 / iterations));
+        Console.WriteLine($"🚀 Ultra Optimized:       {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedMilliseconds * 1000.0 / iterations:F3} μs/op)");
+
+        // Test Struct Optimized Relay
+        stopwatch.Restart();
+        for (int i = 0; i < iterations; i++)
+        {
+            await structOptimizedRelay.SendAsync(query);
+        }
+        stopwatch.Stop();
+        results.Add(("Struct Optimized Relay", stopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds * 1000.0 / iterations));
+        Console.WriteLine($"🔩 Struct Optimized:      {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedMilliseconds * 1000.0 / iterations:F3} μs/op)");
+
+        // Test Memory Optimized Relay
+        stopwatch.Restart();
+        for (int i = 0; i < iterations; i++)
+        {
+            await memoryOptimizedRelay.SendAsync(query);
+        }
+        stopwatch.Stop();
+        results.Add(("Memory Optimized Relay", stopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds * 1000.0 / iterations));
+        Console.WriteLine($"💾 Memory Optimized:      {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedMilliseconds * 1000.0 / iterations:F3} μs/op)");
+
+        // Test Cache Optimized Relay
+        stopwatch.Restart();
+        for (int i = 0; i < iterations; i++)
+        {
+            await cacheOptimizedRelay.SendAsync(query);
+        }
+        stopwatch.Stop();
+        results.Add(("Cache Optimized Relay", stopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds * 1000.0 / iterations));
+        Console.WriteLine($"⚡ Cache Optimized:       {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedMilliseconds * 1000.0 / iterations:F3} μs/op)");
+
+        // Test MediatR
+        stopwatch.Restart();
+        for (int i = 0; i < iterations; i++)
+        {
+            await mediator.Send(mediatrQuery);
+        }
+        stopwatch.Stop();
+        results.Add(("MediatR", stopwatch.ElapsedMilliseconds, stopwatch.ElapsedMilliseconds * 1000.0 / iterations));
+        Console.WriteLine($"📨 MediatR:               {stopwatch.ElapsedMilliseconds:N0} ms ({stopwatch.ElapsedMilliseconds * 1000.0 / iterations:F3} μs/op)");
+
+        Console.WriteLine();
+        Console.WriteLine("🏆 PERFORMANCE ANALYSIS");
+        Console.WriteLine("=======================");
+
+        var baseline = results[0]; // Direct call
+        var mediatr = results.Last(); // MediatR
+
+        Console.WriteLine($"📊 Baseline (Direct): {baseline.MicrosPerOp:F3} μs/op");
+        Console.WriteLine();
+
+        foreach (var result in results.Skip(1))
+        {
+            var overheadVsBaseline = result.MicrosPerOp / baseline.MicrosPerOp;
+            var speedupVsMediatr = mediatr.MicrosPerOp / result.MicrosPerOp;
+
+            Console.WriteLine($"🔥 {result.Name}:");
+            Console.WriteLine($"   Overhead vs Baseline: {overheadVsBaseline:F2}x");
+            Console.WriteLine($"   Speedup vs MediatR:   {speedupVsMediatr:F2}x");
+            Console.WriteLine();
+        }
+
+        // Show cache performance if available
+        if (cacheOptimizedRelay.GetPerformanceCounters() is var (requests, cacheHits))
+        {
+            var hitRate = requests > 0 ? (double)cacheHits / requests * 100 : 0;
+            Console.WriteLine($"📈 Cache Performance:");
+            Console.WriteLine($"   Total Requests: {requests:N0}");
+            Console.WriteLine($"   Cache Hits:     {cacheHits:N0}");
+            Console.WriteLine($"   Hit Rate:       {hitRate:F1}%");
+            Console.WriteLine();
+        }
+
+        Console.WriteLine("🎯 Best Performing Implementation:");
+        var fastest = results.OrderBy(r => r.ElapsedMs).First();
+        Console.WriteLine($"   🥇 {fastest.Name}: {fastest.MicrosPerOp:F3} μs/op");
+
+        var speedupOverMediatr = mediatr.MicrosPerOp / fastest.MicrosPerOp;
+        Console.WriteLine($"   🚀 {speedupOverMediatr:F1}x faster than MediatR");
+
+        serviceProvider.Dispose();
+    }
+}

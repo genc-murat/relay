@@ -17,7 +17,8 @@
       "Bash(dotnet clean:*)",
       "Bash(.SimpleCrudApi.exe --benchmark)",
       "Bash(SimpleCrudApi.exe --benchmark)",
-      "Bash(dotnet:*)"
+      "Bash(dotnet:*)",
+      "Bash(del \"C:\\projects\\relay\\src\\Relay.Core\\Performance\\ZeroAllocationRelay.cs\")"
     ],
     "deny": [],
     "ask": []

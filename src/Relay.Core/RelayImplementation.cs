@@ -25,6 +25,10 @@ namespace Relay.Core
         private static readonly ValueTask _handlerNotFoundVoidTask =
             ValueTask.FromException(new HandlerNotFoundException("Handler not found"));
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ValueTask<T> CastExceptionTask<T>() =>
+            ValueTask.FromException<T>(new HandlerNotFoundException("Handler not found"));
+
         /// <summary>
         /// Initializes a new instance of the RelayImplementation class.
         /// </summary>

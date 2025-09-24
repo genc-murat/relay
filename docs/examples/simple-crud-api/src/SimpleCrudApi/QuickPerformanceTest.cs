@@ -31,8 +31,8 @@ public class QuickPerformanceTest
         services.AddScoped<UserNotificationHandlers>();
         services.AddRelayHandlers();
 
-        // Override with ultra-optimized relay
-        services.AddScoped<SimpleCrudApi.Optimizations.UltraOptimizedRelay>();
+        // Override with ultra-optimized relay - disabled for now
+        // services.AddScoped<SimpleCrudApi.Optimizations.UltraOptimizedRelay>();
 
         // MediatR setup
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(MediatRUserHandlers).Assembly));
@@ -41,8 +41,8 @@ public class QuickPerformanceTest
 
         var serviceProvider = services.BuildServiceProvider();
 
-        // Use ultra-optimized relay for testing
-        var relay = serviceProvider.GetRequiredService<SimpleCrudApi.Optimizations.UltraOptimizedRelay>();
+        // Use standard relay for testing
+        var relay = serviceProvider.GetRequiredService<IRelay>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         var repository = serviceProvider.GetRequiredService<IUserRepository>();
 

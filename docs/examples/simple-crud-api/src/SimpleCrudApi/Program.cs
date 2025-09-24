@@ -25,6 +25,29 @@ if (args.Length > 0 && args[0] == "--directtest")
     return;
 }
 
+// Check for all optimizations test - disabled for now
+/*
+if (args.Length > 0 && args[0] == "--alltest")
+{
+    await SimpleCrudApi.AllOptimizationsTest.RunComprehensiveTest();
+    return;
+}
+*/
+
+// Check for ultimate benchmark test
+if (args.Length > 0 && args[0] == "--ultimate")
+{
+    await SimpleCrudApi.UltimatePerformanceBenchmark.RunUltimateBenchmark();
+    return;
+}
+
+// Check for simple performance test
+if (args.Length > 0 && args[0] == "--simple")
+{
+    await SimpleCrudApi.SimplePerformanceTest.RunSimpleTest();
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services

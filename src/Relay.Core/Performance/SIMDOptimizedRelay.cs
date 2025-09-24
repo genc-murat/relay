@@ -235,26 +235,88 @@ public static class SIMDHelpers
     }
 
     /// <summary>
-    /// SIMD-accelerated hash computation for cache keys
+    /// SIMD-accelerated hash computation for cache keys - Fixed implementation
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ComputeSIMDHash(ReadOnlySpan<byte> data)
     {
-        if (!Vector.IsHardwareAccelerated || data.Length < Vector<byte>.Count)
+        if (!Vector.IsHardwareAccelerated || data.Length < Vector<int>.Count * 4)
         {
             return data.GetHashCode();
         }
 
-        var hash = Vector<int>.Zero;
-        var vectorSize = Vector<byte>.Count;
-
-        for (int i = 0; i <= data.Length - vectorSize; i += vectorSize)
+        // Use AVX2 if available for maximum performance
+        if (Avx2.IsSupported && data.Length >= 32)
         {
-            var slice = data.Slice(i, vectorSize);
-            var vector = new Vector<byte>(slice);
+            return ComputeAVX2Hash(data);
+        }
 
-            // Simple SIMD hash computation
-            var intVector = Vector.AsVectorInt32(vector);
+        return ComputeVectorHash(data);
+    }
+
+    /// <summary>
+    /// AVX2-optimized hash computation
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe int ComputeAVX2Hash(ReadOnlySpan<byte> data)
+    {
+        fixed (byte* ptr = data)
+        {
+            var hash = Vector256<int>.Zero;
+            var length = data.Length;
+            var vectorSize = 32; // 256 bits / 8 bits per byte
+
+            // Process 32-byte chunks with AVX2
+            for (int i = 0; i <= length - vectorSize; i += vectorSize)
+            {
+                var vector = Avx2.LoadVector256(ptr + i);
+
+                // Convert bytes to ints properly (4 bytes per int)
+                var ints1 = Avx2.UnpackLow(vector.AsInt16(), Vector256<short>.Zero).AsInt32();
+                var ints2 = Avx2.UnpackHigh(vector.AsInt16(), Vector256<short>.Zero).AsInt32();
+
+                hash = Avx2.Add(hash, ints1);
+                hash = Avx2.Add(hash, ints2);
+            }
+
+            // Aggregate hash components
+            var result = 0;
+            var hashSpan = MemoryMarshal.CreateSpan(ref Unsafe.As<Vector256<int>, int>(ref hash), 8);
+            foreach (var component in hashSpan)
+            {
+                result ^= component;
+            }
+
+            // Process remaining bytes
+            var remaining = length % vectorSize;
+            if (remaining > 0)
+            {
+                var remainingSpan = data.Slice(length - remaining);
+                result ^= remainingSpan.GetHashCode();
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// Standard Vector<T> hash computation - corrected version
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ComputeVectorHash(ReadOnlySpan<byte> data)
+    {
+        var hash = Vector<int>.Zero;
+        var intVectorSize = Vector<int>.Count * 4; // 4 bytes per int
+
+        // Process chunks that fit into int vectors
+        for (int i = 0; i <= data.Length - intVectorSize; i += intVectorSize)
+        {
+            var slice = data.Slice(i, intVectorSize);
+
+            // Safely convert bytes to ints using MemoryMarshal
+            var intSpan = MemoryMarshal.Cast<byte, int>(slice);
+            var intVector = new Vector<int>(intSpan);
+
             hash = Vector.Add(hash, intVector);
         }
 
@@ -263,6 +325,14 @@ public static class SIMDHelpers
         for (int i = 0; i < Vector<int>.Count; i++)
         {
             result ^= hash[i];
+        }
+
+        // Process remaining bytes with simple hash
+        var remaining = data.Length % intVectorSize;
+        if (remaining > 0)
+        {
+            var remainingSpan = data.Slice(data.Length - remaining);
+            result ^= remainingSpan.GetHashCode();
         }
 
         return result;

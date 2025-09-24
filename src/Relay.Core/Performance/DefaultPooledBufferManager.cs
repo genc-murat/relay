@@ -4,19 +4,31 @@ using System.Buffers;
 namespace Relay.Core.Performance;
 
 /// <summary>
-/// Default implementation of pooled buffer manager using ArrayPool
+/// Default implementation of pooled buffer manager using optimized ArrayPool configuration
 /// </summary>
 public class DefaultPooledBufferManager : IPooledBufferManager
 {
     private readonly ArrayPool<byte> _arrayPool;
 
     /// <summary>
-    /// Initializes a new instance of DefaultPooledBufferManager
+    /// Initializes a new instance of DefaultPooledBufferManager with optimized settings
     /// </summary>
-    /// <param name="arrayPool">The array pool to use (optional, defaults to shared pool)</param>
+    /// <param name="arrayPool">The array pool to use (optional, defaults to optimized shared pool)</param>
     public DefaultPooledBufferManager(ArrayPool<byte>? arrayPool = null)
     {
-        _arrayPool = arrayPool ?? ArrayPool<byte>.Shared;
+        _arrayPool = arrayPool ?? CreateOptimizedSharedPool();
+    }
+
+    /// <summary>
+    /// Creates an optimized shared pool for typical Relay workloads
+    /// </summary>
+    private static ArrayPool<byte> CreateOptimizedSharedPool()
+    {
+        // Use custom pool with Relay-optimized settings
+        return ArrayPool<byte>.Create(
+            maxArrayLength: 1024 * 1024,  // 1MB max (covers most scenarios)
+            maxArraysPerBucket: 32        // Keep more arrays cached for better hit rate
+        );
     }
 
     /// <summary>

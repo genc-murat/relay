@@ -5,12 +5,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Relay;
 using Relay.Core;
+using Relay.Core.Performance;
 using SimpleCrudApi.Data;
 using SimpleCrudApi.Models;
 using SimpleCrudApi.Models.Requests;
 using SimpleCrudApi.Services;
 using SimpleCrudApi.MediatR.Requests;
 using SimpleCrudApi.MediatR.Handlers;
+using SimpleCrudApi.Optimizations;
 
 namespace SimpleCrudApi.Benchmarks;
 
@@ -21,8 +23,12 @@ public class QuickBenchmark
 {
     private IServiceProvider _serviceProvider = null!;
     private IRelay _relay = null!;
+    private AOTOptimizedRelay _aotRelay = null!;
+    private SIMDOptimizedRelay _simdRelay = null!;
+    private UltraOptimizedRelay _ultraRelay = null!;
     private IMediator _mediator = null!;
     private IUserRepository _repository = null!;
+    private UserService _directUserService = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -46,8 +52,12 @@ public class QuickBenchmark
 
         _serviceProvider = services.BuildServiceProvider();
         _relay = _serviceProvider.GetRequiredService<IRelay>();
+        _aotRelay = new AOTOptimizedRelay(_serviceProvider);
+        _simdRelay = new SIMDOptimizedRelay(_serviceProvider);
+        _ultraRelay = new UltraOptimizedRelay(_serviceProvider);
         _mediator = _serviceProvider.GetRequiredService<IMediator>();
         _repository = _serviceProvider.GetRequiredService<IUserRepository>();
+        _directUserService = _serviceProvider.GetRequiredService<UserService>();
 
         // Pre-populate repository with test data
         PopulateTestData();
@@ -78,9 +88,33 @@ public class QuickBenchmark
 
     // Single User Operations
     [Benchmark]
-    public async Task<User?> Relay_GetUser()
+    public async Task<User?> Direct_GetUser()
+    {
+        return await _directUserService.GetUser(new GetUserQuery(1), default);
+    }
+
+    [Benchmark]
+    public async Task<User?> StandardRelay_GetUser()
     {
         return await _relay.SendAsync(new GetUserQuery(1));
+    }
+
+    [Benchmark]
+    public async Task<User?> AOTOptimized_GetUser()
+    {
+        return await _aotRelay.SendAsync(new GetUserQuery(1));
+    }
+
+    [Benchmark]
+    public async Task<User?> SIMDOptimized_GetUser()
+    {
+        return await _simdRelay.SendAsync(new GetUserQuery(1));
+    }
+
+    [Benchmark]
+    public async Task<User?> UltraOptimized_GetUser()
+    {
+        return await _ultraRelay.SendAsync(new GetUserQuery(1));
     }
 
     [Benchmark]
@@ -91,9 +125,37 @@ public class QuickBenchmark
 
     // Batch Operations (smaller set)
     [Benchmark]
-    public async Task<User[]> Relay_GetUsers()
+    public async Task<User[]> Direct_GetUsers()
+    {
+        var result = await _directUserService.GetUsers(new GetUsersQuery(1, 5), default);
+        return result.ToArray();
+    }
+
+    [Benchmark]
+    public async Task<User[]> StandardRelay_GetUsers()
     {
         var result = await _relay.SendAsync(new GetUsersQuery(1, 5));
+        return result.ToArray();
+    }
+
+    [Benchmark]
+    public async Task<User[]> AOTOptimized_GetUsers()
+    {
+        var result = await _aotRelay.SendAsync(new GetUsersQuery(1, 5));
+        return result.ToArray();
+    }
+
+    [Benchmark]
+    public async Task<User[]> SIMDOptimized_GetUsers()
+    {
+        var result = await _simdRelay.SendAsync(new GetUsersQuery(1, 5));
+        return result.ToArray();
+    }
+
+    [Benchmark]
+    public async Task<User[]> UltraOptimized_GetUsers()
+    {
+        var result = await _ultraRelay.SendAsync(new GetUsersQuery(1, 5));
         return result.ToArray();
     }
 
@@ -106,14 +168,47 @@ public class QuickBenchmark
 
     // Create Operations
     [Benchmark]
-    public async Task<User> Relay_CreateUser()
+    public async Task<User> Direct_CreateUser()
+    {
+        return await _directUserService.CreateUser(new CreateUserCommand($"New User {Random.Shared.Next()}", "new@example.com"), default);
+    }
+
+    [Benchmark]
+    public async Task<User> StandardRelay_CreateUser()
     {
         return await _relay.SendAsync(new CreateUserCommand($"New User {Random.Shared.Next()}", "new@example.com"));
+    }
+
+    [Benchmark]
+    public async Task<User> AOTOptimized_CreateUser()
+    {
+        return await _aotRelay.SendAsync(new CreateUserCommand($"New User {Random.Shared.Next()}", "new@example.com"));
+    }
+
+    [Benchmark]
+    public async Task<User> SIMDOptimized_CreateUser()
+    {
+        return await _simdRelay.SendAsync(new CreateUserCommand($"New User {Random.Shared.Next()}", "new@example.com"));
+    }
+
+    [Benchmark]
+    public async Task<User> UltraOptimized_CreateUser()
+    {
+        return await _ultraRelay.SendAsync(new CreateUserCommand($"New User {Random.Shared.Next()}", "new@example.com"));
     }
 
     [Benchmark]
     public async Task<User> MediatR_CreateUser()
     {
         return await _mediator.Send(new MediatRCreateUserCommand($"New User {Random.Shared.Next()}", "new@example.com"));
+    }
+
+    // SIMD Batch Operations
+    [Benchmark]
+    public async Task<User[]> SIMDBatch_GetUsers()
+    {
+        var queries = Enumerable.Range(1, 5).Select(i => new GetUserQuery(i)).ToArray();
+        var results = await _simdRelay.SendBatchAsync(queries);
+        return results.Where(u => u != null).ToArray()!;
     }
 }

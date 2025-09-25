@@ -70,14 +70,18 @@ namespace Relay.SourceGenerator
                 return null; // No Relay attributes found
             }
 
-            // Validate method signature based on attribute type
             var handlerInfo = new HandlerInfo
             {
                 Method = method,
                 MethodSymbol = methodSymbol,
-                Attributes = relayAttributes
+                Attributes = relayAttributes,
+                HandlerType = methodSymbol.ContainingType,
+                MethodName = methodSymbol.Name,
+                RequestType = methodSymbol.Parameters.FirstOrDefault()?.Type,
+                ResponseType = GetResponseType(methodSymbol.ReturnType)
             };
 
+            // Validate method signature based on attribute type
             foreach (var attribute in relayAttributes)
             {
                 if (!ValidateHandlerSignature(handlerInfo, attribute, diagnosticReporter))
@@ -87,6 +91,28 @@ namespace Relay.SourceGenerator
             }
 
             return handlerInfo;
+        }
+
+        private ITypeSymbol? GetResponseType(ITypeSymbol returnType)
+        {
+            if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
+            {
+                var genericDef = namedType.OriginalDefinition.ToDisplayString();
+                if (genericDef == "System.Threading.Tasks.Task<TResult>" ||
+                    genericDef == "System.Threading.Tasks.ValueTask<TResult>" ||
+                    genericDef == "System.Collections.Generic.IAsyncEnumerable<T>")
+                {
+                    return namedType.TypeArguments.FirstOrDefault();
+                }
+            }
+
+            var returnTypeString = returnType.ToDisplayString();
+            if (returnTypeString == "System.Threading.Tasks.Task" || returnTypeString == "System.Threading.Tasks.ValueTask")
+            {
+                return _context.Compilation.GetTypeByMetadataName("Relay.Core.Unit");
+            }
+
+            return returnType;
         }
 
         private List<RelayAttributeInfo> GetRelayAttributes(IMethodSymbol methodSymbol)
@@ -400,6 +426,10 @@ namespace Relay.SourceGenerator
         public MethodDeclarationSyntax Method { get; set; } = null!;
         public IMethodSymbol MethodSymbol { get; set; } = null!;
         public List<RelayAttributeInfo> Attributes { get; set; } = new();
+        public ITypeSymbol? RequestType { get; set; }
+        public ITypeSymbol? ResponseType { get; set; }
+        public ITypeSymbol HandlerType { get; set; } = null!;
+        public string MethodName { get; set; } = null!;
     }
 
     /// <summary>

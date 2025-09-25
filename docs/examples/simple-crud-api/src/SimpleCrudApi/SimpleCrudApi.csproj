@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\src\Relay\Relay.csproj" />
+    <Compile Include="..\..\..\..\..\src\Relay.Core\Performance\OptimizedRelay.cs" />
   </ItemGroup>
 
 </Project>

@@ -8,9 +8,7 @@ public class BenchmarkRunner
     public static void RunBenchmarks(string[] args)
     {
         // Check if quick benchmark is requested
-        var benchmarkType = args.Length > 0 && args[0] == "quick"
-            ? typeof(QuickBenchmark)
-            : typeof(RelayVsMediatRBenchmark);
+        var benchmarkType = typeof(QuickBenchmark);
 
         // Run the benchmark
         var summary = BenchmarkDotNet.Running.BenchmarkRunner.Run(benchmarkType);

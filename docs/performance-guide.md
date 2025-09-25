@@ -40,6 +40,42 @@ Performance comparison against popular mediator frameworks:
 
 *Benchmarks run on .NET 8.0, Intel i7-12700K, 32GB RAM*
 
+### Enabling the Ultra-Optimized Engine
+
+By default, `AddRelay()` registers a flexible and reliable implementation of `IRelay`. However, for maximum performance, you can switch to the ultra-optimized engine, which is generated at compile-time specifically for your application's handlers.
+
+This optimized engine, called `CompiledRelay`, uses direct method calls and advanced performance techniques to minimize overhead, reduce allocations, and increase throughput.
+
+**How to Enable It**
+
+To enable the optimized engine, you need to override the default `IRelay` registration in your service configuration (`Program.cs` or `Startup.cs`).
+
+Instead of:
+```csharp
+services.AddRelay();
+```
+
+You should first call `AddRelay()` and then override the `IRelay` registration:
+
+```csharp
+services.AddRelay();
+
+// Override the default IRelay with the source-generated optimized version
+services.AddTransient<IRelay, Relay.Generated.CompiledRelay>();
+```
+
+**What It Does**
+
+By making this change, you are telling Relay to use the `CompiledRelay` class that the source generator created for you. This class has several advantages:
+
+*   **Direct Dispatch:** It calls your handlers directly, without going through dictionaries or complex dispatching logic.
+*   **Zero Overhead:** It avoids almost all of the overhead associated with traditional mediator patterns.
+*   **Lower Allocations:** It is designed to minimize memory allocations, which reduces pressure on the garbage collector.
+
+**When to Use It**
+
+It is recommended to use the `CompiledRelay` in production environments or any scenario where performance is critical. The default `RelayImplementation` is suitable for development and testing, but for the best performance, you should always switch to `CompiledRelay`.
+
 ## Optimization Techniques
 
 ### 1. Use ValueTask for Synchronous Paths

@@ -27,8 +27,6 @@ public static class PerformanceServiceCollectionExtensions
         services.TryAddSingleton<IPooledBufferManager>(provider =>
             new DefaultPooledBufferManager(ArrayPool<byte>.Shared));
 
-        // Add optimized relay implementation
-        services.TryAddSingleton<OptimizedRelay>();
 
         // Add pooled telemetry provider
         services.TryAddSingleton<PooledTelemetryProvider>();

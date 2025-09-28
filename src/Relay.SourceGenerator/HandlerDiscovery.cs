@@ -22,12 +22,14 @@ namespace Relay.SourceGenerator
         /// <summary>
         /// Discovers all valid handler methods from the candidate methods.
         /// </summary>
-        public HandlerDiscoveryResult DiscoverHandlers(IEnumerable<MethodDeclarationSyntax> candidateMethods, IDiagnosticReporter diagnosticReporter)
+        public HandlerDiscoveryResult DiscoverHandlers(IEnumerable<MethodDeclarationSyntax?> candidateMethods, IDiagnosticReporter diagnosticReporter)
         {
             var result = new HandlerDiscoveryResult();
 
             foreach (var method in candidateMethods)
             {
+                if (method == null) continue; // Skip null methods
+
                 _context.CancellationToken.ThrowIfCancellationRequested();
 
                 try

@@ -104,7 +104,7 @@ namespace Relay.SourceGenerator
 
                 // Discover and validate handlers
                 var discoveryEngine = new HandlerDiscoveryEngine(compilationContext);
-                var diagnosticReporter = new SourceProductionContextDiagnosticReporter(context);
+                var diagnosticReporter = new SourceOutputDiagnosticReporter(context);
                 var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
 
                 // Generate handler registry if we have valid handlers

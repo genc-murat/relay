@@ -1,78 +1,82 @@
 using Microsoft.CodeAnalysis;
-using System;
 
 namespace Relay.SourceGenerator
 {
     /// <summary>
-    /// Logger for the Relay source generator that reports diagnostics.
+    /// Modern logger for the Relay incremental source generator.
     /// </summary>
     internal static class GeneratorLogger
     {
         /// <summary>
-        /// Logs debug information (only shown when debug diagnostics are enabled).
+        /// Logs debug information via diagnostic reporter.
         /// </summary>
-        public static void LogDebug(GeneratorExecutionContext context, string message)
+        public static void LogDebug(IDiagnosticReporter reporter, string message)
         {
-            context.ReportDiagnostic(Diagnostic.Create(
+            var diagnostic = Diagnostic.Create(
                 DiagnosticDescriptors.Debug,
                 Location.None,
-                message));
+                message);
+            reporter.ReportDiagnostic(diagnostic);
         }
 
         /// <summary>
         /// Logs informational messages.
         /// </summary>
-        public static void LogInfo(GeneratorExecutionContext context, string message)
+        public static void LogInfo(IDiagnosticReporter reporter, string message)
         {
-            context.ReportDiagnostic(Diagnostic.Create(
+            var diagnostic = Diagnostic.Create(
                 DiagnosticDescriptors.Info,
                 Location.None,
-                message));
-        }
-
-        /// <summary>
-        /// Logs error messages.
-        /// </summary>
-        public static void LogError(GeneratorExecutionContext context, string message, Location? location = null)
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.GeneratorError,
-                location ?? Location.None,
-                message));
-        }
-
-        /// <summary>
-        /// Logs error messages with exception details.
-        /// </summary>
-        public static void LogError(GeneratorExecutionContext context, Exception exception, Location? location = null)
-        {
-            var message = $"{exception.Message}\nStack trace: {exception.StackTrace}";
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.GeneratorError,
-                location ?? Location.None,
-                message));
+                message);
+            reporter.ReportDiagnostic(diagnostic);
         }
 
         /// <summary>
         /// Logs warning messages.
         /// </summary>
-        public static void LogWarning(GeneratorExecutionContext context, DiagnosticDescriptor descriptor, Location? location, params object[] messageArgs)
+        public static void LogWarning(IDiagnosticReporter reporter, string message)
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                descriptor,
-                location ?? Location.None,
-                messageArgs));
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.Info, // Use Info instead of Warning for now
+                Location.None,
+                message);
+            reporter.ReportDiagnostic(diagnostic);
+        }
+
+        /// <summary>
+        /// Logs error messages.
+        /// </summary>
+        public static void LogError(IDiagnosticReporter reporter, string message)
+        {
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.GeneratorError,
+                Location.None,
+                message);
+            reporter.ReportDiagnostic(diagnostic);
+        }
+
+        /// <summary>
+        /// Logs generator performance metrics.
+        /// </summary>
+        public static void LogPerformance(IDiagnosticReporter reporter, string operation, long elapsedMs)
+        {
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.Debug,
+                Location.None,
+                $"Generator performance: {operation} took {elapsedMs}ms");
+            reporter.ReportDiagnostic(diagnostic);
         }
 
         /// <summary>
         /// Reports a specific diagnostic.
         /// </summary>
-        public static void ReportDiagnostic(GeneratorExecutionContext context, DiagnosticDescriptor descriptor, Location? location, params object[] messageArgs)
+        public static void ReportDiagnostic(IDiagnosticReporter reporter, DiagnosticDescriptor descriptor, Location? location, params object[] messageArgs)
         {
-            context.ReportDiagnostic(Diagnostic.Create(
+            var diagnostic = Diagnostic.Create(
                 descriptor,
                 location ?? Location.None,
-                messageArgs));
+                messageArgs);
+            reporter.ReportDiagnostic(diagnostic);
         }
     }
 }

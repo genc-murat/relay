@@ -1,9 +1,10 @@
 using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 
 namespace Relay.SourceGenerator
 {
     /// <summary>
-    /// Interface for reporting diagnostics during source generation.
+    /// Interface for reporting diagnostics in the modern incremental source generator.
     /// </summary>
     public interface IDiagnosticReporter
     {
@@ -15,13 +16,29 @@ namespace Relay.SourceGenerator
     }
 
     /// <summary>
-    /// Implementation of IDiagnosticReporter that uses GeneratorExecutionContext.
+    /// Implementation of IDiagnosticReporter that uses IncrementalGeneratorInitializationContext.
+    /// This is a simple implementation that stores diagnostics but doesn't report them immediately.
     /// </summary>
-    public class GeneratorExecutionContextDiagnosticReporter : IDiagnosticReporter
+    public class IncrementalDiagnosticReporter : IDiagnosticReporter
     {
-        private readonly GeneratorExecutionContext _context;
+        private readonly List<Diagnostic> _diagnostics = new();
 
-        public GeneratorExecutionContextDiagnosticReporter(GeneratorExecutionContext context)
+        public void ReportDiagnostic(Diagnostic diagnostic)
+        {
+            _diagnostics.Add(diagnostic);
+        }
+
+        public IReadOnlyList<Diagnostic> GetDiagnostics() => _diagnostics;
+    }
+
+    /// <summary>
+    /// Implementation of IDiagnosticReporter for source output context.
+    /// </summary>
+    public class SourceOutputDiagnosticReporter : IDiagnosticReporter
+    {
+        private readonly SourceProductionContext _context;
+
+        public SourceOutputDiagnosticReporter(SourceProductionContext context)
         {
             _context = context;
         }

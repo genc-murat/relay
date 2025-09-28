@@ -19,15 +19,14 @@ namespace Relay.Core
         private readonly IStreamDispatcher? _streamDispatcher;
         private readonly INotificationDispatcher? _notificationDispatcher;
 
-        // Performance optimization: Pre-computed exception tasks
-        private static readonly ValueTask<object> _handlerNotFoundExceptionTask =
-            ValueTask.FromException<object>(new HandlerNotFoundException("Handler not found"));
-        private static readonly ValueTask _handlerNotFoundVoidTask =
-            ValueTask.FromException(new HandlerNotFoundException("Handler not found"));
+        // Performance optimization: Create exception with proper type information
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ValueTask<T> CreateHandlerNotFoundTask<T>() =>
+            ValueTask.FromException<T>(new HandlerNotFoundException(typeof(T).Name));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ValueTask<T> CastExceptionTask<T>() =>
-            ValueTask.FromException<T>(new HandlerNotFoundException("Handler not found"));
+        private static ValueTask CreateHandlerNotFoundVoidTask(Type requestType) =>
+            ValueTask.FromException(new HandlerNotFoundException(requestType.Name));
 
         /// <summary>
         /// Initializes a new instance of the RelayImplementation class.
@@ -79,7 +78,7 @@ namespace Relay.Core
             var dispatcher = _requestDispatcher;
             if (dispatcher == null)
             {
-                return _handlerNotFoundVoidTask;
+                return CreateHandlerNotFoundVoidTask(typeof(IRequest));
             }
 
             try

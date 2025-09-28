@@ -1,83 +1,83 @@
 using System;
-using System.Collections.Generic;
 
-namespace Relay.Core.Diagnostics;
-
-/// <summary>
-/// Performance metrics for a specific handler
-/// </summary>
-public class HandlerMetrics
+namespace Relay.Core.Diagnostics
 {
     /// <summary>
-    /// The request type this handler processes
+    /// Metrics for a specific handler.
     /// </summary>
-    public string RequestType { get; set; } = string.Empty;
+    public class HandlerMetrics
+    {
+        /// <summary>
+        /// Gets or sets the handler name.
+        /// </summary>
+        public string HandlerName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// The handler type
-    /// </summary>
-    public string HandlerType { get; set; } = string.Empty;
+        /// <summary>
+        /// Gets or sets the request type.
+        /// </summary>
+        public string RequestType { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Total number of times this handler has been invoked
-    /// </summary>
-    public long InvocationCount { get; set; }
+        /// <summary>
+        /// Gets or sets the number of invocations.
+        /// </summary>
+        public int InvocationCount { get; set; }
 
-    /// <summary>
-    /// Total time spent executing this handler
-    /// </summary>
-    public TimeSpan TotalExecutionTime { get; set; }
+        /// <summary>
+        /// Gets or sets the total execution time.
+        /// </summary>
+        public TimeSpan TotalExecutionTime { get; set; }
 
-    /// <summary>
-    /// Average execution time per invocation
-    /// </summary>
-    public TimeSpan AverageExecutionTime =>
-        InvocationCount > 0 ? TimeSpan.FromTicks(TotalExecutionTime.Ticks / InvocationCount) : TimeSpan.Zero;
+        /// <summary>
+        /// Gets or sets the minimum execution time.
+        /// </summary>
+        public TimeSpan MinExecutionTime { get; set; }
 
-    /// <summary>
-    /// Minimum execution time observed
-    /// </summary>
-    public TimeSpan MinExecutionTime { get; set; } = TimeSpan.MaxValue;
+        /// <summary>
+        /// Gets or sets the maximum execution time.
+        /// </summary>
+        public TimeSpan MaxExecutionTime { get; set; }
 
-    /// <summary>
-    /// Maximum execution time observed
-    /// </summary>
-    public TimeSpan MaxExecutionTime { get; set; }
+        /// <summary>
+        /// Gets or sets the number of successful executions.
+        /// </summary>
+        public int SuccessCount { get; set; }
 
-    /// <summary>
-    /// Number of successful executions
-    /// </summary>
-    public long SuccessCount { get; set; }
+        /// <summary>
+        /// Gets or sets the number of failed executions.
+        /// </summary>
+        public int ErrorCount { get; set; }
 
-    /// <summary>
-    /// Number of failed executions
-    /// </summary>
-    public long ErrorCount { get; set; }
+        /// <summary>
+        /// Gets or sets the handler type.
+        /// </summary>
+        public Type? HandlerType { get; set; }
 
-    /// <summary>
-    /// Success rate as a percentage
-    /// </summary>
-    public double SuccessRate =>
-        InvocationCount > 0 ? (double)SuccessCount / InvocationCount * 100 : 0;
+        /// <summary>
+        /// Gets or sets the last invocation time.
+        /// </summary>
+        public DateTime LastInvocation { get; set; }
 
-    /// <summary>
-    /// Last time this handler was invoked
-    /// </summary>
-    public DateTimeOffset? LastInvocation { get; set; }
+        /// <summary>
+        /// Gets or sets the total allocated bytes.
+        /// </summary>
+        public long TotalAllocatedBytes { get; set; }
 
-    /// <summary>
-    /// Total memory allocated by this handler (bytes)
-    /// </summary>
-    public long TotalAllocatedBytes { get; set; }
+        /// <summary>
+        /// Gets the average execution time.
+        /// </summary>
+        public TimeSpan AverageExecutionTime => 
+            InvocationCount > 0 ? TimeSpan.FromTicks(TotalExecutionTime.Ticks / InvocationCount) : TimeSpan.Zero;
 
-    /// <summary>
-    /// Average memory allocated per invocation (bytes)
-    /// </summary>
-    public long AverageAllocatedBytes =>
-        InvocationCount > 0 ? TotalAllocatedBytes / InvocationCount : 0;
+        /// <summary>
+        /// Gets the success rate as a percentage.
+        /// </summary>
+        public double SuccessRate => 
+            InvocationCount > 0 ? (double)SuccessCount / InvocationCount * 100 : 0;
 
-    /// <summary>
-    /// Additional custom metrics
-    /// </summary>
-    public Dictionary<string, object> CustomMetrics { get; set; } = new();
+        /// <summary>
+        /// Gets the error rate as a percentage.
+        /// </summary>
+        public double ErrorRate => 
+            InvocationCount > 0 ? (double)ErrorCount / InvocationCount * 100 : 0;
+    }
 }

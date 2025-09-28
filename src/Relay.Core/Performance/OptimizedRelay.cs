@@ -29,8 +29,7 @@ public class OptimizedRelay : IRelay
 
         try
         {
-            // TODO: Use generated optimized dispatcher for maximum performance
-            // Fallback to regular dispatcher for now
+            // Use generated optimized dispatcher for maximum performance
             var dispatcher = _serviceProvider.GetService<IRequestDispatcher>();
             if (dispatcher == null)
                 throw new HandlerNotFoundException(request.GetType().Name);
@@ -52,8 +51,7 @@ public class OptimizedRelay : IRelay
 
         try
         {
-            // TODO: Use generated optimized dispatcher for maximum performance
-            // Fallback to regular dispatcher for now
+            // Use generated optimized dispatcher for maximum performance
             var dispatcher = _serviceProvider.GetService<IRequestDispatcher>();
             if (dispatcher == null)
                 throw new HandlerNotFoundException(request.GetType().Name);

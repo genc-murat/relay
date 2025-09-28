@@ -201,14 +201,14 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
             new HandlerMetrics
             {
                 RequestType = requestType,
-                HandlerType = handlerType,
+                HandlerType = Type.GetType(handlerType),
                 InvocationCount = 1,
                 TotalExecutionTime = executionTime,
                 MinExecutionTime = executionTime,
                 MaxExecutionTime = executionTime,
                 SuccessCount = success ? 1 : 0,
                 ErrorCount = success ? 0 : 1,
-                LastInvocation = DateTimeOffset.UtcNow,
+                LastInvocation = DateTimeOffset.UtcNow.DateTime,
                 TotalAllocatedBytes = allocatedBytes
             },
             (k, existing) =>
@@ -217,7 +217,7 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
                 existing.TotalExecutionTime += executionTime;
                 existing.MinExecutionTime = executionTime < existing.MinExecutionTime ? executionTime : existing.MinExecutionTime;
                 existing.MaxExecutionTime = executionTime > existing.MaxExecutionTime ? executionTime : existing.MaxExecutionTime;
-                existing.LastInvocation = DateTimeOffset.UtcNow;
+                existing.LastInvocation = DateTimeOffset.UtcNow.DateTime;
                 existing.TotalAllocatedBytes += allocatedBytes;
 
                 if (success)

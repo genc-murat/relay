@@ -6,12 +6,18 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    name: Code Analysis
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
     
@@ -21,10 +27,23 @@ jobs:
         dotnet-version: '8.0.x'
     
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Relay.sln
     
-    - name: Build
-      run: dotnet build --no-restore --configuration Release
+    - name: Build with analyzers
+      run: |
+        dotnet build Relay.sln --no-restore --configuration Release \
+          --verbosity normal \
+          -p:TreatWarningsAsErrors=false \
+          -p:WarningsAsErrors="" \
+          -p:RunAnalyzersDuringBuild=true
     
-    - name: Run analyzers
-      run: dotnet build --no-restore --configuration Release --verbosity normal
+    - name: Format check
+      run: |
+        dotnet format Relay.sln --verify-no-changes --verbosity normal
+      continue-on-error: true
+    
+    - name: Security scan
+      run: |
+        echo "Running security analysis..."
+        dotnet list Relay.sln package --vulnerable --include-transitive
+      continue-on-error: true

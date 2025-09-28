@@ -30,7 +30,7 @@ Contract validation happens automatically when you send requests:
 ```csharp
 try
 {
-    var request = new CreateUserRequest("John Doe", "john.doe@example.com");
+    var request = new CreateUserRequest("Murat Genc", "murat.genc@example.com");
     var user = await relay.SendAsync(request); // Will validate request and response contracts
 }
 catch (ContractValidationException ex)

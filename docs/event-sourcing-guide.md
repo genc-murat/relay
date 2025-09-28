@@ -85,7 +85,7 @@ Use the event sourcing repository to save and load aggregates:
 var repository = serviceProvider.GetRequiredService<IEventSourcedRepository<UserAggregate, Guid>>();
 
 // Create and save an aggregate
-var user = UserAggregate.Create(Guid.NewGuid(), "John Doe", "john.doe@example.com");
+var user = UserAggregate.Create(Guid.NewGuid(), "Murat Genc", "murat.genc@example.com");
 await repository.SaveAsync(user);
 
 // Load an aggregate

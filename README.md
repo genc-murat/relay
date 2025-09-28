@@ -671,9 +671,9 @@ public async Task Should_Handle_Load_Testing()
     
     // Scenario-based testing
     var scenario = testFramework.Scenario("User Registration Flow")
-        .SendRequest(new CreateUserCommand("John Doe", "john@example.com"))
+        .SendRequest(new CreateUserCommand("Murat Genc", "john@example.com"))
         .Verify(async () => await VerifyUserExists("john@example.com"))
-        .PublishNotification(new UserCreatedNotification(123, "John Doe"))
+        .PublishNotification(new UserCreatedNotification(123, "Murat Genc"))
         .Wait(TimeSpan.FromSeconds(1));
     
     // Load testing

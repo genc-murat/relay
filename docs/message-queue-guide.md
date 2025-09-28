@@ -56,7 +56,7 @@ Use the message queue publisher to send messages:
 var publisher = serviceProvider.GetRequiredService<IMessageQueuePublisher>();
 
 // Publish a message
-await publisher.PublishAsync("user-queue", new CreateUserMessage("John Doe", "john.doe@example.com"));
+await publisher.PublishAsync("user-queue", new CreateUserMessage("Murat Genc", "murat.genc@example.com"));
 ```
 
 ## 🎯 Key Features

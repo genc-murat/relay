@@ -21,31 +21,31 @@ namespace Relay.MessageQueue.Sample
                 services.AddRelayMessageQueue();
                 services.AddScoped<UserMessageHandler>();
             });
-            
+
             var host = builder.Build();
-            
+
             // Get message queue publisher
             var publisher = host.Services.GetRequiredService<IMessageQueuePublisher>();
-            
+
             Console.WriteLine("Testing message queue integration...");
-            
+
             // Test publishing messages
-            await publisher.PublishAsync("user-queue", new CreateUserMessage("John Doe", "john.doe@example.com"));
+            await publisher.PublishAsync("user-queue", new CreateUserMessage("Murat Genc", "murat.genc@example.com"));
             Console.WriteLine("Published CreateUserMessage");
-            
-            await publisher.PublishAsync("user-queue", new UpdateUserMessage(Guid.NewGuid(), "John Smith", "john.smith@example.com"));
+
+            await publisher.PublishAsync("user-queue", new UpdateUserMessage(Guid.NewGuid(), "Murat Genc", "murat.genc@example.com"));
             Console.WriteLine("Published UpdateUserMessage");
-            
+
             await publisher.PublishAsync("user-queue", new DeleteUserMessage(Guid.NewGuid()));
             Console.WriteLine("Published DeleteUserMessage");
-            
+
             // Get message queue consumer
             var consumer = host.Services.GetRequiredService<IMessageQueueConsumer>();
-            
+
             // Start consuming messages
             // Note: In a real application, you would wire up the consumer to your handlers
             // For this example, we'll just show that the services are registered correctly
-            
+
             Console.WriteLine("Message queue integration test completed.");
         }
     }

@@ -365,7 +365,7 @@ public async Task Should_Use_Mock_Handler()
         .WithMockHandler<GetUserRequest, UserResponse>(mock =>
         {
             mock.Setup(req => req.UserId == 123)
-                .Returns(new UserResponse { Name = "John Doe", Email = "john@example.com" });
+                .Returns(new UserResponse { Name = "Murat Genc", Email = "john@example.com" });
                 
             mock.Setup(req => req.UserId == 456)
                 .Returns(new UserResponse { Name = "Jane Smith", Email = "jane@example.com" });
@@ -375,7 +375,7 @@ public async Task Should_Use_Mock_Handler()
     var user1 = await relay.Send(new GetUserRequest { UserId = 123 });
     var user2 = await relay.Send(new GetUserRequest { UserId = 456 });
     
-    Assert.That(user1.Name, Is.EqualTo("John Doe"));
+    Assert.That(user1.Name, Is.EqualTo("Murat Genc"));
     Assert.That(user2.Name, Is.EqualTo("Jane Smith"));
 }
 ```

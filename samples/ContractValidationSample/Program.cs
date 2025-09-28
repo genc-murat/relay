@@ -80,7 +80,7 @@ namespace Relay.ContractValidation.Example
             Console.WriteLine("Testing contract validation behavior...");
 
             // Test request with contract validation
-            var userRequest = new CreateUserRequest("John Doe", "john.doe@example.com");
+            var userRequest = new CreateUserRequest("Murat Genc", "murat.genc@example.com");
 
             try
             {

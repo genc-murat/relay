@@ -134,7 +134,7 @@ namespace Relay.Core.Retry
                 IRetryStrategy retryStrategy;
                 if (retryAttribute.RetryStrategyType != null)
                 {
-                    retryStrategy = (IRetryStrategy)_serviceProvider.GetService(retryAttribute.RetryStrategyType) ??
+                    retryStrategy = (_serviceProvider.GetService(retryAttribute.RetryStrategyType) as IRetryStrategy) ??
                                    new LinearRetryStrategy(retryDelay);
                 }
                 else

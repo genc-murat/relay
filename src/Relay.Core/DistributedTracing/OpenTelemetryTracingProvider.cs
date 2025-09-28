@@ -69,9 +69,10 @@ namespace Relay.Core.DistributedTracing
         public void RecordException(Exception exception, bool escaped = false)
         {
             var activity = Activity.Current;
-            if (activity != null)
+            if (activity != null && exception != null)
             {
-                activity.RecordException(exception);
+                // Use the new recommended method instead of obsolete RecordException
+                activity.AddException(exception);
             }
         }
 

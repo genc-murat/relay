@@ -220,8 +220,8 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayContractValidation(this IServiceCollection services)
         {
-            // TODO: Implement missing interfaces
-            // services.AddTransient<IContractValidator, DefaultContractValidator>();
+            // Register contract validator implementation
+            services.AddTransient<ContractValidation.IContractValidator, ContractValidation.DefaultContractValidator>();
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ContractValidation.ContractValidationPipelineBehavior<,>));
             return services;
         }
@@ -248,8 +248,8 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayHandlerVersioning(this IServiceCollection services)
         {
-            // Handler versioning - interfaces exist but implementation is basic
-            // services.AddTransient<IVersionedRelay, VersionedRelay>();
+            // Register versioned relay implementation
+            services.AddTransient<HandlerVersioning.IVersionedRelay, HandlerVersioning.VersionedRelay>();
             return services;
         }
 

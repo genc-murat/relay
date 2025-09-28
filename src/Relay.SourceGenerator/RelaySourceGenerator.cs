@@ -9,12 +9,12 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Relay.SourceGenerator
 {
-    /// <summary>
-    /// Source generator for the Relay mediator framework.
-    /// Generates handler registrations, dispatch logic, and DI container extensions.
-    /// </summary>
-    [Generator]
-    public class RelaySourceGenerator : ISourceGenerator
+    // /// <summary>
+    // /// OLD Source generator for the Relay mediator framework.
+    // /// DEPRECATED: Use RelayIncrementalGenerator instead
+    // /// </summary>
+    // [Generator]
+    public class RelaySourceGenerator_DEPRECATED : ISourceGenerator
     {
         private const string GeneratorName = "Relay.SourceGenerator";
         private const string GeneratorVersion = "1.0.0";

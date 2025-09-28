@@ -34,6 +34,14 @@
 - **Comprehensive Telemetry**: Built-in metrics and distributed tracing
 - **Multi-Targeting**: .NET Standard 2.0, .NET 6.0, .NET 8.0+, .NET 9.0
 
+### 🏢 **Advanced Enterprise Features**
+- **📊 Observability & Monitoring**: OpenTelemetry metrics, health checks, performance tracking
+- **🛡️ Resilience Patterns**: Circuit breakers, bulkhead isolation, automatic recovery
+- **🔒 Advanced Security**: Multi-layer security, field-level encryption, audit trails
+- **💾 Smart Caching**: Distributed caching with Redis support, intelligent key generation
+- **🔄 Workflow Engine**: Multi-step business process orchestration with state management
+- **🧪 Testing Framework**: Load testing, scenario testing, comprehensive test automation
+
 ## 📊 Ultimate Performance Benchmarks
 
 ### 🏆 **Single Request Performance**
@@ -69,6 +77,10 @@
 
 ```bash
 dotnet add package Relay
+# For distributed caching support
+dotnet add package Microsoft.Extensions.Caching.StackExchangeRedis
+# For advanced observability
+dotnet add package System.Diagnostics.DiagnosticSource
 ```
 
 ### Basic Usage (Standard Performance)
@@ -112,6 +124,30 @@ var users = await simdRelay.SendBatchAsync(queries);
 // AOT-optimized for Native AOT scenarios
 var aotRelay = AOTHandlerConfiguration.CreateRelay(serviceProvider);
 var result = await aotRelay.SendAsync(query);
+
+// Enterprise features - Observability
+services.AddSingleton<RelayMetrics>();
+using var requestTracker = RelayMetrics.TrackRequest("GetUser");
+
+// Enterprise features - Circuit Breaker
+services.Configure<CircuitBreakerOptions>(options =>
+{
+    options.FailureThreshold = 0.5; // 50% failure rate
+    options.MinimumThroughput = 10;
+    options.OpenCircuitDuration = TimeSpan.FromSeconds(30);
+});
+services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CircuitBreakerPipelineBehavior<,>));
+
+// Enterprise features - Distributed Caching
+[DistributedCache(AbsoluteExpirationSeconds = 300)]
+public record CachedUserQuery(int UserId) : IRequest<User>;
+
+// Enterprise features - Security & Encryption
+public class SecureUserData
+{
+    [Encrypted]
+    public string SensitiveData { get; set; }
+}
 ```
 
 ## 🎯 Core Concepts
@@ -592,13 +628,13 @@ graph TB
 
 ## 🧪 Testing
 
-Relay provides comprehensive testing support:
+Relay provides comprehensive testing support with advanced enterprise testing features:
 
 ```csharp
 [Test]
 public async Task Should_Handle_Request()
 {
-    // Arrange
+    // Arrange - Basic Testing
     var handler = new UserService();
     var relay = RelayTestHarness.CreateTestRelay(handler);
     
@@ -613,6 +649,59 @@ public async Task Should_Handle_Request()
 var mockRelay = RelayTestHarness.CreateMockRelay();
 mockRelay.Setup(r => r.SendAsync(It.IsAny<GetUserQuery>(), It.IsAny<CancellationToken>()))
          .ReturnsAsync(new User());
+
+// NEW: Advanced Enterprise Testing
+[Test]
+public async Task Should_Handle_Load_Testing()
+{
+    // Arrange
+    var testFramework = new RelayTestFramework(serviceProvider);
+    
+    // Scenario-based testing
+    var scenario = testFramework.Scenario("User Registration Flow")
+        .SendRequest(new CreateUserCommand("John Doe", "john@example.com"))
+        .Verify(async () => await VerifyUserExists("john@example.com"))
+        .PublishNotification(new UserCreatedNotification(123, "John Doe"))
+        .Wait(TimeSpan.FromSeconds(1));
+    
+    // Load testing
+    var loadTestConfig = new LoadTestConfiguration
+    {
+        TotalRequests = 1000,
+        MaxConcurrency = 50,
+        Duration = TimeSpan.FromMinutes(5)
+    };
+    
+    var loadTestResult = await testFramework.RunLoadTestAsync(
+        new GetUserQuery(123), 
+        loadTestConfig);
+    
+    // Advanced assertions
+    Assert.That(loadTestResult.SuccessRate, Is.GreaterThan(0.99)); // 99% success rate
+    Assert.That(loadTestResult.P95ResponseTime, Is.LessThan(100)); // P95 < 100ms
+    Assert.That(loadTestResult.RequestsPerSecond, Is.GreaterThan(500)); // 500+ RPS
+}
+
+// Circuit breaker testing
+[Test]
+public async Task Should_Open_Circuit_On_Failures()
+{
+    // Arrange
+    var testRelay = new TestRelay();
+    testRelay.SetupRequestHandler<GetUserQuery, User>((request, ct) => 
+        throw new TimeoutException("Service unavailable"));
+    
+    // Act & Assert - Circuit should open after failures
+    for (int i = 0; i < 15; i++)
+    {
+        await Assert.ThrowsAsync<TimeoutException>(() => 
+            testRelay.SendAsync(new GetUserQuery(123)));
+    }
+    
+    // Circuit should now be open
+    await Assert.ThrowsAsync<CircuitBreakerOpenException>(() => 
+        testRelay.SendAsync(new GetUserQuery(123)));
+}
 ```
 
 ## 🔄 Migration from MediatR
@@ -672,6 +761,58 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/genc-murat/relay/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/genc-murat/relay/discussions)
 
+## 🌟 What's New in v2.0 - Enterprise Edition
+
+### 📊 **Observability & Monitoring**
+- **OpenTelemetry Integration**: Full metrics, tracing, and logging support
+- **Real-time Performance Metrics**: Request duration, throughput, error rates
+- **Health Checks**: Built-in health monitoring for Relay components
+- **Custom Metrics**: Track business-specific KPIs
+
+### 🛡️ **Resilience & Fault Tolerance**
+- **Circuit Breaker Pattern**: Prevent cascading failures with automatic recovery
+- **Bulkhead Isolation**: Resource isolation and concurrency limiting
+- **Retry Policies**: Intelligent retry strategies with exponential backoff
+- **Timeout Management**: Request-level timeout configuration
+
+### 🔒 **Advanced Security**
+- **Multi-layer Security**: Authentication, authorization, and audit trails
+- **Field-level Encryption**: Automatic data encryption/decryption
+- **Role-based Access Control**: Fine-grained permission management
+- **Security Context**: Comprehensive user context and claims support
+
+### 💾 **Smart Caching**
+- **Distributed Caching**: Redis, SQL Server, and custom cache providers
+- **Intelligent Key Generation**: Configurable cache key strategies
+- **Advanced Expiration**: Sliding, absolute, and conditional expiration
+- **Cache Regions**: Logical grouping and bulk operations
+
+### 🔄 **Workflow Engine**
+- **Business Process Orchestration**: Multi-step workflow management
+- **Parallel Execution**: Concurrent step processing
+- **Conditional Logic**: Smart workflow branching and decision making
+- **State Persistence**: Durable workflow state management
+
+### 🧪 **Enterprise Testing**
+- **Load Testing**: Performance and stress testing capabilities
+- **Scenario Testing**: Behavior-driven test scenarios
+- **Advanced Metrics**: P95, P99, throughput analysis
+- **Test Automation**: Comprehensive test orchestration
+
+## 🏆 **Enterprise Advantages**
+
+| Feature | Relay v2.0 Enterprise | MediatR | NServiceBus | MassTransit |
+|---------|----------------------|---------|-------------|-------------|
+| **Performance** | ⚡ 80%+ faster | ❌ Baseline | ❌ Message overhead | ❌ Message overhead |
+| **Observability** | ✅ Built-in OpenTelemetry | ❌ Manual setup | ✅ Commercial only | ✅ Limited |
+| **Circuit Breaker** | ✅ Advanced patterns | ❌ Not included | ✅ Basic | ✅ Basic |
+| **Security** | ✅ Multi-layer + encryption | ❌ Manual | ✅ Enterprise features | ❌ Basic |
+| **Caching** | ✅ Distributed + smart keys | ❌ Manual | ❌ Not included | ❌ Not included |
+| **Workflows** | ✅ Built-in engine | ❌ Not included | ✅ Saga patterns | ✅ Saga patterns |
+| **Testing** | ✅ Load + scenario testing | ❌ Basic mocking | ❌ Manual | ❌ Manual |
+| **Learning Curve** | 🟢 Easy | 🟢 Easy | 🔴 Complex | 🟡 Moderate |
+| **Dependencies** | 🟢 Minimal | 🟢 Minimal | 🔴 Heavy | 🔴 Heavy |
+
 ---
 
-**Relay** - *Mediator performance, redefined.*
+**Relay v2.0 Enterprise** - *The most advanced mediator framework for .NET*

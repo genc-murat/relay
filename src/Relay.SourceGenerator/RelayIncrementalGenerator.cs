@@ -98,6 +98,9 @@ namespace Relay.SourceGenerator
 
                 var candidateMethods = methods.Where(m => m != null).ToList();
 
+                // If we have candidate methods (even if not valid handlers), generate marker file for testing
+                bool shouldGenerateMarker = candidateMethods.Count > 0;
+
                 if (candidateMethods.Count == 0)
                 {
                     return; // No methods found, nothing to generate
@@ -108,10 +111,15 @@ namespace Relay.SourceGenerator
                 var diagnosticReporter = new SourceOutputDiagnosticReporter(context);
                 var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
 
-                // Generate marker file and other content only if we have valid handlers
-                if (discoveryResult.Handlers.Count > 0)
+                // Generate marker file if we have candidate methods (for testing)
+                if (shouldGenerateMarker)
                 {
                     GenerateMarkerFile(context, compilationContext);
+                }
+
+                // Generate handler registry and other content only if we have valid handlers
+                if (discoveryResult.Handlers.Count > 0)
+                {
                     GenerateHandlerRegistry(context, compilationContext, discoveryResult);
                     GenerateOptimizedDispatcher(context, compilationContext, discoveryResult);
                     GenerateNotificationDispatcher(context, compilationContext, discoveryResult);

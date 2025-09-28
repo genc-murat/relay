@@ -14,14 +14,14 @@ namespace Relay.SourceGenerator.Tests
     public class SourceGeneratorTests
     {
         [Fact]
-        public void RelaySourceGenerator_Should_Be_Defined()
+        public void RelayIncrementalGenerator_Should_Be_Defined()
         {
             // Arrange & Act
-            var generatorType = typeof(RelaySourceGenerator);
+            var generatorType = typeof(RelayIncrementalGenerator);
 
             // Assert
             generatorType.Should().NotBeNull();
-            generatorType.Should().BeAssignableTo<Microsoft.CodeAnalysis.ISourceGenerator>();
+            generatorType.Should().BeAssignableTo<Microsoft.CodeAnalysis.IIncrementalGenerator>();
         }
 
         [Fact]
@@ -182,7 +182,7 @@ namespace TestProject
         {
             var compilation = CreateTestCompilation("TestAssembly", source, includeRelayCoreReference);
 
-            var generator = new RelaySourceGenerator();
+            var generator = new RelayIncrementalGenerator();
             var driver = CSharpGeneratorDriver.Create(generator);
 
             var runResult = driver.RunGenerators(compilation);

@@ -24,7 +24,7 @@ public static class TestUtilities
         await action();
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeLessOrEqualTo(maxDuration, message ?? "Execution should complete within expected time");
+        stopwatch.Elapsed.Should().BeLessThanOrEqualTo(maxDuration, message ?? "Execution should complete within expected time");
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public static class TestUtilities
         await action();
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeLessOrEqualTo(maxDuration, message ?? "Execution should complete within expected time");
+        stopwatch.Elapsed.Should().BeLessThanOrEqualTo(maxDuration, message ?? "Execution should complete within expected time");
     }
 
     /// <summary>

@@ -136,7 +136,7 @@ public static class RelayAssertions
         await action();
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeLessOrEqualTo(maxDuration,
+        stopwatch.Elapsed.Should().BeLessThanOrEqualTo(maxDuration,
             message ?? $"Execution should complete within {maxDuration}");
     }
 
@@ -154,7 +154,7 @@ public static class RelayAssertions
         var result = await action();
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeLessOrEqualTo(maxDuration,
+        stopwatch.Elapsed.Should().BeLessThanOrEqualTo(maxDuration,
             message ?? $"Execution should complete within {maxDuration}");
 
         return (result, stopwatch.Elapsed);
@@ -173,7 +173,7 @@ public static class RelayAssertions
         var finalMemory = GC.GetTotalMemory(false);
 
         var allocatedMemory = finalMemory - initialMemory;
-        allocatedMemory.Should().BeLessOrEqualTo(maxAllocations,
+        allocatedMemory.Should().BeLessThanOrEqualTo(maxAllocations,
             message ?? $"Memory allocation should not exceed {maxAllocations} bytes");
     }
 
@@ -349,7 +349,7 @@ public static class RelayAssertions
 
         foreach (var metric in metrics)
         {
-            metric.AverageExecutionTime.Should().BeLessOrEqualTo(maxAverageExecutionTime,
+            metric.AverageExecutionTime.Should().BeLessThanOrEqualTo(maxAverageExecutionTime,
                 message ?? $"Handler {metric.HandlerType} average execution time should be within acceptable limits");
         }
     }

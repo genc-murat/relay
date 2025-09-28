@@ -75,10 +75,10 @@ namespace Relay.SourceGenerator
                 Method = method,
                 MethodSymbol = methodSymbol,
                 Attributes = relayAttributes,
-                HandlerType = methodSymbol.ContainingType,
+                HandlerTypeSymbol = methodSymbol.ContainingType,
                 MethodName = methodSymbol.Name,
-                RequestType = methodSymbol.Parameters.FirstOrDefault()?.Type,
-                ResponseType = GetResponseType(methodSymbol.ReturnType)
+                RequestTypeSymbol = methodSymbol.Parameters.FirstOrDefault()?.Type,
+                ResponseTypeSymbol = GetResponseType(methodSymbol.ReturnType)
             };
 
             // Validate method signature based on attribute type
@@ -408,48 +408,5 @@ namespace Relay.SourceGenerator
             }
             return "Unknown";
         }
-    }
-
-    /// <summary>
-    /// Result of handler discovery operation.
-    /// </summary>
-    public class HandlerDiscoveryResult
-    {
-        public List<HandlerInfo> Handlers { get; } = new();
-    }
-
-    /// <summary>
-    /// Information about a discovered handler method.
-    /// </summary>
-    public class HandlerInfo
-    {
-        public MethodDeclarationSyntax Method { get; set; } = null!;
-        public IMethodSymbol MethodSymbol { get; set; } = null!;
-        public List<RelayAttributeInfo> Attributes { get; set; } = new();
-        public ITypeSymbol? RequestType { get; set; }
-        public ITypeSymbol? ResponseType { get; set; }
-        public ITypeSymbol HandlerType { get; set; } = null!;
-        public string MethodName { get; set; } = null!;
-    }
-
-    /// <summary>
-    /// Information about a Relay attribute on a handler method.
-    /// </summary>
-    public class RelayAttributeInfo
-    {
-        public RelayAttributeType Type { get; set; }
-        public AttributeData AttributeData { get; set; } = null!;
-    }
-
-    /// <summary>
-    /// Types of Relay attributes.
-    /// </summary>
-    public enum RelayAttributeType
-    {
-        None,
-        Handle,
-        Notification,
-        Pipeline,
-        ExposeAsEndpoint
     }
 }

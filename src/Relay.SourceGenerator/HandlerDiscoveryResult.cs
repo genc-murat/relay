@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Relay.SourceGenerator
 {
@@ -44,6 +46,14 @@ namespace Relay.SourceGenerator
         public bool HasCancellationToken { get; set; }
         public string? FullTypeName { get; set; }
         public string? Namespace { get; set; }
+
+        // Additional properties for compatibility with old HandlerInfo
+        public MethodDeclarationSyntax? Method { get; set; }
+        public IMethodSymbol? MethodSymbol { get; set; }
+        public List<RelayAttributeInfo> Attributes { get; set; } = new();
+        public ITypeSymbol? RequestTypeSymbol { get; set; }
+        public ITypeSymbol? ResponseTypeSymbol { get; set; }
+        public ITypeSymbol? HandlerTypeSymbol { get; set; }
     }
 
     /// <summary>
@@ -93,5 +103,27 @@ namespace Relay.SourceGenerator
         public bool HasCancellationToken { get; set; }
         public string? FullTypeName { get; set; }
         public string? Namespace { get; set; }
+    }
+
+    /// <summary>
+    /// Information about a Relay attribute on a handler method.
+    /// </summary>
+    public class RelayAttributeInfo
+    {
+        public RelayAttributeType Type { get; set; }
+        public AttributeData? AttributeData { get; set; }
+    }
+
+    /// <summary>
+    /// Types of Relay attributes.
+    /// </summary>
+    public enum RelayAttributeType
+    {
+        None,
+        Handle,
+        Notification,
+        Pipeline,
+        ExposeAsEndpoint,
+        Stream
     }
 }

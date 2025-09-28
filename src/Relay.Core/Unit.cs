@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Relay.Core;
 
@@ -11,6 +12,11 @@ public readonly struct Unit : IEquatable<Unit>
     /// Gets the singleton instance of Unit
     /// </summary>
     public static Unit Value => default;
+
+    /// <summary>
+    /// Gets a completed ValueTask with Unit value
+    /// </summary>
+    public static ValueTask<Unit> Task => ValueTask.FromResult(Value);
 
     /// <summary>
     /// Determines whether the specified Unit is equal to the current Unit
@@ -41,4 +47,14 @@ public readonly struct Unit : IEquatable<Unit>
     /// Determines whether two Unit instances are not equal
     /// </summary>
     public static bool operator !=(Unit left, Unit right) => false;
+
+    /// <summary>
+    /// Implicit conversion from any value to Unit
+    /// </summary>
+    public static implicit operator Unit(ValueTuple _) => default;
+
+    /// <summary>
+    /// Implicit conversion from Unit to ValueTask<Unit>
+    /// </summary>
+    public static implicit operator ValueTask<Unit>(Unit _) => Task;
 }

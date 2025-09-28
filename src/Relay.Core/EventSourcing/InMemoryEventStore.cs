@@ -15,10 +15,8 @@ namespace Relay.Core.EventSourcing
         private readonly ConcurrentDictionary<Guid, List<Event>> _events = new();
 
         /// <inheritdoc />
-        public async ValueTask SaveEventsAsync(Guid aggregateId, IEnumerable<Event> events, int expectedVersion, CancellationToken cancellationToken = default)
+        public ValueTask SaveEventsAsync(Guid aggregateId, IEnumerable<Event> events, int expectedVersion, CancellationToken cancellationToken = default)
         {
-            await Task.CompletedTask; // Make method async for interface compliance
-
             if (!_events.TryGetValue(aggregateId, out var aggregateEvents))
             {
                 aggregateEvents = new List<Event>();
@@ -32,34 +30,47 @@ namespace Relay.Core.EventSourcing
             }
 
             aggregateEvents.AddRange(events);
+            return ValueTask.CompletedTask;
         }
 
         /// <inheritdoc />
-        public async IAsyncEnumerable<Event> GetEventsAsync(Guid aggregateId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<Event> GetEventsAsync(Guid aggregateId, CancellationToken cancellationToken = default)
         {
-            await Task.CompletedTask; // Make method async for interface compliance
-
-            if (_events.TryGetValue(aggregateId, out var aggregateEvents))
+            return GetEventsAsyncImpl(aggregateId, cancellationToken);
+            
+            async IAsyncEnumerable<Event> GetEventsAsyncImpl(Guid aggregateId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
             {
-                foreach (var @event in aggregateEvents.OrderBy(e => e.AggregateVersion))
+                await Task.CompletedTask;
+
+                if (_events.TryGetValue(aggregateId, out var aggregateEvents))
                 {
-                    yield return @event;
+                    foreach (var @event in aggregateEvents.OrderBy(e => e.AggregateVersion))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        yield return @event;
+                    }
                 }
             }
         }
 
         /// <inheritdoc />
-        public async IAsyncEnumerable<Event> GetEventsAsync(Guid aggregateId, int startVersion, int endVersion, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<Event> GetEventsAsync(Guid aggregateId, int startVersion, int endVersion, CancellationToken cancellationToken = default)
         {
-            await Task.CompletedTask; // Make method async for interface compliance
-
-            if (_events.TryGetValue(aggregateId, out var aggregateEvents))
+            return GetEventsAsyncImpl(aggregateId, startVersion, endVersion, cancellationToken);
+            
+            async IAsyncEnumerable<Event> GetEventsAsyncImpl(Guid aggregateId, int startVersion, int endVersion, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
             {
-                foreach (var @event in aggregateEvents
-                    .Where(e => e.AggregateVersion >= startVersion && e.AggregateVersion <= endVersion)
-                    .OrderBy(e => e.AggregateVersion))
+                await Task.CompletedTask;
+
+                if (_events.TryGetValue(aggregateId, out var aggregateEvents))
                 {
-                    yield return @event;
+                    foreach (var @event in aggregateEvents
+                        .Where(e => e.AggregateVersion >= startVersion && e.AggregateVersion <= endVersion)
+                        .OrderBy(e => e.AggregateVersion))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        yield return @event;
+                    }
                 }
             }
         }

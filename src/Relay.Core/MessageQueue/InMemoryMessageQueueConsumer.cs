@@ -83,16 +83,15 @@ namespace Relay.Core.MessageQueue
         }
 
         /// <inheritdoc />
-        public async ValueTask StopConsumingAsync(CancellationToken cancellationToken = default)
+        public ValueTask StopConsumingAsync(CancellationToken cancellationToken = default)
         {
-            await Task.CompletedTask; // Make method async for interface compliance
-
             foreach (var cts in _consumers.Values)
             {
                 cts.Cancel();
             }
 
             _consumers.Clear();
+            return ValueTask.CompletedTask;
         }
 
         // Helper method to add messages to a queue (for testing)

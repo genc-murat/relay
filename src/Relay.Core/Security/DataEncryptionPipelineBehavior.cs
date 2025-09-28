@@ -52,18 +52,18 @@ namespace Relay.Core.Security
                 if (encryptAttribute != null && property.PropertyType == typeof(string))
                 {
                     var encryptedValue = property.GetValue(obj) as string;
-                    if (!string.IsNullOrEmpty(encryptedValue))
+                    if (!string.IsNullOrWhiteSpace(encryptedValue))
                     {
                         try
                         {
                             var decryptedValue = _encryptor.Decrypt(encryptedValue);
                             property.SetValue(obj, decryptedValue);
-                            _logger.LogDebug("Decrypted property {PropertyName} on {TypeName}", 
+                            _logger.LogDebug("Decrypted property {PropertyName} on {TypeName}",
                                 property.Name, type.Name);
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Failed to decrypt property {PropertyName} on {TypeName}", 
+                            _logger.LogError(ex, "Failed to decrypt property {PropertyName} on {TypeName}",
                                 property.Name, type.Name);
                             throw new DataDecryptionException(property.Name, ex);
                         }
@@ -85,18 +85,18 @@ namespace Relay.Core.Security
                 if (encryptAttribute != null && property.PropertyType == typeof(string))
                 {
                     var plainValue = property.GetValue(obj) as string;
-                    if (!string.IsNullOrEmpty(plainValue))
+                    if (!string.IsNullOrWhiteSpace(plainValue))
                     {
                         try
                         {
                             var encryptedValue = _encryptor.Encrypt(plainValue);
                             property.SetValue(obj, encryptedValue);
-                            _logger.LogDebug("Encrypted property {PropertyName} on {TypeName}", 
+                            _logger.LogDebug("Encrypted property {PropertyName} on {TypeName}",
                                 property.Name, type.Name);
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Failed to encrypt property {PropertyName} on {TypeName}", 
+                            _logger.LogError(ex, "Failed to encrypt property {PropertyName} on {TypeName}",
                                 property.Name, type.Name);
                             throw new DataEncryptionException(property.Name, ex);
                         }
@@ -144,7 +144,7 @@ namespace Relay.Core.Security
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _key = Convert.FromBase64String(base64Key ?? throw new ArgumentNullException(nameof(base64Key)));
-            
+
             if (_key.Length != 32) // 256 bits
             {
                 throw new ArgumentException("Key must be 256 bits (32 bytes) for AES-256");
@@ -153,7 +153,7 @@ namespace Relay.Core.Security
 
         public string Encrypt(string plainText, string keyId = "default")
         {
-            if (string.IsNullOrEmpty(plainText))
+            if (string.IsNullOrWhiteSpace(plainText))
                 return plainText;
 
             using var aes = Aes.Create();
@@ -174,26 +174,26 @@ namespace Relay.Core.Security
 
         public string Decrypt(string cipherText, string keyId = "default")
         {
-            if (string.IsNullOrEmpty(cipherText))
+            if (string.IsNullOrWhiteSpace(cipherText))
                 return cipherText;
 
             var fullCipher = Convert.FromBase64String(cipherText);
-            
+
             using var aes = Aes.Create();
             aes.Key = _key;
 
             // Extract IV from the beginning
             var iv = new byte[aes.BlockSize / 8];
             var cipher = new byte[fullCipher.Length - iv.Length];
-            
+
             Array.Copy(fullCipher, 0, iv, 0, iv.Length);
             Array.Copy(fullCipher, iv.Length, cipher, 0, cipher.Length);
-            
+
             aes.IV = iv;
 
             using var decryptor = aes.CreateDecryptor();
             var plainBytes = decryptor.TransformFinalBlock(cipher, 0, cipher.Length);
-            
+
             return Encoding.UTF8.GetString(plainBytes);
         }
     }

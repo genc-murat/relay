@@ -43,7 +43,7 @@ namespace Relay.Core.Workflows
             };
 
             await _stateStore.SaveExecutionAsync(execution, cancellationToken);
-            _logger.LogInformation("Started workflow {WorkflowId} with execution {ExecutionId}", 
+            _logger.LogInformation("Started workflow {WorkflowId} with execution {ExecutionId}",
                 workflowDefinitionId, executionId);
 
             // Start execution in background
@@ -68,12 +68,12 @@ namespace Relay.Core.Workflows
                     return;
                 }
 
-                while (execution.CurrentStepIndex < definition.Steps.Count && 
+                while (execution.CurrentStepIndex < definition.Steps.Count &&
                        execution.Status == WorkflowStatus.Running)
                 {
                     var step = definition.Steps[execution.CurrentStepIndex];
                     await ExecuteStepAsync(execution, step, cancellationToken);
-                    
+
                     if (execution.Status == WorkflowStatus.Running)
                     {
                         execution.CurrentStepIndex++;
@@ -86,7 +86,7 @@ namespace Relay.Core.Workflows
                     execution.Status = WorkflowStatus.Completed;
                     execution.CompletedAt = DateTime.UtcNow;
                     await _stateStore.SaveExecutionAsync(execution, cancellationToken);
-                    
+
                     _logger.LogInformation("Completed workflow execution {ExecutionId}", execution.Id);
                 }
             }
@@ -156,7 +156,7 @@ namespace Relay.Core.Workflows
             // Create request from step configuration and workflow context
             var request = CreateRequestFromStep(step, execution.Context);
             var response = await _relay.SendAsync((dynamic)request, cancellationToken);
-            
+
             // Update workflow context with response
             execution.Context[step.OutputKey ?? step.Name] = response;
         }
@@ -165,7 +165,7 @@ namespace Relay.Core.Workflows
         {
             var condition = EvaluateCondition(step.Condition, execution.Context);
             stepExecution.Output = new { ConditionResult = condition };
-            
+
             if (!condition && step.ElseSteps?.Any() == true)
             {
                 // Execute else steps
@@ -180,7 +180,7 @@ namespace Relay.Core.Workflows
         {
             if (step.ParallelSteps == null) return;
 
-            var tasks = step.ParallelSteps.Select(parallelStep => 
+            var tasks = step.ParallelSteps.Select(parallelStep =>
                 ExecuteStepAsync(execution, parallelStep, cancellationToken).AsTask());
 
             await Task.WhenAll(tasks);
@@ -202,8 +202,8 @@ namespace Relay.Core.Workflows
         private bool EvaluateCondition(string? condition, Dictionary<string, object> context)
         {
             // Simple condition evaluation - in real implementation, this could use expression trees
-            if (string.IsNullOrEmpty(condition)) return true;
-            
+            if (string.IsNullOrWhiteSpace(condition)) return true;
+
             // For now, just return true
             return true;
         }

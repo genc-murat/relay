@@ -61,7 +61,7 @@ namespace Relay.Core
             }
 
             // Validate version
-            if (!string.IsNullOrWhiteSpace(attribute.Version))
+            if (!string.IsNullOrEmpty(attribute.Version))
             {
                 if (string.IsNullOrWhiteSpace(attribute.Version))
                 {
@@ -124,7 +124,7 @@ namespace Relay.Core
         {
             var errors = new List<string>();
 
-            if (!string.IsNullOrWhiteSpace(name))
+            if (!string.IsNullOrEmpty(name))
             {
                 if (string.IsNullOrWhiteSpace(name))
                 {

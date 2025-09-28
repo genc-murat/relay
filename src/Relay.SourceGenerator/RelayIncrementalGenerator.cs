@@ -82,13 +82,7 @@ namespace Relay.SourceGenerator
             try
             {
                 var (compilation, methods) = source;
-                var candidateMethods = methods.Where(m => m != null).ToList();
-
-                if (candidateMethods.Count == 0)
-                {
-                    return; // No methods found, nothing to generate
-                }
-
+                
                 // Create compilation context
                 var compilationContext = new RelayCompilationContext(compilation, CancellationToken.None);
 
@@ -102,14 +96,22 @@ namespace Relay.SourceGenerator
                     return;
                 }
 
+                var candidateMethods = methods.Where(m => m != null).ToList();
+
+                if (candidateMethods.Count == 0)
+                {
+                    return; // No methods found, nothing to generate
+                }
+
                 // Discover and validate handlers
                 var discoveryEngine = new HandlerDiscoveryEngine(compilationContext);
                 var diagnosticReporter = new SourceOutputDiagnosticReporter(context);
                 var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
 
-                // Generate handler registry if we have valid handlers
+                // Generate marker file and other content only if we have valid handlers
                 if (discoveryResult.Handlers.Count > 0)
                 {
+                    GenerateMarkerFile(context, compilationContext);
                     GenerateHandlerRegistry(context, compilationContext, discoveryResult);
                     GenerateOptimizedDispatcher(context, compilationContext, discoveryResult);
                     GenerateNotificationDispatcher(context, compilationContext, discoveryResult);
@@ -117,7 +119,6 @@ namespace Relay.SourceGenerator
                     GenerateEndpointMetadata(context, compilationContext, discoveryResult);
                     GenerateDIRegistrations(context, compilationContext, discoveryResult);
                     GeneratePerformanceOptimizations(context, compilationContext, discoveryResult);
-                    GenerateMarkerFile(context, compilationContext);
                 }
             }
             catch (Exception ex)
@@ -150,7 +151,11 @@ namespace Relay.SourceGenerator
             return fullName.Contains("Relay.Core.HandleAttribute") ||
                    fullName.Contains("Relay.Core.NotificationAttribute") ||
                    fullName.Contains("Relay.Core.PipelineAttribute") ||
-                   fullName.Contains("Relay.Core.ExposeAsEndpointAttribute");
+                   fullName.Contains("Relay.Core.ExposeAsEndpointAttribute") ||
+                   fullName.Contains("HandleAttribute") ||
+                   fullName.Contains("NotificationAttribute") ||
+                   fullName.Contains("PipelineAttribute") ||
+                   fullName.Contains("ExposeAsEndpointAttribute");
         }
 
         #region Generation Methods
@@ -356,7 +361,7 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine("    }");
             sourceBuilder.AppendLine("}");
 
-            context.AddSource("RelayIncrementalGeneratorMarker.g.cs", sourceBuilder.ToString());
+            context.AddSource("RelayGeneratorMarker.g.cs", sourceBuilder.ToString());
         }
 
         #endregion

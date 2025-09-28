@@ -60,14 +60,25 @@ namespace Relay.SourceGenerator
 
             return name switch
             {
+                // Core Relay attributes
+                "Handle" => true,
+                "Notification" => true,
+                "Pipeline" => true,
+                "Endpoint" => true,
+                "ExposeAsEndpoint" => true,
+                
+                // Handler type attributes
                 "RequestHandler" => true,
                 "NotificationHandler" => true,
                 "PipelineHandler" => true,
                 "EndpointHandler" => true,
                 "RelayHandler" => true,
+                
+                // CQRS attributes
                 "Command" => true,
                 "Query" => true,
                 "Event" => true,
+                
                 _ => false
             };
         }

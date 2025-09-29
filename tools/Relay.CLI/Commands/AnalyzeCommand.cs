@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
@@ -26,7 +27,7 @@ public static class AnalyzeCommand
         command.AddOption(depthOption);
         command.AddOption(includeTestsOption);
 
-        command. SetHandler(async (path, output, format, depth, includeTests) =>
+        command.SetHandler(async (path, output, format, depth, includeTests) =>
         {
             await ExecuteAnalyze(path, output, format, depth, includeTests);
         }, pathOption, outputOption, formatOption, depthOption, includeTestsOption);
@@ -34,6 +35,8 @@ public static class AnalyzeCommand
         return command;
     }
 
+    [RequiresUnreferencedCode("Calls Relay.CLI.Commands.AnalyzeCommand.SaveAnalysisResults(ProjectAnalysis, String, String)")]
+    [RequiresDynamicCode("Calls Relay.CLI.Commands.AnalyzeCommand.SaveAnalysisResults(ProjectAnalysis, String, String)")]
     private static async Task ExecuteAnalyze(string projectPath, string? outputPath, string format, string depth, bool includeTests)
     {
         AnsiConsole.MarkupLine($"[cyan]🔍 Analyzing project at: {projectPath}[/]");
@@ -108,7 +111,7 @@ public static class AnalyzeCommand
             .ToList();
 
         analysis.SourceFiles.AddRange(csFiles);
-        
+
         discoveryTask.Value = discoveryTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Found {analysis.ProjectFiles.Count} project(s) and {analysis.SourceFiles.Count} source file(s)[/]");
 
@@ -127,7 +130,7 @@ public static class AnalyzeCommand
             var root = tree.GetCompilationUnitRoot();
 
             var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-            
+
             foreach (var classDecl in classes)
             {
                 if (IsHandler(classDecl, content))
@@ -328,7 +331,7 @@ public static class AnalyzeCommand
         foreach (var projectFile in analysis.ProjectFiles)
         {
             var content = await File.ReadAllTextAsync(projectFile);
-            
+
             // Check for Relay references
             if (content.Contains("Relay.Core"))
             {
@@ -508,7 +511,7 @@ public static class AnalyzeCommand
         {
             AnsiConsole.MarkupLine("[green]🎯 Action Plan:[/]");
             var priorityOrder = new[] { "High", "Medium", "Low" };
-            
+
             foreach (var priority in priorityOrder)
             {
                 var recs = analysis.Recommendations.Where(r => r.Priority == priority).ToList();
@@ -543,9 +546,9 @@ public static class AnalyzeCommand
         var score = CalculateOverallScore(analysis);
         var scoreColor = score >= 8 ? "green" : score >= 6 ? "yellow" : "red";
         var emoji = score >= 8 ? "🏆" : score >= 6 ? "👍" : "⚠️";
-        
+
         AnsiConsole.MarkupLine($"[{scoreColor}]{emoji} Overall Score: {score:F1}/10[/]");
-        
+
         var assessment = score switch
         {
             >= 9 => "Excellent - Production ready with great performance patterns!",
@@ -555,10 +558,12 @@ public static class AnalyzeCommand
             >= 5 => "Needs Improvement - Multiple issues should be addressed",
             _ => "Poor - Significant improvements needed before production use"
         };
-        
+
         AnsiConsole.MarkupLine($"[dim]{assessment}[/]");
     }
 
+    [RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
+    [RequiresDynamicCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
     private static async Task SaveAnalysisResults(ProjectAnalysis analysis, string outputPath, string format)
     {
         var content = format.ToLower() switch
@@ -575,7 +580,7 @@ public static class AnalyzeCommand
 
     // Helper methods for analysis
     private static bool IsHandler(ClassDeclarationSyntax classDecl, string content) =>
-        classDecl.Identifier.ValueText.EndsWith("Handler") || 
+        classDecl.Identifier.ValueText.EndsWith("Handler") ||
         content.Contains("[Handle]") ||
         classDecl.BaseList?.Types.Any(t => t.ToString().Contains("IRequestHandler")) == true;
 
@@ -616,8 +621,8 @@ public static class AnalyzeCommand
         content.Contains("[Required]") || content.Contains("[StringLength]") || content.Contains("ValidationAttribute");
 
     private static int GetParameterCount(TypeDeclarationSyntax typeDecl) =>
-        typeDecl is RecordDeclarationSyntax record ? 
-            record.ParameterList?.Parameters.Count ?? 0 : 
+        typeDecl is RecordDeclarationSyntax record ?
+            record.ParameterList?.Parameters.Count ?? 0 :
             typeDecl.Members.OfType<PropertyDeclarationSyntax>().Count();
 
     private static bool HasCachingAttributes(TypeDeclarationSyntax typeDecl, string content) =>

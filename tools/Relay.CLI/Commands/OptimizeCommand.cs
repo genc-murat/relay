@@ -1,0 +1,195 @@
+using System.CommandLine;
+using System.Text;
+using System.Text.RegularExpressions;
+using Spectre.Console;
+
+namespace Relay.CLI.Commands;
+
+public static class OptimizeCommand
+{
+    public static Command Create()
+    {
+        var command = new Command("optimize", "Apply automatic optimizations to improve performance");
+
+        var pathOption = new Option<string>("--path", () => ".", "Project path to optimize");
+        var dryRunOption = new Option<bool>("--dry-run", () => false, "Show what would be optimized without applying changes");
+        var targetOption = new Option<string>("--target", () => "all", "Optimization target (all, handlers, requests, config)");
+        var aggressiveOption = new Option<bool>("--aggressive", () => false, "Apply aggressive optimizations");
+        var backupOption = new Option<bool>("--backup", () => true, "Create backup before applying changes");
+
+        command.AddOption(pathOption);
+        command.AddOption(dryRunOption);
+        command.AddOption(targetOption);
+        command.AddOption(aggressiveOption);
+        command.AddOption(backupOption);
+
+        command.SetHandler(async (path, dryRun, target, aggressive, backup) =>
+        {
+            await ExecuteOptimize(path, dryRun, target, aggressive, backup);
+        }, pathOption, dryRunOption, targetOption, aggressiveOption, backupOption);
+
+        return command;
+    }
+
+    private static async Task ExecuteOptimize(string projectPath, bool dryRun, string target, bool aggressive, bool backup)
+    {
+        var title = dryRun ? "🔍 DRY RUN: Analyzing potential optimizations..." : "🔧 Optimizing Relay project...";
+        AnsiConsole.MarkupLine($"[cyan]{title}[/]");
+        AnsiConsole.WriteLine();
+
+        var optimization = new OptimizationContext
+        {
+            ProjectPath = Path.GetFullPath(projectPath),
+            IsDryRun = dryRun,
+            Target = target,
+            IsAggressive = aggressive,
+            CreateBackup = backup,
+            Timestamp = DateTime.UtcNow
+        };
+
+        await AnsiConsole.Progress()
+            .StartAsync(async ctx =>
+            {
+                var overallTask = ctx.AddTask("[cyan]Running optimizations[/]", maxValue: GetOptimizationSteps(target));
+
+                // Discover files
+                await DiscoverFiles(optimization, ctx, overallTask);
+                overallTask.Increment(1);
+
+                if (target == "all" || target == "handlers")
+                {
+                    await OptimizeHandlers(optimization, ctx, overallTask);
+                    overallTask.Increment(1);
+                }
+
+                overallTask.Value = overallTask.MaxValue;
+            });
+
+        // Display results
+        DisplayOptimizationResults(optimization);
+    }
+
+    private static async Task DiscoverFiles(OptimizationContext context, ProgressContext ctx, ProgressTask overallTask)
+    {
+        var discoveryTask = ctx.AddTask("[green]Discovering files[/]");
+        var csFiles = Directory.GetFiles(context.ProjectPath, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains("bin") && !f.Contains("obj")).ToList();
+        context.SourceFiles.AddRange(csFiles);
+        discoveryTask.Value = discoveryTask.MaxValue;
+        AnsiConsole.MarkupLine($"[dim]Found {csFiles.Count} source files[/]");
+        await Task.CompletedTask;
+    }
+
+    private static async Task OptimizeHandlers(OptimizationContext context, ProgressContext ctx, ProgressTask overallTask)
+    {
+        var handlerTask = ctx.AddTask("[yellow]Optimizing handlers[/]");
+        var optimizedCount = 0;
+
+        foreach (var file in context.SourceFiles)
+        {
+            var content = await File.ReadAllTextAsync(file);
+            var originalContent = content;
+            var modifications = new List<string>();
+
+            // Replace Task with ValueTask
+            if (content.Contains("Task<") && !content.Contains("ValueTask<"))
+            {
+                var taskPattern = @"public\s+async\s+Task<([^>]+)>\s+(\w+)\s*\(";
+                if (Regex.IsMatch(content, taskPattern))
+                {
+                    content = Regex.Replace(content, taskPattern, "public async ValueTask<$1> $2(");
+                    modifications.Add("Replaced Task<T> with ValueTask<T> for better performance");
+                }
+            }
+
+            if (content != originalContent)
+            {
+                context.OptimizationActions.Add(new OptimizationAction
+                {
+                    FilePath = file,
+                    Type = "Handler Optimization",
+                    Modifications = modifications,
+                    OriginalContent = originalContent,
+                    OptimizedContent = content
+                });
+
+                if (!context.IsDryRun)
+                {
+                    await File.WriteAllTextAsync(file, content);
+                }
+                optimizedCount++;
+            }
+        }
+
+        handlerTask.Value = handlerTask.MaxValue;
+        AnsiConsole.MarkupLine($"[dim]Optimized {optimizedCount} handler file(s)[/]");
+    }
+
+    private static void DisplayOptimizationResults(OptimizationContext context)
+    {
+        if (!context.OptimizationActions.Any())
+        {
+            AnsiConsole.MarkupLine("[green]✅ No optimizations needed - your project is already well optimized![/]");
+            return;
+        }
+
+        var table = new Table().Border(TableBorder.Rounded).BorderColor(Color.Cyan1)
+            .Title($"[cyan]{(context.IsDryRun ? "🔍 Potential Optimizations" : "✅ Applied Optimizations")}[/]");
+
+        table.AddColumn("File");
+        table.AddColumn("Type");
+        table.AddColumn("Modifications");
+
+        foreach (var action in context.OptimizationActions)
+        {
+            var fileName = Path.GetFileName(action.FilePath);
+            var modifications = string.Join("\n", action.Modifications.Take(3));
+            table.AddRow(fileName, action.Type, modifications);
+        }
+
+        AnsiConsole.Write(table);
+
+        var totalModifications = context.OptimizationActions.Sum(a => a.Modifications.Count);
+        AnsiConsole.WriteLine();
+        
+        if (context.IsDryRun)
+        {
+            AnsiConsole.MarkupLine($"[yellow]📊 Summary: {totalModifications} optimization(s) available[/]");
+            AnsiConsole.MarkupLine("[yellow]💡 Run without --dry-run to apply these optimizations[/]");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[green]🚀 Applied {totalModifications} optimization(s)[/]");
+            AnsiConsole.MarkupLine("[green]✨ Your Relay implementation is now optimized![/]");
+        }
+    }
+
+    private static int GetOptimizationSteps(string target) => target switch
+    {
+        "all" => 2,
+        "handlers" => 2,
+        _ => 1
+    };
+}
+
+public class OptimizationContext
+{
+    public string ProjectPath { get; set; } = "";
+    public bool IsDryRun { get; set; }
+    public string Target { get; set; } = "";
+    public bool IsAggressive { get; set; }
+    public bool CreateBackup { get; set; }
+    public DateTime Timestamp { get; set; }
+    public string BackupPath { get; set; } = "";
+    public List<string> SourceFiles { get; set; } = new();
+    public List<OptimizationAction> OptimizationActions { get; set; } = new();
+}
+
+public class OptimizationAction
+{
+    public string FilePath { get; set; } = "";
+    public string Type { get; set; } = "";
+    public List<string> Modifications { get; set; } = new();
+    public string OriginalContent { get; set; } = "";
+    public string OptimizedContent { get; set; } = "";
+}

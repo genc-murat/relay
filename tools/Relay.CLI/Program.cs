@@ -24,6 +24,7 @@ class Program
         rootCommand.AddCommand(ValidateCommand.Create());
         rootCommand.AddCommand(GenerateCommand.Create());
         rootCommand.AddCommand(PerformanceCommand.Create());
+        rootCommand.AddCommand(AICommand.CreateCommand()); // 🤖 AI-Powered Features
 
         try
         {
@@ -44,8 +45,8 @@ class Program
 
         AnsiConsole.Write(banner);
         
-        AnsiConsole.MarkupLine("[cyan]Ultra High-Performance Mediator Framework Developer Tools[/]");
-        AnsiConsole.MarkupLine("[dim]Version 2.0.0 - Enterprise Edition[/]");
+        AnsiConsole.MarkupLine("[cyan]🤖 Ultra High-Performance Mediator Framework Developer Tools - Now with AI![/]");
+        AnsiConsole.MarkupLine("[dim]Version 2.0.0 - Enterprise Edition with AI Optimization Engine[/]");
         AnsiConsole.WriteLine();
     }
 }

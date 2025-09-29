@@ -9,6 +9,9 @@ on:
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Set invariant culture to ensure consistent test behavior across platforms
+  DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: true
+  LC_ALL: C
 
 jobs:
   build-and-test:

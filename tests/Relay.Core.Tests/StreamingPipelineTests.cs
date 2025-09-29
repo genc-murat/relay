@@ -65,7 +65,8 @@ namespace Relay.Core.Tests
             {
                 await foreach (var item in next().WithCancellation(cancellationToken))
                 {
-                    yield return item.ToUpper();
+                    // Use culture-invariant uppercase to ensure consistent behavior across platforms
+                    yield return item.ToUpperInvariant();
                 }
             }
         }
@@ -419,7 +420,10 @@ namespace Relay.Core.Tests
             // Transform should uppercase
             // Logging should add prefix
             Assert.Equal(3, results.Count);
-            Assert.All(results, item => Assert.StartsWith("[Logged] İTEM", item));
+            
+            // Use culture-invariant comparison to handle "item" -> "ITEM" vs "İTEM" differences
+            var expectedPrefix = "[Logged] " + "item".ToUpperInvariant();
+            Assert.All(results, item => Assert.StartsWith(expectedPrefix, item));
         }
     }
 }

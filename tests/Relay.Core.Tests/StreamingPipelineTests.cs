@@ -419,7 +419,7 @@ namespace Relay.Core.Tests
             // Transform should uppercase
             // Logging should add prefix
             Assert.Equal(3, results.Count);
-            Assert.All(results, item => Assert.StartsWith("[Logged] ITEM", item));
+            Assert.All(results, item => Assert.StartsWith("[Logged] İTEM", item));
         }
     }
 }

@@ -33,8 +33,33 @@ public static class RelayConfiguration
         // Add our application services
         services.AddSingleton<DataService>();
         
-        // All handlers are now in RequestHandlers.cs - no need to register handlers here
-        // since they implement IRequestHandler<,> and INotificationHandler<> interfaces
+        // Register all request handlers with their interface mappings for proper dependency injection
+        services.AddTransient<IRequestHandler<GetUserQuery, User?>, ComprehensiveRelayAPI.Handlers.GetUserQueryHandler>();
+        services.AddTransient<IRequestHandler<GetUsersQuery, PagedResponse<User>>, ComprehensiveRelayAPI.Handlers.GetUsersQueryHandler>();
+        services.AddTransient<IRequestHandler<CreateUserCommand, User>, ComprehensiveRelayAPI.Handlers.CreateUserCommandHandler>();
+        services.AddTransient<IRequestHandler<UpdateUserCommand, User?>, ComprehensiveRelayAPI.Handlers.UpdateUserCommandHandler>();
+        services.AddTransient<IRequestHandler<DeleteUserCommand, bool>, ComprehensiveRelayAPI.Handlers.DeleteUserCommandHandler>();
+        services.AddTransient<IStreamHandler<GetUserActivityStream, string>, ComprehensiveRelayAPI.Handlers.GetUserActivityStreamHandler>();
+        
+        // Register product handlers
+        services.AddTransient<IRequestHandler<GetProductQuery, Product?>, ComprehensiveRelayAPI.Handlers.GetProductQueryHandler>();
+        services.AddTransient<IRequestHandler<GetProductsQuery, PagedResponse<Product>>, ComprehensiveRelayAPI.Handlers.GetProductsQueryHandler>();
+        services.AddTransient<IRequestHandler<CreateProductCommand, Product>, ComprehensiveRelayAPI.Handlers.CreateProductCommandHandler>();
+        services.AddTransient<IRequestHandler<UpdateProductStockCommand, Product?>, ComprehensiveRelayAPI.Handlers.UpdateProductStockCommandHandler>();
+        
+        // Register order handlers
+        services.AddTransient<IRequestHandler<GetOrderQuery, Order?>, ComprehensiveRelayAPI.Handlers.GetOrderQueryHandler>();
+        services.AddTransient<IRequestHandler<GetUserOrdersQuery, PagedResponse<Order>>, ComprehensiveRelayAPI.Handlers.GetUserOrdersQueryHandler>();
+        services.AddTransient<IRequestHandler<CreateOrderCommand, Order>, ComprehensiveRelayAPI.Handlers.CreateOrderCommandHandler>();
+        services.AddTransient<IRequestHandler<UpdateOrderStatusCommand, Order?>, ComprehensiveRelayAPI.Handlers.UpdateOrderStatusCommandHandler>();
+        
+        // Register notification handlers
+        services.AddTransient<INotificationHandler<UserCreatedNotification>, ComprehensiveRelayAPI.Handlers.UserCreatedEmailHandler>();
+        services.AddTransient<INotificationHandler<UserCreatedNotification>, ComprehensiveRelayAPI.Handlers.UserCreatedAnalyticsHandler>();
+        services.AddTransient<INotificationHandler<UserCreatedNotification>, ComprehensiveRelayAPI.Handlers.UserCreatedAuditHandler>();
+        services.AddTransient<INotificationHandler<OrderCreatedNotification>, ComprehensiveRelayAPI.Handlers.OrderCreatedInventoryHandler>();
+        services.AddTransient<INotificationHandler<OrderCreatedNotification>, ComprehensiveRelayAPI.Handlers.OrderCreatedPaymentHandler>();
+        services.AddTransient<INotificationHandler<OrderCreatedNotification>, ComprehensiveRelayAPI.Handlers.OrderCreatedEmailHandler>();
         
         // Add pipeline behaviors
         services.AddScoped<ValidationPipeline>();

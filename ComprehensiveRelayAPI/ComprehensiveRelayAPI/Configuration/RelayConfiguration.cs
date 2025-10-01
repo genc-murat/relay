@@ -4,6 +4,7 @@ using ComprehensiveRelayAPI.Requests;
 using ComprehensiveRelayAPI.Services;
 using FluentValidation;
 using Microsoft.Extensions.Caching.Memory;
+using Relay;
 using Relay.Core;
 using Serilog;
 using System.Diagnostics;
@@ -17,15 +18,12 @@ namespace ComprehensiveRelayAPI.Configuration;
 public static class RelayConfiguration
 {
     /// <summary>
-    /// Configure all Relay services and dependencies
+    /// Configure all Relay services with auto-generated handler registration
     /// </summary>
     public static IServiceCollection AddComprehensiveRelay(this IServiceCollection services, IConfiguration configuration)
     {
-        // Add core Relay services manually (temporary implementation)
-        services.AddTransient<IRelay, RelayImplementation>();
-        services.AddTransient<IRequestDispatcher, FallbackRequestDispatcher>();
-        services.AddTransient<IStreamDispatcher, StreamDispatcher>();
-        services.AddTransient<INotificationDispatcher, NotificationDispatcher>();
+        // 🚀 SINGLE LINE SETUP - All handlers auto-registered by source generator!
+        services.AddRelay();
         
         // Add memory cache for caching pipeline
         services.AddMemoryCache();
@@ -33,35 +31,7 @@ public static class RelayConfiguration
         // Add our application services
         services.AddSingleton<DataService>();
         
-        // Register all request handlers with their interface mappings for proper dependency injection
-        services.AddTransient<IRequestHandler<GetUserQuery, User?>, ComprehensiveRelayAPI.Handlers.GetUserQueryHandler>();
-        services.AddTransient<IRequestHandler<GetUsersQuery, PagedResponse<User>>, ComprehensiveRelayAPI.Handlers.GetUsersQueryHandler>();
-        services.AddTransient<IRequestHandler<CreateUserCommand, User>, ComprehensiveRelayAPI.Handlers.CreateUserCommandHandler>();
-        services.AddTransient<IRequestHandler<UpdateUserCommand, User?>, ComprehensiveRelayAPI.Handlers.UpdateUserCommandHandler>();
-        services.AddTransient<IRequestHandler<DeleteUserCommand, bool>, ComprehensiveRelayAPI.Handlers.DeleteUserCommandHandler>();
-        services.AddTransient<IStreamHandler<GetUserActivityStream, string>, ComprehensiveRelayAPI.Handlers.GetUserActivityStreamHandler>();
-        
-        // Register product handlers
-        services.AddTransient<IRequestHandler<GetProductQuery, Product?>, ComprehensiveRelayAPI.Handlers.GetProductQueryHandler>();
-        services.AddTransient<IRequestHandler<GetProductsQuery, PagedResponse<Product>>, ComprehensiveRelayAPI.Handlers.GetProductsQueryHandler>();
-        services.AddTransient<IRequestHandler<CreateProductCommand, Product>, ComprehensiveRelayAPI.Handlers.CreateProductCommandHandler>();
-        services.AddTransient<IRequestHandler<UpdateProductStockCommand, Product?>, ComprehensiveRelayAPI.Handlers.UpdateProductStockCommandHandler>();
-        
-        // Register order handlers
-        services.AddTransient<IRequestHandler<GetOrderQuery, Order?>, ComprehensiveRelayAPI.Handlers.GetOrderQueryHandler>();
-        services.AddTransient<IRequestHandler<GetUserOrdersQuery, PagedResponse<Order>>, ComprehensiveRelayAPI.Handlers.GetUserOrdersQueryHandler>();
-        services.AddTransient<IRequestHandler<CreateOrderCommand, Order>, ComprehensiveRelayAPI.Handlers.CreateOrderCommandHandler>();
-        services.AddTransient<IRequestHandler<UpdateOrderStatusCommand, Order?>, ComprehensiveRelayAPI.Handlers.UpdateOrderStatusCommandHandler>();
-        
-        // Register notification handlers
-        services.AddTransient<INotificationHandler<UserCreatedNotification>, ComprehensiveRelayAPI.Handlers.UserCreatedEmailHandler>();
-        services.AddTransient<INotificationHandler<UserCreatedNotification>, ComprehensiveRelayAPI.Handlers.UserCreatedAnalyticsHandler>();
-        services.AddTransient<INotificationHandler<UserCreatedNotification>, ComprehensiveRelayAPI.Handlers.UserCreatedAuditHandler>();
-        services.AddTransient<INotificationHandler<OrderCreatedNotification>, ComprehensiveRelayAPI.Handlers.OrderCreatedInventoryHandler>();
-        services.AddTransient<INotificationHandler<OrderCreatedNotification>, ComprehensiveRelayAPI.Handlers.OrderCreatedPaymentHandler>();
-        services.AddTransient<INotificationHandler<OrderCreatedNotification>, ComprehensiveRelayAPI.Handlers.OrderCreatedEmailHandler>();
-        
-        // Add pipeline behaviors
+        // Add pipeline behaviors (these are not auto-discovered yet, need manual registration)
         services.AddScoped<ValidationPipeline>();
         services.AddScoped<LoggingPipeline>();
         services.AddScoped<CachingPipeline>();
@@ -73,7 +43,7 @@ public static class RelayConfiguration
         services.AddScoped<IValidator<CreateProductCommand>, CreateProductCommandValidator>();
         services.AddScoped<IValidator<CreateOrderCommand>, CreateOrderCommandValidator>();
         
-        // Configure health checks
+        // Configure health checks with enhanced Relay monitoring
         services.AddHealthChecks()
             .AddCheck<RelayHealthCheck>("relay")
             .AddCheck("memory", () => 
@@ -82,14 +52,31 @@ public static class RelayConfiguration
                 return memory < 100_000_000 ? 
                     Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy($"Memory usage: {memory:N0} bytes") :
                     Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Degraded($"High memory usage: {memory:N0} bytes");
+            })
+            .AddCheck("handlers", () =>
+            {
+                // Check if source generator worked correctly
+                var serviceProvider = services.BuildServiceProvider();
+                var userHandler = serviceProvider.GetService<IRequestHandler<GetUserQuery, User?>>();
+                var productHandler = serviceProvider.GetService<IRequestHandler<GetProductsQuery, PagedResponse<Product>>>();
+                
+                if (userHandler == null || productHandler == null)
+                {
+                    return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy(
+                        "Source generator failed to register handlers");
+                }
+                
+                return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy(
+                    "All handlers registered successfully by source generator");
             });
         
-        // Configure OpenTelemetry for observability
+        // Configure OpenTelemetry for enhanced observability
         services.AddOpenTelemetry()
             .WithTracing(tracing =>
             {
                 tracing.AddAspNetCoreInstrumentation()
-                       .AddSource("ComprehensiveRelayAPI");
+                       .AddSource("ComprehensiveRelayAPI")
+                       .AddSource("Relay.Generated"); // Add generated dispatcher tracing
             });
         
         return services;

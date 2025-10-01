@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Relay\Relay.csproj" />
     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj" />
+    <ProjectReference Include="..\..\src\Relay.SourceGenerator\Relay.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

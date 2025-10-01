@@ -30,366 +30,356 @@ namespace Relay.SourceGenerator
                 // Debugger.Launch();
             }
 
-            // Create pipeline for method declarations with attributes
-            var methodDeclarations = context.SyntaxProvider
+            // Create pipeline for class declarations that implement handler interfaces
+            var handlerClasses = context.SyntaxProvider
                 .CreateSyntaxProvider(
-                    predicate: static (s, _) => IsCandidateMethodSyntax(s),
-                    transform: static (ctx, _) => GetSemanticTargetForGeneration(ctx))
-                .Where(static m => m is not null);
+                    predicate: static (s, _) => IsCandidateHandlerClass(s),
+                    transform: static (ctx, _) => GetSemanticHandlerInfo(ctx))
+                .Where(static h => h is not null);
 
             // Create pipeline for compilation data
-            var compilationAndMethods = context.CompilationProvider.Combine(methodDeclarations.Collect());
+            var compilationAndHandlers = context.CompilationProvider.Combine(handlerClasses.Collect());
 
             // Register source output
-            context.RegisterSourceOutput(compilationAndMethods, Execute);
+            context.RegisterSourceOutput(compilationAndHandlers, Execute);
         }
 
-        private static bool IsCandidateMethodSyntax(SyntaxNode node)
+        private static bool IsCandidateHandlerClass(SyntaxNode node)
         {
-            return node is MethodDeclarationSyntax { AttributeLists.Count: > 0 } method &&
-                   method.AttributeLists
-                       .SelectMany(al => al.Attributes)
-                       .Any(attr => IsRelayAttribute(attr.Name.ToString()));
-        }
-
-        private static MethodDeclarationSyntax? GetSemanticTargetForGeneration(GeneratorSyntaxContext context)
-        {
-            var methodDeclaration = (MethodDeclarationSyntax)context.Node;
-
-            // Additional semantic filtering can be done here if needed
-            foreach (var attributeList in methodDeclaration.AttributeLists)
+            // Look for class declarations that might implement handler interfaces
+            if (node is ClassDeclarationSyntax classDecl)
             {
-                foreach (var attribute in attributeList.Attributes)
+                // Check if class has base list (implements interfaces)
+                if (classDecl.BaseList?.Types.Count > 0)
                 {
-                    if (context.SemanticModel.GetSymbolInfo(attribute).Symbol is IMethodSymbol attributeSymbol)
-                    {
-                        var attributeContainingTypeSymbol = attributeSymbol.ContainingType;
-                        var fullName = attributeContainingTypeSymbol.ToDisplayString();
+                    return classDecl.BaseList.Types
+                        .Any(baseType => IsHandlerInterface(baseType.Type.ToString()));
+                }
+            }
+            return false;
+        }
 
-                        if (IsRelayAttributeFullName(fullName))
-                        {
-                            return methodDeclaration;
-                        }
-                    }
+        private static bool IsHandlerInterface(string typeName)
+        {
+            return typeName.Contains("IRequestHandler") ||
+                   typeName.Contains("INotificationHandler") ||
+                   typeName.Contains("IStreamHandler");
+        }
+
+        private static HandlerClassInfo? GetSemanticHandlerInfo(GeneratorSyntaxContext context)
+        {
+            var classDeclaration = (ClassDeclarationSyntax)context.Node;
+            
+            if (context.SemanticModel.GetDeclaredSymbol(classDeclaration) is not INamedTypeSymbol classSymbol)
+                return null;
+
+            var handlerInfo = new HandlerClassInfo
+            {
+                ClassDeclaration = classDeclaration,
+                ClassSymbol = classSymbol,
+                ImplementedInterfaces = new List<HandlerInterfaceInfo>()
+            };
+
+            // Analyze implemented interfaces
+            foreach (var interfaceSymbol in classSymbol.AllInterfaces)
+            {
+                var interfaceName = interfaceSymbol.ToDisplayString();
+                
+                if (IsRequestHandlerInterface(interfaceSymbol))
+                {
+                    var genericArgs = interfaceSymbol.TypeArguments;
+                    handlerInfo.ImplementedInterfaces.Add(new HandlerInterfaceInfo
+                    {
+                        InterfaceType = HandlerType.Request,
+                        InterfaceSymbol = interfaceSymbol,
+                        RequestType = genericArgs.Length > 0 ? genericArgs[0] : null,
+                        ResponseType = genericArgs.Length > 1 ? genericArgs[1] : null
+                    });
+                }
+                else if (IsNotificationHandlerInterface(interfaceSymbol))
+                {
+                    var genericArgs = interfaceSymbol.TypeArguments;
+                    handlerInfo.ImplementedInterfaces.Add(new HandlerInterfaceInfo
+                    {
+                        InterfaceType = HandlerType.Notification,
+                        InterfaceSymbol = interfaceSymbol,
+                        RequestType = genericArgs.Length > 0 ? genericArgs[0] : null
+                    });
+                }
+                else if (IsStreamHandlerInterface(interfaceSymbol))
+                {
+                    var genericArgs = interfaceSymbol.TypeArguments;
+                    handlerInfo.ImplementedInterfaces.Add(new HandlerInterfaceInfo
+                    {
+                        InterfaceType = HandlerType.Stream,
+                        InterfaceSymbol = interfaceSymbol,
+                        RequestType = genericArgs.Length > 0 ? genericArgs[0] : null,
+                        ResponseType = genericArgs.Length > 1 ? genericArgs[1] : null
+                    });
                 }
             }
 
-            return null;
+            return handlerInfo.ImplementedInterfaces.Count > 0 ? handlerInfo : null;
         }
 
-        private static void Execute(SourceProductionContext context, (Compilation Left, ImmutableArray<MethodDeclarationSyntax?> Right) source)
+        private static bool IsRequestHandlerInterface(INamedTypeSymbol interfaceSymbol)
+        {
+            var fullName = interfaceSymbol.ToDisplayString();
+            return fullName.StartsWith("Relay.Core.IRequestHandler<") ||
+                   (interfaceSymbol.Name == "IRequestHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core");
+        }
+
+        private static bool IsNotificationHandlerInterface(INamedTypeSymbol interfaceSymbol)
+        {
+            var fullName = interfaceSymbol.ToDisplayString();
+            return fullName.StartsWith("Relay.Core.INotificationHandler<") ||
+                   (interfaceSymbol.Name == "INotificationHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core");
+        }
+
+        private static bool IsStreamHandlerInterface(INamedTypeSymbol interfaceSymbol)
+        {
+            var fullName = interfaceSymbol.ToDisplayString();
+            return fullName.StartsWith("Relay.Core.IStreamHandler<") ||
+                   (interfaceSymbol.Name == "IStreamHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core");
+        }
+
+        private static void Execute(SourceProductionContext context, (Compilation Left, ImmutableArray<HandlerClassInfo?> Right) source)
         {
             try
             {
-                var (compilation, methods) = source;
+                var (compilation, handlerClasses) = source;
                 
-                // Create compilation context
-                var compilationContext = new RelayCompilationContext(compilation, CancellationToken.None);
-
-                // Check if Relay.Core is referenced
-                if (!compilationContext.HasRelayCoreReference())
+                var validHandlers = handlerClasses.Where(h => h != null).ToList();
+                
+                if (validHandlers.Count == 0)
                 {
-                    context.ReportDiagnostic(
-                        Diagnostic.Create(
-                            DiagnosticDescriptors.MissingRelayCoreReference,
-                            Location.None));
+                    // No handlers found, generate basic AddRelay method
+                    GenerateBasicAddRelayMethod(context);
                     return;
                 }
 
-                var candidateMethods = methods.Where(m => m != null).ToList();
+                // Generate DI registration
+                GenerateDIRegistrations(context, validHandlers);
 
-                // If we have candidate methods (even if not valid handlers), generate marker file for testing
-                bool shouldGenerateMarker = candidateMethods.Count > 0;
+                // Generate optimized dispatchers
+                GenerateOptimizedDispatchers(context, validHandlers);
 
-                if (candidateMethods.Count == 0)
-                {
-                    return; // No methods found, nothing to generate
-                }
-
-                // Discover and validate handlers
-                var discoveryEngine = new HandlerDiscoveryEngine(compilationContext);
-                var diagnosticReporter = new SourceOutputDiagnosticReporter(context);
-                var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
-
-                // Generate marker file if we have candidate methods (for testing)
-                if (shouldGenerateMarker)
-                {
-                    GenerateMarkerFile(context, compilationContext);
-                }
-
-                // Generate handler registry and other content only if we have valid handlers
-                if (discoveryResult.Handlers.Count > 0)
-                {
-                    GenerateHandlerRegistry(context, compilationContext, discoveryResult);
-                    GenerateOptimizedDispatcher(context, compilationContext, discoveryResult);
-                    GenerateNotificationDispatcher(context, compilationContext, discoveryResult);
-                    GeneratePipelineRegistry(context, compilationContext, discoveryResult);
-                    GenerateEndpointMetadata(context, compilationContext, discoveryResult);
-                    GenerateDIRegistrations(context, compilationContext, discoveryResult);
-                    GeneratePerformanceOptimizations(context, compilationContext, discoveryResult);
-                }
             }
             catch (Exception ex)
             {
-                // Report exception as diagnostic
-                var descriptor = new DiagnosticDescriptor(
-                    "RELAY_GEN_ERROR",
-                    "Generator Exception",
-                    "An exception occurred during source generation: {0}",
-                    "Generator",
-                    DiagnosticSeverity.Error,
-                    isEnabledByDefault: true);
-
                 context.ReportDiagnostic(
-                    Diagnostic.Create(descriptor, Location.None, ex.ToString()));
+                    Diagnostic.Create(
+                        DiagnosticDescriptors.GeneratorError,
+                        Location.None,
+                        $"Source generator error: {ex.Message}"));
             }
         }
 
-        private static bool IsRelayAttribute(string attributeName)
+        private static void GenerateBasicAddRelayMethod(SourceProductionContext context)
         {
-            // Check for known Relay attributes (without the "Attribute" suffix)
-            return attributeName is "Handle" or "HandleAttribute" or
-                   "Notification" or "NotificationAttribute" or
-                   "Pipeline" or "PipelineAttribute" or
-                   "ExposeAsEndpoint" or "ExposeAsEndpointAttribute";
+            var source = GenerateBasicAddRelaySource();
+            context.AddSource("RelayRegistration.g.cs", source);
         }
 
-        private static bool IsRelayAttributeFullName(string fullName)
+        private static void GenerateDIRegistrations(SourceProductionContext context, List<HandlerClassInfo?> handlerClasses)
         {
-            return fullName.Contains("Relay.Core.HandleAttribute") ||
-                   fullName.Contains("Relay.Core.NotificationAttribute") ||
-                   fullName.Contains("Relay.Core.PipelineAttribute") ||
-                   fullName.Contains("Relay.Core.ExposeAsEndpointAttribute") ||
-                   fullName.Contains("HandleAttribute") ||
-                   fullName.Contains("NotificationAttribute") ||
-                   fullName.Contains("PipelineAttribute") ||
-                   fullName.Contains("ExposeAsEndpointAttribute");
+            var source = GenerateDIRegistrationSource(handlerClasses);
+            context.AddSource("RelayRegistration.g.cs", source);
         }
 
-        #region Generation Methods
-
-        private static void GenerateHandlerRegistry(SourceProductionContext context, RelayCompilationContext compilationContext, HandlerDiscoveryResult discoveryResult)
+        private static void GenerateOptimizedDispatchers(SourceProductionContext context, List<HandlerClassInfo?> handlerClasses)
         {
-            var registryGenerator = new HandlerRegistryGenerator(compilationContext);
-            var registrySource = registryGenerator.GenerateHandlerRegistry(discoveryResult);
-
-            context.AddSource("HandlerRegistry.g.cs", registrySource);
+            // Generate optimized request dispatcher
+            var requestDispatcherSource = GenerateOptimizedRequestDispatcher(handlerClasses);
+            context.AddSource("OptimizedRequestDispatcher.g.cs", requestDispatcherSource);
         }
 
-        private static void GenerateOptimizedDispatcher(SourceProductionContext context, RelayCompilationContext compilationContext, HandlerDiscoveryResult discoveryResult)
+        private static string GenerateBasicAddRelaySource()
         {
-            var optimizedGenerator = new OptimizedDispatcherGenerator(compilationContext);
-            var optimizedSource = optimizedGenerator.GenerateOptimizedDispatcher(discoveryResult);
+            return @"// <auto-generated />
+// Generated by Relay.SourceGenerator - No handlers found
 
-            context.AddSource("OptimizedDispatcher.g.cs", optimizedSource);
+using System;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Relay.Core;
+
+namespace Microsoft.Extensions.DependencyInjection
+{
+    /// <summary>
+    /// Extension methods for registering Relay services with the DI container.
+    /// Generated when no handlers are found.
+    /// </summary>
+    public static class GeneratedRelayExtensions
+    {
+        /// <summary>
+        /// Registers basic Relay services with the DI container (no handlers found).
+        /// </summary>
+        /// <param name=""services"">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddRelayGenerated(this IServiceCollection services)
+        {
+            // Register core Relay services
+            services.TryAddTransient<IRelay, RelayImplementation>();
+            services.TryAddTransient<IRequestDispatcher, FallbackRequestDispatcher>();
+            services.TryAddTransient<IStreamDispatcher, StreamDispatcher>();
+            services.TryAddTransient<INotificationDispatcher, NotificationDispatcher>();
+
+            return services;
+        }
+    }
+}";
         }
 
-        private static void GenerateNotificationDispatcher(SourceProductionContext context, RelayCompilationContext compilationContext, HandlerDiscoveryResult discoveryResult)
+        private static string GenerateDIRegistrationSource(List<HandlerClassInfo?> handlerClasses)
         {
-            var notificationGenerator = new NotificationDispatcherGenerator(compilationContext);
-            var notificationSource = notificationGenerator.GenerateNotificationDispatcher(discoveryResult);
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("// <auto-generated />");
+            sb.AppendLine("// Generated by Relay.SourceGenerator");
+            sb.AppendLine($"// Generation time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            sb.AppendLine();
+            sb.AppendLine("using System;");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection.Extensions;");
+            sb.AppendLine("using Relay.Core;");
+            sb.AppendLine();
+            sb.AppendLine("namespace Microsoft.Extensions.DependencyInjection");
+            sb.AppendLine("{");
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// Extension methods for registering Relay services with the DI container.");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public static partial class RelayServiceCollectionExtensions");
+            sb.AppendLine("    {");
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine("        /// Registers all Relay handlers and services with the DI container.");
+            sb.AppendLine("        /// </summary>");
+            sb.AppendLine("        /// <param name=\"services\">The service collection.</param>");
+            sb.AppendLine("        /// <returns>The service collection for chaining.</returns>");
+            sb.AppendLine("        public static IServiceCollection AddRelay(this IServiceCollection services)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            // Register core Relay services");
+            sb.AppendLine("            services.TryAddTransient<IRelay, RelayImplementation>();");
+            sb.AppendLine("            services.TryAddTransient<IRequestDispatcher, FallbackRequestDispatcher>();");
+            sb.AppendLine("            services.TryAddTransient<IStreamDispatcher, StreamDispatcher>();");
+            sb.AppendLine("            services.TryAddTransient<INotificationDispatcher, NotificationDispatcher>();");
+            sb.AppendLine();
+            sb.AppendLine("            // Register all discovered handlers");
 
-            if (!string.IsNullOrWhiteSpace(notificationSource))
+            foreach (var handlerClass in handlerClasses.Where(h => h != null))
             {
-                context.AddSource("NotificationDispatcher.g.cs", notificationSource);
+                var className = handlerClass!.ClassSymbol.ToDisplayString();
+                
+                foreach (var interfaceInfo in handlerClass.ImplementedInterfaces)
+                {
+                    var interfaceTypeName = interfaceInfo.InterfaceSymbol.ToDisplayString();
+                    sb.AppendLine($"            services.AddTransient<{interfaceTypeName}, {className}>();");
+                }
             }
+
+            sb.AppendLine();
+            sb.AppendLine("            return services;");
+            sb.AppendLine("        }");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+
+            return sb.ToString();
         }
 
-        private static void GeneratePipelineRegistry(SourceProductionContext context, RelayCompilationContext compilationContext, HandlerDiscoveryResult discoveryResult)
+        private static string GenerateOptimizedRequestDispatcher(List<HandlerClassInfo?> handlerClasses)
         {
-            var pipelineGenerator = new PipelineRegistryGenerator(compilationContext);
-            var pipelineSource = pipelineGenerator.GeneratePipelineRegistry(discoveryResult);
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("// <auto-generated />");
+            sb.AppendLine("// Generated by Relay.SourceGenerator - Optimized Request Dispatcher");
+            sb.AppendLine();
+            sb.AppendLine("using System;");
+            sb.AppendLine("using System.Runtime.CompilerServices;");
+            sb.AppendLine("using System.Threading;");
+            sb.AppendLine("using System.Threading.Tasks;");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine("using Relay.Core;");
+            sb.AppendLine();
+            sb.AppendLine("namespace Relay.Generated");
+            sb.AppendLine("{");
+            sb.AppendLine("    /// <summary>");
+            sb.AppendLine("    /// High-performance generated request dispatcher");
+            sb.AppendLine("    /// </summary>");
+            sb.AppendLine("    public class GeneratedRequestDispatcher : BaseRequestDispatcher");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public GeneratedRequestDispatcher(IServiceProvider serviceProvider) : base(serviceProvider) { }");
+            sb.AppendLine();
+            sb.AppendLine("        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+            sb.AppendLine("        public override ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            return request switch");
+            sb.AppendLine("            {");
 
-            if (!string.IsNullOrWhiteSpace(pipelineSource))
+            // Generate switch cases for each request type
+            var requestHandlers = handlerClasses
+                .Where(h => h != null)
+                .SelectMany(h => h!.ImplementedInterfaces)
+                .Where(i => i.InterfaceType == HandlerType.Request)
+                .GroupBy(i => i.RequestType?.ToDisplayString())
+                .ToList();
+
+            foreach (var group in requestHandlers)
             {
-                context.AddSource("PipelineRegistry.g.cs", pipelineSource);
-            }
-        }
+                var requestType = group.Key;
+                if (string.IsNullOrEmpty(requestType)) continue;
 
-        private static void GenerateEndpointMetadata(SourceProductionContext context, RelayCompilationContext compilationContext, HandlerDiscoveryResult discoveryResult)
-        {
-            var diagnosticReporter = new SourceProductionContextDiagnosticReporter(context);
-            var endpointGenerator = new EndpointMetadataGenerator(compilationContext.Compilation, diagnosticReporter);
-            var endpointSource = endpointGenerator.GenerateEndpointMetadata(discoveryResult.Handlers);
-
-            if (!string.IsNullOrWhiteSpace(endpointSource))
-            {
-                context.AddSource("EndpointMetadata.g.cs", endpointSource);
-            }
-        }
-
-        private static void GenerateDIRegistrations(SourceProductionContext context, RelayCompilationContext compilationContext, HandlerDiscoveryResult discoveryResult)
-        {
-            var diGenerator = new DIRegistrationGenerator(compilationContext);
-            var diSource = diGenerator.GenerateDIRegistrations(discoveryResult);
-
-            context.AddSource("DIRegistrations.g.cs", diSource);
-        }
-
-        private static void GeneratePerformanceOptimizations(SourceProductionContext context, RelayCompilationContext compilationContext, HandlerDiscoveryResult discoveryResult)
-        {
-            var sourceBuilder = new StringBuilder();
-            sourceBuilder.AppendLine("// <auto-generated />");
-            sourceBuilder.AppendLine("// Enhanced performance optimizations for Relay Incremental Generator");
-            sourceBuilder.AppendLine("using System;");
-            sourceBuilder.AppendLine("using System.Collections.Concurrent;");
-            sourceBuilder.AppendLine("using System.Runtime.CompilerServices;");
-            sourceBuilder.AppendLine("using System.Threading;");
-            sourceBuilder.AppendLine("using System.Threading.Tasks;");
-            sourceBuilder.AppendLine("using Microsoft.Extensions.DependencyInjection;");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine($"namespace {compilationContext.AssemblyName}.Generated");
-            sourceBuilder.AppendLine("{");
-
-            GeneratePerformanceCacheClass(sourceBuilder, discoveryResult);
-            GenerateUltraFastDispatcher(sourceBuilder, discoveryResult);
-            GenerateCompiledRelay(sourceBuilder, discoveryResult);
-
-            sourceBuilder.AppendLine("}");
-
-            context.AddSource("RelayPerformanceOptimizations.g.cs", sourceBuilder.ToString());
-        }
-
-        private static void GeneratePerformanceCacheClass(StringBuilder sourceBuilder, HandlerDiscoveryResult discoveryResult)
-        {
-            sourceBuilder.AppendLine("    /// <summary>");
-            sourceBuilder.AppendLine("    /// Ultra high-performance handler cache for Relay optimizations");
-            sourceBuilder.AppendLine("    /// </summary>");
-            sourceBuilder.AppendLine("    public static class RelayPerformanceCache");
-            sourceBuilder.AppendLine("    {");
-            sourceBuilder.AppendLine("        private static readonly ConcurrentDictionary<Type, object?> _handlerCache = new();");
-            sourceBuilder.AppendLine("        private static readonly ConcurrentDictionary<Type, Func<IServiceProvider, object>> _factoryCache = new();");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
-            sourceBuilder.AppendLine("        public static T GetOrCreateHandler<T>(IServiceProvider serviceProvider) where T : class");
-            sourceBuilder.AppendLine("        {");
-            sourceBuilder.AppendLine("            var type = typeof(T);");
-            sourceBuilder.AppendLine("            if (_handlerCache.TryGetValue(type, out var cached) && cached is T handler)");
-            sourceBuilder.AppendLine("                return handler;");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("            var serviceHandler = serviceProvider.GetRequiredService<T>();");
-            sourceBuilder.AppendLine("            _handlerCache.TryAdd(type, serviceHandler);");
-            sourceBuilder.AppendLine("            return serviceHandler;");
-            sourceBuilder.AppendLine("        }");
-            sourceBuilder.AppendLine("    }");
-            sourceBuilder.AppendLine();
-        }
-
-        private static void GenerateUltraFastDispatcher(StringBuilder sourceBuilder, HandlerDiscoveryResult discoveryResult)
-        {
-            sourceBuilder.AppendLine("    /// <summary>");
-            sourceBuilder.AppendLine("    /// Ultra-fast compile-time generated dispatcher");
-            sourceBuilder.AppendLine("    /// </summary>");
-            sourceBuilder.AppendLine("    public static class UltraFastDispatcher");
-            sourceBuilder.AppendLine("    {");
-
-            // Generate specific dispatch methods for each discovered handler
-            foreach (var handler in discoveryResult.Handlers.Take(10)) // Limit to prevent huge files
-            {
-                var requestType = handler.RequestType?.Name ?? "UnknownRequest";
-                var responseType = handler.ResponseType?.Name ?? "UnknownResponse";
-                var handlerType = handler.HandlerType?.Name ?? "UnknownHandler";
-                var methodName = handler.MethodName ?? "Handle";
-
-                sourceBuilder.AppendLine($"        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
-                sourceBuilder.AppendLine($"        public static ValueTask<{responseType}> Dispatch{requestType}(");
-                sourceBuilder.AppendLine($"            {requestType} request, {handlerType} handler, CancellationToken cancellationToken)");
-                sourceBuilder.AppendLine($"        {{");
-                sourceBuilder.AppendLine($"            return handler.{methodName}(request, cancellationToken);");
-                sourceBuilder.AppendLine($"        }}");
-                sourceBuilder.AppendLine();
+                var handlerInterface = group.First();
+                var responseType = handlerInterface.ResponseType?.ToDisplayString() ?? "object";
+                
+                sb.AppendLine($"                {requestType} req when request is {requestType} => ");
+                sb.AppendLine($"                    (ValueTask<TResponse>)(object)ServiceProvider.GetRequiredService<IRequestHandler<{requestType}, {responseType}>>().HandleAsync(req, cancellationToken),");
             }
 
-            sourceBuilder.AppendLine("    }");
-            sourceBuilder.AppendLine();
+            sb.AppendLine("                _ => ValueTask.FromException<TResponse>(new HandlerNotFoundException(request.GetType().Name))");
+            sb.AppendLine("            };");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        public override ValueTask DispatchAsync(IRequest request, CancellationToken cancellationToken)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            throw new NotImplementedException(\"Void requests not yet supported in generated dispatcher\");");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        public override ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            throw new NotImplementedException(\"Named handlers not yet supported in generated dispatcher\");");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        public override ValueTask DispatchAsync(IRequest request, string handlerName, CancellationToken cancellationToken)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            throw new NotImplementedException(\"Named handlers not yet supported in generated dispatcher\");");
+            sb.AppendLine("        }");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+
+            return sb.ToString();
         }
-
-        private static void GenerateCompiledRelay(StringBuilder sourceBuilder, HandlerDiscoveryResult discoveryResult)
-        {
-            sourceBuilder.AppendLine("    /// <summary>");
-            sourceBuilder.AppendLine("    /// Compile-time optimized relay implementation");
-            sourceBuilder.AppendLine("    /// </summary>");
-            sourceBuilder.AppendLine("    public sealed class CompiledRelay : Relay.Core.IRelay");
-            sourceBuilder.AppendLine("    {");
-            sourceBuilder.AppendLine("        private readonly IServiceProvider _serviceProvider;");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("        public CompiledRelay(IServiceProvider serviceProvider)");
-            sourceBuilder.AppendLine("        {");
-            sourceBuilder.AppendLine("            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));");
-            sourceBuilder.AppendLine("        }");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
-            sourceBuilder.AppendLine("        public ValueTask<TResponse> SendAsync<TResponse>(Relay.Core.IRequest<TResponse> request, CancellationToken cancellationToken = default)");
-            sourceBuilder.AppendLine("        {");
-            sourceBuilder.AppendLine("            ArgumentNullException.ThrowIfNull(request);");
-            sourceBuilder.AppendLine("            // Fast-path dispatch implementation would go here");
-            sourceBuilder.AppendLine("            throw new NotImplementedException(\"Ultra-fast dispatch coming soon\");");
-            sourceBuilder.AppendLine("        }");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("        public ValueTask SendAsync(Relay.Core.IRequest request, CancellationToken cancellationToken = default)");
-            sourceBuilder.AppendLine("        {");
-            sourceBuilder.AppendLine("            throw new NotImplementedException(\"Void requests not implemented in compiled relay\");");
-            sourceBuilder.AppendLine("        }");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("        public IAsyncEnumerable<TResponse> StreamAsync<TResponse>(Relay.Core.IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)");
-            sourceBuilder.AppendLine("        {");
-            sourceBuilder.AppendLine("            throw new NotImplementedException(\"Streaming not implemented in compiled relay\");");
-            sourceBuilder.AppendLine("        }");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("        public ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default)");
-            sourceBuilder.AppendLine("            where TNotification : Relay.Core.INotification");
-            sourceBuilder.AppendLine("        {");
-            sourceBuilder.AppendLine("            ArgumentNullException.ThrowIfNull(notification);");
-            sourceBuilder.AppendLine("            return ValueTask.CompletedTask;");
-            sourceBuilder.AppendLine("        }");
-            sourceBuilder.AppendLine("    }");
-        }
-
-        private static void GenerateMarkerFile(SourceProductionContext context, RelayCompilationContext compilationContext)
-        {
-            var sourceBuilder = new StringBuilder();
-            sourceBuilder.AppendLine("// <auto-generated />");
-            sourceBuilder.AppendLine($"// Generated by {GeneratorName} v{GeneratorVersion}");
-            sourceBuilder.AppendLine($"// Generation time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
-            sourceBuilder.AppendLine();
-            sourceBuilder.AppendLine("namespace Relay.Generated");
-            sourceBuilder.AppendLine("{");
-            sourceBuilder.AppendLine("    /// <summary>");
-            sourceBuilder.AppendLine("    /// Marker class to verify incremental source generator execution.");
-            sourceBuilder.AppendLine("    /// </summary>");
-            sourceBuilder.AppendLine("    internal static class RelayIncrementalGeneratorMarker");
-            sourceBuilder.AppendLine("    {");
-            sourceBuilder.AppendLine($"        public const string GeneratorName = \"{GeneratorName}\";");
-            sourceBuilder.AppendLine($"        public const string GeneratorVersion = \"{GeneratorVersion}\";");
-            sourceBuilder.AppendLine($"        public const string AssemblyName = \"{compilationContext.AssemblyName}\";");
-            sourceBuilder.AppendLine("        public const bool IncrementalGeneration = true;");
-            sourceBuilder.AppendLine("        public const bool OptimizationsEnabled = true;");
-            sourceBuilder.AppendLine("        public const bool ValueTaskOptimized = true;");
-            sourceBuilder.AppendLine("        public const bool DirectCallsEnabled = true;");
-            sourceBuilder.AppendLine("    }");
-            sourceBuilder.AppendLine("}");
-
-            context.AddSource("RelayGeneratorMarker.g.cs", sourceBuilder.ToString());
-        }
-
-        #endregion
     }
 
-    /// <summary>
-    /// Diagnostic reporter adapter for SourceProductionContext.
-    /// </summary>
-    public class SourceProductionContextDiagnosticReporter : IDiagnosticReporter
+    // Supporting classes
+    public class HandlerClassInfo
     {
-        private readonly SourceProductionContext _context;
+        public ClassDeclarationSyntax? ClassDeclaration { get; set; }
+        public INamedTypeSymbol? ClassSymbol { get; set; }
+        public List<HandlerInterfaceInfo> ImplementedInterfaces { get; set; } = new();
+    }
 
-        public SourceProductionContextDiagnosticReporter(SourceProductionContext context)
-        {
-            _context = context;
-        }
+    public class HandlerInterfaceInfo
+    {
+        public HandlerType InterfaceType { get; set; }
+        public INamedTypeSymbol? InterfaceSymbol { get; set; }
+        public ITypeSymbol? RequestType { get; set; }
+        public ITypeSymbol? ResponseType { get; set; }
+    }
 
-        public void ReportDiagnostic(Diagnostic diagnostic)
-        {
-            _context.ReportDiagnostic(diagnostic);
-        }
+    public enum HandlerType
+    {
+        Request,
+        Notification,
+        Stream
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Relay.Core.Configuration
@@ -17,8 +18,9 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayConfiguration(this IServiceCollection services)
         {
-            services.Configure<RelayOptions>(options => { }); // Register default options
-            services.AddSingleton<IConfigurationResolver, ConfigurationResolver>();
+            // Use the standard options pattern
+            services.AddOptions<RelayOptions>();
+            services.TryAddSingleton<IConfigurationResolver, ConfigurationResolver>();
             return services;
         }
 

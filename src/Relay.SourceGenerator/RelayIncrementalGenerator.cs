@@ -37,11 +37,22 @@ namespace Relay.SourceGenerator
                     transform: static (ctx, _) => GetSemanticHandlerInfo(ctx))
                 .Where(static h => h is not null);
 
+            // Create pipeline for methods with Relay attributes (for missing reference detection)
+            var relayAttributeMethods = context.SyntaxProvider
+                .CreateSyntaxProvider(
+                    predicate: static (s, _) => IsMethodWithRelayAttribute(s),
+                    transform: static (ctx, _) => ctx.Node)
+                .Where(static m => m is not null);
+
             // Create pipeline for compilation data
             var compilationAndHandlers = context.CompilationProvider.Combine(handlerClasses.Collect());
+            var compilationAndAttributeMethods = context.CompilationProvider.Combine(relayAttributeMethods.Collect());
 
             // Register source output
             context.RegisterSourceOutput(compilationAndHandlers, Execute);
+            
+            // Register diagnostic output for missing reference detection
+            context.RegisterSourceOutput(compilationAndAttributeMethods, CheckForMissingRelayCoreReference);
         }
 
         private static bool IsCandidateHandlerClass(SyntaxNode node)
@@ -57,6 +68,55 @@ namespace Relay.SourceGenerator
                 }
             }
             return false;
+        }
+
+        private static bool IsMethodWithRelayAttribute(SyntaxNode node)
+        {
+            if (node is MethodDeclarationSyntax method)
+            {
+                return method.AttributeLists
+                    .SelectMany(al => al.Attributes)
+                    .Any(attr => IsRelayAttributeName(attr.Name.ToString()));
+            }
+            return false;
+        }
+
+        private static bool IsRelayAttributeName(string attributeName)
+        {
+            // Remove the "Attribute" suffix if present
+            var name = attributeName.EndsWith("Attribute") 
+                ? attributeName.Substring(0, attributeName.Length - 9) 
+                : attributeName;
+
+            return name switch
+            {
+                "Handle" => true,
+                "Notification" => true,
+                "Pipeline" => true,
+                "ExposeAsEndpoint" => true,
+                _ => false
+            };
+        }
+
+        private static void CheckForMissingRelayCoreReference(SourceProductionContext context, (Compilation Left, ImmutableArray<SyntaxNode?> Right) source)
+        {
+            var (compilation, attributeMethods) = source;
+            
+            // If there are methods with Relay attributes, check if Relay.Core is referenced
+            if (attributeMethods.Length > 0)
+            {
+                var hasRelayCoreReference = compilation.ReferencedAssemblyNames
+                    .Any(name => name.Name.Equals("Relay.Core", StringComparison.OrdinalIgnoreCase));
+
+                if (!hasRelayCoreReference)
+                {
+                    // Report missing Relay.Core reference
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            DiagnosticDescriptors.MissingRelayCoreReference,
+                            Location.None));
+                }
+            }
         }
 
         private static bool IsHandlerInterface(string typeName)

@@ -21,8 +21,8 @@ namespace Relay
             if (services == null)
                 throw new ArgumentNullException(nameof(services));
 
-            // Add core Relay services
-            services.AddRelayConfiguration();
+            // Add core Relay configuration (NOT calling AddRelayConfiguration recursively!)
+            services.Configure<RelayOptions>(options => { }); // Register default options
             services.AddTransient<IRelay, RelayImplementation>();
 
             // Register default dispatchers (will be replaced by generated ones if available)

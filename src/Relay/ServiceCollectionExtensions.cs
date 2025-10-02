@@ -30,6 +30,9 @@ namespace Relay
             services.AddTransient<IStreamDispatcher, StreamDispatcher>();
             services.AddTransient<INotificationDispatcher, NotificationDispatcher>();
 
+            // Register ServiceFactory delegate for MediatR-compatible service resolution
+            services.AddTransient<ServiceFactory>(sp => sp.GetService);
+
             return services;
         }
     }

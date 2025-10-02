@@ -163,6 +163,49 @@ services.ConfigureHandler("GetUserHandler.HandleAsync", options =>
 });
 ```
 
+### ServiceFactory Pattern (MediatR Compatible)
+
+Relay now includes the **ServiceFactory** delegate pattern for flexible, runtime service resolution - fully compatible with MediatR's approach:
+
+```csharp
+// ServiceFactory is automatically registered with AddRelay()
+public class DynamicLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+{
+    private readonly ServiceFactory _serviceFactory;
+    
+    public DynamicLoggingBehavior(ServiceFactory serviceFactory)
+    {
+        _serviceFactory = serviceFactory;
+    }
+    
+    public async ValueTask<TResponse> HandleAsync(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        // Resolve services dynamically at runtime
+        var logger = _serviceFactory.GetService<ILogger>();
+        logger?.LogInformation("Processing {RequestType}", typeof(TRequest).Name);
+        
+        return await next();
+    }
+}
+
+// Type-safe extension methods
+var logger = _serviceFactory.GetService<ILogger>();                    // Returns null if not found
+var cache = _serviceFactory.GetRequiredService<ICache>();              // Throws if not found
+var validators = _serviceFactory.GetServices<IValidator<TRequest>>(); // Gets all registered
+if (_serviceFactory.TryGetService<ICache>(out var cache)) { ... }     // Safe resolution
+```
+
+**Benefits:**
+- ✅ **MediatR Compatible**: Same delegate pattern for easy migration
+- ✅ **Type-Safe**: Extension methods eliminate casting
+- ✅ **Flexible**: Resolve services conditionally at runtime
+- ✅ **Performance**: Direct delegate invocation with minimal overhead
+
+See the [ServiceFactory Guide](docs/service-factory-guide.md) for detailed examples and best practices.
+
 ### Request Pre/Post Processors
 
 ```csharp

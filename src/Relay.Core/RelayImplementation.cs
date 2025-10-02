@@ -15,6 +15,7 @@ namespace Relay.Core
     public class RelayImplementation : IRelay
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly ServiceFactory _serviceFactory;
         private readonly IRequestDispatcher? _requestDispatcher;
         private readonly IStreamDispatcher? _streamDispatcher;
         private readonly INotificationDispatcher? _notificationDispatcher;
@@ -35,12 +36,38 @@ namespace Relay.Core
         public RelayImplementation(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            
+            // Create ServiceFactory delegate from service provider
+            _serviceFactory = serviceProvider.GetService;
 
             // Try to resolve generated dispatchers - they may not be available if no handlers are registered
             _requestDispatcher = _serviceProvider.GetService<IRequestDispatcher>();
             _streamDispatcher = _serviceProvider.GetService<IStreamDispatcher>();
             _notificationDispatcher = _serviceProvider.GetService<INotificationDispatcher>();
         }
+
+        /// <summary>
+        /// Initializes a new instance of the RelayImplementation class with an explicit ServiceFactory.
+        /// This constructor is useful for advanced scenarios or testing.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider for dependency resolution.</param>
+        /// <param name="serviceFactory">The service factory for flexible service resolution.</param>
+        public RelayImplementation(IServiceProvider serviceProvider, ServiceFactory serviceFactory)
+        {
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            _serviceFactory = serviceFactory ?? throw new ArgumentNullException(nameof(serviceFactory));
+
+            // Try to resolve generated dispatchers - they may not be available if no handlers are registered
+            _requestDispatcher = _serviceProvider.GetService<IRequestDispatcher>();
+            _streamDispatcher = _serviceProvider.GetService<IStreamDispatcher>();
+            _notificationDispatcher = _serviceProvider.GetService<INotificationDispatcher>();
+        }
+
+        /// <summary>
+        /// Gets the ServiceFactory for this Relay instance.
+        /// Allows external code to use the same service resolution mechanism.
+        /// </summary>
+        public ServiceFactory ServiceFactory => _serviceFactory;
 
         /// <inheritdoc />
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

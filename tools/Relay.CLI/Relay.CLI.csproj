@@ -3,21 +3,66 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Tool Configuration -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>relay</ToolCommandName>
-    <PackageId>Relay.CLI</PackageId>
-    <Version>2.0.0</Version>
-    <Authors>Relay Framework Contributors</Authors>
-    <Description>Command-line interface for Relay high-performance mediator framework</Description>
-    <PackageTags>relay;mediator;cli;scaffold;performance;cqrs</PackageTags>
-    <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageIcon>icon.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    
+    <!-- Performance Optimizations -->
+    <TieredCompilation>true</TieredCompilation>
+    <TieredPGO>true</TieredPGO>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
   </PropertyGroup>
 
+  <!-- Release-specific PGO Configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <OptimizationPreference>Speed</OptimizationPreference>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
+    <TieredCompilation>true</TieredCompilation>
+    <TieredPGO>true</TieredPGO>
+    <ReadyToRun>true</ReadyToRun>
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Package Metadata -->
+    <PackageId>Relay.CLI</PackageId>
+    <PackageVersion>2.0.0</PackageVersion>
+    <Title>Relay CLI - Developer Tools for High-Performance Mediator Framework</Title>
+    <Authors>Relay Framework Contributors</Authors>
+    <Company>Relay Framework</Company>
+    <Product>Relay Mediator Framework</Product>
+    <Description>Command-line interface for Relay high-performance mediator framework. Provides scaffolding, benchmarking, analysis, and optimization tools for building high-performance applications with Relay.</Description>
+    <Summary>Developer tools for scaffolding, benchmarking, and optimizing Relay applications.</Summary>
+    <PackageTags>relay;mediator;cli;scaffold;performance;cqrs;benchmark;tools;dotnet;developer-tools</PackageTags>
+    <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
+    <PackageReleaseNotes>Relay CLI tools for scaffolding, benchmarking, and optimizing Relay projects.</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    
+    <!-- Build Configuration -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <!-- Package Files -->
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <!-- Dependencies -->
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="System.Text.Json" Version="9.0.9" />
@@ -28,13 +73,9 @@
     <PackageReference Include="Spectre.Console" Version="0.49.1" />
   </ItemGroup>
 
+  <!-- Project References -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="" />
-    <None Include="icon.png" Pack="true" PackagePath="" Condition="Exists('icon.png')" />
   </ItemGroup>
 
 </Project>

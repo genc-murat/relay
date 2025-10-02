@@ -18,8 +18,11 @@
 
 ### 🛠️ **Core Features**
 - **Request/Response Pattern**: Type-safe command and query handling
-- **Notification Publishing**: Event-driven architecture support with parallel/sequential dispatch
+- **Notification Publishing**: Event-driven architecture support with configurable publishing strategies
 - **Pipeline Behaviors**: Extensible cross-cutting concerns (validation, caching, logging, etc.)
+- **Pre/Post Processors**: MediatR-compatible request pre-processing and post-processing
+- **Exception Handling**: Sophisticated exception handlers and actions for graceful error recovery
+- **Publishing Strategies**: Sequential, Parallel, and ParallelWhenAll notification dispatching
 - **Named Handlers**: Multiple implementation strategies for the same request type
 - **Streaming Support**: `IAsyncEnumerable<T>` for high-throughput scenarios
 - **Comprehensive Configuration**: Flexible options system with attribute-based overrides
@@ -27,6 +30,9 @@
 ### 🏗️ **Advanced Architecture**
 - **Configuration System**: Rich configuration with validation and attribute-based parameter overrides
 - **Pipeline Behaviors**: Built-in support for caching, authorization, validation, retry policies, and more
+- **Request Pre/Post Processors**: Execute logic before and after handlers with full MediatR compatibility
+- **Exception Management**: IRequestExceptionHandler and IRequestExceptionAction for robust error handling
+- **Notification Publishing Strategies**: Pluggable strategy pattern for controlling notification dispatch
 - **Source Generator Diagnostics**: Compile-time validation and helpful error messages
 - **Testing Framework**: Comprehensive test harness and mocking utilities
 - **Observability**: Built-in telemetry, metrics, and distributed tracing support
@@ -120,15 +126,32 @@ await _relay.PublishAsync(new UserCreated(123, "user@example.com"));
 
 ## 🔧 Advanced Configuration
 
-### Pipeline Behaviors
+### Pipeline Behaviors & Processors
 
 ```csharp
 // Add cross-cutting concerns
 services.AddRelayValidation();     // Request validation
-services.AddRelayCaching();        // Response caching  
+services.AddRelayCaching();        // Response caching
 services.AddRelayAuthorization();  // Authorization checks
 services.AddRelayRetry();          // Retry policies
 services.AddRelayRateLimiting();   // Rate limiting
+
+// NEW: Pre/Post Processors (MediatR Compatible)
+services.AddRelayPrePostProcessors();
+services.AddPreProcessor<CreateUserCommand, LoggingPreProcessor>();
+services.AddPostProcessor<CreateUserCommand, User, AuditPostProcessor>();
+
+// NEW: Exception Handlers
+services.AddRelayExceptionHandlers();
+services.AddExceptionHandler<ProcessPaymentCommand, PaymentResult, InsufficientFundsException, PaymentFailureHandler>();
+services.AddExceptionAction<ProcessPaymentCommand, PaymentException, PaymentExceptionLogger>();
+
+// NEW: Notification Publishing Strategies
+services.UseSequentialNotificationPublisher();     // Safe, ordered execution
+// OR
+services.UseParallelNotificationPublisher();       // Fast, concurrent execution
+// OR
+services.UseParallelWhenAllNotificationPublisher(continueOnException: true); // Resilient parallel execution
 
 // Configure specific handlers
 services.ConfigureHandler("GetUserHandler.HandleAsync", options =>
@@ -138,6 +161,89 @@ services.ConfigureHandler("GetUserHandler.HandleAsync", options =>
     options.EnableRetry = true;
     options.MaxRetryAttempts = 3;
 });
+```
+
+### Request Pre/Post Processors
+
+```csharp
+// Pre-processor: Runs BEFORE handler execution
+public class LoggingPreProcessor : IRequestPreProcessor<CreateUserCommand>
+{
+    public ValueTask ProcessAsync(CreateUserCommand request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Creating user: {Email}", request.Email);
+        return default;
+    }
+}
+
+// Post-processor: Runs AFTER handler completes successfully
+public class AuditPostProcessor : IRequestPostProcessor<CreateUserCommand, User>
+{
+    public ValueTask ProcessAsync(CreateUserCommand request, User response, CancellationToken cancellationToken)
+    {
+        _auditService.LogUserCreation(response.Id, request.Email);
+        return default;
+    }
+}
+```
+
+### Exception Handling
+
+```csharp
+// Exception Handler: Can suppress exceptions and return fallback responses
+public class InsufficientFundsHandler
+    : IRequestExceptionHandler<ProcessPaymentCommand, PaymentResult, InsufficientFundsException>
+{
+    public ValueTask<ExceptionHandlerResult<PaymentResult>> HandleAsync(
+        ProcessPaymentCommand request,
+        InsufficientFundsException exception,
+        CancellationToken cancellationToken)
+    {
+        // Return graceful fallback response instead of throwing
+        var result = new PaymentResult("Declined", "Insufficient funds");
+        return new ValueTask<ExceptionHandlerResult<PaymentResult>>(
+            ExceptionHandlerResult<PaymentResult>.Handle(result));
+    }
+}
+
+// Exception Action: For side effects like logging (cannot suppress exceptions)
+public class PaymentExceptionLogger : IRequestExceptionAction<ProcessPaymentCommand, PaymentException>
+{
+    public ValueTask ExecuteAsync(ProcessPaymentCommand request, PaymentException exception, CancellationToken ct)
+    {
+        _monitoring.TrackPaymentFailure(request, exception);
+        return default;
+    }
+}
+```
+
+### Notification Publishing Strategies
+
+```csharp
+// Strategy 1: Sequential (safest, ordered)
+services.UseSequentialNotificationPublisher();
+// Handlers execute one at a time: Handler1 → Handler2 → Handler3
+
+// Strategy 2: Parallel (fastest, concurrent)
+services.UseParallelNotificationPublisher();
+// All handlers run concurrently, stops on first exception
+
+// Strategy 3: ParallelWhenAll (resilient, fault-tolerant)
+services.UseParallelWhenAllNotificationPublisher(continueOnException: true);
+// All handlers run concurrently, collects all exceptions
+
+// Custom Publisher Strategy
+public class CustomPublisher : INotificationPublisher
+{
+    public async ValueTask PublishAsync<TNotification>(
+        TNotification notification,
+        IEnumerable<INotificationHandler<TNotification>> handlers,
+        CancellationToken cancellationToken)
+    {
+        // Your custom publishing logic (e.g., priority-based, load-balanced, etc.)
+    }
+}
+services.UseCustomNotificationPublisher<CustomPublisher>();
 ```
 
 ### Configuration System

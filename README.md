@@ -1303,3 +1303,421 @@ relay scaffold --handler WelcomeHandler --request WelcomeQuery --template enterp
 ```
 
 **Experience the future of .NET development today!**
+
+## 🔄 Transaction Management & Unit of Work
+
+Relay v2.0 includes built-in **Transaction Management** and **Unit of Work** patterns for seamless database transaction handling, particularly with Entity Framework Core.
+
+### 🎯 Key Features
+
+- **Automatic Transaction Wrapping**: Requests marked with `ITransactionalRequest` are automatically wrapped in database transactions
+- **Unit of Work Pattern**: Automatic `SaveChangesAsync` after successful handler execution
+- **EF Core Integration**: Works seamlessly with Entity Framework Core DbContext
+- **Configurable Isolation Levels**: Control transaction behavior with isolation level settings
+- **Rollback on Exception**: Automatic transaction rollback when handlers throw exceptions
+- **MediatR Compatible**: Same patterns as popular MediatR community packages
+
+### 📦 Basic Setup
+
+```csharp
+// 1. Register transaction behaviors
+services.AddRelayTransactions();  // Default settings
+services.AddRelayUnitOfWork();    // Automatic SaveChanges
+
+// 2. Configure your DbContext as Unit of Work
+services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
+```
+
+### 💡 Usage Examples
+
+#### Transactional Command
+
+```csharp
+// Mark command as transactional
+public record CreateOrderCommand(int CustomerId, string[] Items, decimal TotalAmount)
+    : IRequest<Order>, ITransactionalRequest<Order>;
+
+public class OrderService
+{
+    private readonly ApplicationDbContext _dbContext;
+    
+    [Handle]
+    public async ValueTask<Order> CreateOrder(
+        CreateOrderCommand command, 
+        CancellationToken cancellationToken)
+    {
+        // 1. Business logic - create order
+        var order = new Order
+        {
+            CustomerId = command.CustomerId,
+            Items = command.Items,
+            TotalAmount = command.TotalAmount,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        _dbContext.Orders.Add(order);
+        
+        // 2. No need to call SaveChangesAsync - automatic!
+        // 3. Transaction commits automatically on success
+        // 4. Rollback happens automatically on exception
+        
+        return order;
+    }
+}
+```
+
+#### Non-Transactional Query
+
+```csharp
+// Regular query - no transaction overhead
+public record GetOrderQuery(int OrderId) : IRequest<Order?>;
+
+public class OrderService
+{
+    [Handle]
+    public async ValueTask<Order?> GetOrder(
+        GetOrderQuery query, 
+        CancellationToken cancellationToken)
+    {
+        // No transaction, better performance for reads
+        return await _dbContext.Orders
+            .FirstOrDefaultAsync(o => o.Id == query.OrderId, cancellationToken);
+    }
+}
+```
+
+#### Complex Multi-Step Transaction
+
+```csharp
+public record PlaceOrderCommand(int CustomerId, CartItem[] Items, PaymentInfo Payment)
+    : IRequest<OrderResult>, ITransactionalRequest<OrderResult>;
+
+public class OrderService
+{
+    [Handle]
+    public async ValueTask<OrderResult> PlaceOrder(
+        PlaceOrderCommand command,
+        CancellationToken cancellationToken)
+    {
+        // All steps within a single transaction:
+        
+        // 1. Validate inventory
+        var inventory = await ValidateInventoryAsync(command.Items);
+        
+        // 2. Create order
+        var order = new Order { CustomerId = command.CustomerId };
+        _dbContext.Orders.Add(order);
+        
+        // 3. Update inventory levels
+        foreach (var item in inventory)
+        {
+            item.Quantity -= command.Items.First(i => i.Id == item.Id).Quantity;
+        }
+        
+        // 4. Create payment record
+        var payment = new Payment
+        {
+            OrderId = order.Id,
+            Amount = command.Payment.Amount,
+            Status = "Pending"
+        };
+        _dbContext.Payments.Add(payment);
+        
+        // All changes committed together or rolled back on failure
+        return new OrderResult(order.Id, "Success");
+    }
+}
+```
+
+### ⚙️ Advanced Configuration
+
+#### Custom Transaction Settings
+
+```csharp
+// Configure transaction behavior
+services.AddRelayTransactions(
+    scopeOption: TransactionScopeOption.Required,
+    isolationLevel: IsolationLevel.ReadCommitted,
+    timeout: TimeSpan.FromMinutes(1));
+```
+
+#### Save Only for Transactional Requests
+
+```csharp
+// Only call SaveChanges for transactional requests
+services.AddRelayUnitOfWork(saveOnlyForTransactionalRequests: true);
+```
+
+**When to use this:**
+- You want explicit control over when SaveChanges is called
+- You have both commands (transactional) and queries (read-only)
+- You want to optimize performance by skipping SaveChanges for queries
+
+#### Transaction Isolation Levels
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| **ReadUncommitted** | Lowest isolation, allows dirty reads | High performance, no consistency needed |
+| **ReadCommitted** | ⭐ Default, prevents dirty reads | Most common scenarios |
+| **RepeatableRead** | Prevents non-repeatable reads | Consistent data during transaction |
+| **Serializable** | Highest isolation, full locks | Critical financial operations |
+| **Snapshot** | Uses row versioning | SQL Server optimistic concurrency |
+
+### 🏗️ EF Core Integration
+
+```csharp
+// Your DbContext automatically implements IUnitOfWork
+public class ApplicationDbContext : DbContext, IUnitOfWork
+{
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<Customer> Customers { get; set; }
+    public DbSet<Payment> Payments { get; set; }
+    
+    // IUnitOfWork.SaveChangesAsync is automatically satisfied
+    // by DbContext.SaveChangesAsync - no additional code needed!
+}
+
+// Register in DI
+services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
+```
+
+### 🔄 Transaction Pipeline Flow
+
+```
+Request (ITransactionalRequest)
+  ↓
+TransactionBehavior (creates TransactionScope)
+  ↓
+UnitOfWorkBehavior (prepares to call SaveChangesAsync)
+  ↓
+Handler (business logic)
+  ↓
+SaveChanges (automatic if successful)
+  ↓
+Transaction Commit (automatic)
+```
+
+### ⚠️ Error Handling & Rollback
+
+```csharp
+public class OrderService
+{
+    [Handle]
+    public async ValueTask<Order> CreateOrder(
+        CreateOrderCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (command.TotalAmount <= 0)
+            throw new InvalidOperationException("Invalid amount");
+        
+        var order = new Order { ... };
+        _dbContext.Orders.Add(order);
+        
+        // If exception thrown, transaction automatically rolls back
+        // No changes persisted to database
+        
+        return order;
+    }
+}
+
+// Usage
+try
+{
+    await _relay.SendAsync(new CreateOrderCommand(...));
+}
+catch (InvalidOperationException ex)
+{
+    // Transaction was rolled back
+    // Database state is unchanged
+    _logger.LogError(ex, "Order creation failed");
+}
+```
+
+### 📊 Real-World Use Cases
+
+#### E-Commerce Order Processing
+
+```csharp
+public record ProcessOrderCommand(Order Order, Payment Payment)
+    : IRequest<OrderResult>, ITransactionalRequest<OrderResult>;
+
+// Handler ensures all steps succeed or fail together:
+// - Create order
+// - Process payment
+// - Update inventory
+// - Generate invoice
+// - Send confirmation email (via notification)
+```
+
+#### Banking Money Transfer
+
+```csharp
+public record TransferMoneyCommand(int FromAccount, int ToAccount, decimal Amount)
+    : IRequest<TransferResult>, ITransactionalRequest<TransferResult>;
+
+// ACID guarantees ensure:
+// - Debit from source account
+// - Credit to destination account
+// - Record transaction log
+// All succeed together or none happen
+```
+
+#### Multi-Entity Updates
+
+```csharp
+public record UpdateUserProfileCommand(int UserId, ProfileData Data)
+    : IRequest<User>, ITransactionalRequest<User>;
+
+// Atomic updates across multiple entities:
+// - Update User entity
+// - Update Address entity
+// - Update Preferences entity
+// - Add audit log entry
+```
+
+### ✅ Best Practices
+
+#### 1. Use Marker Interfaces Wisely
+
+```csharp
+// ✅ Commands (write operations) - use ITransactionalRequest
+public record CreateOrderCommand : IRequest<Order>, ITransactionalRequest<Order>;
+
+// ✅ Queries (read operations) - don't use ITransactionalRequest
+public record GetOrderQuery : IRequest<Order?>;
+```
+
+#### 2. Keep Transactions Short
+
+```csharp
+// ❌ Bad: Long-running transaction
+public async ValueTask<Order> CreateOrder(...)
+{
+    await Task.Delay(5000);  // Don't do this!
+    await _emailService.SendAsync(...);  // External calls in transaction!
+    return order;
+}
+
+// ✅ Good: Quick transaction
+public async ValueTask<Order> CreateOrder(...)
+{
+    var order = new Order { ... };
+    _dbContext.Orders.Add(order);
+    return order;  // SaveChanges happens immediately after
+}
+
+// Send emails via notifications or background jobs
+await _relay.PublishAsync(new OrderCreatedNotification(order.Id));
+```
+
+#### 3. Handle Concurrency
+
+```csharp
+// Use optimistic concurrency tokens
+public class Order
+{
+    [Timestamp]
+    public byte[] RowVersion { get; set; }
+}
+
+try
+{
+    await _relay.SendAsync(new UpdateOrderCommand(...));
+}
+catch (DbUpdateConcurrencyException)
+{
+    // Handle concurrent modification conflict
+    // Reload and retry, or notify user
+}
+```
+
+### 🧪 Testing
+
+```csharp
+[Test]
+public async Task CreateOrder_Should_Commit_Transaction()
+{
+    // Arrange
+    var services = new ServiceCollection();
+    services.AddDbContext<OrderDbContext>(options =>
+        options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+    services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<OrderDbContext>());
+    services.AddRelay(typeof(OrderService).Assembly);
+    services.AddRelayTransactions();
+    services.AddRelayUnitOfWork();
+    
+    var provider = services.BuildServiceProvider();
+    var relay = provider.GetRequiredService<IRelay>();
+    
+    // Act
+    var order = await relay.SendAsync(
+        new CreateOrderCommand(1, new[] { "Item1" }, 100m));
+    
+    // Assert - verify changes were persisted
+    var dbContext = provider.GetRequiredService<OrderDbContext>();
+    var savedOrder = await dbContext.Orders.FindAsync(order.Id);
+    Assert.NotNull(savedOrder);
+    Assert.Equal(100m, savedOrder.TotalAmount);
+}
+
+[Test]
+public async Task CreateOrder_Should_Rollback_On_Exception()
+{
+    // Arrange
+    var services = CreateTestServices();
+    var relay = services.GetRequiredService<IRelay>();
+    
+    // Act & Assert
+    await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        relay.SendAsync(new CreateOrderCommand(1, new[] { "Bad" }, -100m)));
+    
+    // Verify no changes were persisted
+    var dbContext = services.GetRequiredService<OrderDbContext>();
+    var orders = await dbContext.Orders.ToListAsync();
+    Assert.Empty(orders);  // No orders saved due to rollback
+}
+```
+
+### 📈 Performance Considerations
+
+**Transaction Overhead:**
+```
+Without Transaction:
+  Handler execution: 10ms
+  Total: 10ms
+
+With Transaction:
+  Transaction begin: 1ms
+  Handler execution: 10ms
+  SaveChanges: 5ms
+  Transaction commit: 2ms
+  Total: 18ms (1.8x slower)
+```
+
+**Recommendation:** Use transactions only for write operations (commands), not for read operations (queries).
+
+### 🔗 Sample Project
+
+See the complete working example in [samples/TransactionSample](samples/TransactionSample/README.md) which demonstrates:
+- Transaction management with Entity Framework Core
+- Unit of Work pattern implementation
+- Real-world order processing scenario
+- Error handling and rollback
+- Best practices and testing strategies
+
+### 🎯 Benefits Summary
+
+✅ **Automatic Transaction Management**: No manual BeginTransaction/Commit/Rollback  
+✅ **Automatic SaveChanges**: No manual SaveChangesAsync calls  
+✅ **ACID Guarantees**: Data consistency and integrity  
+✅ **Rollback on Exception**: Automatic cleanup on errors  
+✅ **Configurable**: Control isolation levels, timeouts, scope options  
+✅ **Testable**: Easy to test with in-memory database  
+✅ **MediatR Compatible**: Same patterns as MediatR community packages  
+✅ **Zero Boilerplate**: Clean handler code focused on business logic

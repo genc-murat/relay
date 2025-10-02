@@ -2,6 +2,45 @@
 
 The Relay CLI is a comprehensive command-line interface for the Relay ultra high-performance mediator framework. It provides scaffolding, analysis, optimization, and benchmarking capabilities to enhance your development experience.
 
+## ✨ What's New in v2.1.0
+
+### 🆕 New Commands
+
+- **`relay init`** - Initialize new Relay projects with complete scaffolding
+  - Multiple templates (minimal, standard, enterprise)
+  - Docker and CI/CD support
+  - Auto-generates solution structure, handlers, and tests
+
+- **`relay doctor`** - Comprehensive health check for your Relay projects
+  - Checks project structure and dependencies
+  - Validates handlers and best practices
+  - Identifies performance issues
+  - Auto-fix capability (--fix flag)
+
+### ✨ Enhanced Commands
+
+- **`relay validate`** - Now includes:
+  - Roslyn-based code analysis
+  - Handler pattern validation
+  - Request/Response type checking
+  - Best practices validation
+  - Export reports (JSON, Markdown)
+
+- **`relay performance`** - Real performance analysis:
+  - Async pattern analysis
+  - Memory pattern detection
+  - Performance scoring (0-100)
+  - Actionable recommendations
+  - Detailed HTML/Markdown reports
+
+### 🎨 Improvements
+
+- Better error handling and user feedback
+- Standardized exit codes
+- Enhanced progress indicators
+- Color-coded output for better readability
+- Version information display (`--version`)
+
 ## Installation
 
 ### Global Tool Installation
@@ -17,6 +56,55 @@ dotnet add package Relay.CLI
 ```
 
 ## Commands
+
+### 🆕 Init - Initialize New Project
+
+Create a new Relay project with complete scaffolding:
+
+```bash
+# Basic initialization
+relay init --name MyProject
+
+# Enterprise template with Docker and CI
+relay init --name MyProject \
+  --template enterprise \
+  --framework net8.0 \
+  --docker \
+  --ci
+
+# Template options: minimal, standard, enterprise
+```
+
+**Features:**
+- Creates complete solution structure
+- Generates sample handlers and tests
+- Includes README and configuration files
+- Optional Docker support
+- Optional CI/CD configuration (GitHub Actions)
+- Git initialization
+
+### 🆕 Doctor - Health Check
+
+Run comprehensive health checks on your project:
+
+```bash
+# Basic health check
+relay doctor
+
+# Verbose output with auto-fix
+relay doctor --verbose --fix
+
+# Check specific path
+relay doctor --path ./src
+```
+
+**Checks:**
+- ✅ Project structure
+- ✅ Dependencies and versions
+- ✅ Handler configuration
+- ✅ Performance settings
+- ✅ Best practices
+- 🔧 Auto-fix capability
 
 ### 🏗️ Scaffold
 

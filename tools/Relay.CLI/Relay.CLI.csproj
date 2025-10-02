@@ -33,7 +33,7 @@
   <PropertyGroup>
     <!-- Package Metadata -->
     <PackageId>Relay.CLI</PackageId>
-    <PackageVersion>2.0.0</PackageVersion>
+    <PackageVersion>2.1.0</PackageVersion>
     <Title>Relay CLI - Developer Tools for High-Performance Mediator Framework</Title>
     <Authors>Relay Framework Contributors</Authors>
     <Company>Relay Framework</Company>

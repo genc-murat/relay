@@ -179,5 +179,43 @@ namespace Relay.Core.Publishing
 
             return services;
         }
+
+        /// <summary>
+        /// Uses ordered notification publishing strategy with handler ordering support.
+        /// Respects NotificationHandlerOrderAttribute, ExecuteAfterAttribute, ExecuteBeforeAttribute,
+        /// and NotificationHandlerGroupAttribute for fine-grained execution control.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="continueOnException">Whether to continue executing handlers when exceptions occur (default: true).</param>
+        /// <param name="maxDegreeOfParallelism">Maximum number of handlers to execute in parallel (default: ProcessorCount).</param>
+        /// <param name="lifetime">The service lifetime (default: Singleton).</param>
+        /// <returns>The service collection for chaining.</returns>
+        /// <remarks>
+        /// This publisher provides MediatR-compatible handler ordering with additional features:
+        /// - Order-based execution (NotificationHandlerOrderAttribute)
+        /// - Group-based execution (NotificationHandlerGroupAttribute)
+        /// - Dependency-based execution (ExecuteAfterAttribute, ExecuteBeforeAttribute)
+        /// - Mixed sequential/parallel execution within groups
+        /// - Exception tolerance configuration
+        /// </remarks>
+        public static IServiceCollection UseOrderedNotificationPublisher(
+            this IServiceCollection services,
+            bool continueOnException = true,
+            int maxDegreeOfParallelism = -1,
+            ServiceLifetime lifetime = ServiceLifetime.Singleton)
+        {
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+
+            services.TryAdd(new ServiceDescriptor(
+                typeof(INotificationPublisher),
+                sp => new OrderedNotificationPublisher(
+                    sp.GetService<Microsoft.Extensions.Logging.ILogger<OrderedNotificationPublisher>>(),
+                    continueOnException,
+                    maxDegreeOfParallelism),
+                lifetime));
+
+            return services;
+        }
     }
 }

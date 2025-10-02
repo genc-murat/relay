@@ -275,6 +275,13 @@ services.UseParallelNotificationPublisher();
 services.UseParallelWhenAllNotificationPublisher(continueOnException: true);
 // All handlers run concurrently, collects all exceptions
 
+// Strategy 4: Ordered (most mature, MediatR+ features)
+services.UseOrderedNotificationPublisher(
+    continueOnException: true,
+    maxDegreeOfParallelism: Environment.ProcessorCount
+);
+// Respects handler order, dependencies, and groups - see below for details
+
 // Custom Publisher Strategy
 public class CustomPublisher : INotificationPublisher
 {
@@ -288,6 +295,123 @@ public class CustomPublisher : INotificationPublisher
 }
 services.UseCustomNotificationPublisher<CustomPublisher>();
 ```
+
+### Advanced Notification Handler Ordering
+
+Relay provides **mature handler ordering control** that goes beyond MediatR's capabilities:
+
+```csharp
+// 1. Simple Order-Based Execution (MediatR compatible)
+[NotificationHandlerOrder(1)]
+public class LoggingHandler : INotificationHandler<OrderCreated>
+{
+    // Executes first
+}
+
+[NotificationHandlerOrder(2)]
+public class EmailHandler : INotificationHandler<OrderCreated>
+{
+    // Executes second
+}
+
+[NotificationHandlerOrder(3)]
+public class AnalyticsHandler : INotificationHandler<OrderCreated>
+{
+    // Executes last
+}
+
+// 2. Dependency-Based Execution
+[ExecuteAfter(typeof(ValidationHandler))]
+[ExecuteAfter(typeof(AuthorizationHandler))]
+public class ProcessingHandler : INotificationHandler<OrderCreated>
+{
+    // Executes after both ValidationHandler and AuthorizationHandler complete
+}
+
+[ExecuteBefore(typeof(EmailHandler))]
+public class DataPersistenceHandler : INotificationHandler<OrderCreated>
+{
+    // Executes before EmailHandler
+}
+
+// 3. Group-Based Parallel Execution
+// Group 1: Logging (handlers run in parallel)
+[NotificationHandlerGroup("Logging", groupOrder: 1)]
+public class FileLogger : INotificationHandler<OrderCreated> { }
+
+[NotificationHandlerGroup("Logging", groupOrder: 1)]
+public class DatabaseLogger : INotificationHandler<OrderCreated> { }
+
+// Group 2: Notifications (run in parallel after Group 1 completes)
+[NotificationHandlerGroup("Notifications", groupOrder: 2)]
+public class EmailSender : INotificationHandler<OrderCreated> { }
+
+[NotificationHandlerGroup("Notifications", groupOrder: 2)]
+public class SmsSender : INotificationHandler<OrderCreated> { }
+
+// 4. Execution Mode Control
+[NotificationExecutionMode(NotificationExecutionMode.Sequential)]
+public class CriticalHandler : INotificationHandler<OrderCreated>
+{
+    // Always runs sequentially, never in parallel
+}
+
+[NotificationExecutionMode(NotificationExecutionMode.HighPriority)]
+public class UrgentHandler : INotificationHandler<OrderCreated>
+{
+    // Runs before normal priority handlers
+}
+
+[NotificationExecutionMode(NotificationExecutionMode.Default, 
+    AllowParallelExecution = true,
+    SuppressExceptions = true)]
+public class OptionalHandler : INotificationHandler<OrderCreated>
+{
+    // Can run in parallel, exceptions won't stop other handlers
+}
+
+// 5. Complex Real-World Example
+[NotificationHandlerOrder(1)]
+[NotificationHandlerGroup("Validation", groupOrder: 1)]
+[NotificationExecutionMode(NotificationExecutionMode.Sequential)]
+public class OrderValidationHandler : INotificationHandler<OrderCreated>
+{
+    // Step 1: Validate order (sequential, must complete first)
+}
+
+[NotificationHandlerOrder(2)]
+[NotificationHandlerGroup("Processing", groupOrder: 2)]
+[ExecuteAfter(typeof(OrderValidationHandler))]
+public class PaymentProcessingHandler : INotificationHandler<OrderCreated>
+{
+    // Step 2: Process payment (after validation)
+}
+
+[NotificationHandlerGroup("Notifications", groupOrder: 3)]
+[NotificationExecutionMode(NotificationExecutionMode.Default, SuppressExceptions = true)]
+public class CustomerNotificationHandler : INotificationHandler<OrderCreated>
+{
+    // Step 3: Send notifications (parallel, non-critical, won't fail entire flow)
+}
+
+[NotificationHandlerOrder(100)]
+[NotificationExecutionMode(NotificationExecutionMode.FireAndForget, SuppressExceptions = true)]
+public class AnalyticsHandler : INotificationHandler<OrderCreated>
+{
+    // Step 4: Track analytics (fire-and-forget, non-blocking)
+}
+```
+
+**Features:**
+- ✅ **Order Attributes** - Simple numeric ordering
+- ✅ **Dependency Management** - ExecuteAfter / ExecuteBefore
+- ✅ **Group Execution** - Parallel execution within groups, sequential between groups
+- ✅ **Execution Modes** - Sequential, Parallel, HighPriority, LowPriority, FireAndForget
+- ✅ **Exception Control** - Per-handler exception suppression
+- ✅ **Topological Sort** - Automatic dependency resolution
+- ✅ **Circular Dependency Detection** - Built-in validation
+
+See the [Notification Handler Order Guide](docs/notification-handler-order-guide.md) for comprehensive examples.
 
 ### Configuration System
 

@@ -44,7 +44,7 @@ public readonly struct StructOptimizedRelay
         }
 
         // Direct call without try-catch for maximum performance
-        return dispatcher.DispatchAsync(request, cancellationToken);
+        return dispatcher!.DispatchAsync(request, cancellationToken);
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public readonly struct StructOptimizedRelay
             return CreateHandlerNotFoundVoidTask();
         }
 
-        return dispatcher.DispatchAsync(request, cancellationToken);
+        return dispatcher!.DispatchAsync(request, cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -88,7 +88,7 @@ public readonly struct StructOptimizedRelay
             return ThrowHandlerNotFoundAsyncEnumerable<TResponse>();
         }
 
-        return dispatcher.DispatchAsync(request, cancellationToken);
+        return dispatcher!.DispatchAsync(request, cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -104,7 +104,7 @@ public readonly struct StructOptimizedRelay
             return ValueTask.CompletedTask;
         }
 
-        return dispatcher.DispatchAsync(notification, cancellationToken);
+        return dispatcher!.DispatchAsync(notification, cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

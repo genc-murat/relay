@@ -60,7 +60,7 @@ namespace Relay.Core.Resilience
 
                 return result;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Failure - record and potentially open circuit
                 circuitBreaker.RecordFailure();

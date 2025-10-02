@@ -25,7 +25,7 @@ namespace Relay.Core.MessageQueue
         }
 
         /// <inheritdoc />
-        public async ValueTask StartConsumingAsync(string queueName, Func<object, CancellationToken, ValueTask> messageHandler, CancellationToken cancellationToken = default)
+        public ValueTask StartConsumingAsync(string queueName, Func<object, CancellationToken, ValueTask> messageHandler, CancellationToken cancellationToken = default)
         {
             var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _consumers[queueName] = cts;
@@ -72,6 +72,8 @@ namespace Relay.Core.MessageQueue
                     }
                 }
             }, cts.Token);
+
+            return ValueTask.CompletedTask;
         }
 
         /// <inheritdoc />

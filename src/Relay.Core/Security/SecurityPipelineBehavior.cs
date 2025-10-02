@@ -77,7 +77,7 @@ namespace Relay.Core.Security
             // Remove sensitive fields based on user permissions
         }
 
-        private async ValueTask ValidatePermissions(TRequest request, string requestType)
+        private ValueTask ValidatePermissions(TRequest request, string requestType)
         {
             var requiredPermissions = GetRequiredPermissions(requestType);
             if (requiredPermissions.Any() && !_securityContext.HasPermissions(requiredPermissions))
@@ -86,13 +86,17 @@ namespace Relay.Core.Security
                     _securityContext.UserId, requestType);
                 throw new InsufficientPermissionsException(requestType, requiredPermissions);
             }
+
+            return ValueTask.CompletedTask;
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators
         private async ValueTask ValidateUserRateLimit(string userId, string requestType)
         {
-            // Implement per-user rate limiting
+            // TODO: Implement per-user rate limiting
             // This could integrate with Redis or in-memory cache
         }
+#pragma warning restore CS1998
 
         private IEnumerable<string> GetRequiredPermissions(string requestType)
         {

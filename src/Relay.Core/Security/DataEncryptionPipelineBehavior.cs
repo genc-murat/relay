@@ -34,7 +34,10 @@ namespace Relay.Core.Security
             var response = await next();
 
             // Encrypt outgoing response data
-            EncryptSensitiveData(response);
+            if (response is not null)
+            {
+                EncryptSensitiveData(response);
+            }
 
             return response;
         }

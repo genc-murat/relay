@@ -317,26 +317,30 @@ internal static class UltraFastExceptionHelper
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static IAsyncEnumerable<T> ThrowArgumentNullStream<T>()
     {
-        return ThrowArgumentNullStreamImpl<T>();
+        return ThrowArgumentNullStreamImpl();
         
-        static async IAsyncEnumerable<T> ThrowArgumentNullStreamImpl<T>()
+        static async IAsyncEnumerable<T> ThrowArgumentNullStreamImpl()
         {
             await Task.CompletedTask;
             throw new ArgumentNullException();
+#pragma warning disable CS0162 // Unreachable code detected
             yield break; // Required for async iterator
+#pragma warning restore CS0162
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static IAsyncEnumerable<T> ThrowHandlerNotFoundStream<T>()
     {
-        return ThrowHandlerNotFoundStreamImpl<T>();
+        return ThrowHandlerNotFoundStreamImpl();
         
-        static async IAsyncEnumerable<T> ThrowHandlerNotFoundStreamImpl<T>()
+        static async IAsyncEnumerable<T> ThrowHandlerNotFoundStreamImpl()
         {
             await Task.CompletedTask;
             throw new HandlerNotFoundException("Handler not found");
+#pragma warning disable CS0162 // Unreachable code detected
             yield break; // Required for async iterator
+#pragma warning restore CS0162
         }
     }
 }

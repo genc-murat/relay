@@ -208,9 +208,10 @@ namespace Relay.Core.Workflows
             return true;
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators
         private async ValueTask<WorkflowDefinition?> GetWorkflowDefinition(string definitionId)
         {
-            // This would load workflow definition from storage
+            // TODO: This would load workflow definition from storage
             // For now, return a simple definition
             return new WorkflowDefinition
             {
@@ -219,6 +220,7 @@ namespace Relay.Core.Workflows
                 Steps = new List<WorkflowStep>()
             };
         }
+#pragma warning restore CS1998
 
         private async ValueTask FailWorkflow(WorkflowExecution execution, string error, CancellationToken cancellationToken)
         {

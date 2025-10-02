@@ -1,93 +1,273 @@
-# Relay - Ultra High-Performance Mediator Framework 🚀
+# Relay - High-Performance Mediator Framework 🚀
 
 [![NuGet](https://img.shields.io/nuget/v/Relay.svg)](https://www.nuget.org/packages/Relay/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Performance](https://img.shields.io/badge/Performance-80%2B%25%20faster%20than%20MediatR-brightgreen.svg)]()
-[![Startup](https://img.shields.io/badge/Startup-5x%20faster%20with%20ReadyToRun-orange.svg)]()
-[![Zero Overhead](https://img.shields.io/badge/Overhead-Zero%20vs%20Direct%20Calls-blue.svg)]()
+[![Build Status](https://img.shields.io/github/actions/workflow/status/genc-murat/relay/ci.yml?branch=main)](https://github.com/genc-murat/relay/actions)
+[![Tests](https://img.shields.io/badge/Tests-558%20passing-brightgreen.svg)]()
 
-**Relay** is the **fastest mediator framework in the .NET ecosystem**, featuring revolutionary performance optimizations including zero-allocation patterns, SIMD acceleration, AOT compilation support, Profile-Guided Optimization, ReadyToRun Images, and hardware-specific optimizations. Built with cutting-edge source generators, ultra-optimized dispatch mechanisms, and advanced .NET performance features.
+**Relay** is a modern, high-performance mediator framework for .NET, featuring source generators for compile-time optimizations, comprehensive pipeline behaviors, and extensive configuration options. Built with performance and developer experience in mind.
 
-## 🚀 Revolutionary Features
+## 🚀 Key Features
 
-### 🔥 **Ultimate Performance Optimizations**
-- **Zero Overhead**: Matches direct method call performance (0% overhead!)
-- **80%+ Faster than MediatR**: Comprehensive benchmarks prove superiority
-- **5x Faster Startup**: ReadyToRun Images eliminate JIT compilation overhead
-- **Zero-Allocation Patterns**: Stack-based request processing with `SkipLocalsInit`
-- **SIMD Acceleration**: Hardware-optimized batch processing with AVX2/AVX-512
-- **Profile-Guided Optimization**: Advanced branch prediction and code layout optimization
-- **AOT Compilation Ready**: Native AOT support for maximum startup performance
-- **Advanced Buffer Pools**: Workload-optimized three-tiered pooling system
-
-### ⚡ **Advanced Architecture**
+### ⚡ **Performance Optimizations**
 - **Source Generator Powered**: Compile-time code generation eliminates runtime reflection
-- **Hardware-Aware Processing**: CPU cache-friendly data structures and prefetching
-- **Struct-Based ValueTasks**: Ultra-optimized async patterns
+- **ValueTask Support**: Optimized async patterns throughout the framework
+- **Minimal Allocations**: Efficient memory usage patterns  
 - **Compile-Time Dispatchers**: Direct method calls generated at build time
-- **Branch Prediction Optimized**: Hot-path optimization for common scenarios
+- **Multi-Targeting**: .NET Standard 2.0, .NET 6.0, .NET 8.0+
 
-### 🛠️ **Enterprise Features**
-- **Streaming Support**: High-performance `IAsyncEnumerable<T>` with backpressure
-- **Pipeline Behaviors**: Extensible cross-cutting concerns
-- **Named Handlers**: Multiple implementation strategies
-- **Comprehensive Telemetry**: Built-in metrics and distributed tracing
-- **Multi-Targeting**: .NET Standard 2.0, .NET 6.0, .NET 8.0+, .NET 9.0
+### 🛠️ **Core Features**
+- **Request/Response Pattern**: Type-safe command and query handling
+- **Notification Publishing**: Event-driven architecture support with parallel/sequential dispatch
+- **Pipeline Behaviors**: Extensible cross-cutting concerns (validation, caching, logging, etc.)
+- **Named Handlers**: Multiple implementation strategies for the same request type
+- **Streaming Support**: `IAsyncEnumerable<T>` for high-throughput scenarios
+- **Comprehensive Configuration**: Flexible options system with attribute-based overrides
 
-### 🏢 **Advanced Enterprise Features**
-- **📊 Observability & Monitoring**: OpenTelemetry metrics, health checks, performance tracking
-- **🛡️ Resilience Patterns**: Circuit breakers, bulkhead isolation, automatic recovery
-- **🔒 Advanced Security**: Multi-layer security, field-level encryption, audit trails
-- **💾 Smart Caching**: Distributed caching with Redis support, intelligent key generation
-- **🔄 Workflow Engine**: Multi-step business process orchestration with state management
-- **🧪 Testing Framework**: Load testing, scenario testing, comprehensive test automation
-- **🛠️ Developer CLI Tool**: Complete command-line interface for scaffolding, optimization, and analysis
+### 🏗️ **Advanced Architecture**
+- **Configuration System**: Rich configuration with validation and attribute-based parameter overrides
+- **Pipeline Behaviors**: Built-in support for caching, authorization, validation, retry policies, and more
+- **Source Generator Diagnostics**: Compile-time validation and helpful error messages
+- **Testing Framework**: Comprehensive test harness and mocking utilities
+- **Observability**: Built-in telemetry, metrics, and distributed tracing support
 
-## 🛠️ Developer CLI Tool - Game Changing Experience
+## 🛠️ Installation
 
-Experience **10x faster development** with the most advanced CLI tool in the .NET ecosystem:
-
+### Core Package
 ```bash
-# Install globally
-dotnet tool install -g Relay.CLI
-
-# Lightning-fast scaffolding with enterprise templates
-relay scaffold --handler OrderHandler --request CreateOrderCommand --response OrderResponse \
-  --template enterprise --include-validation --include-tests
-
-# Comprehensive project analysis with AI-powered recommendations  
-relay analyze --depth full --format html --output analysis-report.html
-
-# One-click performance optimizations with backup
-relay optimize --aggressive --backup --target all
-
-# Professional benchmarking with beautiful reports
-relay benchmark --iterations 1000000 --format html --output benchmark-results.html
-
-# Production-ready validation
-relay validate --strict
+dotnet add package Relay.Core
 ```
 
-### 🚀 **CLI Features That Set Relay Apart**
+### CLI Tool (Development)
+```bash
+dotnet tool install -g Relay.CLI
+```
 
-| Feature | Relay CLI | MediatR | NServiceBus | MassTransit |
-|---------|-----------|---------|-------------|-------------|
-| **🏗️ Smart Scaffolding** | ✅ 3 Templates (Standard, Minimal, Enterprise) | ❌ None | ❌ Basic only | ❌ Basic only |
-| **🔍 Code Analysis** | ✅ AI-powered with Roslyn parsing | ❌ None | ❌ None | ❌ None |
-| **🔧 Auto Optimization** | ✅ Task→ValueTask, CancellationToken injection | ❌ None | ❌ None | ❌ None |
-| **📊 Advanced Benchmarking** | ✅ HTML reports, memory tracking, multi-threaded | ❌ None | ❌ None | ❌ None |
-| **✅ Project Validation** | ✅ Structure, config, best practices | ❌ None | ❌ Basic | ❌ None |
-| **📝 Documentation Generation** | ✅ Auto docs, configs, benchmarks | ❌ None | ❌ Basic | ❌ None |
-| **⚡ Performance Analysis** | ✅ Real-time recommendations | ❌ None | ❌ None | ❌ None |
+## 🚀 Quick Start
 
-**Result**: Relay provides a **complete development ecosystem**, not just a library!
+### 1. Define your Request and Handler
 
-## 📊 Ultimate Performance Benchmarks
+```csharp
+using Relay.Core;
 
-### 🏆 **Single Request Performance**
-| Implementation | Mean Time | Memory | vs Direct Calls | vs MediatR |
-|----------------|-----------|--------|------------------|------------|
-| **Direct Call** | **2.080 μs** | 0 B | **Baseline** | - |
+// Define a request
+public record GetUserQuery(int UserId) : IRequest<User>;
+
+// Define a handler
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    [Handle] // Source generator will optimize this
+    public async ValueTask<User> HandleAsync(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        // Your business logic here
+        return await _userRepository.GetByIdAsync(request.UserId);
+    }
+}
+```
+
+### 2. Register with DI Container
+
+```csharp
+services.AddRelay(); // Generated extension method
+services.AddRelayConfiguration(); // Configuration support
+```
+
+### 3. Use the Mediator
+
+```csharp
+public class UsersController : ControllerBase
+{
+    private readonly IRelay _relay;
+    
+    public UsersController(IRelay relay) => _relay = relay;
+    
+    [HttpGet("{id}")]
+    public async Task<User> GetUser(int id)
+    {
+        return await _relay.SendAsync(new GetUserQuery(id));
+    }
+}
+```
+
+### 4. Notifications and Events
+
+```csharp
+// Define a notification
+public record UserCreated(int UserId, string Email) : INotification;
+
+// Multiple handlers can handle the same notification
+public class SendWelcomeEmailHandler : INotificationHandler<UserCreated>
+{
+    [Notification(Priority = 1)] // Higher priority executes first
+    public async ValueTask HandleAsync(UserCreated notification, CancellationToken cancellationToken)
+    {
+        await _emailService.SendWelcomeEmailAsync(notification.Email);
+    }
+}
+
+public class UpdateAnalyticsHandler : INotificationHandler<UserCreated>
+{
+    [Notification(Priority = 0, DispatchMode = NotificationDispatchMode.Parallel)]
+    public async ValueTask HandleAsync(UserCreated notification, CancellationToken cancellationToken)
+    {
+        await _analyticsService.TrackUserCreatedAsync(notification.UserId);
+    }
+}
+
+// Publish notification
+await _relay.PublishAsync(new UserCreated(123, "user@example.com"));
+```
+
+## 🔧 Advanced Configuration
+
+### Pipeline Behaviors
+
+```csharp
+// Add cross-cutting concerns
+services.AddRelayValidation();     // Request validation
+services.AddRelayCaching();        // Response caching  
+services.AddRelayAuthorization();  // Authorization checks
+services.AddRelayRetry();          // Retry policies
+services.AddRelayRateLimiting();   // Rate limiting
+
+// Configure specific handlers
+services.ConfigureHandler("GetUserHandler.HandleAsync", options =>
+{
+    options.EnableCaching = true;
+    options.DefaultTimeout = TimeSpan.FromSeconds(30);
+    options.EnableRetry = true;
+    options.MaxRetryAttempts = 3;
+});
+```
+
+### Configuration System
+
+```csharp
+// Global configuration
+services.ConfigureRelay(options =>
+{
+    options.EnableTelemetry = true;
+    options.MaxConcurrentNotificationHandlers = 10;
+});
+
+// From configuration file
+services.ConfigureRelay(Configuration.GetSection("Relay"));
+
+// Handler-specific overrides
+services.ConfigureHandler("MyHandler.HandleAsync", options =>
+{
+    options.DefaultPriority = 10;
+    options.EnableCaching = true;
+});
+```
+
+## 🛠️ CLI Tool
+
+The Relay CLI provides development utilities:
+
+```bash
+# Scaffold new handlers
+relay scaffold --handler UserHandler --request GetUserQuery --response User
+
+# Analyze project structure  
+relay analyze --format console
+
+# Generate documentation
+relay generate --type docs
+
+# Performance analysis
+relay benchmark --iterations 10000
+```
+
+## 📁 Project Structure
+
+```
+src/
+├── Relay/                 # Main mediator implementation
+├── Relay.Core/           # Core interfaces and base classes
+└── Relay.SourceGenerator/# Source generators for compile-time optimization
+
+tests/
+├── Relay.Core.Tests/           # Core functionality tests (558 tests)
+├── Relay.SourceGenerator.Tests/# Source generator tests  
+└── Relay.Packaging.Tests/     # NuGet packaging tests
+
+tools/
+└── Relay.CLI/            # Command-line development tool
+```
+
+## 🏗️ Architecture
+
+### Core Components
+
+1. **IRelay**: Main mediator interface
+2. **Request Dispatchers**: Handle request routing and execution
+3. **Notification Dispatchers**: Manage event publishing with parallel/sequential support
+4. **Pipeline Behaviors**: Cross-cutting concern implementations
+5. **Configuration System**: Rich configuration with validation
+6. **Source Generators**: Compile-time optimizations and diagnostics
+
+### Pipeline Behaviors Available
+
+- **Caching**: Response caching with configurable strategies
+- **Validation**: Request validation using FluentValidation or custom validators
+- **Authorization**: Role-based and policy-based authorization
+- **Retry**: Configurable retry policies with exponential backoff
+- **Rate Limiting**: Request throttling and rate limiting
+- **Distributed Tracing**: OpenTelemetry integration
+- **Performance Monitoring**: Built-in metrics and telemetry
+
+## 🧪 Testing
+
+Relay includes comprehensive testing utilities:
+
+```csharp
+// Test harness for integration testing
+var harness = RelayTestHarness.Create()
+    .WithHandler<GetUserHandler>()
+    .WithMockDependencies();
+
+var result = await harness.SendAsync(new GetUserQuery(123));
+Assert.NotNull(result);
+```
+
+The framework itself is thoroughly tested with **558 passing tests** covering:
+- Core mediator functionality
+- Source generator behavior
+- Configuration system
+- Pipeline behaviors
+- Error handling and edge cases
+
+## 📊 Performance
+
+Relay is designed for high performance with:
+
+- **Zero-allocation patterns** where possible
+- **ValueTask** support throughout
+- **Source generator optimizations** eliminating runtime reflection
+- **Efficient dispatch mechanisms** with compile-time code generation
+- **Minimal memory footprint** through careful API design
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- [Documentation](docs/)
+- [Examples](docs/examples/)
+- [GitHub Repository](https://github.com/genc-murat/relay)
+- [NuGet Package](https://www.nuget.org/packages/Relay/)
+
+---
+
+**Relay** - *Modern, high-performance mediator framework for .NET*
+
+Built with ❤️ for the .NET community.
 | **🥇 Relay Zero-Alloc** | **2.080 μs** | 0 B | **0% overhead** | **67% faster** |
 | **🥈 Relay SIMD** | **1.950 μs** | 8 B | **6% faster** | **78% faster** |
 | **🥉 Relay AOT** | **1.980 μs** | 0 B | **5% faster** | **75% faster** |

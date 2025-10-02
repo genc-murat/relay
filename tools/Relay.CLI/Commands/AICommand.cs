@@ -607,8 +607,8 @@ namespace Relay.CLI.Commands
                 AIConfidence = 0.87,
                 PerformanceIssues = new[]
                 {
-                    new PerformanceIssue { Severity = "High", Description = "Handler without caching for repeated queries", Location = "UserService.GetUser", Impact = "High" },
-                    new PerformanceIssue { Severity = "Medium", Description = "Multiple database calls in single handler", Location = "OrderService.ProcessOrder", Impact = "Medium" }
+                    new AIPerformanceIssue { Severity = "High", Description = "Handler without caching for repeated queries", Location = "UserService.GetUser", Impact = "High" },
+                    new AIPerformanceIssue { Severity = "Medium", Description = "Multiple database calls in single handler", Location = "OrderService.ProcessOrder", Impact = "Medium" }
                 },
                 OptimizationOpportunities = new[]
                 {
@@ -718,11 +718,11 @@ namespace Relay.CLI.Commands
         public int HandlersFound { get; set; }
         public double PerformanceScore { get; set; }
         public double AIConfidence { get; set; }
-        public PerformanceIssue[] PerformanceIssues { get; set; } = Array.Empty<PerformanceIssue>();
+        public AIPerformanceIssue[] PerformanceIssues { get; set; } = Array.Empty<AIPerformanceIssue>();
         public OptimizationOpportunity[] OptimizationOpportunities { get; set; } = Array.Empty<OptimizationOpportunity>();
     }
 
-    public class PerformanceIssue
+    public class AIPerformanceIssue
     {
         public string Severity { get; set; } = "";
         public string Description { get; set; } = "";

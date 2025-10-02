@@ -11,7 +11,7 @@ class Program
         // Display banner
         DisplayBanner();
 
-        var rootCommand = new RootCommand("🚀 Relay CLI - Ultra High-Performance Mediator Framework Developer Tools")
+        var rootCommand = new RootCommand("🚀 Relay CLI - High-Performance Mediator Framework Developer Tools")
         {
             Name = "relay"
         };
@@ -45,8 +45,8 @@ class Program
 
         AnsiConsole.Write(banner);
         
-        AnsiConsole.MarkupLine("[cyan]🤖 Ultra High-Performance Mediator Framework Developer Tools - Now with AI![/]");
-        AnsiConsole.MarkupLine("[dim]Version 2.0.0 - Enterprise Edition with AI Optimization Engine[/]");
+        AnsiConsole.MarkupLine("[cyan]🚀 High-Performance Mediator Framework Developer Tools[/]");
+        AnsiConsole.MarkupLine("[dim]Version 2.0.0 - Modern .NET Development Tools[/]");
         AnsiConsole.WriteLine();
     }
 }

@@ -273,7 +273,7 @@ public class TemplateEndToEndTests : IDisposable
     private string CreateTestTemplate(string? suffix = null)
     {
         var templateName = "TestTemplate" + (suffix ?? Guid.NewGuid().ToString("N"));
-        var templatePath = Path.Combine(_testOutputPath, "Templates", templateName);
+        var templatePath = Path.Combine(_templatesPath, templateName);
         var configPath = Path.Combine(templatePath, ".template.config");
         var contentPath = Path.Combine(templatePath, "content");
         

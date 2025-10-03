@@ -31,6 +31,7 @@ class Program
         rootCommand.AddCommand(DoctorCommand.Create());         // 🆕 NEW: Health checks
         rootCommand.AddCommand(MigrateCommand.Create());        // 🆕 NEW: Migration from MediatR
         rootCommand.AddCommand(PluginCommand.Create());         // 🆕 NEW: Plugin management
+        rootCommand.AddCommand(PipelineCommand.Create());       // 🚀 NEW: Complete project pipeline
         rootCommand.AddCommand(ScaffoldCommand.Create());
         rootCommand.AddCommand(BenchmarkCommand.Create());
         rootCommand.AddCommand(AnalyzeCommand.Create());

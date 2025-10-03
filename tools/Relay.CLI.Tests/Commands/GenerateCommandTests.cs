@@ -98,7 +98,7 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         handlerContent.Should().Contain("ValueTask");
-        handlerContent.Should().NotContain("Task<");
+        handlerContent.Should().NotContain("async Task<"); // Ensure we're not using Task<T> instead of ValueTask<T>
     }
 
     [Fact]

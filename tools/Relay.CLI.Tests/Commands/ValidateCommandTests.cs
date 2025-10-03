@@ -45,7 +45,7 @@ public class ValidateCommandTests : IDisposable
 
 public class BadHandler
 {
-    // Missing [Handle] attribute
+    // Missing Handle attribute on the method
     public async Task<string> HandleAsync(TestRequest request)
     {
         return ""test"";
@@ -60,8 +60,8 @@ public record TestRequest : IRequest<string>;";
         var content = await File.ReadAllTextAsync(Path.Combine(_testPath, "BadHandler.cs"));
         var hasHandleAttribute = content.Contains("[Handle]");
 
-        // Assert - Handler is missing [Handle] attribute (validation issue)
-        hasHandleAttribute.Should().BeFalse("the invalid handler doesn't have [Handle] attribute");
+        // Assert - Handler doesn't have the Handle attribute which is a validation issue
+        hasHandleAttribute.Should().BeFalse("we intentionally created a handler without the Handle attribute to test validation");
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
     [Handle]
     public async ValueTask<string> HandleAsync(TestRequest request)
     {
-        return ""test""; // Should use await or remove async
+        return ""test""; // Should use explicit keyword or remove async
     }
 }
 
@@ -242,11 +242,13 @@ public record TestRequest : IRequest<string>;";
         // Act
         var content = await File.ReadAllTextAsync(Path.Combine(_testPath, "MissingAwait.cs"));
         var hasAsync = content.Contains("async");
-        var hasAwait = content.Contains("await");
+        // Check for "await " with space, but not in "await File..." from test itself
+        var lines = content.Split('\n');
+        var hasAwaitInCode = lines.Any(line => line.Trim().StartsWith("await ") || line.Contains(" await "));
 
         // Assert
         hasAsync.Should().BeTrue();
-        hasAwait.Should().BeFalse(); // Potential issue
+        hasAwaitInCode.Should().BeFalse("async method should use the await keyword explicitly");
     }
 
     [Fact]

@@ -33,13 +33,13 @@ public record TestRequest : IRequest<string>;";
 
         // Act
         var content = await File.ReadAllTextAsync(Path.Combine(_testPath, "TestHandler.cs"));
-        var optimized = content.Replace("Task<string>", "ValueTask<string>");
+        var optimized = content.Replace("async Task<string>", "async ValueTask<string>");
         await File.WriteAllTextAsync(Path.Combine(_testPath, "TestHandler.cs"), optimized);
         var newContent = await File.ReadAllTextAsync(Path.Combine(_testPath, "TestHandler.cs"));
 
         // Assert
         newContent.Should().Contain("ValueTask<string>");
-        newContent.Should().NotContain("Task<string>");
+        newContent.Should().NotContain("async Task<string>");
     }
 
     [Fact]

@@ -1,0 +1,175 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Relay Framework Contributors",
+  "classifications": [
+    "Web",
+    "API",
+    "REST",
+    "Clean Architecture",
+    "CQRS",
+    "Relay"
+  ],
+  "identity": "Relay.Templates.WebApi",
+  "name": "Relay Clean Architecture Web API",
+  "shortName": "relay-webapi",
+  "description": "Production-ready REST API following Clean Architecture principles with Relay mediator",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "RelayWebApi",
+  "preferNameDirectory": true,
+  "symbols": {
+    "ProjectName": {
+      "type": "parameter",
+      "datatype": "string",
+      "isRequired": true,
+      "replaces": "RelayWebApi",
+      "fileRename": "RelayWebApi",
+      "description": "The name of the project"
+    },
+    "EnableAuth": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Enable JWT authentication and authorization"
+    },
+    "EnableSwagger": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Enable Swagger/OpenAPI documentation"
+    },
+    "EnableDocker": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Include Docker support"
+    },
+    "EnableHealthChecks": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Enable health checks"
+    },
+    "DatabaseProvider": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "sqlserver",
+          "description": "Microsoft SQL Server"
+        },
+        {
+          "choice": "postgres",
+          "description": "PostgreSQL"
+        },
+        {
+          "choice": "mysql",
+          "description": "MySQL"
+        },
+        {
+          "choice": "sqlite",
+          "description": "SQLite"
+        }
+      ],
+      "defaultValue": "postgres",
+      "description": "Database provider to use"
+    },
+    "EnableCaching": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Enable Redis caching"
+    },
+    "EnableTelemetry": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Enable OpenTelemetry"
+    },
+    "Framework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "net8.0",
+          "description": ".NET 8.0"
+        },
+        {
+          "choice": "net9.0",
+          "description": ".NET 9.0"
+        }
+      ],
+      "defaultValue": "net8.0",
+      "replaces": "TargetFramework",
+      "description": "The target framework for the project"
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(!EnableAuth)",
+          "exclude": [
+            "**/Auth/**",
+            "**/Authentication/**",
+            "**/Authorization/**"
+          ]
+        },
+        {
+          "condition": "(!EnableSwagger)",
+          "exclude": [
+            "**/Swagger/**"
+          ]
+        },
+        {
+          "condition": "(!EnableDocker)",
+          "exclude": [
+            "**/Dockerfile",
+            "**/docker-compose.yml",
+            "**/.dockerignore"
+          ]
+        },
+        {
+          "condition": "(!EnableHealthChecks)",
+          "exclude": [
+            "**/HealthChecks/**"
+          ]
+        }
+      ]
+    }
+  ],
+  "postActions": [
+    {
+      "condition": "(OS != \"Windows_NT\")",
+      "description": "Make scripts executable",
+      "manualInstructions": [
+        {
+          "text": "Run 'chmod +x scripts/*.sh'"
+        }
+      ],
+      "actionId": "cb9a6cf3-4f5c-4860-b9d2-03a574959774",
+      "args": {
+        "+x": "scripts/*.sh"
+      },
+      "continueOnError": true
+    },
+    {
+      "condition": "true",
+      "description": "Restore NuGet packages",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ],
+  "primaryOutputs": [
+    {
+      "path": "src/RelayWebApi.Api/RelayWebApi.Api.csproj"
+    }
+  ]
+}

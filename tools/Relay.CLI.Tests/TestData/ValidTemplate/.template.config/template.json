@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Test Team",
+  "classifications": [
+    "Test",
+    "Sample",
+    "Relay"
+  ],
+  "identity": "Test.Templates.ValidTemplate",
+  "name": "Valid Test Template",
+  "shortName": "valid-test",
+  "description": "A valid test template for unit testing",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "TestProject",
+  "preferNameDirectory": true,
+  "symbols": {
+    "ProjectName": {
+      "type": "parameter",
+      "datatype": "string",
+      "isRequired": true,
+      "replaces": "TestProject",
+      "fileRename": "TestProject",
+      "description": "The name of the project"
+    },
+    "EnableFeature": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Enable a test feature"
+    }
+  }
+}

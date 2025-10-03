@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" Version="2.11.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.9" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+    
+    <!-- Azure Service Bus -->
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
+    
+    <!-- AWS SQS/SNS -->
+    <PackageReference Include="AWSSDK.SQS" Version="3.7.400.62" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.62" />
+    
+    <!-- NATS -->
+    <PackageReference Include="NATS.Client.Core" Version="2.4.0" />
+    
+    <!-- Redis Streams -->
+    <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+
+    <!-- OpenTelemetry -->
+    <PackageReference Include="OpenTelemetry" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
+  </ItemGroup>
+
+</Project>

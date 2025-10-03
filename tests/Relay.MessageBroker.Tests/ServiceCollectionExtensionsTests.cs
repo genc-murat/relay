@@ -215,4 +215,117 @@ public class ServiceCollectionExtensionsTests
         messageBroker.Should().NotBeNull();
         messageBroker.Should().BeOfType<Kafka.KafkaMessageBroker>();
     }
+
+    [Fact]
+    public void AddMessageBroker_WithAzureServiceBus_ShouldRegisterCorrectBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddMessageBroker(options =>
+        {
+            options.BrokerType = MessageBrokerType.AzureServiceBus;
+            options.AzureServiceBus = new AzureServiceBusOptions
+            {
+                ConnectionString = "test-connection-string"
+            };
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithAwsSqsSns_ShouldRegisterCorrectBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddMessageBroker(options =>
+        {
+            options.BrokerType = MessageBrokerType.AwsSqsSns;
+            options.AwsSqsSns = new AwsSqsSnsOptions();
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithNats_ShouldRegisterCorrectBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddMessageBroker(options =>
+        {
+            options.BrokerType = MessageBrokerType.Nats;
+            options.Nats = new NatsOptions
+            {
+                Servers = new[] { "nats://localhost:4222" }
+            };
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRedisStreams_ShouldRegisterCorrectBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddMessageBroker(options =>
+        {
+            options.BrokerType = MessageBrokerType.RedisStreams;
+            options.RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379"
+            };
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddMessageBroker_MultipleTimes_ShouldReplaceRegistration()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddMessageBroker(options => options.BrokerType = MessageBrokerType.RabbitMQ);
+        services.AddMessageBroker(options => options.BrokerType = MessageBrokerType.Kafka);
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        // Last registration should win
+        messageBroker.Should().BeOfType<Kafka.KafkaMessageBroker>();
+    }
 }

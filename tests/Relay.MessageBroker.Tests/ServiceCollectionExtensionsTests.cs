@@ -328,4 +328,220 @@ public class ServiceCollectionExtensionsTests
         // Last registration should win
         messageBroker.Should().BeOfType<Kafka.KafkaMessageBroker>();
     }
+
+    [Fact]
+    public void AddAzureServiceBus_ShouldRegisterAzureServiceBusMessageBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddAzureServiceBus(options =>
+        {
+            options.ConnectionString = "test-connection-string";
+            options.DefaultEntityName = "test-queue";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        messageBroker.Should().BeOfType<AzureServiceBus.AzureServiceBusMessageBroker>();
+    }
+
+    [Fact]
+    public void AddAzureServiceBus_WithoutConfiguration_ShouldUseDefaultOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddAzureServiceBus(options =>
+        {
+            // Azure Service Bus requires a connection string, so provide a dummy one
+            options.ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=Test;SharedAccessKey=TestKey";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        messageBroker.Should().BeOfType<AzureServiceBus.AzureServiceBusMessageBroker>();
+    }
+
+    [Fact]
+    public void AddAzureServiceBus_WithNullServices_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        IServiceCollection? services = null;
+
+        // Act
+        Action act = () => services!.AddAzureServiceBus();
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void AddAwsSqsSns_ShouldRegisterAwsSqsSnsMessageBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddAwsSqsSns(options =>
+        {
+            options.Region = "us-east-1";
+            options.DefaultQueueUrl = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        messageBroker.Should().BeOfType<AwsSqsSns.AwsSqsSnsMessageBroker>();
+    }
+
+    [Fact]
+    public void AddAwsSqsSns_WithoutConfiguration_ShouldUseDefaultOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddAwsSqsSns();
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        messageBroker.Should().BeOfType<AwsSqsSns.AwsSqsSnsMessageBroker>();
+    }
+
+    [Fact]
+    public void AddAwsSqsSns_WithNullServices_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        IServiceCollection? services = null;
+
+        // Act
+        Action act = () => services!.AddAwsSqsSns();
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void AddNats_ShouldRegisterNatsMessageBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddNats(options =>
+        {
+            options.Servers = new[] { "nats://localhost:4222" };
+            options.Name = "test-connection";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        messageBroker.Should().BeOfType<Nats.NatsMessageBroker>();
+    }
+
+    [Fact]
+    public void AddNats_WithoutConfiguration_ShouldUseDefaultOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddNats();
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        messageBroker.Should().BeOfType<Nats.NatsMessageBroker>();
+    }
+
+    [Fact]
+    public void AddNats_WithNullServices_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        IServiceCollection? services = null;
+
+        // Act
+        Action act = () => services!.AddNats();
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void AddRedisStreams_ShouldRegisterRedisStreamsMessageBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddRedisStreams(options =>
+        {
+            options.ConnectionString = "localhost:6379";
+            options.DefaultStreamName = "test-stream";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        messageBroker.Should().BeOfType<RedisStreams.RedisStreamsMessageBroker>();
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithoutConfiguration_ShouldUseDefaultOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddRedisStreams();
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        messageBroker.Should().NotBeNull();
+        messageBroker.Should().BeOfType<RedisStreams.RedisStreamsMessageBroker>();
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithNullServices_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        IServiceCollection? services = null;
+
+        // Act
+        Action act = () => services!.AddRedisStreams();
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
 }

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Moq;
 using Relay.MessageBroker;
 using Xunit;
 
@@ -114,5 +115,48 @@ public class MessageBrokerHostedServiceTests
         
         // Assert - Should not throw
         Assert.NotNull(messageBroker);
+    }
+
+    [Fact]
+    public async Task StartAsync_WhenMessageBrokerThrows_ShouldRethrow()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var serviceProvider = services.BuildServiceProvider();
+        
+        var mockBroker = new Moq.Mock<IMessageBroker>();
+        mockBroker.Setup(b => b.StartAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Failed to start"));
+        
+        var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(mockBroker.Object, logger);
+        
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => hostedService.StartAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenMessageBrokerThrows_ShouldNotRethrow()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var serviceProvider = services.BuildServiceProvider();
+        
+        var mockBroker = new Moq.Mock<IMessageBroker>();
+        mockBroker.Setup(b => b.StartAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+        mockBroker.Setup(b => b.StopAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Failed to stop"));
+        
+        var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(mockBroker.Object, logger);
+        
+        await hostedService.StartAsync(CancellationToken.None);
+        
+        // Act & Assert - Should not throw
+        await hostedService.StopAsync(CancellationToken.None);
     }
 }

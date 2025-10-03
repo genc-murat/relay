@@ -1,0 +1,11 @@
+{
+  "name": "custom-validator",
+  "version": "1.0.0",
+  "description": "Provides custom validation rules for code quality and conventions",
+  "authors": ["Relay Team"],
+  "tags": ["validator", "quality", "linting", "conventions"],
+  "minimumRelayVersion": "2.1.0",
+  "repository": "https://github.com/relay/plugins/custom-validator",
+  "license": "MIT",
+  "dependencies": {}
+}

@@ -1,0 +1,11 @@
+{
+  "name": "code-generator",
+  "version": "1.0.0",
+  "description": "Generates boilerplate code for controllers, services, repositories, models, and validators",
+  "authors": ["Relay Team"],
+  "tags": ["generator", "code", "scaffold", "boilerplate"],
+  "minimumRelayVersion": "2.1.0",
+  "repository": "https://github.com/relay/plugins/code-generator",
+  "license": "MIT",
+  "dependencies": {}
+}

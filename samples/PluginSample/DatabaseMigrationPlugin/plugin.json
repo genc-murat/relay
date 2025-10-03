@@ -1,0 +1,11 @@
+{
+  "name": "db-migration",
+  "version": "1.0.0",
+  "description": "Manages database migrations for your Relay applications",
+  "authors": ["Relay Team"],
+  "tags": ["database", "migration", "schema", "ef-core"],
+  "minimumRelayVersion": "2.1.0",
+  "repository": "https://github.com/relay/plugins/db-migration",
+  "license": "MIT",
+  "dependencies": {}
+}

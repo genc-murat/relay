@@ -6,7 +6,23 @@ This directory contains comprehensive sample projects demonstrating all features
 
 ### Core Features
 
-#### 1. **SagaPatternSample** ⭐⭐⭐ 🆕
+#### 1. **PluginSample** ⭐⭐⭐ 🆕
+Demonstrates how to create custom CLI plugins to extend Relay CLI functionality.
+
+**Features:**
+- Code Generator Plugin - Generate boilerplate code
+- Database Migration Plugin - Manage database migrations
+- Custom Validator Plugin - Code quality validation
+- Plugin lifecycle management
+- Plugin context and services
+
+**Run:**
+```bash
+cd PluginSample
+# See README.md for detailed instructions
+```
+
+#### 2. **SagaPatternSample** ⭐⭐⭐ 🆕
 Demonstrates distributed transaction management with automatic compensation using Saga pattern.
 
 **Features:**
@@ -23,7 +39,7 @@ dotnet run
 # Open https://localhost:7xxx/swagger
 ```
 
-#### 2. **StreamingSample** ⭐⭐⭐
+#### 3. **StreamingSample** ⭐⭐⭐
 Demonstrates `IAsyncEnumerable<T>` streaming support for handling large datasets efficiently.
 
 **Features:**
@@ -38,7 +54,7 @@ cd StreamingSample
 dotnet run
 ```
 
-#### 3. **MessageCompressionSample** ⭐⭐ 🆕
+#### 4. **MessageCompressionSample** ⭐⭐ 🆕
 Demonstrates automatic message compression for large payloads to reduce bandwidth.
 
 **Features:**
@@ -54,7 +70,7 @@ cd MessageCompressionSample
 dotnet run
 ```
 
-#### 4. **OpenTelemetrySample** ⭐⭐⭐ 🆕
+#### 5. **OpenTelemetrySample** ⭐⭐⭐ 🆕
 Comprehensive OpenTelemetry integration for distributed tracing and observability.
 
 **Features:**
@@ -73,7 +89,7 @@ dotnet run
 # Metrics: https://localhost:7xxx/metrics
 ```
 
-#### 5. **WorkflowEngineSample** ⭐⭐⭐
+#### 6. **WorkflowEngineSample** ⭐⭐⭐
 Shows how to orchestrate complex business processes with the built-in workflow engine.
 
 **Features:**
@@ -89,7 +105,7 @@ cd WorkflowEngineSample
 dotnet run
 ```
 
-#### 6. **NamedHandlersSample** ⭐⭐
+#### 7. **NamedHandlersSample** ⭐⭐
 Demonstrates the Strategy pattern with multiple handlers for the same request type.
 
 **Features:**
@@ -103,7 +119,7 @@ cd NamedHandlersSample
 dotnet run
 ```
 
-#### 7. **NotificationPublishingSample** ⭐⭐
+#### 8. **NotificationPublishingSample** ⭐⭐
 Event-driven architecture with parallel and sequential notification dispatch.
 
 **Features:**
@@ -120,7 +136,7 @@ dotnet run
 
 ### Resilience Patterns
 
-#### 8. **CircuitBreakerSample** ⭐⭐⭐
+#### 9. **CircuitBreakerSample** ⭐⭐⭐
 Prevents cascading failures with automatic circuit breaker pattern.
 
 **Features:**
@@ -135,7 +151,7 @@ cd CircuitBreakerSample
 dotnet run
 ```
 
-#### 9. **BulkheadPatternSample** ⭐⭐⭐
+#### 10. **BulkheadPatternSample** ⭐⭐⭐
 Resource isolation and fault tolerance with bulkhead pattern.
 
 **Features:**
@@ -152,7 +168,7 @@ dotnet run
 
 ### Integration Samples
 
-#### 10. **MessageBroker.Sample** ⭐⭐⭐ 🆕
+#### 11. **MessageBroker.Sample** ⭐⭐⭐ 🆕
 Comprehensive message broker integration with multiple providers (RabbitMQ, Kafka, Azure Service Bus, AWS SQS/SNS, NATS, Redis).
 
 **Features:**
@@ -169,7 +185,7 @@ cd MessageBroker.Sample
 dotnet run -- --broker rabbitmq  # or kafka, azure, aws, nats, redis
 ```
 
-#### 11. **AwsSqsSnsMessageBrokerSample** ⭐⭐ 🆕
+#### 12. **AwsSqsSnsMessageBrokerSample** ⭐⭐ 🆕
 AWS SQS and SNS integration for cloud-native event messaging.
 
 **Features:**
@@ -187,7 +203,7 @@ docker run -d -p 4566:4566 localstack/localstack
 dotnet run
 ```
 
-#### 12. **AzureServiceBusMessageBrokerSample** ⭐⭐ 🆕
+#### 13. **AzureServiceBusMessageBrokerSample** ⭐⭐ 🆕
 Azure Service Bus integration for enterprise messaging.
 
 **Features:**
@@ -203,7 +219,7 @@ cd AzureServiceBusMessageBrokerSample
 dotnet run
 ```
 
-#### 13. **WebApiIntegrationSample** ⭐⭐
+#### 14. **WebApiIntegrationSample** ⭐⭐
 ASP.NET Core Web API integration with Relay.
 
 **Features:**
@@ -219,7 +235,7 @@ dotnet run
 # Open http://localhost:5000/swagger
 ```
 
-#### 11. **BackgroundServiceSample** ⭐⭐
+#### 15. **BackgroundServiceSample** ⭐⭐
 Long-running background workers with Relay integration.
 
 **Features:**
@@ -234,7 +250,7 @@ cd BackgroundServiceSample
 dotnet run
 ```
 
-#### 12. **GrpcIntegrationSample** ⭐
+#### 16. **GrpcIntegrationSample** ⭐
 gRPC services with Relay mediator pattern.
 
 **Features:**
@@ -248,7 +264,7 @@ cd GrpcIntegrationSample
 dotnet run
 ```
 
-#### 13. **SignalRIntegrationSample** ⭐
+#### 17. **SignalRIntegrationSample** ⭐
 Real-time communication with SignalR and Relay.
 
 **Features:**
@@ -265,7 +281,7 @@ dotnet run
 
 ### Performance Samples
 
-#### 14. **BatchProcessingSample** ⭐
+#### 18. **BatchProcessingSample** ⭐
 High-performance batch processing with SIMD optimization.
 
 **Features:**
@@ -280,7 +296,7 @@ cd BatchProcessingSample
 dotnet run
 ```
 
-#### 15. **ObservabilitySample** ⭐
+#### 19. **ObservabilitySample** ⭐
 Monitoring, metrics, and observability features.
 
 **Features:**
@@ -314,8 +330,9 @@ foreach ($dir in Get-ChildItem -Directory) {
 
 **Recommended order for learning:**
 
-1. Start with **StreamingSample** - Learn core streaming concepts
-2. Try **NamedHandlersSample** - Understand strategy pattern
+1. Start with **PluginSample** 🆕 - Learn CLI extensibility
+2. Start with **StreamingSample** - Learn core streaming concepts
+3. Try **NamedHandlersSample** - Understand strategy pattern
 3. Explore **NotificationPublishingSample** - Event-driven architecture
 4. Study **CircuitBreakerSample** - Resilience patterns
 5. Practice **BulkheadPatternSample** - Resource isolation
@@ -330,7 +347,15 @@ foreach ($dir in Get-ChildItem -Directory) {
 
 ## 🆕 New Features (Recently Added)
 
-### 1. Saga Pattern Integration
+### 1. Plugin System
+Extend Relay CLI with custom plugins for code generation, validation, migrations, and more. Perfect for:
+- Custom code generators
+- Database migration management
+- Code quality validation
+- Team-specific tooling
+- Workflow automation
+
+### 2. Saga Pattern Integration
 Complete distributed transaction management with automatic compensation. Perfect for:
 - Multi-step business transactions
 - E-commerce order processing

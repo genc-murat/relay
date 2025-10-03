@@ -137,5 +137,73 @@ namespace Relay.Core.Tests
             Assert.IsAssignableFrom<RelayException>(exception);
             Assert.IsAssignableFrom<Exception>(exception);
         }
+
+        [Fact]
+        public void RelayException_ToString_IncludesRequestType()
+        {
+            // Arrange
+            var requestType = "TestRequest";
+            var message = "Test error message";
+            var exception = new RelayException(requestType, null, message);
+
+            // Act
+            var result = exception.ToString();
+
+            // Assert
+            Assert.Contains("RequestType: TestRequest", result);
+            Assert.Contains(message, result);
+        }
+
+        [Fact]
+        public void RelayException_ToString_IncludesHandlerName()
+        {
+            // Arrange
+            var requestType = "TestRequest";
+            var handlerName = "TestHandler";
+            var message = "Test error message";
+            var exception = new RelayException(requestType, handlerName, message);
+
+            // Act
+            var result = exception.ToString();
+
+            // Assert
+            Assert.Contains("RequestType: TestRequest", result);
+            Assert.Contains("HandlerName: TestHandler", result);
+            Assert.Contains(message, result);
+        }
+
+        [Fact]
+        public void RelayException_ToString_WithEmptyHandlerName_DoesNotIncludeHandlerNameSection()
+        {
+            // Arrange
+            var requestType = "TestRequest";
+            var handlerName = "";
+            var message = "Test error message";
+            var exception = new RelayException(requestType, handlerName, message);
+
+            // Act
+            var result = exception.ToString();
+
+            // Assert
+            Assert.Contains("RequestType: TestRequest", result);
+            Assert.DoesNotContain("HandlerName:", result);
+        }
+
+        [Fact]
+        public void RelayException_ToString_WithWhitespaceHandlerName_DoesNotIncludeHandlerNameSection()
+        {
+            // Arrange
+            var requestType = "TestRequest";
+            var handlerName = "   ";
+            var message = "Test error message";
+            var exception = new RelayException(requestType, handlerName, message);
+
+            // Act
+            var result = exception.ToString();
+
+            // Assert
+            Assert.Contains("RequestType: TestRequest", result);
+            Assert.DoesNotContain("HandlerName:", result);
+        }
     }
 }

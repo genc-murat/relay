@@ -152,7 +152,58 @@ dotnet run
 
 ### Integration Samples
 
-#### 10. **WebApiIntegrationSample** ⭐⭐
+#### 10. **MessageBroker.Sample** ⭐⭐⭐ 🆕
+Comprehensive message broker integration with multiple providers (RabbitMQ, Kafka, Azure Service Bus, AWS SQS/SNS, NATS, Redis).
+
+**Features:**
+- Multiple broker provider support
+- Event-driven architecture
+- Publish/Subscribe patterns
+- Message acknowledgment
+- Error handling and retries
+- Dead letter queues
+
+**Run:**
+```bash
+cd MessageBroker.Sample
+dotnet run -- --broker rabbitmq  # or kafka, azure, aws, nats, redis
+```
+
+#### 11. **AwsSqsSnsMessageBrokerSample** ⭐⭐ 🆕
+AWS SQS and SNS integration for cloud-native event messaging.
+
+**Features:**
+- AWS SQS queue subscriptions
+- AWS SNS topic publishing
+- LocalStack support for development
+- Dead letter queue configuration
+- IAM role integration
+
+**Run:**
+```bash
+cd AwsSqsSnsMessageBrokerSample
+# Start LocalStack for development
+docker run -d -p 4566:4566 localstack/localstack
+dotnet run
+```
+
+#### 12. **AzureServiceBusMessageBrokerSample** ⭐⭐ 🆕
+Azure Service Bus integration for enterprise messaging.
+
+**Features:**
+- Azure Service Bus queues and topics
+- Session-based messaging
+- Message scheduling
+- Duplicate detection
+- Transaction support
+
+**Run:**
+```bash
+cd AzureServiceBusMessageBrokerSample
+dotnet run
+```
+
+#### 13. **WebApiIntegrationSample** ⭐⭐
 ASP.NET Core Web API integration with Relay.
 
 **Features:**

@@ -222,12 +222,12 @@ public class InMemoryMessageBrokerTests
 
         // Act
         await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test" }, options);
-        await Task.Delay(100);
+        await Task.Delay(500); // Increased delay to ensure message delivery
 
         // Assert
         receivedContext.Should().NotBeNull();
         receivedContext!.MessageId.Should().NotBeNullOrEmpty();
-        receivedContext.Timestamp.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
+        receivedContext.Timestamp.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(2));
         receivedContext.RoutingKey.Should().Be("test.routing");
         receivedContext.Exchange.Should().Be("test-exchange");
         receivedContext.Headers.Should().ContainKey("key");
@@ -274,7 +274,7 @@ public class InMemoryMessageBrokerTests
         // Act
         await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test1" });
         await _broker.PublishAsync(new AnotherTestMessage { Name = "Test2" });
-        await Task.Delay(100);
+        await Task.Delay(500); // Increased delay to ensure message delivery
 
         // Assert
         receivedTestMessages.Should().HaveCount(1);

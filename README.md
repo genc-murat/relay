@@ -26,6 +26,8 @@
 - **Named Handlers**: Multiple implementation strategies for the same request type
 - **Streaming Support**: `IAsyncEnumerable<T>` for high-throughput scenarios
 - **Comprehensive Configuration**: Flexible options system with attribute-based overrides
+- **🆕 CLI Tooling**: Powerful developer tools for scaffolding, migration, and optimization
+- **🆕 Plugin System**: Extensible architecture with community plugins
 
 ### 🏗️ **Advanced Architecture**
 - **Configuration System**: Rich configuration with validation and attribute-based parameter overrides
@@ -36,6 +38,8 @@
 - **Source Generator Diagnostics**: Compile-time validation and helpful error messages
 - **Testing Framework**: Comprehensive test harness and mocking utilities
 - **Observability**: Built-in telemetry, metrics, and distributed tracing support
+- **🆕 Developer Tooling**: CLI tools for migration, scaffolding, health checks, and optimization
+- **🆕 Extensibility**: Plugin system for custom tools and community contributions
 
 ## 🛠️ Installation
 
@@ -44,10 +48,26 @@
 dotnet add package Relay.Core
 ```
 
-### CLI Tool (Development)
+### CLI Tool (Development Tools) 🆕
 ```bash
+# Install globally
 dotnet tool install -g Relay.CLI
+
+# Update to latest
+dotnet tool update -g Relay.CLI
 ```
+
+**Relay CLI v2.1.0** - Comprehensive developer tooling for Relay projects:
+- 🔄 **Migration** - Automated MediatR → Relay migration
+- 🏥 **Doctor** - Project health checks and diagnostics
+- 🎨 **Init** - Project scaffolding with templates
+- 🔌 **Plugins** - Extensible plugin ecosystem
+- ⚡ **Performance** - Performance analysis and optimization
+- ✅ **Validate** - Code validation and best practices
+- 📊 **Benchmark** - Performance benchmarking
+- 🔧 **Optimize** - Automatic code optimization
+
+[See CLI Documentation](#-relay-cli-developer-tools)
 
 ## 🚀 Quick Start
 
@@ -1888,3 +1908,313 @@ See the complete working example in [samples/TransactionSample](samples/Transact
 ✅ **Testable**: Easy to test with in-memory database  
 ✅ **MediatR Compatible**: Same patterns as MediatR community packages  
 ✅ **Zero Boilerplate**: Clean handler code focused on business logic
+
+---
+
+## 🛠️ Relay CLI - Developer Tools
+
+**Relay CLI v2.1.0** provides comprehensive tooling to enhance your development workflow.
+
+### 🚀 Quick Start
+
+```bash
+# Install CLI
+dotnet tool install -g Relay.CLI
+
+# Initialize a new project
+relay init --name MyProject --template enterprise
+
+# Run health check
+relay doctor --verbose
+
+# Migrate from MediatR
+relay migrate --from MediatR --to Relay
+
+# Search for plugins
+relay plugin search swagger
+```
+
+### 📋 Available Commands
+
+#### 🆕 **init** - Initialize New Projects
+```bash
+# Create with default template
+relay init --name MyProject
+
+# Enterprise template with Docker and CI/CD
+relay init --name MyProject --template enterprise --docker --ci
+
+# Templates: minimal, standard, enterprise
+```
+
+**Features:**
+- Complete solution structure generation
+- Sample handlers and tests included
+- Docker support (Dockerfile + docker-compose)
+- CI/CD configuration (GitHub Actions)
+- Multiple project templates
+
+#### 🆕 **doctor** - Health Checks
+```bash
+# Basic health check
+relay doctor
+
+# Verbose output with auto-fix
+relay doctor --verbose --fix
+```
+
+**Checks:**
+- Project structure validation
+- Dependency version checking
+- Handler pattern validation
+- Performance settings verification
+- Best practices compliance
+
+#### 🆕 **migrate** - MediatR Migration
+```bash
+# Analyze migration
+relay migrate --analyze-only
+
+# Dry run (preview changes)
+relay migrate --dry-run --preview
+
+# Full migration with backup
+relay migrate --backup
+
+# Aggressive optimizations
+relay migrate --aggressive
+```
+
+**Features:**
+- Automatic package updates (MediatR → Relay.Core)
+- Handler transformation (Task → ValueTask)
+- Method renaming (Handle → HandleAsync)
+- [Handle] attribute injection
+- DI registration updates
+- Automatic backups with rollback
+- Comprehensive migration reports (MD, JSON, HTML)
+
+**Example Migration:**
+```
+Before (MediatR):
+  using MediatR;
+  public async Task<User> Handle(GetUserQuery request, CancellationToken ct)
+
+After (Relay):
+  using Relay.Core;
+  [Handle]
+  public async ValueTask<User> HandleAsync(GetUserQuery request, CancellationToken ct)
+```
+
+#### 🆕 **plugin** - Plugin Management
+```bash
+# List installed plugins
+relay plugin list
+
+# Search marketplace
+relay plugin search swagger
+
+# Install a plugin
+relay plugin install relay-plugin-swagger
+
+# Create your own plugin
+relay plugin create --name my-plugin
+
+# Get plugin info
+relay plugin info relay-plugin-swagger
+```
+
+**Plugin Ecosystem:**
+- 🔌 Extensible architecture with AssemblyLoadContext isolation
+- 📦 Local and global plugin installation
+- 🎨 Template-based plugin creation
+- 🔍 Marketplace integration (coming soon)
+- 🛡️ Safe plugin execution with lifecycle management
+
+**Example Plugins:**
+- `relay-plugin-swagger` - OpenAPI documentation generation
+- `relay-plugin-graphql` - GraphQL schema generator
+- `relay-plugin-docker` - Docker configuration
+- `relay-plugin-kubernetes` - K8s deployment templates
+- [Create your own!](#creating-custom-plugins)
+
+#### **scaffold** - Code Generation
+```bash
+# Generate handler with request/response
+relay scaffold --handler UserHandler --request GetUserQuery --response User
+
+# Generate multiple handlers
+relay scaffold --batch handlers.json
+```
+
+#### **benchmark** - Performance Testing
+```bash
+# Run benchmarks
+relay benchmark --path ./src
+
+# Compare with MediatR
+relay benchmark --compare MediatR
+```
+
+#### **validate** - Code Validation
+```bash
+# Validate project
+relay validate --strict
+
+# Export validation report
+relay validate --output report.md --format markdown
+```
+
+#### **performance** - Performance Analysis
+```bash
+# Analyze performance
+relay performance --detailed
+
+# Generate report
+relay performance --report --output perf-report.md
+```
+
+#### **optimize** - Code Optimization
+```bash
+# Optimize handlers
+relay optimize --target handlers
+
+# Apply all optimizations
+relay optimize --all --backup
+```
+
+### 🔌 Creating Custom Plugins
+
+Create your own Relay CLI plugins to extend functionality:
+
+```bash
+# Create plugin from template
+relay plugin create --name relay-plugin-myfeature
+cd relay-plugin-myfeature
+
+# Edit MyfeaturePlugin.cs
+# Implement your plugin logic
+
+# Build and test
+dotnet build
+relay plugin install .
+
+# Use your plugin
+relay plugin run relay-plugin-myfeature
+```
+
+**Plugin API:**
+```csharp
+using Relay.CLI.Plugins;
+
+[RelayPlugin("relay-plugin-myfeature", "1.0.0")]
+public class MyFeaturePlugin : IRelayPlugin
+{
+    public string Name => "relay-plugin-myfeature";
+    public string Version => "1.0.0";
+    public string Description => "My awesome feature";
+    public string[] Authors => new[] { "Your Name" };
+    
+    public async Task<bool> InitializeAsync(IPluginContext context)
+    {
+        context.Logger.LogInformation("Initializing...");
+        // Access file system, configuration, DI services
+        return true;
+    }
+    
+    public async Task<int> ExecuteAsync(string[] args)
+    {
+        Console.WriteLine("Hello from my plugin!");
+        // Your plugin logic here
+        return 0;
+    }
+}
+```
+
+**Plugin Context Services:**
+- `IPluginLogger` - Logging
+- `IFileSystem` - File operations
+- `IConfiguration` - Settings management
+- `IServiceProvider` - Dependency injection
+- Working directory and CLI version info
+
+### 📊 CLI Performance
+
+Relay CLI is designed for speed:
+- **Startup:** < 500ms
+- **Analysis:** < 2s for 100 files
+- **Migration:** ~30ms per file
+- **Memory:** < 100MB typical usage
+
+### 🎯 Real-World Usage
+
+**Migrating a MediatR Project:**
+```bash
+# Step 1: Analyze
+relay migrate --analyze-only
+# Output: Found 45 handlers, 60 requests, 12 notifications
+
+# Step 2: Preview changes
+relay migrate --dry-run --preview
+# Shows all transformations without applying
+
+# Step 3: Migrate with backup
+relay migrate --backup --output migration-report.md
+# ✅ Migration complete! Backup created: .backup/backup_20250110_143022
+
+# Step 4: Validate
+relay doctor --verbose
+# ✅ Your Relay project is in excellent health!
+
+# Step 5: Test
+dotnet test
+# ✅ All tests passing
+
+# If needed: Rollback
+relay migrate rollback --backup .backup/backup_20250110_143022
+```
+
+**Setting Up a New Project:**
+```bash
+# Create enterprise project with all features
+relay init --name MyApi --template enterprise --docker --ci
+cd MyApi
+
+# Check project health
+relay doctor
+
+# Build and run
+dotnet build
+dotnet test
+dotnet run --project src/MyApi
+
+# Add a custom plugin for your needs
+relay plugin create --name relay-plugin-myapi-tools
+cd relay-plugin-myapi-tools
+# Implement custom tooling...
+dotnet build
+relay plugin install .
+```
+
+### 🆘 Getting Help
+
+```bash
+# General help
+relay --help
+
+# Command-specific help
+relay migrate --help
+relay plugin --help
+
+# Version information
+relay --version
+```
+
+### 📚 Learn More
+
+- [CLI Documentation](tools/Relay.CLI/README.md)
+- [Plugin Development Guide](tools/Relay.CLI/PLUGIN_GUIDE.md)
+- [Migration Guide](tools/Relay.CLI/MIGRATION_GUIDE.md)
+- [Examples](tools/Relay.CLI/examples/)
+
+---

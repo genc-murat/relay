@@ -29,6 +29,8 @@ class Program
         // Add commands
         rootCommand.AddCommand(InitCommand.Create());           // 🆕 NEW: Initialize projects
         rootCommand.AddCommand(DoctorCommand.Create());         // 🆕 NEW: Health checks
+        rootCommand.AddCommand(MigrateCommand.Create());        // 🆕 NEW: Migration from MediatR
+        rootCommand.AddCommand(PluginCommand.Create());         // 🆕 NEW: Plugin management
         rootCommand.AddCommand(ScaffoldCommand.Create());
         rootCommand.AddCommand(BenchmarkCommand.Create());
         rootCommand.AddCommand(AnalyzeCommand.Create());

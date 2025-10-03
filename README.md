@@ -3,7 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Relay.svg)](https://www.nuget.org/packages/Relay/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/genc-murat/relay/ci.yml?branch=main)](https://github.com/genc-murat/relay/actions)
-[![Tests](https://img.shields.io/badge/Tests-412%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-458%20passing-brightgreen.svg)]()
 [![Coverage](https://img.shields.io/badge/Coverage-79.3%25-brightgreen.svg)]()
 
 **Relay** is a modern, high-performance mediator framework for .NET, featuring source generators for compile-time optimizations, comprehensive pipeline behaviors, and extensive configuration options. Built with performance and developer experience in mind.

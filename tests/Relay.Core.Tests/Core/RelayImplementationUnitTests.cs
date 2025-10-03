@@ -128,7 +128,7 @@ public class RelayImplementationUnitTests
         var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() =>
             relay.SendAsync(request).AsTask());
 
-        exception.RequestType.Should().Contain("IRequest`1");
+        exception.RequestType.Should().Contain("TestRequest");
     }
 
     [Fact]
@@ -192,7 +192,7 @@ public class RelayImplementationUnitTests
             }
         });
 
-        exception.RequestType.Should().Contain("IStreamRequest`1");
+        exception.RequestType.Should().Contain("TestStreamRequest");
     }
 
     [Fact]

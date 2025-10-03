@@ -54,7 +54,7 @@ namespace Relay.Core.Tests
             var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() =>
                 _relay.SendAsync(request).AsTask());
 
-            Assert.Contains("IRequest`1", exception.RequestType);
+            Assert.Contains("TestRequest", exception.RequestType);
         }
 
         [Fact]
@@ -67,7 +67,7 @@ namespace Relay.Core.Tests
             var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() =>
                 _relay.SendAsync(request).AsTask());
 
-            Assert.Contains("IRequest", exception.RequestType);
+            Assert.Contains("TestVoidRequest", exception.RequestType);
         }
 
         [Fact]
@@ -93,7 +93,7 @@ namespace Relay.Core.Tests
                 }
             });
 
-            Assert.Contains("IStreamRequest`1", exception.RequestType);
+            Assert.Contains("TestStreamRequest", exception.RequestType);
         }
 
         [Fact]

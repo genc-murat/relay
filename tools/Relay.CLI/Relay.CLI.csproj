@@ -26,8 +26,6 @@
     <Optimize>true</Optimize>
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
-    <ReadyToRun>true</ReadyToRun>
-    <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
 
   <PropertyGroup>

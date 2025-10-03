@@ -27,19 +27,13 @@ namespace Relay.Core
         private readonly INotificationDispatcher? _notificationDispatcher;
         private readonly PerformanceOptions _performanceOptions;
 
-        // Pre-allocated exception tasks for ultra-fast error paths (when enabled)
-        private static readonly ValueTask<object> _handlerNotFoundTask =
-            ValueTask.FromException<object>(new HandlerNotFoundException("Handler not found"));
-        private static readonly ValueTask _handlerNotFoundVoidTask =
-            ValueTask.FromException(new HandlerNotFoundException("Handler not found"));
-
         // Handler cache for ultra-fast resolution (when enabled)
         private static readonly ConcurrentDictionary<Type, object?> _handlerCache = new();
 
         // Performance optimization: Create exception with proper type information
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ValueTask<T> CreateHandlerNotFoundTask<T>() =>
-            ValueTask.FromException<T>(new HandlerNotFoundException(typeof(T).Name));
+        private static ValueTask<T> CreateHandlerNotFoundTask<T>(Type requestType) =>
+            ValueTask.FromException<T>(new HandlerNotFoundException(requestType.Name));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ValueTask CreateHandlerNotFoundVoidTask(Type requestType) =>
@@ -184,9 +178,7 @@ namespace Relay.Core
             
             if (dispatcher == null)
             {
-                return _performanceOptions.UsePreAllocatedExceptions
-                    ? CreateHandlerNotFoundTask<TResponse>()
-                    : ValueTask.FromException<TResponse>(new HandlerNotFoundException(typeof(IRequest<TResponse>).Name));
+                return CreateHandlerNotFoundTask<TResponse>(request.GetType());
             }
 
             // Direct dispatch - let exceptions bubble up naturally for better performance
@@ -216,9 +208,7 @@ namespace Relay.Core
             
             if (dispatcher == null)
             {
-                return _performanceOptions.UsePreAllocatedExceptions
-                    ? _handlerNotFoundVoidTask
-                    : CreateHandlerNotFoundVoidTask(typeof(IRequest));
+                return CreateHandlerNotFoundVoidTask(request.GetType());
             }
 
             // Direct dispatch
@@ -236,7 +226,7 @@ namespace Relay.Core
             
             if (dispatcher == null)
             {
-                return ThrowHandlerNotFoundAsyncEnumerable<TResponse>(typeof(IStreamRequest<TResponse>).Name);
+                return ThrowHandlerNotFoundAsyncEnumerable<TResponse>(request.GetType().Name);
             }
 
             return dispatcher.DispatchAsync(request, cancellationToken);
@@ -392,7 +382,7 @@ namespace Relay.Core
             if (_requestDispatcher == null)
             {
                 return ValueTaskExtensions.FromException<TResponse>(
-                    new HandlerNotFoundException(typeof(IRequest<TResponse>).Name, handlerName));
+                    new HandlerNotFoundException(request.GetType().Name, handlerName));
             }
 
             try
@@ -422,7 +412,7 @@ namespace Relay.Core
             if (_requestDispatcher == null)
             {
                 return ValueTaskExtensions.FromException(
-                    new HandlerNotFoundException(typeof(IRequest).Name, handlerName));
+                    new HandlerNotFoundException(request.GetType().Name, handlerName));
             }
 
             try

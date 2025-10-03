@@ -1,69 +1,71 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.ObjectPool;
+using System;
 using System.Buffers;
+using Relay.Core.Configuration;
 
-namespace Relay.Core.Performance;
-
-/// <summary>
-/// Service collection extensions for performance optimizations
-/// </summary>
-public static class PerformanceServiceCollectionExtensions
+namespace Relay.Core.Performance
 {
     /// <summary>
-    /// Adds performance optimization services to the service collection
+    /// Service collection extensions for performance optimizations
     /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <returns>The service collection for chaining</returns>
-    public static IServiceCollection AddRelayPerformanceOptimizations(this IServiceCollection services)
+    public static class PerformanceServiceCollectionExtensions
     {
-        // Add object pool provider if not already registered
-        services.TryAddSingleton<ObjectPoolProvider, DefaultObjectPoolProvider>();
-
-        // Add telemetry context pool
-        services.TryAddSingleton<ITelemetryContextPool, DefaultTelemetryContextPool>();
-
-        // Add buffer manager
-        services.TryAddSingleton<IPooledBufferManager>(provider =>
-            new DefaultPooledBufferManager(ArrayPool<byte>.Shared));
-
-
-        // Add pooled telemetry provider
-        services.TryAddSingleton<PooledTelemetryProvider>();
-
-        return services;
-    }
-
-    /// <summary>
-    /// Adds performance optimization services with custom configuration
-    /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="configureObjectPool">Optional object pool provider configuration</param>
-    /// <param name="configureArrayPool">Optional array pool configuration</param>
-    /// <returns>The service collection for chaining</returns>
-    public static IServiceCollection AddRelayPerformanceOptimizations(
-        this IServiceCollection services,
-        ObjectPoolProvider? configureObjectPool = null,
-        ArrayPool<byte>? configureArrayPool = null)
-    {
-        // Add custom object pool provider if provided
-        if (configureObjectPool != null)
+        /// <summary>
+        /// Adds performance optimization services to the service collection
+        /// </summary>
+        /// <param name="services">The service collection</param>
+        /// <returns>The service collection for chaining</returns>
+        public static IServiceCollection AddRelayPerformanceOptimizations(this IServiceCollection services)
         {
-            services.TryAddSingleton(configureObjectPool);
-        }
-        else
-        {
+            // Add object pool provider if not already registered
             services.TryAddSingleton<ObjectPoolProvider, DefaultObjectPoolProvider>();
+
+            // Add telemetry context pool
+            services.TryAddSingleton<ITelemetryContextPool, DefaultTelemetryContextPool>();
+
+            // Add buffer manager
+            services.TryAddSingleton<IPooledBufferManager>(provider =>
+                new DefaultPooledBufferManager(ArrayPool<byte>.Shared));
+
+            // Add pooled telemetry provider
+            services.TryAddSingleton<PooledTelemetryProvider>();
+
+            return services;
         }
 
-        // Add telemetry context pool
-        services.TryAddSingleton<ITelemetryContextPool, DefaultTelemetryContextPool>();
+        /// <summary>
+        /// Configures Relay for maximum performance with the specified profile
+        /// </summary>
+        /// <param name="services">The service collection</param>
+        /// <param name="profile">The performance profile to use</param>
+        /// <returns>The service collection for chaining</returns>
+        public static IServiceCollection WithPerformanceProfile(this IServiceCollection services, PerformanceProfile profile)
+        {
+            services.Configure<RelayOptions>(options =>
+            {
+                options.Performance.Profile = profile;
+            });
 
-        // Add buffer manager with custom array pool if provided
-        var arrayPool = configureArrayPool ?? ArrayPool<byte>.Shared;
-        services.TryAddSingleton<IPooledBufferManager>(provider =>
-            new DefaultPooledBufferManager(arrayPool));
+            return services;
+        }
 
-        return services;
+        /// <summary>
+        /// Configures Relay performance options
+        /// </summary>
+        /// <param name="services">The service collection</param>
+        /// <param name="configure">Configuration action for performance options</param>
+        /// <returns>The service collection for chaining</returns>
+        public static IServiceCollection ConfigurePerformance(this IServiceCollection services, Action<PerformanceOptions> configure)
+        {
+            services.Configure<RelayOptions>(options =>
+            {
+                options.Performance.Profile = PerformanceProfile.Custom;
+                configure(options.Performance);
+            });
+
+            return services;
+        }
     }
 }

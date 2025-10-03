@@ -89,6 +89,11 @@ namespace Relay.Core.Configuration
         public bool EnablePerformanceOptimizations { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets the performance optimization options.
+        /// </summary>
+        public PerformanceOptions Performance { get; set; } = new();
+
+        /// <summary>
         /// Gets or sets the maximum number of concurrent notification handlers.
         /// </summary>
         public int MaxConcurrentNotificationHandlers { get; set; } = Environment.ProcessorCount * 2;

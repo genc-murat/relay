@@ -3,7 +3,8 @@
 [![NuGet](https://img.shields.io/nuget/v/Relay.svg)](https://www.nuget.org/packages/Relay/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/genc-murat/relay/ci.yml?branch=main)](https://github.com/genc-murat/relay/actions)
-[![Tests](https://img.shields.io/badge/Tests-558%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-754%20passing-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/Coverage-35.93%25-yellow.svg)]()
 
 **Relay** is a modern, high-performance mediator framework for .NET, featuring source generators for compile-time optimizations, comprehensive pipeline behaviors, and extensive configuration options. Built with performance and developer experience in mind.
 
@@ -26,6 +27,11 @@
 - **Named Handlers**: Multiple implementation strategies for the same request type
 - **Streaming Support**: `IAsyncEnumerable<T>` for high-throughput scenarios
 - **Comprehensive Configuration**: Flexible options system with attribute-based overrides
+- **🆕 Message Broker Integration**: 6+ broker support (RabbitMQ, Kafka, Azure, AWS, NATS, Redis)
+- **🆕 Circuit Breaker Pattern**: Automatic failure detection and recovery
+- **🆕 Message Compression**: GZip, Deflate, and Brotli compression
+- **🆕 Saga Pattern**: Distributed transaction orchestration
+- **🆕 OpenTelemetry**: Built-in distributed tracing and metrics
 - **🆕 CLI Tooling**: Powerful developer tools for scaffolding, migration, and optimization
 - **🆕 Plugin System**: Extensible architecture with community plugins
 
@@ -454,6 +460,134 @@ services.ConfigureHandler("MyHandler.HandleAsync", options =>
 });
 ```
 
+## 📨 Message Broker Integration
+
+Relay includes comprehensive message broker support for distributed systems:
+
+### Supported Brokers
+
+- ✅ **RabbitMQ** - AMQP protocol, reliable messaging
+- ✅ **Apache Kafka** - High-throughput, distributed streaming
+- ✅ **Azure Service Bus** - Enterprise cloud messaging
+- ✅ **AWS SQS/SNS** - Amazon's managed queuing/pub-sub
+- ✅ **NATS** - Lightweight, high-performance messaging
+- ✅ **Redis Streams** - Redis-based message streaming
+- ✅ **In-Memory** - Testing and development
+
+### Quick Start
+
+```csharp
+// Install package
+dotnet add package Relay.MessageBroker
+
+// Configure in Startup/Program.cs
+services.AddRabbitMQ(options =>
+{
+    options.HostName = "localhost";
+    options.Port = 5672;
+    options.UserName = "guest";
+    options.Password = "guest";
+});
+
+// Or use Kafka
+services.AddKafka(options =>
+{
+    options.BootstrapServers = "localhost:9092";
+    options.GroupId = "my-consumer-group";
+});
+
+// Publish messages
+await _messageBroker.PublishAsync("my-topic", new UserCreatedEvent
+{
+    UserId = 123,
+    Email = "user@example.com"
+});
+
+// Subscribe to messages
+await _messageBroker.SubscribeAsync<UserCreatedEvent>("my-topic", async (message) =>
+{
+    await ProcessUserCreatedAsync(message);
+});
+```
+
+### Advanced Features
+
+#### Circuit Breaker Pattern
+Automatic failure detection and recovery:
+
+```csharp
+services.AddMessageBroker(options =>
+{
+    options.CircuitBreaker = new CircuitBreakerOptions
+    {
+        Enabled = true,
+        FailureThreshold = 5,
+        Timeout = TimeSpan.FromSeconds(30),
+        SuccessThreshold = 2
+    };
+});
+```
+
+#### Message Compression
+Reduce bandwidth with automatic compression:
+
+```csharp
+services.AddMessageBroker(options =>
+{
+    options.Compression = new CompressionOptions
+    {
+        Enabled = true,
+        Algorithm = CompressionAlgorithm.Brotli, // GZip, Deflate, or Brotli
+        Level = CompressionLevel.Optimal,
+        MinimumSizeBytes = 1024 // Only compress if > 1KB
+    };
+});
+```
+
+#### Saga Pattern
+Distributed transaction orchestration:
+
+```csharp
+public class OrderSaga : ISagaStep<OrderContext>
+{
+    public async Task ExecuteAsync(OrderContext context)
+    {
+        // Create order
+        context.OrderId = await _orderService.CreateOrderAsync(context.Order);
+    }
+    
+    public async Task CompensateAsync(OrderContext context)
+    {
+        // Rollback on failure
+        await _orderService.CancelOrderAsync(context.OrderId);
+    }
+}
+
+// Execute saga
+var orchestrator = new SagaOrchestrator<OrderContext>();
+orchestrator.AddStep(new ValidateOrderStep());
+orchestrator.AddStep(new ProcessPaymentStep());
+orchestrator.AddStep(new CreateOrderStep());
+
+await orchestrator.ExecuteAsync(context);
+```
+
+#### OpenTelemetry Integration
+Built-in distributed tracing and metrics:
+
+```csharp
+services.AddOpenTelemetry()
+    .WithTracing(builder => builder
+        .AddRelayMessageBrokerInstrumentation(options =>
+        {
+            options.ServiceName = "MyService";
+            options.EnableTracing = true;
+            options.CaptureMessagePayloads = false; // Security
+        }));
+```
+
+See [Message Broker Documentation](src/Relay.MessageBroker/README.md) for complete guide.
+
 ## 🛠️ CLI Tool
 
 The Relay CLI provides development utilities:
@@ -476,17 +610,36 @@ relay benchmark --iterations 10000
 
 ```
 src/
-├── Relay/                 # Main mediator implementation
-├── Relay.Core/           # Core interfaces and base classes
-└── Relay.SourceGenerator/# Source generators for compile-time optimization
+├── Relay/                      # Main mediator implementation
+├── Relay.Core/                 # Core interfaces and base classes
+├── Relay.SourceGenerator/      # Source generators for compile-time optimization
+└── Relay.MessageBroker/        # Message broker integrations (NEW)
+    ├── RabbitMQ/               # RabbitMQ implementation
+    ├── Kafka/                  # Apache Kafka implementation
+    ├── AzureServiceBus/        # Azure Service Bus implementation
+    ├── AwsSqsSns/              # AWS SQS/SNS implementation
+    ├── Nats/                   # NATS implementation
+    ├── RedisStreams/           # Redis Streams implementation
+    ├── CircuitBreaker/         # Circuit breaker pattern
+    ├── Compression/            # Message compression
+    ├── Telemetry/              # OpenTelemetry integration
+    └── Saga/                   # Saga pattern orchestration
 
 tests/
 ├── Relay.Core.Tests/           # Core functionality tests (558 tests)
+├── Relay.MessageBroker.Tests/  # Message broker tests (196 tests, NEW)
 ├── Relay.SourceGenerator.Tests/# Source generator tests  
-└── Relay.Packaging.Tests/     # NuGet packaging tests
+└── Relay.Packaging.Tests/      # NuGet packaging tests
+
+samples/
+├── MessageBroker.Sample/       # Message broker examples (NEW)
+├── OpenTelemetrySample/        # Telemetry integration (NEW)
+├── MessageCompressionSample/   # Compression examples (NEW)
+├── SagaPatternSample/          # Saga orchestration (NEW)
+└── ... 26 more samples
 
 tools/
-└── Relay.CLI/            # Command-line development tool
+└── Relay.CLI/                  # Command-line development tool
 ```
 
 ## 🏗️ Architecture
@@ -509,6 +662,9 @@ tools/
 - **Rate Limiting**: Request throttling and rate limiting
 - **Distributed Tracing**: OpenTelemetry integration
 - **Performance Monitoring**: Built-in metrics and telemetry
+- **Circuit Breaker**: Automatic failure detection and recovery (NEW)
+- **Message Compression**: Reduce bandwidth usage (NEW)
+- **Saga Orchestration**: Distributed transaction coordination (NEW)
 
 ## 🧪 Testing
 
@@ -524,12 +680,17 @@ var result = await harness.SendAsync(new GetUserQuery(123));
 Assert.NotNull(result);
 ```
 
-The framework itself is thoroughly tested with **558 passing tests** covering:
+The framework itself is thoroughly tested with **754 passing tests** (558 core + 196 message broker) covering:
 - Core mediator functionality
 - Source generator behavior
 - Configuration system
 - Pipeline behaviors
 - Error handling and edge cases
+- Message broker integrations
+- Circuit breaker patterns
+- Compression algorithms
+- OpenTelemetry integration
+- Saga orchestration
 
 ## 📊 Performance
 

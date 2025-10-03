@@ -6,7 +6,24 @@ This directory contains comprehensive sample projects demonstrating all features
 
 ### Core Features
 
-#### 1. **StreamingSample** ⭐⭐⭐
+#### 1. **SagaPatternSample** ⭐⭐⭐ 🆕
+Demonstrates distributed transaction management with automatic compensation using Saga pattern.
+
+**Features:**
+- Multi-step distributed transactions
+- Automatic compensation on failure
+- State persistence (In-Memory & Database)
+- Complete e-commerce order processing example
+- Timeout handling
+
+**Run:**
+```bash
+cd SagaPatternSample/SagaPatternSample
+dotnet run
+# Open https://localhost:7xxx/swagger
+```
+
+#### 2. **StreamingSample** ⭐⭐⭐
 Demonstrates `IAsyncEnumerable<T>` streaming support for handling large datasets efficiently.
 
 **Features:**
@@ -21,7 +38,42 @@ cd StreamingSample
 dotnet run
 ```
 
-#### 2. **WorkflowEngineSample** ⭐⭐⭐
+#### 3. **MessageCompressionSample** ⭐⭐ 🆕
+Demonstrates automatic message compression for large payloads to reduce bandwidth.
+
+**Features:**
+- Automatic compression/decompression
+- Configurable compression threshold
+- Multiple compression algorithms (Gzip, Brotli, Deflate)
+- Compression statistics and ratios
+- Performance optimization
+
+**Run:**
+```bash
+cd MessageCompressionSample
+dotnet run
+```
+
+#### 4. **OpenTelemetrySample** ⭐⭐⭐ 🆕
+Comprehensive OpenTelemetry integration for distributed tracing and observability.
+
+**Features:**
+- Distributed tracing across handlers
+- Automatic ASP.NET Core instrumentation
+- Custom activity sources and spans
+- Metrics collection and Prometheus export
+- Error tracking and exception recording
+- Jaeger integration
+
+**Run:**
+```bash
+cd OpenTelemetrySample
+dotnet run
+# Open https://localhost:7xxx/swagger
+# Metrics: https://localhost:7xxx/metrics
+```
+
+#### 5. **WorkflowEngineSample** ⭐⭐⭐
 Shows how to orchestrate complex business processes with the built-in workflow engine.
 
 **Features:**
@@ -37,7 +89,7 @@ cd WorkflowEngineSample
 dotnet run
 ```
 
-#### 3. **NamedHandlersSample** ⭐⭐
+#### 6. **NamedHandlersSample** ⭐⭐
 Demonstrates the Strategy pattern with multiple handlers for the same request type.
 
 **Features:**
@@ -51,7 +103,7 @@ cd NamedHandlersSample
 dotnet run
 ```
 
-#### 4. **NotificationPublishingSample** ⭐⭐
+#### 7. **NotificationPublishingSample** ⭐⭐
 Event-driven architecture with parallel and sequential notification dispatch.
 
 **Features:**
@@ -68,7 +120,7 @@ dotnet run
 
 ### Resilience Patterns
 
-#### 5. **CircuitBreakerSample** ⭐⭐⭐
+#### 8. **CircuitBreakerSample** ⭐⭐⭐
 Prevents cascading failures with automatic circuit breaker pattern.
 
 **Features:**
@@ -83,7 +135,7 @@ cd CircuitBreakerSample
 dotnet run
 ```
 
-#### 6. **BulkheadPatternSample** ⭐⭐⭐
+#### 9. **BulkheadPatternSample** ⭐⭐⭐
 Resource isolation and fault tolerance with bulkhead pattern.
 
 **Features:**
@@ -100,7 +152,7 @@ dotnet run
 
 ### Integration Samples
 
-#### 7. **WebApiIntegrationSample** ⭐⭐
+#### 10. **WebApiIntegrationSample** ⭐⭐
 ASP.NET Core Web API integration with Relay.
 
 **Features:**
@@ -116,7 +168,7 @@ dotnet run
 # Open http://localhost:5000/swagger
 ```
 
-#### 8. **BackgroundServiceSample** ⭐⭐
+#### 11. **BackgroundServiceSample** ⭐⭐
 Long-running background workers with Relay integration.
 
 **Features:**
@@ -131,7 +183,7 @@ cd BackgroundServiceSample
 dotnet run
 ```
 
-#### 9. **GrpcIntegrationSample** ⭐
+#### 12. **GrpcIntegrationSample** ⭐
 gRPC services with Relay mediator pattern.
 
 **Features:**
@@ -145,7 +197,7 @@ cd GrpcIntegrationSample
 dotnet run
 ```
 
-#### 10. **SignalRIntegrationSample** ⭐
+#### 13. **SignalRIntegrationSample** ⭐
 Real-time communication with SignalR and Relay.
 
 **Features:**
@@ -162,7 +214,7 @@ dotnet run
 
 ### Performance Samples
 
-#### 11. **BatchProcessingSample** ⭐
+#### 14. **BatchProcessingSample** ⭐
 High-performance batch processing with SIMD optimization.
 
 **Features:**
@@ -177,7 +229,7 @@ cd BatchProcessingSample
 dotnet run
 ```
 
-#### 12. **ObservabilitySample** ⭐
+#### 15. **ObservabilitySample** ⭐
 Monitoring, metrics, and observability features.
 
 **Features:**
@@ -216,11 +268,38 @@ foreach ($dir in Get-ChildItem -Directory) {
 3. Explore **NotificationPublishingSample** - Event-driven architecture
 4. Study **CircuitBreakerSample** - Resilience patterns
 5. Practice **BulkheadPatternSample** - Resource isolation
-6. Build **WorkflowEngineSample** - Complex orchestration
-7. Integrate **WebApiIntegrationSample** - Real-world APIs
-8. Scale **BackgroundServiceSample** - Background processing
-9. Optimize **BatchProcessingSample** - Performance tuning
-10. Monitor **ObservabilitySample** - Production observability
+6. Master **SagaPatternSample** 🆕 - Distributed transactions
+7. Build **WorkflowEngineSample** - Complex orchestration
+8. Integrate **WebApiIntegrationSample** - Real-world APIs
+9. Scale **BackgroundServiceSample** - Background processing
+10. Optimize **BatchProcessingSample** - Performance tuning
+11. Optimize **MessageCompressionSample** 🆕 - Bandwidth optimization
+12. Monitor **ObservabilitySample** - Basic observability
+13. Advanced **OpenTelemetrySample** 🆕 - Distributed tracing
+
+## 🆕 New Features (Recently Added)
+
+### 1. Saga Pattern Integration
+Complete distributed transaction management with automatic compensation. Perfect for:
+- Multi-step business transactions
+- E-commerce order processing
+- Microservices coordination
+- Automatic rollback on failures
+
+### 2. Message Compression
+Automatic compression for large messages to reduce bandwidth:
+- Gzip, Brotli, and Deflate algorithms
+- Configurable compression threshold
+- Transparent compression/decompression
+- Performance optimization
+
+### 3. OpenTelemetry Integration
+Industry-standard observability with OpenTelemetry:
+- Distributed tracing across services
+- Automatic instrumentation
+- Prometheus metrics export
+- Jaeger integration
+- Custom spans and events
 
 ## 🔧 Prerequisites
 

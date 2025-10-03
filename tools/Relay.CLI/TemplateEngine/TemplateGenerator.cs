@@ -29,6 +29,17 @@ public class TemplateGenerator
         
         try
         {
+            // Validate project name first
+            var validator = new TemplateValidator();
+            var validationResult = validator.ValidateProjectName(projectName);
+            if (!validationResult.IsValid)
+            {
+                result.Success = false;
+                result.Message = $"Invalid project name: {string.Join(", ", validationResult.Errors)}";
+                result.Errors.AddRange(validationResult.Errors);
+                return result;
+            }
+            
             Console.WriteLine();
             Console.WriteLine($"🎨 Generating project '{projectName}' from template '{templateId}'...");
             Console.WriteLine();
@@ -86,6 +97,11 @@ public class TemplateGenerator
         Console.WriteLine("📁 Creating directory structure...");
         var directories = GetDirectoryStructure(templateId, projectName, options);
         
+        if (directories == null || directories.Length == 0)
+        {
+            throw new ArgumentException($"Invalid or unsupported template: {templateId}");
+        }
+        
         foreach (var dir in directories)
         {
             var fullPath = Path.Combine(outputPath, dir);
@@ -97,7 +113,7 @@ public class TemplateGenerator
         await Task.CompletedTask;
     }
 
-    private string[] GetDirectoryStructure(string templateId, string projectName, GenerationOptions options)
+    private string[]? GetDirectoryStructure(string templateId, string projectName, GenerationOptions options)
     {
         return templateId switch
         {
@@ -107,7 +123,7 @@ public class TemplateGenerator
             "relay-modular" => GetModularDirectoryStructure(projectName, options),
             "relay-graphql" => GetGraphQLDirectoryStructure(projectName),
             "relay-grpc" => GetGrpcDirectoryStructure(projectName),
-            _ => new[] { "src", "tests", "docs" }
+            _ => null // Return null for invalid templates
         };
     }
 
@@ -291,17 +307,186 @@ public class TemplateGenerator
         Console.WriteLine();
     }
 
-    // Placeholder methods - implement as needed
-    private Task GenerateSolutionFileAsync(string projectName, string outputPath, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateApiProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateApplicationProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateDomainProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateInfrastructureProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateTestProjectsAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateExampleHandlersAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateGitignoreAsync(string outputPath, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateReadmeAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result) => Task.CompletedTask;
-    private Task GenerateDockerfilesAsync(string projectName, string outputPath, GenerationResult result) => Task.CompletedTask;
+    private async Task GenerateSolutionFileAsync(string projectName, string outputPath, GenerationResult result)
+    {
+        var solutionPath = Path.Combine(outputPath, $"{projectName}.sln");
+        var content = $@"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+EndGlobal
+";
+        await File.WriteAllTextAsync(solutionPath, content.TrimStart());
+        result.CreatedFiles.Add($"{projectName}.sln");
+    }
+
+    private async Task GenerateApiProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        var projectPath = Path.Combine(outputPath, "src", $"{projectName}.Api", $"{projectName}.Api.csproj");
+        var content = $@"<Project Sdk=""Microsoft.NET.Sdk.Web"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""Relay"" Version=""*"" />
+  </ItemGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(projectPath, content);
+        result.CreatedFiles.Add($"src/{projectName}.Api/{projectName}.Api.csproj");
+        
+        // Generate Program.cs
+        var programPath = Path.Combine(outputPath, "src", $"{projectName}.Api", "Program.cs");
+        var programContent = @"var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+app.MapGet(""/"", () => ""Hello World!"");
+app.Run();
+";
+        await File.WriteAllTextAsync(programPath, programContent);
+        result.CreatedFiles.Add($"src/{projectName}.Api/Program.cs");
+    }
+
+    private async Task GenerateApplicationProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        var projectPath = Path.Combine(outputPath, "src", $"{projectName}.Application", $"{projectName}.Application.csproj");
+        var content = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""*"" />
+  </ItemGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(projectPath, content);
+        result.CreatedFiles.Add($"src/{projectName}.Application/{projectName}.Application.csproj");
+    }
+
+    private async Task GenerateDomainProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        var projectPath = Path.Combine(outputPath, "src", $"{projectName}.Domain", $"{projectName}.Domain.csproj");
+        var content = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(projectPath, content);
+        result.CreatedFiles.Add($"src/{projectName}.Domain/{projectName}.Domain.csproj");
+    }
+
+    private async Task GenerateInfrastructureProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        var projectPath = Path.Combine(outputPath, "src", $"{projectName}.Infrastructure", $"{projectName}.Infrastructure.csproj");
+        var content = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(projectPath, content);
+        result.CreatedFiles.Add($"src/{projectName}.Infrastructure/{projectName}.Infrastructure.csproj");
+    }
+
+    private async Task GenerateTestProjectsAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        // Unit tests
+        var unitTestPath = Path.Combine(outputPath, "tests", $"{projectName}.UnitTests", $"{projectName}.UnitTests.csproj");
+        var content = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""xunit"" Version=""2.5.0"" />
+    <PackageReference Include=""FluentAssertions"" Version=""6.12.0"" />
+  </ItemGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(unitTestPath, content);
+        result.CreatedFiles.Add($"tests/{projectName}.UnitTests/{projectName}.UnitTests.csproj");
+    }
+
+    private async Task GenerateExampleHandlersAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        // Example command handler
+        var commandPath = Path.Combine(outputPath, "src", $"{projectName}.Application", "Features", "Products", "Commands", "CreateProductCommand.cs");
+        var commandContent = @"namespace Application.Features.Products.Commands;
+
+public record CreateProductCommand(string Name, decimal Price);
+";
+        await File.WriteAllTextAsync(commandPath, commandContent);
+        result.CreatedFiles.Add($"src/{projectName}.Application/Features/Products/Commands/CreateProductCommand.cs");
+    }
+
+    private async Task GenerateGitignoreAsync(string outputPath, GenerationResult result)
+    {
+        var gitignorePath = Path.Combine(outputPath, ".gitignore");
+        var content = @"bin/
+obj/
+.vs/
+*.user
+*.suo
+";
+        await File.WriteAllTextAsync(gitignorePath, content);
+        result.CreatedFiles.Add(".gitignore");
+    }
+
+    private async Task GenerateReadmeAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        var readmePath = Path.Combine(outputPath, "README.md");
+        var content = $@"# {projectName}
+
+## Getting Started
+
+```bash
+dotnet restore
+dotnet build
+dotnet run --project src/{projectName}.Api
+```
+";
+        await File.WriteAllTextAsync(readmePath, content);
+        result.CreatedFiles.Add("README.md");
+    }
+
+    private async Task GenerateDockerfilesAsync(string projectName, string outputPath, GenerationResult result)
+    {
+        var dockerfilePath = Path.Combine(outputPath, "Dockerfile");
+        var content = @"FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 80
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore
+RUN dotnet build -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT [""dotnet"", ""Api.dll""]
+";
+        await File.WriteAllTextAsync(dockerfilePath, content);
+        result.CreatedFiles.Add("Dockerfile");
+    }
 }
 
 public class GenerationOptions

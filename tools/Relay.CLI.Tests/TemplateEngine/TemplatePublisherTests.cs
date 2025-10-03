@@ -82,9 +82,9 @@ public class TemplatePublisherTests : IDisposable
         // Act
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
 
-        // Assert
-        var zipPath = result.PackagePath.Replace(".nupkg", ".zip");
-        File.Exists(zipPath).Should().BeTrue();
+        // Assert - Should create .nupkg file (which is a renamed zip)
+        File.Exists(result.PackagePath).Should().BeTrue();
+        result.PackagePath.Should().EndWith(".nupkg");
     }
 
     [Fact]

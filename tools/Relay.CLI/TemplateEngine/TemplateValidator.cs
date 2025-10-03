@@ -75,10 +75,15 @@ public class TemplateValidator
         try
         {
             var json = await File.ReadAllTextAsync(templateJsonPath);
-            var template = System.Text.Json.JsonSerializer.Deserialize<TemplateMetadata>(json);
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            var template = System.Text.Json.JsonSerializer.Deserialize<TemplateMetadata>(json, options);
 
             if (template == null)
             {
+                result.IsValid = false;
                 result.Errors.Add("Invalid template.json: Failed to deserialize");
                 return;
             }
@@ -86,11 +91,13 @@ public class TemplateValidator
             // Validate required fields
             if (string.IsNullOrEmpty(template.Name))
             {
+                result.IsValid = false;
                 result.Errors.Add("template.json: 'name' is required");
             }
 
             if (string.IsNullOrEmpty(template.ShortName))
             {
+                result.IsValid = false;
                 result.Errors.Add("template.json: 'shortName' is required");
             }
 
@@ -106,6 +113,7 @@ public class TemplateValidator
         }
         catch (Exception ex)
         {
+            result.IsValid = false;
             result.Errors.Add($"Error validating template.json: {ex.Message}");
         }
     }

@@ -187,10 +187,12 @@ public class TemplateGeneratorTests : IDisposable
         var options = new GenerationOptions();
 
         // Act
-        var act = async () => await _generator.GenerateAsync("relay-webapi", null!, _testOutputPath, options);
+        var result = await _generator.GenerateAsync("relay-webapi", null!, _testOutputPath, options);
 
         // Assert
-        await act.Should().ThrowAsync<Exception>();
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.Errors.Should().NotBeEmpty();
     }
 
     [Fact]
@@ -200,9 +202,11 @@ public class TemplateGeneratorTests : IDisposable
         var options = new GenerationOptions();
 
         // Act
-        var act = async () => await _generator.GenerateAsync("relay-webapi", "", _testOutputPath, options);
+        var result = await _generator.GenerateAsync("relay-webapi", "", _testOutputPath, options);
 
         // Assert
-        await act.Should().ThrowAsync<Exception>();
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.Errors.Should().NotBeEmpty();
     }
 }

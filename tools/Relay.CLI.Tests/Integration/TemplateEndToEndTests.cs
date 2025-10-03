@@ -127,14 +127,16 @@ public class TemplateEndToEndTests : IDisposable
         validationResult.IsValid.Should().BeFalse();
 
         // Act - Generation (should handle error)
-        var act = async () => await _generator.GenerateAsync(
+        var result = await _generator.GenerateAsync(
             "relay-webapi",
             invalidProjectName,
             _testOutputPath,
             options);
 
         // Assert
-        await act.Should().ThrowAsync<Exception>();
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.Errors.Should().NotBeEmpty();
     }
 
     [Fact]

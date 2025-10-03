@@ -38,7 +38,11 @@ public class TemplatePublisher
             // Get template name from template.json
             var templateJsonPath = Path.Combine(templatePath, ".template.config", "template.json");
             var templateJson = await File.ReadAllTextAsync(templateJsonPath);
-            var metadata = System.Text.Json.JsonSerializer.Deserialize<TemplateMetadata>(templateJson);
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            var metadata = System.Text.Json.JsonSerializer.Deserialize<TemplateMetadata>(templateJson, options);
 
             if (metadata == null)
             {
@@ -73,20 +77,30 @@ public class TemplatePublisher
 
     private async Task PackageTemplateFilesAsync(string templatePath, string packagePath)
     {
-        // In a real implementation, this would create a proper NuGet package
-        // For now, we'll create a zip file
+        // Create a NuGet-like package (simplified version)
+        // In production, this would use NuGet.Packaging library
         
+        // Delete existing packages
+        var zipPath = packagePath.Replace(".nupkg", ".zip");
         if (File.Exists(packagePath))
         {
             File.Delete(packagePath);
         }
+        if (File.Exists(zipPath))
+        {
+            File.Delete(zipPath);
+        }
 
+        // Create zip first
         System.IO.Compression.ZipFile.CreateFromDirectory(
             templatePath,
-            packagePath.Replace(".nupkg", ".zip"),
+            zipPath,
             System.IO.Compression.CompressionLevel.Optimal,
             false
         );
+
+        // Rename to .nupkg
+        File.Move(zipPath, packagePath);
 
         await Task.CompletedTask;
     }
@@ -140,6 +154,11 @@ public class TemplatePublisher
 
             var templateDirs = Directory.GetDirectories(_templatesPath);
 
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
             foreach (var templateDir in templateDirs)
             {
                 var templateJsonPath = Path.Combine(templateDir, ".template.config", "template.json");
@@ -147,7 +166,7 @@ public class TemplatePublisher
                 if (File.Exists(templateJsonPath))
                 {
                     var json = await File.ReadAllTextAsync(templateJsonPath);
-                    var metadata = System.Text.Json.JsonSerializer.Deserialize<TemplateMetadata>(json);
+                    var metadata = System.Text.Json.JsonSerializer.Deserialize<TemplateMetadata>(json, options);
 
                     if (metadata != null)
                     {

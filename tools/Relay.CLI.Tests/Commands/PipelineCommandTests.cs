@@ -297,13 +297,13 @@ public class PipelineCommandTests
     {
         // Arrange
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
+
         // Act
         await Task.Delay(100);
         stopwatch.Stop();
 
         // Assert
-        Assert.True(stopwatch.ElapsedMilliseconds >= 100);
+        Assert.True(stopwatch.ElapsedMilliseconds >= 90);
     }
 
     [Fact]

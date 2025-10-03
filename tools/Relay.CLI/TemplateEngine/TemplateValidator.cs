@@ -153,8 +153,12 @@ public class TemplateValidator
             return result;
         }
 
-        // Check for invalid characters
-        var invalidChars = Path.GetInvalidFileNameChars();
+        // Check for invalid characters (including common problematic chars)
+        var invalidChars = Path.GetInvalidFileNameChars()
+            .Concat(new[] { '<', '>', ':', '"', '/', '\\', '|', '?', '*' })
+            .Distinct()
+            .ToArray();
+        
         if (projectName.Any(c => invalidChars.Contains(c)))
         {
             result.IsValid = false;

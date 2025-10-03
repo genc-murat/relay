@@ -93,13 +93,19 @@ public class BackupManager
     {
         Directory.CreateDirectory(destDir);
 
+        // Directories to exclude
+        var excludeDirs = new[] { "bin", "obj", ".git", ".vs", "backup", "node_modules", "packages" };
+
         // Get files to copy
         var files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
-            .Where(f => !f.Contains("\\bin\\") && 
-                       !f.Contains("\\obj\\") && 
-                       !f.Contains("\\.git\\") &&
-                       !f.Contains("\\.vs\\") &&
-                       !f.Contains("\\backup\\"))
+            .Where(f => 
+            {
+                var relativePath = Path.GetRelativePath(sourceDir, f);
+                var pathParts = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                
+                // Exclude if any path component is in the exclude list
+                return !pathParts.Any(part => excludeDirs.Contains(part, StringComparer.OrdinalIgnoreCase));
+            })
             .ToList();
 
         foreach (var file in files)

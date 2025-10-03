@@ -15,6 +15,7 @@ public sealed class CircuitBreaker : ICircuitBreaker
     private DateTimeOffset _lastAttemptTime = DateTimeOffset.UtcNow;
     private int _consecutiveFailures;
     private int _consecutiveSuccesses;
+    private bool _halfOpenRequestInProgress;
     
     private readonly ConcurrentQueue<CallResult> _callResults = new();
     private long _totalCalls;
@@ -165,6 +166,7 @@ public sealed class CircuitBreaker : ICircuitBreaker
                 if (timeSinceLastAttempt >= _options.Timeout)
                 {
                     TransitionTo(CircuitBreakerState.HalfOpen, "Timeout expired, entering half-open state");
+                    _halfOpenRequestInProgress = false;
                 }
                 else
                 {
@@ -179,17 +181,8 @@ public sealed class CircuitBreaker : ICircuitBreaker
 
             if (_state == CircuitBreakerState.HalfOpen)
             {
-                var timeSinceLastAttempt = DateTimeOffset.UtcNow - _lastAttemptTime;
-                if (timeSinceLastAttempt < _options.HalfOpenDuration)
-                {
-                    _options.OnRejected?.Invoke(new CircuitBreakerRejectedEventArgs
-                    {
-                        CurrentState = _state,
-                        OperationName = "MessageBrokerOperation"
-                    });
-                    throw new CircuitBreakerOpenException($"Circuit breaker is half-open. Wait time remaining: {_options.HalfOpenDuration - timeSinceLastAttempt}");
-                }
-
+                // In half-open state, allow requests to pass through
+                // The success/failure recording will handle state transitions
                 _lastAttemptTime = DateTimeOffset.UtcNow;
             }
         }

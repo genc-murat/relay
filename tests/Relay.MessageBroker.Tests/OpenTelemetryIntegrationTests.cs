@@ -64,21 +64,29 @@ public class OpenTelemetryIntegrationTests
     {
         // Arrange
         var activitySource = new ActivitySource(ActivitySourceName);
-        using var tracerProvider = Sdk.CreateTracerProviderBuilder()
-            .AddSource(ActivitySourceName)
-            .Build();
+        
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == ActivitySourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded
+        };
+        ActivitySource.AddActivityListener(listener);
 
-        // Act
-        using var activity = activitySource.StartActivity("TestOperation");
-        activity?.SetTag("message.type", "TestMessage");
-        activity?.SetTag("message.size", 1024);
-        activity?.SetTag("broker.name", "RabbitMQ");
-
-        // Assert
-        activity.Should().NotBeNull();
-        activity!.Tags.Should().Contain(tag => tag.Key == "message.type" && tag.Value == "TestMessage");
-        activity.Tags.Should().Contain(tag => tag.Key == "message.size" && tag.Value == "1024");
-        activity.Tags.Should().Contain(tag => tag.Key == "broker.name" && tag.Value == "RabbitMQ");
+        // Act & Assert
+        using (var activity = activitySource.StartActivity("TestOperation"))
+        {
+            activity.Should().NotBeNull();
+            activity!.SetTag("message.type", "TestMessage");
+            activity.SetTag("message.size", 1024);
+            activity.SetTag("broker.name", "RabbitMQ");
+            
+            // Verify string tags appear in Tags collection
+            activity.Tags.Should().Contain(tag => tag.Key == "message.type" && tag.Value == "TestMessage");
+            activity.Tags.Should().Contain(tag => tag.Key == "broker.name" && tag.Value == "RabbitMQ");
+            
+            // Verify integer tag is accessible via GetTagItem (not in Tags collection)
+            activity.GetTagItem("message.size").Should().Be(1024);
+        }
     }
 
     [Fact]
@@ -134,6 +142,7 @@ public class OpenTelemetryIntegrationTests
         // Act
         using var activity = activitySource.StartActivity("TestOperation");
         await Task.Delay(100); // Simulate work
+        activity?.Stop(); // Stop the activity to record duration
 
         // Assert
         activity.Should().NotBeNull();

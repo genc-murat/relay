@@ -281,8 +281,12 @@ public class CompressionTests
     {
         // Arrange
         var compressor = new GZipCompressor();
+        // Create compressible data (repeated pattern)
         var largeData = new byte[1024 * 100]; // 100 KB
-        new Random().NextBytes(largeData);
+        for (int i = 0; i < largeData.Length; i++)
+        {
+            largeData[i] = (byte)(i % 256);
+        }
 
         // Act
         var sw = System.Diagnostics.Stopwatch.StartNew();

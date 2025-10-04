@@ -439,24 +439,167 @@ public static class MigrateCommand
 
     private static string GenerateHtmlReport(MigrationResult result)
     {
-        var markdown = GenerateMarkdownReport(result);
-        // For now, wrap in basic HTML
-        // TODO: Use proper markdown to HTML converter
-        return $@"<!DOCTYPE html>
-<html>
-<head>
-    <title>Migration Report</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-        table {{ border-collapse: collapse; width: 100%; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th {{ background-color: #4CAF50; color: white; }}
-        code {{ background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; }}
-    </style>
-</head>
-<body>
-    <pre>{System.Web.HttpUtility.HtmlEncode(markdown)}</pre>
-</body>
-</html>";
+        var sb = new StringBuilder();
+
+        var statusColor = result.Status switch
+        {
+            MigrationStatus.Success => "#4CAF50",
+            MigrationStatus.Partial => "#FFC107",
+            _ => "#F44336"
+        };
+
+        var statusIcon = result.Status switch
+        {
+            MigrationStatus.Success => "✅",
+            MigrationStatus.Partial => "⚠️",
+            _ => "❌"
+        };
+
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html lang=\"en\">");
+        sb.AppendLine("<head>");
+        sb.AppendLine("    <meta charset=\"UTF-8\">");
+        sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+        sb.AppendLine("    <title>Migration Report</title>");
+        sb.AppendLine("    <style>");
+        sb.AppendLine("        * { margin: 0; padding: 0; box-sizing: border-box; }");
+        sb.AppendLine("        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: #f5f5f5; color: #333; line-height: 1.6; }");
+        sb.AppendLine("        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }");
+        sb.AppendLine("        .header { background: white; border-radius: 8px; padding: 30px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }");
+        sb.AppendLine("        .header h1 { font-size: 32px; margin-bottom: 20px; }");
+        sb.AppendLine($"        .status {{ display: inline-block; padding: 8px 16px; border-radius: 4px; background: {statusColor}; color: white; font-weight: 600; }}");
+        sb.AppendLine("        .meta { margin-top: 15px; color: #666; font-size: 14px; }");
+        sb.AppendLine("        .section { background: white; border-radius: 8px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }");
+        sb.AppendLine("        .section h2 { font-size: 24px; margin-bottom: 20px; color: #1976D2; border-bottom: 2px solid #1976D2; padding-bottom: 10px; }");
+        sb.AppendLine("        .section h3 { font-size: 18px; margin-top: 20px; margin-bottom: 10px; color: #424242; }");
+        sb.AppendLine("        table { width: 100%; border-collapse: collapse; margin-top: 15px; }");
+        sb.AppendLine("        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }");
+        sb.AppendLine("        th { background: #f5f5f5; font-weight: 600; color: #424242; }");
+        sb.AppendLine("        tr:hover { background: #fafafa; }");
+        sb.AppendLine("        .change-item { padding: 10px; margin: 8px 0; border-left: 3px solid #e0e0e0; background: #fafafa; border-radius: 4px; }");
+        sb.AppendLine("        .change-add { border-left-color: #4CAF50; }");
+        sb.AppendLine("        .change-remove { border-left-color: #F44336; }");
+        sb.AppendLine("        .change-modify { border-left-color: #FFC107; }");
+        sb.AppendLine("        .icon-add { color: #4CAF50; }");
+        sb.AppendLine("        .icon-remove { color: #F44336; }");
+        sb.AppendLine("        .icon-modify { color: #FFC107; }");
+        sb.AppendLine("        .manual-steps { background: #FFF3E0; border-left: 4px solid #FF9800; padding: 15px; border-radius: 4px; margin-top: 15px; }");
+        sb.AppendLine("        .manual-steps ol { margin-left: 20px; margin-top: 10px; }");
+        sb.AppendLine("        .manual-steps li { margin: 8px 0; }");
+        sb.AppendLine("        .backup-info { background: #E3F2FD; border-left: 4px solid #2196F3; padding: 15px; border-radius: 4px; margin-top: 15px; }");
+        sb.AppendLine("        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 14px; }");
+        sb.AppendLine("        pre { background: #263238; color: #aed581; padding: 15px; border-radius: 4px; overflow-x: auto; margin-top: 10px; }");
+        sb.AppendLine("        pre code { background: none; color: inherit; }");
+        sb.AppendLine("        .footer { text-align: center; color: #999; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; }");
+        sb.AppendLine("        .category-group { margin-top: 20px; }");
+        sb.AppendLine("    </style>");
+        sb.AppendLine("</head>");
+        sb.AppendLine("<body>");
+        sb.AppendLine("    <div class=\"container\">");
+
+        // Header
+        sb.AppendLine("        <div class=\"header\">");
+        sb.AppendLine("            <h1>🔄 Migration Report</h1>");
+        sb.AppendLine($"            <div class=\"status\">{statusIcon} {result.Status}</div>");
+        sb.AppendLine($"            <div class=\"meta\">Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss} | Duration: {result.Duration.TotalSeconds:F2}s</div>");
+        sb.AppendLine("        </div>");
+
+        // Summary
+        sb.AppendLine("        <div class=\"section\">");
+        sb.AppendLine("            <h2>📊 Summary</h2>");
+        sb.AppendLine("            <table>");
+        sb.AppendLine("                <thead>");
+        sb.AppendLine("                    <tr><th>Metric</th><th>Value</th></tr>");
+        sb.AppendLine("                </thead>");
+        sb.AppendLine("                <tbody>");
+        sb.AppendLine($"                    <tr><td>Files Modified</td><td>{result.FilesModified}</td></tr>");
+        sb.AppendLine($"                    <tr><td>Lines Changed</td><td>{result.LinesChanged}</td></tr>");
+        sb.AppendLine($"                    <tr><td>Handlers Migrated</td><td>{result.HandlersMigrated}</td></tr>");
+        sb.AppendLine("                </tbody>");
+        sb.AppendLine("            </table>");
+        sb.AppendLine("        </div>");
+
+        // Changes
+        if (result.Changes.Count > 0)
+        {
+            sb.AppendLine("        <div class=\"section\">");
+            sb.AppendLine("            <h2>📝 Changes Applied</h2>");
+
+            foreach (var category in result.Changes.GroupBy(c => c.Category))
+            {
+                sb.AppendLine("            <div class=\"category-group\">");
+                sb.AppendLine($"                <h3>{System.Web.HttpUtility.HtmlEncode(category.Key)}</h3>");
+
+                foreach (var change in category)
+                {
+                    var cssClass = change.Type switch
+                    {
+                        ChangeType.Add => "change-add",
+                        ChangeType.Remove => "change-remove",
+                        ChangeType.Modify => "change-modify",
+                        _ => ""
+                    };
+
+                    var icon = change.Type switch
+                    {
+                        ChangeType.Add => "<span class='icon-add'>➕</span>",
+                        ChangeType.Remove => "<span class='icon-remove'>➖</span>",
+                        ChangeType.Modify => "<span class='icon-modify'>✏️</span>",
+                        _ => "•"
+                    };
+
+                    sb.AppendLine($"                <div class=\"change-item {cssClass}\">");
+                    sb.AppendLine($"                    {icon} {System.Web.HttpUtility.HtmlEncode(change.Description)}");
+                    sb.AppendLine("                </div>");
+                }
+
+                sb.AppendLine("            </div>");
+            }
+
+            sb.AppendLine("        </div>");
+        }
+
+        // Manual Steps
+        if (result.ManualSteps.Count > 0)
+        {
+            sb.AppendLine("        <div class=\"section\">");
+            sb.AppendLine("            <h2>⚠️ Manual Steps Required</h2>");
+            sb.AppendLine("            <div class=\"manual-steps\">");
+            sb.AppendLine("                <strong>The following steps require manual intervention:</strong>");
+            sb.AppendLine("                <ol>");
+
+            foreach (var step in result.ManualSteps)
+            {
+                sb.AppendLine($"                    <li>{System.Web.HttpUtility.HtmlEncode(step)}</li>");
+            }
+
+            sb.AppendLine("                </ol>");
+            sb.AppendLine("            </div>");
+            sb.AppendLine("        </div>");
+        }
+
+        // Backup Information
+        if (result.CreatedBackup && !string.IsNullOrEmpty(result.BackupPath))
+        {
+            sb.AppendLine("        <div class=\"section\">");
+            sb.AppendLine("            <h2>💾 Backup Information</h2>");
+            sb.AppendLine("            <div class=\"backup-info\">");
+            sb.AppendLine($"                <strong>Backup Path:</strong> <code>{System.Web.HttpUtility.HtmlEncode(result.BackupPath)}</code>");
+            sb.AppendLine("                <p style=\"margin-top: 15px;\"><strong>Rollback Command:</strong></p>");
+            sb.AppendLine("                <pre><code>relay migrate rollback --backup " + System.Web.HttpUtility.HtmlEncode(result.BackupPath) + "</code></pre>");
+            sb.AppendLine("            </div>");
+            sb.AppendLine("        </div>");
+        }
+
+        // Footer
+        sb.AppendLine("        <div class=\"footer\">");
+        sb.AppendLine("            <p>Generated by <strong>Relay CLI Migration Tool</strong></p>");
+        sb.AppendLine("        </div>");
+
+        sb.AppendLine("    </div>");
+        sb.AppendLine("</body>");
+        sb.AppendLine("</html>");
+
+        return sb.ToString();
     }
 }

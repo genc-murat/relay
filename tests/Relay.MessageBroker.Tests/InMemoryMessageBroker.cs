@@ -40,7 +40,9 @@ public sealed class InMemoryMessageBroker : IMessageBroker
                 Timestamp = publishedMessage.Timestamp,
                 RoutingKey = options?.RoutingKey,
                 Exchange = options?.Exchange,
-                Headers = options?.Headers
+                Headers = options?.Headers,
+                Acknowledge = () => ValueTask.CompletedTask,
+                Reject = (requeue) => ValueTask.CompletedTask
             };
 
             foreach (var subscription in subscriptions)

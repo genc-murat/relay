@@ -291,4 +291,56 @@ public class InMemoryMessageBrokerTests
     {
         public string Name { get; set; } = string.Empty;
     }
+
+    [Fact]
+    public async Task SubscribeAsync_WhenHandlerThrows_ShouldNotAffectOtherHandlers()
+    {
+        // Arrange
+        var receivedMessages = new List<TestMessage>();
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) =>
+        {
+            throw new InvalidOperationException("Test exception");
+        });
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) =>
+        {
+            receivedMessages.Add(msg);
+            return ValueTask.CompletedTask;
+        });
+
+        await _broker.StartAsync();
+
+        var message = new TestMessage { Id = 1, Content = "Test" };
+
+        // Act
+        await _broker.PublishAsync(message);
+        await Task.Delay(100); // Give time for async dispatch
+
+        // Assert
+        receivedMessages.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task MessageContext_AcknowledgeAndReject_ShouldNotThrow()
+    {
+        // Arrange
+        MessageContext? receivedContext = null;
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) =>
+        {
+            receivedContext = ctx;
+            return ValueTask.CompletedTask;
+        });
+
+        await _broker.StartAsync();
+
+        // Act
+        await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test" });
+        await Task.Delay(100);
+
+        // Assert
+        receivedContext.Should().NotBeNull();
+        var ack = async () => await receivedContext!.Acknowledge();
+        var reject = async () => await receivedContext!.Reject(false);
+        await ack.Should().NotThrowAsync();
+        await reject.Should().NotThrowAsync();
+    }
 }

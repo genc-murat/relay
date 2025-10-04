@@ -56,12 +56,12 @@ namespace Relay.Core.Tests
             {
                 for (int i = 0; i < request.ItemCount; i++)
                 {
+                    yield return $"Item {i}";
+
                     cancellationToken.ThrowIfCancellationRequested();
 
                     if (request.DelayBetweenItems > 0)
                         await Task.Delay(request.DelayBetweenItems, cancellationToken);
-
-                    yield return $"Item {i}";
                 }
             }
         }

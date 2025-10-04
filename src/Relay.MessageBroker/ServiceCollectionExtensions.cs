@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Relay.MessageBroker.AzureServiceBus;
@@ -28,13 +29,15 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        services.Configure(configure);
+        var options = new MessageBrokerOptions();
+        configure(options);
+        services.AddSingleton(options);
 
-        // Register the appropriate message broker based on configuration
+        services.AddSingleton<IOptions<MessageBrokerOptions>>(new OptionsWrapper<MessageBrokerOptions>(options));
+
         services.AddSingleton<IMessageBroker>(sp =>
         {
-            var options = Microsoft.Extensions.Options.Options.Create(new MessageBrokerOptions());
-            configure(options.Value);
+            var options = sp.GetRequiredService<IOptions<MessageBrokerOptions>>();
 
             return options.Value.BrokerType switch
             {

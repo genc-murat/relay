@@ -544,4 +544,42 @@ public class ServiceCollectionExtensionsTests
         // Assert
         act.Should().Throw<ArgumentNullException>();
     }
+
+    [Fact]
+    public void AddMessageBroker_ShouldAllowChaining()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        var chainedServices = services.AddRabbitMQ().AddMessageBrokerHostedService();
+
+        // Assert
+        chainedServices.Should().BeSameAs(services);
+    }
+
+    [Fact]
+    public void AddRabbitMQ_ShouldConfigureOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddRabbitMQ(options =>
+        {
+            options.HostName = "testhost";
+            options.Port = 1234;
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var configuredOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MessageBrokerOptions>>();
+
+        // Assert
+        configuredOptions.Value.BrokerType.Should().Be(MessageBrokerType.RabbitMQ);
+        configuredOptions.Value.RabbitMQ.Should().NotBeNull();
+        configuredOptions.Value.RabbitMQ.HostName.Should().Be("testhost");
+        configuredOptions.Value.RabbitMQ.Port.Should().Be(1234);
+    }
 }

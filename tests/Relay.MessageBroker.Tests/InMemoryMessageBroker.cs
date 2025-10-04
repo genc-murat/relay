@@ -8,7 +8,7 @@ namespace Relay.MessageBroker.Tests;
 /// </summary>
 public sealed class InMemoryMessageBroker : IMessageBroker
 {
-    private readonly ConcurrentDictionary<Type, List<SubscriptionInfo>> _subscriptions = new();
+    private readonly ConcurrentDictionary<Type, ConcurrentBag<SubscriptionInfo>> _subscriptions = new();
     private readonly ConcurrentBag<PublishedMessage> _publishedMessages = new();
     private bool _isStarted;
 
@@ -80,14 +80,8 @@ public sealed class InMemoryMessageBroker : IMessageBroker
             Options = options ?? new SubscriptionOptions()
         };
 
-        _subscriptions.AddOrUpdate(
-            typeof(TMessage),
-            _ => new List<SubscriptionInfo> { subscriptionInfo },
-            (_, list) =>
-            {
-                var newList = new List<SubscriptionInfo>(list) { subscriptionInfo };
-                return newList;
-            });
+        var bag = _subscriptions.GetOrAdd(typeof(TMessage), _ => new ConcurrentBag<SubscriptionInfo>());
+        bag.Add(subscriptionInfo);
 
         return ValueTask.CompletedTask;
     }

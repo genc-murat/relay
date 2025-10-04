@@ -420,4 +420,99 @@ public class SagaPersistenceTests
         retrieved.Metadata.Should().ContainKey("ipAddress");
         retrieved.Metadata.Should().ContainKey("timestamp");
     }
+
+    [Fact]
+    public async Task InMemoryPersistence_GetByCorrelationId_WhenNotFound_ShouldReturnNull()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+
+        // Act
+        var retrieved = await persistence.GetByCorrelationIdAsync("NON-EXISTENT-CORR-ID");
+
+        // Assert
+        retrieved.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task InMemoryPersistence_Delete_WhenNotFound_ShouldNotThrow()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var sagaId = Guid.NewGuid();
+
+        // Act
+        var action = async () => await persistence.DeleteAsync(sagaId);
+
+        // Assert
+        await action.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task DatabasePersistence_GetByCorrelationId_WhenNotFound_ShouldReturnNull()
+    {
+        // Arrange
+        var dbContext = new InMemorySagaDbContext();
+        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
+
+        // Act
+        var retrieved = await persistence.GetByCorrelationIdAsync("NON-EXISTENT-CORR-ID");
+
+        // Assert
+        retrieved.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task DatabasePersistence_Delete_WhenNotFound_ShouldNotThrow()
+    {
+        // Arrange
+        var dbContext = new InMemorySagaDbContext();
+        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
+        var sagaId = Guid.NewGuid();
+
+        // Act
+        var action = async () => await persistence.DeleteAsync(sagaId);
+
+        // Assert
+        await action.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task InMemoryPersistence_GetActiveSagas_WhenNone_ShouldReturnEmpty()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        await persistence.SaveAsync(new OrderSagaData { State = SagaState.Completed });
+        await persistence.SaveAsync(new OrderSagaData { State = SagaState.Failed });
+
+        // Act
+        var activeSagas = new List<OrderSagaData>();
+        await foreach (var saga in persistence.GetActiveSagasAsync())
+        {
+            activeSagas.Add(saga);
+        }
+
+        // Assert
+        activeSagas.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task DatabasePersistence_GetActiveSagas_WhenNone_ShouldReturnEmpty()
+    {
+        // Arrange
+        var dbContext = new InMemorySagaDbContext();
+        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
+        await persistence.SaveAsync(new OrderSagaData { State = SagaState.Completed });
+        await persistence.SaveAsync(new OrderSagaData { State = SagaState.Failed });
+
+        // Act
+        var activeSagas = new List<OrderSagaData>();
+        await foreach (var saga in persistence.GetActiveSagasAsync())
+        {
+            activeSagas.Add(saga);
+        }
+
+        // Assert
+        activeSagas.Should().BeEmpty();
+    }
 }

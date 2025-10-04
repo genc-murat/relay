@@ -491,4 +491,119 @@ public class CircuitBreakerTests
         stateChanges[0].New.Should().Be(CircuitBreakerState.Open);
         stateChanges[0].Reason.Should().Contain("Failure threshold reached");
     }
+
+    [Fact]
+    public async Task ExecuteAsync_NonGeneric_WhenOperationSucceeds_ShouldRecordSuccess()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 5
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Act
+        await circuitBreaker.ExecuteAsync(async ct =>
+        {
+            await Task.Delay(10, ct);
+        });
+
+        // Assert
+        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+        circuitBreaker.Metrics.SuccessfulCalls.Should().Be(1);
+        circuitBreaker.Metrics.FailedCalls.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithSlowCallRateThreshold_ShouldOpenCircuit()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            MinimumThroughput = 2,
+            SlowCallRateThreshold = 0.5f, // 50% slow call rate
+            SlowCallDurationThreshold = TimeSpan.FromMilliseconds(50),
+            TrackSlowCalls = true,
+            FailureThreshold = 100, // High value to test rate instead
+            SamplingDuration = TimeSpan.FromSeconds(10)
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Act - 2 slow calls
+        await circuitBreaker.ExecuteAsync(ct => new ValueTask(Task.Delay(100, ct)));
+        await circuitBreaker.ExecuteAsync(ct => new ValueTask(Task.Delay(100, ct)));
+
+        // Assert
+        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenMinimumThroughputNotReached_ShouldNotOpenCircuit()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            MinimumThroughput = 5,
+            FailureRateThreshold = 0.5f, // 50% failure rate
+            FailureThreshold = 100, // High value to test rate instead
+            SamplingDuration = TimeSpan.FromSeconds(10)
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Act - 2 failures, less than MinimumThroughput
+        for (int i = 0; i < 2; i++)
+        {
+            try
+            {
+                await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException());
+            }
+            catch (InvalidOperationException) { }
+        }
+
+        // Assert
+        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ConcurrentAccess_ShouldBeThreadSafe()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 1000,
+            SuccessThreshold = 1000,
+            FailureRateThreshold = 1.0f
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+        const int numTasks = 100;
+        var tasks = new List<Task>();
+
+        // Act
+        for (int i = 0; i < numTasks; i++)
+        {
+            if (i % 2 == 0)
+            {
+                tasks.Add(circuitBreaker.ExecuteAsync(ct => ValueTask.FromResult("Success")).AsTask());
+            }
+            else
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    try { await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException()); }
+                    catch (InvalidOperationException) { }
+                }));
+            }
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        circuitBreaker.Metrics.SuccessfulCalls.Should().Be(numTasks / 2);
+        circuitBreaker.Metrics.FailedCalls.Should().Be(numTasks / 2);
+        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+    }
 }

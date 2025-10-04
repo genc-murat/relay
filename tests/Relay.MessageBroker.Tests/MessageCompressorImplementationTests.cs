@@ -5,13 +5,13 @@ using Xunit;
 
 namespace Relay.MessageBroker.Tests;
 
-public class MessageCompressorTests
+public class MessageCompressorImplementationTests
 {
     private readonly byte[] _testData;
     private readonly byte[] _smallData;
     private readonly byte[] _emptyData;
 
-    public MessageCompressorTests()
+    public MessageCompressorImplementationTests()
     {
         var text = string.Join("", Enumerable.Repeat("This is a test message that should compress well. ", 100));
         _testData = Encoding.UTF8.GetBytes(text);
@@ -169,6 +169,20 @@ public class MessageCompressorTests
         isCompressed.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GZipMessageCompressor_DecompressInvalidData_ShouldThrow()
+    {
+        // Arrange
+        var compressor = new GZipMessageCompressor();
+        var invalidData = Encoding.UTF8.GetBytes("This is not a valid gzip stream.");
+
+        // Act
+        var act = async () => await compressor.DecompressAsync(invalidData);
+
+        // Assert
+        await act.Should().ThrowAsync<System.IO.InvalidDataException>();
+    }
+
     #endregion
 
     #region DeflateMessageCompressor Tests
@@ -282,6 +296,20 @@ public class MessageCompressorTests
         isCompressed.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task DeflateMessageCompressor_DecompressInvalidData_ShouldThrow()
+    {
+        // Arrange
+        var compressor = new DeflateMessageCompressor();
+        var invalidData = Encoding.UTF8.GetBytes("This is not a valid deflate stream.");
+
+        // Act
+        var act = async () => await compressor.DecompressAsync(invalidData);
+
+        // Assert
+        await act.Should().ThrowAsync<System.IO.InvalidDataException>();
+    }
+
     #endregion
 
     #region BrotliMessageCompressor Tests
@@ -380,6 +408,20 @@ public class MessageCompressorTests
 
         // Assert
         isCompressed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task BrotliMessageCompressor_DecompressInvalidData_ShouldThrow()
+    {
+        // Arrange
+        var compressor = new BrotliMessageCompressor();
+        var invalidData = Encoding.UTF8.GetBytes("This is not a valid brotli stream.");
+
+        // Act
+        var act = async () => await compressor.DecompressAsync(invalidData);
+
+        // Assert
+        await act.Should().ThrowAsync<System.InvalidOperationException>();
     }
 
     #endregion
@@ -630,6 +672,24 @@ public class MessageCompressorTests
 
         // Assert
         decompressed.Should().BeEquivalentTo(_testData);
+    }
+
+    [Theory]
+    [InlineData(CompressionAlgorithm.GZip)]
+    [InlineData(CompressionAlgorithm.Deflate)]
+    [InlineData(CompressionAlgorithm.Brotli)]
+    public async Task Compressor_WithCanceledToken_ShouldThrowOperationCanceledException(CompressionAlgorithm algorithm)
+    {
+        // Arrange
+        var compressor = CreateCompressor(algorithm);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act
+        var act = async () => await compressor.CompressAsync(_testData, cts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
     #endregion

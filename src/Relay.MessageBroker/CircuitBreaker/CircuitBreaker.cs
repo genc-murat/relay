@@ -215,6 +215,15 @@ public sealed class CircuitBreaker : ICircuitBreaker
                     _consecutiveSuccesses = 0;
                 }
             }
+            else if (_state == CircuitBreakerState.Closed)
+            {
+                var metrics = CalculateMetrics();
+                if (ShouldOpenCircuit(metrics))
+                {
+                    TransitionTo(CircuitBreakerState.Open,
+                        $"Failure threshold reached. Failures: {_consecutiveFailures}, Rate: {metrics.FailureRate:P}");
+                }
+            }
         }
     }
 

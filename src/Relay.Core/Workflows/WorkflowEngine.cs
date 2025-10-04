@@ -15,15 +15,18 @@ namespace Relay.Core.Workflows
         private readonly IRelay _relay;
         private readonly ILogger<WorkflowEngine> _logger;
         private readonly IWorkflowStateStore _stateStore;
+        private readonly IWorkflowDefinitionStore _definitionStore;
 
         public WorkflowEngine(
             IRelay relay,
             ILogger<WorkflowEngine> logger,
-            IWorkflowStateStore stateStore)
+            IWorkflowStateStore stateStore,
+            IWorkflowDefinitionStore definitionStore)
         {
             _relay = relay ?? throw new ArgumentNullException(nameof(relay));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
+            _definitionStore = definitionStore ?? throw new ArgumentNullException(nameof(definitionStore));
         }
 
         public async ValueTask<WorkflowExecution> StartWorkflowAsync<TInput>(
@@ -379,19 +382,114 @@ namespace Relay.Core.Workflows
             }
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators
         private async ValueTask<WorkflowDefinition?> GetWorkflowDefinition(string definitionId)
         {
-            // TODO: This would load workflow definition from storage
-            // For now, return a simple definition
-            return new WorkflowDefinition
+            try
             {
-                Id = definitionId,
-                Name = "Sample Workflow",
-                Steps = new List<WorkflowStep>()
-            };
+                var definition = await _definitionStore.GetDefinitionAsync(definitionId);
+
+                if (definition == null)
+                {
+                    _logger.LogWarning("Workflow definition {DefinitionId} not found", definitionId);
+                    return null;
+                }
+
+                // Validate workflow definition
+                ValidateWorkflowDefinition(definition);
+
+                _logger.LogDebug("Loaded workflow definition {DefinitionId} with {StepCount} steps",
+                    definitionId, definition.Steps.Count);
+
+                return definition;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load workflow definition {DefinitionId}", definitionId);
+                throw new InvalidOperationException($"Failed to load workflow definition '{definitionId}'", ex);
+            }
         }
-#pragma warning restore CS1998
+
+        private void ValidateWorkflowDefinition(WorkflowDefinition definition)
+        {
+            if (string.IsNullOrWhiteSpace(definition.Id))
+            {
+                throw new InvalidOperationException("Workflow definition must have an Id");
+            }
+
+            if (string.IsNullOrWhiteSpace(definition.Name))
+            {
+                throw new InvalidOperationException("Workflow definition must have a Name");
+            }
+
+            if (definition.Steps == null || definition.Steps.Count == 0)
+            {
+                throw new InvalidOperationException($"Workflow definition '{definition.Id}' must have at least one step");
+            }
+
+            // Validate each step
+            for (int i = 0; i < definition.Steps.Count; i++)
+            {
+                var step = definition.Steps[i];
+                ValidateWorkflowStep(step, i);
+            }
+        }
+
+        private void ValidateWorkflowStep(WorkflowStep step, int index)
+        {
+            if (string.IsNullOrWhiteSpace(step.Name))
+            {
+                throw new InvalidOperationException($"Step at index {index} must have a Name");
+            }
+
+            switch (step.Type)
+            {
+                case StepType.Request:
+                    if (string.IsNullOrWhiteSpace(step.RequestType))
+                    {
+                        throw new InvalidOperationException($"Request step '{step.Name}' must have a RequestType");
+                    }
+                    break;
+
+                case StepType.Conditional:
+                    if (string.IsNullOrWhiteSpace(step.Condition))
+                    {
+                        throw new InvalidOperationException($"Conditional step '{step.Name}' must have a Condition");
+                    }
+                    break;
+
+                case StepType.Parallel:
+                    if (step.ParallelSteps == null || step.ParallelSteps.Count == 0)
+                    {
+                        throw new InvalidOperationException($"Parallel step '{step.Name}' must have at least one ParallelStep");
+                    }
+
+                    // Validate nested steps
+                    for (int i = 0; i < step.ParallelSteps.Count; i++)
+                    {
+                        ValidateWorkflowStep(step.ParallelSteps[i], i);
+                    }
+                    break;
+
+                case StepType.Wait:
+                    if (step.WaitTimeMs == null || step.WaitTimeMs <= 0)
+                    {
+                        throw new InvalidOperationException($"Wait step '{step.Name}' must have a positive WaitTimeMs value");
+                    }
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Step type {step.Type} is not supported");
+            }
+
+            // Validate else steps if present
+            if (step.ElseSteps != null)
+            {
+                for (int i = 0; i < step.ElseSteps.Count; i++)
+                {
+                    ValidateWorkflowStep(step.ElseSteps[i], i);
+                }
+            }
+        }
 
         private async ValueTask FailWorkflow(WorkflowExecution execution, string error, CancellationToken cancellationToken)
         {
@@ -418,6 +516,69 @@ namespace Relay.Core.Workflows
     {
         ValueTask SaveExecutionAsync(WorkflowExecution execution, CancellationToken cancellationToken = default);
         ValueTask<WorkflowExecution?> GetExecutionAsync(string executionId, CancellationToken cancellationToken = default);
+    }
+
+    /// <summary>
+    /// Interface for workflow definition storage.
+    /// </summary>
+    public interface IWorkflowDefinitionStore
+    {
+        ValueTask<WorkflowDefinition?> GetDefinitionAsync(string definitionId, CancellationToken cancellationToken = default);
+        ValueTask SaveDefinitionAsync(WorkflowDefinition definition, CancellationToken cancellationToken = default);
+        ValueTask<IEnumerable<WorkflowDefinition>> GetAllDefinitionsAsync(CancellationToken cancellationToken = default);
+        ValueTask<bool> DeleteDefinitionAsync(string definitionId, CancellationToken cancellationToken = default);
+    }
+
+    /// <summary>
+    /// In-memory implementation of workflow definition store for testing and simple scenarios.
+    /// </summary>
+    public class InMemoryWorkflowDefinitionStore : IWorkflowDefinitionStore
+    {
+        private readonly Dictionary<string, WorkflowDefinition> _definitions = new();
+        private readonly object _lock = new();
+
+        public ValueTask<WorkflowDefinition?> GetDefinitionAsync(string definitionId, CancellationToken cancellationToken = default)
+        {
+            lock (_lock)
+            {
+                _definitions.TryGetValue(definitionId, out var definition);
+                return ValueTask.FromResult(definition);
+            }
+        }
+
+        public ValueTask SaveDefinitionAsync(WorkflowDefinition definition, CancellationToken cancellationToken = default)
+        {
+            if (definition == null)
+                throw new ArgumentNullException(nameof(definition));
+
+            if (string.IsNullOrWhiteSpace(definition.Id))
+                throw new ArgumentException("Workflow definition must have an Id", nameof(definition));
+
+            lock (_lock)
+            {
+                _definitions[definition.Id] = definition;
+            }
+
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask<IEnumerable<WorkflowDefinition>> GetAllDefinitionsAsync(CancellationToken cancellationToken = default)
+        {
+            lock (_lock)
+            {
+                var allDefinitions = _definitions.Values.ToList();
+                return ValueTask.FromResult<IEnumerable<WorkflowDefinition>>(allDefinitions);
+            }
+        }
+
+        public ValueTask<bool> DeleteDefinitionAsync(string definitionId, CancellationToken cancellationToken = default)
+        {
+            lock (_lock)
+            {
+                var removed = _definitions.Remove(definitionId);
+                return ValueTask.FromResult(removed);
+            }
+        }
     }
 
     /// <summary>

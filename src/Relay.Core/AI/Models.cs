@@ -166,16 +166,60 @@ namespace Relay.Core.AI
         public TimeSpan TimeSinceLastAccess { get; init; }
         public bool WasCacheHit { get; init; }
         public TimeSpan ExecutionTime { get; init; }
-        
+
         /// <summary>
         /// Geographic region of the request
         /// </summary>
         public string Region { get; init; } = string.Empty;
-        
+
         /// <summary>
         /// User context for personalized caching
         /// </summary>
         public string UserContext { get; init; } = string.Empty;
+
+        /// <summary>
+        /// Type of request being accessed
+        /// </summary>
+        public Type? RequestType { get; init; }
+
+        /// <summary>
+        /// Access frequency (requests per second)
+        /// </summary>
+        public double AccessFrequency { get; init; }
+
+        /// <summary>
+        /// Average execution time for this pattern
+        /// </summary>
+        public TimeSpan AverageExecutionTime { get; init; }
+
+        /// <summary>
+        /// Data volatility indicator (0.0 = stable, 1.0 = highly volatile)
+        /// </summary>
+        public double DataVolatility { get; init; }
+
+        /// <summary>
+        /// Time-of-day access pattern
+        /// </summary>
+        public TimeOfDayPattern TimeOfDayPattern { get; init; }
+
+        /// <summary>
+        /// Number of samples used for this pattern
+        /// </summary>
+        public long SampleSize { get; init; }
+    }
+
+    /// <summary>
+    /// Time-of-day access patterns.
+    /// </summary>
+    public enum TimeOfDayPattern
+    {
+        Uniform,
+        MorningPeak,
+        AfternoonPeak,
+        EveningPeak,
+        BusinessHours,
+        OffHours,
+        Weekend
     }
 
     /// <summary>
@@ -190,16 +234,62 @@ namespace Relay.Core.AI
         public string CacheKey { get; init; } = string.Empty;
         public CacheScope Scope { get; init; }
         public double ConfidenceScore { get; init; }
-        
+
         /// <summary>
         /// Estimated memory savings from caching
         /// </summary>
         public long EstimatedMemorySavings { get; init; }
-        
+
         /// <summary>
         /// Estimated performance improvement
         /// </summary>
         public TimeSpan EstimatedPerformanceGain { get; init; }
+
+        /// <summary>
+        /// Predicted cache hit rate (0.0 to 1.0)
+        /// </summary>
+        public double PredictedHitRate { get; init; }
+
+        /// <summary>
+        /// Cache key generation strategy
+        /// </summary>
+        public CacheKeyStrategy KeyStrategy { get; init; }
+
+        /// <summary>
+        /// Properties to use for key generation (when using SelectedProperties strategy)
+        /// </summary>
+        public string[] KeyProperties { get; init; } = Array.Empty<string>();
+
+        /// <summary>
+        /// Cache priority level
+        /// </summary>
+        public CachePriority Priority { get; init; }
+
+        /// <summary>
+        /// Whether to use distributed cache
+        /// </summary>
+        public bool UseDistributedCache { get; init; }
+    }
+
+    /// <summary>
+    /// Cache key generation strategies.
+    /// </summary>
+    public enum CacheKeyStrategy
+    {
+        FullRequest,
+        RequestTypeOnly,
+        SelectedProperties,
+        Custom
+    }
+
+    /// <summary>
+    /// Cache priority levels.
+    /// </summary>
+    public enum CachePriority
+    {
+        Low,
+        Normal,
+        High
     }
 
     /// <summary>

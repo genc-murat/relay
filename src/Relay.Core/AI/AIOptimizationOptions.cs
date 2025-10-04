@@ -49,6 +49,11 @@ namespace Relay.Core.AI
         public double MinConfidenceScore { get; set; } = 0.7;
 
         /// <summary>
+        /// Gets or sets the minimum cache hit rate required for enabling caching.
+        /// </summary>
+        public double MinCacheHitRate { get; set; } = 0.3;
+
+        /// <summary>
         /// Gets or sets the minimum number of executions required before AI analysis.
         /// </summary>
         public int MinExecutionsForAnalysis { get; set; } = 10;

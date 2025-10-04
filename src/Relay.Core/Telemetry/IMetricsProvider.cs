@@ -120,6 +120,11 @@ public class HandlerExecutionStats
     public TimeSpan P95ExecutionTime { get; set; }
     public TimeSpan P99ExecutionTime { get; set; }
     public DateTimeOffset LastExecution { get; set; }
+    public long TotalMemoryAllocated { get; set; }
+    public long AverageMemoryAllocated { get; set; }
+    public long MinMemoryAllocated { get; set; }
+    public long MaxMemoryAllocated { get; set; }
+    public Dictionary<string, object> Properties { get; set; } = new();
 }
 
 /// <summary>

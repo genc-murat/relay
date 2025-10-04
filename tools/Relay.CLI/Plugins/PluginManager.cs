@@ -301,14 +301,96 @@ public class PluginManager
 
     private async Task<PluginInstallResult> InstallFromNuGetAsync(string packageName, string? version, bool global)
     {
-        var result = new PluginInstallResult
-        {
-            Success = false,
-            Error = "NuGet installation not yet implemented"
-        };
+        var result = new PluginInstallResult();
 
-        // TODO: Implement NuGet package download
-        await Task.CompletedTask;
+        try
+        {
+            // Create temp directory for NuGet download
+            var tempDir = Path.Combine(Path.GetTempPath(), $"relay-plugin-{Guid.NewGuid()}");
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                // Use dotnet CLI to download the NuGet package
+                var versionArg = !string.IsNullOrEmpty(version) ? $" --version {version}" : "";
+                var processStartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = $"add {tempDir} package {packageName}{versionArg} --package-directory {tempDir}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = System.Diagnostics.Process.Start(processStartInfo);
+                if (process == null)
+                {
+                    result.Success = false;
+                    result.Error = "Failed to start dotnet process";
+                    return result;
+                }
+
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    var error = await process.StandardError.ReadToEndAsync();
+                    result.Success = false;
+                    result.Error = $"Failed to download package: {error}";
+                    return result;
+                }
+
+                // Find the downloaded package directory
+                var packageDir = Directory.GetDirectories(tempDir, packageName, SearchOption.AllDirectories).FirstOrDefault();
+                if (packageDir == null || !Directory.Exists(packageDir))
+                {
+                    result.Success = false;
+                    result.Error = "Package downloaded but could not locate package directory";
+                    return result;
+                }
+
+                // Look for plugin.json in the package
+                var manifestPath = Directory.GetFiles(packageDir, "plugin.json", SearchOption.AllDirectories).FirstOrDefault();
+                if (manifestPath == null)
+                {
+                    result.Success = false;
+                    result.Error = "Package does not contain a valid plugin.json manifest";
+                    return result;
+                }
+
+                // Install from the package directory
+                var pluginSourceDir = Path.GetDirectoryName(manifestPath);
+                if (pluginSourceDir == null)
+                {
+                    result.Success = false;
+                    result.Error = "Could not determine plugin source directory";
+                    return result;
+                }
+
+                result = await InstallFromLocalAsync(pluginSourceDir, global);
+            }
+            finally
+            {
+                // Cleanup temp directory
+                if (Directory.Exists(tempDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            result.Success = false;
+            result.Error = $"Error installing from NuGet: {ex.Message}";
+        }
 
         return result;
     }

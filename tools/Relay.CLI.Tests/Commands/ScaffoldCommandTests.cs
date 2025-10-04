@@ -1,4 +1,7 @@
 using Relay.CLI.Commands;
+using System.CommandLine;
+using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -13,893 +16,428 @@ public class ScaffoldCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task ScaffoldCommand_CreatesFeatureStructure()
+    public async Task ScaffoldCommand_WithValidOptions_GeneratesAllFiles()
     {
         // Arrange
-        var featureName = "UserManagement";
-        var featurePath = Path.Combine(_testPath, featureName);
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        Directory.CreateDirectory(featurePath);
-        Directory.CreateDirectory(Path.Combine(featurePath, "Commands"));
-        Directory.CreateDirectory(Path.Combine(featurePath, "Queries"));
-        Directory.CreateDirectory(Path.Combine(featurePath, "Models"));
+        var result = await command.InvokeAsync(
+            $"--handler CreateUserHandler --request CreateUserRequest --response CreateUserResponse --namespace TestApp --output {_testPath} --include-tests true",
+            console);
 
         // Assert
-        Directory.Exists(featurePath).Should().BeTrue();
-        Directory.Exists(Path.Combine(featurePath, "Commands")).Should().BeTrue();
-        Directory.Exists(Path.Combine(featurePath, "Queries")).Should().BeTrue();
-        Directory.Exists(Path.Combine(featurePath, "Models")).Should().BeTrue();
+        result.Should().Be(0);
+        File.Exists(Path.Combine(_testPath, "CreateUserRequest.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(_testPath, "CreateUserHandler.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(_testPath, "CreateUserHandlerTests.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(_testPath, "CreateUserHandlerIntegrationTests.cs")).Should().BeTrue();
     }
 
     [Fact]
-    public async Task ScaffoldCommand_CreatesCRUDOperations()
+    public async Task ScaffoldCommand_StandardTemplate_GeneratesCorrectRequestFile()
     {
         // Arrange
-        var entityName = "Product";
-        var operations = new[] { "Create", "Read", "Update", "Delete" };
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        foreach (var op in operations)
-        {
-            var fileName = $"{op}{entityName}.cs";
-            var filePath = Path.Combine(_testPath, fileName);
-            await File.WriteAllTextAsync(filePath, $"// {op} operation for {entityName}");
-        }
+        await command.InvokeAsync(
+            $"--handler TestHandler --request TestRequest --response TestResponse --namespace MyApp --output {_testPath} --template standard --include-tests false",
+            console);
 
         // Assert
-        foreach (var op in operations)
-        {
-            var fileName = $"{op}{entityName}.cs";
-            File.Exists(Path.Combine(_testPath, fileName)).Should().BeTrue();
-        }
+        var requestFile = Path.Combine(_testPath, "TestRequest.cs");
+        File.Exists(requestFile).Should().BeTrue();
+
+        var content = await File.ReadAllTextAsync(requestFile);
+        content.Should().Contain("namespace MyApp");
+        content.Should().Contain("public record TestRequest");
+        content.Should().Contain("IRequest<TestResponse>");
+        content.Should().Contain("ExampleParameter");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_GeneratesWithTemplate()
+    public async Task ScaffoldCommand_MinimalTemplate_GeneratesMinimalCode()
     {
         // Arrange
-        var template = "crud";
-        var entityName = "Order";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var commandFile = Path.Combine(_testPath, $"Create{entityName}Command.cs");
-        var handlerFile = Path.Combine(_testPath, $"Create{entityName}Handler.cs");
-
-        var commandContent = $@"using Relay.Core;
-
-public record Create{entityName}Command(string Name) : IRequest<Guid>;";
-
-        var handlerContent = $@"using Relay.Core;
-
-public class Create{entityName}Handler : IRequestHandler<Create{entityName}Command, Guid>
-{{
-    [Handle]
-    public async ValueTask<Guid> HandleAsync(Create{entityName}Command request, CancellationToken ct)
-    {{
-        return Guid.NewGuid();
-    }}
-}}";
-
-        await File.WriteAllTextAsync(commandFile, commandContent);
-        await File.WriteAllTextAsync(handlerFile, handlerContent);
+        await command.InvokeAsync(
+            $"--handler MinimalHandler --request MinimalRequest --namespace App --output {_testPath} --template minimal --include-tests false",
+            console);
 
         // Assert
-        File.Exists(commandFile).Should().BeTrue();
-        File.Exists(handlerFile).Should().BeTrue();
+        var requestFile = Path.Combine(_testPath, "MinimalRequest.cs");
+        var handlerFile = Path.Combine(_testPath, "MinimalHandler.cs");
 
-        var commandText = await File.ReadAllTextAsync(commandFile);
-        var handlerText = await File.ReadAllTextAsync(handlerFile);
+        var requestContent = await File.ReadAllTextAsync(requestFile);
+        var handlerContent = await File.ReadAllTextAsync(handlerFile);
 
-        commandText.Should().Contain("IRequest<Guid>");
-        handlerText.Should().Contain("[Handle]");
-        handlerText.Should().Contain("ValueTask<Guid>");
-    }
-
-    [Theory]
-    [InlineData("minimal", 2)] // Command + Handler
-    [InlineData("standard", 4)] // Command + Handler + Request + Response
-    [InlineData("full", 6)] // Command + Handler + Request + Response + Validator + Tests
-    public async Task ScaffoldCommand_SupportsDifferentTemplates(string template, int expectedFiles)
-    {
-        // Arrange
-        var featureName = "Payment";
-
-        // Act - Create files based on template
-        for (int i = 0; i < expectedFiles; i++)
-        {
-            var fileName = $"{featureName}_{template}_{i}.cs";
-            await File.WriteAllTextAsync(Path.Combine(_testPath, fileName), $"// {template} template file {i}");
-        }
-
-        // Assert
-        var files = Directory.GetFiles(_testPath, $"{featureName}_{template}_*.cs");
-        files.Should().HaveCount(expectedFiles);
+        requestContent.Should().Contain("using Relay.Core;");
+        requestContent.Should().NotContain("System.ComponentModel.DataAnnotations");
+        handlerContent.Should().NotContain("ILogger");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_CreatesRepositoryPattern()
+    public async Task ScaffoldCommand_EnterpriseTemplate_GeneratesEnterpriseFeatures()
     {
         // Arrange
-        var entityName = "Customer";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var interfaceFile = Path.Combine(_testPath, $"I{entityName}Repository.cs");
-        var implementationFile = Path.Combine(_testPath, $"{entityName}Repository.cs");
-
-        var interfaceContent = $@"public interface I{entityName}Repository
-{{
-    Task<{entityName}> GetByIdAsync(Guid id);
-    Task<IEnumerable<{entityName}>> GetAllAsync();
-    Task AddAsync({entityName} entity);
-    Task UpdateAsync({entityName} entity);
-    Task DeleteAsync(Guid id);
-}}";
-
-        var implementationContent = $@"public class {entityName}Repository : I{entityName}Repository
-{{
-    // Implementation
-}}";
-
-        await File.WriteAllTextAsync(interfaceFile, interfaceContent);
-        await File.WriteAllTextAsync(implementationFile, implementationContent);
+        await command.InvokeAsync(
+            $"--handler EnterpriseHandler --request EnterpriseRequest --response EnterpriseResponse --namespace EntApp --output {_testPath} --template enterprise --include-tests false",
+            console);
 
         // Assert
-        File.Exists(interfaceFile).Should().BeTrue();
-        File.Exists(implementationFile).Should().BeTrue();
+        var requestFile = Path.Combine(_testPath, "EnterpriseRequest.cs");
+        var handlerFile = Path.Combine(_testPath, "EnterpriseHandler.cs");
+
+        var requestContent = await File.ReadAllTextAsync(requestFile);
+        var handlerContent = await File.ReadAllTextAsync(handlerFile);
+
+        requestContent.Should().Contain("[Cacheable");
+        requestContent.Should().Contain("[Authorize");
+        requestContent.Should().Contain("CorrelationId");
+        handlerContent.Should().Contain("ILogger<EnterpriseHandler>");
+        handlerContent.Should().Contain("PERFORMANCE TIPS");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_GeneratesValidationRules()
+    public async Task ScaffoldCommand_WithValidation_GeneratesValidationAttributes()
     {
         // Arrange
-        var commandName = "CreateUserCommand";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var validatorFile = Path.Combine(_testPath, $"{commandName}Validator.cs");
-        var validatorContent = $@"using FluentValidation;
-
-public class {commandName}Validator : AbstractValidator<{commandName}>
-{{
-    public {commandName}Validator()
-    {{
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Name).NotEmpty().MinimumLength(2);
-    }}
-}}";
-
-        await File.WriteAllTextAsync(validatorFile, validatorContent);
+        await command.InvokeAsync(
+            $"--handler ValidatedHandler --request ValidatedRequest --namespace App --output {_testPath} --include-validation true --include-tests false",
+            console);
 
         // Assert
-        File.Exists(validatorFile).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(validatorFile);
-        content.Should().Contain("AbstractValidator");
-        content.Should().Contain("RuleFor");
+        var requestFile = Path.Combine(_testPath, "ValidatedRequest.cs");
+        var content = await File.ReadAllTextAsync(requestFile);
+
+        content.Should().Contain("[Required");
+        content.Should().Contain("[StringLength");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_CreatesUnitTests()
+    public async Task ScaffoldCommand_WithoutResponse_GeneratesIRequest()
     {
         // Arrange
-        var handlerName = "CreateOrderHandler";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var testFile = Path.Combine(_testPath, $"{handlerName}Tests.cs");
-        var testContent = $@"using Xunit;
-using FluentAssertions;
-
-public class {handlerName}Tests
-{{
-    [Fact]
-    public async Task HandleAsync_WithValidRequest_ReturnsOrderId()
-    {{
-        // Arrange
-        var handler = new {handlerName}();
-        var request = new CreateOrderCommand(""Test"");
-
-        // Act
-        var result = await handler.HandleAsync(request, CancellationToken.None);
+        await command.InvokeAsync(
+            $"--handler CommandHandler --request DoSomethingCommand --namespace App --output {_testPath} --include-tests false",
+            console);
 
         // Assert
-        result.Should().NotBeEmpty();
-    }}
-}}";
+        var requestFile = Path.Combine(_testPath, "DoSomethingCommand.cs");
+        var handlerFile = Path.Combine(_testPath, "CommandHandler.cs");
 
-        await File.WriteAllTextAsync(testFile, testContent);
+        var requestContent = await File.ReadAllTextAsync(requestFile);
+        var handlerContent = await File.ReadAllTextAsync(handlerFile);
 
-        // Assert
-        File.Exists(testFile).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(testFile);
-        content.Should().Contain("[Fact]");
-        content.Should().Contain("Should()");
+        requestContent.Should().Contain(": IRequest;");
+        handlerContent.Should().Contain("public async ValueTask Handle");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_SupportsCustomNamespace()
+    public async Task ScaffoldCommand_GeneratesHandlerWithHandleAttribute()
     {
         // Arrange
-        var namespaceName = "MyCompany.MyProject.Features.Users";
-        var entityName = "User";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var filePath = Path.Combine(_testPath, $"{entityName}.cs");
-        var content = $@"namespace {namespaceName};
-
-public class {entityName}
-{{
-    public Guid Id {{ get; set; }}
-    public string Name {{ get; set; }}
-}}";
-
-        await File.WriteAllTextAsync(filePath, content);
+        await command.InvokeAsync(
+            $"--handler TestHandler --request TestRequest --namespace App --output {_testPath} --include-tests false",
+            console);
 
         // Assert
-        var fileContent = await File.ReadAllTextAsync(filePath);
-        fileContent.Should().Contain($"namespace {namespaceName}");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_GeneratesAPIController()
-    {
-        // Arrange
-        var entityName = "Product";
-
-        // Act
-        var controllerFile = Path.Combine(_testPath, $"{entityName}sController.cs");
-        var controllerContent = $@"using Microsoft.AspNetCore.Mvc;
-using Relay.Core;
-
-[ApiController]
-[Route(""api/[controller]"")]
-public class {entityName}sController : ControllerBase
-{{
-    private readonly IRelayMediator _mediator;
-
-    public {entityName}sController(IRelayMediator mediator)
-    {{
-        _mediator = mediator;
-    }}
-
-    [HttpPost]
-    public async Task<IActionResult> Create(Create{entityName}Command command)
-    {{
-        var result = await _mediator.SendAsync(command);
-        return CreatedAtAction(nameof(GetById), new {{ id = result }}, result);
-    }}
-}}";
-
-        await File.WriteAllTextAsync(controllerFile, controllerContent);
-
-        // Assert
-        File.Exists(controllerFile).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(controllerFile);
-        content.Should().Contain("[ApiController]");
-        content.Should().Contain("IRelayMediator");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateDTO()
-    {
-        // Arrange
-        var dtoName = "UserDto";
-
-        // Act
-        var dtoFile = Path.Combine(_testPath, $"{dtoName}.cs");
-        var dtoContent = $@"public record {dtoName}(Guid Id, string Name, string Email);";
-        await File.WriteAllTextAsync(dtoFile, dtoContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(dtoFile);
-        content.Should().Contain("record");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateMapper()
-    {
-        // Arrange
-        var entityName = "User";
-
-        // Act
-        var mapperFile = Path.Combine(_testPath, $"{entityName}MappingProfile.cs");
-        var mapperContent = $@"using AutoMapper;
-
-public class {entityName}MappingProfile : Profile
-{{
-    public {entityName}MappingProfile()
-    {{
-        CreateMap<{entityName}, {entityName}Dto>();
-        CreateMap<Create{entityName}Command, {entityName}>();
-    }}
-}}";
-        await File.WriteAllTextAsync(mapperFile, mapperContent);
-
-        // Assert
-        File.Exists(mapperFile).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(mapperFile);
-        content.Should().Contain("CreateMap");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateDbContext()
-    {
-        // Arrange
-        var contextName = "AppDbContext";
-
-        // Act
-        var contextFile = Path.Combine(_testPath, $"{contextName}.cs");
-        var contextContent = $@"using Microsoft.EntityFrameworkCore;
-
-public class {contextName} : DbContext
-{{
-    public DbSet<User> Users {{ get; set; }}
-    public DbSet<Product> Products {{ get; set; }}
-}}";
-        await File.WriteAllTextAsync(contextFile, contextContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(contextFile);
-        content.Should().Contain("DbContext");
-        content.Should().Contain("DbSet");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateEntityConfiguration()
-    {
-        // Arrange
-        var entityName = "User";
-
-        // Act
-        var configFile = Path.Combine(_testPath, $"{entityName}Configuration.cs");
-        var configContent = $@"using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-public class {entityName}Configuration : IEntityTypeConfiguration<{entityName}>
-{{
-    public void Configure(EntityTypeBuilder<{entityName}> builder)
-    {{
-        builder.HasKey(x => x.Id);
-        builder.Property(x => x.Name).IsRequired().HasMaxLength(100);
-    }}
-}}";
-        await File.WriteAllTextAsync(configFile, configContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(configFile);
-        content.Should().Contain("IEntityTypeConfiguration");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateService()
-    {
-        // Arrange
-        var serviceName = "UserService";
-
-        // Act
-        var serviceFile = Path.Combine(_testPath, $"{serviceName}.cs");
-        var serviceContent = $@"public class {serviceName} : I{serviceName}
-{{
-    private readonly IUserRepository _repository;
-
-    public {serviceName}(IUserRepository repository)
-    {{
-        _repository = repository;
-    }}
-}}";
-        await File.WriteAllTextAsync(serviceFile, serviceContent);
-
-        // Assert
-        File.Exists(serviceFile).Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateSpecification()
-    {
-        // Arrange
-        var specName = "ActiveUsersSpecification";
-
-        // Act
-        var specFile = Path.Combine(_testPath, $"{specName}.cs");
-        var specContent = $@"public class {specName} : Specification<User>
-{{
-    public {specName}()
-    {{
-        AddFilter(u => u.IsActive);
-    }}
-}}";
-        await File.WriteAllTextAsync(specFile, specContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(specFile);
-        content.Should().Contain("Specification");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateEventHandler()
-    {
-        // Arrange
-        var eventName = "UserCreatedEvent";
-
-        // Act
-        var handlerFile = Path.Combine(_testPath, $"{eventName}Handler.cs");
-        var handlerContent = $@"using Relay.Core;
-
-public class {eventName}Handler : INotificationHandler<{eventName}>
-{{
-    public async ValueTask HandleAsync({eventName} notification, CancellationToken ct)
-    {{
-        // Handle event
-    }}
-}}";
-        await File.WriteAllTextAsync(handlerFile, handlerContent);
-
-        // Assert
+        var handlerFile = Path.Combine(_testPath, "TestHandler.cs");
         var content = await File.ReadAllTextAsync(handlerFile);
-        content.Should().Contain("INotificationHandler");
+
+        content.Should().Contain("[Handle]");
+        content.Should().Contain("CancellationToken cancellationToken = default");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateMiddleware()
+    public async Task ScaffoldCommand_GeneratesUnitTests_WithProperStructure()
     {
         // Arrange
-        var middlewareName = "RequestLoggingMiddleware";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var middlewareFile = Path.Combine(_testPath, $"{middlewareName}.cs");
-        var middlewareContent = $@"using Microsoft.AspNetCore.Http;
-
-public class {middlewareName}
-{{
-    private readonly RequestDelegate _next;
-
-    public {middlewareName}(RequestDelegate next)
-    {{
-        _next = next;
-    }}
-
-    public async Task InvokeAsync(HttpContext context)
-    {{
-        await _next(context);
-    }}
-}}";
-        await File.WriteAllTextAsync(middlewareFile, middlewareContent);
+        await command.InvokeAsync(
+            $"--handler UserHandler --request UserRequest --response UserResponse --namespace MyApp --output {_testPath} --include-tests true",
+            console);
 
         // Assert
-        var content = await File.ReadAllTextAsync(middlewareFile);
-        content.Should().Contain("RequestDelegate");
+        var testFile = Path.Combine(_testPath, "UserHandlerTests.cs");
+        var content = await File.ReadAllTextAsync(testFile);
+
+        content.Should().Contain("public class UserHandlerTests");
+        content.Should().Contain("[Fact]");
+        content.Should().Contain("WithValidRequest_ShouldReturnExpectedResult");
+        content.Should().Contain("WithCancellation_ShouldRespectCancellationToken");
+        content.Should().Contain("[Theory]");
+        content.Should().Contain("Mock<ILogger<UserHandler>>");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateBackgroundService()
+    public async Task ScaffoldCommand_EnterpriseTemplate_GeneratesPerformanceTest()
     {
         // Arrange
-        var serviceName = "DataSyncBackgroundService";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var serviceFile = Path.Combine(_testPath, $"{serviceName}.cs");
-        var serviceContent = $@"using Microsoft.Extensions.Hosting;
-
-public class {serviceName} : BackgroundService
-{{
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {{
-        // Background work
-    }}
-}}";
-        await File.WriteAllTextAsync(serviceFile, serviceContent);
+        await command.InvokeAsync(
+            $"--handler PerfHandler --request PerfRequest --response PerfResponse --namespace App --output {_testPath} --template enterprise --include-tests true",
+            console);
 
         // Assert
-        var content = await File.ReadAllTextAsync(serviceFile);
-        content.Should().Contain("BackgroundService");
+        var testFile = Path.Combine(_testPath, "PerfHandlerTests.cs");
+        var content = await File.ReadAllTextAsync(testFile);
+
+        content.Should().Contain("Performance_ShouldBeFast");
+        content.Should().Contain("Stopwatch");
+        content.Should().Contain("avgTime < 10");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateExtensionMethods()
+    public async Task ScaffoldCommand_GeneratesIntegrationTests()
     {
         // Arrange
-        var extensionName = "ServiceCollectionExtensions";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var extensionFile = Path.Combine(_testPath, $"{extensionName}.cs");
-        var extensionContent = $@"using Microsoft.Extensions.DependencyInjection;
-
-public static class {extensionName}
-{{
-    public static IServiceCollection AddFeatureServices(this IServiceCollection services)
-    {{
-        services.AddScoped<IUserRepository, UserRepository>();
-        return services;
-    }}
-}}";
-        await File.WriteAllTextAsync(extensionFile, extensionContent);
+        await command.InvokeAsync(
+            $"--handler IntHandler --request IntRequest --response IntResponse --namespace App --output {_testPath} --include-tests true",
+            console);
 
         // Assert
-        var content = await File.ReadAllTextAsync(extensionFile);
-        content.Should().Contain("this IServiceCollection");
+        var testFile = Path.Combine(_testPath, "IntHandlerIntegrationTests.cs");
+        var content = await File.ReadAllTextAsync(testFile);
+
+        content.Should().Contain("public class IntHandlerIntegrationTests");
+        content.Should().Contain("ThroughRelay_ShouldWorkEndToEnd");
+        content.Should().Contain("WithTestHarness_ShouldProvideTestingUtilities");
+        content.Should().Contain("IRelay");
+        content.Should().Contain("RelayTestHarness");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateConstants()
+    public async Task ScaffoldCommand_WithoutTests_DoesNotGenerateTestFiles()
     {
         // Arrange
-        var constantsName = "UserConstants";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var constantsFile = Path.Combine(_testPath, $"{constantsName}.cs");
-        var constantsContent = $@"public static class {constantsName}
-{{
-    public const int MaxNameLength = 100;
-    public const int MinAge = 18;
-    public const string DefaultRole = ""User"";
-}}";
-        await File.WriteAllTextAsync(constantsFile, constantsContent);
+        await command.InvokeAsync(
+            $"--handler NoTestHandler --request NoTestRequest --namespace App --output {_testPath} --include-tests false",
+            console);
 
         // Assert
-        var content = await File.ReadAllTextAsync(constantsFile);
-        content.Should().Contain("const");
+        File.Exists(Path.Combine(_testPath, "NoTestHandlerTests.cs")).Should().BeFalse();
+        File.Exists(Path.Combine(_testPath, "NoTestHandlerIntegrationTests.cs")).Should().BeFalse();
     }
 
     [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateExceptions()
+    public async Task ScaffoldCommand_GeneratesResponseRecord()
     {
         // Arrange
-        var exceptionName = "UserNotFoundException";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var exceptionFile = Path.Combine(_testPath, $"{exceptionName}.cs");
-        var exceptionContent = $@"public class {exceptionName} : Exception
-{{
-    public {exceptionName}(Guid userId)
-        : base($""User with ID {{userId}} not found."")
-    {{
-    }}
-}}";
-        await File.WriteAllTextAsync(exceptionFile, exceptionContent);
+        await command.InvokeAsync(
+            $"--handler RespHandler --request RespRequest --response RespResponse --namespace App --output {_testPath} --include-tests false",
+            console);
 
         // Assert
-        var content = await File.ReadAllTextAsync(exceptionFile);
-        content.Should().Contain(": Exception");
-    }
+        var requestFile = Path.Combine(_testPath, "RespRequest.cs");
+        var content = await File.ReadAllTextAsync(requestFile);
 
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateEnums()
-    {
-        // Arrange
-        var enumName = "UserRole";
-
-        // Act
-        var enumFile = Path.Combine(_testPath, $"{enumName}.cs");
-        var enumContent = $@"public enum {enumName}
-{{
-    Admin = 1,
-    User = 2,
-    Guest = 3
-}}";
-        await File.WriteAllTextAsync(enumFile, enumContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(enumFile);
-        content.Should().Contain("enum");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateValueObject()
-    {
-        // Arrange
-        var valueObjectName = "Email";
-
-        // Act
-        var voFile = Path.Combine(_testPath, $"{valueObjectName}.cs");
-        var voContent = $@"public record {valueObjectName}
-{{
-    public string Value {{ get; init; }}
-
-    public {valueObjectName}(string value)
-    {{
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException(""Email cannot be empty"");
-        Value = value;
-    }}
-}}";
-        await File.WriteAllTextAsync(voFile, voContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(voFile);
-        content.Should().Contain("record");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateAggregate()
-    {
-        // Arrange
-        var aggregateName = "Order";
-
-        // Act
-        var aggregateFile = Path.Combine(_testPath, $"{aggregateName}.cs");
-        var aggregateContent = $@"public class {aggregateName}
-{{
-    private readonly List<OrderItem> _items = new();
-    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
-
-    public void AddItem(OrderItem item)
-    {{
-        _items.Add(item);
-    }}
-}}";
-        await File.WriteAllTextAsync(aggregateFile, aggregateContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(aggregateFile);
-        content.Should().Contain("IReadOnlyCollection");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGeneratePaginatedQuery()
-    {
-        // Arrange
-        var queryName = "GetUsersQuery";
-
-        // Act
-        var queryFile = Path.Combine(_testPath, $"{queryName}.cs");
-        var queryContent = $@"public record {queryName}(int Page, int PageSize) : IRequest<PagedResult<UserDto>>;";
-        await File.WriteAllTextAsync(queryFile, queryContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(queryFile);
-        content.Should().Contain("PagedResult");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateHealthCheck()
-    {
-        // Arrange
-        var healthCheckName = "DatabaseHealthCheck";
-
-        // Act
-        var healthCheckFile = Path.Combine(_testPath, $"{healthCheckName}.cs");
-        var healthCheckContent = $@"using Microsoft.Extensions.Diagnostics.HealthChecks;
-
-public class {healthCheckName} : IHealthCheck
-{{
-    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = default)
-    {{
-        return HealthCheckResult.Healthy();
-    }}
-}}";
-        await File.WriteAllTextAsync(healthCheckFile, healthCheckContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(healthCheckFile);
-        content.Should().Contain("IHealthCheck");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGeneratePolicy()
-    {
-        // Arrange
-        var policyName = "AdminOnlyPolicy";
-
-        // Act
-        var policyFile = Path.Combine(_testPath, $"{policyName}.cs");
-        var policyContent = $@"using Microsoft.AspNetCore.Authorization;
-
-public class {policyName} : IAuthorizationRequirement
-{{
-    public string RequiredRole {{ get; }} = ""Admin"";
-}}";
-        await File.WriteAllTextAsync(policyFile, policyContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(policyFile);
-        content.Should().Contain("IAuthorizationRequirement");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateFilter()
-    {
-        // Arrange
-        var filterName = "ValidationFilter";
-
-        // Act
-        var filterFile = Path.Combine(_testPath, $"{filterName}.cs");
-        var filterContent = $@"using Microsoft.AspNetCore.Mvc.Filters;
-
-public class {filterName} : IActionFilter
-{{
-    public void OnActionExecuting(ActionExecutingContext context) {{ }}
-    public void OnActionExecuted(ActionExecutedContext context) {{ }}
-}}";
-        await File.WriteAllTextAsync(filterFile, filterContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(filterFile);
-        content.Should().Contain("IActionFilter");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateSeeder()
-    {
-        // Arrange
-        var seederName = "UserSeeder";
-
-        // Act
-        var seederFile = Path.Combine(_testPath, $"{seederName}.cs");
-        var seederContent = $@"public class {seederName}
-{{
-    public async Task SeedAsync(AppDbContext context)
-    {{
-        if (!context.Users.Any())
-        {{
-            context.Users.Add(new User {{ Name = ""Admin"" }});
-            await context.SaveChangesAsync();
-        }}
-    }}
-}}";
-        await File.WriteAllTextAsync(seederFile, seederContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(seederFile);
-        content.Should().Contain("SeedAsync");
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateMigration()
-    {
-        // Arrange
-        var migrationName = "AddUserTable";
-
-        // Act
-        var migrationFile = Path.Combine(_testPath, $"{migrationName}.cs");
-        var migrationContent = $@"using Microsoft.EntityFrameworkCore.Migrations;
-
-public partial class {migrationName} : Migration
-{{
-    protected override void Up(MigrationBuilder migrationBuilder)
-    {{
-        migrationBuilder.CreateTable(name: ""Users"");
-    }}
-
-    protected override void Down(MigrationBuilder migrationBuilder)
-    {{
-        migrationBuilder.DropTable(name: ""Users"");
-    }}
-}}";
-        await File.WriteAllTextAsync(migrationFile, migrationContent);
-
-        // Assert
-        var content = await File.ReadAllTextAsync(migrationFile);
-        content.Should().Contain("Migration");
+        content.Should().Contain("public record RespResponse");
+        content.Should().Contain("ExampleResult");
+        content.Should().Contain("IsSuccess");
+        content.Should().Contain("ErrorMessage");
     }
 
     [Theory]
-    [InlineData("User", "Users")]
-    [InlineData("Product", "Products")]
-    [InlineData("Category", "Categories")]
-    [InlineData("Company", "Companies")]
-    public async Task ScaffoldCommand_ShouldPluralizeEntityNames(string singular, string plural)
+    [InlineData("standard")]
+    [InlineData("minimal")]
+    [InlineData("enterprise")]
+    public async Task ScaffoldCommand_AllTemplates_GenerateValidCode(string template)
     {
-        // Act - Simple pluralization check
-        var pluralized = singular.EndsWith("y")
-            ? singular.Substring(0, singular.Length - 1) + "ies"
-            : singular + "s";
+        // Arrange
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
+        var handlerName = $"{template}Handler";
+        var requestName = $"{template}Request";
+
+        // Act
+        var result = await command.InvokeAsync(
+            $"--handler {handlerName} --request {requestName} --namespace App --output {_testPath} --template {template} --include-tests false",
+            console);
 
         // Assert
-        pluralized.Should().Be(plural);
+        result.Should().Be(0);
+        File.Exists(Path.Combine(_testPath, $"{requestName}.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(_testPath, $"{handlerName}.cs")).Should().BeTrue();
     }
 
     [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateIntegrationTest()
+    public async Task ScaffoldCommand_CustomNamespace_GeneratesCorrectNamespace()
     {
         // Arrange
-        var testName = "CreateUserIntegrationTests";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
+        var customNamespace = "MyCompany.MyProduct.Features.Users";
 
         // Act
-        var testFile = Path.Combine(_testPath, $"{testName}.cs");
-        var testContent = $@"using Xunit;
-
-public class {testName} : IClassFixture<WebApplicationFactory<Program>>
-{{
-    [Fact]
-    public async Task CreateUser_ReturnsCreatedUser()
-    {{
-        // Integration test
-    }}
-}}";
-        await File.WriteAllTextAsync(testFile, testContent);
+        await command.InvokeAsync(
+            $"--handler UserHandler --request CreateUserRequest --namespace {customNamespace} --output {_testPath} --include-tests false",
+            console);
 
         // Assert
+        var requestFile = Path.Combine(_testPath, "CreateUserRequest.cs");
+        var content = await File.ReadAllTextAsync(requestFile);
+
+        content.Should().Contain($"namespace {customNamespace}");
+    }
+
+    [Fact]
+    public async Task ScaffoldCommand_DefaultNamespace_UsesYourApp()
+    {
+        // Arrange
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        await command.InvokeAsync(
+            $"--handler DefaultHandler --request DefaultRequest --output {_testPath} --include-tests false",
+            console);
+
+        // Assert
+        var requestFile = Path.Combine(_testPath, "DefaultRequest.cs");
+        var content = await File.ReadAllTextAsync(requestFile);
+
+        content.Should().Contain("namespace YourApp");
+    }
+
+    [Fact]
+    public async Task ScaffoldCommand_HandlerWithDependencies_GeneratesConstructor()
+    {
+        // Arrange
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        await command.InvokeAsync(
+            $"--handler DependentHandler --request DependentRequest --namespace App --output {_testPath} --template standard --include-tests false",
+            console);
+
+        // Assert
+        var handlerFile = Path.Combine(_testPath, "DependentHandler.cs");
+        var content = await File.ReadAllTextAsync(handlerFile);
+
+        content.Should().Contain("private readonly ILogger<DependentHandler> _logger");
+        content.Should().Contain("public DependentHandler(ILogger<DependentHandler> logger)");
+    }
+
+    [Fact]
+    public async Task ScaffoldCommand_RequestWithResponse_UsesCorrectGenericType()
+    {
+        // Arrange
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        await command.InvokeAsync(
+            $"--handler QueryHandler --request GetDataQuery --response DataResult --namespace App --output {_testPath} --include-tests false",
+            console);
+
+        // Assert
+        var requestFile = Path.Combine(_testPath, "GetDataQuery.cs");
+        var content = await File.ReadAllTextAsync(requestFile);
+
+        content.Should().Contain(": IRequest<DataResult>");
+    }
+
+    [Fact]
+    public async Task ScaffoldCommand_Tests_IncludeMockingSetup()
+    {
+        // Arrange
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        await command.InvokeAsync(
+            $"--handler MockHandler --request MockRequest --namespace App --output {_testPath} --include-tests true",
+            console);
+
+        // Assert
+        var testFile = Path.Combine(_testPath, "MockHandlerTests.cs");
         var content = await File.ReadAllTextAsync(testFile);
-        content.Should().Contain("IClassFixture");
+
+        content.Should().Contain("CreateHandler");
+        content.Should().Contain("new Mock<ILogger<MockHandler>>()");
+        content.Should().Contain("mockLogger.Object");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateDocumentation()
+    public async Task ScaffoldCommand_HandlerWithoutResponse_UsesValueTaskReturnType()
     {
         // Arrange
-        var docName = "UserFeature.md";
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var docFile = Path.Combine(_testPath, docName);
-        var docContent = @"# User Feature
-
-## Overview
-User management feature
-
-## Endpoints
-- POST /api/users - Create user
-- GET /api/users - List users";
-        await File.WriteAllTextAsync(docFile, docContent);
+        await command.InvokeAsync(
+            $"--handler CommandOnlyHandler --request ExecuteCommand --namespace App --output {_testPath} --include-tests false",
+            console);
 
         // Assert
-        File.Exists(docFile).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(docFile);
-        content.Should().Contain("# User Feature");
+        var handlerFile = Path.Combine(_testPath, "CommandOnlyHandler.cs");
+        var content = await File.ReadAllTextAsync(handlerFile);
+
+        content.Should().Contain("public async ValueTask Handle");
+        content.Should().NotContain("ValueTask<");
     }
 
     [Fact]
-    public async Task ScaffoldCommand_ShouldSupportDryRun()
+    public async Task ScaffoldCommand_IntegrationTest_UsesRelayTestHarness()
     {
         // Arrange
-        var dryRun = true;
+        var command = ScaffoldCommand.Create();
+        var console = new TestConsole();
 
         // Act
-        var shouldCreateFiles = !dryRun;
+        await command.InvokeAsync(
+            $"--handler TestHarnessHandler --request TestRequest --response TestResponse --namespace App --output {_testPath} --include-tests true",
+            console);
 
         // Assert
-        shouldCreateFiles.Should().BeFalse();
-    }
+        var integrationTestFile = Path.Combine(_testPath, "TestHarnessHandlerIntegrationTests.cs");
+        var content = await File.ReadAllTextAsync(integrationTestFile);
 
-    [Fact]
-    public async Task ScaffoldCommand_ShouldValidateEntityName()
-    {
-        // Arrange
-        var validName = "User";
-        var invalidName = "user";
-
-        // Act
-        var isValid = char.IsUpper(validName[0]);
-        var isInvalid = char.IsLower(invalidName[0]);
-
-        // Assert
-        isValid.Should().BeTrue();
-        isInvalid.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldDetectExistingFiles()
-    {
-        // Arrange
-        var fileName = "User.cs";
-        var filePath = Path.Combine(_testPath, fileName);
-        await File.WriteAllTextAsync(filePath, "// existing");
-
-        // Act
-        var exists = File.Exists(filePath);
-
-        // Assert
-        exists.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldSupportOverwriteFlag()
-    {
-        // Arrange
-        var overwrite = true;
-
-        // Assert
-        overwrite.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ScaffoldCommand_ShouldGenerateGitignore()
-    {
-        // Arrange
-        var gitignorePath = Path.Combine(_testPath, ".gitignore");
-
-        // Act
-        await File.WriteAllTextAsync(gitignorePath, "bin/\nobj/\n*.user");
-
-        // Assert
-        File.Exists(gitignorePath).Should().BeTrue();
+        content.Should().Contain("RelayTestHarness.CreateTestRelay");
+        content.Should().Contain("Relay.Core.Testing");
     }
 
     public void Dispose()

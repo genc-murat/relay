@@ -23,8 +23,9 @@ namespace Relay.Core.EventSourcing
                 _events[aggregateId] = aggregateEvents;
             }
 
-            // Check version concurrency
-            if (expectedVersion != -1 && aggregateEvents.Count != expectedVersion + 1)
+            var lastVersion = aggregateEvents.LastOrDefault()?.AggregateVersion ?? -1;
+
+            if (expectedVersion != lastVersion)
             {
                 throw new InvalidOperationException("Concurrency conflict: expected version does not match actual version.");
             }

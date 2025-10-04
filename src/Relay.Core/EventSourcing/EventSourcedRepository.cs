@@ -66,29 +66,14 @@ namespace Relay.Core.EventSourcing
                 return;
             }
 
-            // Set aggregate ID and version on events
             var aggregateId = GetAggregateGuid(aggregate.Id);
-            var expectedVersion = aggregate.Version;
-
-            for (int i = 0; i < uncommittedEvents.Count; i++)
-            {
-                var @event = uncommittedEvents[i];
-                @event.AggregateId = aggregateId;
-                @event.AggregateVersion = expectedVersion + i + 1;
-            }
+            var expectedVersion = aggregate.Version - uncommittedEvents.Count;
 
             // Save events to the event store
             await _eventStore.SaveEventsAsync(aggregateId, uncommittedEvents, expectedVersion, cancellationToken);
 
             // Clear uncommitted events
             aggregate.ClearUncommittedEvents();
-
-            // Update aggregate version
-            if (uncommittedEvents.Count > 0)
-            {
-                aggregate.GetType().GetProperty(nameof(AggregateRoot<TId>.Version))?
-                    .SetValue(aggregate, uncommittedEvents[uncommittedEvents.Count - 1].AggregateVersion);
-            }
         }
 
         private static Guid GetAggregateGuid(TId id)

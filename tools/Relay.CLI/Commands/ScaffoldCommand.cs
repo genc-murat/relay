@@ -46,53 +46,94 @@ public static class ScaffoldCommand
         bool includeTests,
         bool includeValidation)
     {
-        AnsiConsole.MarkupLine($"[green]🏗️  Scaffolding Relay components...[/]");
-        
-        await AnsiConsole.Progress()
-            .StartAsync(async ctx =>
+        try
+        {
+            // Ensure output directory exists
+            Directory.CreateDirectory(outputPath);
+            
+            // Generate the code files
+            var requestCode = GenerateRequest(requestName, responseName, namespaceName, template, includeValidation);
+            var requestFile = Path.Combine(outputPath, $"{requestName}.cs");
+            await File.WriteAllTextAsync(requestFile, requestCode);
+
+            var handlerCode = GenerateHandler(handlerName, requestName, responseName, namespaceName, template);
+            var handlerFile = Path.Combine(outputPath, $"{handlerName}.cs");
+            await File.WriteAllTextAsync(handlerFile, handlerCode);
+
+            if (includeTests)
             {
-                var task = ctx.AddTask("[green]Generating files[/]", maxValue: includeTests ? 4 : 2);
+                var testCode = GenerateTests(handlerName, requestName, responseName, namespaceName, template);
+                var testFile = Path.Combine(outputPath, $"{handlerName}Tests.cs");
+                await File.WriteAllTextAsync(testFile, testCode);
 
-                // Generate request
-                var requestCode = GenerateRequest(requestName, responseName, namespaceName, template, includeValidation);
-                var requestFile = Path.Combine(outputPath, $"{requestName}.cs");
-                await File.WriteAllTextAsync(requestFile, requestCode);
-                task.Increment(1);
-                AnsiConsole.MarkupLine($"[dim]✓ Generated {requestName}.cs[/]");
+                var integrationTestCode = GenerateIntegrationTests(handlerName, requestName, responseName, namespaceName);
+                var integrationTestFile = Path.Combine(outputPath, $"{handlerName}IntegrationTests.cs");
+                await File.WriteAllTextAsync(integrationTestFile, integrationTestCode);
+            }
 
-                // Generate handler
-                var handlerCode = GenerateHandler(handlerName, requestName, responseName, namespaceName, template);
-                var handlerFile = Path.Combine(outputPath, $"{handlerName}.cs");
-                await File.WriteAllTextAsync(handlerFile, handlerCode);
-                task.Increment(1);
-                AnsiConsole.MarkupLine($"[dim]✓ Generated {handlerName}.cs[/]");
+            // Try to show progress and UI in console if possible
+            try
+            {
+                AnsiConsole.MarkupLine($"[green]🏗️  Scaffolding Relay components...[/]");
+                
+                await AnsiConsole.Progress()
+                    .StartAsync(async ctx =>
+                    {
+                        var task = ctx.AddTask("[green]Generating files[/]", maxValue: includeTests ? 4 : 2);
 
-                if (includeTests)
-                {
-                    // Generate tests
-                    var testCode = GenerateTests(handlerName, requestName, responseName, namespaceName, template);
-                    var testFile = Path.Combine(outputPath, $"{handlerName}Tests.cs");
-                    await File.WriteAllTextAsync(testFile, testCode);
-                    task.Increment(1);
-                    AnsiConsole.MarkupLine($"[dim]✓ Generated {handlerName}Tests.cs[/]");
+                        // Simulate progress after files are already created
+                        await Task.Delay(100); // Small delay to show progress
+                        task.Increment(1);
+                        AnsiConsole.MarkupLine($"[dim]✓ Generated {requestName}.cs[/]");
 
-                    // Generate integration test
-                    var integrationTestCode = GenerateIntegrationTests(handlerName, requestName, responseName, namespaceName);
-                    var integrationTestFile = Path.Combine(outputPath, $"{handlerName}IntegrationTests.cs");
-                    await File.WriteAllTextAsync(integrationTestFile, integrationTestCode);
-                    task.Increment(1);
-                    AnsiConsole.MarkupLine($"[dim]✓ Generated {handlerName}IntegrationTests.cs[/]");
-                }
+                        await Task.Delay(100); // Small delay to show progress
+                        task.Increment(1);
+                        AnsiConsole.MarkupLine($"[dim]✓ Generated {handlerName}.cs[/]");
 
-                task.Value = task.MaxValue;
-            });
+                        if (includeTests)
+                        {
+                            await Task.Delay(100); // Small delay to show progress
+                            task.Increment(1);
+                            AnsiConsole.MarkupLine($"[dim]✓ Generated {handlerName}Tests.cs[/]");
 
-        // Display success summary
-        var panel = new Panel(BuildSuccessMessage(handlerName, requestName, responseName, includeTests))
-            .Header("[green]✅ Scaffolding Complete[/]")
-            .BorderColor(Color.Green);
+                            await Task.Delay(100); // Small delay to show progress
+                            task.Increment(1);
+                            AnsiConsole.MarkupLine($"[dim]✓ Generated {handlerName}IntegrationTests.cs[/]");
+                        }
 
-        AnsiConsole.Write(panel);
+                        task.Value = task.MaxValue;
+                    });
+
+                // Display success summary
+                var panel = new Panel(BuildSuccessMessage(handlerName, requestName, responseName, includeTests))
+                    .Header("[green]✅ Scaffolding Complete[/]")
+                    .BorderColor(Color.Green);
+
+                AnsiConsole.Write(panel);
+            }
+            catch
+            {
+                // If console operations fail (e.g., in test environment), just continue
+                // The files were already generated successfully above
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle any exception and try to display error message
+            try
+            {
+                var errorPanel = new Panel($"[red]Error during scaffolding:[/] {ex.Message}\n\n[red]Stack Trace:[/] {ex.StackTrace}")
+                    .Header("[red]❌ Scaffolding Failed[/]")
+                    .BorderColor(Color.Red);
+
+                AnsiConsole.Write(errorPanel);
+            }
+            catch
+            {
+                // If console operations fail, just re-throw the original exception
+            }
+            throw; // Re-throw to ensure command returns non-zero exit code
+        }
     }
 
     private static string GenerateRequest(string requestName, string? responseName, string namespaceName, string template, bool includeValidation)

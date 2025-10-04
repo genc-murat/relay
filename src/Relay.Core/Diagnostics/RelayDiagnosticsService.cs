@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Relay.Core.Diagnostics;
@@ -15,15 +18,18 @@ public class RelayDiagnosticsService
     private readonly IRelayDiagnostics _diagnostics;
     private readonly IRequestTracer _tracer;
     private readonly DiagnosticsOptions _options;
+    private readonly IServiceProvider _serviceProvider;
 
     public RelayDiagnosticsService(
         IRelayDiagnostics diagnostics,
         IRequestTracer tracer,
-        IOptions<DiagnosticsOptions> options)
+        IOptions<DiagnosticsOptions> options,
+        IServiceProvider serviceProvider)
     {
         _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
 
     /// <summary>
@@ -262,30 +268,228 @@ public class RelayDiagnosticsService
     /// </summary>
     /// <param name="request">Benchmark request parameters</param>
     /// <returns>Benchmark results</returns>
-    public Task<DiagnosticResponse<BenchmarkResult>> RunBenchmark(BenchmarkRequest request)
+    public async Task<DiagnosticResponse<BenchmarkResult>> RunBenchmark(BenchmarkRequest request)
     {
         if (!_options.EnableDiagnosticEndpoints)
         {
-            return Task.FromResult(DiagnosticResponse<BenchmarkResult>.NotFound("Diagnostic endpoints are disabled"));
+            return DiagnosticResponse<BenchmarkResult>.NotFound("Diagnostic endpoints are disabled");
         }
 
         if (request == null || string.IsNullOrWhiteSpace(request.RequestType))
         {
-            return Task.FromResult(DiagnosticResponse<BenchmarkResult>.BadRequest("Invalid benchmark request"));
+            return DiagnosticResponse<BenchmarkResult>.BadRequest("Invalid benchmark request");
+        }
+
+        if (request.Iterations <= 0)
+        {
+            return DiagnosticResponse<BenchmarkResult>.BadRequest("Iterations must be greater than 0");
         }
 
         try
         {
-            // This would need to be implemented based on the specific request type
-            // For now, return a placeholder response
-            var result = DiagnosticResponse<BenchmarkResult>.Error("Benchmark functionality not yet implemented", statusCode: 501);
-            return Task.FromResult(result);
+            // Try to resolve the request type
+            var requestType = FindRequestType(request.RequestType);
+            if (requestType == null)
+            {
+                return DiagnosticResponse<BenchmarkResult>.NotFound($"Request type not found: {request.RequestType}");
+            }
+
+            // Create request instance
+            var requestInstance = CreateRequestInstance(requestType, request.RequestData);
+            if (requestInstance == null)
+            {
+                return DiagnosticResponse<BenchmarkResult>.BadRequest($"Failed to create instance of request type: {request.RequestType}");
+            }
+
+            // Get the IRelay instance
+            var relay = _serviceProvider.GetService<IRelay>();
+            if (relay == null)
+            {
+                return DiagnosticResponse<BenchmarkResult>.Error("IRelay service not available");
+            }
+
+            // Run the benchmark
+            var benchmarkResult = await RunBenchmarkInternal(relay, requestInstance, requestType, request.Iterations);
+            
+            return DiagnosticResponse<BenchmarkResult>.Success(benchmarkResult);
         }
         catch (Exception ex)
         {
-            var result = DiagnosticResponse<BenchmarkResult>.Error("Failed to run benchmark", ex);
-            return Task.FromResult(result);
+            return DiagnosticResponse<BenchmarkResult>.Error("Failed to run benchmark", ex);
         }
+    }
+
+    private Type? FindRequestType(string requestTypeName)
+    {
+        // Try to find the type in all loaded assemblies
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        
+        foreach (var assembly in assemblies)
+        {
+            try
+            {
+                var types = assembly.GetTypes();
+                var requestType = types.FirstOrDefault(t => 
+                    t.Name.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) ||
+                    t.FullName?.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) == true);
+
+                if (requestType != null)
+                {
+                    // Verify it implements IRequest
+                    var isRequest = requestType.GetInterfaces().Any(i => 
+                        i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>) ||
+                        i == typeof(IRequest));
+
+                    if (isRequest)
+                    {
+                        return requestType;
+                    }
+                }
+            }
+            catch
+            {
+                // Skip assemblies that can't be loaded
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    private object? CreateRequestInstance(Type requestType, string? requestData)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(requestData))
+            {
+                // Try to deserialize from JSON
+                var instance = JsonSerializer.Deserialize(requestData, requestType, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return instance;
+            }
+
+            // Try to create a default instance
+            return Activator.CreateInstance(requestType);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<BenchmarkResult> RunBenchmarkInternal(IRelay relay, object request, Type requestType, int iterations)
+    {
+        var results = new List<TimeSpan>();
+        var startTime = DateTimeOffset.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Get initial memory
+        var initialMemory = GC.GetTotalMemory(forceFullCollection: true);
+
+        // Determine handler type by checking what interface the request implements
+        var requestInterfaces = requestType.GetInterfaces();
+        var responseType = requestInterfaces
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>))
+            ?.GetGenericArguments()[0];
+
+        var hasResponse = responseType != null;
+        var handlerTypeName = "Unknown";
+
+        // Warm-up iteration
+        try
+        {
+            if (hasResponse)
+            {
+                var sendMethod = typeof(IRelay).GetMethod(nameof(IRelay.SendAsync), new[] { requestType, typeof(CancellationToken) });
+                if (sendMethod != null)
+                {
+                    var genericMethod = sendMethod.MakeGenericMethod(responseType!);
+                    await (dynamic)genericMethod.Invoke(relay, new[] { request, cancellationToken })!;
+                }
+            }
+            else
+            {
+                await relay.SendAsync((IRequest)request, cancellationToken);
+            }
+        }
+        catch
+        {
+            // Ignore warm-up errors
+        }
+
+        // Run benchmark iterations
+        for (int i = 0; i < iterations; i++)
+        {
+            var iterationStart = DateTimeOffset.UtcNow;
+
+            try
+            {
+                if (hasResponse)
+                {
+                    var sendMethod = typeof(IRelay).GetMethod(nameof(IRelay.SendAsync), new[] { requestType, typeof(CancellationToken) });
+                    if (sendMethod != null)
+                    {
+                        var genericMethod = sendMethod.MakeGenericMethod(responseType!);
+                        await (dynamic)genericMethod.Invoke(relay, new[] { request, cancellationToken })!;
+                    }
+                }
+                else
+                {
+                    await relay.SendAsync((IRequest)request, cancellationToken);
+                }
+            }
+            catch
+            {
+                // Continue even if some iterations fail
+            }
+
+            var iterationEnd = DateTimeOffset.UtcNow;
+            results.Add(iterationEnd - iterationStart);
+        }
+
+        // Get final memory
+        var finalMemory = GC.GetTotalMemory(forceFullCollection: false);
+        var totalAllocated = Math.Max(0, finalMemory - initialMemory);
+
+        // Calculate statistics
+        var totalTime = results.Aggregate(TimeSpan.Zero, (sum, time) => sum + time);
+        var minTime = results.Min();
+        var maxTime = results.Max();
+
+        // Calculate standard deviation
+        var avgTicks = totalTime.Ticks / iterations;
+        var variance = results.Select(t => Math.Pow(t.Ticks - avgTicks, 2)).Average();
+        var stdDev = TimeSpan.FromTicks((long)Math.Sqrt(variance));
+
+        // Try to get handler type from metrics
+        var metrics = _diagnostics.GetHandlerMetrics()
+            .FirstOrDefault(m => m.RequestType.Equals(requestType.Name, StringComparison.OrdinalIgnoreCase));
+        
+        if (metrics?.HandlerType != null)
+        {
+            handlerTypeName = metrics.HandlerType.Name;
+        }
+
+        return new BenchmarkResult
+        {
+            RequestType = requestType.Name,
+            HandlerType = handlerTypeName,
+            Iterations = iterations,
+            TotalTime = totalTime,
+            MinTime = minTime,
+            MaxTime = maxTime,
+            StandardDeviation = stdDev,
+            TotalAllocatedBytes = totalAllocated,
+            Timestamp = startTime,
+            Metrics = new Dictionary<string, object>
+            {
+                { "SuccessfulIterations", results.Count },
+                { "FailedIterations", iterations - results.Count },
+                { "RequestsPerSecond", iterations / totalTime.TotalSeconds }
+            }
+        };
     }
 }
 

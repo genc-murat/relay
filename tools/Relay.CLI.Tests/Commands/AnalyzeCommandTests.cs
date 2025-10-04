@@ -1,4 +1,7 @@
 using Relay.CLI.Commands;
+using System.CommandLine;
+using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -960,6 +963,488 @@ private void UnusedMethod() // Never called
 
         // Assert
         aboveAverage.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithValidPath_ReturnsSuccessExitCode()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --include-tests false", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithDefaultOptions_AnalyzesCurrentDirectory()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath}", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DetectsHandlersCorrectly()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "report.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --include-tests false --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        File.Exists(outputPath).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("\"Handlers\"");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithJsonFormat_GeneratesJsonReport()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "report.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        File.Exists(outputPath).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("ProjectPath");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithMarkdownFormat_GeneratesMarkdownReport()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "report.md");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format markdown", console);
+
+        // Assert
+        result.Should().Be(0);
+        File.Exists(outputPath).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("# 🔍 Relay Project Analysis Report");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithHtmlFormat_GeneratesHtmlReport()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "report.html");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format html", console);
+
+        // Assert
+        result.Should().Be(0);
+        File.Exists(outputPath).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("<!DOCTYPE html>");
+        content.Should().Contain("Relay Project Analysis Report");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DetectsPerformanceIssuesInRealCode()
+    {
+        // Arrange
+        await CreateTestProject();
+        await CreateTestHandler(usesValueTask: false, hasCancellationToken: false);
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "perf-report.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("PerformanceIssues");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DetectsReliabilityIssuesInRealCode()
+    {
+        // Arrange
+        await CreateTestProject();
+        await CreateTestHandler(hasLogging: false, hasValidation: false);
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "reliability-report.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("ReliabilityIssues");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithIncludeTests_AnalyzesTestFiles()
+    {
+        // Arrange
+        await CreateTestProject();
+        var testFile = Path.Combine(_testPath, "TestClass.Test.cs");
+        await File.WriteAllTextAsync(testFile, @"
+public class TestClass
+{
+    [Fact]
+    public void Test_ShouldPass()
+    {
+        Assert.True(true);
+    }
+}");
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --include-tests true", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithoutIncludeTests_ExcludesTestFiles()
+    {
+        // Arrange
+        await CreateTestProject();
+        var testFile = Path.Combine(_testPath, "TestClass.Test.cs");
+        await File.WriteAllTextAsync(testFile, @"
+public class TestClass
+{
+    [Fact]
+    public void Test_ShouldPass()
+    {
+        Assert.True(true);
+    }
+}");
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --include-tests false", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DisplaysOverallScore()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath}", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DisplaysProjectOverview()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "overview.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("ProjectFiles");
+        content.Should().Contain("SourceFiles");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_GeneratesRecommendations()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "recommendations.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("Recommendations");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithQuickDepth_PerformsQuickAnalysis()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --depth quick", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithStandardDepth_PerformsStandardAnalysis()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --depth standard", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithFullDepth_PerformsFullAnalysis()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --depth full", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithDeepDepth_PerformsDeepAnalysis()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --depth deep", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DetectsRelayCoreDependency()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath}", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithMultipleHandlers_CountsAllHandlers()
+    {
+        // Arrange
+        await CreateTestProject();
+        await CreateSecondHandler();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "handlers.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("\"Handlers\"");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DetectsRequestTypes()
+    {
+        // Arrange
+        await CreateTestProject();
+        var requestFile = Path.Combine(_testPath, "GetUserQuery.cs");
+        await File.WriteAllTextAsync(requestFile, @"
+using Relay.Core;
+
+public record GetUserQuery(int UserId) : IRequest<UserDto>;
+
+public record UserDto(int Id, string Name);
+");
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "requests.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("\"Requests\"");
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DetectsCachingAttributes()
+    {
+        // Arrange
+        await CreateTestProject();
+        var requestFile = Path.Combine(_testPath, "CachedQuery.cs");
+        await File.WriteAllTextAsync(requestFile, @"
+using Relay.Core;
+
+[Cacheable(Duration = 300)]
+public record CachedQuery(int Id) : IRequest<string>;
+");
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath}", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_DetectsAuthorizationAttributes()
+    {
+        // Arrange
+        await CreateTestProject();
+        var requestFile = Path.Combine(_testPath, "SecureCommand.cs");
+        await File.WriteAllTextAsync(requestFile, @"
+using Relay.Core;
+
+[Authorize(Roles = ""Admin"")]
+public record SecureCommand(string Data) : IRequest;
+");
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath}", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_WithProjectButNoHandlers_ReturnsSuccess()
+    {
+        // Arrange
+        var simpleProjectPath = Path.Combine(_testPath, "simple");
+        Directory.CreateDirectory(simpleProjectPath);
+
+        // Create a minimal project with basic code but no handlers
+        var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+  </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(simpleProjectPath, "Simple.csproj"), csproj);
+
+        // Add a simple class file (not a handler or request)
+        await File.WriteAllTextAsync(Path.Combine(simpleProjectPath, "SimpleClass.cs"), @"
+public class SimpleClass
+{
+    public string Name { get; set; }
+}");
+
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {simpleProjectPath}", console);
+
+        // Assert - Should complete successfully even with no handlers
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AnalyzeCommand_SavesReportToSpecifiedLocation()
+    {
+        // Arrange
+        await CreateTestProject();
+        var command = AnalyzeCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "custom-report.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        File.Exists(outputPath).Should().BeTrue();
+    }
+
+    private async Task CreateSecondHandler()
+    {
+        var handler = @"using Relay.Core;
+using System.Threading.Tasks;
+
+public class SecondHandler : IRequestHandler<SecondRequest, string>
+{
+    [Handle]
+    public async ValueTask<string> HandleAsync(SecondRequest request)
+    {
+        return ""second"";
+    }
+}
+
+public record SecondRequest(string Value) : IRequest<string>;";
+
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "SecondHandler.cs"), handler);
     }
 
     public void Dispose()

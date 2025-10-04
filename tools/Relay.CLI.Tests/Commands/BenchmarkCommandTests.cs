@@ -1,4 +1,7 @@
 using Relay.CLI.Commands;
+using System.CommandLine;
+using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 using System.Diagnostics;
 
 namespace Relay.CLI.Tests.Commands;
@@ -776,6 +779,857 @@ public class BenchmarkCommandTests : IDisposable
 
         // Assert
         cv.Should().BeLessThan(10); // Low variance is good
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithDefaultOptions_RunsSuccessfully()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync("--iterations 100 --warmup 10", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithJsonOutput_GeneratesJsonReport()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "benchmark.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        File.Exists(outputPath).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("TestConfiguration");
+        content.Should().Contain("RelayResults");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithHtmlOutput_GeneratesHtmlReport()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "benchmark.html");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format html", console);
+
+        // Assert
+        result.Should().Be(0);
+        File.Exists(outputPath).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("<!DOCTYPE html>");
+        content.Should().Contain("Relay Performance Benchmark Results");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithCsvOutput_GeneratesCsvReport()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "benchmark.csv");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format csv", console);
+
+        // Assert
+        result.Should().Be(0);
+        File.Exists(outputPath).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("Implementation,Average Time");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithRelayTestsOnly_RunsRelayBenchmarks()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "relay-only.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --tests relay --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("RelayResults");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithComparisonTests_RunsComparisonBenchmarks()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "comparison.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --tests comparison --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("ComparisonResults");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithAllTests_RunsAllBenchmarks()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "all-tests.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --tests all --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("RelayResults");
+        content.Should().Contain("ComparisonResults");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithCustomIterations_UsesSpecifiedIterations()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "custom-iterations.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 500 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("\"Iterations\": 500");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithCustomWarmup_UsesSpecifiedWarmup()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "custom-warmup.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --warmup 50 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("\"WarmupIterations\": 50");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithMultipleThreads_RunsConcurrentBenchmarks()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "multi-thread.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 1000 --threads 4 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("\"Threads\": 4");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_OutputContainsTestConfiguration()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "config-test.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("MachineName");
+        content.Should().Contain("ProcessorCount");
+        content.Should().Contain("RuntimeVersion");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_GeneratesPerformanceMetrics()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "metrics.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("AverageTime");
+        content.Should().Contain("RequestsPerSecond");
+        content.Should().Contain("MemoryAllocated");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_HtmlReportContainsChart()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "chart-test.html");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format html", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("chart.js");
+        content.Should().Contain("performanceChart");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_ComparesMultipleRelayImplementations()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "relay-compare.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --tests relay --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("Standard");
+        content.Should().Contain("UltraFast");
+        content.Should().Contain("SIMD");
+        content.Should().Contain("AOT");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_IncludesMediatRComparison()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "mediatr-compare.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --tests all --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("MediatR");
+        content.Should().Contain("DirectCall");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithSmallIterations_CompletesQuickly()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var stopwatch = Stopwatch.StartNew();
+
+        // Act
+        var result = await command.InvokeAsync("--iterations 10 --warmup 5", console);
+        stopwatch.Stop();
+
+        // Assert
+        result.Should().Be(0);
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(5000); // Should complete in less than 5 seconds
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_IncludesTimestamp()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "timestamp-test.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("Timestamp");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_MeasuresTotalTime()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "total-time.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("TotalTime");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_DefaultsToConsoleFormat()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync("--iterations 100", console);
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_WithSingleThread_RunsSynchronously()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "single-thread.json");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --threads 1 --output {outputPath} --format json", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        content.Should().Contain("\"Threads\": 1");
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_CsvFormatContainsHeaders()
+    {
+        // Arrange
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "headers-test.csv");
+
+        // Act
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format csv", console);
+
+        // Assert
+        result.Should().Be(0);
+        var content = await File.ReadAllTextAsync(outputPath);
+        var firstLine = content.Split('\n')[0];
+        firstLine.Should().Contain("Implementation");
+        firstLine.Should().Contain("Average Time");
+        firstLine.Should().Contain("Memory");
+    }
+
+    // BenchmarkResult class tests (from BenchmarkCommand.cs)
+    [Fact]
+    public void BenchmarkResult_InitializesWithDefaultValues()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult();
+
+        // Assert
+        result.Name.Should().Be("");
+        result.TotalTime.Should().Be(TimeSpan.Zero);
+        result.Iterations.Should().Be(0);
+        result.AverageTime.Should().Be(0);
+        result.RequestsPerSecond.Should().Be(0);
+        result.MemoryAllocated.Should().Be(0);
+        result.Threads.Should().Be(0);
+    }
+
+    [Fact]
+    public void BenchmarkResult_StoresCorrectName()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "UltraFast Relay"
+        };
+
+        // Assert
+        result.Name.Should().Be("UltraFast Relay");
+    }
+
+    [Fact]
+    public void BenchmarkResult_StoresCorrectTotalTime()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            TotalTime = TimeSpan.FromMilliseconds(500)
+        };
+
+        // Assert
+        result.TotalTime.Should().Be(TimeSpan.FromMilliseconds(500));
+        result.TotalTime.TotalMilliseconds.Should().Be(500);
+    }
+
+    [Fact]
+    public void BenchmarkResult_StoresCorrectIterations()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Iterations = 100000
+        };
+
+        // Assert
+        result.Iterations.Should().Be(100000);
+    }
+
+    [Fact]
+    public void BenchmarkResult_StoresCorrectAverageTime()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            AverageTime = 3.5
+        };
+
+        // Assert
+        result.AverageTime.Should().Be(3.5);
+    }
+
+    [Fact]
+    public void BenchmarkResult_StoresCorrectRequestsPerSecond()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            RequestsPerSecond = 333333.33
+        };
+
+        // Assert
+        result.RequestsPerSecond.Should().BeApproximately(333333.33, 0.01);
+    }
+
+    [Fact]
+    public void BenchmarkResult_StoresCorrectMemoryAllocated()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            MemoryAllocated = 1024
+        };
+
+        // Assert
+        result.MemoryAllocated.Should().Be(1024);
+    }
+
+    [Fact]
+    public void BenchmarkResult_StoresCorrectThreadCount()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Threads = 4
+        };
+
+        // Assert
+        result.Threads.Should().Be(4);
+    }
+
+    [Fact]
+    public void BenchmarkResult_AllowsZeroAllocationResult()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Zero Allocation Handler",
+            MemoryAllocated = 0
+        };
+
+        // Assert
+        result.MemoryAllocated.Should().Be(0);
+        result.Name.Should().Contain("Zero Allocation");
+    }
+
+    [Fact]
+    public void BenchmarkResult_CalculatesCorrectAverageFromTotalTime()
+    {
+        // Arrange
+        var totalTime = TimeSpan.FromMilliseconds(1000);
+        var iterations = 100000;
+
+        // Act
+        var averageTime = totalTime.TotalMicroseconds / iterations;
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            TotalTime = totalTime,
+            Iterations = iterations,
+            AverageTime = averageTime
+        };
+
+        // Assert
+        result.AverageTime.Should().Be(10); // 1000ms / 100000 = 10μs
+    }
+
+    [Fact]
+    public void BenchmarkResult_CalculatesCorrectRequestsPerSecond()
+    {
+        // Arrange
+        var totalTime = TimeSpan.FromSeconds(1);
+        var iterations = 333333;
+
+        // Act
+        var rps = iterations / totalTime.TotalSeconds;
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Iterations = iterations,
+            TotalTime = totalTime,
+            RequestsPerSecond = rps
+        };
+
+        // Assert
+        result.RequestsPerSecond.Should().Be(333333);
+    }
+
+    [Fact]
+    public void BenchmarkResult_HandlesVeryFastExecutionTime()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Ultra Fast",
+            TotalTime = TimeSpan.FromTicks(1),
+            Iterations = 1000000,
+            AverageTime = 0.0001 // Very small value
+        };
+
+        // Assert
+        result.TotalTime.Ticks.Should().Be(1);
+        result.AverageTime.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void BenchmarkResult_HandlesLargeNumberOfIterations()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Iterations = int.MaxValue
+        };
+
+        // Assert
+        result.Iterations.Should().Be(int.MaxValue);
+    }
+
+    [Fact]
+    public void BenchmarkResult_HandlesLargeMemoryAllocation()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            MemoryAllocated = long.MaxValue
+        };
+
+        // Assert
+        result.MemoryAllocated.Should().Be(long.MaxValue);
+    }
+
+    [Fact]
+    public void BenchmarkResult_ComparesWithOtherResults()
+    {
+        // Arrange
+        var fast = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Fast",
+            AverageTime = 1.0
+        };
+
+        var slow = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Slow",
+            AverageTime = 10.0
+        };
+
+        // Act
+        var speedup = slow.AverageTime / fast.AverageTime;
+
+        // Assert
+        speedup.Should().Be(10);
+        fast.AverageTime.Should().BeLessThan(slow.AverageTime);
+    }
+
+    [Fact]
+    public void BenchmarkResult_SupportsMultiThreadedResults()
+    {
+        // Arrange & Act
+        var singleThreaded = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Single Thread",
+            Threads = 1,
+            RequestsPerSecond = 100000
+        };
+
+        var multiThreaded = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Multi Thread",
+            Threads = 4,
+            RequestsPerSecond = 350000
+        };
+
+        // Assert
+        multiThreaded.RequestsPerSecond.Should().BeGreaterThan(singleThreaded.RequestsPerSecond);
+        multiThreaded.Threads.Should().Be(4);
+        singleThreaded.Threads.Should().Be(1);
+    }
+
+    [Fact]
+    public void BenchmarkResult_CanCalculateMemoryPerIteration()
+    {
+        // Arrange
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            MemoryAllocated = 10000,
+            Iterations = 100
+        };
+
+        // Act
+        var memoryPerIteration = result.MemoryAllocated / (double)result.Iterations;
+
+        // Assert
+        memoryPerIteration.Should().Be(100); // 10000 / 100 = 100 bytes per iteration
+    }
+
+    [Fact]
+    public void BenchmarkResult_CanCalculateThroughput()
+    {
+        // Arrange
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            RequestsPerSecond = 1000000
+        };
+
+        // Act
+        var throughputPerMs = result.RequestsPerSecond / 1000;
+
+        // Assert
+        throughputPerMs.Should().Be(1000); // 1000 requests per millisecond
+    }
+
+    [Fact]
+    public void BenchmarkResult_FormatsNameCorrectly()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Standard Relay"
+        };
+
+        // Assert
+        result.Name.Should().StartWith("Standard");
+        result.Name.Should().EndWith("Relay");
+        result.Name.Should().HaveLength(14);
+    }
+
+    [Fact]
+    public void BenchmarkResult_AllPropertiesCanBeSet()
+    {
+        // Arrange & Act
+        var result = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Complete Test",
+            TotalTime = TimeSpan.FromMilliseconds(1000),
+            Iterations = 100000,
+            AverageTime = 10.0,
+            RequestsPerSecond = 100000,
+            MemoryAllocated = 2048,
+            Threads = 2
+        };
+
+        // Assert
+        result.Name.Should().Be("Complete Test");
+        result.TotalTime.Should().Be(TimeSpan.FromMilliseconds(1000));
+        result.Iterations.Should().Be(100000);
+        result.AverageTime.Should().Be(10.0);
+        result.RequestsPerSecond.Should().Be(100000);
+        result.MemoryAllocated.Should().Be(2048);
+        result.Threads.Should().Be(2);
+    }
+
+    // TestConfiguration class tests
+    [Fact]
+    public void TestConfiguration_InitializesWithDefaultValues()
+    {
+        // Arrange & Act
+        var config = new Relay.CLI.Commands.TestConfiguration();
+
+        // Assert
+        config.Iterations.Should().Be(0);
+        config.WarmupIterations.Should().Be(0);
+        config.Threads.Should().Be(0);
+        config.Timestamp.Should().Be(default(DateTime));
+        config.MachineName.Should().Be("");
+        config.ProcessorCount.Should().Be(0);
+        config.RuntimeVersion.Should().Be("");
+    }
+
+    [Fact]
+    public void TestConfiguration_StoresAllProperties()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        var config = new Relay.CLI.Commands.TestConfiguration
+        {
+            Iterations = 100000,
+            WarmupIterations = 1000,
+            Threads = 4,
+            Timestamp = timestamp,
+            MachineName = "TEST-MACHINE",
+            ProcessorCount = 8,
+            RuntimeVersion = "8.0.0"
+        };
+
+        // Assert
+        config.Iterations.Should().Be(100000);
+        config.WarmupIterations.Should().Be(1000);
+        config.Threads.Should().Be(4);
+        config.Timestamp.Should().Be(timestamp);
+        config.MachineName.Should().Be("TEST-MACHINE");
+        config.ProcessorCount.Should().Be(8);
+        config.RuntimeVersion.Should().Be("8.0.0");
+    }
+
+    // BenchmarkResults class tests
+    [Fact]
+    public void BenchmarkResults_InitializesWithEmptyCollections()
+    {
+        // Arrange & Act
+        var results = new Relay.CLI.Commands.BenchmarkResults();
+
+        // Assert
+        results.TestConfiguration.Should().NotBeNull();
+        results.RelayResults.Should().NotBeNull();
+        results.RelayResults.Should().BeEmpty();
+        results.ComparisonResults.Should().NotBeNull();
+        results.ComparisonResults.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void BenchmarkResults_CanAddRelayResults()
+    {
+        // Arrange
+        var results = new Relay.CLI.Commands.BenchmarkResults();
+        var relayResult = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "Standard Relay",
+            AverageTime = 3.0
+        };
+
+        // Act
+        results.RelayResults.Add("Standard", relayResult);
+
+        // Assert
+        results.RelayResults.Should().HaveCount(1);
+        results.RelayResults["Standard"].Should().Be(relayResult);
+    }
+
+    [Fact]
+    public void BenchmarkResults_CanAddComparisonResults()
+    {
+        // Arrange
+        var results = new Relay.CLI.Commands.BenchmarkResults();
+        var mediatrResult = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "MediatR",
+            AverageTime = 9.0
+        };
+
+        // Act
+        results.ComparisonResults.Add("MediatR", mediatrResult);
+
+        // Assert
+        results.ComparisonResults.Should().HaveCount(1);
+        results.ComparisonResults["MediatR"].Should().Be(mediatrResult);
+    }
+
+    [Fact]
+    public void BenchmarkResults_CanStoreMultipleResults()
+    {
+        // Arrange
+        var results = new Relay.CLI.Commands.BenchmarkResults();
+
+        // Act
+        results.RelayResults.Add("Standard", new Relay.CLI.Commands.BenchmarkResult { Name = "Standard" });
+        results.RelayResults.Add("UltraFast", new Relay.CLI.Commands.BenchmarkResult { Name = "UltraFast" });
+        results.RelayResults.Add("SIMD", new Relay.CLI.Commands.BenchmarkResult { Name = "SIMD" });
+        results.RelayResults.Add("AOT", new Relay.CLI.Commands.BenchmarkResult { Name = "AOT" });
+
+        results.ComparisonResults.Add("DirectCall", new Relay.CLI.Commands.BenchmarkResult { Name = "DirectCall" });
+        results.ComparisonResults.Add("MediatR", new Relay.CLI.Commands.BenchmarkResult { Name = "MediatR" });
+
+        // Assert
+        results.RelayResults.Should().HaveCount(4);
+        results.ComparisonResults.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void BenchmarkResults_CanRetrieveResultsByKey()
+    {
+        // Arrange
+        var results = new Relay.CLI.Commands.BenchmarkResults();
+        var ultraFast = new Relay.CLI.Commands.BenchmarkResult
+        {
+            Name = "UltraFast Relay",
+            AverageTime = 1.5
+        };
+        results.RelayResults.Add("UltraFast", ultraFast);
+
+        // Act
+        var retrieved = results.RelayResults["UltraFast"];
+
+        // Assert
+        retrieved.Should().Be(ultraFast);
+        retrieved.Name.Should().Be("UltraFast Relay");
+        retrieved.AverageTime.Should().Be(1.5);
+    }
+
+    [Fact]
+    public void BenchmarkResults_TestConfigurationIsModifiable()
+    {
+        // Arrange
+        var results = new Relay.CLI.Commands.BenchmarkResults();
+
+        // Act
+        results.TestConfiguration.Iterations = 50000;
+        results.TestConfiguration.Threads = 8;
+
+        // Assert
+        results.TestConfiguration.Iterations.Should().Be(50000);
+        results.TestConfiguration.Threads.Should().Be(8);
     }
 
     public void Dispose()

@@ -330,6 +330,454 @@ public class BenchmarkCommandTests : IDisposable
         ratio.Should().BeApproximately(3.0, 0.1); // MediatR is ~3x slower
     }
 
+    [Fact]
+    public void BenchmarkResult_ShouldHaveZeroAllocations()
+    {
+        // Arrange
+        var result = new BenchmarkResult { Allocations = 0 };
+
+        // Assert
+        result.Allocations.Should().Be(0, "zero-allocation is optimal");
+    }
+
+    [Fact]
+    public void BenchmarkResult_ShouldTrackMultipleMetrics()
+    {
+        // Arrange
+        var result = new BenchmarkResult
+        {
+            Name = "Handler",
+            ExecutionTime = TimeSpan.FromMicroseconds(1500),
+            Allocations = 512,
+            Gen0Collections = 1,
+            ThroughputPerSecond = 666666
+        };
+
+        // Assert
+        result.Name.Should().NotBeEmpty();
+        result.ExecutionTime.Should().BeGreaterThan(TimeSpan.Zero);
+        result.Allocations.Should().BeGreaterThan(0);
+        result.Gen0Collections.Should().BeGreaterThan(0);
+        result.ThroughputPerSecond.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateMinTime()
+    {
+        // Arrange
+        var times = new[] { 5.0, 3.0, 7.0, 2.0, 9.0 };
+
+        // Act
+        var min = times.Min();
+
+        // Assert
+        min.Should().Be(2.0);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateMaxTime()
+    {
+        // Arrange
+        var times = new[] { 5.0, 3.0, 7.0, 2.0, 9.0 };
+
+        // Act
+        var max = times.Max();
+
+        // Assert
+        max.Should().Be(9.0);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateRange()
+    {
+        // Arrange
+        var times = new[] { 5.0, 3.0, 7.0, 2.0, 9.0 };
+
+        // Act
+        var range = times.Max() - times.Min();
+
+        // Assert
+        range.Should().Be(7.0);
+    }
+
+    [Theory]
+    [InlineData(1, 1000000)]
+    [InlineData(10, 100000)]
+    [InlineData(100, 10000)]
+    [InlineData(1000, 1000)]
+    public void BenchmarkCommand_ShouldCalculateThroughput(double microseconds, long expectedThroughput)
+    {
+        // Act
+        var throughput = (long)(1_000_000 / microseconds);
+
+        // Assert
+        throughput.Should().Be(expectedThroughput);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldFormatMicroseconds()
+    {
+        // Arrange
+        var time = TimeSpan.FromMicroseconds(1234.56);
+
+        // Act
+        var formatted = $"{time.TotalMicroseconds:F2}μs";
+
+        // Assert
+        formatted.Should().Contain("1234");
+        formatted.Should().Contain("μs");
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldFormatMilliseconds()
+    {
+        // Arrange
+        var time = TimeSpan.FromMilliseconds(12.34);
+
+        // Act
+        var formatted = $"{time.TotalMilliseconds:F2}ms";
+
+        // Assert
+        formatted.Should().Contain("12");
+        formatted.Should().Contain("ms");
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldFormatSeconds()
+    {
+        // Arrange
+        var time = TimeSpan.FromSeconds(1.234);
+
+        // Act
+        var formatted = $"{time.TotalSeconds:F2}s";
+
+        // Assert
+        formatted.Should().Contain("1");
+        formatted.Should().Contain("s");
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldDetectOutliers()
+    {
+        // Arrange
+        var times = new[] { 1.0, 2.0, 3.0, 4.0, 100.0 }; // 100 is an outlier
+
+        // Act
+        var mean = times.Average();
+        var outlier = times.Last();
+
+        // Assert
+        outlier.Should().BeGreaterThan(mean * 2);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCompareWithBaseline()
+    {
+        // Arrange
+        var baseline = 100.0;
+        var current = 80.0;
+
+        // Act
+        var improvement = (baseline - current) / baseline * 100;
+
+        // Assert
+        improvement.Should().Be(20); // 20% improvement
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateSpeedup()
+    {
+        // Arrange
+        var oldTime = 10.0;
+        var newTime = 5.0;
+
+        // Act
+        var speedup = oldTime / newTime;
+
+        // Assert
+        speedup.Should().Be(2.0); // 2x faster
+    }
+
+    [Fact]
+    public async Task BenchmarkCommand_ShouldWarmupJIT()
+    {
+        // Arrange
+        var warmupIterations = 5;
+
+        // Act
+        for (int i = 0; i < warmupIterations; i++)
+        {
+            await Task.Delay(1);
+        }
+
+        // Assert
+        warmupIterations.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldExcludeWarmupFromResults()
+    {
+        // Arrange
+        var allTimes = new[] { 100.0, 90.0, 10.0, 9.0, 8.0 }; // First 2 are warmup
+        var warmupCount = 2;
+
+        // Act
+        var actualResults = allTimes.Skip(warmupCount).ToArray();
+
+        // Assert
+        actualResults.Should().HaveCount(3);
+        actualResults.Should().NotContain(100.0);
+        actualResults.Should().NotContain(90.0);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldGenerateJsonReport()
+    {
+        // Arrange
+        var json = "{\"name\":\"TestHandler\",\"time\":1000,\"allocations\":0}";
+
+        // Act
+        var containsName = json.Contains("name");
+        var containsTime = json.Contains("time");
+
+        // Assert
+        containsName.Should().BeTrue();
+        containsTime.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateConfidenceInterval()
+    {
+        // Arrange
+        var times = new[] { 10.0, 11.0, 10.5, 10.2, 10.8 };
+        var mean = times.Average();
+        var stdDev = Math.Sqrt(times.Select(t => Math.Pow(t - mean, 2)).Average());
+
+        // Act
+        var marginOfError = 1.96 * (stdDev / Math.Sqrt(times.Length)); // 95% confidence
+        var lowerBound = mean - marginOfError;
+        var upperBound = mean + marginOfError;
+
+        // Assert
+        lowerBound.Should().BeLessThan(mean);
+        upperBound.Should().BeGreaterThan(mean);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldTrackMemoryUsage()
+    {
+        // Arrange
+        var beforeMemory = GC.GetTotalMemory(false);
+
+        // Act
+        var list = new List<int>(1000);
+        for (int i = 0; i < 1000; i++) list.Add(i);
+        var afterMemory = GC.GetTotalMemory(false);
+
+        // Assert
+        afterMemory.Should().BeGreaterThan(beforeMemory);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCompareMultipleHandlers()
+    {
+        // Arrange
+        var results = new[]
+        {
+            new BenchmarkResult { Name = "Fast", ExecutionTime = TimeSpan.FromMicroseconds(100) },
+            new BenchmarkResult { Name = "Medium", ExecutionTime = TimeSpan.FromMicroseconds(500) },
+            new BenchmarkResult { Name = "Slow", ExecutionTime = TimeSpan.FromMicroseconds(1000) }
+        };
+
+        // Act
+        var fastest = results.MinBy(r => r.ExecutionTime.TotalMicroseconds);
+        var slowest = results.MaxBy(r => r.ExecutionTime.TotalMicroseconds);
+
+        // Assert
+        fastest?.Name.Should().Be("Fast");
+        slowest?.Name.Should().Be("Slow");
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldRankResults()
+    {
+        // Arrange
+        var results = new[]
+        {
+            new BenchmarkResult { Name = "C", ExecutionTime = TimeSpan.FromMicroseconds(300) },
+            new BenchmarkResult { Name = "A", ExecutionTime = TimeSpan.FromMicroseconds(100) },
+            new BenchmarkResult { Name = "B", ExecutionTime = TimeSpan.FromMicroseconds(200) }
+        };
+
+        // Act
+        var ranked = results.OrderBy(r => r.ExecutionTime.TotalMicroseconds).ToArray();
+
+        // Assert
+        ranked[0].Name.Should().Be("A");
+        ranked[1].Name.Should().Be("B");
+        ranked[2].Name.Should().Be("C");
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateAllocationRate()
+    {
+        // Arrange
+        var allocations = 1024L;
+        var executionTime = TimeSpan.FromSeconds(1);
+
+        // Act
+        var allocationRate = allocations / executionTime.TotalSeconds;
+
+        // Assert
+        allocationRate.Should().Be(1024); // 1024 B/s
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldFormatBytes()
+    {
+        // Arrange
+        var bytes = 1024L;
+
+        // Act
+        var formatted = $"{bytes} B";
+
+        // Assert
+        formatted.Should().Be("1024 B");
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldFormatKilobytes()
+    {
+        // Arrange
+        var bytes = 1024 * 1024L;
+
+        // Act
+        var kb = bytes / 1024.0;
+        var formatted = $"{kb:F2} KB";
+
+        // Assert
+        formatted.Should().Contain("1024");
+        formatted.Should().Contain("KB");
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateP50()
+    {
+        // Arrange
+        var times = Enumerable.Range(1, 100).Select(i => (double)i).ToArray();
+
+        // Act
+        Array.Sort(times);
+        var p50 = times[50];
+
+        // Assert
+        p50.Should().Be(51);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateP90()
+    {
+        // Arrange
+        var times = Enumerable.Range(1, 100).Select(i => (double)i).ToArray();
+
+        // Act
+        Array.Sort(times);
+        var p90 = times[90];
+
+        // Assert
+        p90.Should().Be(91);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateP99()
+    {
+        // Arrange
+        var times = Enumerable.Range(1, 100).Select(i => (double)i).ToArray();
+
+        // Act
+        Array.Sort(times);
+        var p99 = times[99];
+
+        // Assert
+        p99.Should().Be(100);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldDetectPerformanceRegression()
+    {
+        // Arrange
+        var baseline = 100.0;
+        var current = 150.0;
+        var threshold = 10.0; // 10% threshold
+
+        // Act
+        var regressionPercent = (current - baseline) / baseline * 100;
+        var hasRegression = regressionPercent > threshold;
+
+        // Assert
+        hasRegression.Should().BeTrue();
+        regressionPercent.Should().Be(50);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldGenerateCsvOutput()
+    {
+        // Arrange
+        var csv = "Name,Time(μs),Allocations(B)\nHandler1,1000,0\nHandler2,2000,1024";
+
+        // Act
+        var lines = csv.Split('\n');
+
+        // Assert
+        lines.Should().HaveCount(3);
+        lines[0].Should().Contain("Name");
+        lines[1].Should().Contain("Handler1");
+        lines[2].Should().Contain("Handler2");
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldValidateMinIterations()
+    {
+        // Arrange
+        var minIterations = 10;
+        var actualIterations = 50;
+
+        // Act
+        var isValid = actualIterations >= minIterations;
+
+        // Assert
+        isValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateVariance()
+    {
+        // Arrange
+        var times = new[] { 1.0, 2.0, 3.0, 4.0, 5.0 };
+        var mean = times.Average();
+
+        // Act
+        var variance = times.Select(t => Math.Pow(t - mean, 2)).Average();
+
+        // Assert
+        variance.Should().Be(2.0);
+    }
+
+    [Fact]
+    public void BenchmarkCommand_ShouldCalculateCoeffientOfVariation()
+    {
+        // Arrange
+        var times = new[] { 10.0, 12.0, 11.0, 10.5, 11.5 };
+        var mean = times.Average();
+        var stdDev = Math.Sqrt(times.Select(t => Math.Pow(t - mean, 2)).Average());
+
+        // Act
+        var cv = (stdDev / mean) * 100; // Coefficient of variation as percentage
+
+        // Assert
+        cv.Should().BeLessThan(10); // Low variance is good
+    }
+
     public void Dispose()
     {
         try

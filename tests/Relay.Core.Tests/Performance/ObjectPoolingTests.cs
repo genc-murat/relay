@@ -202,4 +202,406 @@ public class ObjectPoolingTests
         // Assert
         Assert.False(canReturn);
     }
+
+    [Fact]
+    public void TelemetryContextPool_Should_HandleMultipleGets()
+    {
+        // Arrange & Act
+        var context1 = TelemetryContextPool.Get();
+        var context2 = TelemetryContextPool.Get();
+        var context3 = TelemetryContextPool.Get();
+
+        // Assert
+        Assert.NotSame(context1, context2);
+        Assert.NotSame(context2, context3);
+        Assert.NotSame(context1, context3);
+
+        // Cleanup
+        TelemetryContextPool.Return(context1);
+        TelemetryContextPool.Return(context2);
+        TelemetryContextPool.Return(context3);
+    }
+
+    [Fact]
+    public void TelemetryContextPool_Should_GenerateUniqueRequestIds()
+    {
+        // Arrange
+        var context1 = TelemetryContextPool.Get();
+        var context2 = TelemetryContextPool.Get();
+
+        // Act & Assert
+        Assert.NotEqual(context1.RequestId, context2.RequestId);
+
+        // Cleanup
+        TelemetryContextPool.Return(context1);
+        TelemetryContextPool.Return(context2);
+    }
+
+    [Fact]
+    public void TelemetryContextPool_Create_WithNullCorrelationId_Works()
+    {
+        // Arrange & Act
+        var context = TelemetryContextPool.Create(typeof(string), typeof(int), "Handler", null);
+
+        // Assert
+        Assert.Null(context.CorrelationId);
+        Assert.Equal("Handler", context.HandlerName);
+
+        // Cleanup
+        TelemetryContextPool.Return(context);
+    }
+
+    [Fact]
+    public void TelemetryContextPool_Create_WithNullHandlerName_Works()
+    {
+        // Arrange & Act
+        var context = TelemetryContextPool.Create(typeof(string), typeof(int), null, "correlation-id");
+
+        // Assert
+        Assert.Null(context.HandlerName);
+        Assert.Equal("correlation-id", context.CorrelationId);
+
+        // Cleanup
+        TelemetryContextPool.Return(context);
+    }
+
+    [Fact]
+    public void PooledBufferManager_Should_HandleMultipleSizes()
+    {
+        // Arrange
+        var bufferManager = new DefaultPooledBufferManager();
+
+        // Act
+        var buffer1 = bufferManager.RentBuffer(512);
+        var buffer2 = bufferManager.RentBuffer(1024);
+        var buffer3 = bufferManager.RentBuffer(2048);
+
+        // Assert
+        Assert.True(buffer1.Length >= 512);
+        Assert.True(buffer2.Length >= 1024);
+        Assert.True(buffer3.Length >= 2048);
+
+        // Cleanup
+        bufferManager.ReturnBuffer(buffer1);
+        bufferManager.ReturnBuffer(buffer2);
+        bufferManager.ReturnBuffer(buffer3);
+    }
+
+    [Fact]
+    public void PooledBufferManager_Should_HandleZeroSize()
+    {
+        // Arrange
+        var bufferManager = new DefaultPooledBufferManager();
+
+        // Act
+        var buffer = bufferManager.RentBuffer(0);
+
+        // Assert
+        Assert.NotNull(buffer);
+
+        // Cleanup
+        bufferManager.ReturnBuffer(buffer);
+    }
+
+    [Fact]
+    public void PooledBufferManager_RentSpan_Should_HandleLargeSize()
+    {
+        // Arrange
+        var bufferManager = new DefaultPooledBufferManager();
+
+        // Act
+        var span = bufferManager.RentSpan(10000);
+
+        // Assert
+        Assert.Equal(10000, span.Length);
+    }
+
+    [Fact]
+    public void PooledBufferManager_RentSpan_Should_HandleSmallSize()
+    {
+        // Arrange
+        var bufferManager = new DefaultPooledBufferManager();
+
+        // Act
+        var span = bufferManager.RentSpan(16);
+
+        // Assert
+        Assert.Equal(16, span.Length);
+    }
+
+    [Fact]
+    public void SpanExtensions_CopyToSpan_Should_HandleEmptySource()
+    {
+        // Arrange
+        var source = Array.Empty<byte>().AsSpan();
+        var destination = new byte[10];
+
+        // Act
+        var copied = source.CopyToSpan(destination);
+
+        // Assert
+        Assert.Equal(0, copied);
+    }
+
+    [Fact]
+    public void SpanExtensions_CopyToSpan_Should_HandleEmptyDestination()
+    {
+        // Arrange
+        var source = new byte[] { 1, 2, 3 }.AsSpan();
+        var destination = Array.Empty<byte>();
+
+        // Act
+        var copied = source.CopyToSpan(destination);
+
+        // Assert
+        Assert.Equal(0, copied);
+    }
+
+    [Fact]
+    public void SpanExtensions_CopyToSpan_Should_HandleExactSize()
+    {
+        // Arrange
+        var source = new byte[] { 1, 2, 3, 4, 5 }.AsSpan();
+        var destination = new byte[5];
+
+        // Act
+        var copied = source.CopyToSpan(destination);
+
+        // Assert
+        Assert.Equal(5, copied);
+        Assert.Equal(source.ToArray(), destination);
+    }
+
+    [Fact]
+    public void SpanExtensions_SafeSlice_Should_HandleZeroLength()
+    {
+        // Arrange
+        var span = new byte[10].AsSpan();
+
+        // Act
+        var slice = span.SafeSlice(5, 0);
+
+        // Assert
+        Assert.Equal(0, slice.Length);
+    }
+
+    [Fact]
+    public void SpanExtensions_SafeSlice_Should_HandleFullSpan()
+    {
+        // Arrange
+        var span = new byte[10].AsSpan();
+
+        // Act
+        var slice = span.SafeSlice(0, 10);
+
+        // Assert
+        Assert.Equal(10, slice.Length);
+    }
+
+    [Fact]
+    public void SpanExtensions_SafeSlice_Should_HandleStartAtEnd()
+    {
+        // Arrange
+        var span = new byte[10].AsSpan();
+
+        // Act
+        var slice = span.SafeSlice(10, 5);
+
+        // Assert
+        Assert.True(slice.IsEmpty);
+    }
+
+    [Fact]
+    public void TelemetryContextPooledObjectPolicy_Create_Should_GenerateNewContext()
+    {
+        // Arrange
+        var policy = new TelemetryContextPooledObjectPolicy();
+
+        // Act
+        var context1 = policy.Create();
+        var context2 = policy.Create();
+
+        // Assert
+        Assert.NotSame(context1, context2);
+        Assert.NotNull(context1.RequestId);
+        Assert.NotNull(context2.RequestId);
+    }
+
+    [Fact]
+    public void TelemetryContextPooledObjectPolicy_Return_Should_ClearRequestType()
+    {
+        // Arrange
+        var policy = new TelemetryContextPooledObjectPolicy();
+        var context = policy.Create();
+        context.RequestType = typeof(string);
+
+        // Act
+        policy.Return(context);
+
+        // Assert
+        Assert.Null(context.RequestType);
+    }
+
+    [Fact]
+    public void TelemetryContextPooledObjectPolicy_Return_Should_ClearResponseType()
+    {
+        // Arrange
+        var policy = new TelemetryContextPooledObjectPolicy();
+        var context = policy.Create();
+        context.ResponseType = typeof(int);
+
+        // Act
+        policy.Return(context);
+
+        // Assert
+        Assert.Null(context.ResponseType);
+    }
+
+    [Fact]
+    public async Task TelemetryContextPool_Should_BeThreadSafe()
+    {
+        // Arrange
+        var tasks = new Task[10];
+
+        // Act
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = Task.Run(() =>
+            {
+                var context = TelemetryContextPool.Get();
+                Assert.NotNull(context);
+                TelemetryContextPool.Return(context);
+            });
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert - if we reach here without deadlocks, test passes
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void PooledBufferManager_Should_ReturnBufferWithCorrectMinSize()
+    {
+        // Arrange
+        var bufferManager = new DefaultPooledBufferManager();
+
+        // Act
+        var buffer = bufferManager.RentBuffer(100);
+
+        // Assert
+        Assert.True(buffer.Length >= 100);
+
+        // Cleanup
+        bufferManager.ReturnBuffer(buffer);
+    }
+
+    [Fact]
+    public void PooledBufferManager_Should_HandleNegativeSize()
+    {
+        // Arrange
+        var bufferManager = new DefaultPooledBufferManager();
+
+        // Act & Assert - Should not throw, implementation may handle it gracefully
+        try
+        {
+            var buffer = bufferManager.RentBuffer(-1);
+            Assert.NotNull(buffer);
+            bufferManager.ReturnBuffer(buffer);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            // This is also acceptable behavior
+            Assert.True(true);
+        }
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_RecordNotificationPublish_Should_HandleZeroHandlers()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+
+        // Act & Assert - Should not throw
+        telemetryProvider.RecordNotificationPublish(typeof(string), 0, TimeSpan.FromMilliseconds(50), true);
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_RecordStreamingOperation_Should_HandleZeroItems()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+
+        // Act & Assert - Should not throw
+        telemetryProvider.RecordStreamingOperation(typeof(string), typeof(int), "StreamHandler", TimeSpan.FromMilliseconds(50), 0, true);
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_Should_HandleFailedExecution()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+
+        // Act & Assert - Should not throw
+        telemetryProvider.RecordHandlerExecution(typeof(string), typeof(int), "Handler", TimeSpan.FromMilliseconds(100), false);
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void TelemetryContext_Properties_Should_BeModifiable()
+    {
+        // Arrange
+        var context = TelemetryContextPool.Get();
+
+        // Act
+        context.Properties["key1"] = "value1";
+        context.Properties["key2"] = 42;
+
+        // Assert
+        Assert.Equal("value1", context.Properties["key1"]);
+        Assert.Equal(42, context.Properties["key2"]);
+
+        // Cleanup
+        TelemetryContextPool.Return(context);
+    }
+
+    [Fact]
+    public void SpanExtensions_SafeSlice_Should_HandleNegativeLength()
+    {
+        // Arrange
+        var span = new byte[10].AsSpan();
+
+        // Act
+        var slice = span.SafeSlice(5, -1);
+
+        // Assert
+        Assert.True(slice.IsEmpty);
+    }
+
+    [Fact]
+    public void PooledBufferManager_Multiple_Returns_Should_NotThrow()
+    {
+        // Arrange
+        var bufferManager = new DefaultPooledBufferManager();
+        var buffer = bufferManager.RentBuffer(1024);
+
+        // Act & Assert - Should not throw
+        bufferManager.ReturnBuffer(buffer);
+        bufferManager.ReturnBuffer(buffer); // Return same buffer twice
+        Assert.True(true);
+    }
 }

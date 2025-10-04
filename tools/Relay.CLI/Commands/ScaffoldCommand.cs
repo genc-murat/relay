@@ -100,8 +100,8 @@ public static class ScaffoldCommand
         var hasResponse = !string.IsNullOrEmpty(responseName);
         var baseInterface = hasResponse ? $"IRequest<{responseName}>" : "IRequest";
         
-        var validationAttributes = includeValidation ? @"
-    [Required(ErrorMessage = ""Parameter is required"")]
+        var validationAttributes = includeValidation ? 
+            $@"    [Required(ErrorMessage = ""Parameter is required"")]
     [StringLength(100, MinimumLength = 1, ErrorMessage = ""Parameter must be between 1 and 100 characters"")]" : "";
 
         var usingStatements = template switch

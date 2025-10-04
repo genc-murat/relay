@@ -151,7 +151,7 @@ public class BadHandler
         {
             antiPatterns.Add("Blocking call in async method");
         }
-        
+
         // Check if [Handle] attribute is on its own line (not in comments)
         var lines = codeWithAntiPatterns.Split('\n');
         var hasHandleAttribute = lines.Any(line => line.Trim() == "[Handle]");

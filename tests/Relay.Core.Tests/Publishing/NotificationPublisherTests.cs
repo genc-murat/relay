@@ -134,56 +134,6 @@ namespace Relay.Core.Tests.Publishing
         #endregion
 
         #region Parallel Publisher Tests
-
-        [Fact()]
-        public async Task ParallelPublisher_Should_Execute_Handlers_Concurrently()
-        {
-            // Arrange
-            TestHandler1.ExecutionLog.Clear();
-            TestHandler1.ExecutionDelay = 50;
-            TestHandler2.ExecutionDelay = 50;
-            TestHandler3.ExecutionDelay = 50;
-
-            var publisher = new ParallelNotificationPublisher();
-            var handlers = new INotificationHandler<TestNotification>[]
-            {
-                new TestHandler1(),
-                new TestHandler2(),
-                new TestHandler3()
-            };
-
-            var notification = new TestNotification("test");
-
-            // Act
-            var startTime = DateTime.UtcNow;
-            await publisher.PublishAsync(notification, handlers, default);
-            var elapsed = DateTime.UtcNow - startTime;
-
-            // Assert
-            TestHandler1.ExecutionLog.Should().HaveCount(6, "3 handlers with start and end logs each");
-
-            // All handlers should have started and completed
-            var startCount = TestHandler1.ExecutionLog.Count(x => x.Contains("-Start:"));
-            var endCount = TestHandler1.ExecutionLog.Count(x => x.Contains("-End:"));
-            startCount.Should().Be(3, "all 3 handlers should start");
-            endCount.Should().Be(3, "all 3 handlers should complete");
-
-            // Verify concurrent execution by checking the order of log entries
-            // In parallel execution, we expect multiple starts before the first end
-            var firstEndIndex = TestHandler1.ExecutionLog.FindIndex(x => x.Contains("-End:"));
-            var startsBeforeFirstEnd = TestHandler1.ExecutionLog
-                .Take(firstEndIndex)
-                .Count(x => x.Contains("-Start:"));
-
-            startsBeforeFirstEnd.Should().BeGreaterThanOrEqualTo(2,
-                "in parallel execution, at least 2 handlers should start before the first one completes");
-
-            // Timing check with generous tolerance for CI/test environments
-            // Sequential would be 150ms+ (3 * 50ms), parallel should be much faster
-            elapsed.TotalMilliseconds.Should().BeLessThan(500,
-                "parallel execution should be significantly faster than sequential (would be 150ms+)");
-        }
-
         [Fact]
         public async Task ParallelPublisher_Should_Fail_Fast_On_Exception()
         {

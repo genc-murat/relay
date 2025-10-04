@@ -71,7 +71,7 @@ namespace Relay.Core.Publishing
                     handler.GetType().Name,
                     typeof(TNotification).Name);
 
-                tasks[i] = Task.Run(async () => await handler.HandleAsync(notification, cancellationToken).ConfigureAwait(false), cancellationToken);
+                tasks[i] = Task.Run(() => handler.HandleAsync(notification, cancellationToken).AsTask(), cancellationToken);
             }
 
             await Task.WhenAll(tasks).ConfigureAwait(false);

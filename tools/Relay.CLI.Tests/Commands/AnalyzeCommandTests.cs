@@ -1,7 +1,7 @@
-using Relay.CLI.Commands;
 using System.CommandLine;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
+using Relay.CLI.Commands;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -16,7 +16,7 @@ public class AnalyzeCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task ProjectAnalysis_CalculatesCorrectScore()
+    public void ProjectAnalysis_CalculatesCorrectScore()
     {
         // Arrange
         var analysis = new ProjectAnalysis

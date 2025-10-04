@@ -61,17 +61,18 @@ namespace Relay.Core.Publishing
             }
 
             // Execute all handlers in parallel using Task.WhenAll
-            var tasks = handlersList
-                .Select(handler =>
-                {
-                    _logger?.LogTrace(
-                        "Starting handler {HandlerType} for notification {NotificationType}",
-                        handler.GetType().Name,
-                        typeof(TNotification).Name);
+            // Use Task.Run to ensure handlers start executing concurrently
+            var tasks = new Task[handlersList.Count];
+            for (int i = 0; i < handlersList.Count; i++)
+            {
+                var handler = handlersList[i];
+                _logger?.LogTrace(
+                    "Starting handler {HandlerType} for notification {NotificationType}",
+                    handler.GetType().Name,
+                    typeof(TNotification).Name);
 
-                    return handler.HandleAsync(notification, cancellationToken).AsTask();
-                })
-                .ToArray();
+                tasks[i] = Task.Run(async () => await handler.HandleAsync(notification, cancellationToken).ConfigureAwait(false), cancellationToken);
+            }
 
             await Task.WhenAll(tasks).ConfigureAwait(false);
 

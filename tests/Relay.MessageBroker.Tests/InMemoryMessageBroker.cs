@@ -45,7 +45,9 @@ public sealed class InMemoryMessageBroker : IMessageBroker
                 Reject = (requeue) => ValueTask.CompletedTask
             };
 
-            foreach (var subscription in subscriptions)
+            // Create a snapshot of subscriptions to avoid concurrent modification issues
+            var subscriptionSnapshot = subscriptions.ToList();
+            foreach (var subscription in subscriptionSnapshot)
             {
                 _ = Task.Run(async () =>
                 {
@@ -83,8 +85,8 @@ public sealed class InMemoryMessageBroker : IMessageBroker
             _ => new List<SubscriptionInfo> { subscriptionInfo },
             (_, list) =>
             {
-                list.Add(subscriptionInfo);
-                return list;
+                var newList = new List<SubscriptionInfo>(list) { subscriptionInfo };
+                return newList;
             });
 
         return ValueTask.CompletedTask;

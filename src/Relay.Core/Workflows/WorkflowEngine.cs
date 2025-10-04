@@ -194,18 +194,189 @@ namespace Relay.Core.Workflows
 
         private object CreateRequestFromStep(WorkflowStep step, Dictionary<string, object> context)
         {
-            // Create request instance from step configuration
-            // This would need proper implementation based on step.RequestType
-            throw new NotImplementedException("Request creation from step configuration needs implementation");
+            if (string.IsNullOrWhiteSpace(step.RequestType))
+                throw new ArgumentException("RequestType is required for request steps", nameof(step));
+
+            // Try to find the request type in loaded assemblies
+            var requestType = FindRequestType(step.RequestType);
+            if (requestType == null)
+            {
+                throw new InvalidOperationException($"Request type '{step.RequestType}' not found in loaded assemblies");
+            }
+
+            try
+            {
+                // Create an instance of the request
+                var request = Activator.CreateInstance(requestType);
+                if (request == null)
+                {
+                    throw new InvalidOperationException($"Failed to create instance of request type '{step.RequestType}'");
+                }
+
+                // Populate request properties from workflow context using reflection
+                var properties = requestType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                foreach (var property in properties)
+                {
+                    if (!property.CanWrite) continue;
+
+                    // Try to find matching value in context
+                    var contextKey = property.Name;
+                    if (context.TryGetValue(contextKey, out var value))
+                    {
+                        try
+                        {
+                            // Convert and set the value
+                            var convertedValue = Convert.ChangeType(value, property.PropertyType);
+                            property.SetValue(request, convertedValue);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to set property {PropertyName} on request type {RequestType}", 
+                                property.Name, step.RequestType);
+                        }
+                    }
+                }
+
+                return request;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create request from step configuration for type {RequestType}", step.RequestType);
+                throw new InvalidOperationException($"Failed to create request instance: {ex.Message}", ex);
+            }
+        }
+
+        private Type? FindRequestType(string requestTypeName)
+        {
+            // Try to find the type in all loaded assemblies
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            
+            foreach (var assembly in assemblies)
+            {
+                try
+                {
+                    var types = assembly.GetTypes();
+                    var requestType = types.FirstOrDefault(t => 
+                        t.Name.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) ||
+                        t.FullName?.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) == true);
+
+                    if (requestType != null)
+                    {
+                        // Verify it implements IRequest or IRequest<T>
+                        var isRequest = requestType.GetInterfaces().Any(i => 
+                            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>) ||
+                            i == typeof(IRequest));
+
+                        if (isRequest)
+                        {
+                            return requestType;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Skip assemblies that can't be loaded
+                    continue;
+                }
+            }
+
+            return null;
         }
 
         private bool EvaluateCondition(string? condition, Dictionary<string, object> context)
         {
-            // Simple condition evaluation - in real implementation, this could use expression trees
-            if (string.IsNullOrWhiteSpace(condition)) return true;
+            if (string.IsNullOrWhiteSpace(condition)) 
+                return true;
 
-            // For now, just return true
-            return true;
+            try
+            {
+                // Simple condition evaluation using basic operators
+                // Format: "key operator value" or "key" (checks if key exists and is truthy)
+                var trimmedCondition = condition.Trim();
+
+                // Check for comparison operators
+                var operators = new[] { "==", "!=", ">", "<", ">=", "<=", "contains", "startswith", "endswith" };
+                
+                foreach (var op in operators)
+                {
+                    var parts = trimmedCondition.Split(new[] { $" {op} " }, StringSplitOptions.None);
+                    if (parts.Length == 2)
+                    {
+                        var key = parts[0].Trim();
+                        var expectedValue = parts[1].Trim().Trim('"', '\'');
+
+                        if (!context.TryGetValue(key, out var actualValue))
+                            return false;
+
+                        return EvaluateComparison(actualValue, op, expectedValue);
+                    }
+                }
+
+                // Simple boolean check - just check if key exists and is truthy
+                if (context.TryGetValue(trimmedCondition, out var value))
+                {
+                    if (value is bool boolValue)
+                        return boolValue;
+                    
+                    if (value is string stringValue)
+                        return !string.IsNullOrWhiteSpace(stringValue);
+                    
+                    return value != null;
+                }
+
+                // Default to true if condition cannot be evaluated
+                _logger.LogWarning("Could not evaluate condition: {Condition}. Defaulting to true.", condition);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error evaluating condition: {Condition}. Defaulting to true.", condition);
+                return true;
+            }
+        }
+
+        private bool EvaluateComparison(object actualValue, string op, string expectedValue)
+        {
+            var actualString = actualValue?.ToString() ?? string.Empty;
+
+            switch (op.ToLowerInvariant())
+            {
+                case "==":
+                    return actualString.Equals(expectedValue, StringComparison.OrdinalIgnoreCase);
+                
+                case "!=":
+                    return !actualString.Equals(expectedValue, StringComparison.OrdinalIgnoreCase);
+                
+                case "contains":
+                    return actualString.Contains(expectedValue, StringComparison.OrdinalIgnoreCase);
+                
+                case "startswith":
+                    return actualString.StartsWith(expectedValue, StringComparison.OrdinalIgnoreCase);
+                
+                case "endswith":
+                    return actualString.EndsWith(expectedValue, StringComparison.OrdinalIgnoreCase);
+                
+                case ">":
+                case "<":
+                case ">=":
+                case "<=":
+                    if (double.TryParse(actualString, out var actualNum) && 
+                        double.TryParse(expectedValue, out var expectedNum))
+                    {
+                        return op switch
+                        {
+                            ">" => actualNum > expectedNum,
+                            "<" => actualNum < expectedNum,
+                            ">=" => actualNum >= expectedNum,
+                            "<=" => actualNum <= expectedNum,
+                            _ => false
+                        };
+                    }
+                    return false;
+                
+                default:
+                    return false;
+            }
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators

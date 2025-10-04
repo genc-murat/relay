@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -17,15 +18,18 @@ namespace Relay.Core.Security
         private readonly ILogger<SecurityPipelineBehavior<TRequest, TResponse>> _logger;
         private readonly ISecurityContext _securityContext;
         private readonly IRequestAuditor _auditor;
+        private readonly IRateLimiter? _rateLimiter;
 
         public SecurityPipelineBehavior(
             ILogger<SecurityPipelineBehavior<TRequest, TResponse>> logger,
             ISecurityContext securityContext,
-            IRequestAuditor auditor)
+            IRequestAuditor auditor,
+            IRateLimiter? rateLimiter = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _securityContext = securityContext ?? throw new ArgumentNullException(nameof(securityContext));
             _auditor = auditor ?? throw new ArgumentNullException(nameof(auditor));
+            _rateLimiter = rateLimiter;
         }
 
         public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
@@ -90,19 +94,112 @@ namespace Relay.Core.Security
             return ValueTask.CompletedTask;
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators
         private async ValueTask ValidateUserRateLimit(string userId, string requestType)
         {
-            // TODO: Implement per-user rate limiting
-            // This could integrate with Redis or in-memory cache
+            if (_rateLimiter == null)
+                return;
+
+            var rateLimitKey = $"{userId}:{requestType}";
+            var isAllowed = await _rateLimiter.CheckRateLimitAsync(rateLimitKey);
+
+            if (!isAllowed)
+            {
+                _logger.LogWarning("Rate limit exceeded for user {UserId} on {RequestType}", userId, requestType);
+                throw new RateLimitExceededException(userId, requestType);
+            }
         }
-#pragma warning restore CS1998
 
         private IEnumerable<string> GetRequiredPermissions(string requestType)
         {
             // Return required permissions for the request type
             // This could be configured via attributes or configuration
             return Enumerable.Empty<string>();
+        }
+    }
+
+    /// <summary>
+    /// Interface for rate limiting functionality.
+    /// </summary>
+    public interface IRateLimiter
+    {
+        /// <summary>
+        /// Checks if the request is allowed under rate limiting rules.
+        /// </summary>
+        /// <param name="key">The rate limit key (typically user:requesttype)</param>
+        /// <returns>True if allowed, false if rate limit exceeded</returns>
+        ValueTask<bool> CheckRateLimitAsync(string key);
+    }
+
+    /// <summary>
+    /// In-memory implementation of rate limiter using sliding window algorithm.
+    /// </summary>
+    public class InMemoryRateLimiter : IRateLimiter
+    {
+        private readonly ConcurrentDictionary<string, RateLimitEntry> _requestCounts = new();
+        private readonly int _maxRequestsPerWindow;
+        private readonly TimeSpan _windowDuration;
+
+        public InMemoryRateLimiter(int maxRequestsPerWindow = 100, TimeSpan? windowDuration = null)
+        {
+            _maxRequestsPerWindow = maxRequestsPerWindow;
+            _windowDuration = windowDuration ?? TimeSpan.FromMinutes(1);
+        }
+
+        public ValueTask<bool> CheckRateLimitAsync(string key)
+        {
+            var now = DateTimeOffset.UtcNow;
+            
+            var entry = _requestCounts.AddOrUpdate(
+                key,
+                _ => new RateLimitEntry 
+                { 
+                    Count = 1, 
+                    WindowStart = now 
+                },
+                (_, existing) =>
+                {
+                    // Check if window has expired
+                    if (now - existing.WindowStart >= _windowDuration)
+                    {
+                        // Reset window
+                        existing.WindowStart = now;
+                        existing.Count = 1;
+                    }
+                    else
+                    {
+                        // Increment count in current window
+                        existing.Count++;
+                    }
+                    return existing;
+                });
+
+            // Cleanup old entries periodically (simple approach)
+            if (_requestCounts.Count > 10000)
+            {
+                CleanupExpiredEntries();
+            }
+
+            return new ValueTask<bool>(entry.Count <= _maxRequestsPerWindow);
+        }
+
+        private void CleanupExpiredEntries()
+        {
+            var now = DateTimeOffset.UtcNow;
+            var expiredKeys = _requestCounts
+                .Where(kvp => now - kvp.Value.WindowStart >= _windowDuration * 2)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var key in expiredKeys)
+            {
+                _requestCounts.TryRemove(key, out _);
+            }
+        }
+
+        private class RateLimitEntry
+        {
+            public int Count { get; set; }
+            public DateTimeOffset WindowStart { get; set; }
         }
     }
 
@@ -142,6 +239,22 @@ namespace Relay.Core.Security
         {
             RequestType = requestType;
             RequiredPermissions = requiredPermissions;
+        }
+    }
+
+    /// <summary>
+    /// Exception thrown when rate limit is exceeded.
+    /// </summary>
+    public class RateLimitExceededException : Exception
+    {
+        public string UserId { get; }
+        public string RequestType { get; }
+
+        public RateLimitExceededException(string userId, string requestType)
+            : base($"Rate limit exceeded for user {userId} on request type {requestType}")
+        {
+            UserId = userId;
+            RequestType = requestType;
         }
     }
 }

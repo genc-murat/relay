@@ -55,33 +55,82 @@ public static class AnalyzeCommand
             {
                 var overallTask = ctx.AddTask("[cyan]Analyzing project[/]", maxValue: 7);
 
-                // Discover project files
-                await DiscoverProjectFiles(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                try
+                {
+                    // Discover project files
+                    await DiscoverProjectFiles(analysis, ctx, overallTask);
+                    overallTask.Increment(1);
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error discovering project files: {ex.Message}[/]");
+                }
 
-                // Analyze handlers
-                await AnalyzeHandlers(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                try
+                {
+                    // Analyze handlers
+                    await AnalyzeHandlers(analysis, ctx, overallTask);
+                    overallTask.Increment(1);
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error analyzing handlers: {ex.Message}[/]");
+                }
 
-                // Analyze requests
-                await AnalyzeRequests(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                try
+                {
+                    // Analyze requests
+                    await AnalyzeRequests(analysis, ctx, overallTask);
+                    overallTask.Increment(1);
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error analyzing requests: {ex.Message}[/]");
+                }
 
-                // Check performance opportunities
-                await CheckPerformanceOpportunities(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                try
+                {
+                    // Check performance opportunities
+                    await CheckPerformanceOpportunities(analysis, ctx, overallTask);
+                    overallTask.Increment(1);
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error checking performance opportunities: {ex.Message}[/]");
+                }
 
-                // Check reliability patterns
-                await CheckReliabilityPatterns(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                try
+                {
+                    // Check reliability patterns
+                    await CheckReliabilityPatterns(analysis, ctx, overallTask);
+                    overallTask.Increment(1);
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error checking reliability patterns: {ex.Message}[/]");
+                }
 
-                // Analyze dependencies
-                await AnalyzeDependencies(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                try
+                {
+                    // Analyze dependencies
+                    await AnalyzeDependencies(analysis, ctx, overallTask);
+                    overallTask.Increment(1);
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error analyzing dependencies: {ex.Message}[/]");
+                }
 
-                // Generate recommendations
-                await GenerateRecommendations(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                try
+                {
+                    // Generate recommendations
+                    await GenerateRecommendations(analysis, ctx, overallTask);
+                    overallTask.Increment(1);
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]Error generating recommendations: {ex.Message}[/]");
+                }
 
                 overallTask.Value = overallTask.MaxValue;
             });
@@ -92,7 +141,15 @@ public static class AnalyzeCommand
         // Save results if requested
         if (!string.IsNullOrEmpty(outputPath))
         {
-            await SaveAnalysisResults(analysis, outputPath, format);
+            try
+            {
+                await SaveAnalysisResults(analysis, outputPath, format);
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Error saving analysis results: {ex.Message}[/]");
+                throw; // Re-throw to indicate failure
+            }
         }
     }
 

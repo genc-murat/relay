@@ -36,10 +36,11 @@ public class OpenTelemetryTests : IDisposable
     [Fact]
     public void AddRelayMessageBrokerInstrumentation_ShouldConfigureTracerProvider()
     {
-        // Arrange
+        // Arrange - Create isolated TracerProvider for this test
         var services = new ServiceCollection();
         var exportedActivities = new List<Activity>();
-        var tracerProvider = Sdk.CreateTracerProviderBuilder()
+
+        using var tracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddRelayMessageBrokerInstrumentation(options =>
             {
                 options.ServiceName = "MyTestService";
@@ -59,7 +60,7 @@ public class OpenTelemetryTests : IDisposable
 
         // Assert - Take snapshot to avoid enumeration issues
         var activitiesSnapshot = exportedActivities.ToList();
-        activitiesSnapshot.Should().HaveCount(1);
+        activitiesSnapshot.Should().HaveCount(1, "only one activity should be created in this test");
 
         var resource = tracerProvider.GetResource();
         var attributes = resource.Attributes.ToList();

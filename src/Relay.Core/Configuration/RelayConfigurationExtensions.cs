@@ -18,8 +18,8 @@ namespace Relay.Core.Configuration
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayConfiguration(this IServiceCollection services)
         {
-            // Use the standard options pattern
-            services.AddOptions<RelayOptions>();
+            // Use the standard options pattern and ensure default configuration exists
+            services.AddOptions<RelayOptions>().Configure(options => { });
             services.TryAddSingleton<IConfigurationResolver, ConfigurationResolver>();
             return services;
         }

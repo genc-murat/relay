@@ -138,7 +138,7 @@ namespace Relay.Core.Tests.EventSourcing
             retrievedEvents.Last().AggregateVersion.Should().Be(2);
         }
 
-        [Fact(Skip = "Repository implementation needs fixing for ID persistence")]
+        [Fact()]
         public async Task EventSourcedRepository_ShouldSaveAndLoadAggregate()
         {
             // Arrange

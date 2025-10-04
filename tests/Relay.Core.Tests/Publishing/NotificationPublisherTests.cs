@@ -135,7 +135,7 @@ namespace Relay.Core.Tests.Publishing
 
         #region Parallel Publisher Tests
 
-        [Fact(Skip = "Flaky Test")]
+        [Fact()]
         public async Task ParallelPublisher_Should_Execute_Handlers_Concurrently()
         {
             // Arrange
@@ -160,15 +160,28 @@ namespace Relay.Core.Tests.Publishing
             var elapsed = DateTime.UtcNow - startTime;
 
             // Assert
-            TestHandler1.ExecutionLog.Should().HaveCount(6);
-            // All handlers should have started before any completed
+            TestHandler1.ExecutionLog.Should().HaveCount(6, "3 handlers with start and end logs each");
+
+            // All handlers should have started and completed
             var startCount = TestHandler1.ExecutionLog.Count(x => x.Contains("-Start:"));
             var endCount = TestHandler1.ExecutionLog.Count(x => x.Contains("-End:"));
-            startCount.Should().Be(3);
-            endCount.Should().Be(3);
+            startCount.Should().Be(3, "all 3 handlers should start");
+            endCount.Should().Be(3, "all 3 handlers should complete");
 
-            // Parallel execution should be faster than sequential (3 * 50ms = 150ms)
-            elapsed.TotalMilliseconds.Should().BeLessThan(120);
+            // Verify concurrent execution by checking the order of log entries
+            // In parallel execution, we expect multiple starts before the first end
+            var firstEndIndex = TestHandler1.ExecutionLog.FindIndex(x => x.Contains("-End:"));
+            var startsBeforeFirstEnd = TestHandler1.ExecutionLog
+                .Take(firstEndIndex)
+                .Count(x => x.Contains("-Start:"));
+
+            startsBeforeFirstEnd.Should().BeGreaterThanOrEqualTo(2,
+                "in parallel execution, at least 2 handlers should start before the first one completes");
+
+            // Timing check with generous tolerance for CI/test environments
+            // Sequential would be 150ms+ (3 * 50ms), parallel should be much faster
+            elapsed.TotalMilliseconds.Should().BeLessThan(500,
+                "parallel execution should be significantly faster than sequential (would be 150ms+)");
         }
 
         [Fact]

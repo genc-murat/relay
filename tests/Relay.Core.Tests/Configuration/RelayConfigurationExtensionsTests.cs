@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -9,18 +10,37 @@ namespace Relay.Core.Tests.Configuration
 {
     public class RelayConfigurationExtensionsTests
     {
-        [Fact(Skip = "DI registration issue - IConfigurationResolver returns null from container")]
+        [Fact()]
         public void AddRelayConfiguration_RegistersConfigurationResolver()
         {
             // Arrange
             var services = new ServiceCollection();
 
-            // Act
-            services.AddRelayConfiguration();
-            var provider = services.BuildServiceProvider();
+            // Act - Call the Relay.Core.Configuration extension method explicitly
+            var result = RelayConfigurationExtensions.AddRelayConfiguration(services);
 
-            // Assert
-            var resolver = provider.GetService<IConfigurationResolver>();
+            // Verify method chaining returns services
+            Assert.Same(services, result);
+
+            // Assert - Check service collection count
+            var count = services.Count;
+            Assert.True(count > 0, $"Service collection should not be empty, found {count} services");
+
+            // Verify service is registered
+            var resolverDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IConfigurationResolver));
+
+            if (resolverDescriptor == null)
+            {
+                // Debug: Print all registered services
+                var allServices = string.Join(", ", services.Select(s => s.ServiceType.Name));
+                Assert.Fail($"IConfigurationResolver not registered. Registered services: {allServices}");
+            }
+
+            Assert.Equal(typeof(ConfigurationResolver), resolverDescriptor.ImplementationType);
+
+            // Build provider and resolve
+            var provider = services.BuildServiceProvider();
+            var resolver = provider.GetRequiredService<IConfigurationResolver>();
             Assert.NotNull(resolver);
             Assert.IsType<ConfigurationResolver>(resolver);
         }

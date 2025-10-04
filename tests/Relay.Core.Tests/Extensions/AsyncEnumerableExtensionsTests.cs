@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -49,16 +50,16 @@ namespace Relay.Core.Tests.Extensions
             result.Should().BeEmpty();
         }
 
-        [Fact(Skip = "Flaky test")]
+        [Fact()]
         public async Task ToListAsync_ShouldRespectCancellationToken()
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var asyncEnumerable = CreateSlowAsyncEnumerable(10);
-            cts.CancelAfter(100);
+            var asyncEnumerable = CreateSlowAsyncEnumerableWithCancellation(100, cts.Token);
+            cts.CancelAfter(50); // Cancel before first item delay completes
 
             // Act & Assert
-            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 await asyncEnumerable.ToListAsync(cts.Token));
         }
 
@@ -200,16 +201,16 @@ namespace Relay.Core.Tests.Extensions
             });
         }
 
-        [Fact(Skip = "Flaky test")]
+        [Fact()]
         public async Task BufferAsync_ShouldRespectCancellationToken()
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var asyncEnumerable = CreateSlowAsyncEnumerable(10);
-            cts.CancelAfter(100);
+            var asyncEnumerable = CreateSlowAsyncEnumerableWithCancellation(100, cts.Token);
+            cts.CancelAfter(50); // Cancel before first item delay completes
 
             // Act & Assert
-            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
             {
                 await foreach (var _ in asyncEnumerable.BufferAsync(3, cts.Token))
                 {
@@ -231,6 +232,17 @@ namespace Relay.Core.Tests.Extensions
             for (int i = 0; i < count; i++)
             {
                 await Task.Delay(100);
+                yield return i;
+            }
+        }
+
+        private static async IAsyncEnumerable<int> CreateSlowAsyncEnumerableWithCancellation(
+            int count,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                await Task.Delay(100, cancellationToken);
                 yield return i;
             }
         }

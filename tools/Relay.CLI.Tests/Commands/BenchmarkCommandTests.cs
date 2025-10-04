@@ -566,19 +566,30 @@ public class BenchmarkCommandTests : IDisposable
         upperBound.Should().BeGreaterThan(mean);
     }
 
-    [Fact(Skip = "Flaky test")]
+    [Fact()]
     public void BenchmarkCommand_ShouldTrackMemoryUsage()
     {
         // Arrange
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
         var beforeMemory = GC.GetTotalMemory(false);
 
-        // Act
-        var list = new List<int>(1000);
-        for (int i = 0; i < 1000; i++) list.Add(i);
+        // Act - Allocate a significant amount of memory
+        var largeArray = new byte[1024 * 1024]; // 1MB allocation
+        for (int i = 0; i < largeArray.Length; i++)
+        {
+            largeArray[i] = (byte)(i % 256); // Touch the memory to ensure allocation
+        }
+
         var afterMemory = GC.GetTotalMemory(false);
 
         // Assert
-        afterMemory.Should().BeGreaterThan(beforeMemory);
+        var memoryGrowth = afterMemory - beforeMemory;
+        memoryGrowth.Should().BeGreaterThan(500 * 1024,
+            "allocating 1MB should increase memory by at least 500KB");
+
+        // Keep reference to prevent GC
+        GC.KeepAlive(largeArray);
     }
 
     [Fact]

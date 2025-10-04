@@ -332,8 +332,26 @@ public static class BenchmarkCommand
             _ => JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true })
         };
 
-        await File.WriteAllTextAsync(outputPath, content);
-        AnsiConsole.MarkupLine($"[green]✓ Results saved to: {outputPath}[/]");
+        try
+        {
+            await File.WriteAllTextAsync(outputPath, content);
+            AnsiConsole.MarkupLine($"[green]✓ Results saved to: {outputPath}[/]");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            AnsiConsole.MarkupLine($"[red]❌ Error: Insufficient permissions to write to {outputPath}[/]");
+            throw;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            AnsiConsole.MarkupLine($"[red]❌ Error: Directory does not exist: {Path.GetDirectoryName(outputPath)}[/]");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]❌ Error saving benchmark results: {ex.Message}[/]");
+            throw;
+        }
     }
 
     private static string GenerateHtmlReport(BenchmarkResults results)

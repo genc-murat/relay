@@ -55,82 +55,33 @@ public static class AnalyzeCommand
             {
                 var overallTask = ctx.AddTask("[cyan]Analyzing project[/]", maxValue: 7);
 
-                try
-                {
-                    // Discover project files
-                    await DiscoverProjectFiles(analysis, ctx, overallTask);
-                    overallTask.Increment(1);
-                }
-                catch (Exception ex)
-                {
-                    AnsiConsole.MarkupLine($"[red]Error discovering project files: {ex.Message}[/]");
-                }
+                // Discover project files
+                await DiscoverProjectFiles(analysis, ctx, overallTask);
+                overallTask.Increment(1);
 
-                try
-                {
-                    // Analyze handlers
-                    await AnalyzeHandlers(analysis, ctx, overallTask);
-                    overallTask.Increment(1);
-                }
-                catch (Exception ex)
-                {
-                    AnsiConsole.MarkupLine($"[red]Error analyzing handlers: {ex.Message}[/]");
-                }
+                // Analyze handlers
+                await AnalyzeHandlers(analysis, ctx, overallTask);
+                overallTask.Increment(1);
 
-                try
-                {
-                    // Analyze requests
-                    await AnalyzeRequests(analysis, ctx, overallTask);
-                    overallTask.Increment(1);
-                }
-                catch (Exception ex)
-                {
-                    AnsiConsole.MarkupLine($"[red]Error analyzing requests: {ex.Message}[/]");
-                }
+                // Analyze requests
+                await AnalyzeRequests(analysis, ctx, overallTask);
+                overallTask.Increment(1);
 
-                try
-                {
-                    // Check performance opportunities
-                    await CheckPerformanceOpportunities(analysis, ctx, overallTask);
-                    overallTask.Increment(1);
-                }
-                catch (Exception ex)
-                {
-                    AnsiConsole.MarkupLine($"[red]Error checking performance opportunities: {ex.Message}[/]");
-                }
+                // Check performance opportunities
+                await CheckPerformanceOpportunities(analysis, ctx, overallTask);
+                overallTask.Increment(1);
 
-                try
-                {
-                    // Check reliability patterns
-                    await CheckReliabilityPatterns(analysis, ctx, overallTask);
-                    overallTask.Increment(1);
-                }
-                catch (Exception ex)
-                {
-                    AnsiConsole.MarkupLine($"[red]Error checking reliability patterns: {ex.Message}[/]");
-                }
+                // Check reliability patterns
+                await CheckReliabilityPatterns(analysis, ctx, overallTask);
+                overallTask.Increment(1);
 
-                try
-                {
-                    // Analyze dependencies
-                    await AnalyzeDependencies(analysis, ctx, overallTask);
-                    overallTask.Increment(1);
-                }
-                catch (Exception ex)
-                {
-                    AnsiConsole.MarkupLine($"[red]Error analyzing dependencies: {ex.Message}[/]");
-                }
+                // Analyze dependencies
+                await AnalyzeDependencies(analysis, ctx, overallTask);
+                overallTask.Increment(1);
 
-                try
-                {
-                    // Generate recommendations
-                    await GenerateRecommendations(analysis, ctx, overallTask);
-                    overallTask.Increment(1);
-                }
-                catch (Exception ex)
-                {
-                    AnsiConsole.MarkupLine($"[red]Error generating recommendations: {ex.Message}[/]");
-                }
+                // Generate recommendations
+                await GenerateRecommendations(analysis, ctx, overallTask);
+                overallTask.Increment(1);
 
                 overallTask.Value = overallTask.MaxValue;
             });
@@ -141,15 +92,7 @@ public static class AnalyzeCommand
         // Save results if requested
         if (!string.IsNullOrEmpty(outputPath))
         {
-            try
-            {
-                await SaveAnalysisResults(analysis, outputPath, format);
-            }
-            catch (Exception ex)
-            {
-                AnsiConsole.MarkupLine($"[red]Error saving analysis results: {ex.Message}[/]");
-                throw; // Re-throw to indicate failure
-            }
+            await SaveAnalysisResults(analysis, outputPath, format);
         }
     }
 
@@ -157,17 +100,36 @@ public static class AnalyzeCommand
     {
         var discoveryTask = ctx.AddTask("[green]Discovering project files[/]");
 
-        // Find .csproj files
-        var csprojFiles = Directory.GetFiles(analysis.ProjectPath, "*.csproj", SearchOption.AllDirectories);
-        analysis.ProjectFiles.AddRange(csprojFiles);
+        try
+        {
+            // Find .csproj files
+            var csprojFiles = Directory.GetFiles(analysis.ProjectPath, "*.csproj", SearchOption.AllDirectories);
+            analysis.ProjectFiles.AddRange(csprojFiles);
 
-        // Find .cs files
-        var csFiles = Directory.GetFiles(analysis.ProjectPath, "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains("bin") && !f.Contains("obj"))
-            .Where(f => analysis.IncludeTests || !f.Contains("Test"))
-            .ToList();
+            // Find .cs files
+            var csFiles = Directory.GetFiles(analysis.ProjectPath, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("bin") && !f.Contains("obj"))
+                .Where(f => analysis.IncludeTests || !f.Contains("Test"))
+                .ToList();
 
-        analysis.SourceFiles.AddRange(csFiles);
+            analysis.SourceFiles.AddRange(csFiles);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Handle cases where the directory has restricted access
+            AnsiConsole.MarkupLine("[yellow]⚠️ Warning: Insufficient permissions to access some directories[/]");
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Handle cases where the directory doesn't exist
+            AnsiConsole.MarkupLine("[red]❌ Error: Project directory does not exist[/]");
+            throw; // Re-throw to indicate failure
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]❌ Error discovering project files: {ex.Message}[/]");
+            throw; // Re-throw to indicate failure
+        }
 
         discoveryTask.Value = discoveryTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Found {analysis.ProjectFiles.Count} project(s) and {analysis.SourceFiles.Count} source file(s)[/]");
@@ -182,32 +144,50 @@ public static class AnalyzeCommand
 
         foreach (var file in analysis.SourceFiles)
         {
-            var content = await File.ReadAllTextAsync(file);
-            var tree = CSharpSyntaxTree.ParseText(content);
-            var root = tree.GetCompilationUnitRoot();
-
-            var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-
-            foreach (var classDecl in classes)
+            try
             {
-                if (IsHandler(classDecl, content))
-                {
-                    var handler = new HandlerInfo
-                    {
-                        Name = classDecl.Identifier.ValueText,
-                        FilePath = file,
-                        IsAsync = HasAsyncMethods(classDecl),
-                        HasDependencies = HasConstructorDependencies(classDecl),
-                        UsesValueTask = UsesValueTask(classDecl, content),
-                        HasCancellationToken = UsesCancellationToken(classDecl, content),
-                        HasLogging = HasLogging(classDecl, content),
-                        HasValidation = HasValidation(classDecl, content),
-                        LineCount = GetMethodLineCount(classDecl)
-                    };
+                var content = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(content);
+                var root = tree.GetCompilationUnitRoot();
 
-                    analysis.Handlers.Add(handler);
-                    handlerCount++;
+                var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+
+                foreach (var classDecl in classes)
+                {
+                    if (IsHandler(classDecl, content))
+                    {
+                        var handler = new HandlerInfo
+                        {
+                            Name = classDecl.Identifier.ValueText,
+                            FilePath = file,
+                            IsAsync = HasAsyncMethods(classDecl),
+                            HasDependencies = HasConstructorDependencies(classDecl),
+                            UsesValueTask = UsesValueTask(classDecl, content),
+                            HasCancellationToken = UsesCancellationToken(classDecl, content),
+                            HasLogging = HasLogging(classDecl, content),
+                            HasValidation = HasValidation(classDecl, content),
+                            LineCount = GetMethodLineCount(classDecl)
+                        };
+
+                        analysis.Handlers.Add(handler);
+                        handlerCount++;
+                    }
                 }
+            }
+            catch (FileNotFoundException)
+            {
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: File not found, skipping: {file}[/]");
+                continue; // Continue with next file instead of failing the entire analysis
+            }
+            catch (UnauthorizedAccessException)
+            {
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: Access denied, skipping: {file}[/]");
+                continue;
+            }
+            catch (IOException ex)
+            {
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: IO error reading {file}, skipping: {ex.Message}[/]");
+                continue;
             }
         }
 
@@ -222,32 +202,50 @@ public static class AnalyzeCommand
 
         foreach (var file in analysis.SourceFiles)
         {
-            var content = await File.ReadAllTextAsync(file);
-            var tree = CSharpSyntaxTree.ParseText(content);
-            var root = tree.GetCompilationUnitRoot();
-
-            var records = root.DescendantNodes().OfType<RecordDeclarationSyntax>();
-            var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-
-            foreach (var typeDecl in records.Cast<TypeDeclarationSyntax>().Concat(classes))
+            try
             {
-                if (IsRequest(typeDecl, content))
-                {
-                    var request = new RequestInfo
-                    {
-                        Name = typeDecl.Identifier.ValueText,
-                        FilePath = file,
-                        IsRecord = typeDecl is RecordDeclarationSyntax,
-                        HasResponse = HasResponseType(typeDecl, content),
-                        HasValidation = HasValidationAttributes(typeDecl, content),
-                        ParameterCount = GetParameterCount(typeDecl),
-                        HasCaching = HasCachingAttributes(typeDecl, content),
-                        HasAuthorization = HasAuthorizationAttributes(typeDecl, content)
-                    };
+                var content = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(content);
+                var root = tree.GetCompilationUnitRoot();
 
-                    analysis.Requests.Add(request);
-                    requestCount++;
+                var records = root.DescendantNodes().OfType<RecordDeclarationSyntax>();
+                var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+
+                foreach (var typeDecl in records.Cast<TypeDeclarationSyntax>().Concat(classes))
+                {
+                    if (IsRequest(typeDecl, content))
+                    {
+                        var request = new RequestInfo
+                        {
+                            Name = typeDecl.Identifier.ValueText,
+                            FilePath = file,
+                            IsRecord = typeDecl is RecordDeclarationSyntax,
+                            HasResponse = HasResponseType(typeDecl, content),
+                            HasValidation = HasValidationAttributes(typeDecl, content),
+                            ParameterCount = GetParameterCount(typeDecl),
+                            HasCaching = HasCachingAttributes(typeDecl, content),
+                            HasAuthorization = HasAuthorizationAttributes(typeDecl, content)
+                        };
+
+                        analysis.Requests.Add(request);
+                        requestCount++;
+                    }
                 }
+            }
+            catch (FileNotFoundException)
+            {
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: File not found, skipping: {file}[/]");
+                continue;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: Access denied, skipping: {file}[/]");
+                continue;
+            }
+            catch (IOException ex)
+            {
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: IO error reading {file}, skipping: {ex.Message}[/]");
+                continue;
             }
         }
 
@@ -387,34 +385,52 @@ public static class AnalyzeCommand
 
         foreach (var projectFile in analysis.ProjectFiles)
         {
-            var content = await File.ReadAllTextAsync(projectFile);
-
-            // Check for Relay references
-            if (content.Contains("Relay.Core"))
+            try
             {
-                analysis.HasRelayCore = true;
+                var content = await File.ReadAllTextAsync(projectFile);
+
+                // Check for Relay references
+                if (content.Contains("Relay.Core"))
+                {
+                    analysis.HasRelayCore = true;
+                }
+
+                // Check for other mediator frameworks
+                if (content.Contains("MediatR"))
+                {
+                    analysis.HasMediatR = true;
+                }
+
+                // Check for relevant packages
+                if (content.Contains("Microsoft.Extensions.Logging"))
+                {
+                    analysis.HasLogging = true;
+                }
+
+                if (content.Contains("FluentValidation") || content.Contains("DataAnnotations"))
+                {
+                    analysis.HasValidation = true;
+                }
+
+                if (content.Contains("StackExchangeRedis") || content.Contains("Microsoft.Extensions.Caching"))
+                {
+                    analysis.HasCaching = true;
+                }
             }
-
-            // Check for other mediator frameworks
-            if (content.Contains("MediatR"))
+            catch (FileNotFoundException)
             {
-                analysis.HasMediatR = true;
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: Project file not found, skipping: {projectFile}[/]");
+                continue;
             }
-
-            // Check for relevant packages
-            if (content.Contains("Microsoft.Extensions.Logging"))
+            catch (UnauthorizedAccessException)
             {
-                analysis.HasLogging = true;
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: Access denied to project file, skipping: {projectFile}[/]");
+                continue;
             }
-
-            if (content.Contains("FluentValidation") || content.Contains("DataAnnotations"))
+            catch (IOException ex)
             {
-                analysis.HasValidation = true;
-            }
-
-            if (content.Contains("StackExchangeRedis") || content.Contains("Microsoft.Extensions.Caching"))
-            {
-                analysis.HasCaching = true;
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Warning: IO error reading project file {projectFile}, skipping: {ex.Message}[/]");
+                continue;
             }
         }
 
@@ -631,8 +647,26 @@ public static class AnalyzeCommand
             _ => System.Text.Json.JsonSerializer.Serialize(analysis, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })
         };
 
-        await File.WriteAllTextAsync(outputPath, content);
-        AnsiConsole.MarkupLine($"[green]✓ Analysis report saved to: {outputPath}[/]");
+        try
+        {
+            await File.WriteAllTextAsync(outputPath, content);
+            AnsiConsole.MarkupLine($"[green]✓ Analysis report saved to: {outputPath}[/]");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            AnsiConsole.MarkupLine($"[red]❌ Error: Insufficient permissions to write to {outputPath}[/]");
+            throw;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            AnsiConsole.MarkupLine($"[red]❌ Error: Directory does not exist: {Path.GetDirectoryName(outputPath)}[/]");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]❌ Error saving analysis report: {ex.Message}[/]");
+            throw;
+        }
     }
 
     // Helper methods for analysis
@@ -690,30 +724,40 @@ public static class AnalyzeCommand
 
     private static double CalculateOverallScore(ProjectAnalysis analysis)
     {
-        double score = 10.0;
+        try
+        {
+            double score = 10.0;
 
-        // Deduct for performance issues
-        score -= analysis.PerformanceIssues.Count(i => i.Severity == "High") * 2.0;
-        score -= analysis.PerformanceIssues.Count(i => i.Severity == "Medium") * 1.0;
-        score -= analysis.PerformanceIssues.Count(i => i.Severity == "Low") * 0.5;
+            // Deduct for performance issues
+            score -= (analysis.PerformanceIssues?.Count(i => i.Severity == "High") ?? 0) * 2.0;
+            score -= (analysis.PerformanceIssues?.Count(i => i.Severity == "Medium") ?? 0) * 1.0;
+            score -= (analysis.PerformanceIssues?.Count(i => i.Severity == "Low") ?? 0) * 0.5;
 
-        // Deduct for reliability issues
-        score -= analysis.ReliabilityIssues.Count(i => i.Severity == "High") * 1.5;
-        score -= analysis.ReliabilityIssues.Count(i => i.Severity == "Medium") * 0.8;
-        score -= analysis.ReliabilityIssues.Count(i => i.Severity == "Low") * 0.3;
+            // Deduct for reliability issues
+            score -= (analysis.ReliabilityIssues?.Count(i => i.Severity == "High") ?? 0) * 1.5;
+            score -= (analysis.ReliabilityIssues?.Count(i => i.Severity == "Medium") ?? 0) * 0.8;
+            score -= (analysis.ReliabilityIssues?.Count(i => i.Severity == "Low") ?? 0) * 0.3;
 
-        // Bonus for good practices
-        if (analysis.HasRelayCore) score += 0.5;
-        if (analysis.HasLogging) score += 0.3;
-        if (analysis.HasValidation) score += 0.3;
-        if (analysis.HasCaching) score += 0.2;
+            // Bonus for good practices
+            if (analysis.HasRelayCore) score += 0.5;
+            if (analysis.HasLogging) score += 0.3;
+            if (analysis.HasValidation) score += 0.3;
+            if (analysis.HasCaching) score += 0.2;
 
-        return Math.Max(0, Math.Min(10, score));
+            return Math.Max(0, Math.Min(10, score));
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error calculating overall score: {ex.Message}[/]");
+            return 0.0; // Return a safe default
+        }
     }
 
     private static string GenerateHtmlAnalysisReport(ProjectAnalysis analysis)
     {
-        return $@"
+        try
+        {
+            return $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -777,57 +821,72 @@ public static class AnalyzeCommand
     </div>
 </body>
 </html>";
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error generating HTML report: {ex.Message}[/]");
+            // Return a minimal HTML to ensure command still succeeds
+            return $"<html><body><h1>Relay Project Analysis Report</h1><p>Generated: {analysis.Timestamp:yyyy-MM-dd HH:mm:ss} UTC</p><p>Report generation failed: {ex.Message}</p></body></html>";
+        }
     }
 
     private static string GenerateMarkdownReport(ProjectAnalysis analysis)
     {
-        var md = new StringBuilder();
-        md.AppendLine("# 🔍 Relay Project Analysis Report");
-        md.AppendLine($"Generated: {analysis.Timestamp:yyyy-MM-dd HH:mm:ss} UTC");
-        md.AppendLine();
-
-        md.AppendLine($"## Overall Score: {CalculateOverallScore(analysis):F1}/10");
-        md.AppendLine();
-
-        md.AppendLine("## 📊 Project Overview");
-        md.AppendLine($"- Project Files: {analysis.ProjectFiles.Count}");
-        md.AppendLine($"- Source Files: {analysis.SourceFiles.Count}");
-        md.AppendLine($"- Handlers Found: {analysis.Handlers.Count}");
-        md.AppendLine($"- Requests Found: {analysis.Requests.Count}");
-        md.AppendLine();
-
-        if (analysis.PerformanceIssues.Any())
+        try
         {
-            md.AppendLine("## ⚡ Performance Issues");
-            foreach (var issue in analysis.PerformanceIssues)
-            {
-                md.AppendLine($"### {issue.Description}");
-                md.AppendLine($"**Severity:** {issue.Severity}");
-                md.AppendLine($"**Recommendation:** {issue.Recommendation}");
-                md.AppendLine($"**Impact:** {issue.PotentialImprovement}");
-                md.AppendLine();
-            }
-        }
+            var md = new StringBuilder();
+            md.AppendLine("# 🔍 Relay Project Analysis Report");
+            md.AppendLine($"Generated: {analysis.Timestamp:yyyy-MM-dd HH:mm:ss} UTC");
+            md.AppendLine();
 
-        if (analysis.Recommendations.Any())
-        {
-            md.AppendLine("## 🎯 Recommendations");
-            foreach (var rec in analysis.Recommendations)
+            md.AppendLine($"## Overall Score: {CalculateOverallScore(analysis):F1}/10");
+            md.AppendLine();
+
+            md.AppendLine("## 📊 Project Overview");
+            md.AppendLine($"- Project Files: {analysis.ProjectFiles.Count}");
+            md.AppendLine($"- Source Files: {analysis.SourceFiles.Count}");
+            md.AppendLine($"- Handlers Found: {analysis.Handlers.Count}");
+            md.AppendLine($"- Requests Found: {analysis.Requests.Count}");
+            md.AppendLine();
+
+            if (analysis.PerformanceIssues.Any())
             {
-                md.AppendLine($"### {rec.Title}");
-                md.AppendLine($"**Priority:** {rec.Priority}");
-                md.AppendLine($"**Description:** {rec.Description}");
-                md.AppendLine("**Actions:**");
-                foreach (var action in rec.Actions)
+                md.AppendLine("## ⚡ Performance Issues");
+                foreach (var issue in analysis.PerformanceIssues)
                 {
-                    md.AppendLine($"- {action}");
+                    md.AppendLine($"### {issue.Description}");
+                    md.AppendLine($"**Severity:** {issue.Severity}");
+                    md.AppendLine($"**Recommendation:** {issue.Recommendation}");
+                    md.AppendLine($"**Impact:** {issue.PotentialImprovement}");
+                    md.AppendLine();
                 }
-                md.AppendLine($"**Estimated Impact:** {rec.EstimatedImpact}");
-                md.AppendLine();
             }
-        }
 
-        return md.ToString();
+            if (analysis.Recommendations.Any())
+            {
+                md.AppendLine("## 🎯 Recommendations");
+                foreach (var rec in analysis.Recommendations)
+                {
+                    md.AppendLine($"### {rec.Title}");
+                    md.AppendLine($"**Priority:** {rec.Priority}");
+                    md.AppendLine($"**Description:** {rec.Description}");
+                    md.AppendLine("**Actions:**");
+                    foreach (var action in rec.Actions)
+                    {
+                        md.AppendLine($"- {action}");
+                    }
+                    md.AppendLine($"**Estimated Impact:** {rec.EstimatedImpact}");
+                    md.AppendLine();
+                }
+            }
+
+            return md.ToString();
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Error generating markdown report: {ex.Message}[/]");
+            return $"# Relay Project Analysis Report\nGenerated: {analysis.Timestamp:yyyy-MM-dd HH:mm:ss} UTC\n\nReport generation failed: {ex.Message}";
+        }
     }
 }
 

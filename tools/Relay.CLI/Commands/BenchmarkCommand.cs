@@ -78,6 +78,17 @@ public static class BenchmarkCommand
             // Log the progress error but continue execution
             // This can happen in test environments where console features are not available
             Console.WriteLine($"Warning: Could not show progress in console: {ex.Message}");
+            
+            // Run benchmarks without progress UI in test environments
+            if (tests.Contains("all") || tests.Contains("relay"))
+            {
+                await RunRelayBenchmarks(results, null, null, iterations, warmup, threads);
+            }
+
+            if (tests.Contains("all") || tests.Contains("comparison"))
+            {
+                await RunComparisonBenchmarks(results, null, null, iterations, warmup, threads);
+            }
         }
 
         try
@@ -99,50 +110,50 @@ public static class BenchmarkCommand
         }
     }
 
-    private static async Task RunRelayBenchmarks(BenchmarkResults results, ProgressContext ctx, ProgressTask overallTask, int iterations, int warmup, int threads)
+    private static async Task RunRelayBenchmarks(BenchmarkResults results, ProgressContext? ctx, ProgressTask? overallTask, int iterations, int warmup, int threads)
     {
-        var relayTask = ctx.AddTask("[green]Relay benchmarks[/]", maxValue: 4);
+        var relayTask = ctx?.AddTask("[green]Relay benchmarks[/]", maxValue: 4);
 
         // Standard Relay
         var standardResult = await BenchmarkStandardRelay(iterations, warmup, threads);
         results.RelayResults.Add("Standard", standardResult);
-        relayTask.Increment(1);
-        overallTask.Increment(1);
+        relayTask?.Increment(1);
+        overallTask?.Increment(1);
 
         // Ultra Fast Relay
         var ultraFastResult = await BenchmarkUltraFastRelay(iterations, warmup, threads);
         results.RelayResults.Add("UltraFast", ultraFastResult);
-        relayTask.Increment(1);
-        overallTask.Increment(1);
+        relayTask?.Increment(1);
+        overallTask?.Increment(1);
 
         // SIMD Optimized
         var simdResult = await BenchmarkSIMDRelay(iterations, warmup, threads);
         results.RelayResults.Add("SIMD", simdResult);
-        relayTask.Increment(1);
-        overallTask.Increment(1);
+        relayTask?.Increment(1);
+        overallTask?.Increment(1);
 
         // AOT Optimized
         var aotResult = await BenchmarkAOTRelay(iterations, warmup, threads);
         results.RelayResults.Add("AOT", aotResult);
-        relayTask.Increment(1);
-        overallTask.Increment(1);
+        relayTask?.Increment(1);
+        overallTask?.Increment(1);
     }
 
-    private static async Task RunComparisonBenchmarks(BenchmarkResults results, ProgressContext ctx, ProgressTask overallTask, int iterations, int warmup, int threads)
+    private static async Task RunComparisonBenchmarks(BenchmarkResults results, ProgressContext? ctx, ProgressTask? overallTask, int iterations, int warmup, int threads)
     {
-        var comparisonTask = ctx.AddTask("[yellow]Comparison benchmarks[/]", maxValue: 2);
+        var comparisonTask = ctx?.AddTask("[yellow]Comparison benchmarks[/]", maxValue: 2);
 
         // Direct method call baseline
         var directResult = await BenchmarkDirectCall(iterations, warmup, threads);
         results.ComparisonResults.Add("DirectCall", directResult);
-        comparisonTask.Increment(1);
-        overallTask.Increment(1);
+        comparisonTask?.Increment(1);
+        overallTask?.Increment(1);
 
         // Simulated MediatR (since we don't want to add the dependency)
         var mediatrResult = await BenchmarkSimulatedMediatR(iterations, warmup, threads);
         results.ComparisonResults.Add("MediatR", mediatrResult);
-        comparisonTask.Increment(1);
-        overallTask.Increment(1);
+        comparisonTask?.Increment(1);
+        overallTask?.Increment(1);
     }
 
     private static async Task<BenchmarkResult> BenchmarkStandardRelay(int iterations, int warmup, int threads)

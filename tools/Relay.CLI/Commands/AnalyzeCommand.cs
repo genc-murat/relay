@@ -27,17 +27,14 @@ public static class AnalyzeCommand
         command.AddOption(depthOption);
         command.AddOption(includeTestsOption);
 
-        command.SetHandler(async (path, output, format, depth, includeTests) =>
-        {
-            await ExecuteAnalyze(path, output, format, depth, includeTests);
-        }, pathOption, outputOption, formatOption, depthOption, includeTestsOption);
+        command.SetHandler(ExecuteAnalyze, pathOption, outputOption, formatOption, depthOption, includeTestsOption);
 
         return command;
     }
 
     [RequiresUnreferencedCode("Calls Relay.CLI.Commands.AnalyzeCommand.SaveAnalysisResults(ProjectAnalysis, String, String)")]
     [RequiresDynamicCode("Calls Relay.CLI.Commands.AnalyzeCommand.SaveAnalysisResults(ProjectAnalysis, String, String)")]
-    private static async Task ExecuteAnalyze(string projectPath, string? outputPath, string format, string depth, bool includeTests)
+    private static async Task<int> ExecuteAnalyze(string projectPath, string? outputPath, string format, string depth, bool includeTests)
     {
         AnsiConsole.MarkupLine($"[cyan]🔍 Analyzing project at: {projectPath}[/]");
         AnsiConsole.WriteLine();
@@ -50,55 +47,83 @@ public static class AnalyzeCommand
             Timestamp = DateTime.UtcNow
         };
 
-        await AnsiConsole.Progress()
-            .StartAsync(async ctx =>
-            {
-                var overallTask = ctx.AddTask("[cyan]Analyzing project[/]", maxValue: 7);
+        try
+        {
+            await AnsiConsole.Progress()
+                .StartAsync(async ctx =>
+                {
+                    var overallTask = ctx?.AddTask("[cyan]Analyzing project[/]", maxValue: 7);
 
-                // Discover project files
-                await DiscoverProjectFiles(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                    // Discover project files
+                    await DiscoverProjectFiles(analysis, ctx, overallTask);
+                    overallTask?.Increment(1);
 
-                // Analyze handlers
-                await AnalyzeHandlers(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                    // Analyze handlers
+                    await AnalyzeHandlers(analysis, ctx, overallTask);
+                    overallTask?.Increment(1);
 
-                // Analyze requests
-                await AnalyzeRequests(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                    // Analyze requests
+                    await AnalyzeRequests(analysis, ctx, overallTask);
+                    overallTask?.Increment(1);
 
-                // Check performance opportunities
-                await CheckPerformanceOpportunities(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                    // Check performance opportunities
+                    await CheckPerformanceOpportunities(analysis, ctx, overallTask);
+                    overallTask?.Increment(1);
 
-                // Check reliability patterns
-                await CheckReliabilityPatterns(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                    // Check reliability patterns
+                    await CheckReliabilityPatterns(analysis, ctx, overallTask);
+                    overallTask?.Increment(1);
 
-                // Analyze dependencies
-                await AnalyzeDependencies(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                    // Analyze dependencies
+                    await AnalyzeDependencies(analysis, ctx, overallTask);
+                    overallTask?.Increment(1);
 
-                // Generate recommendations
-                await GenerateRecommendations(analysis, ctx, overallTask);
-                overallTask.Increment(1);
+                    // Generate recommendations
+                    await GenerateRecommendations(analysis, ctx, overallTask);
+                    overallTask?.Increment(1);
 
-                overallTask.Value = overallTask.MaxValue;
-            });
+                    if (overallTask != null) overallTask.Value = overallTask.MaxValue;
+                });
+        }
+        catch (Exception ex)
+        {
+            // Log the progress error but continue execution
+            // This can happen in test environments where console features are not available
+            Console.WriteLine($"Warning: Could not show progress in console: {ex.Message}");
+            
+            // Run analysis without progress UI in test environments
+            await DiscoverProjectFiles(analysis, null!, null!);
+            await AnalyzeHandlers(analysis, null!, null!);
+            await AnalyzeRequests(analysis, null!, null!);
+            await CheckPerformanceOpportunities(analysis, null!, null!);
+            await CheckReliabilityPatterns(analysis, null!, null!);
+            await AnalyzeDependencies(analysis, null!, null!);
+            await GenerateRecommendations(analysis, null!, null!);
+        }
 
-        // Display results
-        DisplayAnalysisResults(analysis, format);
+        try
+        {
+            // Display results
+            DisplayAnalysisResults(analysis, format);
+        }
+        catch (Exception ex)
+        {
+            // Log the display error but continue execution
+            Console.WriteLine($"Warning: Could not display results in console: {ex.Message}");
+        }
 
         // Save results if requested
         if (!string.IsNullOrEmpty(outputPath))
         {
             await SaveAnalysisResults(analysis, outputPath, format);
         }
+        
+        return 0;
     }
 
-    private static async Task DiscoverProjectFiles(ProjectAnalysis analysis, ProgressContext ctx, ProgressTask overallTask)
+    private static async Task DiscoverProjectFiles(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
-        var discoveryTask = ctx.AddTask("[green]Discovering project files[/]");
+        var discoveryTask = ctx?.AddTask("[green]Discovering project files[/]");
 
         try
         {
@@ -131,15 +156,15 @@ public static class AnalyzeCommand
             throw; // Re-throw to indicate failure
         }
 
-        discoveryTask.Value = discoveryTask.MaxValue;
+        if (discoveryTask != null) discoveryTask.Value = discoveryTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Found {analysis.ProjectFiles.Count} project(s) and {analysis.SourceFiles.Count} source file(s)[/]");
 
         await Task.CompletedTask;
     }
 
-    private static async Task AnalyzeHandlers(ProjectAnalysis analysis, ProgressContext ctx, ProgressTask overallTask)
+    private static async Task AnalyzeHandlers(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
-        var handlerTask = ctx.AddTask("[green]Analyzing handlers[/]");
+        var handlerTask = ctx?.AddTask("[green]Analyzing handlers[/]");
         var handlerCount = 0;
 
         foreach (var file in analysis.SourceFiles)
@@ -191,13 +216,13 @@ public static class AnalyzeCommand
             }
         }
 
-        handlerTask.Value = handlerTask.MaxValue;
+        if (handlerTask != null) handlerTask.Value = handlerTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Analyzed {handlerCount} handler(s)[/]");
     }
 
-    private static async Task AnalyzeRequests(ProjectAnalysis analysis, ProgressContext ctx, ProgressTask overallTask)
+    private static async Task AnalyzeRequests(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
-        var requestTask = ctx.AddTask("[green]Analyzing requests[/]");
+        var requestTask = ctx?.AddTask("[green]Analyzing requests[/]");
         var requestCount = 0;
 
         foreach (var file in analysis.SourceFiles)
@@ -249,13 +274,13 @@ public static class AnalyzeCommand
             }
         }
 
-        requestTask.Value = requestTask.MaxValue;
+        if (requestTask != null) requestTask.Value = requestTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Analyzed {requestCount} request(s)[/]");
     }
 
-    private static async Task CheckPerformanceOpportunities(ProjectAnalysis analysis, ProgressContext ctx, ProgressTask overallTask)
+    private static async Task CheckPerformanceOpportunities(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
-        var perfTask = ctx.AddTask("[yellow]Checking performance opportunities[/]");
+        var perfTask = ctx?.AddTask("[yellow]Checking performance opportunities[/]");
 
         // Check for Task vs ValueTask usage
         var taskHandlers = analysis.Handlers.Count(h => !h.UsesValueTask);
@@ -318,15 +343,15 @@ public static class AnalyzeCommand
             });
         }
 
-        perfTask.Value = perfTask.MaxValue;
+        if (perfTask != null) perfTask.Value = perfTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Found {analysis.PerformanceIssues.Count} performance opportunity/opportunities[/]");
 
         await Task.CompletedTask;
     }
 
-    private static async Task CheckReliabilityPatterns(ProjectAnalysis analysis, ProgressContext ctx, ProgressTask overallTask)
+    private static async Task CheckReliabilityPatterns(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
-        var reliabilityTask = ctx.AddTask("[yellow]Checking reliability patterns[/]");
+        var reliabilityTask = ctx?.AddTask("[yellow]Checking reliability patterns[/]");
 
         // Check for logging
         var noLoggingHandlers = analysis.Handlers.Count(h => !h.HasLogging);
@@ -373,15 +398,15 @@ public static class AnalyzeCommand
             });
         }
 
-        reliabilityTask.Value = reliabilityTask.MaxValue;
+        if (reliabilityTask != null) reliabilityTask.Value = reliabilityTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Found {analysis.ReliabilityIssues.Count} reliability issue(s)[/]");
 
         await Task.CompletedTask;
     }
 
-    private static async Task AnalyzeDependencies(ProjectAnalysis analysis, ProgressContext ctx, ProgressTask overallTask)
+    private static async Task AnalyzeDependencies(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
-        var depTask = ctx.AddTask("[yellow]Analyzing dependencies[/]");
+        var depTask = ctx?.AddTask("[yellow]Analyzing dependencies[/]");
 
         foreach (var projectFile in analysis.ProjectFiles)
         {
@@ -434,13 +459,13 @@ public static class AnalyzeCommand
             }
         }
 
-        depTask.Value = depTask.MaxValue;
+        if (depTask != null) depTask.Value = depTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Analyzed project dependencies[/]");
     }
 
-    private static async Task GenerateRecommendations(ProjectAnalysis analysis, ProgressContext ctx, ProgressTask overallTask)
+    private static async Task GenerateRecommendations(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
-        var recTask = ctx.AddTask("[green]Generating recommendations[/]");
+        var recTask = ctx?.AddTask("[green]Generating recommendations[/]");
 
         // Performance recommendations
         if (analysis.PerformanceIssues.Any())
@@ -510,7 +535,7 @@ public static class AnalyzeCommand
             });
         }
 
-        recTask.Value = recTask.MaxValue;
+        if (recTask != null) recTask.Value = recTask.MaxValue;
         AnsiConsole.MarkupLine($"[dim]Generated {analysis.Recommendations.Count} recommendation(s)[/]");
 
         await Task.CompletedTask;
@@ -965,3 +990,5 @@ public class Recommendation
     public List<string> Actions { get; set; } = new();
     public string EstimatedImpact { get; set; } = "";
 }
+
+

@@ -124,16 +124,24 @@ public class InMemoryMessageBrokerTests
     {
         // Arrange
         var receivedMessages = new List<TestMessage>();
+        var messageReceived = new TaskCompletionSource<bool>();
+
         await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) =>
         {
-            receivedMessages.Add(msg);
+            lock (receivedMessages)
+            {
+                receivedMessages.Add(msg);
+                messageReceived.TrySetResult(true);
+            }
             return ValueTask.CompletedTask;
         });
 
         // Act
         await _broker.StartAsync();
         await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test" });
-        await Task.Delay(100);
+
+        // Wait for message to be received (with timeout)
+        await Task.WhenAny(messageReceived.Task, Task.Delay(500));
 
         // Assert
         receivedMessages.Should().HaveCount(1);

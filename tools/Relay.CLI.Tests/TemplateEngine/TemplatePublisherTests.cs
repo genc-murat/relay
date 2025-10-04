@@ -12,8 +12,9 @@ public class TemplatePublisherTests : IDisposable
 
     public TemplatePublisherTests()
     {
-        _testDataPath = Path.Combine(AppContext.BaseDirectory, "TestData");
-        _outputPath = Path.Combine(Path.GetTempPath(), "RelayPublisherTests", Guid.NewGuid().ToString());
+        var testId = Guid.NewGuid().ToString("N");
+        _testDataPath = Path.Combine(Path.GetTempPath(), "RelayPublisherTests", testId, "TestData");
+        _outputPath = Path.Combine(Path.GetTempPath(), "RelayPublisherTests", testId, "Output");
         Directory.CreateDirectory(_testDataPath);
         Directory.CreateDirectory(_outputPath);
         _publisher = new TemplatePublisher(_testDataPath);
@@ -21,6 +22,19 @@ public class TemplatePublisherTests : IDisposable
 
     public void Dispose()
     {
+        // Clean up test data
+        if (Directory.Exists(_testDataPath))
+        {
+            try
+            {
+                Directory.Delete(_testDataPath, true);
+            }
+            catch
+            {
+                // Best effort cleanup
+            }
+        }
+
         if (Directory.Exists(_outputPath))
         {
             try
@@ -229,13 +243,13 @@ public class TemplatePublisherTests : IDisposable
         Directory.CreateDirectory(configPath);
         Directory.CreateDirectory(contentPath);
 
-        var shortName = "test-template" + (suffix ?? "");
+        var shortName = "test-template" + (suffix ?? Guid.NewGuid().ToString("N").Substring(0, 8));
         var templateJson = $@"{{
             ""$schema"": ""http://json.schemastore.org/template"",
             ""author"": ""Test Author"",
             ""classifications"": [""Test""],
             ""identity"": ""Test.Template.{templateName}"",
-            ""name"": ""Test Template {suffix}"",
+            ""name"": ""Test Template"",
             ""shortName"": ""{shortName}"",
             ""description"": ""A test template"",
             ""sourceName"": ""TestProject""

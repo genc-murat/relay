@@ -229,9 +229,9 @@ public class FullPipelineIntegrationTests
             .AddHandler(handler);
 
         var relay = harness.Build();
-        var request = new IntegrationTestStreamRequest { ItemCount = 100, DelayMs = 50 };
+        var request = new IntegrationTestStreamRequest { ItemCount = 100, DelayMs = 20 };
 
-        using var cts = new CancellationTokenSource(200);
+        using var cts = new CancellationTokenSource(300); // Longer timeout to ensure some items are received
 
         // Act
         var results = new List<int>();
@@ -243,9 +243,10 @@ public class FullPipelineIntegrationTests
             }
         });
 
-        // Assert
-        results.Should().NotBeEmpty();
-        results.Should().HaveCountLessThan(100); // Should be cancelled before completion
+        // Assert - Should have received some items but not all
+        results.Should().NotBeEmpty("cancellation should occur after receiving some items");
+        results.Should().HaveCountLessThan(100, "stream should be cancelled before completion");
+        results.Count.Should().BeGreaterThan(5, "should receive at least a few items before cancellation");
     }
 
     // Test classes

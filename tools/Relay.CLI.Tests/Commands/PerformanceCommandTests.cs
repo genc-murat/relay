@@ -80,14 +80,17 @@ public class PerformanceCommandTests
     {
         // Arrange
         var stopwatch = Stopwatch.StartNew();
+        var delayMs = 10;
 
         // Act
-        await Task.Delay(10);
+        await Task.Delay(delayMs);
         stopwatch.Stop();
 
-        // Assert
-        stopwatch.ElapsedMilliseconds.Should().BeGreaterThan(0);
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(100);
+        // Assert - Verify timing measurement works (with reasonable tolerance for CI/test environments)
+        stopwatch.ElapsedMilliseconds.Should().BeGreaterThanOrEqualTo(delayMs - 5,
+            "stopwatch should measure at least the delay time");
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(500,
+            "stopwatch should not take excessively long (indicates system issue)");
     }
 
     [Fact]
@@ -482,21 +485,52 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
     [Fact]
     public void PerformanceCommand_ShouldDetectMemoryLeaks()
     {
-        // Arrange
-        var initialMemory = GC.GetTotalMemory(true);
-        var iterations = 10;
+        // This test verifies that we can detect memory growth and cleanup
+        // Note: Actual memory numbers are non-deterministic due to GC behavior
 
-        // Act
-        for (int i = 0; i < iterations; i++)
+        // Arrange
+        var leakyList = new List<byte[]>();
+
+        // Warm up to stabilize memory
+        for (int i = 0; i < 5; i++)
         {
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }
-        var finalMemory = GC.GetTotalMemory(true);
 
-        // Assert
-        var memoryGrowth = finalMemory - initialMemory;
-        memoryGrowth.Should().BeLessThan(1024 * 1024); // Less than 1MB growth
+        var initialMemory = GC.GetTotalMemory(false);
+
+        // Act - Simulate a controlled memory leak
+        for (int i = 0; i < 100; i++)
+        {
+            var data = new byte[10 * 1024]; // 10KB allocation
+            leakyList.Add(data);
+        }
+
+        var afterLeakMemory = GC.GetTotalMemory(false);
+        var leakSize = afterLeakMemory - initialMemory;
+
+        // Assert - Leak should have increased memory
+        leakSize.Should().BeGreaterThan(500 * 1024); // At least 500KB allocated
+
+        // Clean up the leak
+        var itemCount = leakyList.Count;
+        leakyList.Clear();
+
+        // Multiple GC passes to ensure cleanup
+        for (int i = 0; i < 3; i++)
+        {
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true);
+            GC.WaitForPendingFinalizers();
+        }
+
+        var finalMemory = GC.GetTotalMemory(true);
+        var memoryAfterCleanup = finalMemory - initialMemory;
+
+        // Assert - Memory growth after cleanup should be reasonable
+        // We don't assert exact numbers due to GC non-determinism, but verify cleanup happened
+        itemCount.Should().Be(100); // Verify we had items
+        (memoryAfterCleanup < leakSize).Should().BeTrue(); // Memory should be significantly reduced
     }
 
     [Fact]

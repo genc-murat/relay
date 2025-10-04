@@ -57,12 +57,15 @@ public class OpenTelemetryTests : IDisposable
 
         tracerProvider.ForceFlush();
 
-        // Assert
-        exportedActivities.Should().HaveCount(1);
+        // Assert - Take snapshot to avoid enumeration issues
+        var activitiesSnapshot = exportedActivities.ToList();
+        activitiesSnapshot.Should().HaveCount(1);
+
         var resource = tracerProvider.GetResource();
-        resource.Attributes.Should().Contain(new KeyValuePair<string, object>("service.name", "MyTestService"));
-        resource.Attributes.Should().Contain(new KeyValuePair<string, object>("service.version", "2.0.0"));
-        resource.Attributes.Should().Contain(new KeyValuePair<string, object>("custom.attribute", "custom.value"));
+        var attributes = resource.Attributes.ToList();
+        attributes.Should().Contain(new KeyValuePair<string, object>("service.name", "MyTestService"));
+        attributes.Should().Contain(new KeyValuePair<string, object>("service.version", "2.0.0"));
+        attributes.Should().Contain(new KeyValuePair<string, object>("custom.attribute", "custom.value"));
     }
 
     [Fact]

@@ -1,7 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -101,7 +99,7 @@ namespace Relay.Core.AI
                 services.TryAddSingleton<IAIModelTrainer, DefaultAIModelTrainer>();
                 services.TryAddSingleton<IAIPredictionCache, DefaultAIPredictionCache>();
                 services.TryAddSingleton<IAIMetricsExporter, DefaultAIMetricsExporter>();
-                
+
                 // Add specialized pipeline behaviors
                 services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(AIPerformanceTrackingBehavior<,>));
                 services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(AIBatchOptimizationBehavior<,>));
@@ -190,7 +188,7 @@ namespace Relay.Core.AI
         {
             services.AddAIOptimization(configureOptions);
             services.TryAddSingleton<IAIPredictionModel, TPredictionModel>();
-            
+
             return services;
         }
 
@@ -204,62 +202,5 @@ namespace Relay.Core.AI
             // Health checks would require additional dependency - simplified for now
             return services;
         }
-    }
-
-    // Placeholder interfaces for advanced AI features
-    public interface IAIModelTrainer
-    {
-        ValueTask TrainModelAsync(AITrainingData trainingData, CancellationToken cancellationToken = default);
-    }
-
-    public interface IAIPredictionCache
-    {
-        ValueTask<OptimizationRecommendation?> GetCachedPredictionAsync(string key, CancellationToken cancellationToken = default);
-        ValueTask SetCachedPredictionAsync(string key, OptimizationRecommendation recommendation, TimeSpan expiry, CancellationToken cancellationToken = default);
-    }
-
-    public interface IAIMetricsExporter
-    {
-        ValueTask ExportMetricsAsync(AIModelStatistics statistics, CancellationToken cancellationToken = default);
-    }
-
-    public interface IAIPredictionModel
-    {
-        ValueTask<OptimizationRecommendation> PredictAsync(RequestContext context, CancellationToken cancellationToken = default);
-    }
-
-    // NOTE: Default implementations have been moved to separate files:
-    // - DefaultAIModelTrainer: AI/Training/DefaultAIModelTrainer.cs
-    // - DefaultAIPredictionCache: AI/Cache/DefaultAIPredictionCache.cs
-    // - DefaultAIMetricsExporter: AI/Metrics/DefaultAIMetricsExporter.cs
-    // - AIPerformanceTrackingBehavior: AI/Pipeline/AIPerformanceTrackingBehavior.cs
-    // - AIBatchOptimizationBehavior: AI/Pipeline/AIBatchOptimizationBehavior.cs
-    // - AICachingOptimizationBehavior: AI/Pipeline/AICachingOptimizationBehavior.cs
-
-    // Supporting types
-    public class AITrainingData
-    {
-        public RequestExecutionMetrics[] ExecutionHistory { get; init; } = Array.Empty<RequestExecutionMetrics>();
-        public AIOptimizationResult[] OptimizationHistory { get; init; } = Array.Empty<AIOptimizationResult>();
-        public SystemLoadMetrics[] SystemLoadHistory { get; init; } = Array.Empty<SystemLoadMetrics>();
-    }
-
-    public class RequestContext
-    {
-        public Type RequestType { get; init; } = null!;
-        public object Request { get; init; } = null!;
-        public RequestExecutionMetrics HistoricalMetrics { get; init; } = null!;
-        public SystemLoadMetrics CurrentLoad { get; init; } = null!;
-        public DateTime Timestamp { get; init; } = DateTime.UtcNow;
-    }
-
-    public class AIOptimizationResult
-    {
-        public OptimizationStrategy Strategy { get; init; }
-        public TimeSpan ExecutionTime { get; init; }
-        public bool Success { get; init; }
-        public string? ErrorMessage { get; init; }
-        public double PerformanceImprovement { get; init; }
-        public DateTime Timestamp { get; init; }
     }
 }

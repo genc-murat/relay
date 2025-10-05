@@ -13,15 +13,18 @@ namespace Relay.Core.AI
         private readonly ILogger<ModelParameterAdjuster> _logger;
         private readonly AIOptimizationOptions _options;
         private readonly ConcurrentQueue<PredictionResult> _recentPredictions;
+        private readonly TimeSeriesDatabase _timeSeriesDb;
 
         public ModelParameterAdjuster(
             ILogger<ModelParameterAdjuster> logger,
             AIOptimizationOptions options,
-            ConcurrentQueue<PredictionResult> recentPredictions)
+            ConcurrentQueue<PredictionResult> recentPredictions,
+            TimeSeriesDatabase timeSeriesDb)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _recentPredictions = recentPredictions ?? throw new ArgumentNullException(nameof(recentPredictions));
+            _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
         }
 
         public void AdjustModelParameters(bool decrease, Func<ModelStatistics> getModelStatistics)
@@ -301,21 +304,115 @@ namespace Relay.Core.AI
         {
             try
             {
+                var timestamp = DateTime.UtcNow;
+                
+                // Create comprehensive metadata
                 var metadata = new ModelAdjustmentMetadata
                 {
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = timestamp,
                     AdjustmentFactor = adjustmentFactor,
                     Direction = adjustmentDirection,
                     Reason = "Performance-based automatic adjustment",
                     TriggeredBy = "ModelUpdateLoop"
                 };
 
-                _logger.LogDebug("Model metadata updated: Factor={Factor:F3}, Direction={Direction}, Time={Time}",
-                    metadata.AdjustmentFactor, metadata.Direction, metadata.Timestamp);
+                // Persist metadata to TimeSeriesDatabase for audit trail
+                _timeSeriesDb.StoreMetric("Model_AdjustmentFactor", adjustmentFactor, timestamp);
+                _timeSeriesDb.StoreMetric("Model_AdjustmentDirection", 
+                    adjustmentDirection == "increase" ? 1.0 : -1.0, timestamp);
+                
+                // Store adjustment count
+                var adjustmentCount = GetAdjustmentCount(adjustmentDirection);
+                _timeSeriesDb.StoreMetric($"Model_Adjustment_{adjustmentDirection}_Count", 
+                    adjustmentCount, timestamp);
+                
+                // Store adjustment frequency (adjustments per hour)
+                var adjustmentFrequency = CalculateAdjustmentFrequency();
+                _timeSeriesDb.StoreMetric("Model_AdjustmentFrequency", adjustmentFrequency, timestamp);
+                
+                // Store comprehensive audit information as JSON-like metrics
+                StoreAuditTrail(metadata, adjustmentFactor, adjustmentDirection, timestamp);
+
+                _logger.LogInformation("Model metadata persisted to audit trail: " +
+                    "Factor={Factor:F3}, Direction={Direction}, Frequency={Frequency:F2}/hour",
+                    metadata.AdjustmentFactor, metadata.Direction, adjustmentFrequency);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Error updating model metadata");
+            }
+        }
+
+        /// <summary>
+        /// Get total adjustment count for direction
+        /// </summary>
+        private int GetAdjustmentCount(string direction)
+        {
+            try
+            {
+                var metricName = $"Model_Adjustment_{direction}_Count";
+                var history = _timeSeriesDb.GetHistory(metricName, TimeSpan.FromDays(30)).ToList();
+                
+                return history.Count > 0 ? (int)history.Last().Value + 1 : 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+        /// <summary>
+        /// Calculate adjustment frequency (adjustments per hour)
+        /// </summary>
+        private double CalculateAdjustmentFrequency()
+        {
+            try
+            {
+                var history = _timeSeriesDb.GetHistory("Model_AdjustmentFactor", TimeSpan.FromHours(24)).ToList();
+                
+                if (history.Count < 2) return 0.0;
+
+                var hoursSpanned = (history.Last().Timestamp - history.First().Timestamp).TotalHours;
+                return hoursSpanned > 0 ? history.Count / hoursSpanned : 0.0;
+            }
+            catch
+            {
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Store comprehensive audit trail
+        /// </summary>
+        private void StoreAuditTrail(ModelAdjustmentMetadata metadata, double factor, 
+            string direction, DateTime timestamp)
+        {
+            try
+            {
+                // Store detailed audit metrics
+                _timeSeriesDb.StoreMetric("Audit_ModelAdjustment_Timestamp", 
+                    timestamp.Ticks, timestamp);
+                
+                _timeSeriesDb.StoreMetric("Audit_ModelAdjustment_FactorMagnitude", 
+                    Math.Abs(factor - 1.0), timestamp);
+                
+                _timeSeriesDb.StoreMetric("Audit_ModelAdjustment_IsIncrease", 
+                    direction == "increase" ? 1.0 : 0.0, timestamp);
+                
+                _timeSeriesDb.StoreMetric("Audit_ModelAdjustment_IsDecrease", 
+                    direction == "decrease" ? 1.0 : 0.0, timestamp);
+
+                // Calculate adjustment impact score
+                var impactScore = Math.Abs(factor - 1.0) * 10; // 0-3 scale (since factor is 0.7-1.3)
+                _timeSeriesDb.StoreMetric("Audit_ModelAdjustment_ImpactScore", impactScore, timestamp);
+
+                _logger.LogDebug("Audit trail stored: Impact={Impact:F2}, Direction={Direction}, " +
+                    "Magnitude={Magnitude:F3}",
+                    impactScore, direction, Math.Abs(factor - 1.0));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error storing audit trail");
             }
         }
 
@@ -352,18 +449,5 @@ namespace Relay.Core.AI
                 _logger.LogWarning(ex, "Error validating adjusted parameters");
             }
         }
-    }
-
-    internal class ModelAdjustmentMetadata
-    {
-        public DateTime Timestamp { get; set; }
-        public double AdjustmentFactor { get; set; }
-        public string Direction { get; set; } = string.Empty;
-        public string Reason { get; set; } = string.Empty;
-        public string TriggeredBy { get; set; } = string.Empty;
-        public string ModelVersion { get; set; } = string.Empty;
-        public double AccuracyBeforeAdjustment { get; set; }
-        public long TotalPredictions { get; set; }
-        public long CorrectPredictions { get; set; }
     }
 }

@@ -222,4 +222,71 @@ namespace Relay.Core.AI
             return initialCount - _accessPatterns.Count;
         }
     }
+
+    /// <summary>
+    /// Connection breakdown by type
+    /// </summary>
+    internal class ConnectionBreakdown
+    {
+        public DateTime Timestamp { get; set; }
+        public int TotalConnections { get; set; }
+        public int HttpConnections { get; set; }
+        public int DatabaseConnections { get; set; }
+        public int ExternalServiceConnections { get; set; }
+        public int WebSocketConnections { get; set; }
+        public int ActiveRequestConnections { get; set; }
+        public double ThreadPoolUtilization { get; set; }
+        public double DatabasePoolUtilization { get; set; }
+    }
+
+    /// <summary>
+    /// Connection cache entry
+    /// </summary>
+    internal class ConnectionCacheEntry
+    {
+        public int Count { get; set; }
+        public DateTime Timestamp { get; set; }
+        public DateTime ExpiresAt { get; set; }
+    }
+
+    /// <summary>
+    /// Connection trend data point with technical indicators
+    /// </summary>
+    internal class ConnectionTrendDataPoint
+    {
+        public DateTime Timestamp { get; set; }
+        public int ConnectionCount { get; set; }
+        public double MovingAverage5Min { get; set; }
+        public double MovingAverage15Min { get; set; }
+        public double MovingAverage1Hour { get; set; }
+        public string TrendDirection { get; set; } = "stable";
+        public double VolatilityScore { get; set; }
+    }
+
+    /// <summary>
+    /// Peak connection metrics
+    /// </summary>
+    internal class PeakConnectionMetrics
+    {
+        public int DailyPeak { get; set; }
+        public int HourlyPeak { get; set; }
+        public int AllTimePeak { get; set; }
+        public DateTime LastPeakTimestamp { get; set; }
+    }
+
+    /// <summary>
+    /// Model adjustment metadata for audit trail
+    /// </summary>
+    internal class ModelAdjustmentMetadata
+    {
+        public DateTime Timestamp { get; set; }
+        public double AdjustmentFactor { get; set; }
+        public string Direction { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+        public string TriggeredBy { get; set; } = string.Empty;
+        public string ModelVersion { get; set; } = string.Empty;
+        public double AccuracyBeforeAdjustment { get; set; }
+        public long TotalPredictions { get; set; }
+        public long CorrectPredictions { get; set; }
+    }
 }

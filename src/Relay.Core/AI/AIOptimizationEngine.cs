@@ -51,6 +51,8 @@ namespace Relay.Core.AI
         private readonly SystemMetricsCalculator _systemMetrics;
         private readonly DataCleanupManager _dataCleanup;
         private readonly PerformanceAnalyzer _performanceAnalyzer;
+        private readonly TimeSeriesDatabase _timeSeriesDb;
+        private readonly ConnectionMetricsCache _connectionMetricsCache;
 
         private volatile bool _learningEnabled = true;
         private volatile bool _disposed = false;
@@ -83,11 +85,17 @@ namespace Relay.Core.AI
             var connLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionMetricsCollector>.Instance;
             _connectionMetrics = new ConnectionMetricsCollector(connLogger, _options, _requestAnalytics);
 
+            var tsDbLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<TimeSeriesDatabase>.Instance;
+            _timeSeriesDb = new TimeSeriesDatabase(tsDbLogger, maxHistorySize: 10000);
+
+            var connCacheLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionMetricsCache>.Instance;
+            _connectionMetricsCache = new ConnectionMetricsCache(connCacheLogger, _timeSeriesDb);
+
             var cacheLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<CachingStrategyManager>.Instance;
-            _cachingStrategy = new CachingStrategyManager(cacheLogger);
+            _cachingStrategy = new CachingStrategyManager(cacheLogger, _connectionMetricsCache);
 
             var paramLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<ModelParameterAdjuster>.Instance;
-            _parameterAdjuster = new ModelParameterAdjuster(paramLogger, _options, _recentPredictions);
+            _parameterAdjuster = new ModelParameterAdjuster(paramLogger, _options, _recentPredictions, _timeSeriesDb);
 
             var trendLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<TrendAnalyzer>.Instance;
             _trendAnalyzer = new TrendAnalyzer(trendLogger);
@@ -1226,358 +1234,17 @@ namespace Relay.Core.AI
 
         private void CacheConnectionCount(int connectionCount)
         {
-            try
-            {
-                var timestamp = DateTime.UtcNow;
-
-                // 1. Cache with time-based key (30-second buckets)
-                var timeBasedKey = $"ai_connection_count_{timestamp:yyyyMMddHHmmss}";
-                CacheConnectionMetric(timeBasedKey, connectionCount, TimeSpan.FromSeconds(30));
-
-                // 2. Cache with rolling window key (for trend analysis)
-                var rollingWindowKey = $"ai_connection_rolling_{timestamp:yyyyMMddHHmm}";
-                CacheConnectionMetricWithRollingWindow(rollingWindowKey, connectionCount);
-
-                // 3. Cache breakdown by connection type
-                CacheConnectionBreakdown(timestamp, connectionCount);
-
-                // 4. Update historical statistics
-                UpdateConnectionStatistics(connectionCount, timestamp);
-
-                // 5. Cache peak connection metrics
-                UpdatePeakConnectionMetrics(connectionCount, timestamp);
-
-                // 6. Store for trend analysis
-                StoreConnectionTrendData(connectionCount, timestamp);
-
-                _logger.LogTrace("Cached connection count: {Count} at {Timestamp} with multiple cache strategies",
-                    connectionCount, timestamp);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Error caching connection count - non-critical, continuing");
-                // Non-critical error, continue without caching
-            }
-        }
-
-        private void CacheConnectionMetric(string cacheKey, int connectionCount, TimeSpan duration)
-        {
-            try
-            {
-                // In production, integrate with IMemoryCache:
-                // _memoryCache.Set(cacheKey, connectionCount, new MemoryCacheEntryOptions
-                // {
-                //     AbsoluteExpirationRelativeToNow = duration,
-                //     Priority = CacheItemPriority.Low
-                // });
-
-                // For now, use in-memory dictionary with timestamp (simplified)
-                var cacheEntry = new ConnectionCacheEntry
-                {
-                    Count = connectionCount,
-                    Timestamp = DateTime.UtcNow,
-                    ExpiresAt = DateTime.UtcNow.Add(duration)
-                };
-
-                // Store in analytics for later retrieval
-                _logger.LogTrace("Cached metric with key: {Key}, Count: {Count}, Duration: {Duration}s",
-                    cacheKey, connectionCount, duration.TotalSeconds);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogTrace(ex, "Error in CacheConnectionMetric");
-            }
-        }
-
-        private void CacheConnectionMetricWithRollingWindow(string windowKey, int connectionCount)
-        {
-            try
-            {
-                // Implement rolling window cache for trend analysis
-                // In production, would use a circular buffer or time-series database
-
-                // Calculate rolling average (last 5 minutes)
-                var rollingWindowSize = 10; // Keep last 10 measurements
-
-                // This would be stored in a ConcurrentQueue or similar structure
-                // For now, just log the rolling window update
-                _logger.LogTrace("Rolling window cache updated: {Key}, Count: {Count}, WindowSize: {WindowSize}",
-                    windowKey, connectionCount, rollingWindowSize);
-
-                // Calculate and cache rolling statistics
-                var rollingAverage = connectionCount; // In production: calculate from window
-                var rollingStdDev = 0.0; // In production: calculate standard deviation
-                var rollingTrend = 0.0; // In production: calculate trend (slope)
-
-                _logger.LogTrace("Rolling stats - Avg: {Avg}, StdDev: {StdDev:F2}, Trend: {Trend:F2}",
-                    rollingAverage, rollingStdDev, rollingTrend);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogTrace(ex, "Error in CacheConnectionMetricWithRollingWindow");
-            }
-        }
-
-        private void CacheConnectionBreakdown(DateTime timestamp, int totalConnections)
-        {
-            try
-            {
-                // Cache detailed breakdown by connection type
-                var breakdown = new ConnectionBreakdown
-                {
-                    Timestamp = timestamp,
-                    TotalConnections = totalConnections,
-                    HttpConnections = GetHttpConnectionCount(),
-                    DatabaseConnections = GetDatabaseConnectionCount(),
-                    ExternalServiceConnections = GetExternalServiceConnectionCount(),
-                    WebSocketConnections = GetWebSocketConnectionCount(),
-                    ActiveRequestConnections = GetActiveRequestCount(),
-                    ThreadPoolUtilization = GetThreadPoolUtilization(),
-                    DatabasePoolUtilization = GetDatabasePoolUtilization()
-                };
-
-                // In production, would cache this structured data
-                _logger.LogTrace("Connection breakdown cached - HTTP: {Http}, DB: {Db}, External: {Ext}, WS: {Ws}",
-                    breakdown.HttpConnections, breakdown.DatabaseConnections,
-                    breakdown.ExternalServiceConnections, breakdown.WebSocketConnections);
-
-                // Store breakdown for historical analysis
-                StoreConnectionBreakdownHistory(breakdown);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogTrace(ex, "Error caching connection breakdown");
-            }
-        }
-
-        private void UpdateConnectionStatistics(int connectionCount, DateTime timestamp)
-        {
-            try
-            {
-                // Update running statistics for connection metrics
-                // In production, would maintain running mean, variance, min, max
-
-                // Calculate statistics
-                var currentHour = timestamp.Hour;
-                var statsKey = $"connection_stats_hour_{currentHour}";
-
-                // Track hourly patterns
-                var hourlyAverage = connectionCount; // In production: calculate from historical data
-                var hourlyPeak = Math.Max(connectionCount, hourlyAverage);
-                var hourlyMin = Math.Min(connectionCount, hourlyAverage);
-
-                _logger.LogTrace("Connection statistics updated for hour {Hour}: Avg={Avg}, Peak={Peak}, Min={Min}",
-                    currentHour, hourlyAverage, hourlyPeak, hourlyMin);
-
-                // Store daily patterns
-                var dayOfWeek = timestamp.DayOfWeek;
-                var dailyStatsKey = $"connection_stats_day_{dayOfWeek}";
-
-                _logger.LogTrace("Daily pattern tracking: {DayOfWeek}, Stats: {StatsKey}",
-                    dayOfWeek, dailyStatsKey);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogTrace(ex, "Error updating connection statistics");
-            }
-        }
-
-        private void UpdatePeakConnectionMetrics(int connectionCount, DateTime timestamp)
-        {
-            try
-            {
-                // Track and cache peak connection metrics
-                // In production, would maintain peak values with timestamps
-
-                // Check if this is a new peak for various time windows
-                var isPeakToday = true; // In production: compare with today's max
-                var isPeakThisHour = true; // In production: compare with hour's max
-                var isPeakAllTime = false; // In production: compare with all-time max
-
-                if (isPeakToday)
-                {
-                    var dailyPeakKey = $"connection_peak_daily_{timestamp:yyyyMMdd}";
-                    _logger.LogTrace("New daily peak connection count: {Count} at {Time}",
-                        connectionCount, timestamp);
-                }
-
-                if (isPeakThisHour)
-                {
-                    var hourlyPeakKey = $"connection_peak_hourly_{timestamp:yyyyMMddHH}";
-                    _logger.LogTrace("New hourly peak connection count: {Count} at {Time}",
-                        connectionCount, timestamp);
-                }
-
-                if (isPeakAllTime)
-                {
-                    var allTimePeakKey = "connection_peak_all_time";
-                    _logger.LogInformation("NEW ALL-TIME PEAK connection count: {Count} at {Time}",
-                        connectionCount, timestamp);
-                }
-
-                // Cache peak metrics with longer TTL
-                var peakMetrics = new PeakConnectionMetrics
-                {
-                    DailyPeak = connectionCount,
-                    HourlyPeak = connectionCount,
-                    AllTimePeak = connectionCount,
-                    LastPeakTimestamp = timestamp
-                };
-
-                _logger.LogTrace("Peak metrics cached: Daily={Daily}, Hourly={Hourly}, AllTime={AllTime}",
-                    peakMetrics.DailyPeak, peakMetrics.HourlyPeak, peakMetrics.AllTimePeak);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogTrace(ex, "Error updating peak connection metrics");
-            }
-        }
-
-        private void StoreConnectionTrendData(int connectionCount, DateTime timestamp)
-        {
-            try
-            {
-                // Store connection data for trend analysis and prediction
-                // In production, would store in time-series database or circular buffer
-
-                var trendData = new ConnectionTrendDataPoint
-                {
-                    Timestamp = timestamp,
-                    ConnectionCount = connectionCount,
-                    MovingAverage5Min = connectionCount, // In production: calculate from last 5 minutes
-                    MovingAverage15Min = connectionCount, // In production: calculate from last 15 minutes
-                    MovingAverage1Hour = connectionCount, // In production: calculate from last hour
-                    TrendDirection = CalculateConnectionTrend(connectionCount),
-                    VolatilityScore = CalculateConnectionVolatility()
-                };
-
-                _logger.LogTrace("Trend data stored: Count={Count}, Trend={Trend}, Volatility={Volatility:F2}",
-                    connectionCount, trendData.TrendDirection, trendData.VolatilityScore);
-
-                // Analyze trend for anomaly detection
-                DetectConnectionAnomalies(trendData);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogTrace(ex, "Error storing connection trend data");
-            }
-        }
-
-        private void StoreConnectionBreakdownHistory(ConnectionBreakdown breakdown)
-        {
-            try
-            {
-                // Store breakdown history for pattern analysis
-                // In production, would use a rolling buffer or time-series database
-
-                // Analyze breakdown ratios
-                var httpRatio = breakdown.TotalConnections > 0
-                    ? (double)breakdown.HttpConnections / breakdown.TotalConnections
-                    : 0.0;
-                var dbRatio = breakdown.TotalConnections > 0
-                    ? (double)breakdown.DatabaseConnections / breakdown.TotalConnections
-                    : 0.0;
-                var wsRatio = breakdown.TotalConnections > 0
-                    ? (double)breakdown.WebSocketConnections / breakdown.TotalConnections
-                    : 0.0;
-
-                _logger.LogTrace("Connection ratios - HTTP: {HttpRatio:P}, DB: {DbRatio:P}, WS: {WsRatio:P}",
-                    httpRatio, dbRatio, wsRatio);
-
-                // Detect unusual ratios
-                if (httpRatio > 0.8)
-                {
-                    _logger.LogDebug("High HTTP connection ratio detected: {Ratio:P}", httpRatio);
-                }
-
-                if (dbRatio > 0.5)
-                {
-                    _logger.LogWarning("High database connection ratio detected: {Ratio:P} - possible connection leak",
-                        dbRatio);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogTrace(ex, "Error storing connection breakdown history");
-            }
-        }
-
-        private string CalculateConnectionTrend(int currentCount)
-        {
-            try
-            {
-                // Calculate trend direction (increasing, decreasing, stable)
-                // In production, would compare with historical data
-
-                // Simplified trend calculation
-                var historicalAverage = CalculateHistoricalConnectionAverage();
-
-                if (historicalAverage == 0) return "stable";
-
-                var percentDiff = ((double)currentCount - historicalAverage) / historicalAverage;
-
-                if (percentDiff > 0.1) return "increasing";
-                if (percentDiff < -0.1) return "decreasing";
-                return "stable";
-            }
-            catch
-            {
-                return "unknown";
-            }
-        }
-
-        private double CalculateConnectionVolatility()
-        {
-            try
-            {
-                // Calculate connection count volatility (variability)
-                // In production, would calculate standard deviation from historical data
-
-                // Simplified volatility score (0.0 = stable, 1.0 = highly volatile)
-                var recentVariance = 0.15; // Placeholder
-
-                return Math.Min(1.0, recentVariance);
-            }
-            catch
-            {
-                return 0.0;
-            }
-        }
-
-        private void DetectConnectionAnomalies(ConnectionTrendDataPoint trendData)
-        {
-            try
-            {
-                // Detect anomalies in connection patterns
-                // In production, would use statistical methods or ML models
-
-                // Check for sudden spikes
-                var spikeThreshold = trendData.MovingAverage1Hour * 2.0; // 2x normal
-                if (trendData.ConnectionCount > spikeThreshold)
-                {
-                    _logger.LogWarning("Connection count spike detected: {Current} vs {Average} (threshold: {Threshold})",
-                        trendData.ConnectionCount, trendData.MovingAverage1Hour, spikeThreshold);
-                }
-
-                // Check for sudden drops
-                var dropThreshold = trendData.MovingAverage1Hour * 0.3; // 70% drop
-                if (trendData.ConnectionCount < dropThreshold && trendData.MovingAverage1Hour > 0)
-                {
-                    _logger.LogWarning("Connection count drop detected: {Current} vs {Average} (threshold: {Threshold})",
-                        trendData.ConnectionCount, trendData.MovingAverage1Hour, dropThreshold);
-                }
-
-                // Check for high volatility
-                if (trendData.VolatilityScore > 0.7)
-                {
-                    _logger.LogWarning("High connection volatility detected: {Volatility:P}",
-                        trendData.VolatilityScore);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogTrace(ex, "Error detecting connection anomalies");
-            }
+            // Delegate all connection count caching to CachingStrategyManager
+            _cachingStrategy.CacheConnectionCount(
+                connectionCount,
+                GetHttpConnectionCount,
+                GetDatabaseConnectionCount,
+                GetExternalServiceConnectionCount,
+                GetWebSocketConnectionCount,
+                GetActiveRequestCount,
+                GetThreadPoolUtilization,
+                GetDatabasePoolUtilization
+            );
         }
 
         private int GetFallbackConnectionCount()
@@ -1744,7 +1411,41 @@ namespace Relay.Core.AI
 
         private double CalculateHistoricalSuccessRate(OptimizationStrategy strategy, PatternAnalysisContext context)
         {
-            // Calculate success rate for a specific strategy based on historical data
+            try
+            {
+                // Calculate success rate for a specific strategy using historical data from TimeSeriesDB
+                var metricName = $"OptimizationSuccess_{strategy}";
+                var history = _timeSeriesDb.GetHistory(metricName, TimeSpan.FromDays(7));
+                
+                var dataPoints = history.ToList();
+                if (dataPoints.Count == 0)
+                {
+                    // Fallback to in-memory analytics if no time-series data
+                    return CalculateFallbackSuccessRate(strategy);
+                }
+
+                // Calculate success rate from time-series data
+                var successCount = dataPoints.Count(dp => dp.Value > 0.5); // Value > 0.5 means success
+                var successRate = (double)successCount / dataPoints.Count;
+
+                // Store current calculation in TimeSeriesDB for ML.NET compatibility
+                _timeSeriesDb.StoreMetric(metricName, successRate, DateTime.UtcNow);
+
+                _logger.LogTrace("Historical success rate for {Strategy}: {Rate:P} ({SuccessCount}/{Total} samples)",
+                    strategy, successRate, successCount, dataPoints.Count);
+
+                return successRate;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error calculating historical success rate");
+                return 0.5; // Default neutral value
+            }
+        }
+
+        private double CalculateFallbackSuccessRate(OptimizationStrategy strategy)
+        {
+            // Fallback method using in-memory analytics
             var totalApplications = 0;
             var successfulApplications = 0;
 
@@ -1754,7 +1455,6 @@ namespace Relay.Core.AI
                 if (strategyResults.Contains(strategy))
                 {
                     totalApplications++;
-                    // Simplified success calculation - in production would track actual outcomes
                     if (analysisData.SuccessRate > 0.9 && analysisData.CalculatePerformanceTrend() < 0)
                     {
                         successfulApplications++;
@@ -1762,7 +1462,13 @@ namespace Relay.Core.AI
                 }
             }
 
-            return totalApplications > 0 ? (double)successfulApplications / totalApplications : 0.5;
+            var successRate = totalApplications > 0 ? (double)successfulApplications / totalApplications : 0.5;
+            
+            // Store in TimeSeriesDB for future use
+            var metricName = $"OptimizationSuccess_{strategy}";
+            _timeSeriesDb.StoreMetric(metricName, successRate, DateTime.UtcNow);
+
+            return successRate;
         }
 
         private double AnalyzePatternComplexity(PatternAnalysisContext context)
@@ -2225,364 +1931,21 @@ namespace Relay.Core.AI
             });
         }
 
-        private double CalculateAdaptiveAdjustmentFactor(bool decrease)
-        {
-            try
-            {
-                var modelStats = GetModelStatistics();
-                var accuracyScore = modelStats.AccuracyScore;
 
-                // Base adjustment: 10% change
-                var baseAdjustment = decrease ? 0.9 : 1.1;
-
-                // Adaptive adjustment based on accuracy deviation from target (0.85)
-                var targetAccuracy = 0.85;
-                var accuracyGap = Math.Abs(accuracyScore - targetAccuracy);
-
-                // Larger gap = larger adjustment (up to 30% max)
-                var adaptiveFactor = 1.0 + (accuracyGap * 2.0); // Scale gap to adjustment
-                adaptiveFactor = Math.Max(0.7, Math.Min(1.3, adaptiveFactor)); // Clamp to 0.7-1.3
-
-                // Combine base with adaptive factor
-                var finalFactor = decrease
-                    ? baseAdjustment * (2.0 - adaptiveFactor) // More aggressive decrease if needed
-                    : baseAdjustment * adaptiveFactor;        // More aggressive increase if needed
-
-                // Ensure reasonable bounds
-                finalFactor = Math.Max(0.7, Math.Min(1.3, finalFactor));
-
-                _logger.LogDebug("Calculated adaptive adjustment factor: {Factor:F3} " +
-                    "(Base: {Base:F2}, Accuracy: {Accuracy:P}, Gap: {Gap:P})",
-                    finalFactor, baseAdjustment, accuracyScore, accuracyGap);
-
-                return finalFactor;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error calculating adaptive adjustment factor, using default");
-                return decrease ? 0.9 : 1.1;
-            }
-        }
-
-        private void AdjustConfidenceThresholds(double factor)
-        {
-            try
-            {
-                // Adjust confidence thresholds for each optimization strategy
-                var strategies = Enum.GetValues(typeof(OptimizationStrategy))
-                    .Cast<OptimizationStrategy>()
-                    .Where(s => s != OptimizationStrategy.None)
-                    .ToArray();
-
-                foreach (var strategy in strategies)
-                {
-                    // Calculate current average confidence for this strategy
-                    var currentConfidence = CalculateStrategyConfidence(strategy);
-                    var adjustedConfidence = currentConfidence * factor;
-
-                    // Clamp to reasonable bounds (0.3 - 0.98)
-                    adjustedConfidence = Math.Max(0.3, Math.Min(0.98, adjustedConfidence));
-
-                    _logger.LogDebug("Adjusted confidence threshold for {Strategy}: {Old:P} -> {New:P}",
-                        strategy, currentConfidence, adjustedConfidence);
-                }
-
-                _logger.LogInformation("Adjusted confidence thresholds for {Count} strategies", strategies.Length);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error adjusting confidence thresholds");
-            }
-        }
-
-        private void AdjustStrategyWeights(double factor)
-        {
-            try
-            {
-                // Adjust weights for different optimization strategies based on historical success
-                var recentPredictions = _recentPredictions.ToArray();
-                if (recentPredictions.Length == 0) return;
-
-                // Group predictions by strategy
-                var strategyGroups = recentPredictions
-                    .SelectMany(p => p.PredictedStrategies.Select(s => new { Strategy = s, Prediction = p }))
-                    .GroupBy(x => x.Strategy)
-                    .ToArray();
-
-                foreach (var group in strategyGroups)
-                {
-                    var strategy = group.Key;
-                    var predictions = group.ToArray();
-                    var successCount = predictions.Count(p => p.Prediction.ActualImprovement.TotalMilliseconds > 0);
-                    var totalCount = predictions.Length;
-                    var successRate = totalCount > 0 ? (double)successCount / totalCount : 0.5;
-
-                    // Adjust weight based on success rate
-                    var currentWeight = 1.0; // Placeholder - would retrieve from model state
-                    var adjustedWeight = currentWeight * (successRate > 0.7 ? factor : (2.0 - factor));
-
-                    // Clamp weights to reasonable bounds
-                    adjustedWeight = Math.Max(0.5, Math.Min(2.0, adjustedWeight));
-
-                    _logger.LogDebug("Adjusted strategy weight for {Strategy}: {OldWeight:F2} -> {NewWeight:F2} " +
-                        "(Success rate: {SuccessRate:P})",
-                        strategy, currentWeight, adjustedWeight, successRate);
-                }
-
-                _logger.LogInformation("Adjusted weights for {Count} optimization strategies", strategyGroups.Length);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error adjusting strategy weights");
-            }
-        }
-
-        private void AdjustPredictionSensitivity(double factor)
-        {
-            try
-            {
-                // Adjust how sensitive the model is to performance patterns
-                var currentSensitivity = 1.0; // Placeholder - would retrieve from model state
-                var adjustedSensitivity = currentSensitivity * factor;
-
-                // Clamp to reasonable bounds (0.5 - 2.0)
-                adjustedSensitivity = Math.Max(0.5, Math.Min(2.0, adjustedSensitivity));
-
-                // Higher sensitivity = detects smaller performance issues
-                // Lower sensitivity = only detects significant issues
-
-                _logger.LogDebug("Adjusted prediction sensitivity: {Old:F2} -> {New:F2}",
-                    currentSensitivity, adjustedSensitivity);
-
-                // Adjust related thresholds
-                var baseThreshold = _options.HighExecutionTimeThreshold;
-                var adjustedThreshold = baseThreshold / adjustedSensitivity;
-
-                _logger.LogDebug("Adjusted execution time threshold: {Old}ms -> {New:F0}ms",
-                    baseThreshold, adjustedThreshold);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error adjusting prediction sensitivity");
-            }
-        }
-
-        private void AdjustLearningRate(double factor)
-        {
-            try
-            {
-                // Adjust how quickly the model learns from new data
-                var currentLearningRate = CalculateLearningRate();
-                var adjustedLearningRate = currentLearningRate * factor;
-
-                // Clamp to reasonable bounds (0.01 - 0.5)
-                adjustedLearningRate = Math.Max(0.01, Math.Min(0.5, adjustedLearningRate));
-
-                // Higher learning rate = faster adaptation but less stability
-                // Lower learning rate = more stable but slower adaptation
-
-                _logger.LogDebug("Adjusted learning rate: {Old:F3} -> {New:F3}",
-                    currentLearningRate, adjustedLearningRate);
-
-                // Adjust momentum (for gradient-based optimization)
-                var momentum = 0.9; // Typical value
-                var adjustedMomentum = Math.Max(0.5, Math.Min(0.99, momentum * (2.0 - factor)));
-
-                _logger.LogDebug("Adjusted momentum: {Old:F2} -> {New:F2}", momentum, adjustedMomentum);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error adjusting learning rate");
-            }
-        }
-
-        private void AdjustPerformanceThresholds(double factor)
-        {
-            try
-            {
-                // Adjust various performance thresholds
-                var thresholds = new Dictionary<string, double>
-                {
-                    ["HighExecutionTime"] = _options.HighExecutionTimeThreshold,
-                    ["HighConcurrency"] = _options.HighConcurrencyThreshold,
-                    ["HighMemoryAllocation"] = _options.HighMemoryAllocationThreshold
-                };
-
-                foreach (var threshold in thresholds)
-                {
-                    var adjustedValue = threshold.Value / factor; // Inverse for thresholds
-
-                    _logger.LogDebug("Adjusted {ThresholdName} threshold: {Old:F0} -> {New:F0}",
-                        threshold.Key, threshold.Value, adjustedValue);
-                }
-
-                _logger.LogInformation("Adjusted {Count} performance thresholds", thresholds.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error adjusting performance thresholds");
-            }
-        }
-
-        private void AdjustCachingParameters(double factor)
-        {
-            try
-            {
-                // Adjust caching recommendation parameters
-                var minCacheTtl = _options.MinCacheTtl.TotalSeconds;
-                var maxCacheTtl = _options.MaxCacheTtl.TotalSeconds;
-
-                var adjustedMinTtl = minCacheTtl * factor;
-                var adjustedMaxTtl = maxCacheTtl * factor;
-
-                // Ensure min < max
-                adjustedMinTtl = Math.Max(5, adjustedMinTtl);
-                adjustedMaxTtl = Math.Max(adjustedMinTtl * 2, adjustedMaxTtl);
-
-                _logger.LogDebug("Adjusted cache TTL range: [{OldMin}s - {OldMax}s] -> [{NewMin:F0}s - {NewMax:F0}s]",
-                    minCacheTtl, maxCacheTtl, adjustedMinTtl, adjustedMaxTtl);
-
-                // Adjust repeat rate threshold for caching recommendations
-                var repeatRateThreshold = 0.2; // 20% default
-                var adjustedRepeatRate = repeatRateThreshold / factor; // Lower threshold with increase
-                adjustedRepeatRate = Math.Max(0.05, Math.Min(0.5, adjustedRepeatRate));
-
-                _logger.LogDebug("Adjusted cache repeat rate threshold: {Old:P} -> {New:P}",
-                    repeatRateThreshold, adjustedRepeatRate);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error adjusting caching parameters");
-            }
-        }
-
-        private void AdjustBatchSizePredictionParameters(double factor)
-        {
-            try
-            {
-                // Adjust batch size prediction parameters
-                var defaultBatchSize = _options.DefaultBatchSize;
-                var maxBatchSize = _options.MaxBatchSize;
-
-                var adjustedDefaultBatch = (int)(defaultBatchSize * factor);
-                adjustedDefaultBatch = Math.Max(1, Math.Min(maxBatchSize, adjustedDefaultBatch));
-
-                _logger.LogDebug("Adjusted default batch size: {Old} -> {New}",
-                    defaultBatchSize, adjustedDefaultBatch);
-
-                // Adjust batch size scaling factors
-                var systemLoadFactor = 1.0;
-                var adjustedLoadFactor = systemLoadFactor * factor;
-                adjustedLoadFactor = Math.Max(0.5, Math.Min(2.0, adjustedLoadFactor));
-
-                _logger.LogDebug("Adjusted batch size load factor: {Old:F2} -> {New:F2}",
-                    systemLoadFactor, adjustedLoadFactor);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error adjusting batch size prediction parameters");
-            }
-        }
-
-        private void UpdateModelMetadata(double adjustmentFactor, string adjustmentDirection)
-        {
-            try
-            {
-                // Update model metadata to track adjustments
-                var metadata = new ModelAdjustmentMetadata
-                {
-                    Timestamp = DateTime.UtcNow,
-                    AdjustmentFactor = adjustmentFactor,
-                    Direction = adjustmentDirection,
-                    Reason = adjustmentDirection == "decrease"
-                        ? "Low accuracy - reducing confidence"
-                        : "High accuracy - increasing confidence",
-                    ModelVersion = _options.ModelVersion,
-                    AccuracyBeforeAdjustment = GetModelStatistics().AccuracyScore,
-                    TotalPredictions = Interlocked.Read(ref _totalPredictions),
-                    CorrectPredictions = Interlocked.Read(ref _correctPredictions)
-                };
-
-                _logger.LogInformation("Model metadata updated: Version={Version}, Factor={Factor:F3}, " +
-                    "Accuracy={Accuracy:P}, Direction={Direction}",
-                    metadata.ModelVersion, metadata.AdjustmentFactor,
-                    metadata.AccuracyBeforeAdjustment, metadata.Direction);
-
-                // In production, would persist this metadata for audit trail
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error updating model metadata");
-            }
-        }
-
-        private void ValidateAdjustedParameters()
-        {
-            try
-            {
-                // Validate that adjusted parameters are within acceptable ranges
-                var validationIssues = new List<string>();
-
-                // Validate confidence bounds
-                var avgConfidence = CalculateAverageConfidence();
-                if (avgConfidence < 0.3 || avgConfidence > 0.98)
-                {
-                    validationIssues.Add($"Average confidence out of bounds: {avgConfidence:P}");
-                }
-
-                // Validate learning rate
-                var learningRate = CalculateLearningRate();
-                if (learningRate < 0.01 || learningRate > 0.5)
-                {
-                    validationIssues.Add($"Learning rate out of bounds: {learningRate:F3}");
-                }
-
-                // Validate thresholds
-                if (_options.MinCacheTtl >= _options.MaxCacheTtl)
-                {
-                    validationIssues.Add("Cache TTL range invalid: min >= max");
-                }
-
-                if (validationIssues.Count > 0)
-                {
-                    _logger.LogWarning("Parameter validation found {Count} issues: {Issues}",
-                        validationIssues.Count, string.Join("; ", validationIssues));
-                }
-                else
-                {
-                    _logger.LogDebug("Parameter validation passed successfully");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error validating adjusted parameters");
-            }
-        }
-
-        private double CalculateStrategyConfidence(OptimizationStrategy strategy)
-        {
-            try
-            {
-                // Calculate average confidence for a specific strategy from recent predictions
-                var strategyPredictions = _recentPredictions.ToArray()
-                    .Where(p => p.PredictedStrategies.Contains(strategy))
-                    .ToArray();
-
-                if (strategyPredictions.Length == 0) return 0.7; // Default confidence
-
-                // In production, would track actual confidence values
-                // For now, base on success rate
-                var successCount = strategyPredictions.Count(p => p.ActualImprovement.TotalMilliseconds > 0);
-                var successRate = (double)successCount / strategyPredictions.Length;
-
-                return Math.Max(0.3, Math.Min(0.95, successRate));
-            }
-            catch
-            {
-                return 0.7; // Default confidence
-            }
-        }
-
+        // Note: The following 10 duplicate methods were removed from AIOptimizationEngine and are now
+        // exclusively implemented in ModelParameterAdjuster to avoid code duplication:
+        // - CalculateAdaptiveAdjustmentFactor(bool decrease)
+        // - AdjustConfidenceThresholds(double factor)
+        // - AdjustStrategyWeights(double factor)
+        // - AdjustPredictionSensitivity(double factor)
+        // - AdjustLearningRate(double factor)
+        // - AdjustPerformanceThresholds(double factor)
+        // - AdjustCachingParameters(double factor)
+        // - AdjustBatchSizePredictionParameters(double factor)
+        // - ValidateAdjustedParameters()
+        // - CalculateStrategyConfidence(OptimizationStrategy strategy)
+        //
+        // All parameter adjustment logic is delegated to _parameterAdjuster.AdjustModelParameters()
         private double CalculateAverageConfidence()
         {
             try
@@ -2594,8 +1957,27 @@ namespace Relay.Core.AI
 
                 if (strategies.Length == 0) return 0.7;
 
-                var avgConfidence = strategies.Average(CalculateStrategyConfidence);
-                return avgConfidence;
+                // Calculate average confidence from recent predictions
+                // Note: CalculateStrategyConfidence is now in ModelParameterAdjuster
+                var recentPredictions = _recentPredictions.ToArray();
+                if (recentPredictions.Length == 0) return 0.7;
+
+                var totalConfidence = 0.0;
+                foreach (var strategy in strategies)
+                {
+                    var strategyPredictions = recentPredictions
+                        .Where(p => p.PredictedStrategies.Contains(strategy))
+                        .ToArray();
+                    
+                    if (strategyPredictions.Length == 0) continue;
+                    
+                    var successCount = strategyPredictions.Count(p => p.ActualImprovement.TotalMilliseconds > 0);
+                    var successRate = (double)successCount / strategyPredictions.Length;
+                    totalConfidence += Math.Max(0.3, Math.Min(0.95, successRate));
+                }
+                
+                var avgConfidence = strategies.Length > 0 ? totalConfidence / strategies.Length : 0.7;
+                return Math.Max(0.3, Math.Min(0.95, avgConfidence));
             }
             catch
             {
@@ -3198,45 +2580,28 @@ namespace Relay.Core.AI
         {
             try
             {
-                var timestamp = DateTime.UtcNow;
-                _logger.LogDebug("Starting metric trend analysis for {Count} metrics at {Timestamp}",
-                    currentMetrics.Count, timestamp);
+                _logger.LogDebug("Starting metric trend analysis for {Count} metrics", currentMetrics.Count);
 
-                // 1. Calculate moving averages for each metric
-                var movingAverages = CalculateMovingAverages(currentMetrics, timestamp);
+                // Use TrendAnalyzer to perform comprehensive analysis
+                var trendAnalysis = _trendAnalyzer.AnalyzeMetricTrends(currentMetrics);
 
-                // 2. Detect trend directions (increasing, decreasing, stable)
-                var trendDirections = DetectTrendDirections(currentMetrics, movingAverages);
-
-                // 3. Calculate trend velocity (rate of change)
-                var trendVelocities = CalculateTrendVelocities(currentMetrics, timestamp);
-
-                // 4. Identify seasonality patterns
-                var seasonalityPatterns = IdentifySeasonalityPatterns(currentMetrics, timestamp);
-
-                // 5. Perform regression analysis
-                var regressionAnalysis = PerformRegressionAnalysis(currentMetrics, timestamp);
-
-                // 6. Calculate correlation between metrics
-                var correlations = CalculateMetricCorrelations(currentMetrics);
-
-                // 7. Forecast future values
-                var forecasts = ForecastMetrics(currentMetrics, trendDirections, trendVelocities);
-
-                // 8. Detect anomalies
-                var anomalies = DetectPerformanceAnomalies(currentMetrics);
+                // 8. Detect anomalies (add AIOptimizationEngine specific checks)
+                var anomalies = trendAnalysis.Anomalies;
+                AddAISpecificAnomalies(currentMetrics, anomalies);
 
                 // 9. Generate trend insights
-                var insights = GenerateTrendInsights(currentMetrics, trendDirections, forecasts, anomalies);
+                var insights = GenerateTrendInsights(currentMetrics, trendAnalysis.TrendDirections, 
+                    new Dictionary<string, ForecastResult>(), anomalies);
 
                 // 10. Update trend database (in-memory or persistent)
-                UpdateTrendDatabase(currentMetrics, timestamp, movingAverages, trendDirections);
+                UpdateTrendDatabase(currentMetrics, trendAnalysis.Timestamp, trendAnalysis.MovingAverages, 
+                    trendAnalysis.TrendDirections);
 
                 // Log comprehensive analysis results
-                LogTrendAnalysis(timestamp, trendDirections, anomalies, insights);
+                LogTrendAnalysis(trendAnalysis.Timestamp, trendAnalysis.TrendDirections, anomalies, insights);
 
                 _logger.LogInformation("Metric trend analysis completed: {Trends} trends detected, {Anomalies} anomalies found",
-                    trendDirections.Count, anomalies.Count);
+                    trendAnalysis.TrendDirections.Count, anomalies.Count);
             }
             catch (Exception ex)
             {
@@ -3244,327 +2609,11 @@ namespace Relay.Core.AI
             }
         }
 
-        private Dictionary<string, MovingAverageData> CalculateMovingAverages(
-            Dictionary<string, double> currentMetrics,
-            DateTime timestamp)
+        private void AddAISpecificAnomalies(Dictionary<string, double> metrics, List<MetricAnomaly> anomalies)
         {
-            var result = new Dictionary<string, MovingAverageData>();
-
             try
             {
-                foreach (var metric in currentMetrics)
-                {
-                    // Calculate multiple window moving averages
-                    var ma5 = CalculateMovingAverage(metric.Key, metric.Value, 5);   // 5-period MA
-                    var ma15 = CalculateMovingAverage(metric.Key, metric.Value, 15);  // 15-period MA
-                    var ma60 = CalculateMovingAverage(metric.Key, metric.Value, 60);  // 60-period MA
-
-                    // Calculate exponential moving average
-                    var ema = CalculateExponentialMovingAverage(metric.Key, metric.Value, 0.3); // α = 0.3
-
-                    result[metric.Key] = new MovingAverageData
-                    {
-                        MA5 = ma5,
-                        MA15 = ma15,
-                        MA60 = ma60,
-                        EMA = ema,
-                        CurrentValue = metric.Value,
-                        Timestamp = timestamp
-                    };
-
-                    _logger.LogTrace("Moving averages for {Metric}: MA5={MA5:F3}, MA15={MA15:F3}, MA60={MA60:F3}, EMA={EMA:F3}",
-                        metric.Key, ma5, ma15, ma60, ema);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error calculating moving averages");
-            }
-
-            return result;
-        }
-
-        private Dictionary<string, TrendDirection> DetectTrendDirections(
-            Dictionary<string, double> currentMetrics,
-            Dictionary<string, MovingAverageData> movingAverages)
-        {
-            var result = new Dictionary<string, TrendDirection>();
-
-            try
-            {
-                foreach (var metric in currentMetrics)
-                {
-                    if (!movingAverages.TryGetValue(metric.Key, out var ma)) continue;
-
-                    var direction = TrendDirection.Stable;
-                    var strength = 0.0;
-
-                    // Golden Cross/Death Cross detection (MA5 vs MA15)
-                    var shortTermAboveLongTerm = ma.MA5 > ma.MA15;
-                    var currentAboveShortTerm = metric.Value > ma.MA5;
-
-                    if (currentAboveShortTerm && shortTermAboveLongTerm && ma.MA5 > ma.MA60)
-                    {
-                        direction = TrendDirection.StronglyIncreasing;
-                        strength = CalculateTrendStrength(metric.Value, ma.MA5, ma.MA15);
-                    }
-                    else if (currentAboveShortTerm && shortTermAboveLongTerm)
-                    {
-                        direction = TrendDirection.Increasing;
-                        strength = CalculateTrendStrength(metric.Value, ma.MA5, ma.MA15) * 0.7;
-                    }
-                    else if (!currentAboveShortTerm && !shortTermAboveLongTerm && ma.MA5 < ma.MA60)
-                    {
-                        direction = TrendDirection.StronglyDecreasing;
-                        strength = CalculateTrendStrength(metric.Value, ma.MA5, ma.MA15);
-                    }
-                    else if (!currentAboveShortTerm && !shortTermAboveLongTerm)
-                    {
-                        direction = TrendDirection.Decreasing;
-                        strength = CalculateTrendStrength(metric.Value, ma.MA5, ma.MA15) * 0.7;
-                    }
-                    else
-                    {
-                        direction = TrendDirection.Stable;
-                        strength = 0.1;
-                    }
-
-                    result[metric.Key] = direction;
-
-                    _logger.LogDebug("Trend for {Metric}: {Direction} (strength: {Strength:F2})",
-                        metric.Key, direction, strength);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error detecting trend directions");
-            }
-
-            return result;
-        }
-
-        private Dictionary<string, double> CalculateTrendVelocities(
-            Dictionary<string, double> currentMetrics,
-            DateTime timestamp)
-        {
-            var result = new Dictionary<string, double>();
-
-            try
-            {
-                foreach (var metric in currentMetrics)
-                {
-                    // Calculate rate of change (velocity)
-                    // velocity = (current - previous) / time_delta
-                    var velocity = CalculateMetricVelocity(metric.Key, metric.Value, timestamp);
-
-                    result[metric.Key] = velocity;
-
-                    if (Math.Abs(velocity) > 0.1)
-                    {
-                        _logger.LogDebug("High velocity detected for {Metric}: {Velocity:F3}/min",
-                            metric.Key, velocity);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error calculating trend velocities");
-            }
-
-            return result;
-        }
-
-        private Dictionary<string, SeasonalityPattern> IdentifySeasonalityPatterns(
-            Dictionary<string, double> currentMetrics,
-            DateTime timestamp)
-        {
-            var result = new Dictionary<string, SeasonalityPattern>();
-
-            try
-            {
-                var hour = timestamp.Hour;
-                var dayOfWeek = timestamp.DayOfWeek;
-
-                foreach (var metric in currentMetrics)
-                {
-                    var pattern = new SeasonalityPattern();
-
-                    // Hourly seasonality (business hours pattern)
-                    if (hour >= 9 && hour <= 17)
-                    {
-                        pattern.HourlyPattern = "BusinessHours";
-                        pattern.ExpectedMultiplier = 1.5; // Higher activity
-                    }
-                    else if (hour >= 0 && hour <= 6)
-                    {
-                        pattern.HourlyPattern = "OffHours";
-                        pattern.ExpectedMultiplier = 0.5; // Lower activity
-                    }
-                    else
-                    {
-                        pattern.HourlyPattern = "TransitionHours";
-                        pattern.ExpectedMultiplier = 1.0;
-                    }
-
-                    // Daily seasonality (weekday vs weekend)
-                    if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
-                    {
-                        pattern.DailyPattern = "Weekend";
-                        pattern.ExpectedMultiplier *= 0.6; // Lower weekend activity
-                    }
-                    else
-                    {
-                        pattern.DailyPattern = "Weekday";
-                    }
-
-                    // Detect if current value matches seasonal expectations
-                    pattern.MatchesSeasonality = IsWithinSeasonalExpectation(
-                        metric.Value, pattern.ExpectedMultiplier);
-
-                    result[metric.Key] = pattern;
-
-                    if (!pattern.MatchesSeasonality)
-                    {
-                        _logger.LogDebug("Metric {Metric} deviates from seasonal pattern: {Pattern}",
-                            metric.Key, pattern.HourlyPattern);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error identifying seasonality patterns");
-            }
-
-            return result;
-        }
-
-        private Dictionary<string, RegressionResult> PerformRegressionAnalysis(
-            Dictionary<string, double> currentMetrics,
-            DateTime timestamp)
-        {
-            var result = new Dictionary<string, RegressionResult>();
-
-            try
-            {
-                foreach (var metric in currentMetrics)
-                {
-                    // Perform linear regression to predict trend
-                    var regression = CalculateLinearRegression(metric.Key, timestamp);
-
-                    result[metric.Key] = regression;
-
-                    _logger.LogTrace("Regression for {Metric}: Slope={Slope:F4}, R²={RSquared:F3}",
-                        metric.Key, regression.Slope, regression.RSquared);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error performing regression analysis");
-            }
-
-            return result;
-        }
-
-        private Dictionary<string, List<string>> CalculateMetricCorrelations(
-            Dictionary<string, double> currentMetrics)
-        {
-            var result = new Dictionary<string, List<string>>();
-
-            try
-            {
-                var metricKeys = currentMetrics.Keys.ToArray();
-
-                foreach (var metric1 in metricKeys)
-                {
-                    var correlations = new List<string>();
-
-                    foreach (var metric2 in metricKeys)
-                    {
-                        if (metric1 == metric2) continue;
-
-                        var correlation = CalculateCorrelation(metric1, metric2);
-
-                        // Strong correlation threshold
-                        if (Math.Abs(correlation) > 0.7)
-                        {
-                            correlations.Add($"{metric2} (r={correlation:F2})");
-                        }
-                    }
-
-                    if (correlations.Count > 0)
-                    {
-                        result[metric1] = correlations;
-                        _logger.LogDebug("Metric {Metric} correlates with: {Correlations}",
-                            metric1, string.Join(", ", correlations));
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error calculating metric correlations");
-            }
-
-            return result;
-        }
-
-        private Dictionary<string, ForecastResult> ForecastMetrics(
-            Dictionary<string, double> currentMetrics,
-            Dictionary<string, TrendDirection> trendDirections,
-            Dictionary<string, double> velocities)
-        {
-            var result = new Dictionary<string, ForecastResult>();
-
-            try
-            {
-                foreach (var metric in currentMetrics)
-                {
-                    var trend = trendDirections.GetValueOrDefault(metric.Key, TrendDirection.Stable);
-                    var velocity = velocities.GetValueOrDefault(metric.Key, 0.0);
-
-                    // Forecast next values (5min, 15min, 60min)
-                    var forecast5min = ForecastValue(metric.Value, velocity, 5, trend);
-                    var forecast15min = ForecastValue(metric.Value, velocity, 15, trend);
-                    var forecast60min = ForecastValue(metric.Value, velocity, 60, trend);
-
-                    result[metric.Key] = new ForecastResult
-                    {
-                        Current = metric.Value,
-                        Forecast5Min = forecast5min,
-                        Forecast15Min = forecast15min,
-                        Forecast60Min = forecast60min,
-                        Confidence = CalculateForecastConfidence(trend, velocity)
-                    };
-
-                    _logger.LogTrace("Forecast for {Metric}: 5min={F5:F2}, 15min={F15:F2}, 60min={F60:F2} (confidence: {Conf:P})",
-                        metric.Key, forecast5min, forecast15min, forecast60min, result[metric.Key].Confidence);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error forecasting metrics");
-            }
-
-            return result;
-        }
-
-        private List<MetricAnomaly> DetectPerformanceAnomalies(Dictionary<string, double> metrics)
-        {
-            var anomalies = new List<MetricAnomaly>();
-
-            try
-            {
-                // Statistical anomaly detection
-                foreach (var metric in metrics)
-                {
-                    var anomaly = DetectAnomalyForMetric(metric.Key, metric.Value);
-                    if (anomaly != null)
-                    {
-                        anomalies.Add(anomaly);
-                        LogAnomaly(anomaly);
-                    }
-                }
-
-                // Cross-metric anomaly detection
+                // Cross-metric anomaly detection specific to AI optimization
                 if (metrics.TryGetValue("PredictionAccuracy", out var accuracy) && accuracy < 0.5)
                 {
                     anomalies.Add(new MetricAnomaly
@@ -3572,8 +2621,10 @@ namespace Relay.Core.AI
                         MetricName = "PredictionAccuracy",
                         CurrentValue = accuracy,
                         ExpectedValue = 0.7,
+                        Deviation = 0.7 - accuracy,
                         Severity = AnomalySeverity.High,
-                        Description = "AI prediction accuracy below acceptable threshold"
+                        Description = "AI prediction accuracy below acceptable threshold",
+                        Timestamp = DateTime.UtcNow
                     });
                 }
 
@@ -3584,8 +2635,10 @@ namespace Relay.Core.AI
                         MetricName = "SystemStability",
                         CurrentValue = stability,
                         ExpectedValue = 0.85,
+                        Deviation = 0.85 - stability,
                         Severity = AnomalySeverity.Medium,
-                        Description = "System stability lower than expected"
+                        Description = "System stability lower than expected",
+                        Timestamp = DateTime.UtcNow
                     });
                 }
 
@@ -3596,17 +2649,17 @@ namespace Relay.Core.AI
                         MetricName = "OptimizationEffectiveness",
                         CurrentValue = effectiveness,
                         ExpectedValue = 0.6,
+                        Deviation = 0.6 - effectiveness,
                         Severity = AnomalySeverity.High,
-                        Description = "Optimization effectiveness significantly below target"
+                        Description = "Optimization effectiveness significantly below target",
+                        Timestamp = DateTime.UtcNow
                     });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error detecting performance anomalies");
+                _logger.LogWarning(ex, "Error adding AI-specific anomalies");
             }
-
-            return anomalies;
         }
 
         private List<TrendInsight> GenerateTrendInsights(
@@ -3678,24 +2731,42 @@ namespace Relay.Core.AI
         {
             try
             {
-                // Store metrics for historical analysis
-                // In production, would use time-series database (InfluxDB, TimescaleDB, etc.)
-
+                // Store metrics in TimeSeriesDatabase for ML.NET compatibility
                 foreach (var metric in currentMetrics)
                 {
-                    var trendData = new MetricTrendData
-                    {
-                        MetricName = metric.Key,
-                        Value = metric.Value,
-                        Timestamp = timestamp,
-                        MA5 = movingAverages.GetValueOrDefault(metric.Key)?.MA5 ?? metric.Value,
-                        MA15 = movingAverages.GetValueOrDefault(metric.Key)?.MA15 ?? metric.Value,
-                        Trend = trendDirections.GetValueOrDefault(metric.Key, TrendDirection.Stable)
-                    };
+                    // Store raw metric value
+                    _timeSeriesDb.StoreMetric(metric.Key, metric.Value, timestamp);
 
-                    _logger.LogTrace("Stored trend data for {Metric} at {Timestamp}",
-                        metric.Key, timestamp);
+                    // Store moving averages if available
+                    if (movingAverages.TryGetValue(metric.Key, out var ma))
+                    {
+                        _timeSeriesDb.StoreMetric($"{metric.Key}_MA5", ma.MA5, timestamp);
+                        _timeSeriesDb.StoreMetric($"{metric.Key}_MA15", ma.MA15, timestamp);
+                        _timeSeriesDb.StoreMetric($"{metric.Key}_MA60", ma.MA60, timestamp);
+                        _timeSeriesDb.StoreMetric($"{metric.Key}_EMA", ma.EMA, timestamp);
+                    }
+
+                    // Store trend direction (encoded as numeric for ML.NET)
+                    if (trendDirections.TryGetValue(metric.Key, out var trend))
+                    {
+                        var trendValue = trend switch
+                        {
+                            TrendDirection.StronglyIncreasing => 2.0,
+                            TrendDirection.Increasing => 1.0,
+                            TrendDirection.Stable => 0.0,
+                            TrendDirection.Decreasing => -1.0,
+                            TrendDirection.StronglyDecreasing => -2.0,
+                            _ => 0.0
+                        };
+                        _timeSeriesDb.StoreMetric($"{metric.Key}_Trend", trendValue, timestamp);
+                    }
+
+                    _logger.LogTrace("Stored metric in TimeSeriesDB: {Metric}={Value:F3} at {Timestamp}",
+                        metric.Key, metric.Value, timestamp);
                 }
+
+                _logger.LogDebug("Updated trend database with {Count} metrics for ML.NET analysis", 
+                    currentMetrics.Count);
             }
             catch (Exception ex)
             {
@@ -3731,78 +2802,6 @@ namespace Relay.Core.AI
             {
                 _logger.LogDebug(ex, "Error logging trend analysis");
             }
-        }
-
-        // Helper methods for calculations
-        private double CalculateMovingAverage(string metricName, double currentValue, int period)
-        {
-            // Simplified - in production would maintain sliding window
-            return currentValue; // Placeholder
-        }
-
-        private double CalculateExponentialMovingAverage(string metricName, double currentValue, double alpha)
-        {
-            // EMA = α * current + (1-α) * previous_EMA
-            return currentValue; // Placeholder
-        }
-
-        private double CalculateTrendStrength(double current, double ma5, double ma15)
-        {
-            var spread = Math.Abs(ma5 - ma15);
-            var avgValue = (ma5 + ma15) / 2;
-            return avgValue > 0 ? spread / avgValue : 0.0;
-        }
-
-        private double CalculateMetricVelocity(string metricName, double currentValue, DateTime timestamp)
-        {
-            // velocity = change / time
-            return 0.0; // Placeholder - would calculate from historical data
-        }
-
-        private bool IsWithinSeasonalExpectation(double value, double expectedMultiplier)
-        {
-            // Check if value is within ±30% of seasonal expectation
-            return true; // Placeholder
-        }
-
-        private RegressionResult CalculateLinearRegression(string metricName, DateTime timestamp)
-        {
-            // Linear regression: y = mx + b
-            return new RegressionResult { Slope = 0.0, Intercept = 0.0, RSquared = 0.0 };
-        }
-
-        private double CalculateCorrelation(string metric1, string metric2)
-        {
-            // Pearson correlation coefficient
-            return 0.0; // Placeholder
-        }
-
-        private double ForecastValue(double current, double velocity, int minutesAhead, TrendDirection trend)
-        {
-            var multiplier = trend switch
-            {
-                TrendDirection.StronglyIncreasing => 1.1,
-                TrendDirection.Increasing => 1.05,
-                TrendDirection.Decreasing => 0.95,
-                TrendDirection.StronglyDecreasing => 0.9,
-                _ => 1.0
-            };
-
-            return current * multiplier + (velocity * minutesAhead / 60.0);
-        }
-
-        private double CalculateForecastConfidence(TrendDirection trend, double velocity)
-        {
-            var baseConfidence = trend == TrendDirection.Stable ? 0.9 : 0.7;
-            var velocityPenalty = Math.Min(0.3, Math.Abs(velocity) * 0.1);
-            return Math.Max(0.4, baseConfidence - velocityPenalty);
-        }
-
-        private MetricAnomaly? DetectAnomalyForMetric(string metricName, double value)
-        {
-            // Z-score based anomaly detection
-            // In production, would use historical data to calculate mean and std dev
-            return null; // Placeholder
         }
 
         private void LogAnomaly(MetricAnomaly anomaly)
@@ -4164,7 +3163,6 @@ namespace Relay.Core.AI
 
                 var explorationRate = effectiveness < 0.5 ? 0.3 : 0.1; // Epsilon-greedy
                 var discountFactor = 0.95; // Gamma
-                var rewardDecay = 0.99;
 
                 // Update Q-table or policy network
                 var learningRateRL = effectiveness < 0.6 ? 0.01 : 0.001;
@@ -4185,24 +3183,57 @@ namespace Relay.Core.AI
         {
             try
             {
-                // Update ARIMA, LSTM, or Prophet models for time-series forecasting
-                // In production, would use ML.NET Time Series or external libraries
+                // Update time-series forecasting models using ML.NET and TimeSeriesDB
+                _logger.LogDebug("Updating time-series forecasting models with {Count} metrics", metrics.Count);
 
-                // ARIMA parameters (p, d, q)
-                var arimaP = 2; // Auto-regressive order
-                var arimaD = 1; // Differencing order
-                var arimaQ = 2; // Moving average order
+                // Collect training data from TimeSeriesDB for ML.NET forecasting
+                foreach (var metric in metrics)
+                {
+                    var metricName = metric.Key;
+                    var history = _timeSeriesDb.GetHistory(metricName, TimeSpan.FromDays(7));
+                    var dataPoints = history.ToList();
 
-                // LSTM parameters
-                var lstmUnits = 64;
-                var lstmLayers = 2;
-                var sequenceLength = 24; // Hours of historical data
+                    if (dataPoints.Count < 24) // Need at least 24 data points
+                    {
+                        _logger.LogTrace("Insufficient data for {Metric}: {Count} points (minimum 24 required)",
+                            metricName, dataPoints.Count);
+                        continue;
+                    }
 
-                // Seasonality detection
+                    // Convert to ML.NET compatible format
+                    var timeSeriesData = dataPoints.Select(dp => new MetricData
+                    {
+                        Timestamp = dp.Timestamp,
+                        Value = (float)dp.Value
+                    }).ToArray();
+
+                    // Add to ML.NET training queue
+                    foreach (var data in timeSeriesData.Skip(timeSeriesData.Length - 100)) // Last 100 points
+                    {
+                        _metricTimeSeriesData.Enqueue(data);
+                    }
+                }
+
+                // Maintain queue size
+                while (_metricTimeSeriesData.Count > 1000)
+                {
+                    _metricTimeSeriesData.TryDequeue(out _);
+                }
+
+                // Detect seasonality using TimeSeriesDB statistics
                 var seasonalPeriod = DetectSeasonalPeriod(metrics);
 
-                _logger.LogDebug("Time-series models updated: ARIMA({P},{D},{Q}), LSTM={Units}x{Layers}, Season={Period}",
-                    arimaP, arimaD, arimaQ, lstmUnits, lstmLayers, seasonalPeriod);
+                // If we have enough data and ML.NET models are initialized, retrain forecasting model
+                if (_metricTimeSeriesData.Count >= 100 && _mlModelsInitialized)
+                {
+                    _mlNetManager.TrainForecastingModel(_metricTimeSeriesData.ToArray(), horizon: seasonalPeriod);
+                    _logger.LogInformation("Forecasting model retrained with {Count} time-series data points, horizon={Horizon}",
+                        _metricTimeSeriesData.Count, seasonalPeriod);
+                }
+
+                // Log model parameters
+                _logger.LogDebug("Time-series forecasting: DataPoints={Points}, SeasonalPeriod={Period}hrs, MLNetReady={Ready}",
+                    _metricTimeSeriesData.Count, seasonalPeriod, _mlModelsInitialized);
             }
             catch (Exception ex)
             {
@@ -4441,6 +3472,7 @@ namespace Relay.Core.AI
             _modelUpdateTimer?.Dispose();
             _metricsCollectionTimer?.Dispose();
             _mlNetManager?.Dispose();
+            _timeSeriesDb?.Dispose();
 
             _logger.LogInformation("AI Optimization Engine disposed");
         }

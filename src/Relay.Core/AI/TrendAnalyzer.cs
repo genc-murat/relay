@@ -344,17 +344,17 @@ namespace Relay.Core.AI
             return anomalies;
         }
 
-        private double CalculateMovingAverage(string metricName, double currentValue, int period)
+        public double CalculateMovingAverage(string metricName, double currentValue, int period)
         {
             return currentValue;
         }
 
-        private double CalculateExponentialMovingAverage(string metricName, double currentValue, double alpha)
+        public double CalculateExponentialMovingAverage(string metricName, double currentValue, double alpha)
         {
             return currentValue;
         }
 
-        private double CalculateTrendStrength(double current, double ma5, double ma15)
+        public double CalculateTrendStrength(double current, double ma5, double ma15)
         {
             if (ma15 == 0) return 0;
             return Math.Abs((ma5 - ma15) / ma15);
@@ -365,17 +365,17 @@ namespace Relay.Core.AI
             return 0.0;
         }
 
-        private bool IsWithinSeasonalExpectation(double value, double expectedMultiplier)
+        public bool IsWithinSeasonalExpectation(double value, double expectedMultiplier)
         {
             return true;
         }
 
-        private RegressionResult CalculateLinearRegression(string metricName, DateTime timestamp)
+        public RegressionResult CalculateLinearRegression(string metricName, DateTime timestamp)
         {
             return new RegressionResult { Slope = 0, Intercept = 0, RSquared = 0 };
         }
 
-        private double CalculateCorrelation(string metric1, string metric2)
+        public double CalculateCorrelation(string metric1, string metric2)
         {
             return 0.0;
         }

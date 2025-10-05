@@ -1279,24 +1279,98 @@ namespace Relay.Core.AI
                 // - Use reflection or DiagnosticSource events
                 // - Track HttpClient factory instances and their connection pools
 
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("HttpClientPool_ConnectionCount", 20);
+                if (storedMetrics.Any())
+                {
+                    var avgCount = (int)storedMetrics.Average(m => m.Value);
+                    var recentTrend = storedMetrics.Count() > 1 
+                        ? storedMetrics.Last().Value - storedMetrics.First().Value 
+                        : 0;
+                    
+                    // Adjust for trend
+                    var trendAdjustment = (int)(recentTrend * 0.3); // 30% weight to trend
+                    var adjustedCount = Math.Max(0, avgCount + trendAdjustment);
+                    
+                    return adjustedCount;
+                }
+
                 var requestAnalytics = _requestAnalytics.Values.ToArray();
                 var totalExternalCalls = requestAnalytics.Sum(x => x.ExecutionTimesCount);
 
-                // Estimate pool connections based on external API calls
-                var estimatedPoolSize = Math.Min(10, Math.Max(2, totalExternalCalls / 20));
+                // Analyze external call patterns
+                var avgExecutionTime = requestAnalytics
+                    .Where(x => x.TotalExecutions > 0)
+                    .Select(x => x.AverageExecutionTime.TotalMilliseconds)
+                    .DefaultIfEmpty(100)
+                    .Average();
+
+                // Base pool size calculation based on call patterns
+                // HttpClient pools typically maintain 2-10 connections per endpoint
+                var estimatedEndpoints = Math.Max(1, requestAnalytics.Count(x => x.ExecutionTimesCount > 0));
+                var connectionsPerEndpoint = 2; // Base: 2 connections per endpoint
+                
+                // Adjust based on call volume
+                if (totalExternalCalls > 1000)
+                {
+                    connectionsPerEndpoint = 6; // High volume: increase to 6
+                }
+                else if (totalExternalCalls > 100)
+                {
+                    connectionsPerEndpoint = 4; // Medium volume: use 4
+                }
+
+                var basePoolSize = estimatedEndpoints * connectionsPerEndpoint;
 
                 // Factor in concurrent external requests
                 var concurrentExternalRequests = requestAnalytics
                     .Where(x => x.ConcurrentExecutionPeaks > 0)
-                    .Sum(x => Math.Min(x.ConcurrentExecutionPeaks, 5)); // Cap per request type
+                    .Sum(x => Math.Min(x.ConcurrentExecutionPeaks, 10)); // Cap per request type at 10
 
-                var activePoolConnections = (int)(estimatedPoolSize * 0.6 + concurrentExternalRequests * 0.2);
+                // Calculate active connections based on throughput
+                var activeRequests = GetActiveRequestCount();
+                var externalRequestRatio = requestAnalytics.Any() 
+                    ? (double)totalExternalCalls / Math.Max(1, requestAnalytics.Sum(x => x.TotalExecutions))
+                    : 0.2; // Default: 20% of requests make external calls
 
-                return Math.Max(0, Math.Min(activePoolConnections, 50)); // Reasonable cap for pool connections
+                var estimatedActiveConnections = (int)(activeRequests * externalRequestRatio);
+
+                // Combine factors with weights
+                var activePoolConnections = (int)(
+                    basePoolSize * 0.4 +                    // 40% base pool
+                    concurrentExternalRequests * 0.3 +      // 30% concurrent peaks
+                    estimatedActiveConnections * 0.3);      // 30% current activity
+
+                // Apply connection lifetime factor
+                // Longer-lived connections reduce churn but increase pool size
+                if (avgExecutionTime > 1000) // Long-running external calls
+                {
+                    activePoolConnections = (int)(activePoolConnections * 1.3); // 30% increase
+                }
+                else if (avgExecutionTime < 100) // Fast external calls
+                {
+                    activePoolConnections = (int)(activePoolConnections * 0.8); // 20% decrease
+                }
+
+                // Consider system load
+                var poolUtilization = GetDatabasePoolUtilization();
+                if (poolUtilization > 0.8)
+                {
+                    // High system load: connections might be held longer
+                    activePoolConnections = (int)(activePoolConnections * 1.2);
+                }
+
+                // Store metric for future reference
+                _timeSeriesDb.StoreMetric("HttpClientPool_ConnectionCount", activePoolConnections, DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("HttpClientPool_Endpoints", estimatedEndpoints, DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("HttpClientPool_ExternalCallRatio", externalRequestRatio, DateTime.UtcNow);
+
+                // Reasonable cap: HttpClient pools shouldn't exceed 100 connections
+                return Math.Max(0, Math.Min(activePoolConnections, 100));
             }
             catch (Exception ex)
             {
-                _logger.LogTrace(ex, "Error estimating HttpClient pool connections");
+                _logger.LogDebug(ex, "Error estimating HttpClient pool connections");
                 return 0;
             }
         }
@@ -1332,16 +1406,78 @@ namespace Relay.Core.AI
                 // Track connections upgraded from HTTP to WebSocket or other protocols
                 // In production, would integrate with WebSocket connection manager
 
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("Upgraded_ConnectionCount", 30);
+                if (storedMetrics.Any())
+                {
+                    var avgCount = (int)storedMetrics.Average(m => m.Value);
+                    
+                    // Apply decay factor - upgraded connections typically transition quickly
+                    var latestMetric = storedMetrics.Last();
+                    var timeSinceLastUpdate = DateTime.UtcNow - latestMetric.Timestamp;
+                    var decayFactor = Math.Max(0.5, 1.0 - (timeSinceLastUpdate.TotalSeconds / 300.0)); // 5-minute decay
+                    
+                    return Math.Max(0, (int)(avgCount * decayFactor));
+                }
+
                 var webSocketConnections = GetWebSocketConnectionCount();
+                
+                // Analyze upgrade patterns from request analytics
+                var totalRequests = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
+                var activeRequests = GetActiveRequestCount();
+                
+                // Estimate upgrade rate based on WebSocket presence
+                double upgradeRate = 0.05; // Default: 5% of connections upgrade
+                
+                if (webSocketConnections > 0)
+                {
+                    // If we have active WebSocket connections, calculate upgrade rate
+                    if (totalRequests > 0)
+                    {
+                        upgradeRate = Math.Min(0.2, (double)webSocketConnections / Math.Max(1, activeRequests));
+                    }
+                }
 
-                // Only a fraction of these originated as HTTP upgrade requests
-                var httpUpgradeConnections = (int)(webSocketConnections * 0.1); // 10% are recent upgrades
+                // Calculate connections currently in upgrade transition
+                // Upgrades are typically short-lived (1-5 seconds)
+                var avgResponseTime = _requestAnalytics.Values
+                    .Where(x => x.TotalExecutions > 0)
+                    .Select(x => x.AverageExecutionTime.TotalMilliseconds)
+                    .DefaultIfEmpty(100)
+                    .Average();
+                
+                // Upgrade window: typically 2-5x the average response time
+                var upgradeWindowMultiplier = 3.0;
+                var upgradeWindowSeconds = (avgResponseTime * upgradeWindowMultiplier) / 1000.0;
+                
+                // Calculate connections in upgrade state
+                var throughputPerSecond = CalculateCurrentThroughput();
+                var connectionsInUpgrade = (int)(throughputPerSecond * upgradeRate * Math.Min(upgradeWindowSeconds, 10));
+                
+                // Add recently upgraded WebSocket connections (still counted as HTTP)
+                // Only count connections upgraded in last 30 seconds
+                var recentUpgrades = (int)(webSocketConnections * 0.1); // 10% are recent upgrades
+                
+                var totalUpgradedConnections = connectionsInUpgrade + recentUpgrades;
+                
+                // Consider protocol distribution
+                var protocolFactor = CalculateProtocolMultiplexingFactor();
+                if (protocolFactor < 0.5) // Lots of HTTP/2+ = more upgrade potential
+                {
+                    totalUpgradedConnections = (int)(totalUpgradedConnections * 1.5);
+                }
+                
+                // Store metric for future reference
+                _timeSeriesDb.StoreMetric("Upgraded_ConnectionCount", totalUpgradedConnections, DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("Upgrade_Rate", upgradeRate, DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("WebSocket_ConnectionCount", webSocketConnections, DateTime.UtcNow);
 
-                return Math.Max(0, httpUpgradeConnections);
+                // Cap at reasonable maximum
+                return Math.Max(0, Math.Min(totalUpgradedConnections, 50));
             }
             catch (Exception ex)
             {
-                _logger.LogTrace(ex, "Error estimating upgraded connections");
+                _logger.LogDebug(ex, "Error estimating upgraded connections");
                 return 0;
             }
         }

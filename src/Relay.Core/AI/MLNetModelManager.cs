@@ -192,7 +192,7 @@ namespace Relay.Core.AI
                 var pipeline = _mlContext.Transforms.DetectIidSpike(
                     outputColumnName: nameof(AnomalyPrediction.Prediction),
                     inputColumnName: nameof(MetricData.Value),
-                    confidence: 95,
+                    confidence: 95.0,
                     pvalueHistoryLength: 30);
 
                 _anomalyDetectionModel = pipeline.Fit(dataView);

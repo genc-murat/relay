@@ -42,6 +42,16 @@ namespace Relay.Core.AI
         private readonly Timer _metricsCollectionTimer;
         private readonly MLNetModelManager _mlNetManager;
 
+        // New components
+        private readonly ConnectionMetricsCollector _connectionMetrics;
+        private readonly CachingStrategyManager _cachingStrategy;
+        private readonly ModelParameterAdjuster _parameterAdjuster;
+        private readonly TrendAnalyzer _trendAnalyzer;
+        private readonly PatternRecognitionEngine _patternRecognition;
+        private readonly SystemMetricsCalculator _systemMetrics;
+        private readonly DataCleanupManager _dataCleanup;
+        private readonly PerformanceAnalyzer _performanceAnalyzer;
+
         private volatile bool _learningEnabled = true;
         private volatile bool _disposed = false;
         private volatile bool _mlModelsInitialized = false;
@@ -69,6 +79,31 @@ namespace Relay.Core.AI
             var mlLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<MLNetModelManager>.Instance;
             _mlNetManager = new MLNetModelManager(mlLogger);
 
+            // Initialize new components
+            var connLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionMetricsCollector>.Instance;
+            _connectionMetrics = new ConnectionMetricsCollector(connLogger, _options, _requestAnalytics);
+
+            var cacheLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<CachingStrategyManager>.Instance;
+            _cachingStrategy = new CachingStrategyManager(cacheLogger);
+
+            var paramLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<ModelParameterAdjuster>.Instance;
+            _parameterAdjuster = new ModelParameterAdjuster(paramLogger, _options, _recentPredictions);
+
+            var trendLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<TrendAnalyzer>.Instance;
+            _trendAnalyzer = new TrendAnalyzer(trendLogger);
+
+            var patternLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<PatternRecognitionEngine>.Instance;
+            _patternRecognition = new PatternRecognitionEngine(patternLogger);
+
+            var metricsLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<SystemMetricsCalculator>.Instance;
+            _systemMetrics = new SystemMetricsCalculator(metricsLogger, _requestAnalytics);
+
+            var cleanupLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<DataCleanupManager>.Instance;
+            _dataCleanup = new DataCleanupManager(cleanupLogger, _requestAnalytics, _cachingAnalytics, _recentPredictions);
+
+            var perfLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<PerformanceAnalyzer>.Instance;
+            _performanceAnalyzer = new PerformanceAnalyzer(perfLogger, _options);
+
             // Initialize periodic model updates
             _modelUpdateTimer = new Timer(UpdateModelCallback, null,
                 _options.ModelUpdateInterval, _options.ModelUpdateInterval);
@@ -77,7 +112,7 @@ namespace Relay.Core.AI
             _metricsCollectionTimer = new Timer(CollectMetricsCallback, null,
                 TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
 
-            _logger.LogInformation("AI Optimization Engine initialized with ML.NET support, learning mode: {LearningEnabled}",
+            _logger.LogInformation("AI Optimization Engine initialized with ML.NET support and modular components, learning mode: {LearningEnabled}",
                 _learningEnabled);
         }
 
@@ -397,92 +432,7 @@ namespace Relay.Core.AI
 
         private PerformanceAnalysisResult AnalyzePerformancePatterns(PatternAnalysisContext context)
         {
-            var result = new PerformanceAnalysisResult();
-
-            // High execution time analysis
-            if (context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds > _options.HighExecutionTimeThreshold)
-            {
-                result.ShouldOptimize = true;
-                result.Confidence = 0.85;
-                
-                // Determine best strategy based on request characteristics
-                if (context.AnalysisData.RepeatRequestCount > context.AnalysisData.TotalExecutions * 0.3)
-                {
-                    result.RecommendedStrategy = OptimizationStrategy.EnableCaching;
-                    result.Reasoning = $"High execution time ({context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds:F0}ms) with {context.AnalysisData.RepeatRequestCount} repeated requests - caching will provide significant benefits";
-                    result.EstimatedImprovement = TimeSpan.FromMilliseconds(context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds * 0.7);
-                    result.GainPercentage = 0.7;
-                    result.Priority = OptimizationPriority.High;
-                    result.Risk = RiskLevel.Low;
-                }
-                else if (context.CurrentMetrics.DatabaseCalls > 3)
-                {
-                    result.RecommendedStrategy = OptimizationStrategy.DatabaseOptimization;
-                    result.Reasoning = $"High execution time with {context.CurrentMetrics.DatabaseCalls} database calls - query optimization recommended";
-                    result.EstimatedImprovement = TimeSpan.FromMilliseconds(context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds * 0.4);
-                    result.GainPercentage = 0.4;
-                    result.Priority = OptimizationPriority.High;
-                    result.Risk = RiskLevel.Medium;
-                }
-                else if (context.CurrentMetrics.ExternalApiCalls > 2)
-                {
-                    result.RecommendedStrategy = OptimizationStrategy.CircuitBreaker;
-                    result.Reasoning = $"High execution time with {context.CurrentMetrics.ExternalApiCalls} external API calls - circuit breaker pattern recommended";
-                    result.EstimatedImprovement = TimeSpan.FromMilliseconds(context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds * 0.3);
-                    result.GainPercentage = 0.3;
-                    result.Priority = OptimizationPriority.Medium;
-                    result.Risk = RiskLevel.Medium;
-                }
-                else
-                {
-                    result.RecommendedStrategy = OptimizationStrategy.ParallelProcessing;
-                    result.Reasoning = "High execution time without obvious bottlenecks - parallel processing may help";
-                    result.EstimatedImprovement = TimeSpan.FromMilliseconds(context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds * 0.25);
-                    result.GainPercentage = 0.25;
-                    result.Priority = OptimizationPriority.Medium;
-                    result.Risk = RiskLevel.High;
-                    result.Confidence = 0.65; // Lower confidence for complex optimizations
-                }
-
-                result.Parameters["ExecutionTime"] = context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds;
-                result.Parameters["RepeatCount"] = context.AnalysisData.RepeatRequestCount;
-                result.Parameters["DatabaseCalls"] = context.CurrentMetrics.DatabaseCalls;
-                result.Parameters["ExternalApiCalls"] = context.CurrentMetrics.ExternalApiCalls;
-            }
-
-            // High concurrency analysis
-            else if (context.AnalysisData.ConcurrentExecutionPeaks > _options.HighConcurrencyThreshold)
-            {
-                result.ShouldOptimize = true;
-                result.RecommendedStrategy = OptimizationStrategy.BatchProcessing;
-                result.Confidence = 0.80;
-                result.Reasoning = $"High concurrency detected ({context.AnalysisData.ConcurrentExecutionPeaks} peak) - batch processing recommended";
-                result.EstimatedImprovement = TimeSpan.FromMilliseconds(context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds * 0.35);
-                result.GainPercentage = 0.35;
-                result.Priority = OptimizationPriority.Medium;
-                result.Risk = RiskLevel.Medium;
-
-                result.Parameters["PeakConcurrency"] = context.AnalysisData.ConcurrentExecutionPeaks;
-                result.Parameters["RecommendedBatchSize"] = Math.Min(50, context.AnalysisData.ConcurrentExecutionPeaks / 2);
-            }
-
-            // Memory usage analysis
-            else if (context.CurrentMetrics.MemoryAllocated > _options.HighMemoryAllocationThreshold)
-            {
-                result.ShouldOptimize = true;
-                result.RecommendedStrategy = OptimizationStrategy.MemoryPooling;
-                result.Confidence = 0.75;
-                result.Reasoning = $"High memory allocation detected ({context.CurrentMetrics.MemoryAllocated:N0} bytes) - memory pooling recommended";
-                result.EstimatedImprovement = TimeSpan.FromMilliseconds(context.CurrentMetrics.AverageExecutionTime.TotalMilliseconds * 0.2);
-                result.GainPercentage = 0.2;
-                result.Priority = OptimizationPriority.Medium;
-                result.Risk = RiskLevel.Low;
-
-                result.Parameters["MemoryAllocated"] = context.CurrentMetrics.MemoryAllocated;
-                result.Parameters["PoolingThreshold"] = _options.HighMemoryAllocationThreshold;
-            }
-
-            return result;
+            return _performanceAnalyzer.AnalyzePerformancePatterns(context);
         }
 
         private CachingAnalysisResult AnalyzeCachingPatterns(PatternAnalysisContext context)
@@ -631,95 +581,65 @@ namespace Relay.Core.AI
             return result;
         }
 
-        // System metrics calculation methods
+        // System metrics calculation methods - delegated to SystemMetricsCalculator
         private async ValueTask<double> CalculateCpuUsage(CancellationToken cancellationToken)
         {
-            await Task.Delay(1, cancellationToken); // Minimal delay for realistic measurement
-            
-            // Simplified CPU calculation - in production would use performance counters
-            var random = Random.Shared.NextDouble();
-            var baseUsage = Environment.ProcessorCount > 4 ? 0.2 : 0.3;
-            return Math.Min(1.0, baseUsage + (random * 0.4));
+            return await _systemMetrics.CalculateCpuUsageAsync(cancellationToken);
         }
 
         private double CalculateMemoryUsage()
         {
-            var currentMemory = GC.GetTotalMemory(false);
-            var maxMemory = Math.Max(currentMemory * 2, 512L * 1024 * 1024); // At least 512MB baseline
-            return Math.Min(1.0, (double)currentMemory / maxMemory);
+            return _systemMetrics.CalculateMemoryUsage();
         }
 
         private int GetActiveRequestCount()
         {
-            // In production, would integrate with actual request tracking
-            return _requestAnalytics.Values.Sum(x => x.ConcurrentExecutionPeaks) / Math.Max(1, _requestAnalytics.Count);
+            return _systemMetrics.GetActiveRequestCount();
         }
 
         private int GetQueuedRequestCount()
         {
-            // In production, would integrate with actual queue monitoring
-            return Math.Max(0, GetActiveRequestCount() - (Environment.ProcessorCount * 2));
+            return _systemMetrics.GetQueuedRequestCount();
         }
 
         private double CalculateCurrentThroughput()
         {
-            var totalExecutions = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
-            var timeSpan = TimeSpan.FromMinutes(5); // 5-minute window
-            return totalExecutions / timeSpan.TotalSeconds;
+            return _systemMetrics.CalculateCurrentThroughput();
         }
 
         private TimeSpan CalculateAverageResponseTime()
         {
-            if (_requestAnalytics.Count == 0) return TimeSpan.FromMilliseconds(100);
-            
-            var avgMs = _requestAnalytics.Values.Average(x => x.AverageExecutionTime.TotalMilliseconds);
-            return TimeSpan.FromMilliseconds(avgMs);
+            return _systemMetrics.CalculateAverageResponseTime();
         }
 
         private double CalculateCurrentErrorRate()
         {
-            if (_requestAnalytics.Count == 0) return 0.0;
-            
-            return _requestAnalytics.Values.Average(x => x.ErrorRate);
+            return _systemMetrics.CalculateCurrentErrorRate();
         }
 
         private int GetActiveConnectionCount()
         {
-            try
-            {
-                // Real-time active connection monitoring with multiple data sources
-                var connectionCount = 0;
-                
-                // 1. HTTP Connection tracking (if available)
-                connectionCount += GetHttpConnectionCount();
-                
-                // 2. Database connection pool monitoring
-                connectionCount += GetDatabaseConnectionCount();
-                
-                // 3. External service connections (Redis, message queues, etc.)
-                connectionCount += GetExternalServiceConnectionCount();
-                
-                // 4. WebSocket/SignalR connections (if applicable)
-                connectionCount += GetWebSocketConnectionCount();
-                
-                // 5. Apply connection health filtering
-                connectionCount = FilterHealthyConnections(connectionCount);
-                
-                // Cache the result for short-term efficiency
-                CacheConnectionCount(connectionCount);
-                
-                _logger.LogTrace("Active connection count calculated: {ConnectionCount}", connectionCount);
-                
-                return Math.Max(0, connectionCount);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error calculating active connection count, using fallback estimation");
-                return GetFallbackConnectionCount();
-            }
+            // Delegate to ConnectionMetricsCollector component
+            return _connectionMetrics.GetActiveConnectionCount(
+                GetActiveRequestCount,
+                CalculateConnectionThroughputFactor,
+                EstimateKeepAliveConnections,
+                FilterHealthyConnections,
+                CacheConnectionCount,
+                GetFallbackConnectionCount);
         }
 
         private int GetHttpConnectionCount()
+        {
+            // Delegate to ConnectionMetricsCollector
+            return _connectionMetrics.GetHttpConnectionCount(
+                GetActiveRequestCount,
+                CalculateConnectionThroughputFactor,
+                EstimateKeepAliveConnections);
+        }
+
+        // Kept for backwards compatibility - delegates to component
+        private int GetAspNetCoreConnectionCountLegacy()
         {
             try
             {
@@ -1660,67 +1580,6 @@ namespace Relay.Core.AI
             }
         }
 
-        // Helper classes for caching
-        private class ConnectionCacheEntry
-        {
-            public int Count { get; set; }
-            public DateTime Timestamp { get; set; }
-            public DateTime ExpiresAt { get; set; }
-        }
-
-        private class ConnectionBreakdown
-        {
-            public DateTime Timestamp { get; set; }
-            public int TotalConnections { get; set; }
-            public int HttpConnections { get; set; }
-            public int DatabaseConnections { get; set; }
-            public int ExternalServiceConnections { get; set; }
-            public int WebSocketConnections { get; set; }
-            public int ActiveRequestConnections { get; set; }
-            public double ThreadPoolUtilization { get; set; }
-            public double DatabasePoolUtilization { get; set; }
-        }
-
-        private class PeakConnectionMetrics
-        {
-            public int DailyPeak { get; set; }
-            public int HourlyPeak { get; set; }
-            public int AllTimePeak { get; set; }
-            public DateTime LastPeakTimestamp { get; set; }
-        }
-
-        private class ConnectionTrendDataPoint
-        {
-            public DateTime Timestamp { get; set; }
-            public int ConnectionCount { get; set; }
-            public double MovingAverage5Min { get; set; }
-            public double MovingAverage15Min { get; set; }
-            public double MovingAverage1Hour { get; set; }
-            public string TrendDirection { get; set; } = "stable";
-            public double VolatilityScore { get; set; }
-        }
-
-        private class DataCleanupStatistics
-        {
-            public DateTime StartTime { get; set; }
-            public DateTime EndTime { get; set; }
-            public DateTime CutoffTime { get; set; }
-            public TimeSpan Duration { get; set; }
-            public int RequestAnalyticsRemoved { get; set; }
-            public int CachingAnalyticsRemoved { get; set; }
-            public int PredictionResultsRemoved { get; set; }
-            public int ExecutionTimesRemoved { get; set; }
-            public int OptimizationResultsRemoved { get; set; }
-            public int InternalDataItemsRemoved { get; set; }
-            public int CachingDataItemsRemoved { get; set; }
-            public long EstimatedMemoryFreed { get; set; }
-
-            public int TotalItemsRemoved => RequestAnalyticsRemoved + CachingAnalyticsRemoved +
-                                           PredictionResultsRemoved + ExecutionTimesRemoved +
-                                           OptimizationResultsRemoved + InternalDataItemsRemoved +
-                                           CachingDataItemsRemoved;
-        }
-
         private int GetFallbackConnectionCount()
         {
             try
@@ -1875,18 +1734,12 @@ namespace Relay.Core.AI
 
         private double GetDatabasePoolUtilization()
         {
-            // Placeholder - would integrate with database connection pool
-            return Math.Min(1.0, Random.Shared.NextDouble() * 0.6 + 0.1);
+            return _systemMetrics.GetDatabasePoolUtilization();
         }
 
         private double GetThreadPoolUtilization()
         {
-            // Real thread pool utilization calculation
-            ThreadPool.GetAvailableThreads(out var workerThreads, out var completionPortThreads);
-            ThreadPool.GetMaxThreads(out var maxWorkerThreads, out var maxCompletionPortThreads);
-            
-            var utilization = 1.0 - ((double)workerThreads / maxWorkerThreads);
-            return Math.Max(0.0, Math.Min(1.0, utilization));
+            return _systemMetrics.GetThreadPoolUtilization();
         }
 
         private double CalculateHistoricalSuccessRate(OptimizationStrategy strategy, PatternAnalysisContext context)
@@ -1979,108 +1832,12 @@ namespace Relay.Core.AI
 
         private List<PerformanceBottleneck> IdentifyBottlenecks(TimeSpan timeWindow)
         {
-            var bottlenecks = new List<PerformanceBottleneck>();
-            
-            foreach (var kvp in _requestAnalytics)
-            {
-                var requestType = kvp.Key;
-                var data = kvp.Value;
-                
-                if (data.AverageExecutionTime.TotalMilliseconds > 1000)
-                {
-                    bottlenecks.Add(new PerformanceBottleneck
-                    {
-                        Component = requestType.Name,
-                        Description = $"High average execution time: {data.AverageExecutionTime.TotalMilliseconds:F0}ms",
-                        Severity = data.AverageExecutionTime.TotalMilliseconds > 5000 ? BottleneckSeverity.Critical : BottleneckSeverity.High,
-                        Impact = Math.Min(1.0, data.AverageExecutionTime.TotalMilliseconds / 10000),
-                        RecommendedActions = new List<string>
-                        {
-                            "Enable caching for frequently accessed data",
-                            "Optimize database queries",
-                            "Consider async processing for heavy operations"
-                        },
-                        EstimatedResolutionTime = TimeSpan.FromDays(2)
-                    });
-                }
-                
-                if (data.ErrorRate > 0.05) // >5% error rate
-                {
-                    bottlenecks.Add(new PerformanceBottleneck
-                    {
-                        Component = requestType.Name,
-                        Description = $"High error rate: {data.ErrorRate:P}",
-                        Severity = data.ErrorRate > 0.2 ? BottleneckSeverity.Critical : BottleneckSeverity.High,
-                        Impact = data.ErrorRate,
-                        RecommendedActions = new List<string>
-                        {
-                            "Implement circuit breaker pattern",
-                            "Add retry logic with exponential backoff",
-                            "Improve error handling and logging"
-                        },
-                        EstimatedResolutionTime = TimeSpan.FromDays(1)
-                    });
-                }
-            }
-            
-            return bottlenecks;
+            return _performanceAnalyzer.IdentifyBottlenecks(_requestAnalytics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), timeWindow);
         }
 
         private List<OptimizationOpportunity> IdentifyOptimizationOpportunities(TimeSpan timeWindow)
         {
-            var opportunities = new List<OptimizationOpportunity>();
-            
-            // Analyze for caching opportunities
-            var cachingCandidates = _requestAnalytics
-                .Where(kvp => kvp.Value.RepeatRequestCount > 20 && kvp.Value.AverageExecutionTime.TotalMilliseconds > 100)
-                .Select(kvp => kvp.Key)
-                .ToArray();
-            
-            if (cachingCandidates.Length > 0)
-            {
-                opportunities.Add(new OptimizationOpportunity
-                {
-                    Title = "Implement Response Caching",
-                    Description = $"Enable caching for {cachingCandidates.Length} request types with high repeat rates",
-                    ExpectedImprovement = 0.6,
-                    ImplementationEffort = TimeSpan.FromHours(4),
-                    Priority = OptimizationPriority.High,
-                    Steps = new List<string>
-                    {
-                        "Add [DistributedCache] attributes to request types",
-                        "Configure cache expiration policies",
-                        "Implement cache invalidation strategies",
-                        "Monitor cache hit rates"
-                    }
-                });
-            }
-            
-            // Analyze for batch processing opportunities
-            var batchingCandidates = _requestAnalytics
-                .Where(kvp => kvp.Value.ConcurrentExecutionPeaks > 10 && kvp.Value.AverageExecutionTime.TotalMilliseconds < 50)
-                .Select(kvp => kvp.Key)
-                .ToArray();
-            
-            if (batchingCandidates.Length > 0)
-            {
-                opportunities.Add(new OptimizationOpportunity
-                {
-                    Title = "Implement Batch Processing",
-                    Description = $"Enable batch processing for {batchingCandidates.Length} high-frequency request types",
-                    ExpectedImprovement = 0.4,
-                    ImplementationEffort = TimeSpan.FromHours(8),
-                    Priority = OptimizationPriority.Medium,
-                    Steps = new List<string>
-                    {
-                        "Implement batch request handlers",
-                        "Add request queuing and batching logic",
-                        "Configure optimal batch sizes",
-                        "Test batch processing performance"
-                    }
-                });
-            }
-            
-            return opportunities;
+            return _performanceAnalyzer.IdentifyOptimizationOpportunities(_requestAnalytics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), timeWindow);
         }
 
         private SystemHealthScore CalculateSystemHealthScore()
@@ -2455,48 +2212,17 @@ namespace Relay.Core.AI
 
         private void AdjustModelParameters(bool decrease)
         {
-            try
+            // Delegate to ModelParameterAdjuster component
+            _parameterAdjuster.AdjustModelParameters(decrease, () =>
             {
-                var adjustmentDirection = decrease ? "decrease" : "increase";
-                _logger.LogInformation("Starting model parameter adjustment: {Direction}", adjustmentDirection);
-
-                // 1. Calculate adaptive adjustment factor based on current performance
-                var adjustmentFactor = CalculateAdaptiveAdjustmentFactor(decrease);
-
-                // 2. Adjust confidence thresholds
-                AdjustConfidenceThresholds(adjustmentFactor);
-
-                // 3. Adjust optimization strategy weights
-                AdjustStrategyWeights(adjustmentFactor);
-
-                // 4. Adjust prediction sensitivity
-                AdjustPredictionSensitivity(adjustmentFactor);
-
-                // 5. Adjust learning rate
-                AdjustLearningRate(adjustmentFactor);
-
-                // 6. Adjust performance thresholds
-                AdjustPerformanceThresholds(adjustmentFactor);
-
-                // 7. Adjust caching recommendation parameters
-                AdjustCachingParameters(adjustmentFactor);
-
-                // 8. Adjust batch size prediction parameters
-                AdjustBatchSizePredictionParameters(adjustmentFactor);
-
-                // 9. Update model metadata
-                UpdateModelMetadata(adjustmentFactor, adjustmentDirection);
-
-                // 10. Validate adjusted parameters
-                ValidateAdjustedParameters();
-
-                _logger.LogInformation("Model parameter adjustment completed successfully with factor: {Factor:F3}",
-                    adjustmentFactor);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error adjusting model parameters");
-            }
+                var aiStats = GetModelStatistics();
+                return new ModelStatistics
+                {
+                    AccuracyScore = aiStats.AccuracyScore,
+                    ModelConfidence = aiStats.ModelConfidence,
+                    TotalPredictions = aiStats.TotalPredictions
+                };
+            });
         }
 
         private double CalculateAdaptiveAdjustmentFactor(bool decrease)
@@ -2877,20 +2603,14 @@ namespace Relay.Core.AI
             }
         }
 
-        // Helper class for metadata tracking
-        private class ModelAdjustmentMetadata
+        private void RetrainPatternRecognition(PredictionResult[] recentPredictions)
         {
-            public DateTime Timestamp { get; set; }
-            public double AdjustmentFactor { get; set; }
-            public string Direction { get; set; } = string.Empty;
-            public string Reason { get; set; } = string.Empty;
-            public string ModelVersion { get; set; } = string.Empty;
-            public double AccuracyBeforeAdjustment { get; set; }
-            public long TotalPredictions { get; set; }
-            public long CorrectPredictions { get; set; }
+            // Delegate to PatternRecognitionEngine component
+            _patternRecognition.RetrainPatternRecognition(recentPredictions);
         }
 
-        private void RetrainPatternRecognition(PredictionResult[] recentPredictions)
+        // Legacy pattern recognition implementation (kept for reference)
+        private void RetrainPatternRecognitionLegacy(PredictionResult[] recentPredictions)
         {
             if (recentPredictions.Length < 10)
             {
@@ -3395,296 +3115,9 @@ namespace Relay.Core.AI
             }
         }
 
-        // Helper class for pattern analysis
-        private class PatternAnalysisResult
-        {
-            public int TotalPredictions { get; set; }
-            public DateTime AnalysisTimestamp { get; set; }
-            public PredictionResult[] SuccessfulPredictions { get; set; } = Array.Empty<PredictionResult>();
-            public PredictionResult[] FailedPredictions { get; set; } = Array.Empty<PredictionResult>();
-            public double OverallAccuracy { get; set; }
-            public double SuccessRate { get; set; }
-            public double FailureRate { get; set; }
-            public int HighImpactSuccesses { get; set; }
-            public int MediumImpactSuccesses { get; set; }
-            public int LowImpactSuccesses { get; set; }
-            public double AverageImprovement { get; set; }
-            public Type[] BestRequestTypes { get; set; } = Array.Empty<Type>();
-            public Type[] WorstRequestTypes { get; set; } = Array.Empty<Type>();
-            public int PatternsUpdated { get; set; }
-        }
-
         private void CleanupOldData()
         {
-            var cutoffTime = DateTime.UtcNow.Subtract(_options.ModelUpdateInterval.Multiply(10)); // Keep 10 update cycles
-            var cleanupStats = new DataCleanupStatistics
-            {
-                StartTime = DateTime.UtcNow,
-                CutoffTime = cutoffTime
-            };
-
-            try
-            {
-                // 1. Clean up request analytics data
-                CleanupRequestAnalyticsData(cutoffTime, cleanupStats);
-
-                // 2. Clean up caching analytics data
-                CleanupCachingAnalyticsData(cutoffTime, cleanupStats);
-
-                // 3. Clean up prediction results
-                CleanupPredictionResults(cutoffTime, cleanupStats);
-
-                // 4. Trim execution time collections
-                TrimExecutionTimeCollections(cleanupStats);
-
-                // 5. Clean up optimization results
-                CleanupOptimizationResults(cutoffTime, cleanupStats);
-
-                // 6. Garbage collection hint for large cleanup operations
-                if (cleanupStats.TotalItemsRemoved > 1000)
-                {
-                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized);
-                    _logger.LogDebug("Triggered garbage collection after cleaning {ItemCount} items", 
-                        cleanupStats.TotalItemsRemoved);
-                }
-
-                cleanupStats.EndTime = DateTime.UtcNow;
-                cleanupStats.Duration = cleanupStats.EndTime - cleanupStats.StartTime;
-
-                _logger.LogInformation("AI data cleanup completed successfully. " +
-                    "Duration: {Duration}ms, Items removed: {ItemsRemoved}, Memory freed: ~{MemoryFreed:N0} bytes",
-                    cleanupStats.Duration.TotalMilliseconds,
-                    cleanupStats.TotalItemsRemoved,
-                    cleanupStats.EstimatedMemoryFreed);
-
-                // Log detailed cleanup statistics if significant cleanup occurred
-                if (cleanupStats.TotalItemsRemoved > 100)
-                {
-                    LogDetailedCleanupStatistics(cleanupStats);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during AI data cleanup. Cutoff time: {CutoffTime}", cutoffTime);
-            }
-        }
-
-        private void CleanupRequestAnalyticsData(DateTime cutoffTime, DataCleanupStatistics stats)
-        {
-            var requestTypesToRemove = new List<Type>();
-
-            foreach (var kvp in _requestAnalytics)
-            {
-                var requestType = kvp.Key;
-                var analysisData = kvp.Value;
-
-                // Check if this request type has been inactive for too long
-                if (analysisData.LastActivityTime < cutoffTime && analysisData.TotalExecutions < _options.MinExecutionsForAnalysis)
-                {
-                    requestTypesToRemove.Add(requestType);
-                    stats.RequestAnalyticsRemoved++;
-                    stats.EstimatedMemoryFreed += EstimateRequestAnalyticsMemoryUsage(analysisData);
-                }
-                else
-                {
-                    // Clean up internal collections within the analysis data
-                    var itemsRemoved = analysisData.CleanupOldData(cutoffTime);
-                    stats.InternalDataItemsRemoved += itemsRemoved;
-                    stats.EstimatedMemoryFreed += itemsRemoved * 64; // Estimate 64 bytes per item
-                }
-            }
-
-            // Remove inactive request types
-            foreach (var requestType in requestTypesToRemove)
-            {
-                if (_requestAnalytics.TryRemove(requestType, out var removedData))
-                {
-                    _logger.LogDebug("Removed inactive request analytics for {RequestType}. " +
-                        "Last activity: {LastActivity}, Executions: {Executions}",
-                        requestType.Name, removedData.LastActivityTime, removedData.TotalExecutions);
-                }
-            }
-
-            _logger.LogDebug("Request analytics cleanup: Removed {TypeCount} inactive types, {ItemCount} internal items",
-                requestTypesToRemove.Count, stats.InternalDataItemsRemoved);
-        }
-
-        private void CleanupCachingAnalyticsData(DateTime cutoffTime, DataCleanupStatistics stats)
-        {
-            var cachingTypesToRemove = new List<Type>();
-
-            foreach (var kvp in _cachingAnalytics)
-            {
-                var requestType = kvp.Key;
-                var cachingData = kvp.Value;
-
-                // Check if caching data is stale
-                if (cachingData.LastAccessTime < cutoffTime && cachingData.TotalAccesses < 10)
-                {
-                    cachingTypesToRemove.Add(requestType);
-                    stats.CachingAnalyticsRemoved++;
-                    stats.EstimatedMemoryFreed += EstimateCachingAnalyticsMemoryUsage(cachingData);
-                }
-                else
-                {
-                    // Clean up old access patterns within the caching data
-                    var itemsRemoved = cachingData.CleanupOldAccessPatterns(cutoffTime);
-                    stats.CachingDataItemsRemoved += itemsRemoved;
-                    stats.EstimatedMemoryFreed += itemsRemoved * 128; // Estimate 128 bytes per access pattern
-                }
-            }
-
-            // Remove stale caching analytics
-            foreach (var requestType in cachingTypesToRemove)
-            {
-                if (_cachingAnalytics.TryRemove(requestType, out var removedData))
-                {
-                    _logger.LogDebug("Removed stale caching analytics for {RequestType}. " +
-                        "Last access: {LastAccess}, Total accesses: {Accesses}",
-                        requestType.Name, removedData.LastAccessTime, removedData.TotalAccesses);
-                }
-            }
-
-            _logger.LogDebug("Caching analytics cleanup: Removed {TypeCount} stale types, {ItemCount} access patterns",
-                cachingTypesToRemove.Count, stats.CachingDataItemsRemoved);
-        }
-
-        private void CleanupPredictionResults(DateTime cutoffTime, DataCleanupStatistics stats)
-        {
-            var initialCount = _recentPredictions.Count;
-            var removedCount = 0;
-
-            // Create a new queue with only recent predictions
-            var tempQueue = new Queue<PredictionResult>();
-
-            while (_recentPredictions.TryDequeue(out var prediction))
-            {
-                if (prediction.Timestamp >= cutoffTime)
-                {
-                    tempQueue.Enqueue(prediction);
-                }
-                else
-                {
-                    removedCount++;
-                    stats.EstimatedMemoryFreed += 256; // Estimate 256 bytes per prediction result
-                }
-            }
-
-            // Rebuild the queue with recent predictions
-            foreach (var prediction in tempQueue)
-            {
-                _recentPredictions.Enqueue(prediction);
-            }
-
-            stats.PredictionResultsRemoved = removedCount;
-
-            _logger.LogDebug("Prediction results cleanup: Removed {RemovedCount} old predictions, kept {KeptCount}",
-                removedCount, _recentPredictions.Count);
-
-            // Also limit the maximum number of predictions to prevent unbounded growth
-            var maxPredictions = _options.MaxRecentPredictions;
-            var excessCount = 0;
-
-            while (_recentPredictions.Count > maxPredictions)
-            {
-                if (_recentPredictions.TryDequeue(out _))
-                {
-                    excessCount++;
-                    stats.EstimatedMemoryFreed += 256;
-                }
-            }
-
-            if (excessCount > 0)
-            {
-                stats.PredictionResultsRemoved += excessCount;
-                _logger.LogDebug("Removed {ExcessCount} excess predictions to maintain limit of {MaxPredictions}",
-                    excessCount, maxPredictions);
-            }
-        }
-
-        private void TrimExecutionTimeCollections(DataCleanupStatistics stats)
-        {
-            const int maxExecutionTimes = 1000; // Maximum execution times to keep per request type
-            var trimmedCount = 0;
-
-            foreach (var analysisData in _requestAnalytics.Values)
-            {
-                var itemsRemoved = analysisData.TrimExecutionTimes(maxExecutionTimes);
-                trimmedCount += itemsRemoved;
-                stats.EstimatedMemoryFreed += itemsRemoved * 16; // TimeSpan is ~16 bytes
-            }
-
-            stats.ExecutionTimesRemoved = trimmedCount;
-
-            if (trimmedCount > 0)
-            {
-                _logger.LogDebug("Trimmed {TrimmedCount} excess execution time entries", trimmedCount);
-            }
-        }
-
-        private void CleanupOptimizationResults(DateTime cutoffTime, DataCleanupStatistics stats)
-        {
-            var removedCount = 0;
-
-            foreach (var analysisData in _requestAnalytics.Values)
-            {
-                var itemsRemoved = analysisData.CleanupOptimizationResults(cutoffTime);
-                removedCount += itemsRemoved;
-                stats.EstimatedMemoryFreed += itemsRemoved * 200; // Estimate 200 bytes per optimization result
-            }
-
-            stats.OptimizationResultsRemoved = removedCount;
-
-            if (removedCount > 0)
-            {
-                _logger.LogDebug("Cleaned up {RemovedCount} old optimization results", removedCount);
-            }
-        }
-
-        private long EstimateRequestAnalyticsMemoryUsage(RequestAnalysisData analysisData)
-        {
-            // Rough estimation of memory usage for a RequestAnalysisData object
-            const long baseObjectSize = 200; // Base object overhead
-            const long executionTimeSize = 16; // TimeSpan size
-            const long optimizationResultSize = 200; // OptimizationResult size
-            const long historicalMetricSize = 300; // RequestExecutionMetrics size
-
-            return baseObjectSize +
-                   (analysisData.ExecutionTimesCount * executionTimeSize) +
-                   (analysisData.OptimizationResultsCount * optimizationResultSize) +
-                   (analysisData.HistoricalMetricsCount * historicalMetricSize);
-        }
-
-        private long EstimateCachingAnalyticsMemoryUsage(CachingAnalysisData cachingData)
-        {
-            // Rough estimation of memory usage for a CachingAnalysisData object
-            const long baseObjectSize = 100; // Base object overhead
-            const long accessPatternSize = 150; // AccessPattern size
-
-            return baseObjectSize + (cachingData.AccessPatternsCount * accessPatternSize);
-        }
-
-        private void LogDetailedCleanupStatistics(DataCleanupStatistics stats)
-        {
-            _logger.LogInformation("Detailed AI cleanup statistics:" +
-                "\n  Request Analytics Removed: {RequestAnalyticsRemoved}" +
-                "\n  Caching Analytics Removed: {CachingAnalyticsRemoved}" +
-                "\n  Prediction Results Removed: {PredictionResultsRemoved}" +
-                "\n  Execution Times Removed: {ExecutionTimesRemoved}" +
-                "\n  Optimization Results Removed: {OptimizationResultsRemoved}" +
-                "\n  Internal Data Items Removed: {InternalDataItemsRemoved}" +
-                "\n  Caching Data Items Removed: {CachingDataItemsRemoved}" +
-                "\n  Total Duration: {Duration}ms" +
-                "\n  Estimated Memory Freed: {MemoryFreed:N0} bytes",
-                stats.RequestAnalyticsRemoved,
-                stats.CachingAnalyticsRemoved,
-                stats.PredictionResultsRemoved,
-                stats.ExecutionTimesRemoved,
-                stats.OptimizationResultsRemoved,
-                stats.InternalDataItemsRemoved,
-                stats.CachingDataItemsRemoved,
-                stats.Duration.TotalMilliseconds,
-                stats.EstimatedMemoryFreed);
+            _dataCleanup.CleanupOldData();
         }
 
         private void CollectMetricsCallback(object? state)
@@ -4386,92 +3819,6 @@ namespace Relay.Core.AI
                 anomaly.MetricName, anomaly.CurrentValue, anomaly.ExpectedValue, anomaly.Severity);
         }
 
-        // Helper classes
-        private enum TrendDirection
-        {
-            StronglyDecreasing,
-            Decreasing,
-            Stable,
-            Increasing,
-            StronglyIncreasing
-        }
-
-        private enum AnomalySeverity
-        {
-            Low,
-            Medium,
-            High,
-            Critical
-        }
-
-        private enum InsightSeverity
-        {
-            Info,
-            Warning,
-            Critical
-        }
-
-        private class MovingAverageData
-        {
-            public double MA5 { get; set; }
-            public double MA15 { get; set; }
-            public double MA60 { get; set; }
-            public double EMA { get; set; }
-            public double CurrentValue { get; set; }
-            public DateTime Timestamp { get; set; }
-        }
-
-        private class SeasonalityPattern
-        {
-            public string HourlyPattern { get; set; } = string.Empty;
-            public string DailyPattern { get; set; } = string.Empty;
-            public double ExpectedMultiplier { get; set; }
-            public bool MatchesSeasonality { get; set; }
-        }
-
-        private class RegressionResult
-        {
-            public double Slope { get; set; }
-            public double Intercept { get; set; }
-            public double RSquared { get; set; }
-        }
-
-        private class ForecastResult
-        {
-            public double Current { get; set; }
-            public double Forecast5Min { get; set; }
-            public double Forecast15Min { get; set; }
-            public double Forecast60Min { get; set; }
-            public double Confidence { get; set; }
-        }
-
-        private class MetricAnomaly
-        {
-            public string MetricName { get; set; } = string.Empty;
-            public double CurrentValue { get; set; }
-            public double ExpectedValue { get; set; }
-            public AnomalySeverity Severity { get; set; }
-            public string Description { get; set; } = string.Empty;
-        }
-
-        private class TrendInsight
-        {
-            public string Category { get; set; } = string.Empty;
-            public InsightSeverity Severity { get; set; }
-            public string Message { get; set; } = string.Empty;
-            public string RecommendedAction { get; set; } = string.Empty;
-        }
-
-        private class MetricTrendData
-        {
-            public string MetricName { get; set; } = string.Empty;
-            public double Value { get; set; }
-            public DateTime Timestamp { get; set; }
-            public double MA5 { get; set; }
-            public double MA15 { get; set; }
-            public TrendDirection Trend { get; set; }
-        }
-
         private void UpdatePredictiveModels(Dictionary<string, double> metrics)
         {
             try
@@ -5099,320 +4446,5 @@ namespace Relay.Core.AI
         }
     }
 
-    // Supporting classes
-    internal class RequestAnalysisData
-    {
-        public long TotalExecutions { get; private set; }
-        public long SuccessfulExecutions { get; private set; }
-        public long FailedExecutions { get; private set; }
-        public TimeSpan AverageExecutionTime { get; private set; }
-        public long RepeatRequestCount { get; private set; }
-        public int ConcurrentExecutionPeaks { get; private set; }
-        public double ErrorRate => TotalExecutions > 0 ? (double)FailedExecutions / TotalExecutions : 0;
-        public double SuccessRate => TotalExecutions > 0 ? (double)SuccessfulExecutions / TotalExecutions : 0;
-        public DateTime LastActivityTime { get; private set; } = DateTime.UtcNow;
-        
-        // Property accessors for cleanup statistics
-        public int ExecutionTimesCount => _executionTimes.Count;
-        public int OptimizationResultsCount => _optimizationResults.Count;
-        public int HistoricalMetricsCount => _historicalMetrics.Count;
-        
-        private readonly List<TimeSpan> _executionTimes = new();
-        private readonly List<OptimizationResult> _optimizationResults = new();
-        private readonly Dictionary<DateTime, RequestExecutionMetrics> _historicalMetrics = new();
-
-        public void AddMetrics(RequestExecutionMetrics metrics)
-        {
-            TotalExecutions += metrics.TotalExecutions;
-            SuccessfulExecutions += metrics.SuccessfulExecutions;
-            FailedExecutions += metrics.FailedExecutions;
-            LastActivityTime = DateTime.UtcNow;
-            
-            _executionTimes.Add(metrics.AverageExecutionTime);
-            AverageExecutionTime = _executionTimes.Count > 0 
-                ? TimeSpan.FromMilliseconds(_executionTimes.Average(t => t.TotalMilliseconds))
-                : TimeSpan.Zero;
-            
-            ConcurrentExecutionPeaks = Math.Max(ConcurrentExecutionPeaks, metrics.ConcurrentExecutions);
-            
-            // Store historical data for trend analysis
-            _historicalMetrics[DateTime.UtcNow] = metrics;
-            
-            // Update repeat request count based on patterns
-            UpdateRepeatRequestCount(metrics);
-        }
-
-        public void AddOptimizationResult(OptimizationResult result)
-        {
-            _optimizationResults.Add(result);
-            LastActivityTime = DateTime.UtcNow;
-        }
-
-        public double CalculateExecutionVariance()
-        {
-            if (_executionTimes.Count < 2) return 0;
-            
-            var avg = _executionTimes.Average(t => t.TotalMilliseconds);
-            var variance = _executionTimes.Sum(t => Math.Pow(t.TotalMilliseconds - avg, 2)) / _executionTimes.Count;
-            return Math.Sqrt(variance) / avg; // Coefficient of variation
-        }
-
-        public double CalculatePerformanceTrend()
-        {
-            if (_historicalMetrics.Count < 2) return 0;
-            
-            var sortedMetrics = _historicalMetrics.OrderBy(kvp => kvp.Key).ToArray();
-            var oldAvg = sortedMetrics.Take(sortedMetrics.Length / 2)
-                .Average(kvp => kvp.Value.AverageExecutionTime.TotalMilliseconds);
-            var newAvg = sortedMetrics.Skip(sortedMetrics.Length / 2)
-                .Average(kvp => kvp.Value.AverageExecutionTime.TotalMilliseconds);
-            
-            // Negative trend = performance improving (execution time decreasing)
-            return (newAvg - oldAvg) / oldAvg;
-        }
-
-        public OptimizationStrategy[] GetMostEffectiveStrategies()
-        {
-            if (_optimizationResults.Count == 0) return Array.Empty<OptimizationStrategy>();
-            
-            return _optimizationResults
-                .GroupBy(r => r.Strategy)
-                .OrderByDescending(g => g.Average(r => r.ActualMetrics.SuccessRate))
-                .Select(g => g.Key)
-                .Take(3)
-                .ToArray();
-        }
-
-        /// <summary>
-        /// Cleans up old data within this analysis data object.
-        /// </summary>
-        /// <param name="cutoffTime">The cutoff time for data removal</param>
-        /// <returns>Number of items removed</returns>
-        public int CleanupOldData(DateTime cutoffTime)
-        {
-            var itemsRemoved = 0;
-
-            // Clean up historical metrics
-            var metricsKeysToRemove = _historicalMetrics.Keys.Where(k => k < cutoffTime).ToArray();
-            foreach (var key in metricsKeysToRemove)
-            {
-                if (_historicalMetrics.Remove(key))
-                    itemsRemoved++;
-            }
-
-            return itemsRemoved;
-        }
-
-        /// <summary>
-        /// Trims execution times collection to maintain maximum size.
-        /// </summary>
-        /// <param name="maxCount">Maximum number of execution times to keep</param>
-        /// <returns>Number of items removed</returns>
-        public int TrimExecutionTimes(int maxCount)
-        {
-            if (_executionTimes.Count <= maxCount) return 0;
-
-            var itemsToRemove = _executionTimes.Count - maxCount;
-            
-            // Remove oldest entries (keep most recent)
-            _executionTimes.RemoveRange(0, itemsToRemove);
-            
-            // Recalculate average execution time
-            AverageExecutionTime = _executionTimes.Count > 0 
-                ? TimeSpan.FromMilliseconds(_executionTimes.Average(t => t.TotalMilliseconds))
-                : TimeSpan.Zero;
-
-            return itemsToRemove;
-        }
-
-        /// <summary>
-        /// Cleans up old optimization results.
-        /// </summary>
-        /// <param name="cutoffTime">The cutoff time for result removal</param>
-        /// <returns>Number of results removed</returns>
-        public int CleanupOptimizationResults(DateTime cutoffTime)
-        {
-            var initialCount = _optimizationResults.Count;
-            
-            // Remove old optimization results
-            for (int i = _optimizationResults.Count - 1; i >= 0; i--)
-            {
-                if (_optimizationResults[i].Timestamp < cutoffTime)
-                {
-                    _optimizationResults.RemoveAt(i);
-                }
-            }
-
-            return initialCount - _optimizationResults.Count;
-        }
-
-        private void UpdateRepeatRequestCount(RequestExecutionMetrics metrics)
-        {
-            // Simple heuristic: if execution time is consistently low, 
-            // it might indicate repeated/cached requests
-            if (metrics.AverageExecutionTime.TotalMilliseconds < 10)
-            {
-                RepeatRequestCount++;
-            }
-        }
-    }
-
-    internal class CachingAnalysisData
-    {
-        public double CacheHitRate { get; private set; }
-        public long TotalAccesses { get; private set; }
-        public long CacheHits { get; private set; }
-        public DateTime LastAccessTime { get; private set; } = DateTime.UtcNow;
-        
-        // Property accessor for cleanup statistics
-        public int AccessPatternsCount => _accessPatterns.Count;
-        
-        private readonly List<AccessPattern> _accessPatterns = new();
-
-        public void AddAccessPatterns(AccessPattern[] patterns)
-        {
-            _accessPatterns.AddRange(patterns);
-            TotalAccesses += patterns.Length;
-            CacheHits += patterns.Count(p => p.WasCacheHit);
-            CacheHitRate = TotalAccesses > 0 ? (double)CacheHits / TotalAccesses : 0;
-            LastAccessTime = DateTime.UtcNow;
-        }
-
-        /// <summary>
-        /// Cleans up old access patterns.
-        /// </summary>
-        /// <param name="cutoffTime">The cutoff time for pattern removal</param>
-        /// <returns>Number of patterns removed</returns>
-        public int CleanupOldAccessPatterns(DateTime cutoffTime)
-        {
-            var initialCount = _accessPatterns.Count;
-            
-            // Remove old access patterns
-            for (int i = _accessPatterns.Count - 1; i >= 0; i--)
-            {
-                if (_accessPatterns[i].Timestamp < cutoffTime)
-                {
-                    var pattern = _accessPatterns[i];
-                    _accessPatterns.RemoveAt(i);
-                    
-                    // Adjust counters
-                    TotalAccesses--;
-                    if (pattern.WasCacheHit)
-                        CacheHits--;
-                }
-            }
-
-            // Recalculate cache hit rate
-            CacheHitRate = TotalAccesses > 0 ? (double)CacheHits / TotalAccesses : 0;
-
-            return initialCount - _accessPatterns.Count;
-        }
-    }
-
-    internal class OptimizationResult
-    {
-        public OptimizationStrategy Strategy { get; init; }
-        public RequestExecutionMetrics ActualMetrics { get; init; } = null!;
-        public DateTime Timestamp { get; init; }
-    }
-
-    internal class PredictionResult
-    {
-        public Type RequestType { get; init; } = null!;
-        public OptimizationStrategy[] PredictedStrategies { get; init; } = Array.Empty<OptimizationStrategy>();
-        public TimeSpan ActualImprovement { get; init; }
-        public DateTime Timestamp { get; init; }
-    }
-
-    /// <summary>
-    /// Statistics for data cleanup operations.
-    /// </summary>
-    internal class DataCleanupStatistics
-    {
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public TimeSpan Duration { get; set; }
-        public DateTime CutoffTime { get; set; }
-        
-        public int RequestAnalyticsRemoved { get; set; }
-        public int CachingAnalyticsRemoved { get; set; }
-        public int PredictionResultsRemoved { get; set; }
-        public int ExecutionTimesRemoved { get; set; }
-        public int OptimizationResultsRemoved { get; set; }
-        public int InternalDataItemsRemoved { get; set; }
-        public int CachingDataItemsRemoved { get; set; }
-        
-        public long EstimatedMemoryFreed { get; set; }
-        
-        public int TotalItemsRemoved =>
-            RequestAnalyticsRemoved +
-            CachingAnalyticsRemoved +
-            PredictionResultsRemoved +
-            ExecutionTimesRemoved +
-            OptimizationResultsRemoved +
-            InternalDataItemsRemoved +
-            CachingDataItemsRemoved;
-    }
-
-    // Supporting analysis classes for advanced pattern recognition
-    internal class PatternAnalysisContext
-    {
-        public Type RequestType { get; set; } = null!;
-        public RequestAnalysisData AnalysisData { get; set; } = null!;
-        public RequestExecutionMetrics CurrentMetrics { get; set; } = null!;
-        public SystemLoadMetrics SystemLoad { get; set; } = null!;
-        public double HistoricalTrend { get; set; }
-    }
-
-    internal class PerformanceAnalysisResult
-    {
-        public bool ShouldOptimize { get; set; }
-        public OptimizationStrategy RecommendedStrategy { get; set; }
-        public double Confidence { get; set; }
-        public TimeSpan EstimatedImprovement { get; set; }
-        public string Reasoning { get; set; } = string.Empty;
-        public OptimizationPriority Priority { get; set; }
-        public RiskLevel Risk { get; set; }
-        public double GainPercentage { get; set; }
-        public Dictionary<string, object> Parameters { get; set; } = new();
-    }
-
-    internal class CachingAnalysisResult
-    {
-        public bool ShouldCache { get; set; }
-        public double ExpectedHitRate { get; set; }
-        public double ExpectedImprovement { get; set; }
-        public double Confidence { get; set; }
-        public string Reasoning { get; set; } = string.Empty;
-        public CacheStrategy RecommendedStrategy { get; set; }
-        public TimeSpan RecommendedTTL { get; set; }
-    }
-
-    internal class ResourceOptimizationResult
-    {
-        public bool ShouldOptimize { get; set; }
-        public OptimizationStrategy Strategy { get; set; }
-        public double Confidence { get; set; }
-        public TimeSpan EstimatedImprovement { get; set; }
-        public string Reasoning { get; set; } = string.Empty;
-        public OptimizationPriority Priority { get; set; }
-        public RiskLevel Risk { get; set; }
-        public double GainPercentage { get; set; }
-        public Dictionary<string, object> Parameters { get; set; } = new();
-    }
-
-    internal class MachineLearningEnhancement
-    {
-        public OptimizationStrategy AlternativeStrategy { get; set; }
-        public double EnhancedConfidence { get; set; }
-        public string Reasoning { get; set; } = string.Empty;
-        public Dictionary<string, object> AdditionalParameters { get; set; } = new();
-    }
-
-    internal class RiskAssessmentResult
-    {
-        public RiskLevel RiskLevel { get; set; }
-        public double AdjustedConfidence { get; set; }
-    }
 }
 }

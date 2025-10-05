@@ -2755,17 +2755,483 @@ namespace Relay.Core.AI
             return Math.Max(0.6, Math.Min(0.98, 1.0 - (errorRate * 1.5)));
         }
 
+        /// <summary>
+        /// Calculate WebSocket disconnection rate using advanced multi-strategy analysis
+        /// </summary>
         private double CalculateWebSocketDisconnectionRate()
         {
-            // Estimate WebSocket disconnection rate
-            // In production, would track actual disconnect events
-            var errorRate = CalculateCurrentErrorRate();
-            var systemLoad = GetDatabasePoolUtilization();
+            try
+            {
+                // Strategy 1: Use historical disconnection data if available
+                var historicalRate = GetHistoricalDisconnectionRate();
+                if (historicalRate > 0)
+                {
+                    _logger.LogTrace("Using historical disconnection rate: {Rate:P2}", historicalRate);
+                    return historicalRate;
+                }
+                
+                // Strategy 2: ML-based prediction using error patterns
+                var mlPredictedRate = PredictDisconnectionRateFromPatterns();
+                if (mlPredictedRate > 0)
+                {
+                    _logger.LogTrace("Using ML-predicted disconnection rate: {Rate:P2}", mlPredictedRate);
+                    return mlPredictedRate;
+                }
+                
+                // Strategy 3: Multi-factor heuristic calculation
+                var heuristicRate = CalculateHeuristicDisconnectionRate();
+                
+                _logger.LogDebug("Using heuristic disconnection rate: {Rate:P2}", heuristicRate);
+                return heuristicRate;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating WebSocket disconnection rate");
+                return 0.05; // Default 5% disconnection rate
+            }
+        }
 
-            // Higher error rate and load = higher disconnection rate
-            var disconnectionRate = (errorRate * 0.5) + (systemLoad * 0.1);
+        /// <summary>
+        /// Get historical disconnection rate from stored metrics
+        /// </summary>
+        private double GetHistoricalDisconnectionRate()
+        {
+            try
+            {
+                var disconnectMetrics = _timeSeriesDb.GetRecentMetrics("WebSocketDisconnections", 50);
+                var connectionMetrics = _timeSeriesDb.GetRecentMetrics("WebSocketConnections", 50);
+                
+                if (disconnectMetrics.Count < 10 || connectionMetrics.Count < 10)
+                    return 0;
+                
+                // Calculate average disconnection rate
+                var disconnectionRates = new List<double>();
+                
+                for (int i = 0; i < Math.Min(disconnectMetrics.Count, connectionMetrics.Count); i++)
+                {
+                    var disconnects = disconnectMetrics[i].Value;
+                    var connections = connectionMetrics[i].Value;
+                    
+                    if (connections > 0)
+                    {
+                        disconnectionRates.Add(disconnects / connections);
+                    }
+                }
+                
+                if (!disconnectionRates.Any())
+                    return 0;
+                
+                // Use EMA for recent trend sensitivity
+                var ema = CalculateEMA(disconnectionRates, alpha: 0.3);
+                
+                // Blend with median for stability
+                var sortedRates = disconnectionRates.OrderBy(r => r).ToList();
+                var median = sortedRates[sortedRates.Count / 2];
+                
+                var blendedRate = (ema * 0.6) + (median * 0.4);
+                
+                // Apply time-of-day adjustment
+                var timeAdjustment = GetDisconnectionTimeAdjustment();
+                blendedRate *= timeAdjustment;
+                
+                return Math.Max(0.01, Math.Min(blendedRate, 0.35));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error getting historical disconnection rate");
+                return 0;
+            }
+        }
 
-            return Math.Max(0.02, Math.Min(0.3, disconnectionRate)); // 2-30% range
+        /// <summary>
+        /// Predict disconnection rate from error patterns using ML-inspired analysis
+        /// </summary>
+        private double PredictDisconnectionRateFromPatterns()
+        {
+            try
+            {
+                // Analyze error patterns that correlate with disconnections
+                var errorRate = CalculateCurrentErrorRate();
+                var errorTrend = CalculateErrorRateTrend();
+                var systemLoad = GetDatabasePoolUtilization();
+                var loadTrend = CalculateSystemLoadTrend();
+                
+                // Feature engineering for disconnection prediction
+                var features = new Dictionary<string, double>
+                {
+                    { "ErrorRate", errorRate },
+                    { "ErrorTrend", errorTrend },
+                    { "SystemLoad", systemLoad },
+                    { "LoadTrend", loadTrend },
+                    { "TimeOfDay", GetNormalizedTimeOfDay() },
+                    { "DayOfWeek", GetNormalizedDayOfWeek() }
+                };
+                
+                // Calculate weighted prediction
+                var baseDisconnectionRate = 0.0;
+                
+                // Error rate contribution (highest weight)
+                baseDisconnectionRate += errorRate * 0.35;
+                
+                // Error trend contribution (increasing errors = more disconnects)
+                if (errorTrend > 0.1)
+                    baseDisconnectionRate += errorTrend * 0.25;
+                else if (errorTrend < -0.1)
+                    baseDisconnectionRate -= errorTrend * 0.15; // Improving = fewer disconnects
+                
+                // System load contribution
+                baseDisconnectionRate += systemLoad * 0.20;
+                
+                // Load trend contribution
+                if (loadTrend > 0.1)
+                    baseDisconnectionRate += loadTrend * 0.15;
+                
+                // Time-based patterns (night: fewer, business hours: more)
+                var timeOfDay = DateTime.UtcNow.Hour;
+                if (timeOfDay >= 9 && timeOfDay <= 17)
+                    baseDisconnectionRate *= 1.2; // 20% more during business hours
+                else if (timeOfDay >= 0 && timeOfDay <= 6)
+                    baseDisconnectionRate *= 0.7; // 30% less during night
+                
+                // Apply network quality factor
+                var networkQuality = EstimateNetworkQualityFromMetrics();
+                baseDisconnectionRate *= (1.0 - (networkQuality * 0.3));
+                
+                return Math.Max(0.01, Math.Min(baseDisconnectionRate, 0.35));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error predicting disconnection rate from patterns");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate heuristic disconnection rate from multiple factors
+        /// </summary>
+        private double CalculateHeuristicDisconnectionRate()
+        {
+            try
+            {
+                var errorRate = CalculateCurrentErrorRate();
+                var systemLoad = GetDatabasePoolUtilization();
+                
+                // Base calculation with improved weights
+                var baseRate = (errorRate * 0.4) + (systemLoad * 0.15);
+                
+                // Add memory pressure factor
+                var memoryPressure = EstimateMemoryPressure();
+                baseRate += memoryPressure * 0.10;
+                
+                // Add connection churn factor
+                var connectionChurn = EstimateConnectionChurn();
+                baseRate += connectionChurn * 0.15;
+                
+                // Add response time factor (slow responses = more timeouts)
+                var responseTime = CalculateAverageResponseTime();
+                if (responseTime.TotalMilliseconds > 1000)
+                {
+                    var timeoutFactor = Math.Min((responseTime.TotalMilliseconds - 1000) / 5000, 0.15);
+                    baseRate += timeoutFactor;
+                }
+                
+                // Add concurrent connections factor (overload = more disconnects)
+                var connectionOverload = EstimateConnectionOverloadFactor();
+                baseRate += connectionOverload * 0.10;
+                
+                // Apply environmental adjustments
+                var environmentalFactor = GetDisconnectionEnvironmentalFactor();
+                baseRate *= environmentalFactor;
+                
+                return Math.Max(0.02, Math.Min(baseRate, 0.30));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating heuristic disconnection rate");
+                return 0.05; // Default 5%
+            }
+        }
+
+        /// <summary>
+        /// Estimate memory pressure from system metrics
+        /// </summary>
+        private double EstimateMemoryPressure()
+        {
+            try
+            {
+                // In production, this would use actual GC metrics:
+                // - GC.GetTotalMemory(false)
+                // - GC.CollectionCount(2) (gen 2 collections indicate pressure)
+                // - Process.WorkingSet64
+                // - System memory availability
+                
+                // For now, estimate from system load and request patterns
+                var systemLoad = GetDatabasePoolUtilization();
+                var activeRequests = GetActiveRequestCount();
+                
+                // High load + many requests = potential memory pressure
+                var estimatedPressure = (systemLoad * 0.6) + (Math.Min(activeRequests / 1000.0, 1.0) * 0.4);
+                
+                // Check for signs of memory issues in error patterns
+                var recentErrors = _requestAnalytics.Values
+                    .Where(a => a.ErrorRate > 0.05)
+                    .Count();
+                
+                if (recentErrors > 3)
+                {
+                    estimatedPressure *= 1.2; // 20% increase if seeing errors
+                }
+                
+                return Math.Max(0, Math.Min(estimatedPressure, 0.25)); // 0-25% range
+            }
+            catch
+            {
+                return 0.05; // Default low pressure
+            }
+        }
+
+        /// <summary>
+        /// Estimate connection churn (rate of connection/disconnection cycles)
+        /// </summary>
+        private double EstimateConnectionChurn()
+        {
+            try
+            {
+                var recentConnections = _timeSeriesDb.GetRecentMetrics("WebSocketConnections", 20);
+                
+                if (recentConnections.Count < 5)
+                    return 0.05; // Default low churn
+                
+                // Calculate variance in connection counts (high variance = high churn)
+                var values = recentConnections.Select(m => m.Value).ToList();
+                var mean = values.Average();
+                
+                if (mean < 1)
+                    return 0.05;
+                
+                var variance = values.Sum(v => Math.Pow(v - mean, 2)) / values.Count;
+                var coefficientOfVariation = Math.Sqrt(variance) / mean;
+                
+                // Normalize to 0-0.2 range
+                var churnRate = Math.Min(coefficientOfVariation * 0.5, 0.2);
+                
+                return churnRate;
+            }
+            catch
+            {
+                return 0.05;
+            }
+        }
+
+        /// <summary>
+        /// Estimate connection overload factor
+        /// </summary>
+        private double EstimateConnectionOverloadFactor()
+        {
+            try
+            {
+                // Check if we're approaching or exceeding connection limits
+                var currentConnections = GetWebSocketConnectionCount();
+                var maxConnections = _options.MaxEstimatedWebSocketConnections;
+                
+                if (maxConnections <= 0 || currentConnections <= 0)
+                    return 0;
+                
+                var utilizationRatio = (double)currentConnections / maxConnections;
+                
+                // Overload kicks in at 80% utilization
+                if (utilizationRatio > 0.8)
+                {
+                    var overloadFactor = (utilizationRatio - 0.8) * 0.5; // Up to 10% at 100% utilization
+                    return Math.Min(overloadFactor, 0.15);
+                }
+                
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Get time-of-day adjustment for disconnection rate
+        /// </summary>
+        private double GetDisconnectionTimeAdjustment()
+        {
+            var hourOfDay = DateTime.UtcNow.Hour;
+            
+            // Disconnection patterns vary by time
+            if (hourOfDay >= 9 && hourOfDay <= 17)
+            {
+                return 1.2; // 20% more during business hours (more activity = more disconnects)
+            }
+            else if (hourOfDay >= 18 && hourOfDay <= 22)
+            {
+                return 1.0; // Normal during evening
+            }
+            else if (hourOfDay >= 23 || hourOfDay <= 6)
+            {
+                return 0.7; // 30% less during night (less activity)
+            }
+            else
+            {
+                return 0.9; // Slightly less in morning hours
+            }
+        }
+
+        /// <summary>
+        /// Get environmental factor affecting disconnection rate
+        /// </summary>
+        private double GetDisconnectionEnvironmentalFactor()
+        {
+            try
+            {
+                // Analyze overall system health
+                var avgErrorRate = _requestAnalytics.Values.Any() 
+                    ? _requestAnalytics.Values.Average(a => a.ErrorRate) 
+                    : 0;
+                
+                // Poor system health → more disconnects
+                if (avgErrorRate > 0.15)
+                    return 1.5; // 50% more disconnects
+                else if (avgErrorRate > 0.10)
+                    return 1.3; // 30% more
+                else if (avgErrorRate > 0.05)
+                    return 1.1; // 10% more
+                else if (avgErrorRate < 0.01)
+                    return 0.8; // 20% fewer (healthy system)
+                else
+                    return 1.0; // Normal
+            }
+            catch
+            {
+                return 1.0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate error rate trend (increasing or decreasing)
+        /// </summary>
+        private double CalculateErrorRateTrend()
+        {
+            try
+            {
+                var errorMetrics = _timeSeriesDb.GetRecentMetrics("ErrorRate", 20);
+                
+                if (errorMetrics.Count < 10)
+                    return 0;
+                
+                // Calculate simple linear trend
+                var values = errorMetrics.Select(m => m.Value).ToList();
+                var recentAvg = values.Take(values.Count / 2).Average();
+                var olderAvg = values.Skip(values.Count / 2).Average();
+                
+                // Trend = (recent - older) / older
+                if (olderAvg == 0)
+                    return 0;
+                
+                var trend = (recentAvg - olderAvg) / olderAvg;
+                
+                return Math.Max(-0.5, Math.Min(trend, 0.5)); // Cap at ±50%
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate system load trend
+        /// </summary>
+        private double CalculateSystemLoadTrend()
+        {
+            try
+            {
+                var loadMetrics = _timeSeriesDb.GetRecentMetrics("SystemLoad", 20);
+                
+                if (loadMetrics.Count < 10)
+                    return 0;
+                
+                var values = loadMetrics.Select(m => m.Value).ToList();
+                var recentAvg = values.Take(values.Count / 2).Average();
+                var olderAvg = values.Skip(values.Count / 2).Average();
+                
+                if (olderAvg == 0)
+                    return 0;
+                
+                var trend = (recentAvg - olderAvg) / olderAvg;
+                
+                return Math.Max(-0.5, Math.Min(trend, 0.5));
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Get normalized time of day (0-1 range)
+        /// </summary>
+        private double GetNormalizedTimeOfDay()
+        {
+            return DateTime.UtcNow.Hour / 24.0;
+        }
+
+        /// <summary>
+        /// Get normalized day of week (0-1 range)
+        /// </summary>
+        private double GetNormalizedDayOfWeek()
+        {
+            return ((int)DateTime.UtcNow.DayOfWeek) / 7.0;
+        }
+
+        /// <summary>
+        /// Estimate network quality from various metrics
+        /// </summary>
+        private double EstimateNetworkQualityFromMetrics()
+        {
+            try
+            {
+                var errorRate = CalculateCurrentErrorRate();
+                var responseTime = CalculateAverageResponseTime();
+                
+                // Good network = low errors + fast responses
+                var errorQuality = 1.0 - Math.Min(errorRate * 5, 1.0); // 0-1 scale
+                var timeQuality = Math.Max(0, 1.0 - (responseTime.TotalMilliseconds / 5000)); // 0-1 scale
+                
+                // Weighted average
+                var overallQuality = (errorQuality * 0.6) + (timeQuality * 0.4);
+                
+                return Math.Max(0, Math.Min(overallQuality, 1.0));
+            }
+            catch
+            {
+                return 0.7; // Default moderate quality
+            }
+        }
+
+        /// <summary>
+        /// Store disconnection rate metrics for future analysis
+        /// </summary>
+        private void StoreDisconnectionRateMetrics(double disconnectionRate)
+        {
+            try
+            {
+                if (disconnectionRate <= 0)
+                    return;
+                
+                var timestamp = DateTime.UtcNow;
+                
+                _timeSeriesDb.StoreMetric("WebSocketDisconnectionRate", disconnectionRate, timestamp);
+                
+                _logger.LogTrace("Stored disconnection rate metric: {Rate:P2} at {Time}",
+                    disconnectionRate, timestamp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error storing disconnection rate metrics");
+            }
         }
 
         private double EstimateKeepAliveHealthRatio()
@@ -3214,6 +3680,22 @@ namespace Relay.Core.AI
         /// Calculate Exponential Moving Average
         /// </summary>
         private double CalculateEMA(List<float> values, double alpha)
+        {
+            if (values.Count == 0)
+                return 0;
+            
+            double ema = values[0];
+            for (int i = 1; i < values.Count; i++)
+            {
+                ema = (alpha * values[i]) + ((1 - alpha) * ema);
+            }
+            return ema;
+        }
+
+        /// <summary>
+        /// Calculate Exponential Moving Average for double values
+        /// </summary>
+        private double CalculateEMA(List<double> values, double alpha)
         {
             if (values.Count == 0)
                 return 0;

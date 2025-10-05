@@ -256,9 +256,8 @@ public abstract class Saga<TSagaData> : ISaga<TSagaData> where TSagaData : ISaga
                     trackingData.RecordFailedCompensation(stepName, lastException, retryCount, DateTimeOffset.UtcNow);
                 }
                 
-                // Log critical compensation failure
-                // In production: alert operators, write to dead-letter queue, etc.
-                OnCompensationFailed(stepName, lastException, retryCount);
+                // Handle critical compensation failure with comprehensive error tracking
+                await OnCompensationFailedAsync(stepName, lastException, retryCount, data, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -280,7 +279,7 @@ public abstract class Saga<TSagaData> : ISaga<TSagaData> where TSagaData : ISaga
         if (failedCompensations.Any())
         {
             // Store failed compensation details for manual intervention
-            OnPartialCompensationFailure(failedCompensations, successfulCompensations);
+            await OnPartialCompensationFailureAsync(failedCompensations, successfulCompensations, data, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -306,25 +305,44 @@ public abstract class Saga<TSagaData> : ISaga<TSagaData> where TSagaData : ISaga
 
     /// <summary>
     /// Called when a single compensation step fails after all retries.
-    /// Override this method to implement custom alerting or logging.
+    /// Override this method to implement custom alerting, logging, and dead-letter queue handling.
     /// </summary>
-    protected virtual void OnCompensationFailed(string stepName, Exception exception, int retryCount)
+    /// <param name="stepName">The name of the failed compensation step.</param>
+    /// <param name="exception">The exception that caused the failure.</param>
+    /// <param name="retryCount">The number of retry attempts made.</param>
+    /// <param name="data">The saga data for context.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    protected virtual async ValueTask OnCompensationFailedAsync(
+        string stepName,
+        Exception exception,
+        int retryCount,
+        TSagaData data,
+        CancellationToken cancellationToken)
     {
         // Default implementation: no-op
         // Override in derived classes to implement:
-        // - Logging to monitoring systems
-        // - Sending alerts to operators
-        // - Writing to dead-letter queue
-        // - Creating incident tickets
+        // - Logging to monitoring systems (Application Insights, Prometheus, etc.)
+        // - Sending alerts to operators (PagerDuty, Slack, email)
+        // - Writing to dead-letter queue for manual intervention
+        // - Creating incident tickets (Jira, ServiceNow)
+        // - Publishing compensation failure events to message broker
+
+        await Task.CompletedTask;
     }
 
     /// <summary>
     /// Called when compensation partially fails (some steps succeeded, some failed).
     /// Override this method to implement custom handling for partial failures.
     /// </summary>
-    protected virtual void OnPartialCompensationFailure(
+    /// <param name="failedCompensations">List of compensation steps that failed.</param>
+    /// <param name="successfulCompensations">List of compensation steps that succeeded.</param>
+    /// <param name="data">The saga data for context.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    protected virtual async ValueTask OnPartialCompensationFailureAsync(
         List<CompensationFailure> failedCompensations,
-        List<string> successfulCompensations)
+        List<string> successfulCompensations,
+        TSagaData data,
+        CancellationToken cancellationToken)
     {
         // Default implementation: no-op
         // Override in derived classes to implement:
@@ -332,6 +350,10 @@ public abstract class Saga<TSagaData> : ISaga<TSagaData> where TSagaData : ISaga
         // - Automated retry with different strategy
         // - Alerting with detailed failure information
         // - State reconciliation procedures
+        // - Publishing partial failure events
+        // - Writing to compensation dead-letter queue with recovery instructions
+
+        await Task.CompletedTask;
     }
 
     /// <summary>

@@ -8,58 +8,6 @@ using Microsoft.Extensions.Logging;
 namespace Relay.Core.AI
 {
     /// <summary>
-    /// Metadata for batch coordinators.
-    /// </summary>
-    internal sealed class BatchCoordinatorMetadata
-    {
-        public int BatchSize { get; init; }
-        public TimeSpan BatchWindow { get; init; }
-        public TimeSpan MaxWaitTime { get; init; }
-        public BatchingStrategy Strategy { get; init; }
-        public DateTime CreatedAt { get; init; }
-        public long RequestCount { get; set; }
-        public DateTime LastUsed { get; set; }
-        public double AverageWaitTime { get; set; }
-        public double AverageBatchSize { get; set; }
-    }
-
-    /// <summary>
-    /// Interface for batch coordinators.
-    /// </summary>
-    internal interface IBatchCoordinator
-    {
-        BatchCoordinatorMetadata? GetMetadata();
-    }
-
-    /// <summary>
-    /// Represents a batch item waiting for processing.
-    /// </summary>
-    internal sealed class BatchItem<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-    {
-        public TRequest Request { get; init; } = default!;
-        public RequestHandlerDelegate<TResponse> Handler { get; init; } = default!;
-        public CancellationToken CancellationToken { get; init; }
-        public DateTime EnqueueTime { get; init; }
-        public Guid BatchId { get; init; }
-        public TaskCompletionSource<BatchExecutionResult<TResponse>> CompletionSource { get; } = new();
-    }
-
-    /// <summary>
-    /// Result of batch execution.
-    /// </summary>
-    internal sealed class BatchExecutionResult<TResponse>
-    {
-        public TResponse Response { get; init; } = default!;
-        public int BatchSize { get; init; }
-        public TimeSpan WaitTime { get; init; }
-        public TimeSpan ExecutionTime { get; init; }
-        public bool Success { get; init; }
-        public BatchingStrategy Strategy { get; init; }
-        public double Efficiency { get; init; }
-    }
-
-    /// <summary>
     /// Coordinates batch processing of requests.
     /// </summary>
     internal sealed class BatchCoordinator<TRequest, TResponse> : IBatchCoordinator, IDisposable

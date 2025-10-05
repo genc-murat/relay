@@ -1,0 +1,14 @@
+using System;
+
+namespace Relay.Core.AI
+{
+    /// <summary>
+    /// Optimization result tracking
+    /// </summary>
+    internal class OptimizationResult
+    {
+        public OptimizationStrategy Strategy { get; init; }
+        public RequestExecutionMetrics ActualMetrics { get; init; } = null!;
+        public DateTime Timestamp { get; init; }
+    }
+}

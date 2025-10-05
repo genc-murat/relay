@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
-using Microsoft.ML.Data;
 using Microsoft.ML.Trainers;
 using Microsoft.ML.Trainers.FastTree;
 using Microsoft.ML.TimeSeries;
@@ -597,60 +596,5 @@ namespace Relay.Core.AI
 
             _logger.LogInformation("ML.NET Model Manager disposed");
         }
-    }
-
-    // ML.NET Data Classes
-    internal class PerformanceData
-    {
-        public float ExecutionTime { get; set; }
-        public float ConcurrencyLevel { get; set; }
-        public float MemoryUsage { get; set; }
-        public float DatabaseCalls { get; set; }
-        public float ExternalApiCalls { get; set; }
-        public float OptimizationGain { get; set; } // Label
-    }
-
-    internal class PerformancePrediction
-    {
-        [ColumnName("Score")]
-        public float PredictedGain { get; set; }
-    }
-
-    internal class OptimizationStrategyData
-    {
-        public float ExecutionTime { get; set; }
-        public float RepeatRate { get; set; }
-        public float ConcurrencyLevel { get; set; }
-        public float MemoryPressure { get; set; }
-        public float ErrorRate { get; set; }
-        public bool ShouldOptimize { get; set; } // Label
-    }
-
-    internal class StrategyPrediction
-    {
-        [ColumnName("PredictedLabel")]
-        public bool Prediction { get; set; }
-
-        public float Probability { get; set; }
-        public float Score { get; set; }
-    }
-
-    internal class MetricData
-    {
-        public DateTime Timestamp { get; set; }
-        public float Value { get; set; }
-    }
-
-    internal class AnomalyPrediction
-    {
-        [VectorType(3)]
-        public double[] Prediction { get; set; } = new double[3];
-    }
-
-    internal class MetricForecast
-    {
-        public float[] ForecastedValues { get; set; } = Array.Empty<float>();
-        public float[] LowerBound { get; set; } = Array.Empty<float>();
-        public float[] UpperBound { get; set; } = Array.Empty<float>();
     }
 }

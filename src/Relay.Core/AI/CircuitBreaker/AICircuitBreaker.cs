@@ -6,39 +6,6 @@ using Microsoft.Extensions.Logging;
 namespace Relay.Core.AI
 {
     /// <summary>
-    /// Circuit breaker states.
-    /// </summary>
-    public enum CircuitBreakerState
-    {
-        Closed,
-        Open,
-        HalfOpen
-    }
-
-    /// <summary>
-    /// Circuit breaker metrics.
-    /// </summary>
-    public sealed class CircuitBreakerMetrics
-    {
-        public long TotalCalls { get; init; }
-        public long SuccessfulCalls { get; init; }
-        public long FailedCalls { get; init; }
-        public long SlowCalls { get; init; }
-        public double FailureRate => TotalCalls > 0 ? (double)FailedCalls / TotalCalls : 0.0;
-        public double SuccessRate => TotalCalls > 0 ? (double)SuccessfulCalls / TotalCalls : 0.0;
-        public double SlowCallRate => TotalCalls > 0 ? (double)SlowCalls / TotalCalls : 0.0;
-    }
-
-    /// <summary>
-    /// Exception thrown when circuit breaker is open.
-    /// </summary>
-    public sealed class CircuitBreakerOpenException : Exception
-    {
-        public CircuitBreakerOpenException(string message) : base(message) { }
-        public CircuitBreakerOpenException(string message, Exception innerException) : base(message, innerException) { }
-    }
-
-    /// <summary>
     /// AI-powered circuit breaker implementation.
     /// </summary>
     internal sealed class AICircuitBreaker<TResponse>

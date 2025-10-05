@@ -10,25 +10,6 @@ using Microsoft.Extensions.Options;
 namespace Relay.Core.AI
 {
     /// <summary>
-    /// Extension methods for AI optimization engine.
-    /// </summary>
-    internal static class AIOptimizationExtensions
-    {
-        /// <summary>
-        /// Adds a range of key-value pairs to a dictionary.
-        /// </summary>
-        public static void AddRange<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, Dictionary<TKey, TValue> other) where TKey : notnull
-        {
-            foreach (var kvp in other)
-            {
-                dictionary[kvp.Key] = kvp.Value;
-            }
-        }
-    }
-
-namespace Relay.Core.AI
-{
-    /// <summary>
     /// AI-powered optimization engine implementation using machine learning algorithms
     /// to analyze request patterns and optimize performance.
     /// </summary>
@@ -10185,6 +10166,4 @@ namespace Relay.Core.AI
         public TimeSpan TimeSincePrevious { get; set; }
         public TimeSpan PerformanceImpact { get; set; }
     }
-
-}
 }

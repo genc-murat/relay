@@ -1651,28 +1651,330 @@ namespace Relay.Core.AI
         {
             try
             {
-                // Track Server-Sent Events (EventSource) connections
-                // In production, integrate with:
-                // - ASP.NET Core SSE endpoints
-                // - Custom SSE connection tracking
-                // - EventSource connection lifetime management
-
-                var realTimeUsers = EstimateRealTimeUsers();
-
-                // SSE is often used as WebSocket fallback or for one-way communication
-                var sseUsageRate = 0.15; // 15% of real-time users might use SSE
-                var sseConnections = (int)(realTimeUsers * sseUsageRate);
-
-                // SSE connections are typically long-lived
-                var persistenceMultiplier = 1.4; // 40% more due to long-lived nature
-                sseConnections = (int)(sseConnections * persistenceMultiplier);
-
-                return Math.Max(0, Math.Min(sseConnections, 50)); // Reasonable cap for SSE
+                var connectionCount = 0;
+                
+                // Strategy 1: Try to get stored SSE metrics
+                connectionCount = TryGetStoredSSEMetrics();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("SSE connections from stored metrics: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 2: Analyze long-lived streaming patterns
+                connectionCount = EstimateSSEFromStreamingPatterns();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("SSE connections from streaming patterns: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 3: Historical pattern analysis
+                connectionCount = EstimateSSEFromHistoricalPatterns();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("SSE connections from historical patterns: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 4: Fallback estimation from real-time users
+                connectionCount = EstimateSSEFromRealTimeUsers();
+                
+                _logger.LogDebug("SSE connections estimated: {Count}", connectionCount);
+                return connectionCount;
             }
             catch (Exception ex)
             {
-                _logger.LogTrace(ex, "Error estimating Server-Sent Event connections");
+                _logger.LogWarning(ex, "Error estimating Server-Sent Event connections");
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// Try to get stored SSE metrics from time-series database
+        /// </summary>
+        private int TryGetStoredSSEMetrics()
+        {
+            try
+            {
+                var metricNames = new[]
+                {
+                    "SSEConnections",
+                    "ServerSentEventConnections",
+                    "sse-current-connections",
+                    "eventsource-connections"
+                };
+                
+                foreach (var metricName in metricNames)
+                {
+                    var recentMetrics = _timeSeriesDb.GetRecentMetrics(metricName, 10);
+                    if (recentMetrics.Any())
+                    {
+                        // Use weighted average for stability
+                        var weights = Enumerable.Range(1, recentMetrics.Count).Select(i => (double)i).ToArray();
+                        var weightedSum = recentMetrics.Select((m, i) => m.Value * weights[i]).Sum();
+                        var totalWeight = weights.Sum();
+                        
+                        return (int)(weightedSum / totalWeight);
+                    }
+                }
+                
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error reading stored SSE metrics");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate SSE connections from streaming request patterns
+        /// </summary>
+        private int EstimateSSEFromStreamingPatterns()
+        {
+            try
+            {
+                // SSE requests are characterized by:
+                // 1. Very long execution times (hours/days)
+                // 2. One-way server-to-client streaming
+                // 3. text/event-stream content type
+                
+                var longLivedRequests = _requestAnalytics.Values
+                    .Where(a => a.AverageExecutionTime.TotalMinutes > 5) // >5 min = likely streaming
+                    .Sum(a => a.ConcurrentExecutionPeaks);
+                
+                if (longLivedRequests == 0)
+                    return 0;
+                
+                // SSE is typically a smaller portion of long-lived connections
+                // (WebSocket is more common)
+                var ssePortionRate = 0.25; // ~25% of long-lived are SSE
+                var estimatedConnections = (int)(longLivedRequests * ssePortionRate);
+                
+                // Apply browser connection limit factor
+                // Browsers typically limit SSE connections per domain (6-8)
+                var browserLimitFactor = CalculateBrowserConnectionLimitFactor();
+                estimatedConnections = (int)(estimatedConnections * browserLimitFactor);
+                
+                // Apply time-of-day adjustment
+                var timeOfDayFactor = CalculateTimeOfDaySSEFactor();
+                estimatedConnections = (int)(estimatedConnections * timeOfDayFactor);
+                
+                return Math.Max(0, estimatedConnections);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating SSE from streaming patterns");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate SSE connections from historical patterns
+        /// </summary>
+        private int EstimateSSEFromHistoricalPatterns()
+        {
+            try
+            {
+                var historicalData = _timeSeriesDb.GetRecentMetrics("SSEConnections", 100);
+                
+                if (historicalData.Count < 10)
+                    return 0;
+                
+                // Find similar time periods (same hour ±1)
+                var currentHour = DateTime.UtcNow.Hour;
+                var similarTimeData = historicalData
+                    .Where(m => Math.Abs(m.Timestamp.Hour - currentHour) <= 1)
+                    .ToList();
+                
+                if (similarTimeData.Any())
+                {
+                    // Use median for stability (SSE connections are typically stable)
+                    var sortedValues = similarTimeData.Select(m => m.Value).OrderBy(v => v).ToList();
+                    var median = sortedValues[sortedValues.Count / 2];
+                    
+                    // Apply current load adjustment
+                    var loadLevel = ClassifyCurrentLoadLevel();
+                    var loadFactor = GetSSELoadAdjustment(loadLevel);
+                    
+                    return (int)(median * loadFactor);
+                }
+                
+                // Fallback: Use EMA of all data
+                var ema = CalculateEMA(historicalData.Select(m => m.Value).ToList(), alpha: 0.2);
+                return Math.Max(0, (int)ema);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating SSE from historical patterns");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate SSE connections from real-time users (fallback)
+        /// </summary>
+        private int EstimateSSEFromRealTimeUsers()
+        {
+            try
+            {
+                var realTimeUsers = EstimateRealTimeUsers();
+                
+                if (realTimeUsers == 0)
+                    return 0;
+                
+                // SSE is often used for:
+                // - Live notifications
+                // - Real-time updates
+                // - Dashboard streaming
+                // Typically 10-20% of real-time users
+                var sseUsageRate = 0.15; // 15% baseline
+                
+                // Adjust based on application characteristics
+                var usagePattern = EstimateSSEUsagePattern();
+                var sseConnections = (int)(realTimeUsers * sseUsageRate * usagePattern);
+                
+                // SSE connections are persistent
+                var persistenceMultiplier = 1.3; // 30% more due to persistence
+                sseConnections = (int)(sseConnections * persistenceMultiplier);
+                
+                // Apply reasonable bounds
+                return Math.Max(0, Math.Min(sseConnections, 50));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating SSE from real-time users");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate browser connection limit impact factor
+        /// </summary>
+        private double CalculateBrowserConnectionLimitFactor()
+        {
+            try
+            {
+                // Modern browsers limit concurrent connections per domain
+                // HTTP/1.1: 6 connections per domain
+                // HTTP/2: Single connection with multiplexing
+                
+                // This affects how many SSE connections can be opened
+                // Assume mix of browser versions and protocols
+                var http1Percentage = 0.3; // 30% still HTTP/1.1
+                var http2Percentage = 0.7; // 70% HTTP/2
+                
+                // HTTP/1.1 has stricter limits, reducing effective SSE count
+                var http1Factor = 0.7; // 30% reduction due to limits
+                var http2Factor = 1.0; // No significant impact
+                
+                return (http1Percentage * http1Factor) + (http2Percentage * http2Factor);
+            }
+            catch
+            {
+                return 0.85; // Default: 15% reduction
+            }
+        }
+
+        /// <summary>
+        /// Calculate time-of-day factor for SSE usage
+        /// </summary>
+        private double CalculateTimeOfDaySSEFactor()
+        {
+            var hourOfDay = DateTime.UtcNow.Hour;
+            
+            // SSE usage for dashboards and notifications varies by time
+            if (hourOfDay >= 9 && hourOfDay <= 17)
+            {
+                return 1.4; // 40% more during business hours (dashboards active)
+            }
+            else if (hourOfDay >= 18 && hourOfDay <= 22)
+            {
+                return 1.1; // 10% more during evening
+            }
+            else if (hourOfDay >= 23 || hourOfDay <= 5)
+            {
+                return 0.4; // 60% less during night (most dashboards closed)
+            }
+            else
+            {
+                return 0.7; // 30% less during early morning
+            }
+        }
+
+        /// <summary>
+        /// Get load-based adjustment for SSE connections
+        /// </summary>
+        private double GetSSELoadAdjustment(LoadLevel level)
+        {
+            return level switch
+            {
+                LoadLevel.Critical => 1.2, // 20% more (increased monitoring)
+                LoadLevel.High => 1.1,     // 10% more
+                LoadLevel.Medium => 1.0,   // Normal
+                LoadLevel.Low => 0.9,      // 10% fewer
+                LoadLevel.Idle => 0.7,     // 30% fewer (dashboards likely closed)
+                _ => 1.0
+            };
+        }
+
+        /// <summary>
+        /// Estimate SSE usage pattern based on application type
+        /// </summary>
+        private double EstimateSSEUsagePattern()
+        {
+            try
+            {
+                // Analyze request patterns to determine if app is:
+                // - Dashboard-heavy (more SSE)
+                // - API-heavy (less SSE)
+                // - Notification-focused (moderate SSE)
+                
+                var totalRequests = _requestAnalytics.Values.Sum(a => a.TotalExecutions);
+                if (totalRequests == 0)
+                    return 1.0;
+                
+                // Check for long-lived connections ratio
+                var longLivedRatio = _requestAnalytics.Values
+                    .Where(a => a.AverageExecutionTime.TotalMinutes > 1)
+                    .Sum(a => a.TotalExecutions) / (double)totalRequests;
+                
+                // Higher ratio of long-lived = more likely dashboard/streaming app
+                if (longLivedRatio > 0.3)
+                    return 1.5; // Dashboard-heavy
+                else if (longLivedRatio > 0.1)
+                    return 1.2; // Moderate streaming
+                else
+                    return 0.8; // API-heavy, less SSE
+            }
+            catch
+            {
+                return 1.0; // Default
+            }
+        }
+
+        /// <summary>
+        /// Store SSE connection metrics for future analysis
+        /// </summary>
+        private void StoreSSEConnectionMetrics(int connectionCount)
+        {
+            try
+            {
+                if (connectionCount <= 0)
+                    return;
+                
+                var timestamp = DateTime.UtcNow;
+                
+                _timeSeriesDb.StoreMetric("SSEConnections", connectionCount, timestamp);
+                _timeSeriesDb.StoreMetric("ServerSentEventConnections", connectionCount, timestamp);
+                
+                _logger.LogTrace("Stored SSE connection metric: {Count} at {Time}",
+                    connectionCount, timestamp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error storing SSE connection metrics");
             }
         }
 

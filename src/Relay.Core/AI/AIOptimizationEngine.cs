@@ -1413,31 +1413,237 @@ namespace Relay.Core.AI
         {
             try
             {
-                // Track raw WebSocket connections (not using SignalR)
-                // In production, integrate with:
-                // - ASP.NET Core WebSocket middleware
-                // - Custom WebSocket connection managers
-                // - WebSocket connection lifetime tracking
-
-                var activeRequests = GetActiveRequestCount();
-
-                // Estimate raw WebSocket connections (typically lower than SignalR)
-                var rawWsConnections = Math.Max(0, activeRequests / 10); // 10% of requests might be WS
-
-                // Factor in WebSocket keepalive and idle connections
-                var keepAliveMultiplier = 1.2; // 20% more due to persistent connections
-                rawWsConnections = (int)(rawWsConnections * keepAliveMultiplier);
-
-                // Consider application-specific WebSocket usage patterns
-                var usagePattern = EstimateWebSocketUsagePattern();
-                rawWsConnections = (int)(rawWsConnections * usagePattern);
-
-                return Math.Max(0, Math.Min(rawWsConnections, 100)); // Reasonable cap
+                var connectionCount = 0;
+                
+                // Strategy 1: Try to get stored WebSocket metrics
+                connectionCount = TryGetStoredWebSocketMetrics();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("Raw WebSocket connections from stored metrics: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 2: Estimate from request patterns and upgrade frequency
+                connectionCount = EstimateWebSocketFromUpgradePatterns();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("Raw WebSocket connections from upgrade patterns: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 3: Historical pattern-based estimation
+                connectionCount = EstimateWebSocketFromHistoricalPatterns();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("Raw WebSocket connections from historical patterns: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 4: Fallback estimation from active requests
+                connectionCount = EstimateWebSocketFromActiveRequests();
+                
+                _logger.LogDebug("Raw WebSocket connections estimated: {Count}", connectionCount);
+                return connectionCount;
             }
             catch (Exception ex)
             {
-                _logger.LogTrace(ex, "Error estimating raw WebSocket connections");
+                _logger.LogWarning(ex, "Error estimating raw WebSocket connections");
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// Try to get stored WebSocket metrics from time-series database
+        /// </summary>
+        private int TryGetStoredWebSocketMetrics()
+        {
+            try
+            {
+                var metricNames = new[]
+                {
+                    "WebSocketConnections",
+                    "RawWebSocketConnections",
+                    "ws-current-connections",
+                    "websocket-connections"
+                };
+                
+                foreach (var metricName in metricNames)
+                {
+                    var recentMetrics = _timeSeriesDb.GetRecentMetrics(metricName, 10);
+                    if (recentMetrics.Any())
+                    {
+                        // Use weighted average of recent values
+                        var weights = Enumerable.Range(1, recentMetrics.Count).Select(i => (double)i).ToArray();
+                        var weightedSum = recentMetrics.Select((m, i) => m.Value * weights[i]).Sum();
+                        var totalWeight = weights.Sum();
+                        
+                        return (int)(weightedSum / totalWeight);
+                    }
+                }
+                
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error reading stored WebSocket metrics");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate WebSocket connections from HTTP upgrade patterns
+        /// </summary>
+        private int EstimateWebSocketFromUpgradePatterns()
+        {
+            try
+            {
+                // Track WebSocket upgrade requests from request analytics
+                // Long-lived connections (>10 seconds average execution time) are likely WebSockets
+                var upgradeRequests = _requestAnalytics.Values
+                    .Where(a => a.AverageExecutionTime.TotalSeconds > 10) // Long-lived connections
+                    .Sum(a => a.ConcurrentExecutionPeaks);
+                
+                if (upgradeRequests == 0)
+                    return 0;
+                
+                // WebSocket connections are long-lived, estimate based on concurrent peaks
+                var estimatedConnections = (int)(upgradeRequests * 0.3); // ~30% are likely WebSockets
+                
+                // Apply time-of-day adjustment
+                var hourOfDay = DateTime.UtcNow.Hour;
+                var timeOfDayFactor = CalculateTimeOfDayWebSocketFactor(hourOfDay);
+                estimatedConnections = (int)(estimatedConnections * timeOfDayFactor);
+                
+                return Math.Max(0, estimatedConnections);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating WebSocket from upgrade patterns");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate WebSocket connections from historical patterns
+        /// </summary>
+        private int EstimateWebSocketFromHistoricalPatterns()
+        {
+            try
+            {
+                var historicalData = _timeSeriesDb.GetRecentMetrics("WebSocketConnections", 100);
+                
+                if (historicalData.Count < 20)
+                    return 0;
+                
+                // Find similar time periods (same hour of day ±1 hour)
+                var currentHour = DateTime.UtcNow.Hour;
+                var similarTimeData = historicalData
+                    .Where(m => Math.Abs(m.Timestamp.Hour - currentHour) <= 1)
+                    .ToList();
+                
+                if (similarTimeData.Any())
+                {
+                    // Use median of similar time periods
+                    var sortedValues = similarTimeData.Select(m => m.Value).OrderBy(v => v).ToList();
+                    var median = sortedValues[sortedValues.Count / 2];
+                    
+                    // Apply current load adjustment
+                    var loadLevel = ClassifyCurrentLoadLevel();
+                    var loadFactor = GetLoadBasedConnectionAdjustment(loadLevel);
+                    
+                    return (int)(median * loadFactor);
+                }
+                
+                // Fallback: Use overall EMA
+                var ema = CalculateEMA(historicalData.Select(m => m.Value).ToList(), alpha: 0.3);
+                return Math.Max(0, (int)ema);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating WebSocket from historical patterns");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate WebSocket connections from active requests (fallback)
+        /// </summary>
+        private int EstimateWebSocketFromActiveRequests()
+        {
+            try
+            {
+                var activeRequests = GetActiveRequestCount();
+                
+                if (activeRequests == 0)
+                    return 0;
+                
+                // WebSocket connections are typically a small portion of total requests
+                var baseEstimate = Math.Max(0, activeRequests / 10); // ~10% baseline
+                
+                // Apply WebSocket-specific multipliers
+                var keepAliveMultiplier = 1.5; // WebSockets are long-lived (50% more)
+                var usagePattern = EstimateWebSocketUsagePattern(); // Application-specific pattern
+                
+                var estimate = (int)(baseEstimate * keepAliveMultiplier * usagePattern);
+                
+                // Apply reasonable bounds
+                return Math.Max(0, Math.Min(estimate, 100));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating WebSocket from active requests");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate time-of-day factor for WebSocket usage
+        /// </summary>
+        private double CalculateTimeOfDayWebSocketFactor(int hourOfDay)
+        {
+            // WebSocket usage patterns typically vary by time of day
+            // Peak hours: 9-17, Lower hours: night time
+            
+            if (hourOfDay >= 9 && hourOfDay <= 17)
+            {
+                return 1.3; // 30% more during business hours
+            }
+            else if (hourOfDay >= 18 && hourOfDay <= 22)
+            {
+                return 1.1; // 10% more during evening
+            }
+            else if (hourOfDay >= 0 && hourOfDay <= 6)
+            {
+                return 0.5; // 50% less during night
+            }
+            else
+            {
+                return 0.8; // 20% less during early morning
+            }
+        }
+
+        /// <summary>
+        /// Store WebSocket connection metrics for future analysis
+        /// </summary>
+        private void StoreWebSocketConnectionMetrics(int connectionCount)
+        {
+            try
+            {
+                if (connectionCount <= 0)
+                    return;
+                
+                var timestamp = DateTime.UtcNow;
+                
+                // Store in time-series database
+                _timeSeriesDb.StoreMetric("WebSocketConnections", connectionCount, timestamp);
+                _timeSeriesDb.StoreMetric("RawWebSocketConnections", connectionCount, timestamp);
+                
+                _logger.LogTrace("Stored WebSocket connection metric: {Count} at {Time}",
+                    connectionCount, timestamp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error storing WebSocket connection metrics");
             }
         }
 

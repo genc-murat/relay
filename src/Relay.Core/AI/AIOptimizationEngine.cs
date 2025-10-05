@@ -1982,32 +1982,340 @@ namespace Relay.Core.AI
         {
             try
             {
-                // Track long-polling connections (fallback for WebSocket/SSE)
-                // In production, integrate with:
-                // - SignalR long-polling transport
-                // - Custom polling endpoint monitoring
-                // - Connection state tracking for polling clients
-
-                var realTimeUsers = EstimateRealTimeUsers();
-
-                // Long-polling is typically a fallback, used by ~5-10% of clients
-                var longPollingRate = 0.08; // 8% of real-time users on long-polling
-                var longPollingConnections = (int)(realTimeUsers * longPollingRate);
-
-                // Long-polling has higher connection churn
-                var churnMultiplier = 1.5; // 50% more due to reconnection patterns
-                longPollingConnections = (int)(longPollingConnections * churnMultiplier);
-
-                // Factor in polling interval and concurrent polls
-                var concurrencyFactor = 1.3; // Multiple concurrent polls per client
-                longPollingConnections = (int)(longPollingConnections * concurrencyFactor);
-
-                return Math.Max(0, Math.Min(longPollingConnections, 30)); // Cap at 30
+                var connectionCount = 0;
+                
+                // Strategy 1: Try to get stored long-polling metrics
+                connectionCount = TryGetStoredLongPollingMetrics();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("Long-polling connections from stored metrics: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 2: Analyze polling request patterns
+                connectionCount = EstimateLongPollingFromRequestPatterns();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("Long-polling connections from request patterns: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 3: Historical pattern analysis
+                connectionCount = EstimateLongPollingFromHistoricalPatterns();
+                if (connectionCount > 0)
+                {
+                    _logger.LogTrace("Long-polling connections from historical patterns: {Count}", connectionCount);
+                    return connectionCount;
+                }
+                
+                // Strategy 4: Fallback estimation from real-time users
+                connectionCount = EstimateLongPollingFromRealTimeUsers();
+                
+                _logger.LogDebug("Long-polling connections estimated: {Count}", connectionCount);
+                return connectionCount;
             }
             catch (Exception ex)
             {
-                _logger.LogTrace(ex, "Error estimating long-polling connections");
+                _logger.LogWarning(ex, "Error estimating long-polling connections");
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// Try to get stored long-polling metrics from time-series database
+        /// </summary>
+        private int TryGetStoredLongPollingMetrics()
+        {
+            try
+            {
+                var metricNames = new[]
+                {
+                    "LongPollingConnections",
+                    "PollingConnections",
+                    "longpoll-connections",
+                    "polling-transport-connections"
+                };
+                
+                foreach (var metricName in metricNames)
+                {
+                    var recentMetrics = _timeSeriesDb.GetRecentMetrics(metricName, 10);
+                    if (recentMetrics.Any())
+                    {
+                        // Use weighted average for stability
+                        var weights = Enumerable.Range(1, recentMetrics.Count).Select(i => (double)i).ToArray();
+                        var weightedSum = recentMetrics.Select((m, i) => m.Value * weights[i]).Sum();
+                        var totalWeight = weights.Sum();
+                        
+                        return (int)(weightedSum / totalWeight);
+                    }
+                }
+                
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error reading stored long-polling metrics");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate long-polling connections from request patterns
+        /// </summary>
+        private int EstimateLongPollingFromRequestPatterns()
+        {
+            try
+            {
+                // Long-polling requests are characterized by:
+                // 1. Medium execution times (30s-120s typical timeout)
+                // 2. Frequent repeat requests from same client
+                // 3. Higher request frequency than normal API calls
+                
+                var mediumDurationRequests = _requestAnalytics.Values
+                    .Where(a => a.AverageExecutionTime.TotalSeconds >= 20 &&
+                                a.AverageExecutionTime.TotalSeconds <= 120)
+                    .ToList();
+                
+                if (!mediumDurationRequests.Any())
+                    return 0;
+                
+                // Calculate polling connection estimate
+                var totalRepeatRequests = mediumDurationRequests.Sum(a => a.RepeatRequestCount);
+                var avgExecutionTime = mediumDurationRequests.Average(a => a.AverageExecutionTime.TotalSeconds);
+                
+                // Estimate concurrent connections based on repeat rate and execution time
+                // Higher repeat count = more active polling clients
+                var estimatedConnections = (int)(totalRepeatRequests / Math.Max(avgExecutionTime, 1));
+                
+                // Apply polling efficiency factor (not all polls are concurrent)
+                var concurrencyRate = 0.4; // ~40% of polls are concurrent
+                estimatedConnections = (int)(estimatedConnections * concurrencyRate);
+                
+                // Apply client fallback rate (long-polling is usually a fallback)
+                var fallbackRate = CalculateLongPollingFallbackRate();
+                estimatedConnections = (int)(estimatedConnections * fallbackRate);
+                
+                return Math.Max(0, estimatedConnections);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating long-polling from request patterns");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate long-polling connections from historical patterns
+        /// </summary>
+        private int EstimateLongPollingFromHistoricalPatterns()
+        {
+            try
+            {
+                var historicalData = _timeSeriesDb.GetRecentMetrics("LongPollingConnections", 100);
+                
+                if (historicalData.Count < 10)
+                    return 0;
+                
+                // Find similar time periods
+                var currentHour = DateTime.UtcNow.Hour;
+                var similarTimeData = historicalData
+                    .Where(m => Math.Abs(m.Timestamp.Hour - currentHour) <= 1)
+                    .ToList();
+                
+                if (similarTimeData.Any())
+                {
+                    // Use median (polling is more variable than other connection types)
+                    var sortedValues = similarTimeData.Select(m => m.Value).OrderBy(v => v).ToList();
+                    var median = sortedValues[sortedValues.Count / 2];
+                    
+                    // Apply current load adjustment
+                    var loadLevel = ClassifyCurrentLoadLevel();
+                    var loadFactor = GetLongPollingLoadAdjustment(loadLevel);
+                    
+                    return (int)(median * loadFactor);
+                }
+                
+                // Fallback: Use EMA with higher alpha (more responsive to changes)
+                var ema = CalculateEMA(historicalData.Select(m => m.Value).ToList(), alpha: 0.4);
+                return Math.Max(0, (int)ema);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating long-polling from historical patterns");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate long-polling connections from real-time users (fallback)
+        /// </summary>
+        private int EstimateLongPollingFromRealTimeUsers()
+        {
+            try
+            {
+                var realTimeUsers = EstimateRealTimeUsers();
+                
+                if (realTimeUsers == 0)
+                    return 0;
+                
+                // Long-polling is typically used as fallback when:
+                // - WebSocket not supported (old browsers)
+                // - Corporate firewalls blocking WebSocket
+                // - Network issues with persistent connections
+                // Typically 5-10% of clients fall back to long-polling
+                var longPollingRate = 0.08; // 8% baseline
+                
+                // Adjust based on network conditions
+                var networkFactor = EstimateNetworkConditionFactor();
+                var longPollingConnections = (int)(realTimeUsers * longPollingRate * networkFactor);
+                
+                // Long-polling has higher connection churn due to timeouts and reconnects
+                var churnMultiplier = 1.6; // 60% more due to churn
+                longPollingConnections = (int)(longPollingConnections * churnMultiplier);
+                
+                // Factor in polling concurrency (clients may have multiple concurrent polls)
+                var concurrencyFactor = 1.2; // 20% more for concurrency
+                longPollingConnections = (int)(longPollingConnections * concurrencyFactor);
+                
+                // Apply reasonable bounds
+                return Math.Max(0, Math.Min(longPollingConnections, 30));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating long-polling from real-time users");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate long-polling fallback rate based on client capabilities
+        /// </summary>
+        private double CalculateLongPollingFallbackRate()
+        {
+            try
+            {
+                // In production, this would analyze:
+                // - User-Agent headers
+                // - Browser capabilities
+                // - Network conditions
+                // - Historical fallback patterns
+                
+                // Estimate based on industry standards:
+                // - Modern browsers: 95% WebSocket support
+                // - Corporate networks: 20% block WebSocket
+                // - Mobile networks: 90% WebSocket support
+                
+                var modernBrowserRate = 0.90; // 90% modern browsers
+                var corporateBlockRate = 0.15; // 15% blocked by corporate firewalls
+                
+                // Fallback rate = (modern browsers that are blocked) + (old browsers)
+                var fallbackRate = (modernBrowserRate * corporateBlockRate) + (1 - modernBrowserRate);
+                
+                return Math.Max(0.05, Math.Min(fallbackRate, 0.25)); // Between 5-25%
+            }
+            catch
+            {
+                return 0.10; // Default 10% fallback rate
+            }
+        }
+
+        /// <summary>
+        /// Estimate network condition factor affecting long-polling usage
+        /// </summary>
+        private double EstimateNetworkConditionFactor()
+        {
+            try
+            {
+                // Analyze error rates and timeouts as proxy for network conditions
+                var avgErrorRate = _requestAnalytics.Values.Any() 
+                    ? _requestAnalytics.Values.Average(a => a.ErrorRate) 
+                    : 0;
+                
+                // Higher error rate suggests network issues → more fallback to long-polling
+                if (avgErrorRate > 0.1)
+                    return 1.5; // 50% more long-polling due to network issues
+                else if (avgErrorRate > 0.05)
+                    return 1.2; // 20% more
+                else if (avgErrorRate < 0.01)
+                    return 0.8; // 20% less (good network, less fallback needed)
+                else
+                    return 1.0; // Normal
+            }
+            catch
+            {
+                return 1.0; // Default
+            }
+        }
+
+        /// <summary>
+        /// Get load-based adjustment for long-polling connections
+        /// </summary>
+        private double GetLongPollingLoadAdjustment(LoadLevel level)
+        {
+            return level switch
+            {
+                // Under high load, more clients may fall back to long-polling
+                LoadLevel.Critical => 1.3, // 30% more (WebSocket overload → fallback)
+                LoadLevel.High => 1.2,     // 20% more
+                LoadLevel.Medium => 1.0,   // Normal
+                LoadLevel.Low => 0.9,      // 10% fewer
+                LoadLevel.Idle => 0.7,     // 30% fewer (minimal activity)
+                _ => 1.0
+            };
+        }
+
+        /// <summary>
+        /// Calculate polling interval from request patterns
+        /// </summary>
+        private double CalculateAveragePollingInterval()
+        {
+            try
+            {
+                // Analyze repeat request patterns to determine polling interval
+                var repeatCounts = _requestAnalytics.Values
+                    .Where(a => a.RepeatRequestCount > 0)
+                    .Select(a => a.RepeatRequestCount)
+                    .ToList();
+                
+                if (!repeatCounts.Any())
+                    return 30.0; // Default 30s interval
+                
+                var avgRepeats = repeatCounts.Average();
+                
+                // Assume observations over 1 hour window
+                var observationWindow = 3600.0; // 1 hour in seconds
+                var estimatedInterval = observationWindow / Math.Max(avgRepeats, 1);
+                
+                // Typical polling intervals: 5s-60s
+                return Math.Max(5.0, Math.Min(estimatedInterval, 60.0));
+            }
+            catch
+            {
+                return 30.0; // Default 30s interval
+            }
+        }
+
+        /// <summary>
+        /// Store long-polling connection metrics for future analysis
+        /// </summary>
+        private void StoreLongPollingConnectionMetrics(int connectionCount)
+        {
+            try
+            {
+                if (connectionCount <= 0)
+                    return;
+                
+                var timestamp = DateTime.UtcNow;
+                
+                _timeSeriesDb.StoreMetric("LongPollingConnections", connectionCount, timestamp);
+                _timeSeriesDb.StoreMetric("PollingConnections", connectionCount, timestamp);
+                
+                _logger.LogTrace("Stored long-polling connection metric: {Count} at {Time}",
+                    connectionCount, timestamp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error storing long-polling connection metrics");
             }
         }
 

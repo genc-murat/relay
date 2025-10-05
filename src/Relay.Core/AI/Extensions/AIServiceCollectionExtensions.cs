@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -199,8 +202,139 @@ namespace Relay.Core.AI
         /// <returns>The service collection for chaining</returns>
         public static IServiceCollection AddAIOptimizationHealthChecks(this IServiceCollection services)
         {
-            // Health checks would require additional dependency - simplified for now
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+
+            // Register AI health check services
+            services.TryAddSingleton<AIOptimizationHealthCheck>();
+            services.TryAddSingleton<AIModelHealthCheck>();
+            services.TryAddSingleton<AIMetricsHealthCheck>();
+            services.TryAddSingleton<AICircuitBreakerHealthCheck>();
+            services.TryAddSingleton<AISystemHealthCheck>();
+
             return services;
+        }
+
+        /// <summary>
+        /// Adds comprehensive AI optimization health checks with custom thresholds.
+        /// </summary>
+        /// <param name="services">The service collection</param>
+        /// <param name="configureHealthChecks">Health check configuration action</param>
+        /// <returns>The service collection for chaining</returns>
+        public static IServiceCollection AddAIOptimizationHealthChecks(
+            this IServiceCollection services,
+            Action<AIHealthCheckOptions> configureHealthChecks)
+        {
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+            if (configureHealthChecks == null)
+                throw new ArgumentNullException(nameof(configureHealthChecks));
+
+            // Configure health check options
+            services.Configure(configureHealthChecks);
+
+            // Register health check services
+            services.AddAIOptimizationHealthChecks();
+
+            return services;
+        }
+
+        /// <summary>
+        /// Gets a comprehensive health status for all AI optimization components.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Comprehensive health check result</returns>
+        public static async Task<AIHealthCheckResult> GetAIOptimizationHealthAsync(
+            this IServiceProvider serviceProvider,
+            CancellationToken cancellationToken = default)
+        {
+            if (serviceProvider == null)
+                throw new ArgumentNullException(nameof(serviceProvider));
+
+            var results = new List<ComponentHealthResult>();
+            var overallHealthy = true;
+            var startTime = DateTime.UtcNow;
+
+            try
+            {
+                // Check AI Optimization Engine
+                var optimizationCheck = serviceProvider.GetService<AIOptimizationHealthCheck>();
+                if (optimizationCheck != null)
+                {
+                    var result = await optimizationCheck.CheckHealthAsync(cancellationToken);
+                    results.Add(result);
+                    overallHealthy &= result.IsHealthy;
+                }
+
+                // Check AI Model Health
+                var modelCheck = serviceProvider.GetService<AIModelHealthCheck>();
+                if (modelCheck != null)
+                {
+                    var result = await modelCheck.CheckHealthAsync(cancellationToken);
+                    results.Add(result);
+                    overallHealthy &= result.IsHealthy;
+                }
+
+                // Check AI Metrics Health
+                var metricsCheck = serviceProvider.GetService<AIMetricsHealthCheck>();
+                if (metricsCheck != null)
+                {
+                    var result = await metricsCheck.CheckHealthAsync(cancellationToken);
+                    results.Add(result);
+                    overallHealthy &= result.IsHealthy;
+                }
+
+                // Check Circuit Breaker Health
+                var circuitBreakerCheck = serviceProvider.GetService<AICircuitBreakerHealthCheck>();
+                if (circuitBreakerCheck != null)
+                {
+                    var result = await circuitBreakerCheck.CheckHealthAsync(cancellationToken);
+                    results.Add(result);
+                    overallHealthy &= result.IsHealthy;
+                }
+
+                // Check System Health
+                var systemCheck = serviceProvider.GetService<AISystemHealthCheck>();
+                if (systemCheck != null)
+                {
+                    var result = await systemCheck.CheckHealthAsync(cancellationToken);
+                    results.Add(result);
+                    overallHealthy &= result.IsHealthy;
+                }
+
+                var duration = DateTime.UtcNow - startTime;
+
+                return new AIHealthCheckResult
+                {
+                    IsHealthy = overallHealthy,
+                    Timestamp = DateTime.UtcNow,
+                    Duration = duration,
+                    ComponentResults = results,
+                    Summary = GenerateHealthSummary(results, overallHealthy)
+                };
+            }
+            catch (Exception ex)
+            {
+                return new AIHealthCheckResult
+                {
+                    IsHealthy = false,
+                    Timestamp = DateTime.UtcNow,
+                    Duration = DateTime.UtcNow - startTime,
+                    ComponentResults = results,
+                    Summary = $"Health check failed with exception: {ex.Message}",
+                    Exception = ex
+                };
+            }
+        }
+
+        private static string GenerateHealthSummary(List<ComponentHealthResult> results, bool overallHealthy)
+        {
+            var healthyCount = results.Count(r => r.IsHealthy);
+            var totalCount = results.Count;
+            var status = overallHealthy ? "Healthy" : "Unhealthy";
+
+            return $"AI Optimization Status: {status} ({healthyCount}/{totalCount} components healthy)";
         }
     }
 }

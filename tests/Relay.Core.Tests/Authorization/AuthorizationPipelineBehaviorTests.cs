@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.Authorization;
 using Relay.Core.Configuration;
+using Relay.Core.Telemetry;
 using Xunit;
 
 namespace Relay.Core.Tests.Authorization
@@ -171,7 +174,7 @@ namespace Relay.Core.Tests.Authorization
         }
 
         [Fact]
-        public async Task HandleAsync_Should_ContinueToNext_WhenAuthorizationFailsAndThrowIsDisabled()
+        public async Task HandleAsync_Should_ReturnDefaultResponseAndNotCallNext_WhenAuthorizationFailsAndThrowIsDisabled()
         {
             // Arrange
             var relayOptions = new RelayOptions
@@ -206,8 +209,8 @@ namespace Relay.Core.Tests.Authorization
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            nextCalled.Should().BeTrue();
-            result.Should().Be("Success");
+            nextCalled.Should().BeFalse();
+            result.Should().BeNull();
         }
 
         [Fact]
@@ -355,6 +358,403 @@ namespace Relay.Core.Tests.Authorization
                     LogLevel.Warning,
                     It.IsAny<EventId>(),
                     It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Authorization failed")),
+                    It.IsAny<Exception?>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_ThrowArgumentNullException_WhenRequestIsNull()
+        {
+            // Arrange
+            var behavior = CreateBehavior();
+
+            // Act
+            Func<Task> act = async () => await behavior.HandleAsync(null!, () => new ValueTask<string>("Success"), CancellationToken.None);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentNullException>()
+                .WithParameterName("request");
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_ReturnDefaultResponse_WhenAuthorizationFailsAndThrowIsDisabled()
+        {
+            // Arrange
+            var relayOptions = new RelayOptions
+            {
+                DefaultAuthorizationOptions = new AuthorizationOptions
+                {
+                    EnableAutomaticAuthorization = false,
+                    ThrowOnAuthorizationFailure = false
+                }
+            };
+            var options = Options.Create(relayOptions);
+
+            var logger = new Mock<ILogger<AuthorizationPipelineBehavior<TestAuthorizedRequest, string>>>();
+            var behavior = new AuthorizationPipelineBehavior<TestAuthorizedRequest, string>(
+                _authorizationServiceMock.Object,
+                _authorizationContextMock.Object,
+                logger.Object,
+                options);
+
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            var nextCalled = false;
+            RequestHandlerDelegate<string> next = () =>
+            {
+                nextCalled = true;
+                return new ValueTask<string>("Success");
+            };
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            nextCalled.Should().BeFalse();
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_ExtractUserNameFromClaims()
+        {
+            // Arrange
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, "TestUser"),
+                new Claim(ClaimTypes.Email, "test@example.com")
+            };
+
+            _authorizationContextMock.Setup(x => x.UserClaims).Returns(claims);
+
+            var relayOptions = new RelayOptions
+            {
+                DefaultAuthorizationOptions = new AuthorizationOptions
+                {
+                    ThrowOnAuthorizationFailure = false
+                }
+            };
+            var options = Options.Create(relayOptions);
+
+            var logger = new Mock<ILogger<AuthorizationPipelineBehavior<TestAuthorizedRequest, string>>>();
+            var telemetryProviderMock = new Mock<ITelemetryProvider>();
+            var metricsProviderMock = new Mock<IMetricsProvider>();
+
+            telemetryProviderMock.Setup(x => x.MetricsProvider).Returns(metricsProviderMock.Object);
+            telemetryProviderMock.Setup(x => x.GetCorrelationId()).Returns("test-correlation-id");
+
+            var behavior = new AuthorizationPipelineBehavior<TestAuthorizedRequest, string>(
+                _authorizationServiceMock.Object,
+                _authorizationContextMock.Object,
+                logger.Object,
+                options,
+                telemetryProviderMock.Object);
+
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+
+            // Act
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            logger.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("TestUser")),
+                    It.IsAny<Exception?>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_RecordTelemetryMetrics_WhenTelemetryProviderIsAvailable()
+        {
+            // Arrange
+            var relayOptions = new RelayOptions
+            {
+                DefaultAuthorizationOptions = new AuthorizationOptions
+                {
+                    EnableAutomaticAuthorization = false,
+                    ThrowOnAuthorizationFailure = false
+                }
+            };
+            var options = Options.Create(relayOptions);
+
+            var logger = new Mock<ILogger<AuthorizationPipelineBehavior<TestAuthorizedRequest, string>>>();
+            var telemetryProviderMock = new Mock<ITelemetryProvider>();
+            var metricsProviderMock = new Mock<IMetricsProvider>();
+            var activityMock = new Activity("test");
+
+            telemetryProviderMock.Setup(x => x.MetricsProvider).Returns(metricsProviderMock.Object);
+            telemetryProviderMock.Setup(x => x.GetCorrelationId()).Returns("test-correlation-id");
+            telemetryProviderMock.Setup(x => x.StartActivity(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<string>()))
+                .Returns(activityMock);
+
+            var behavior = new AuthorizationPipelineBehavior<TestAuthorizedRequest, string>(
+                _authorizationServiceMock.Object,
+                _authorizationContextMock.Object,
+                logger.Object,
+                options,
+                telemetryProviderMock.Object);
+
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+
+            // Act
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            telemetryProviderMock.Verify(x => x.StartActivity("Authorization", typeof(TestAuthorizedRequest), "test-correlation-id"), Times.Once);
+            metricsProviderMock.Verify(x => x.RecordHandlerExecution(It.Is<HandlerExecutionMetrics>(m =>
+                m.HandlerName == "AuthorizationPipelineBehavior" &&
+                m.RequestType == typeof(TestAuthorizedRequest) &&
+                m.Success == true)), Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_SetActivityTags_WhenAuthorizationSucceeds()
+        {
+            // Arrange
+            var relayOptions = new RelayOptions();
+            var options = Options.Create(relayOptions);
+
+            var logger = new Mock<ILogger<AuthorizationPipelineBehavior<TestAuthorizedRequest, string>>>();
+            var telemetryProviderMock = new Mock<ITelemetryProvider>();
+            var activity = new Activity("test").Start();
+
+            telemetryProviderMock.Setup(x => x.GetCorrelationId()).Returns("test-correlation-id");
+            telemetryProviderMock.Setup(x => x.StartActivity(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<string>()))
+                .Returns(activity);
+
+            var behavior = new AuthorizationPipelineBehavior<TestAuthorizedRequest, string>(
+                _authorizationServiceMock.Object,
+                _authorizationContextMock.Object,
+                logger.Object,
+                options,
+                telemetryProviderMock.Object);
+
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+
+            // Act
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            activity.Tags.Should().Contain(tag => tag.Key == "authorization.result" && tag.Value == "granted");
+            activity.Tags.Should().Contain(tag => tag.Key == "authorization.user");
+            activity.Stop();
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_SetActivityTags_WhenAuthorizationFails()
+        {
+            // Arrange
+            var relayOptions = new RelayOptions
+            {
+                DefaultAuthorizationOptions = new AuthorizationOptions
+                {
+                    ThrowOnAuthorizationFailure = false
+                }
+            };
+            var options = Options.Create(relayOptions);
+
+            var logger = new Mock<ILogger<AuthorizationPipelineBehavior<TestAuthorizedRequest, string>>>();
+            var telemetryProviderMock = new Mock<ITelemetryProvider>();
+            var activity = new Activity("test").Start();
+
+            telemetryProviderMock.Setup(x => x.GetCorrelationId()).Returns("test-correlation-id");
+            telemetryProviderMock.Setup(x => x.StartActivity(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<string>()))
+                .Returns(activity);
+
+            var behavior = new AuthorizationPipelineBehavior<TestAuthorizedRequest, string>(
+                _authorizationServiceMock.Object,
+                _authorizationContextMock.Object,
+                logger.Object,
+                options,
+                telemetryProviderMock.Object);
+
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+
+            // Act
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            activity.Tags.Should().Contain(tag => tag.Key == "authorization.result" && tag.Value == "denied");
+            activity.Tags.Should().Contain(tag => tag.Key == "authorization.user");
+            activity.Stop();
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_AddCorrelationIdToContext_WhenTelemetryProviderIsAvailable()
+        {
+            // Arrange
+            var contextProperties = new Dictionary<string, object>();
+            _authorizationContextMock.Setup(x => x.Properties).Returns(contextProperties);
+
+            var relayOptions = new RelayOptions();
+            var options = Options.Create(relayOptions);
+
+            var logger = new Mock<ILogger<AuthorizationPipelineBehavior<TestAuthorizedRequest, string>>>();
+            var telemetryProviderMock = new Mock<ITelemetryProvider>();
+
+            telemetryProviderMock.Setup(x => x.GetCorrelationId()).Returns("test-correlation-id");
+
+            var behavior = new AuthorizationPipelineBehavior<TestAuthorizedRequest, string>(
+                _authorizationServiceMock.Object,
+                _authorizationContextMock.Object,
+                logger.Object,
+                options,
+                telemetryProviderMock.Object);
+
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+
+            // Act
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            contextProperties.Should().ContainKey("CorrelationId");
+            contextProperties["CorrelationId"].Should().Be("test-correlation-id");
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_CacheAuthorizeAttributes_ForPerformance()
+        {
+            // Arrange
+            var behavior = CreateBehaviorForAuthorizedRequest();
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+
+            // Act - Call multiple times to test caching
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert - Authorization service should be called 3 times (once per request)
+            _authorizationServiceMock.Verify(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+        }
+
+        [Theory]
+        [InlineData(ClaimTypes.Name, "JohnDoe")]
+        [InlineData(ClaimTypes.NameIdentifier, "user123")]
+        [InlineData("name", "JaneDoe")]
+        [InlineData("preferred_username", "preferred_user")]
+        public async Task HandleAsync_Should_ExtractUserNameFromDifferentClaimTypes(string claimType, string expectedUserName)
+        {
+            // Arrange
+            var claims = new List<Claim>
+            {
+                new Claim(claimType, expectedUserName)
+            };
+
+            _authorizationContextMock.Setup(x => x.UserClaims).Returns(claims);
+
+            var relayOptions = new RelayOptions
+            {
+                DefaultAuthorizationOptions = new AuthorizationOptions
+                {
+                    ThrowOnAuthorizationFailure = false
+                }
+            };
+            var options = Options.Create(relayOptions);
+
+            var logger = new Mock<ILogger<AuthorizationPipelineBehavior<TestAuthorizedRequest, string>>>();
+            var telemetryProviderMock = new Mock<ITelemetryProvider>();
+            var metricsProviderMock = new Mock<IMetricsProvider>();
+
+            telemetryProviderMock.Setup(x => x.MetricsProvider).Returns(metricsProviderMock.Object);
+            telemetryProviderMock.Setup(x => x.GetCorrelationId()).Returns("test-correlation-id");
+
+            var behavior = new AuthorizationPipelineBehavior<TestAuthorizedRequest, string>(
+                _authorizationServiceMock.Object,
+                _authorizationContextMock.Object,
+                logger.Object,
+                options,
+                telemetryProviderMock.Object);
+
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+
+            // Act
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            metricsProviderMock.Verify(x => x.RecordHandlerExecution(
+                It.Is<HandlerExecutionMetrics>(m =>
+                    m.Properties.ContainsKey("User") &&
+                    m.Properties["User"].ToString() == expectedUserName)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_UseAnonymous_WhenNoUserClaimsAvailable()
+        {
+            // Arrange
+            _authorizationContextMock.Setup(x => x.UserClaims).Returns((IEnumerable<Claim>)null!);
+
+            var relayOptions = new RelayOptions
+            {
+                DefaultAuthorizationOptions = new AuthorizationOptions
+                {
+                    ThrowOnAuthorizationFailure = false
+                }
+            };
+            var options = Options.Create(relayOptions);
+
+            var logger = new Mock<ILogger<AuthorizationPipelineBehavior<TestAuthorizedRequest, string>>>();
+            var telemetryProviderMock = new Mock<ITelemetryProvider>();
+            var metricsProviderMock = new Mock<IMetricsProvider>();
+
+            telemetryProviderMock.Setup(x => x.MetricsProvider).Returns(metricsProviderMock.Object);
+            telemetryProviderMock.Setup(x => x.GetCorrelationId()).Returns("test-correlation-id");
+
+            var behavior = new AuthorizationPipelineBehavior<TestAuthorizedRequest, string>(
+                _authorizationServiceMock.Object,
+                _authorizationContextMock.Object,
+                logger.Object,
+                options,
+                telemetryProviderMock.Object);
+
+            var request = new TestAuthorizedRequest();
+            _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+
+            // Act
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            logger.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Anonymous")),
                     It.IsAny<Exception?>(),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);

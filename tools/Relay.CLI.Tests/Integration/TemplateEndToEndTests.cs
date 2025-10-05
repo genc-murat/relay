@@ -265,9 +265,170 @@ public class TemplateEndToEndTests : IDisposable
         // Assert
         result.Success.Should().BeTrue();
         result.Duration.Should().BeGreaterThan(TimeSpan.Zero);
-        result.Duration.Should().BeLessThan(TimeSpan.FromSeconds(30), 
+        result.Duration.Should().BeLessThan(TimeSpan.FromSeconds(30),
             "generation should complete within 30 seconds");
         stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
+    public async Task CompletePackagingWorkflow_CreateValidatePackVerify_ProducesValidNuGetPackage()
+    {
+        // Step 1: Create a complete template with all necessary files
+        var templatePath = CreateCompleteTemplate();
+        templatePath.Should().NotBeEmpty();
+        Directory.Exists(templatePath).Should().BeTrue();
+
+        // Step 2: Validate the template structure
+        var validationResult = await _validator.ValidateAsync(templatePath);
+        validationResult.IsValid.Should().BeTrue("template should be valid");
+        validationResult.Errors.Should().BeEmpty("valid template should have no errors");
+
+        // Step 3: Package the template into NuGet format
+        var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
+        packResult.Success.Should().BeTrue("packaging should succeed");
+        packResult.PackagePath.Should().NotBeEmpty();
+        File.Exists(packResult.PackagePath).Should().BeTrue("package file should exist");
+
+        // Step 4: Verify package is a valid NuGet package
+        using var zipArchive = System.IO.Compression.ZipFile.OpenRead(packResult.PackagePath);
+        var entries = zipArchive.Entries.Select(e => e.FullName).ToList();
+
+        // Verify core NuGet package structure
+        entries.Should().Contain("[Content_Types].xml");
+        entries.Should().Contain(e => e.EndsWith(".nuspec"));
+        entries.Should().Contain("_rels/.rels");
+        entries.Should().Contain(e => e.StartsWith("package/services/metadata/core-properties/"));
+        entries.Should().Contain(e => e.StartsWith("content/"));
+
+        // Step 5: Verify .nuspec content
+        var nuspecEntry = zipArchive.Entries.First(e => e.FullName.EndsWith(".nuspec"));
+        using var nuspecReader = new StreamReader(nuspecEntry.Open());
+        var nuspecContent = await nuspecReader.ReadToEndAsync();
+
+        nuspecContent.Should().Contain("<packageType name=\"Template\" />");
+        nuspecContent.Should().Contain("<id>");
+        nuspecContent.Should().Contain("<version>");
+        nuspecContent.Should().Contain("<authors>");
+        nuspecContent.Should().Contain("<description>");
+
+        // Step 6: Verify template files were copied
+        var templateJsonEntry = entries.FirstOrDefault(e => e.Contains("template.json"));
+        templateJsonEntry.Should().NotBeNull("template.json should be in package");
+    }
+
+    [Fact]
+    public async Task PackageMultipleTemplates_InParallel_AllSucceed()
+    {
+        // Arrange
+        var templates = new[]
+        {
+            CreateCompleteTemplate("api-template"),
+            CreateCompleteTemplate("worker-template"),
+            CreateCompleteTemplate("lib-template")
+        };
+
+        // Act
+        var packTasks = templates.Select(t => _publisher.PackTemplateAsync(t, _testOutputPath)).ToArray();
+        var results = await Task.WhenAll(packTasks);
+
+        // Assert
+        results.Should().AllSatisfy(r =>
+        {
+            r.Success.Should().BeTrue();
+            r.PackagePath.Should().NotBeEmpty();
+            File.Exists(r.PackagePath).Should().BeTrue();
+        });
+
+        // Verify all packages have unique names
+        results.Select(r => Path.GetFileName(r.PackagePath)).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public async Task PackageTemplate_WithVersionUpdate_CreatesNewPackage()
+    {
+        // Arrange - Create template with version 1.0.0
+        var templatePath = CreateTemplateWithVersion("1.0.0");
+
+        // Act 1 - Package version 1.0.0
+        var result1 = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
+        result1.Success.Should().BeTrue();
+
+        // Arrange - Update template to version 2.0.0
+        UpdateTemplateVersion(templatePath, "2.0.0");
+
+        // Act 2 - Package version 2.0.0
+        var result2 = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
+        result2.Success.Should().BeTrue();
+
+        // Assert - Verify version in second package
+        using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result2.PackagePath);
+        var nuspecEntry = zipArchive.Entries.First(e => e.FullName.EndsWith(".nuspec"));
+        using var reader = new StreamReader(nuspecEntry.Open());
+        var nuspecContent = await reader.ReadToEndAsync();
+
+        nuspecContent.Should().Contain("<version>2.0.0</version>");
+    }
+
+    [Fact]
+    public async Task ValidatePackageIntegrity_AfterPackaging_AllFilesAreAccessible()
+    {
+        // Arrange
+        var templatePath = CreateCompleteTemplate();
+
+        // Act
+        var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
+        packResult.Success.Should().BeTrue();
+
+        // Assert - Open and read all entries to verify integrity
+        using var zipArchive = System.IO.Compression.ZipFile.OpenRead(packResult.PackagePath);
+
+        foreach (var entry in zipArchive.Entries)
+        {
+            if (entry.Length > 0) // Skip directories
+            {
+                using var stream = entry.Open();
+                using var reader = new StreamReader(stream);
+
+                // Should be able to read without exceptions
+                var content = await reader.ReadToEndAsync();
+                content.Should().NotBeNull($"entry {entry.FullName} should be readable");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task PackageTemplate_WithLargeContent_CompletesSuccessfully()
+    {
+        // Arrange - Create template with many files
+        var templatePath = CreateTemplateWithManyFiles(100);
+
+        // Act
+        var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
+
+        // Assert
+        packResult.Success.Should().BeTrue();
+
+        using var zipArchive = System.IO.Compression.ZipFile.OpenRead(packResult.PackagePath);
+        var contentFiles = zipArchive.Entries.Where(e => e.FullName.StartsWith("content/")).ToList();
+
+        contentFiles.Should().HaveCountGreaterThan(50, "should contain many files");
+    }
+
+    [Fact]
+    public async Task EndToEndWorkflow_PackagePublishList_WorksCorrectly()
+    {
+        // Step 1: Create and package template
+        var templatePath = CreateCompleteTemplate("e2e-template");
+        var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
+        packResult.Success.Should().BeTrue();
+
+        // Step 2: Publish (simulated)
+        var publishResult = await _publisher.PublishTemplateAsync(packResult.PackagePath, "https://nuget.org");
+        publishResult.Success.Should().BeTrue();
+
+        // Step 3: List templates
+        var templates = await _publisher.ListAvailableTemplatesAsync();
+        templates.Should().Contain(t => t.Id.Contains("e2e-template"));
     }
 
     private string CreateTestTemplate(string? suffix = null)
@@ -304,6 +465,156 @@ public class TemplateEndToEndTests : IDisposable
             "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>");
         File.WriteAllText(Path.Combine(contentPath, "Program.cs"), 
             "Console.WriteLine(\"Hello from template!\");");
+
+        return templatePath;
+    }
+
+    private string CreateCompleteTemplate(string? suffix = null)
+    {
+        var templateName = "CompleteTemplate" + (suffix ?? Guid.NewGuid().ToString("N"));
+        var templatePath = Path.Combine(_templatesPath, templateName);
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+        var srcPath = Path.Combine(contentPath, "src");
+        var testsPath = Path.Combine(contentPath, "tests");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(srcPath);
+        Directory.CreateDirectory(testsPath);
+
+        var shortName = suffix ?? "complete-template";
+        var templateJson = $@"{{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Relay Team"",
+            ""classifications"": [""Web"", ""API"", ""Test""],
+            ""identity"": ""Relay.Template.{templateName}"",
+            ""name"": ""Complete Relay Template"",
+            ""shortName"": ""{shortName}"",
+            ""description"": ""A complete template for integration testing"",
+            ""version"": ""1.0.0"",
+            ""sourceName"": ""CompleteProject"",
+            ""tags"": {{
+                ""language"": ""C#"",
+                ""type"": ""project""
+            }}
+        }}";
+
+        File.WriteAllText(Path.Combine(configPath, "template.json"), templateJson);
+
+        // Create comprehensive content structure
+        File.WriteAllText(Path.Combine(contentPath, "README.md"), "# Complete Project\n\nA complete template for testing.");
+        File.WriteAllText(Path.Combine(contentPath, ".gitignore"), "bin/\nobj/\n*.user");
+        File.WriteAllText(Path.Combine(contentPath, "CompleteProject.sln"), "<Solution />");
+
+        File.WriteAllText(Path.Combine(srcPath, "CompleteProject.csproj"),
+            "<Project Sdk=\"Microsoft.NET.Sdk.Web\"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>");
+        File.WriteAllText(Path.Combine(srcPath, "Program.cs"),
+            "var builder = WebApplication.CreateBuilder(args);\nvar app = builder.Build();\napp.Run();");
+        File.WriteAllText(Path.Combine(srcPath, "appsettings.json"),
+            "{\"Logging\": {\"LogLevel\": {\"Default\": \"Information\"}}}");
+
+        File.WriteAllText(Path.Combine(testsPath, "CompleteProject.Tests.csproj"),
+            "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>");
+        File.WriteAllText(Path.Combine(testsPath, "UnitTest1.cs"),
+            "using Xunit;\npublic class UnitTest1 { [Fact] public void Test1() { } }");
+
+        return templatePath;
+    }
+
+    private string CreateTemplateWithVersion(string version)
+    {
+        var templateName = "VersionedTemplate" + Guid.NewGuid().ToString("N");
+        var templatePath = Path.Combine(_templatesPath, templateName);
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = $@"{{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Version Test"",
+            ""classifications"": [""Test""],
+            ""identity"": ""Test.Versioned.Template"",
+            ""name"": ""Versioned Template"",
+            ""shortName"": ""versioned-template"",
+            ""description"": ""Template with version"",
+            ""version"": ""{version}"",
+            ""sourceName"": ""VersionedProject""
+        }}";
+
+        File.WriteAllText(Path.Combine(configPath, "template.json"), templateJson);
+        File.WriteAllText(Path.Combine(contentPath, "README.md"), $"# Version {version}");
+        File.WriteAllText(Path.Combine(contentPath, "Project.csproj"), "<Project />");
+
+        return templatePath;
+    }
+
+    private void UpdateTemplateVersion(string templatePath, string newVersion)
+    {
+        var templateJsonPath = Path.Combine(templatePath, ".template.config", "template.json");
+        var json = File.ReadAllText(templateJsonPath);
+
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = true
+        };
+
+        var doc = System.Text.Json.JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var updatedJson = new Dictionary<string, object?>();
+        foreach (var property in root.EnumerateObject())
+        {
+            if (property.Name.Equals("version", StringComparison.OrdinalIgnoreCase))
+            {
+                updatedJson[property.Name] = newVersion;
+            }
+            else
+            {
+                updatedJson[property.Name] = System.Text.Json.JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+            }
+        }
+
+        var newJson = System.Text.Json.JsonSerializer.Serialize(updatedJson, options);
+        File.WriteAllText(templateJsonPath, newJson);
+    }
+
+    private string CreateTemplateWithManyFiles(int fileCount)
+    {
+        var templateName = "LargeTemplate" + Guid.NewGuid().ToString("N");
+        var templatePath = Path.Combine(_templatesPath, templateName);
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Large Test"",
+            ""classifications"": [""Test""],
+            ""identity"": ""Test.Large.Template"",
+            ""name"": ""Large Template"",
+            ""shortName"": ""large-template"",
+            ""description"": ""Template with many files"",
+            ""version"": ""1.0.0"",
+            ""sourceName"": ""LargeProject""
+        }";
+
+        File.WriteAllText(Path.Combine(configPath, "template.json"), templateJson);
+
+        // Create many files
+        for (int i = 0; i < fileCount; i++)
+        {
+            var subDir = Path.Combine(contentPath, $"Directory{i / 10}");
+            Directory.CreateDirectory(subDir);
+
+            var fileName = $"File{i}.cs";
+            var filePath = Path.Combine(subDir, fileName);
+            File.WriteAllText(filePath, $"// File {i}\nnamespace LargeProject;\npublic class Class{i} {{ }}");
+        }
 
         return templatePath;
     }

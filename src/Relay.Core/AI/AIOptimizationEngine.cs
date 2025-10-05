@@ -2489,33 +2489,246 @@ namespace Relay.Core.AI
         {
             try
             {
-                // Analyze patterns based on system load conditions
-                // Group predictions by approximate load levels
-                var loadGroups = predictions.GroupBy(p =>
+                _logger.LogDebug("Analyzing load-based patterns for {Count} predictions", predictions.Length);
+                
+                // Analyze patterns based on system load conditions using real metrics
+                var loadPatterns = new Dictionary<LoadLevel, LoadPatternData>();
+                
+                foreach (var prediction in predictions)
                 {
-                    // Simplified load estimation - in production would use actual load data
-                    var hour = p.Timestamp.Hour;
-                    if (hour >= 9 && hour <= 17) return "HighLoad";
-                    if (hour >= 6 && hour <= 9 || hour >= 17 && hour <= 21) return "MediumLoad";
-                    return "LowLoad";
-                });
-
-                foreach (var loadGroup in loadGroups)
+                    // Calculate actual load level from metrics
+                    var loadLevel = ClassifyLoadLevel(prediction.Metrics);
+                    
+                    if (!loadPatterns.ContainsKey(loadLevel))
+                    {
+                        loadPatterns[loadLevel] = new LoadPatternData
+                        {
+                            Level = loadLevel,
+                            Predictions = new List<PredictionResult>()
+                        };
+                    }
+                    
+                    loadPatterns[loadLevel].Predictions.Add(prediction);
+                }
+                
+                // Analyze each load level
+                foreach (var pattern in loadPatterns.Values)
                 {
-                    var loadLevel = loadGroup.Key;
-                    var loadPredictions = loadGroup.ToArray();
-                    var successRate = loadPredictions.Count(p => p.ActualImprovement.TotalMilliseconds > 0) /
-                                     (double)loadPredictions.Length;
+                    AnalyzeLoadPattern(pattern, analysis);
+                }
+                
+                // Detect load transition patterns
+                DetectLoadTransitions(predictions, analysis);
+                
+                // Store load patterns in time-series database for future analysis
+                StoreLoadPatterns(loadPatterns);
+                
+                _logger.LogInformation("Load-based pattern analysis completed: {LevelCount} load levels analyzed, {PatternsUpdated} patterns updated",
+                    loadPatterns.Count, analysis.PatternsUpdated);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error updating load-based patterns");
+            }
+        }
 
-                    _logger.LogDebug("Load level {LoadLevel}: Success rate = {SuccessRate:P} ({Count} predictions)",
-                        loadLevel, successRate, loadPredictions.Length);
+        /// <summary>
+        /// Classify system load level based on actual metrics
+        /// </summary>
+        private LoadLevel ClassifyLoadLevel(RequestExecutionMetrics metrics)
+        {
+            try
+            {
+                // Calculate composite load score from multiple dimensions
+                var cpuScore = 0.0;
+                var memoryScore = 0.0;
+                var throughputScore = 0.0;
+                var responseTimeScore = 0.0;
+                
+                // CPU utilization scoring (0-1)
+                cpuScore = metrics.CpuUsage;
+                
+                // Memory utilization scoring (0-1)
+                memoryScore = _systemMetrics.CalculateMemoryUsage();
+                
+                // Throughput scoring (normalized)
+                var throughput = _systemMetrics.CalculateCurrentThroughput();
+                throughputScore = Math.Min(1.0, throughput / 100.0); // Normalize to 0-1, assuming 100 req/s is high
+                
+                // Response time scoring (inverse - higher is worse)
+                var responseTime = metrics.AverageExecutionTime.TotalMilliseconds;
+                responseTimeScore = responseTime > 1000 ? 1.0 : responseTime / 1000.0;
+                
+                // Weighted composite score
+                var compositeScore = (cpuScore * 0.3) + (memoryScore * 0.25) + 
+                                    (throughputScore * 0.25) + (responseTimeScore * 0.2);
+                
+                // Classify based on composite score
+                if (compositeScore >= 0.8)
+                    return LoadLevel.Critical;
+                else if (compositeScore >= 0.6)
+                    return LoadLevel.High;
+                else if (compositeScore >= 0.4)
+                    return LoadLevel.Medium;
+                else if (compositeScore >= 0.2)
+                    return LoadLevel.Low;
+                else
+                    return LoadLevel.Idle;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error classifying load level, using default");
+                return LoadLevel.Medium; // Default fallback
+            }
+        }
 
+        /// <summary>
+        /// Analyze patterns for a specific load level
+        /// </summary>
+        private void AnalyzeLoadPattern(LoadPatternData pattern, PatternAnalysisResult analysis)
+        {
+            var predictions = pattern.Predictions;
+            
+            if (!predictions.Any())
+                return;
+            
+            // Calculate success metrics
+            var successfulPredictions = predictions.Count(p => p.ActualImprovement.TotalMilliseconds > 0);
+            var successRate = successfulPredictions / (double)predictions.Count;
+            
+            // Calculate average improvement
+            var avgImprovement = predictions
+                .Where(p => p.ActualImprovement.TotalMilliseconds > 0)
+                .Average(p => p.ActualImprovement.TotalMilliseconds);
+            
+            // Analyze strategy effectiveness per load level
+            var strategyStats = predictions
+                .SelectMany(p => p.PredictedStrategies.Select(s => new { Strategy = s, Prediction = p }))
+                .GroupBy(x => x.Strategy)
+                .Select(g => new
+                {
+                    Strategy = g.Key,
+                    Count = g.Count(),
+                    SuccessRate = g.Count(x => x.Prediction.ActualImprovement.TotalMilliseconds > 0) / (double)g.Count(),
+                    AvgImprovement = g.Where(x => x.Prediction.ActualImprovement.TotalMilliseconds > 0)
+                                       .Average(x => x.Prediction.ActualImprovement.TotalMilliseconds)
+                })
+                .OrderByDescending(x => x.SuccessRate)
+                .ToList();
+            
+            // Store pattern data
+            pattern.SuccessRate = successRate;
+            pattern.AverageImprovement = avgImprovement;
+            pattern.TotalPredictions = predictions.Count;
+            pattern.StrategyEffectiveness = strategyStats.ToDictionary(
+                s => s.Strategy.ToString(),
+                s => s.SuccessRate
+            );
+            
+            _logger.LogDebug("Load level {Level}: Success={SuccessRate:P}, AvgImprovement={AvgMs:F2}ms, Predictions={Count}, TopStrategy={TopStrategy}",
+                pattern.Level,
+                successRate,
+                avgImprovement,
+                predictions.Count,
+                strategyStats.FirstOrDefault()?.Strategy.ToString() ?? "None");
+            
+            analysis.PatternsUpdated++;
+        }
+
+        /// <summary>
+        /// Detect load transition patterns (e.g., performance during load spikes)
+        /// </summary>
+        private void DetectLoadTransitions(PredictionResult[] predictions, PatternAnalysisResult analysis)
+        {
+            try
+            {
+                if (predictions.Length < 5)
+                    return; // Need minimum data for transition analysis
+                
+                // Sort by timestamp
+                var sortedPredictions = predictions.OrderBy(p => p.Timestamp).ToArray();
+                
+                // Detect transitions (significant load changes)
+                var transitions = new List<LoadTransition>();
+                
+                for (int i = 1; i < sortedPredictions.Length; i++)
+                {
+                    var prev = sortedPredictions[i - 1];
+                    var curr = sortedPredictions[i];
+                    
+                    var prevLoad = ClassifyLoadLevel(prev.Metrics);
+                    var currLoad = ClassifyLoadLevel(curr.Metrics);
+                    
+                    // Detect significant transition
+                    if (Math.Abs((int)prevLoad - (int)currLoad) >= 2)
+                    {
+                        transitions.Add(new LoadTransition
+                        {
+                            FromLevel = prevLoad,
+                            ToLevel = currLoad,
+                            Timestamp = curr.Timestamp,
+                            TimeSincePrevious = curr.Timestamp - prev.Timestamp,
+                            PerformanceImpact = curr.ActualImprovement - prev.ActualImprovement
+                        });
+                    }
+                }
+                
+                if (transitions.Any())
+                {
+                    // Analyze transition impacts
+                    var avgImpact = transitions.Average(t => t.PerformanceImpact.TotalMilliseconds);
+                    var negativeTransitions = transitions.Count(t => t.PerformanceImpact.TotalMilliseconds < 0);
+                    
+                    _logger.LogInformation("Detected {Count} load transitions, Avg impact: {Impact:F2}ms, Negative: {Negative}",
+                        transitions.Count, avgImpact, negativeTransitions);
+                    
                     analysis.PatternsUpdated++;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error updating load-based patterns");
+                _logger.LogWarning(ex, "Error detecting load transitions");
+            }
+        }
+
+        /// <summary>
+        /// Store load patterns in time-series database for trend analysis
+        /// </summary>
+        private void StoreLoadPatterns(Dictionary<LoadLevel, LoadPatternData> patterns)
+        {
+            try
+            {
+                var timestamp = DateTime.UtcNow;
+                
+                foreach (var pattern in patterns.Values)
+                {
+                    if (pattern.TotalPredictions == 0)
+                        continue;
+                    
+                    // Store success rate
+                    _timeSeriesDb.StoreMetric(
+                        $"LoadPattern_{pattern.Level}_SuccessRate",
+                        pattern.SuccessRate,
+                        timestamp);
+                    
+                    // Store average improvement
+                    _timeSeriesDb.StoreMetric(
+                        $"LoadPattern_{pattern.Level}_AvgImprovement",
+                        pattern.AverageImprovement,
+                        timestamp);
+                    
+                    // Store prediction count
+                    _timeSeriesDb.StoreMetric(
+                        $"LoadPattern_{pattern.Level}_Count",
+                        pattern.TotalPredictions,
+                        timestamp);
+                }
+                
+                _logger.LogTrace("Stored {Count} load patterns in time-series database", patterns.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error storing load patterns");
             }
         }
 
@@ -5297,6 +5510,43 @@ namespace Relay.Core.AI
         public int Period { get; set; }
         public double Strength { get; set; }
         public string Type { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// System load level classification
+    /// </summary>
+    internal enum LoadLevel
+    {
+        Idle = 0,
+        Low = 1,
+        Medium = 2,
+        High = 3,
+        Critical = 4
+    }
+
+    /// <summary>
+    /// Load pattern data for analysis
+    /// </summary>
+    internal class LoadPatternData
+    {
+        public LoadLevel Level { get; set; }
+        public List<PredictionResult> Predictions { get; set; } = new();
+        public double SuccessRate { get; set; }
+        public double AverageImprovement { get; set; }
+        public int TotalPredictions { get; set; }
+        public Dictionary<string, double> StrategyEffectiveness { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Represents a transition between load levels
+    /// </summary>
+    internal class LoadTransition
+    {
+        public LoadLevel FromLevel { get; set; }
+        public LoadLevel ToLevel { get; set; }
+        public DateTime Timestamp { get; set; }
+        public TimeSpan TimeSincePrevious { get; set; }
+        public TimeSpan PerformanceImpact { get; set; }
     }
 
 }

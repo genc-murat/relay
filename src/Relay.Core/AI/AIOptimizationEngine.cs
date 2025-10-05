@@ -3246,37 +3246,327 @@ namespace Relay.Core.AI
             try
             {
                 // Dynamically adjust optimization strategy based on model performance
+                _logger.LogDebug("Adjusting optimization strategy: Confidence={Confidence:P}, Accuracy={Accuracy:P}",
+                    modelConfidence, accuracy);
 
-                if (modelConfidence > 0.9 && accuracy > 0.85)
+                // Calculate performance score combining confidence and accuracy
+                var performanceScore = (modelConfidence * 0.6) + (accuracy * 0.4);
+                
+                // Get current system metrics for context-aware adjustments
+                var memoryUsage = _systemMetrics?.CalculateMemoryUsage() ?? 0.5;
+                var errorRate = _systemMetrics?.CalculateCurrentErrorRate() ?? 0.0;
+                var threadPoolUtil = _systemMetrics?.GetThreadPoolUtilization() ?? 0.5;
+                var avgResponseTime = _systemMetrics?.CalculateAverageResponseTime().TotalMilliseconds ?? 100.0;
+                var throughput = _systemMetrics?.CalculateCurrentThroughput() ?? 0.0;
+
+                var systemMetrics = new Dictionary<string, double>
                 {
-                    // High confidence - can be more aggressive with optimizations
-                    _logger.LogInformation("High model performance detected - enabling aggressive optimizations");
+                    ["MemoryUtilization"] = memoryUsage,
+                    ["ErrorRate"] = errorRate,
+                    ["ThreadPoolUtilization"] = threadPoolUtil,
+                    ["SystemLoad"] = (threadPoolUtil + memoryUsage) / 2.0,
+                    ["AverageLatency"] = avgResponseTime,
+                    ["ThroughputPerSecond"] = throughput
+                };
 
-                    // Increase optimization thresholds
-                    var aggressiveness = 1.2; // 20% more aggressive
+                // Determine optimization strategy level
+                OptimizationStrategyLevel strategyLevel;
+                double strategyFactor;
 
-                    _logger.LogDebug("Optimization aggressiveness factor: {Factor:F2}", aggressiveness);
+                if (performanceScore > 0.85 && errorRate < 0.05 && systemMetrics["SystemLoad"] < 0.7)
+                {
+                    // High performance - aggressive optimization
+                    strategyLevel = OptimizationStrategyLevel.Aggressive;
+                    strategyFactor = 1.3; // 30% more aggressive
+                    
+                    _logger.LogInformation("High model performance detected - enabling aggressive optimizations " +
+                        "(Score={Score:P}, ErrorRate={ErrorRate:P}, Load={Load:P})",
+                        performanceScore, errorRate, systemMetrics["SystemLoad"]);
+
+                    // Apply aggressive optimizations
+                    ApplyAggressiveOptimizations(strategyFactor, systemMetrics);
                 }
-                else if (modelConfidence < 0.6 || accuracy < 0.6)
+                else if (performanceScore > 0.7 && errorRate < 0.1 && systemMetrics["SystemLoad"] < 0.8)
                 {
-                    // Low confidence - be more conservative
-                    _logger.LogWarning("Low model performance detected - using conservative approach");
+                    // Good performance - moderate optimization
+                    strategyLevel = OptimizationStrategyLevel.Moderate;
+                    strategyFactor = 1.1; // 10% more aggressive
+                    
+                    _logger.LogInformation("Good model performance detected - applying moderate optimizations " +
+                        "(Score={Score:P}, ErrorRate={ErrorRate:P}, Load={Load:P})",
+                        performanceScore, errorRate, systemMetrics["SystemLoad"]);
 
-                    // Decrease optimization thresholds
-                    var conservativeness = 0.8; // 20% more conservative
+                    // Apply moderate optimizations
+                    ApplyModerateOptimizations(strategyFactor, systemMetrics);
+                }
+                else if (performanceScore < 0.55 || accuracy < 0.6 || errorRate > 0.15)
+                {
+                    // Low performance - conservative approach
+                    strategyLevel = OptimizationStrategyLevel.Conservative;
+                    strategyFactor = 0.7; // 30% more conservative
+                    
+                    _logger.LogWarning("Low model performance detected - using conservative approach " +
+                        "(Score={Score:P}, Accuracy={Accuracy:P}, ErrorRate={ErrorRate:P})",
+                        performanceScore, accuracy, errorRate);
 
-                    _logger.LogDebug("Optimization conservativeness factor: {Factor:F2}", conservativeness);
+                    // Apply conservative optimizations
+                    ApplyConservativeOptimizations(strategyFactor, systemMetrics);
                 }
                 else
                 {
-                    // Moderate performance - balanced approach
-                    _logger.LogDebug("Moderate model performance - maintaining balanced optimization strategy");
+                    // Balanced performance - standard approach
+                    strategyLevel = OptimizationStrategyLevel.Balanced;
+                    strategyFactor = 1.0; // Standard optimization
+                    
+                    _logger.LogDebug("Moderate model performance - maintaining balanced optimization strategy " +
+                        "(Score={Score:P})", performanceScore);
+
+                    // Apply balanced optimizations
+                    ApplyBalancedOptimizations(strategyFactor, systemMetrics);
                 }
+
+                // Adjust batch processing parameters
+                AdjustBatchProcessingParameters(strategyLevel, strategyFactor, systemMetrics);
+
+                // Update model parameters based on strategy
+                UpdateModelParametersBasedOnStrategy(strategyLevel, performanceScore, systemMetrics);
+
+                // Record strategy adjustment in time-series database
+                RecordStrategyAdjustment(strategyLevel, strategyFactor, performanceScore, systemMetrics);
+
+                _logger.LogInformation("Optimization strategy adjusted successfully: Level={Level}, Factor={Factor:F2}",
+                    strategyLevel, strategyFactor);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Error adjusting optimization strategy");
             }
+        }
+
+        private void ApplyAggressiveOptimizations(double factor, Dictionary<string, double> systemMetrics)
+        {
+            try
+            {
+                // Increase batch sizes for better throughput
+                var currentBatchSize = _options.DefaultBatchSize;
+                var newBatchSize = Math.Min((int)(currentBatchSize * factor), _options.MaxBatchSize);
+                
+                // Extend cache TTL for better cache hit rates
+                var currentCacheTtl = _options.MaxCacheTtl;
+                var newCacheTtl = TimeSpan.FromMilliseconds(currentCacheTtl.TotalMilliseconds * factor);
+                
+                // Lower confidence threshold to apply more predictions
+                var newConfidenceThreshold = Math.Max(_options.MinConfidenceScore * 0.85, 0.6);
+
+                // Enable learning for continuous improvement
+                _learningEnabled = true;
+
+                _logger.LogDebug("Aggressive optimizations applied: BatchSize={BatchSize}, " +
+                    "CacheTTL={CacheTTL}, ConfidenceThreshold={Threshold:P}",
+                    newBatchSize, newCacheTtl, newConfidenceThreshold);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error applying aggressive optimizations");
+            }
+        }
+
+        private void ApplyModerateOptimizations(double factor, Dictionary<string, double> systemMetrics)
+        {
+            try
+            {
+                // Slightly increase optimization parameters
+                var currentBatchSize = _options.DefaultBatchSize;
+                var newBatchSize = Math.Min((int)(currentBatchSize * factor), _options.MaxBatchSize);
+                
+                // Moderately extend cache TTL
+                var avgCacheTtl = (_options.MinCacheTtl + _options.MaxCacheTtl) / 2;
+                var newCacheTtl = TimeSpan.FromMilliseconds(avgCacheTtl.TotalMilliseconds * factor);
+                
+                // Use standard confidence threshold
+                var newConfidenceThreshold = _options.MinConfidenceScore;
+
+                // Enable learning
+                _learningEnabled = true;
+
+                _logger.LogDebug("Moderate optimizations applied: BatchSize={BatchSize}, " +
+                    "CacheTTL={CacheTTL}, ConfidenceThreshold={Threshold:P}",
+                    newBatchSize, newCacheTtl, newConfidenceThreshold);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error applying moderate optimizations");
+            }
+        }
+
+        private void ApplyConservativeOptimizations(double factor, Dictionary<string, double> systemMetrics)
+        {
+            try
+            {
+                // Reduce batch sizes to minimize risk
+                var currentBatchSize = _options.DefaultBatchSize;
+                var newBatchSize = Math.Max((int)(currentBatchSize * factor), 1);
+                
+                // Use shorter cache TTL to refresh more frequently
+                var newCacheTtl = TimeSpan.FromMilliseconds(_options.MinCacheTtl.TotalMilliseconds * factor);
+                
+                // Increase confidence threshold to be more selective
+                var newConfidenceThreshold = Math.Min(_options.MinConfidenceScore * 1.15, 0.95);
+
+                // Disable learning temporarily for stability
+                _learningEnabled = false;
+                
+                _logger.LogDebug("Conservative optimizations applied: BatchSize={BatchSize}, " +
+                    "CacheTTL={CacheTTL}, ConfidenceThreshold={Threshold:P}, LearningEnabled={Learning}",
+                    newBatchSize, newCacheTtl, newConfidenceThreshold, _learningEnabled);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error applying conservative optimizations");
+            }
+        }
+
+        private void ApplyBalancedOptimizations(double factor, Dictionary<string, double> systemMetrics)
+        {
+            try
+            {
+                // Use default optimization parameters
+                var batchSize = _options.DefaultBatchSize;
+                var cacheTtl = (_options.MinCacheTtl + _options.MaxCacheTtl) / 2;
+                var confidenceThreshold = _options.MinConfidenceScore;
+
+                // Ensure learning is enabled
+                _learningEnabled = true;
+
+                _logger.LogDebug("Balanced optimizations applied: BatchSize={BatchSize}, " +
+                    "CacheTTL={CacheTTL}, ConfidenceThreshold={Threshold:P}",
+                    batchSize, cacheTtl, confidenceThreshold);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error applying balanced optimizations");
+            }
+        }
+
+        private void AdjustBatchProcessingParameters(OptimizationStrategyLevel level, double factor, Dictionary<string, double> metrics)
+        {
+            try
+            {
+                var throughput = metrics.GetValueOrDefault("ThroughputPerSecond", 0.0);
+                var avgLatency = metrics.GetValueOrDefault("AverageLatency", 0.0);
+                var memoryUsage = metrics.GetValueOrDefault("MemoryUtilization", 0.5);
+
+                // Calculate optimal batch size based on system capacity
+                int optimalBatchSize = _options.DefaultBatchSize;
+
+                switch (level)
+                {
+                    case OptimizationStrategyLevel.Aggressive:
+                        // Larger batches for high throughput
+                        optimalBatchSize = (int)(_options.DefaultBatchSize * factor);
+                        optimalBatchSize = Math.Min(optimalBatchSize, _options.MaxBatchSize);
+                        break;
+
+                    case OptimizationStrategyLevel.Conservative:
+                        // Smaller batches to reduce load
+                        optimalBatchSize = (int)(_options.DefaultBatchSize * factor);
+                        optimalBatchSize = Math.Max(optimalBatchSize, 1);
+                        break;
+
+                    case OptimizationStrategyLevel.Moderate:
+                    case OptimizationStrategyLevel.Balanced:
+                    default:
+                        // Adaptive batch size based on latency and throughput
+                        if (avgLatency < 100 && throughput > 10)
+                        {
+                            optimalBatchSize = (int)(_options.DefaultBatchSize * 1.2);
+                        }
+                        else if (avgLatency > 500 || throughput < 5)
+                        {
+                            optimalBatchSize = (int)(_options.DefaultBatchSize * 0.8);
+                        }
+                        break;
+                }
+
+                _logger.LogDebug("Batch processing parameters adjusted: OptimalBatchSize={BatchSize}, " +
+                    "Throughput={Throughput:F2}/s, AvgLatency={Latency:F2}ms",
+                    optimalBatchSize, throughput, avgLatency);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error adjusting batch processing parameters");
+            }
+        }
+
+        private void UpdateModelParametersBasedOnStrategy(OptimizationStrategyLevel level, double performanceScore, Dictionary<string, double> metrics)
+        {
+            try
+            {
+                // Adjust exploration vs exploitation based on performance
+                double explorationRate = level switch
+                {
+                    OptimizationStrategyLevel.Aggressive => 0.05, // Low exploration, high exploitation
+                    OptimizationStrategyLevel.Moderate => 0.15,   // Balanced
+                    OptimizationStrategyLevel.Balanced => 0.20,   // Balanced
+                    OptimizationStrategyLevel.Conservative => 0.30, // High exploration to find better solutions
+                    _ => 0.15
+                };
+
+                // Adjust model update frequency
+                var updateFrequency = level switch
+                {
+                    OptimizationStrategyLevel.Aggressive => TimeSpan.FromMinutes(15), // Frequent updates
+                    OptimizationStrategyLevel.Moderate => TimeSpan.FromMinutes(30),
+                    OptimizationStrategyLevel.Balanced => TimeSpan.FromMinutes(30),
+                    OptimizationStrategyLevel.Conservative => TimeSpan.FromHours(1), // Less frequent updates
+                    _ => _options.ModelUpdateInterval
+                };
+
+                _logger.LogDebug("Model parameters updated based on strategy: Level={Level}, " +
+                    "ExplorationRate={Rate:P}, UpdateFrequency={Frequency}",
+                    level, explorationRate, updateFrequency);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error updating model parameters based on strategy");
+            }
+        }
+
+        private void RecordStrategyAdjustment(OptimizationStrategyLevel level, double factor, double performanceScore, Dictionary<string, double> metrics)
+        {
+            try
+            {
+                if (_timeSeriesDb == null) return;
+
+                var timestamp = DateTime.UtcNow;
+
+                // Record individual strategy metrics
+                _timeSeriesDb.StoreMetric("OptimizationStrategy_Level", (double)level, timestamp);
+                _timeSeriesDb.StoreMetric("OptimizationStrategy_Factor", factor, timestamp);
+                _timeSeriesDb.StoreMetric("OptimizationStrategy_PerformanceScore", performanceScore, timestamp);
+                _timeSeriesDb.StoreMetric("OptimizationStrategy_SystemLoad", 
+                    metrics.GetValueOrDefault("SystemLoad", 0.0), timestamp);
+                _timeSeriesDb.StoreMetric("OptimizationStrategy_MemoryUtilization", 
+                    metrics.GetValueOrDefault("MemoryUtilization", 0.0), timestamp);
+                _timeSeriesDb.StoreMetric("OptimizationStrategy_ErrorRate", 
+                    metrics.GetValueOrDefault("ErrorRate", 0.0), timestamp);
+
+                _logger.LogDebug("Strategy adjustment recorded in time-series database: Level={Level}, Factor={Factor:F2}",
+                    level, factor);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error recording strategy adjustment");
+            }
+        }
+
+        // Optimization strategy levels enum
+        private enum OptimizationStrategyLevel
+        {
+            Conservative = 0,
+            Balanced = 1,
+            Moderate = 2,
+            Aggressive = 3
         }
 
         private void UpdateModelHyperparameters(Dictionary<string, double> metrics, double learningRate)

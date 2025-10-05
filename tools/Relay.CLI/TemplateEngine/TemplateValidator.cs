@@ -195,6 +195,7 @@ public class TemplateMetadata
     public string Author { get; set; } = string.Empty;
     public string[] Classifications { get; set; } = Array.Empty<string>();
     public string Description { get; set; } = string.Empty;
+    public string? Version { get; set; }
 }
 
 public class ValidationResult

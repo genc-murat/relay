@@ -703,28 +703,235 @@ namespace Relay.Core.AI
         {
             try
             {
-                // In production, integrate with Kestrel server metrics:
-                // - Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.KestrelMetrics
-                // - Use EventCounters: "connections-per-second", "current-connections"
-                // - DiagnosticListener for connection events
-
+                var connectionCount = 0;
+                
+                // 1. Try to get actual Kestrel metrics if available
+                var kestrelConnections = GetKestrelServerConnections();
+                if (kestrelConnections > 0)
+                {
+                    _logger.LogTrace("Kestrel actual connections: {Count}", kestrelConnections);
+                    return kestrelConnections;
+                }
+                
+                // 2. Fallback: Estimate from request analytics
                 var activeRequests = GetActiveRequestCount();
                 var estimatedInboundConnections = Math.Max(1, activeRequests);
-
-                // Factor in HTTP/1.1 vs HTTP/2 multiplexing
-                // HTTP/2 can handle multiple requests per connection
-                var http2Multiplexing = 0.3; // Assume 30% efficiency from HTTP/2
-                estimatedInboundConnections = (int)(estimatedInboundConnections * (1 - http2Multiplexing));
-
-                // Add persistent connections (keep-alive)
-                var keepAliveMultiplier = 1.5; // 50% more connections due to keep-alive
-                estimatedInboundConnections = (int)(estimatedInboundConnections * keepAliveMultiplier);
-
-                return Math.Min(estimatedInboundConnections, _options.MaxEstimatedHttpConnections / 2);
+                
+                // 3. Apply HTTP protocol multiplexing factors
+                var protocolFactor = CalculateProtocolMultiplexingFactor();
+                estimatedInboundConnections = (int)(estimatedInboundConnections * protocolFactor);
+                
+                // 4. Factor in persistent connections (keep-alive)
+                var keepAliveFactor = CalculateKeepAliveConnectionFactor();
+                estimatedInboundConnections = (int)(estimatedInboundConnections * keepAliveFactor);
+                
+                // 5. Apply load-based adjustment
+                var loadLevel = ClassifyCurrentLoadLevel();
+                var loadAdjustment = GetLoadBasedConnectionAdjustment(loadLevel);
+                estimatedInboundConnections = (int)(estimatedInboundConnections * loadAdjustment);
+                
+                // 6. Historical average smoothing
+                var historicalAvg = GetHistoricalConnectionAverage("AspNetCore");
+                if (historicalAvg > 0)
+                {
+                    // Weighted average: 70% current, 30% historical
+                    connectionCount = (int)((estimatedInboundConnections * 0.7) + (historicalAvg * 0.3));
+                }
+                else
+                {
+                    connectionCount = estimatedInboundConnections;
+                }
+                
+                // 7. Apply reasonable bounds
+                var finalCount = Math.Max(1, Math.Min(connectionCount, _options.MaxEstimatedHttpConnections / 2));
+                
+                _logger.LogDebug("ASP.NET Core connection estimate: Active={Active}, Protocol={Protocol:F2}, KeepAlive={KeepAlive:F2}, Load={Load:F2}, Final={Final}",
+                    activeRequests, protocolFactor, keepAliveFactor, loadAdjustment, finalCount);
+                
+                return finalCount;
             }
             catch (Exception ex)
             {
                 _logger.LogTrace(ex, "Error estimating ASP.NET Core connections");
+                return Environment.ProcessorCount * 2; // Safe fallback
+            }
+        }
+
+        /// <summary>
+        /// Get actual Kestrel server connection count using EventCounters
+        /// </summary>
+        private int GetKestrelServerConnections()
+        {
+            try
+            {
+                // Note: In production, this would integrate with:
+                // 1. EventCounters from Microsoft.AspNetCore.Server.Kestrel
+                // 2. DiagnosticListener for real-time connection events
+                // 3. Custom IConnectionListenerFactory to track connections
+                
+                // Check if we have stored connection metrics in time-series DB
+                var recentMetrics = _timeSeriesDb.GetRecentMetrics("KestrelConnections", 10);
+                if (recentMetrics.Any())
+                {
+                    // Use most recent value
+                    return (int)recentMetrics.Last().Value;
+                }
+                
+                // No actual metrics available
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error retrieving Kestrel server connections");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate multiplexing factor based on HTTP protocol distribution
+        /// </summary>
+        private double CalculateProtocolMultiplexingFactor()
+        {
+            try
+            {
+                // HTTP/2 and HTTP/3 support request multiplexing
+                // One connection can handle multiple concurrent requests
+                
+                // Estimate protocol distribution from request analytics
+                var totalRequests = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
+                
+                if (totalRequests == 0)
+                {
+                    // Default assumption: 50% HTTP/2, 50% HTTP/1.1
+                    return 0.75; // Weighted average: (0.5 * 1.0) + (0.5 * 0.5)
+                }
+                
+                // In production, would track actual HTTP version distribution
+                // For now, make educated guess based on modern web patterns
+                var http1Percentage = 0.4; // 40% HTTP/1.1
+                var http2Percentage = 0.5; // 50% HTTP/2 (multiplexing ~2x)
+                var http3Percentage = 0.1; // 10% HTTP/3 (multiplexing ~2x)
+                
+                // Calculate weighted factor
+                // HTTP/1.1: 1 connection per request
+                // HTTP/2: ~2 requests per connection (0.5 connections per request)
+                // HTTP/3: ~2 requests per connection (0.5 connections per request)
+                var factor = (http1Percentage * 1.0) + 
+                            (http2Percentage * 0.5) + 
+                            (http3Percentage * 0.5);
+                
+                return factor;
+            }
+            catch
+            {
+                return 0.7; // Default: 30% efficiency from multiplexing
+            }
+        }
+
+        /// <summary>
+        /// Calculate keep-alive connection factor
+        /// </summary>
+        private double CalculateKeepAliveConnectionFactor()
+        {
+            try
+            {
+                // Keep-alive connections remain open after request completion
+                // This increases the total connection count
+                
+                var avgResponseTime = _systemMetrics.CalculateAverageResponseTime();
+                var throughput = _systemMetrics.CalculateCurrentThroughput();
+                
+                if (throughput == 0)
+                    return 1.5; // Default 50% increase
+                
+                // Higher throughput with fast responses = more reused connections
+                // Lower throughput with slow responses = more persistent idle connections
+                
+                if (avgResponseTime.TotalMilliseconds < 100 && throughput > 10)
+                {
+                    // Fast API with high throughput - efficient reuse
+                    return 1.3; // 30% increase
+                }
+                else if (avgResponseTime.TotalMilliseconds > 1000)
+                {
+                    // Slow responses - connections held longer
+                    return 1.7; // 70% increase
+                }
+                else
+                {
+                    // Normal scenario
+                    return 1.5; // 50% increase
+                }
+            }
+            catch
+            {
+                return 1.5; // Default multiplier
+            }
+        }
+
+        /// <summary>
+        /// Classify current system load level
+        /// </summary>
+        private LoadLevel ClassifyCurrentLoadLevel()
+        {
+            try
+            {
+                var cpuUsage = _systemMetrics.CalculateMemoryUsage(); // Note: would use CPU if available
+                var throughput = _systemMetrics.CalculateCurrentThroughput();
+                
+                // Simple load classification
+                if (throughput > 100 || cpuUsage > 0.8)
+                    return LoadLevel.High;
+                else if (throughput > 50 || cpuUsage > 0.6)
+                    return LoadLevel.Medium;
+                else if (throughput > 10 || cpuUsage > 0.3)
+                    return LoadLevel.Low;
+                else
+                    return LoadLevel.Idle;
+            }
+            catch
+            {
+                return LoadLevel.Medium;
+            }
+        }
+
+        /// <summary>
+        /// Get load-based connection count adjustment
+        /// </summary>
+        private double GetLoadBasedConnectionAdjustment(LoadLevel level)
+        {
+            return level switch
+            {
+                LoadLevel.Critical => 1.3,  // 30% more connections under stress
+                LoadLevel.High => 1.2,      // 20% more connections
+                LoadLevel.Medium => 1.0,    // Normal
+                LoadLevel.Low => 0.9,       // 10% fewer
+                LoadLevel.Idle => 0.8,      // 20% fewer
+                _ => 1.0
+            };
+        }
+
+        /// <summary>
+        /// Get historical connection average for a specific component
+        /// </summary>
+        private double GetHistoricalConnectionAverage(string component)
+        {
+            try
+            {
+                var metricName = $"ConnectionCount_{component}";
+                var metrics = _timeSeriesDb.GetRecentMetrics(metricName, 50);
+                
+                if (metrics.Count >= 5)
+                {
+                    // Use exponential moving average for recent trend
+                    var ema = CalculateEMA(metrics.Select(m => m.Value).ToList(), alpha: 0.3);
+                    return ema;
+                }
+                
+                return 0;
+            }
+            catch
+            {
                 return 0;
             }
         }

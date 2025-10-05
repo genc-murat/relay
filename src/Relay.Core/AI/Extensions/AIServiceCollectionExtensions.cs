@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -227,63 +228,13 @@ namespace Relay.Core.AI
         ValueTask<OptimizationRecommendation> PredictAsync(RequestContext context, CancellationToken cancellationToken = default);
     }
 
-    // Default implementations (stubs for now)
-    internal class DefaultAIModelTrainer : IAIModelTrainer
-    {
-        public ValueTask TrainModelAsync(AITrainingData trainingData, CancellationToken cancellationToken = default)
-        {
-            return ValueTask.CompletedTask;
-        }
-    }
-
-    internal class DefaultAIPredictionCache : IAIPredictionCache
-    {
-        public ValueTask<OptimizationRecommendation?> GetCachedPredictionAsync(string key, CancellationToken cancellationToken = default)
-        {
-            return ValueTask.FromResult<OptimizationRecommendation?>(null);
-        }
-
-        public ValueTask SetCachedPredictionAsync(string key, OptimizationRecommendation recommendation, TimeSpan expiry, CancellationToken cancellationToken = default)
-        {
-            return ValueTask.CompletedTask;
-        }
-    }
-
-    internal class DefaultAIMetricsExporter : IAIMetricsExporter
-    {
-        public ValueTask ExportMetricsAsync(AIModelStatistics statistics, CancellationToken cancellationToken = default)
-        {
-            return ValueTask.CompletedTask;
-        }
-    }
-
-    // Placeholder classes for additional pipeline behaviors
-    internal class AIPerformanceTrackingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-    {
-        public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-        {
-            return next();
-        }
-    }
-
-    internal class AIBatchOptimizationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-    {
-        public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-        {
-            return next();
-        }
-    }
-
-    internal class AICachingOptimizationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
-    {
-        public ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-        {
-            return next();
-        }
-    }
+    // NOTE: Default implementations have been moved to separate files:
+    // - DefaultAIModelTrainer: AI/Training/DefaultAIModelTrainer.cs
+    // - DefaultAIPredictionCache: AI/Cache/DefaultAIPredictionCache.cs
+    // - DefaultAIMetricsExporter: AI/Metrics/DefaultAIMetricsExporter.cs
+    // - AIPerformanceTrackingBehavior: AI/Pipeline/AIPerformanceTrackingBehavior.cs
+    // - AIBatchOptimizationBehavior: AI/Pipeline/AIBatchOptimizationBehavior.cs
+    // - AICachingOptimizationBehavior: AI/Pipeline/AICachingOptimizationBehavior.cs
 
     // Supporting types
     public class AITrainingData

@@ -4022,18 +4022,128 @@ namespace Relay.Core.AI
 
         private int GetSqlServerConnectionCount()
         {
-            // Placeholder for SQL Server connection pool monitoring
-            // In production, would integrate with performance counters or connection string monitoring
-            var poolUtilization = GetDatabasePoolUtilization();
-            return (int)(poolUtilization * 15); // Assume max 15 SQL connections
+            try
+            {
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("SqlServer_ConnectionCount", 10);
+                if (storedMetrics.Any())
+                {
+                    var avgCount = (int)storedMetrics.Average(m => m.Value);
+                    return Math.Max(0, avgCount);
+                }
+
+                // Estimation based on connection pool utilization
+                var poolUtilization = GetDatabasePoolUtilization();
+                var estimatedCount = (int)(poolUtilization * _options.EstimatedMaxDbConnections * 0.6); // 60% for SQL Server
+                
+                // Apply smoothing based on historical data
+                if (storedMetrics.Any())
+                {
+                    var historicalAvg = (int)storedMetrics.Average(m => m.Value);
+                    // Weighted average: 70% historical, 30% current estimate
+                    estimatedCount = (int)(historicalAvg * 0.7 + estimatedCount * 0.3);
+                }
+                
+                // Store estimated metric
+                _timeSeriesDb.StoreMetric("SqlServer_ConnectionCount", estimatedCount, DateTime.UtcNow);
+                
+                return Math.Max(0, Math.Min(estimatedCount, 100)); // Cap at 100 connections
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error getting SQL Server connection count");
+                return 0;
+            }
         }
 
         private int GetEntityFrameworkConnectionCount()
         {
-            // Placeholder for Entity Framework connection tracking
-            // In production, would integrate with EF Core connection interceptors
-            var activeRequests = GetActiveRequestCount();
-            return Math.Min(activeRequests / 3, 10); // Estimate EF connections
+            try
+            {
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("EntityFramework_ConnectionCount", 10);
+                if (storedMetrics.Any())
+                {
+                    var avgCount = (int)storedMetrics.Average(m => m.Value);
+                    
+                    // If we have recent metrics, use them with slight adjustment for current load
+                    var currentLoadFactor = GetDatabasePoolUtilization();
+                    var adjustedCount = (int)(avgCount * (0.7 + currentLoadFactor * 0.3));
+                    return Math.Max(0, adjustedCount);
+                }
+
+                // Estimation based on active requests and request patterns
+                var activeRequests = GetActiveRequestCount();
+                var avgConnectionsPerRequest = CalculateAverageConnectionsPerRequest();
+                var estimatedCount = (int)(activeRequests * avgConnectionsPerRequest);
+                
+                // Apply historical patterns to improve accuracy
+                var historicalData = _requestAnalytics.Values
+                    .Where(x => x.TotalExecutions > 10)
+                    .ToList();
+                
+                if (historicalData.Any())
+                {
+                    var avgExecutionTime = historicalData.Average(x => x.AverageExecutionTime.TotalMilliseconds);
+                    
+                    // Longer execution times typically mean connections are held longer
+                    if (avgExecutionTime > 1000)
+                    {
+                        estimatedCount = (int)(estimatedCount * 1.5); // Increase estimate for long-running operations
+                    }
+                    else if (avgExecutionTime < 100)
+                    {
+                        estimatedCount = (int)(estimatedCount * 0.5); // Decrease for fast operations
+                    }
+                }
+                
+                // Consider system load
+                var poolUtilization = GetDatabasePoolUtilization();
+                if (poolUtilization > 0.8)
+                {
+                    // High utilization suggests more connections in use
+                    estimatedCount = (int)(estimatedCount * 1.2);
+                }
+                
+                // Store estimated metric for future reference
+                _timeSeriesDb.StoreMetric("EntityFramework_ConnectionCount", estimatedCount, DateTime.UtcNow);
+                
+                return Math.Max(0, Math.Min(estimatedCount, 50)); // Cap at 50 connections
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error getting Entity Framework connection count");
+                return 0;
+            }
+        }
+
+        private double CalculateAverageConnectionsPerRequest()
+        {
+            try
+            {
+                // Analyze historical data to determine average connections per request
+                var requestsWithConnectionData = _requestAnalytics.Values
+                    .Where(x => x.TotalExecutions > 5)
+                    .ToList();
+
+                if (!requestsWithConnectionData.Any())
+                {
+                    return 0.3; // Default: 30% of requests use a connection
+                }
+
+                // Estimate based on execution patterns
+                // Longer execution times typically indicate database operations
+                var avgExecTime = requestsWithConnectionData.Average(x => x.AverageExecutionTime.TotalMilliseconds);
+                
+                if (avgExecTime > 1000) return 0.8; // Long running = likely multiple connections
+                if (avgExecTime > 500) return 0.5;  // Medium = moderate connection usage
+                if (avgExecTime > 100) return 0.3;  // Fast = some connection usage
+                return 0.1; // Very fast = minimal connection usage
+            }
+            catch
+            {
+                return 0.3; // Safe default
+            }
         }
 
         private int GetNoSqlConnectionCount()

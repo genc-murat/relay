@@ -171,7 +171,7 @@ public class MigrationEngine
     private async Task TransformPackageReferences(string projectPath, MigrationResult result)
     {
         var projectFiles = Directory.GetFiles(projectPath, "*.csproj", SearchOption.AllDirectories)
-            .Where(f => !f.Contains("\\bin\\") && !f.Contains("\\obj\\"))
+            .Where(f => !f.Contains("\\bin\\") && !f.Contains("\\obj\\") && !f.Contains("\\backup\\") && !f.Contains("\\.backup\\"))
             .ToList();
 
         foreach (var projFile in projectFiles)
@@ -210,9 +210,19 @@ public class MigrationEngine
 
             if (!hasRelayCore && modified)
             {
-                // Find an ItemGroup with PackageReferences or create one
-                var itemGroup = doc.Descendants("ItemGroup")
-                    .FirstOrDefault(ig => ig.Elements("PackageReference").Any());
+                // Find an ItemGroup or create one
+                var itemGroup = doc.Descendants("ItemGroup").FirstOrDefault();
+
+                if (itemGroup == null)
+                {
+                    // Create new ItemGroup if none exists
+                    var root = doc.Root;
+                    if (root != null)
+                    {
+                        itemGroup = new XElement("ItemGroup");
+                        root.Add(itemGroup);
+                    }
+                }
 
                 if (itemGroup != null)
                 {

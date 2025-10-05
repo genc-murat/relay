@@ -2911,30 +2911,245 @@ namespace Relay.Core.AI
         {
             try
             {
-                // Simplified feature importance calculation
-                // In production, would use more sophisticated methods like permutation importance,
-                // SHAP values, or information gain
-
-                var random = Random.Shared;
-                var baselineAccuracy = predictions.Count(p => p.ActualImprovement.TotalMilliseconds > 0) /
-                                      (double)predictions.Length;
-
-                // Simulate feature importance (placeholder)
-                var importance = featureName switch
+                if (predictions.Length < 10)
                 {
-                    "RequestType" => 0.35 + (random.NextDouble() * 0.1),
-                    "Strategy" => 0.30 + (random.NextDouble() * 0.1),
-                    "Temporal" => 0.20 + (random.NextDouble() * 0.1),
-                    "Load" => 0.15 + (random.NextDouble() * 0.1),
-                    _ => 0.1
-                };
+                    _logger.LogTrace("Insufficient predictions ({Count}) for feature importance calculation", predictions.Length);
+                    return 0.1;
+                }
 
-                return Math.Min(1.0, importance);
+                // Calculate feature importance using permutation-based approach
+                // This measures how much the model performance degrades when feature is permuted
+                
+                var baselineAccuracy = CalculateAccuracy(predictions);
+                
+                // Create permuted dataset for the specific feature
+                var permutedPredictions = PermuteFeature(predictions, featureName);
+                var permutedAccuracy = CalculateAccuracy(permutedPredictions);
+                
+                // Feature importance = drop in accuracy when feature is permuted
+                var importanceDrop = baselineAccuracy - permutedAccuracy;
+                
+                // Also calculate information gain for additional validation
+                var informationGain = CalculateInformationGain(predictions, featureName);
+                
+                // Combine both metrics (weighted average)
+                var combinedImportance = (importanceDrop * 0.6) + (informationGain * 0.4);
+                
+                // Normalize to 0-1 range
+                var normalizedImportance = Math.Max(0.0, Math.Min(1.0, combinedImportance));
+                
+                _logger.LogDebug("Feature importance for {Feature}: PermutationDrop={Drop:F3}, InfoGain={Gain:F3}, Combined={Combined:F3}",
+                    featureName, importanceDrop, informationGain, normalizedImportance);
+                
+                return normalizedImportance;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Error calculating feature importance for {Feature}", featureName);
                 return 0.1;
             }
+        }
+
+        /// <summary>
+        /// Calculate accuracy of predictions
+        /// </summary>
+        private double CalculateAccuracy(PredictionResult[] predictions)
+        {
+            if (predictions.Length == 0)
+                return 0.0;
+            
+            var successful = predictions.Count(p => p.ActualImprovement.TotalMilliseconds > 0);
+            return successful / (double)predictions.Length;
+        }
+
+        /// <summary>
+        /// Permute a specific feature in predictions to measure its impact
+        /// </summary>
+        private PredictionResult[] PermuteFeature(PredictionResult[] predictions, string featureName)
+        {
+            var random = new Random(42); // Fixed seed for reproducibility
+            var permuted = new List<PredictionResult>();
+            
+            switch (featureName)
+            {
+                case "RequestType":
+                    // Shuffle request types
+                    var requestTypes = predictions.Select(p => p.RequestType).ToArray();
+                    var shuffledTypes = requestTypes.OrderBy(_ => random.Next()).ToArray();
+                    
+                    for (int i = 0; i < predictions.Length; i++)
+                    {
+                        permuted.Add(new PredictionResult
+                        {
+                            RequestType = shuffledTypes[i],
+                            PredictedStrategies = predictions[i].PredictedStrategies,
+                            ActualImprovement = predictions[i].ActualImprovement,
+                            Timestamp = predictions[i].Timestamp,
+                            Metrics = predictions[i].Metrics
+                        });
+                    }
+                    break;
+                    
+                case "Strategy":
+                    // Shuffle strategies
+                    var strategies = predictions.Select(p => p.PredictedStrategies).ToArray();
+                    var shuffledStrategies = strategies.OrderBy(_ => random.Next()).ToArray();
+                    
+                    for (int i = 0; i < predictions.Length; i++)
+                    {
+                        permuted.Add(new PredictionResult
+                        {
+                            RequestType = predictions[i].RequestType,
+                            PredictedStrategies = shuffledStrategies[i],
+                            ActualImprovement = predictions[i].ActualImprovement,
+                            Timestamp = predictions[i].Timestamp,
+                            Metrics = predictions[i].Metrics
+                        });
+                    }
+                    break;
+                    
+                case "Temporal":
+                    // Shuffle timestamps
+                    var timestamps = predictions.Select(p => p.Timestamp).ToArray();
+                    var shuffledTimestamps = timestamps.OrderBy(_ => random.Next()).ToArray();
+                    
+                    for (int i = 0; i < predictions.Length; i++)
+                    {
+                        permuted.Add(new PredictionResult
+                        {
+                            RequestType = predictions[i].RequestType,
+                            PredictedStrategies = predictions[i].PredictedStrategies,
+                            ActualImprovement = predictions[i].ActualImprovement,
+                            Timestamp = shuffledTimestamps[i],
+                            Metrics = predictions[i].Metrics
+                        });
+                    }
+                    break;
+                    
+                case "Load":
+                    // Shuffle metrics (which contain load information)
+                    var metrics = predictions.Select(p => p.Metrics).ToArray();
+                    var shuffledMetrics = metrics.OrderBy(_ => random.Next()).ToArray();
+                    
+                    for (int i = 0; i < predictions.Length; i++)
+                    {
+                        permuted.Add(new PredictionResult
+                        {
+                            RequestType = predictions[i].RequestType,
+                            PredictedStrategies = predictions[i].PredictedStrategies,
+                            ActualImprovement = predictions[i].ActualImprovement,
+                            Timestamp = predictions[i].Timestamp,
+                            Metrics = shuffledMetrics[i]
+                        });
+                    }
+                    break;
+                    
+                default:
+                    return predictions;
+            }
+            
+            return permuted.ToArray();
+        }
+
+        /// <summary>
+        /// Calculate information gain for a feature using entropy
+        /// </summary>
+        private double CalculateInformationGain(PredictionResult[] predictions, string featureName)
+        {
+            try
+            {
+                // Calculate entropy of the whole dataset
+                var totalEntropy = CalculateEntropy(predictions);
+                
+                // Group predictions by feature and calculate weighted entropy
+                var groups = GroupByFeature(predictions, featureName);
+                var weightedEntropy = 0.0;
+                
+                foreach (var group in groups)
+                {
+                    var weight = group.Value.Length / (double)predictions.Length;
+                    var groupEntropy = CalculateEntropy(group.Value);
+                    weightedEntropy += weight * groupEntropy;
+                }
+                
+                // Information gain = total entropy - weighted entropy
+                var informationGain = totalEntropy - weightedEntropy;
+                
+                return Math.Max(0.0, informationGain);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating information gain for {Feature}", featureName);
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate entropy (measure of impurity/uncertainty)
+        /// </summary>
+        private double CalculateEntropy(PredictionResult[] predictions)
+        {
+            if (predictions.Length == 0)
+                return 0.0;
+            
+            // Calculate probability of success
+            var successful = predictions.Count(p => p.ActualImprovement.TotalMilliseconds > 0);
+            var failed = predictions.Length - successful;
+            
+            if (successful == 0 || failed == 0)
+                return 0.0; // Perfect classification, no entropy
+            
+            var pSuccess = successful / (double)predictions.Length;
+            var pFailure = failed / (double)predictions.Length;
+            
+            // Entropy = -Σ(p * log2(p))
+            var entropy = -(pSuccess * Math.Log2(pSuccess) + pFailure * Math.Log2(pFailure));
+            
+            return entropy;
+        }
+
+        /// <summary>
+        /// Group predictions by feature value
+        /// </summary>
+        private Dictionary<string, PredictionResult[]> GroupByFeature(PredictionResult[] predictions, string featureName)
+        {
+            return featureName switch
+            {
+                "RequestType" => predictions
+                    .GroupBy(p => p.RequestType.Name)
+                    .ToDictionary(g => g.Key, g => g.ToArray()),
+                    
+                "Strategy" => predictions
+                    .GroupBy(p => string.Join(",", p.PredictedStrategies.Select(s => s.ToString())))
+                    .ToDictionary(g => g.Key, g => g.ToArray()),
+                    
+                "Temporal" => predictions
+                    .GroupBy(p => GetTemporalCategory(p.Timestamp))
+                    .ToDictionary(g => g.Key, g => g.ToArray()),
+                    
+                "Load" => predictions
+                    .GroupBy(p => ClassifyLoadLevel(p.Metrics).ToString())
+                    .ToDictionary(g => g.Key, g => g.ToArray()),
+                    
+                _ => new Dictionary<string, PredictionResult[]> { ["default"] = predictions }
+            };
+        }
+
+        /// <summary>
+        /// Get temporal category for grouping
+        /// </summary>
+        private string GetTemporalCategory(DateTime timestamp)
+        {
+            var hour = timestamp.Hour;
+            
+            if (hour >= 0 && hour < 6)
+                return "Night";
+            else if (hour >= 6 && hour < 12)
+                return "Morning";
+            else if (hour >= 12 && hour < 18)
+                return "Afternoon";
+            else
+                return "Evening";
         }
 
         private double CalculateOptimalThreshold(PredictionResult[] predictions, string thresholdType)

@@ -1799,7 +1799,35 @@ namespace Relay.Core.AI
             
             // Predict next hour metrics
             var currentThroughput = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
-            predictions["ThroughputNextHour"] = currentThroughput * 1.1; // 10% growth prediction
+            
+            // Use ML.NET forecasting model if available
+            if (_mlModelsInitialized && _metricTimeSeriesData.Count >= 50)
+            {
+                try
+                {
+                    var forecast = _mlNetManager.ForecastMetric(horizon: 12); // 12 time steps ahead
+                    if (forecast != null && forecast.ForecastedValues.Length > 0)
+                    {
+                        predictions["ThroughputNextHour"] = forecast.ForecastedValues[0];
+                        predictions["ThroughputUpperBound"] = forecast.UpperBound[0];
+                        predictions["ThroughputLowerBound"] = forecast.LowerBound[0];
+                        
+                        _logger.LogDebug("ML.NET forecast used for predictive analysis: {Value:F2} (range: {Lower:F2} - {Upper:F2})",
+                            forecast.ForecastedValues[0], forecast.LowerBound[0], forecast.UpperBound[0]);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error using ML.NET forecasting model, falling back to simple prediction");
+                }
+            }
+            
+            // Fallback to simple prediction if ML model not available
+            if (!predictions.ContainsKey("ThroughputNextHour"))
+            {
+                predictions["ThroughputNextHour"] = currentThroughput * 1.1; // 10% growth prediction
+            }
+            
             predictions["ErrorRateNextHour"] = _requestAnalytics.Values.Average(x => x.ErrorRate) * 0.9; // Improvement
             
             // Predict next day metrics
@@ -1823,7 +1851,7 @@ namespace Relay.Core.AI
                 NextDayPredictions = predictions,
                 PotentialIssues = issues,
                 ScalingRecommendations = scalingRecommendations,
-                PredictionConfidence = 0.75 // Confidence level
+                PredictionConfidence = _mlModelsInitialized ? 0.85 : 0.75 // Higher confidence with ML model
             };
         }
 
@@ -2089,6 +2117,24 @@ namespace Relay.Core.AI
                 // Analyze recent performance data
                 var recentPredictions = _recentPredictions.ToArray();
                 var modelStats = GetModelStatistics();
+                
+                // Update ML.NET forecasting model with new observations
+                if (_mlModelsInitialized && _metricTimeSeriesData.Count >= 50)
+                {
+                    try
+                    {
+                        var latestObservation = _metricTimeSeriesData.LastOrDefault();
+                        if (latestObservation != null)
+                        {
+                            _mlNetManager.UpdateForecastingModel(latestObservation);
+                            _logger.LogDebug("ML.NET forecasting model updated with latest observation");
+                        }
+                    }
+                    catch (Exception mlEx)
+                    {
+                        _logger.LogWarning(mlEx, "Error updating ML.NET forecasting model");
+                    }
+                }
                 
                 // Update model parameters based on recent accuracy
                 if (modelStats.AccuracyScore < 0.7)
@@ -3150,6 +3196,45 @@ namespace Relay.Core.AI
         {
             try
             {
+                // Use ML.NET anomaly detection if model is initialized and sufficient data
+                if (_mlModelsInitialized && _metricTimeSeriesData.Count >= 50)
+                {
+                    try
+                    {
+                        var recentData = _metricTimeSeriesData.TakeLast(20).ToArray();
+                        int anomalyCount = 0;
+                        
+                        foreach (var dataPoint in recentData)
+                        {
+                            var isAnomaly = _mlNetManager.DetectAnomaly(dataPoint);
+                            
+                            if (isAnomaly)
+                            {
+                                anomalies.Add(new MetricAnomaly
+                                {
+                                    MetricName = "ML_DetectedAnomaly",
+                                    CurrentValue = dataPoint.Value,
+                                    ExpectedValue = 0, // Will be set by ML model internally
+                                    Deviation = Math.Abs(dataPoint.Value),
+                                    Severity = AnomalySeverity.Medium,
+                                    Description = $"ML.NET detected anomaly in time-series data at {dataPoint.Timestamp:HH:mm:ss}",
+                                    Timestamp = dataPoint.Timestamp
+                                });
+                                anomalyCount++;
+                            }
+                        }
+                        
+                        if (anomalyCount > 0)
+                        {
+                            _logger.LogDebug("ML.NET anomaly detection completed: {Count} anomalies detected", anomalyCount);
+                        }
+                    }
+                    catch (Exception mlEx)
+                    {
+                        _logger.LogWarning(mlEx, "Error using ML.NET anomaly detection, using fallback rules");
+                    }
+                }
+
                 // Cross-metric anomaly detection specific to AI optimization
                 if (metrics.TryGetValue("PredictionAccuracy", out var accuracy) && accuracy < 0.5)
                 {
@@ -3209,6 +3294,33 @@ namespace Relay.Core.AI
 
             try
             {
+                // Add feature importance insights from ML model if available
+                if (_mlModelsInitialized)
+                {
+                    try
+                    {
+                        var featureImportance = _mlNetManager.GetFeatureImportance();
+                        if (featureImportance != null && featureImportance.Count > 0)
+                        {
+                            var topFeature = featureImportance.OrderByDescending(f => f.Value).First();
+                            insights.Add(new TrendInsight
+                            {
+                                Category = "ML Insights",
+                                Severity = InsightSeverity.Info,
+                                Message = $"Most influential performance factor: {topFeature.Key} (importance: {topFeature.Value:P})",
+                                RecommendedAction = $"Focus optimization efforts on {topFeature.Key} for maximum impact"
+                            });
+                            
+                            _logger.LogDebug("Feature importance analysis: Top feature is {Feature} with {Importance:P} importance",
+                                topFeature.Key, topFeature.Value);
+                        }
+                    }
+                    catch (Exception fiEx)
+                    {
+                        _logger.LogWarning(fiEx, "Error extracting feature importance from ML model");
+                    }
+                }
+
                 // Generate actionable insights from trends
                 foreach (var metric in currentMetrics)
                 {

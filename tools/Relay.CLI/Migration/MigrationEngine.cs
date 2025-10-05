@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -176,6 +177,7 @@ public class MigrationEngine
         foreach (var projFile in projectFiles)
         {
             var content = await File.ReadAllTextAsync(projFile);
+            var doc = XDocument.Parse(content);
             var modified = false;
 
             // Remove MediatR packages
@@ -183,12 +185,13 @@ public class MigrationEngine
             
             foreach (var package in mediatrPackages)
             {
-                if (content.Contains($"<PackageReference Include=\"{package}\""))
+                var packageRefs = doc.Descendants("PackageReference")
+                    .Where(e => e.Attribute("Include")?.Value == package)
+                    .ToList();
+
+                foreach (var packageRef in packageRefs)
                 {
-                    // Simple removal - in production, use XML parsing
-                    var lines = content.Split('\n').ToList();
-                    lines = lines.Where(l => !l.Contains($"<PackageReference Include=\"{package}\"")).ToList();
-                    content = string.Join('\n', lines);
+                    packageRef.Remove();
                     modified = true;
 
                     result.Changes.Add(new MigrationChange
@@ -202,15 +205,21 @@ public class MigrationEngine
             }
 
             // Add Relay.Core if not present
-            if (!content.Contains("Relay.Core") && modified)
+            var hasRelayCore = doc.Descendants("PackageReference")
+                .Any(e => e.Attribute("Include")?.Value == "Relay.Core");
+
+            if (!hasRelayCore && modified)
             {
-                // Find ItemGroup with PackageReferences and add Relay.Core
-                var insertIndex = content.LastIndexOf("</ItemGroup>");
-                if (insertIndex > 0)
+                // Find an ItemGroup with PackageReferences or create one
+                var itemGroup = doc.Descendants("ItemGroup")
+                    .FirstOrDefault(ig => ig.Elements("PackageReference").Any());
+
+                if (itemGroup != null)
                 {
-                    var indentation = "    ";
-                    var relayReference = $"{indentation}<PackageReference Include=\"Relay.Core\" Version=\"2.1.0\" />\n  ";
-                    content = content.Insert(insertIndex, relayReference);
+                    var relayReference = new XElement("PackageReference");
+                    relayReference.SetAttributeValue("Include", "Relay.Core");
+                    relayReference.SetAttributeValue("Version", "2.1.0");
+                    itemGroup.Add(relayReference);
 
                     result.Changes.Add(new MigrationChange
                     {
@@ -224,7 +233,7 @@ public class MigrationEngine
 
             if (modified)
             {
-                await File.WriteAllTextAsync(projFile, content);
+                await File.WriteAllTextAsync(projFile, doc.ToString());
             }
         }
     }

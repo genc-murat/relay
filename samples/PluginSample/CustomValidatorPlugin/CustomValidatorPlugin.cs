@@ -450,19 +450,79 @@ Examples:
         if (_context == null) return;
 
         var fixableViolations = violations.Where(v => v.Fixable).ToList();
+        var fileGroups = fixableViolations.GroupBy(v => v.File);
 
-        foreach (var violation in fixableViolations)
+        foreach (var fileGroup in fileGroups)
         {
-            _context.Logger.LogInformation($"Fixing: {violation.File}:{violation.Line}");
-            
-            // In a real implementation, apply actual fixes here
-            await Task.Delay(100);
+            var filePath = fileGroup.Key;
+            var content = await _context.FileSystem.ReadFileAsync(filePath);
+            var lines = content.Split('\n').ToList();
+            var modified = false;
+
+            // Process violations in reverse order to maintain line numbers
+            foreach (var violation in fileGroup.OrderByDescending(v => v.Line))
+            {
+                var lineIndex = violation.Line - 1;
+                if (lineIndex < 0 || lineIndex >= lines.Count) continue;
+
+                var line = lines[lineIndex];
+                var fixedLine = ApplyFix(line, violation);
+
+                if (fixedLine != line)
+                {
+                    lines[lineIndex] = fixedLine;
+                    modified = true;
+                    _context.Logger.LogInformation($"Fixed {violation.Code} in {Path.GetFileName(filePath)}:{violation.Line}");
+                }
+            }
+
+            if (modified)
+            {
+                var fixedContent = string.Join('\n', lines);
+                await _context.FileSystem.WriteFileAsync(filePath, fixedContent);
+            }
         }
 
         if (fixableViolations.Any())
         {
-            _context.Logger.LogInformation($"✅ Fixed {fixableViolations.Count} violation(s)");
+            _context.Logger.LogInformation($"✅ Fixed {fixableViolations.Count} violation(s) in {fileGroups.Count()} file(s)");
         }
+    }
+
+    private string ApplyFix(string line, Violation violation)
+    {
+        switch (violation.Code)
+        {
+            case "ASYNC001": // Add Async suffix to async methods
+                var match = Regex.Match(line, @"(\s+)(\w+)(\s*\()");
+                if (match.Success)
+                {
+                    var methodName = match.Groups[2].Value;
+                    if (!methodName.EndsWith("Async"))
+                    {
+                        return line.Replace(
+                            $"{match.Groups[1].Value}{methodName}{match.Groups[3].Value}",
+                            $"{match.Groups[1].Value}{methodName}Async{match.Groups[3].Value}"
+                        );
+                    }
+                }
+                break;
+
+            case "NAMING002": // Fix private field naming (_camelCase)
+                var fieldMatch = Regex.Match(line, @"(private\s+\w+\s+)([A-Z]\w+)(\s*[;=])");
+                if (fieldMatch.Success)
+                {
+                    var fieldName = fieldMatch.Groups[2].Value;
+                    var fixedName = "_" + char.ToLower(fieldName[0]) + fieldName.Substring(1);
+                    return line.Replace(
+                        $"{fieldMatch.Groups[1].Value}{fieldName}{fieldMatch.Groups[3].Value}",
+                        $"{fieldMatch.Groups[1].Value}{fixedName}{fieldMatch.Groups[3].Value}"
+                    );
+                }
+                break;
+        }
+
+        return line;
     }
 
     private void ReportResults(List<Violation> violations, ValidatorOptions options)

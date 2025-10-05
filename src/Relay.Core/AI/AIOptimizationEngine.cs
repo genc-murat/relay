@@ -2190,32 +2190,363 @@ namespace Relay.Core.AI
         /// <summary>
         /// Calculate long-polling fallback rate based on client capabilities
         /// </summary>
+        /// <summary>
+        /// Calculate long-polling fallback rate based on multiple intelligent factors
+        /// </summary>
         private double CalculateLongPollingFallbackRate()
         {
             try
             {
-                // In production, this would analyze:
-                // - User-Agent headers
-                // - Browser capabilities
-                // - Network conditions
-                // - Historical fallback patterns
+                // Strategy 1: Use historical fallback rate if available
+                var historicalRate = GetHistoricalFallbackRate();
+                if (historicalRate > 0)
+                {
+                    _logger.LogTrace("Using historical fallback rate: {Rate:P2}", historicalRate);
+                    return historicalRate;
+                }
                 
-                // Estimate based on industry standards:
-                // - Modern browsers: 95% WebSocket support
-                // - Corporate networks: 20% block WebSocket
-                // - Mobile networks: 90% WebSocket support
+                // Strategy 2: Analyze request patterns to detect fallback behavior
+                var patternBasedRate = AnalyzeFallbackPatternsFromRequests();
+                if (patternBasedRate > 0)
+                {
+                    _logger.LogTrace("Using pattern-based fallback rate: {Rate:P2}", patternBasedRate);
+                    return patternBasedRate;
+                }
                 
-                var modernBrowserRate = 0.90; // 90% modern browsers
-                var corporateBlockRate = 0.15; // 15% blocked by corporate firewalls
+                // Strategy 3: Calculate from industry standards with adjustments
+                var industryBasedRate = CalculateIndustryBasedFallbackRate();
                 
-                // Fallback rate = (modern browsers that are blocked) + (old browsers)
-                var fallbackRate = (modernBrowserRate * corporateBlockRate) + (1 - modernBrowserRate);
+                _logger.LogDebug("Using industry-based fallback rate: {Rate:P2}", industryBasedRate);
+                return industryBasedRate;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating long-polling fallback rate");
+                return 0.10; // Default 10% fallback rate
+            }
+        }
+
+        /// <summary>
+        /// Get historical fallback rate from stored metrics
+        /// </summary>
+        private double GetHistoricalFallbackRate()
+        {
+            try
+            {
+                var longPollingMetrics = _timeSeriesDb.GetRecentMetrics("LongPollingConnections", 50);
+                var webSocketMetrics = _timeSeriesDb.GetRecentMetrics("WebSocketConnections", 50);
                 
-                return Math.Max(0.05, Math.Min(fallbackRate, 0.25)); // Between 5-25%
+                if (longPollingMetrics.Count < 10 || webSocketMetrics.Count < 10)
+                    return 0;
+                
+                // Calculate ratio of long-polling to total real-time connections
+                var avgLongPolling = longPollingMetrics.Average(m => m.Value);
+                var avgWebSocket = webSocketMetrics.Average(m => m.Value);
+                var totalRealTime = avgLongPolling + avgWebSocket;
+                
+                if (totalRealTime < 1)
+                    return 0;
+                
+                var fallbackRate = avgLongPolling / totalRealTime;
+                
+                // Apply EMA smoothing for stability
+                var ema = CalculateEMA(
+                    longPollingMetrics.Select(m => m.Value / Math.Max(1, avgWebSocket + m.Value)).ToList(),
+                    alpha: 0.3
+                );
+                
+                // Blend historical average with EMA
+                var blendedRate = (fallbackRate * 0.6) + (ema * 0.4);
+                
+                return Math.Max(0.01, Math.Min(blendedRate, 0.30));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error getting historical fallback rate");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Analyze request patterns to detect fallback behavior
+        /// </summary>
+        private double AnalyzeFallbackPatternsFromRequests()
+        {
+            try
+            {
+                // Look for patterns indicating fallback:
+                // 1. Rapid connection/reconnection cycles (WebSocket failed → polling)
+                // 2. Medium-duration requests with high repeat count (polling pattern)
+                // 3. Request timing patterns typical of polling intervals
+                
+                var totalRequests = _requestAnalytics.Values.Sum(a => a.TotalExecutions);
+                if (totalRequests < 100)
+                    return 0;
+                
+                // Detect polling-like requests
+                var pollingLikeRequests = _requestAnalytics.Values
+                    .Where(a => 
+                        a.AverageExecutionTime.TotalSeconds >= 20 &&
+                        a.AverageExecutionTime.TotalSeconds <= 120 &&
+                        a.RepeatRequestCount > 10)
+                    .Sum(a => a.TotalExecutions);
+                
+                // Detect short-duration high-frequency requests (also polling pattern)
+                var shortPollingRequests = _requestAnalytics.Values
+                    .Where(a => 
+                        a.AverageExecutionTime.TotalSeconds < 5 &&
+                        a.RepeatRequestCount > 50)
+                    .Sum(a => a.TotalExecutions);
+                
+                var totalPollingRequests = pollingLikeRequests + shortPollingRequests;
+                
+                if (totalPollingRequests == 0)
+                    return 0;
+                
+                // Calculate fallback rate
+                var fallbackRate = (double)totalPollingRequests / totalRequests;
+                
+                // Apply dampening factor (not all polling-like requests are fallbacks)
+                var dampeningFactor = 0.5; // 50% dampening
+                fallbackRate *= dampeningFactor;
+                
+                // Apply time-of-day adjustment (fallback rates vary by time)
+                var timeAdjustment = GetTimeOfDayFallbackAdjustment();
+                fallbackRate *= timeAdjustment;
+                
+                return Math.Max(0.01, Math.Min(fallbackRate, 0.30));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error analyzing fallback patterns");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Calculate industry-based fallback rate with intelligent adjustments
+        /// </summary>
+        private double CalculateIndustryBasedFallbackRate()
+        {
+            try
+            {
+                // Base rates from industry research and real-world data
+                var modernBrowserRate = 0.92; // 92% modern browsers (2024 standards)
+                var legacyBrowserRate = 1 - modernBrowserRate; // 8% legacy
+                
+                // Network blocking factors
+                var corporateFirewallBlockRate = 0.12; // 12% corporate environments block WS
+                var proxyBlockRate = 0.08; // 8% proxies/gateways interfere
+                var mobileNetworkBlockRate = 0.03; // 3% mobile networks have issues
+                
+                // Calculate composite blocking rate
+                var totalBlockRate = corporateFirewallBlockRate + 
+                                    (proxyBlockRate * 0.5) + // 50% overlap with corporate
+                                    (mobileNetworkBlockRate * 0.3); // 30% overlap
+                
+                // Base fallback rate calculation
+                var baseFallbackRate = (modernBrowserRate * totalBlockRate) + legacyBrowserRate;
+                
+                // Apply environmental adjustments
+                var environmentalFactor = EstimateEnvironmentalFactor();
+                baseFallbackRate *= environmentalFactor;
+                
+                // Apply geographic/regional factor (some regions have more blocking)
+                var regionalFactor = EstimateRegionalBlockingFactor();
+                baseFallbackRate *= regionalFactor;
+                
+                // Apply time-based trends (fallback rates decrease over time as tech improves)
+                var trendFactor = EstimateTechnologyTrendFactor();
+                baseFallbackRate *= trendFactor;
+                
+                // Apply current system error rate adjustment
+                var errorRateAdjustment = GetErrorRateAdjustment();
+                baseFallbackRate *= errorRateAdjustment;
+                
+                return Math.Max(0.05, Math.Min(baseFallbackRate, 0.25)); // Between 5-25%
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating industry-based fallback rate");
+                return 0.10; // Default 10%
+            }
+        }
+
+        /// <summary>
+        /// Estimate environmental factor affecting fallback rate
+        /// </summary>
+        private double EstimateEnvironmentalFactor()
+        {
+            try
+            {
+                // Analyze system characteristics to determine environment type
+                var totalRequests = _requestAnalytics.Values.Sum(a => a.TotalExecutions);
+                var avgErrorRate = _requestAnalytics.Values.Any() 
+                    ? _requestAnalytics.Values.Average(a => a.ErrorRate) 
+                    : 0;
+                
+                // High security/enterprise environment indicators
+                if (avgErrorRate > 0.05)
+                {
+                    return 1.4; // 40% more fallback in restrictive environments
+                }
+                
+                // Consumer/public environment indicators
+                if (avgErrorRate < 0.01 && totalRequests > 10000)
+                {
+                    return 0.7; // 30% less fallback in open environments
+                }
+                
+                return 1.0; // Normal environment
             }
             catch
             {
-                return 0.10; // Default 10% fallback rate
+                return 1.0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate regional blocking factor
+        /// </summary>
+        private double EstimateRegionalBlockingFactor()
+        {
+            try
+            {
+                // In production, this would use:
+                // - Geographic IP data
+                // - Regional infrastructure statistics
+                // - Historical regional patterns
+                
+                // For now, use conservative estimate
+                // Some regions have more restrictive networks
+                
+                var hourOfDay = DateTime.UtcNow.Hour;
+                
+                // Business hours in different regions suggest different blocking patterns
+                if (hourOfDay >= 8 && hourOfDay <= 17)
+                {
+                    return 1.2; // 20% more blocking during business hours (corporate networks)
+                }
+                else if (hourOfDay >= 18 && hourOfDay <= 23)
+                {
+                    return 0.9; // 10% less blocking during evening (home networks)
+                }
+                else
+                {
+                    return 0.8; // 20% less blocking during night
+                }
+            }
+            catch
+            {
+                return 1.0;
+            }
+        }
+
+        /// <summary>
+        /// Estimate technology trend factor (WebSocket adoption increasing over time)
+        /// </summary>
+        private double EstimateTechnologyTrendFactor()
+        {
+            try
+            {
+                // WebSocket support improves over time
+                // Fallback rates decrease as technology matures
+                
+                // In production, this would track actual improvement over time
+                // For now, use current year as baseline
+                
+                var currentYear = DateTime.UtcNow.Year;
+                var baseYear = 2020; // WebSocket widespread adoption baseline
+                
+                var yearsSinceBaseline = currentYear - baseYear;
+                
+                // Assume 5% improvement per year in WebSocket support
+                var improvementFactor = 1.0 - (yearsSinceBaseline * 0.05);
+                
+                return Math.Max(0.7, Math.Min(improvementFactor, 1.0));
+            }
+            catch
+            {
+                return 1.0;
+            }
+        }
+
+        /// <summary>
+        /// Get error rate adjustment for fallback rate
+        /// </summary>
+        private double GetErrorRateAdjustment()
+        {
+            try
+            {
+                var avgErrorRate = _requestAnalytics.Values.Any() 
+                    ? _requestAnalytics.Values.Average(a => a.ErrorRate) 
+                    : 0;
+                
+                // Higher error rates suggest more network issues → more fallback needed
+                if (avgErrorRate > 0.15)
+                    return 1.8; // 80% more fallback
+                else if (avgErrorRate > 0.10)
+                    return 1.5; // 50% more fallback
+                else if (avgErrorRate > 0.05)
+                    return 1.2; // 20% more fallback
+                else if (avgErrorRate < 0.01)
+                    return 0.8; // 20% less fallback (good conditions)
+                else
+                    return 1.0; // Normal
+            }
+            catch
+            {
+                return 1.0;
+            }
+        }
+
+        /// <summary>
+        /// Get time-of-day adjustment for fallback rate
+        /// </summary>
+        private double GetTimeOfDayFallbackAdjustment()
+        {
+            var hourOfDay = DateTime.UtcNow.Hour;
+            
+            // Fallback usage varies by time of day
+            if (hourOfDay >= 9 && hourOfDay <= 17)
+            {
+                return 1.3; // 30% more during business hours (corporate restrictions)
+            }
+            else if (hourOfDay >= 18 && hourOfDay <= 22)
+            {
+                return 0.9; // 10% less during evening (home networks)
+            }
+            else if (hourOfDay >= 23 || hourOfDay <= 6)
+            {
+                return 0.7; // 30% less during night
+            }
+            else
+            {
+                return 1.0; // Normal
+            }
+        }
+
+        /// <summary>
+        /// Store fallback rate metrics for future analysis
+        /// </summary>
+        private void StoreFallbackRateMetrics(double fallbackRate)
+        {
+            try
+            {
+                if (fallbackRate <= 0)
+                    return;
+                
+                var timestamp = DateTime.UtcNow;
+                
+                _timeSeriesDb.StoreMetric("LongPollingFallbackRate", fallbackRate, timestamp);
+                _timeSeriesDb.StoreMetric("WebSocketFallbackRate", fallbackRate, timestamp);
+                
+                _logger.LogTrace("Stored fallback rate metric: {Rate:P2} at {Time}",
+                    fallbackRate, timestamp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error storing fallback rate metrics");
             }
         }
 

@@ -73,7 +73,7 @@ namespace Relay.Core.AI
         public async ValueTask<OptimizationRecommendation> AnalyzeRequestAsync<TRequest>(
             TRequest request, 
             RequestExecutionMetrics executionMetrics, 
-            CancellationToken cancellationToken = default) where TRequest : IRequest
+            CancellationToken cancellationToken = default)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
             

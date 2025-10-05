@@ -73,6 +73,8 @@ namespace Relay.Core.AI
         private readonly System.Collections.Concurrent.ConcurrentQueue<BatchItem<TRequest, TResponse>> _queue = new();
         private readonly SemaphoreSlim _signal = new(0);
         private readonly System.Threading.Timer _timer;
+        private readonly Task _processingTask;
+        private readonly CancellationTokenSource _disposeCts = new();
         private int _queuedCount = 0;
         private DateTime _batchStartTime = DateTime.UtcNow;
         private bool _disposed = false;
@@ -98,6 +100,9 @@ namespace Relay.Core.AI
                 null,
                 batchWindow,
                 batchWindow);
+
+            // Start background processing task
+            _processingTask = Task.Run(ProcessingLoopAsync);
         }
 
         public BatchCoordinatorMetadata? GetMetadata() => Metadata;
@@ -144,7 +149,30 @@ namespace Relay.Core.AI
         {
             if (_queuedCount > 0)
             {
-                _ = ProcessBatchAsync();
+                _signal.Release();
+            }
+        }
+
+        private async Task ProcessingLoopAsync()
+        {
+            try
+            {
+                while (!_disposeCts.Token.IsCancellationRequested)
+                {
+                    // Wait for signal or cancellation
+                    await _signal.WaitAsync(_disposeCts.Token);
+                    
+                    // Process the batch
+                    await ProcessBatchAsync();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when disposing
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Batch processing loop failed");
             }
         }
 
@@ -215,8 +243,20 @@ namespace Relay.Core.AI
         {
             if (!_disposed)
             {
+                _disposeCts?.Cancel();
                 _timer?.Dispose();
+                
+                try
+                {
+                    _processingTask?.Wait(TimeSpan.FromSeconds(1));
+                }
+                catch (AggregateException)
+                {
+                    // Ignore exceptions during disposal
+                }
+                
                 _signal?.Dispose();
+                _disposeCts?.Dispose();
                 _disposed = true;
             }
         }

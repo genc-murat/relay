@@ -105,7 +105,10 @@ namespace Relay.Core.AI
         TimeBased,
         
         /// <summary>Adaptive batching based on throughput</summary>
-        Adaptive
+        Adaptive,
+        
+        /// <summary>Batching based on both size and time</summary>
+        SizeAndTime
     }
 
     /// <summary>

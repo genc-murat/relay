@@ -16,6 +16,10 @@
     <UseNETCoreAppRuntime>true</UseNETCoreAppRuntime>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Relay.Core.Tests" />
+  </ItemGroup>
+
   <!-- Release-specific PGO Configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <OptimizationPreference>Speed</OptimizationPreference>

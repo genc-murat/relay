@@ -22,7 +22,7 @@ namespace Relay.Core.AI
         ValueTask<OptimizationRecommendation> AnalyzeRequestAsync<TRequest>(
             TRequest request, 
             RequestExecutionMetrics executionMetrics,
-            CancellationToken cancellationToken = default) where TRequest : IRequest;
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Predicts optimal batch size for request processing.

@@ -83,60 +83,52 @@ namespace Relay.Core.AI
                 // Get AI recommendations
                 var executionMetrics = await GetHistoricalMetrics(requestType, cancellationToken);
                 
-                // Cast the request for AI analysis (constraint ensures this is safe)
-                if (request is IRequest aiRequest)
+                // Analyze request with AI engine (TRequest already constrained to IRequest<TResponse>)
+                var recommendation = await _aiEngine.AnalyzeRequestAsync(request, executionMetrics, cancellationToken);
+
+                _logger.LogDebug("AI recommendation for {RequestType}: {Strategy} (Confidence: {Confidence:P})",
+                    requestType.Name, recommendation.Strategy, recommendation.ConfidenceScore);
+
+                // Apply optimizations based on AI recommendations
+                var optimizedNext = await ApplyOptimizations(request, next, recommendation, systemLoad, appliedOptimizations, cancellationToken);
+
+                // Execute the request with optimizations
+                var response = await optimizedNext();
+                
+                // Continue with metrics recording...
+                stopwatch.Stop();
+                var endMemory = GC.GetTotalMemory(false);
+
+                // Record execution metrics for learning
+                var actualMetrics = new RequestExecutionMetrics
                 {
-                    var recommendation = await _aiEngine.AnalyzeRequestAsync(aiRequest, executionMetrics, cancellationToken);
+                    AverageExecutionTime = stopwatch.Elapsed,
+                    MedianExecutionTime = stopwatch.Elapsed,
+                    P95ExecutionTime = stopwatch.Elapsed,
+                    P99ExecutionTime = stopwatch.Elapsed,
+                    TotalExecutions = 1,
+                    SuccessfulExecutions = 1,
+                    FailedExecutions = 0,
+                    MemoryAllocated = Math.Max(0, endMemory - startMemory),
+                    ConcurrentExecutions = 1,
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = stopwatch.Elapsed,
+                    CpuUsage = systemLoad.CpuUtilization,
+                    MemoryUsage = endMemory,
+                    DatabaseCalls = 0,
+                    ExternalApiCalls = 0
+                };
 
-                    _logger.LogDebug("AI recommendation for {RequestType}: {Strategy} (Confidence: {Confidence:P})",
-                        requestType.Name, recommendation.Strategy, recommendation.ConfidenceScore);
-
-                    // Apply optimizations based on AI recommendations
-                    var optimizedNext = await ApplyOptimizations(request, next, recommendation, systemLoad, appliedOptimizations, cancellationToken);
-
-                    // Execute the request with optimizations
-                    var response = await optimizedNext();
-                    
-                    // Continue with metrics recording...
-                    stopwatch.Stop();
-                    var endMemory = GC.GetTotalMemory(false);
-
-                    // Record execution metrics for learning
-                    var actualMetrics = new RequestExecutionMetrics
-                    {
-                        AverageExecutionTime = stopwatch.Elapsed,
-                        MedianExecutionTime = stopwatch.Elapsed,
-                        P95ExecutionTime = stopwatch.Elapsed,
-                        P99ExecutionTime = stopwatch.Elapsed,
-                        TotalExecutions = 1,
-                        SuccessfulExecutions = 1,
-                        FailedExecutions = 0,
-                        MemoryAllocated = Math.Max(0, endMemory - startMemory),
-                        ConcurrentExecutions = 1,
-                        LastExecution = DateTime.UtcNow,
-                        SamplePeriod = stopwatch.Elapsed,
-                        CpuUsage = systemLoad.CpuUtilization,
-                        MemoryUsage = endMemory,
-                        DatabaseCalls = 0,
-                        ExternalApiCalls = 0
-                    };
-
-                    // Learn from the execution results
-                    if (_options.LearningEnabled && appliedOptimizations.Count > 0)
-                    {
-                        await _aiEngine.LearnFromExecutionAsync(requestType, appliedOptimizations.ToArray(), actualMetrics, cancellationToken);
-                    }
-
-                    _logger.LogDebug("AI-optimized execution of {RequestType} completed in {Duration}ms with {OptimizationCount} optimizations",
-                        requestType.Name, stopwatch.ElapsedMilliseconds, appliedOptimizations.Count);
-
-                    return response;
-                }
-                else
+                // Learn from the execution results
+                if (_options.LearningEnabled)
                 {
-                    // Fallback to normal execution if not an IRequest
-                    return await next();
+                    await _aiEngine.LearnFromExecutionAsync(requestType, appliedOptimizations.ToArray(), actualMetrics, cancellationToken);
                 }
+
+                _logger.LogDebug("AI-optimized execution of {RequestType} completed in {Duration}ms with {OptimizationCount} optimizations",
+                    requestType.Name, stopwatch.ElapsedMilliseconds, appliedOptimizations.Count);
+
+                return response;
             }
             catch (Exception ex)
             {
@@ -162,7 +154,7 @@ namespace Relay.Core.AI
                 };
 
                 // Learn from failed execution
-                if (_options.LearningEnabled && appliedOptimizations.Count > 0)
+                if (_options.LearningEnabled)
                 {
                     await _aiEngine.LearnFromExecutionAsync(requestType, appliedOptimizations.ToArray(), failedMetrics, cancellationToken);
                 }

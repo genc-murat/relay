@@ -5024,15 +5024,197 @@ namespace Relay.Core.AI
 
         private int DetectSeasonalPeriod(Dictionary<string, double> metrics)
         {
-            // Detect seasonality period in hours
+            // Detect seasonality period in hours using autocorrelation analysis
             // Typical periods: 24 (daily), 168 (weekly), 720 (monthly)
+            
+            try
+            {
+                // Get time series data from TimeSeriesDatabase
+                var timeSeriesData = _timeSeriesDb.GetRecentMetrics("ThroughputPerSecond", 500);
+                
+                if (timeSeriesData.Count >= 50) // Need at least 50 data points for meaningful analysis
+                {
+                    var values = timeSeriesData.Select(m => m.Value).ToList();
+                    
+                    // Calculate autocorrelation for common seasonal periods
+                    var candidatePeriods = new Dictionary<int, double>
+                    {
+                        [24] = CalculateAutocorrelation(values, 24),    // Daily (24 hours)
+                        [12] = CalculateAutocorrelation(values, 12),    // Half-day (12 hours)
+                        [168] = CalculateAutocorrelation(values, 168),  // Weekly (7 days)
+                        [336] = CalculateAutocorrelation(values, 336),  // Bi-weekly (14 days)
+                        [8] = CalculateAutocorrelation(values, 8),      // Work day (8 hours)
+                        [6] = CalculateAutocorrelation(values, 6)       // Quarter day (6 hours)
+                    };
+                    
+                    // Remove periods that exceed available data
+                    var validPeriods = candidatePeriods
+                        .Where(kvp => kvp.Key < values.Count / 2)
+                        .OrderByDescending(kvp => kvp.Value)
+                        .ToList();
+                    
+                    if (validPeriods.Any())
+                    {
+                        var bestPeriod = validPeriods.First();
+                        var autocorrelation = bestPeriod.Value;
+                        
+                        // Only use detected period if autocorrelation is significant (>0.3)
+                        if (autocorrelation > 0.3)
+                        {
+                            _logger.LogInformation(
+                                "Seasonal period detected: {Period} hours with autocorrelation {Correlation:F3}",
+                                bestPeriod.Key, autocorrelation);
+                            
+                            // Log all significant periods for analysis
+                            foreach (var period in validPeriods.Take(3))
+                            {
+                                _logger.LogDebug("Period candidate: {Period}h → ACF={ACF:F3}", 
+                                    period.Key, period.Value);
+                            }
+                            
+                            return bestPeriod.Key;
+                        }
+                    }
+                }
+                
+                // Fallback: Use throughput-based heuristic
+                var throughput = metrics.GetValueOrDefault("ThroughputPerSecond", 0.0);
+                
+                // High traffic systems typically have daily patterns
+                if (throughput > 100)
+                {
+                    _logger.LogDebug("Using daily pattern (24h) for high traffic system");
+                    return 24;
+                }
+                
+                // Medium traffic might have weekly patterns
+                if (throughput > 10)
+                {
+                    _logger.LogDebug("Using weekly pattern (168h) for medium traffic system");
+                    return 168;
+                }
+                
+                // Default to daily pattern
+                _logger.LogDebug("Using default daily pattern (24h)");
+                return 24;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error detecting seasonal period, using default (24h)");
+                return 24;
+            }
+        }
 
-            var throughput = metrics.GetValueOrDefault("ThroughputPerSecond", 0.0);
+        /// <summary>
+        /// Calculate autocorrelation function (ACF) for a given lag
+        /// </summary>
+        private double CalculateAutocorrelation(List<float> values, int lag)
+        {
+            if (values.Count < lag + 1)
+                return 0.0;
+            
+            try
+            {
+                // Calculate mean
+                var mean = values.Average();
+                
+                // Calculate variance
+                var variance = values.Select(v => Math.Pow(v - mean, 2)).Sum();
+                
+                if (variance == 0)
+                    return 0.0;
+                
+                // Calculate covariance at lag
+                var n = values.Count;
+                var covariance = 0.0;
+                
+                for (int i = 0; i < n - lag; i++)
+                {
+                    covariance += (values[i] - mean) * (values[i + lag] - mean);
+                }
+                
+                // Autocorrelation = covariance / variance
+                var autocorrelation = covariance / variance;
+                
+                return autocorrelation;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating autocorrelation for lag {Lag}", lag);
+                return 0.0;
+            }
+        }
 
-            // Simplified detection - in production would use autocorrelation
-            if (throughput > 100) return 24; // Daily pattern for high traffic
-            if (throughput > 10) return 168; // Weekly pattern for medium traffic
-            return 24; // Default daily pattern
+        /// <summary>
+        /// Detect multiple seasonal patterns using Fourier analysis
+        /// </summary>
+        private List<SeasonalPattern> DetectSeasonalPatterns(Dictionary<string, double> metrics)
+        {
+            var patterns = new List<SeasonalPattern>();
+            
+            try
+            {
+                var timeSeriesData = _timeSeriesDb.GetRecentMetrics("ThroughputPerSecond", 1000);
+                
+                if (timeSeriesData.Count >= 100)
+                {
+                    var values = timeSeriesData.Select(m => m.Value).ToList();
+                    
+                    // Test multiple period candidates
+                    var periodCandidates = new[] { 6, 8, 12, 24, 48, 168, 336, 720 };
+                    
+                    foreach (var period in periodCandidates)
+                    {
+                        if (period >= values.Count / 2)
+                            continue;
+                        
+                        var acf = CalculateAutocorrelation(values, period);
+                        
+                        // Consider significant if ACF > 0.3
+                        if (acf > 0.3)
+                        {
+                            patterns.Add(new SeasonalPattern
+                            {
+                                Period = period,
+                                Strength = acf,
+                                Type = ClassifySeasonalType(period)
+                            });
+                        }
+                    }
+                    
+                    // Sort by strength (descending)
+                    patterns = patterns.OrderByDescending(p => p.Strength).ToList();
+                    
+                    _logger.LogInformation("Detected {Count} seasonal patterns", patterns.Count);
+                    foreach (var pattern in patterns.Take(3))
+                    {
+                        _logger.LogDebug("Seasonal pattern: {Type} ({Period}h) with strength {Strength:F3}",
+                            pattern.Type, pattern.Period, pattern.Strength);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error detecting seasonal patterns");
+            }
+            
+            return patterns;
+        }
+
+        /// <summary>
+        /// Classify seasonal period type
+        /// </summary>
+        private string ClassifySeasonalType(int periodHours)
+        {
+            return periodHours switch
+            {
+                <= 8 => "Intraday",
+                <= 24 => "Daily",
+                <= 48 => "Semi-weekly",
+                <= 168 => "Weekly",
+                <= 336 => "Bi-weekly",
+                _ => "Monthly"
+            };
         }
 
         private int CalculateOptimalBatchSize(Dictionary<string, double> metrics)
@@ -5105,6 +5287,16 @@ namespace Relay.Core.AI
         public double Precision { get; set; }
         public double Recall { get; set; }
         public double Accuracy { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a detected seasonal pattern in time series data
+    /// </summary>
+    internal class SeasonalPattern
+    {
+        public int Period { get; set; }
+        public double Strength { get; set; }
+        public string Type { get; set; } = string.Empty;
     }
 
 }

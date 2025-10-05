@@ -105,6 +105,23 @@ namespace Relay.Core.AI
         }
 
         /// <summary>
+        /// Get most recent N metrics for a specific metric name
+        /// </summary>
+        public List<MetricDataPoint> GetRecentMetrics(string metricName, int count)
+        {
+            if (!_metricHistories.TryGetValue(metricName, out var history))
+            {
+                return new List<MetricDataPoint>();
+            }
+
+            return history.ToArray()
+                .OrderByDescending(d => d.Timestamp)
+                .Take(count)
+                .OrderBy(d => d.Timestamp) // Re-order chronologically
+                .ToList();
+        }
+
+        /// <summary>
         /// Train or update forecast model for a specific metric using ML.NET SSA
         /// </summary>
         public void TrainForecastModel(string metricName, int horizon = 24, int windowSize = 48)

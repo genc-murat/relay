@@ -4038,35 +4038,205 @@ namespace Relay.Core.AI
 
         private int GetNoSqlConnectionCount()
         {
-            // Placeholder for NoSQL database connections
-            // In production, would integrate with MongoDB, CosmosDB, etc. monitoring
-            return Random.Shared.Next(0, 5); // Conservative NoSQL estimate
+            try
+            {
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("NoSql_ConnectionCount", 10);
+                if (storedMetrics.Any())
+                {
+                    var recent = storedMetrics.Last().Value;
+                    _logger.LogTrace("NoSQL connection count from metrics: {Count}", recent);
+                    return (int)recent;
+                }
+                
+                // Estimate from request analytics that might use NoSQL
+                var requestCount = _requestAnalytics.Values
+                    .Where(a => a.TotalExecutions > 0)
+                    .Sum(a => a.TotalExecutions);
+                
+                // Assume NoSQL is used for 20% of requests
+                var estimatedNoSqlRequests = requestCount * 0.2;
+                
+                // Connection pooling efficiency ~10:1
+                var estimatedConnections = Math.Max(1, (int)(estimatedNoSqlRequests / 10));
+                
+                // Cap at reasonable limit
+                var finalCount = Math.Min(estimatedConnections, 15);
+                
+                // Store for future reference
+                _timeSeriesDb.StoreMetric("NoSql_ConnectionCount", finalCount, DateTime.UtcNow);
+                
+                _logger.LogDebug("Estimated NoSQL connections: {Count} (from {Requests} requests)", 
+                    finalCount, estimatedNoSqlRequests);
+                
+                return finalCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating NoSQL connections");
+                return 2; // Safe default
+            }
         }
 
         private int GetRedisConnectionCount()
         {
-            // Placeholder for Redis connection monitoring
-            // In production, would integrate with StackExchange.Redis connection multiplexer
-            return Random.Shared.Next(1, 3); // Typically few Redis connections
+            try
+            {
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("Redis_ConnectionCount", 10);
+                if (storedMetrics.Any())
+                {
+                    var recent = storedMetrics.Last().Value;
+                    _logger.LogTrace("Redis connection count from metrics: {Count}", recent);
+                    return (int)recent;
+                }
+                
+                // Redis typically uses connection multiplexing - very few connections
+                // Estimate based on cache hit rate and system load
+                var throughput = _systemMetrics.CalculateCurrentThroughput();
+                var loadLevel = ClassifyCurrentLoadLevel();
+                
+                int redisConnections = loadLevel switch
+                {
+                    LoadLevel.Critical => 5,  // Maximum connections under stress
+                    LoadLevel.High => 4,
+                    LoadLevel.Medium => 3,
+                    LoadLevel.Low => 2,
+                    LoadLevel.Idle => 1,
+                    _ => 2
+                };
+                
+                // Store for future reference
+                _timeSeriesDb.StoreMetric("Redis_ConnectionCount", redisConnections, DateTime.UtcNow);
+                
+                _logger.LogDebug("Estimated Redis connections: {Count} (Load: {Load}, Throughput: {Throughput:F2})", 
+                    redisConnections, loadLevel, throughput);
+                
+                return redisConnections;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating Redis connections");
+                return 2; // Safe default - Redis uses multiplexing
+            }
         }
 
         private int GetMessageQueueConnectionCount()
         {
-            // Placeholder for message queue connection monitoring
-            return Random.Shared.Next(0, 2); // Usually minimal queue connections
+            try
+            {
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("MessageQueue_ConnectionCount", 10);
+                if (storedMetrics.Any())
+                {
+                    var recent = storedMetrics.Last().Value;
+                    _logger.LogTrace("Message queue connection count from metrics: {Count}", recent);
+                    return (int)recent;
+                }
+                
+                // Estimate based on async processing patterns
+                var asyncRequests = _requestAnalytics.Values
+                    .Where(a => a.AverageExecutionTime.TotalMilliseconds > 1000) // Long-running = likely async
+                    .Sum(a => a.TotalExecutions);
+                
+                // Message queues typically use persistent connections
+                // 1 connection per consumer/publisher pair
+                var estimatedConnections = asyncRequests > 0 ? Math.Max(1, Math.Min(5, (int)(asyncRequests / 100))) : 0;
+                
+                // Store for future reference
+                _timeSeriesDb.StoreMetric("MessageQueue_ConnectionCount", estimatedConnections, DateTime.UtcNow);
+                
+                _logger.LogDebug("Estimated message queue connections: {Count} (from {Requests} async requests)", 
+                    estimatedConnections, asyncRequests);
+                
+                return estimatedConnections;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating message queue connections");
+                return 1; // Safe default
+            }
         }
-
+        
         private int GetExternalApiConnectionCount()
         {
-            // Estimate external API connections based on recent activity
-            var externalApiCalls = _requestAnalytics.Values.Sum(x => x.ExecutionTimesCount) / 10;
-            return Math.Min(externalApiCalls, 20); // Cap at reasonable limit
+            try
+            {
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("ExternalApi_ConnectionCount", 10);
+                if (storedMetrics.Any())
+                {
+                    var recent = storedMetrics.Last().Value;
+                    _logger.LogTrace("External API connection count from metrics: {Count}", recent);
+                    return (int)recent;
+                }
+                
+                // Estimate external API connections based on recent activity
+                var externalApiCalls = _requestAnalytics.Values.Sum(x => x.ExecutionTimesCount) / 10;
+                var estimatedConnections = Math.Min(externalApiCalls, 20); // Cap at reasonable limit
+                
+                // Store for future reference
+                _timeSeriesDb.StoreMetric("ExternalApi_ConnectionCount", estimatedConnections, DateTime.UtcNow);
+                
+                _logger.LogDebug("Estimated external API connections: {Count}", estimatedConnections);
+                
+                return estimatedConnections;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating external API connections");
+                return 5; // Safe default
+            }
         }
 
         private int GetMicroserviceConnectionCount()
         {
-            // Placeholder for microservice connection monitoring
-            return Random.Shared.Next(2, 8); // Typical microservice connections
+            try
+            {
+                // Try to get from stored metrics first
+                var storedMetrics = _timeSeriesDb.GetRecentMetrics("Microservice_ConnectionCount", 10);
+                if (storedMetrics.Any())
+                {
+                    var recent = storedMetrics.Last().Value;
+                    _logger.LogTrace("Microservice connection count from metrics: {Count}", recent);
+                    return (int)recent;
+                }
+                
+                // Estimate based on external API calls
+                var externalApiCalls = _requestAnalytics.Values
+                    .Sum(a => a.ExecutionTimesCount) / Math.Max(1, _requestAnalytics.Count);
+                
+                // Assume some external calls are to microservices
+                // Connection pooling: ~5:1 ratio
+                var estimatedConnections = Math.Max(1, Math.Min(15, externalApiCalls / 5));
+                
+                // Factor in current load
+                var loadLevel = ClassifyCurrentLoadLevel();
+                var loadMultiplier = loadLevel switch
+                {
+                    LoadLevel.Critical => 1.5,
+                    LoadLevel.High => 1.3,
+                    LoadLevel.Medium => 1.0,
+                    LoadLevel.Low => 0.8,
+                    LoadLevel.Idle => 0.5,
+                    _ => 1.0
+                };
+                
+                var finalCount = (int)(estimatedConnections * loadMultiplier);
+                
+                // Store for future reference
+                _timeSeriesDb.StoreMetric("Microservice_ConnectionCount", finalCount, DateTime.UtcNow);
+                
+                _logger.LogDebug("Estimated microservice connections: {Count} (API calls: {Calls}, Load: {Load})", 
+                    finalCount, externalApiCalls, loadLevel);
+                
+                return finalCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error calculating microservice connections");
+                return 3; // Safe default
+            }
         }
 
         private int EstimateExternalConnectionsByLoad()
@@ -4108,6 +4278,14 @@ namespace Relay.Core.AI
             // Calculate historical average connection count using time-series data
             try
             {
+                // First, try ML.NET forecasting model for predictive average
+                var forecastedAverage = GetForecastedConnectionAverage();
+                if (forecastedAverage > 0)
+                {
+                    _logger.LogDebug("Using ML.NET forecasted connection average: {Average:F2}", forecastedAverage);
+                    return forecastedAverage;
+                }
+                
                 // Get historical connection metrics from TimeSeriesDatabase
                 var connectionMetrics = _timeSeriesDb.GetRecentMetrics("ConnectionCount", 500);
                 
@@ -4163,6 +4341,38 @@ namespace Relay.Core.AI
             }
             
             return 0; // No historical data available
+        }
+        
+        /// <summary>
+        /// Get forecasted connection average using ML.NET forecasting model
+        /// </summary>
+        private double GetForecastedConnectionAverage()
+        {
+            try
+            {
+                // Use ML.NET forecasting model to predict next values
+                var forecast = _mlNetManager.ForecastMetric(horizon: 12);
+                
+                if (forecast != null && forecast.ForecastedValues.Length > 0)
+                {
+                    // Average the forecasted values for robust estimation
+                    var avgForecast = forecast.ForecastedValues.Average();
+                    
+                    // Log forecast details
+                    _logger.LogDebug("ML.NET forecast: Values={Count}, Avg={Avg:F2}, Range=[{Min:F2}, {Max:F2}]",
+                        forecast.ForecastedValues.Length, avgForecast, 
+                        forecast.LowerBound.Any() ? forecast.LowerBound.Min() : 0,
+                        forecast.UpperBound.Any() ? forecast.UpperBound.Max() : 0);
+                    
+                    return Math.Max(0, avgForecast);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error getting forecasted connection average");
+            }
+            
+            return 0;
         }
 
         /// <summary>
@@ -5718,7 +5928,17 @@ namespace Relay.Core.AI
                     return 0.1;
                 }
 
-                // Calculate feature importance using permutation-based approach
+                // Try to get feature importance from ML.NET trained models first
+                var mlNetImportance = _mlNetManager.GetFeatureImportance();
+                if (mlNetImportance != null && mlNetImportance.ContainsKey(featureName))
+                {
+                    var importance = mlNetImportance[featureName];
+                    _logger.LogDebug("Using ML.NET feature importance for {Feature}: {Importance:F3}", 
+                        featureName, importance);
+                    return importance;
+                }
+                
+                // Fallback: Calculate feature importance using permutation-based approach
                 // This measures how much the model performance degrades when feature is permuted
                 
                 var baselineAccuracy = CalculateAccuracy(predictions);
@@ -6323,13 +6543,30 @@ namespace Relay.Core.AI
                 // Collect comprehensive system metrics for AI analysis
                 var metrics = CollectAdvancedMetrics();
                 
+                // Store metrics in time-series database for ML.NET forecasting
+                var timestamp = DateTime.UtcNow;
+                var throughput = metrics.GetValueOrDefault("ThroughputPerSecond", 0.0);
+                
+                _timeSeriesDb.StoreMetric("ThroughputPerSecond", throughput, timestamp);
+                _timeSeriesDb.StoreMetric("MemoryUtilization", metrics.GetValueOrDefault("MemoryUtilization", 0.0), timestamp);
+                _timeSeriesDb.StoreMetric("ErrorRate", metrics.GetValueOrDefault("ErrorRate", 0.0), timestamp);
+                
+                // Update ML.NET forecasting model with new observations
+                var metricData = new MetricData
+                {
+                    Timestamp = timestamp,
+                    Value = (float)throughput
+                };
+                
+                _mlNetManager.UpdateForecastingModel(metricData);
+                
                 // Analyze metric trends
                 AnalyzeMetricTrends(metrics);
                 
                 // Update predictive models with new data
                 UpdatePredictiveModels(metrics);
                 
-                _logger.LogDebug("Collected and analyzed {MetricCount} AI metrics", metrics.Count);
+                _logger.LogDebug("Collected and analyzed {MetricCount} AI metrics, forecasting model updated", metrics.Count);
             }
             catch (Exception ex)
             {

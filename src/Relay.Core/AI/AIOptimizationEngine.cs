@@ -1583,23 +1583,227 @@ namespace Relay.Core.AI
 
         private double CalculateHistoricalConnectionAverage()
         {
-            // Calculate historical average connection count
-            // In production, would use persisted metrics
+            // Calculate historical average connection count using time-series data
             try
             {
-                var recentPredictions = _recentPredictions.ToArray().Take(100);
-                if (recentPredictions.Any())
+                // Get historical connection metrics from TimeSeriesDatabase
+                var connectionMetrics = _timeSeriesDb.GetRecentMetrics("ConnectionCount", 500);
+                
+                if (connectionMetrics.Count >= 20) // Need sufficient data for meaningful average
                 {
-                    // Use request types as proxy for connection patterns
-                    return recentPredictions.Count() * 1.5; // Rough historical estimate
+                    // Calculate multiple statistical measures for robust estimation
+                    var values = connectionMetrics.Select(m => m.Value).ToList();
+                    
+                    // 1. Simple moving average (SMA)
+                    var sma = values.Average();
+                    
+                    // 2. Exponential moving average (EMA) - gives more weight to recent data
+                    var ema = CalculateEMA(values, alpha: 0.3);
+                    
+                    // 3. Weighted average by recency
+                    var weightedAvg = CalculateWeightedAverage(connectionMetrics);
+                    
+                    // 4. Time-of-day aware average
+                    var timeOfDayAvg = CalculateTimeOfDayAverage(connectionMetrics);
+                    
+                    // 5. Trend-adjusted average
+                    var trendAdjusted = ApplyTrendAdjustment(sma, connectionMetrics);
+                    
+                    // Combine different averages with weights based on data quality
+                    var combinedAverage = (sma * 0.2) + (ema * 0.3) + (weightedAvg * 0.2) + 
+                                         (timeOfDayAvg * 0.2) + (trendAdjusted * 0.1);
+                    
+                    _logger.LogDebug("Historical connection average: SMA={SMA:F2}, EMA={EMA:F2}, Weighted={Weighted:F2}, ToD={ToD:F2}, Trend={Trend:F2}, Combined={Combined:F2}",
+                        sma, ema, weightedAvg, timeOfDayAvg, trendAdjusted, combinedAverage);
+                    
+                    return Math.Max(0, combinedAverage);
+                }
+                else if (connectionMetrics.Count > 0)
+                {
+                    // Limited data - use simple average
+                    var simpleAvg = connectionMetrics.Average(m => m.Value);
+                    _logger.LogDebug("Limited historical data ({Count} points), using simple average: {Average:F2}",
+                        connectionMetrics.Count, simpleAvg);
+                    return simpleAvg;
+                }
+                
+                // Fallback: Try to estimate from request analytics
+                var estimatedFromRequests = EstimateConnectionsFromRequests();
+                if (estimatedFromRequests > 0)
+                {
+                    _logger.LogDebug("No time-series data, estimated from requests: {Estimate:F2}", estimatedFromRequests);
+                    return estimatedFromRequests;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Error calculating historical connection average");
+                _logger.LogWarning(ex, "Error calculating historical connection average");
             }
             
             return 0; // No historical data available
+        }
+
+        /// <summary>
+        /// Calculate Exponential Moving Average
+        /// </summary>
+        private double CalculateEMA(List<float> values, double alpha)
+        {
+            if (values.Count == 0)
+                return 0;
+            
+            double ema = values[0];
+            for (int i = 1; i < values.Count; i++)
+            {
+                ema = (alpha * values[i]) + ((1 - alpha) * ema);
+            }
+            return ema;
+        }
+
+        /// <summary>
+        /// Calculate weighted average giving more weight to recent observations
+        /// </summary>
+        private double CalculateWeightedAverage(List<MetricDataPoint> metrics)
+        {
+            if (metrics.Count == 0)
+                return 0;
+            
+            double totalWeight = 0;
+            double weightedSum = 0;
+            
+            // More recent observations get higher weights
+            for (int i = 0; i < metrics.Count; i++)
+            {
+                var weight = i + 1; // Linear weight increase
+                weightedSum += metrics[i].Value * weight;
+                totalWeight += weight;
+            }
+            
+            return totalWeight > 0 ? weightedSum / totalWeight : 0;
+        }
+
+        /// <summary>
+        /// Calculate average considering time-of-day patterns
+        /// </summary>
+        private double CalculateTimeOfDayAverage(List<MetricDataPoint> metrics)
+        {
+            try
+            {
+                var currentHour = DateTime.UtcNow.Hour;
+                
+                // Get metrics from similar time-of-day (±2 hours window)
+                var similarTimeMetrics = metrics
+                    .Where(m => Math.Abs(m.Timestamp.Hour - currentHour) <= 2)
+                    .ToList();
+                
+                if (similarTimeMetrics.Any())
+                {
+                    return similarTimeMetrics.Average(m => m.Value);
+                }
+                
+                // Fallback to all metrics
+                return metrics.Average(m => m.Value);
+            }
+            catch
+            {
+                return metrics.Average(m => m.Value);
+            }
+        }
+
+        /// <summary>
+        /// Apply trend adjustment to the average
+        /// </summary>
+        private double ApplyTrendAdjustment(double baseAverage, List<MetricDataPoint> metrics)
+        {
+            try
+            {
+                if (metrics.Count < 10)
+                    return baseAverage;
+                
+                // Calculate trend using linear regression
+                var trend = CalculateTrend(metrics);
+                
+                // Adjust average based on trend direction
+                if (Math.Abs(trend) > 0.1) // Significant trend
+                {
+                    // Project forward based on trend
+                    var adjustment = trend * 10; // Adjust for next 10 time units
+                    return baseAverage + adjustment;
+                }
+                
+                return baseAverage;
+            }
+            catch
+            {
+                return baseAverage;
+            }
+        }
+
+        /// <summary>
+        /// Calculate trend using simple linear regression
+        /// </summary>
+        private double CalculateTrend(List<MetricDataPoint> metrics)
+        {
+            var n = metrics.Count;
+            if (n < 2)
+                return 0;
+            
+            // Use index as x-axis (time)
+            var sumX = 0.0;
+            var sumY = 0.0;
+            var sumXY = 0.0;
+            var sumX2 = 0.0;
+            
+            for (int i = 0; i < n; i++)
+            {
+                var x = i;
+                var y = metrics[i].Value;
+                
+                sumX += x;
+                sumY += y;
+                sumXY += x * y;
+                sumX2 += x * x;
+            }
+            
+            // Slope = (n*ΣXY - ΣX*ΣY) / (n*ΣX² - (ΣX)²)
+            var denominator = (n * sumX2) - (sumX * sumX);
+            if (Math.Abs(denominator) < 0.0001)
+                return 0;
+            
+            var slope = ((n * sumXY) - (sumX * sumY)) / denominator;
+            return slope;
+        }
+
+        /// <summary>
+        /// Estimate connections from request analytics when time-series data is unavailable
+        /// </summary>
+        private double EstimateConnectionsFromRequests()
+        {
+            try
+            {
+                var recentPredictions = _recentPredictions.ToArray().Take(100).ToList();
+                if (!recentPredictions.Any())
+                    return 0;
+                
+                // Get request analytics for estimation
+                var totalRequests = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
+                var avgConcurrency = _requestAnalytics.Values
+                    .Where(x => x.ConcurrentExecutionPeaks > 0)
+                    .DefaultIfEmpty()
+                    .Average(x => x.ConcurrentExecutionPeaks);
+                
+                // Estimate: connections ≈ average concurrency × connection multiplier
+                // Multiplier accounts for keep-alive connections, pooling, etc.
+                var connectionMultiplier = 1.5;
+                var estimated = avgConcurrency * connectionMultiplier;
+                
+                // Bound the estimate to reasonable ranges
+                return Math.Max(Environment.ProcessorCount, Math.Min(estimated, 1000));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error estimating connections from requests");
+                return 0;
+            }
         }
 
         private double GetDatabasePoolUtilization()

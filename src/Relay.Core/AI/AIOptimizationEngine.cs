@@ -4023,35 +4023,355 @@ namespace Relay.Core.AI
         {
             try
             {
-                // In production, this would use actual GC metrics:
-                // - GC.GetTotalMemory(false)
-                // - GC.CollectionCount(2) (gen 2 collections indicate pressure)
-                // - Process.WorkingSet64
-                // - System memory availability
+                // Production-ready memory pressure analysis using actual GC and system metrics
                 
-                // For now, estimate from system load and request patterns
-                var systemLoad = GetDatabasePoolUtilization();
+                // Try to get from stored metrics first for consistency
+                var storedPressure = _timeSeriesDb.GetRecentMetrics("Memory_Pressure", 5);
+                if (storedPressure.Any())
+                {
+                    var avgPressure = storedPressure.Average(m => m.Value);
+                    var latestPressure = storedPressure.Last().Value;
+                    
+                    // Weighted average: 70% latest, 30% historical
+                    var pressure = latestPressure * 0.7 + avgPressure * 0.3;
+                    return Math.Max(0, Math.Min(pressure, 1.0));
+                }
+
+                // Multi-factor memory pressure analysis
+                var pressureFactors = new List<MemoryPressureFactor>();
+                
+                // 1. GC Memory Usage Factor
+                var gcMemoryFactor = CalculateGCMemoryFactor();
+                pressureFactors.Add(new MemoryPressureFactor
+                {
+                    Name = "GC_Memory",
+                    Value = gcMemoryFactor,
+                    Weight = 0.30 // 30% weight - most important
+                });
+                
+                // 2. GC Collection Frequency Factor (Gen 2 collections)
+                var gcCollectionFactor = CalculateGCCollectionFrequency();
+                pressureFactors.Add(new MemoryPressureFactor
+                {
+                    Name = "GC_Collections",
+                    Value = gcCollectionFactor,
+                    Weight = 0.25 // 25% weight
+                });
+                
+                // 3. Working Set Memory Factor
+                var workingSetFactor = CalculateWorkingSetFactor();
+                pressureFactors.Add(new MemoryPressureFactor
+                {
+                    Name = "Working_Set",
+                    Value = workingSetFactor,
+                    Weight = 0.20 // 20% weight
+                });
+                
+                // 4. System Memory Availability Factor
+                var systemMemoryFactor = CalculateSystemMemoryAvailability();
+                pressureFactors.Add(new MemoryPressureFactor
+                {
+                    Name = "System_Memory",
+                    Value = systemMemoryFactor,
+                    Weight = 0.15 // 15% weight
+                });
+                
+                // 5. Request Pattern Memory Impact
+                var requestPatternFactor = CalculateRequestPatternMemoryImpact();
+                pressureFactors.Add(new MemoryPressureFactor
+                {
+                    Name = "Request_Pattern",
+                    Value = requestPatternFactor,
+                    Weight = 0.10 // 10% weight
+                });
+                
+                // Calculate weighted pressure
+                var totalPressure = pressureFactors.Sum(f => f.Value * f.Weight);
+                
+                // Apply error rate adjustment
+                var errorAdjustment = CalculateErrorBasedMemoryPressure();
+                totalPressure = totalPressure * (1.0 + errorAdjustment);
+                
+                // Apply allocation rate factor
+                var allocationRate = EstimateAllocationRate();
+                if (allocationRate > 0.7) // High allocation rate
+                {
+                    totalPressure *= 1.15; // 15% increase
+                }
+                
+                // Store detailed metrics
+                _timeSeriesDb.StoreMetric("Memory_Pressure", totalPressure, DateTime.UtcNow);
+                foreach (var factor in pressureFactors)
+                {
+                    _timeSeriesDb.StoreMetric($"Memory_{factor.Name}", factor.Value, DateTime.UtcNow);
+                }
+                
+                _logger.LogDebug("Memory pressure: {Pressure:P} (GC: {GC:P}, Collections: {Col:P}, WorkingSet: {WS:P}, System: {Sys:P})",
+                    totalPressure, gcMemoryFactor, gcCollectionFactor, workingSetFactor, systemMemoryFactor);
+                
+                // Clamp to 0-1 range (0% to 100% pressure)
+                return Math.Max(0, Math.Min(totalPressure, 1.0));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error estimating memory pressure");
+                return 0.05; // Default low pressure
+            }
+        }
+
+        private double CalculateGCMemoryFactor()
+        {
+            try
+            {
+                // Get total managed memory
+                var totalMemory = GC.GetTotalMemory(forceFullCollection: false);
+                
+                // Get memory info
+                var gcMemoryInfo = GC.GetGCMemoryInfo();
+                var heapSize = gcMemoryInfo.HeapSizeBytes;
+                var totalAvailable = gcMemoryInfo.TotalAvailableMemoryBytes;
+                
+                // Calculate memory usage percentage
+                double memoryUsagePercent = 0;
+                if (totalAvailable > 0)
+                {
+                    memoryUsagePercent = (double)heapSize / totalAvailable;
+                }
+                else
+                {
+                    // Fallback: use total memory relative to a typical limit (e.g., 2GB)
+                    var typicalLimit = 2L * 1024 * 1024 * 1024; // 2GB
+                    memoryUsagePercent = (double)totalMemory / typicalLimit;
+                }
+                
+                // Store metrics
+                _timeSeriesDb.StoreMetric("GC_TotalMemory_MB", totalMemory / (1024.0 * 1024.0), DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("GC_HeapSize_MB", heapSize / (1024.0 * 1024.0), DateTime.UtcNow);
+                
+                return Math.Min(1.0, memoryUsagePercent);
+            }
+            catch
+            {
+                return 0.5; // Moderate default
+            }
+        }
+
+        private double CalculateGCCollectionFrequency()
+        {
+            try
+            {
+                // Get collection counts for all generations
+                var gen0Count = GC.CollectionCount(0);
+                var gen1Count = GC.CollectionCount(1);
+                var gen2Count = GC.CollectionCount(2);
+                
+                // Retrieve historical counts
+                var previousGen2Metrics = _timeSeriesDb.GetRecentMetrics("GC_Gen2_Collections", 10);
+                
+                // Calculate Gen 2 collection rate (most indicative of pressure)
+                double gen2Rate = 0;
+                if (previousGen2Metrics.Any())
+                {
+                    var previousCount = (int)previousGen2Metrics.First().Value;
+                    var timeDiff = DateTime.UtcNow - previousGen2Metrics.First().Timestamp;
+                    var collectionDiff = gen2Count - previousCount;
+                    
+                    if (timeDiff.TotalSeconds > 0)
+                    {
+                        gen2Rate = collectionDiff / timeDiff.TotalSeconds;
+                    }
+                }
+                
+                // Store current counts
+                _timeSeriesDb.StoreMetric("GC_Gen0_Collections", gen0Count, DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("GC_Gen1_Collections", gen1Count, DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("GC_Gen2_Collections", gen2Count, DateTime.UtcNow);
+                
+                // High Gen2 rate indicates memory pressure
+                // Normal: < 0.1 per second, High: > 1 per second
+                var pressureFactor = Math.Min(gen2Rate / 2.0, 1.0); // Normalize to 0-1
+                
+                return pressureFactor;
+            }
+            catch
+            {
+                return 0.3; // Moderate default
+            }
+        }
+
+        private double CalculateWorkingSetFactor()
+        {
+            try
+            {
+                // Get current process
+                using var process = System.Diagnostics.Process.GetCurrentProcess();
+                
+                // Get working set (physical memory used by process)
+                var workingSet = process.WorkingSet64;
+                var privateMemory = process.PrivateMemorySize64;
+                var virtualMemory = process.VirtualMemorySize64;
+                
+                // Typical limits (can be configured)
+                var workingSetLimit = 1L * 1024 * 1024 * 1024; // 1GB default
+                var privateMemoryLimit = 2L * 1024 * 1024 * 1024; // 2GB default
+                
+                // Calculate usage ratios
+                var workingSetRatio = (double)workingSet / workingSetLimit;
+                var privateMemoryRatio = (double)privateMemory / privateMemoryLimit;
+                
+                // Store metrics
+                _timeSeriesDb.StoreMetric("Process_WorkingSet_MB", workingSet / (1024.0 * 1024.0), DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("Process_PrivateMemory_MB", privateMemory / (1024.0 * 1024.0), DateTime.UtcNow);
+                _timeSeriesDb.StoreMetric("Process_VirtualMemory_MB", virtualMemory / (1024.0 * 1024.0), DateTime.UtcNow);
+                
+                // Weighted combination
+                var pressureFactor = (workingSetRatio * 0.6 + privateMemoryRatio * 0.4);
+                
+                return Math.Min(1.0, pressureFactor);
+            }
+            catch
+            {
+                return 0.4; // Moderate default
+            }
+        }
+
+        private double CalculateSystemMemoryAvailability()
+        {
+            try
+            {
+                // Get GC memory info which includes system-level information
+                var gcMemoryInfo = GC.GetGCMemoryInfo();
+                
+                var totalAvailable = gcMemoryInfo.TotalAvailableMemoryBytes;
+                var highMemoryLoadThreshold = gcMemoryInfo.HighMemoryLoadThresholdBytes;
+                
+                // Calculate system memory pressure
+                double systemPressure = 0;
+                if (totalAvailable > 0 && highMemoryLoadThreshold > 0)
+                {
+                    // If we're close to high memory load threshold, pressure is high
+                    systemPressure = 1.0 - ((double)totalAvailable / highMemoryLoadThreshold);
+                    systemPressure = Math.Max(0, systemPressure);
+                }
+                
+                // Store metrics
+                _timeSeriesDb.StoreMetric("System_AvailableMemory_MB", totalAvailable / (1024.0 * 1024.0), DateTime.UtcNow);
+                
+                return Math.Min(1.0, systemPressure);
+            }
+            catch
+            {
+                return 0.3; // Low-moderate default
+            }
+        }
+
+        private double CalculateRequestPatternMemoryImpact()
+        {
+            try
+            {
                 var activeRequests = GetActiveRequestCount();
+                var systemLoad = GetDatabasePoolUtilization();
                 
                 // High load + many requests = potential memory pressure
                 var estimatedPressure = (systemLoad * 0.6) + (Math.Min(activeRequests / 1000.0, 1.0) * 0.4);
                 
-                // Check for signs of memory issues in error patterns
-                var recentErrors = _requestAnalytics.Values
-                    .Where(a => a.ErrorRate > 0.05)
-                    .Count();
+                // Analyze request sizes and complexity
+                var avgRequestComplexity = _requestAnalytics.Values
+                    .Where(a => a.TotalExecutions > 0)
+                    .Average(a => a.AverageExecutionTime.TotalMilliseconds / 100.0); // Normalize
                 
-                if (recentErrors > 3)
-                {
-                    estimatedPressure *= 1.2; // 20% increase if seeing errors
-                }
+                // Complex requests typically use more memory
+                var complexityFactor = Math.Min(avgRequestComplexity, 2.0) / 2.0; // 0-1 range
                 
-                return Math.Max(0, Math.Min(estimatedPressure, 0.25)); // 0-25% range
+                estimatedPressure = (estimatedPressure * 0.7 + complexityFactor * 0.3);
+                
+                return Math.Min(1.0, estimatedPressure);
             }
             catch
             {
-                return 0.05; // Default low pressure
+                return 0.3; // Moderate default
             }
+        }
+
+        private double CalculateErrorBasedMemoryPressure()
+        {
+            try
+            {
+                // Check for signs of memory issues in error patterns
+                var recentErrors = _requestAnalytics.Values
+                    .Where(a => a.ErrorRate > 0.05) // More than 5% error rate
+                    .Count();
+                
+                // More errors = potentially memory-related issues
+                if (recentErrors > 5)
+                {
+                    return 0.3; // 30% increase
+                }
+                else if (recentErrors > 3)
+                {
+                    return 0.2; // 20% increase
+                }
+                else if (recentErrors > 0)
+                {
+                    return 0.1; // 10% increase
+                }
+                
+                return 0; // No adjustment
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private double EstimateAllocationRate()
+        {
+            try
+            {
+                // Get allocation rate from GC statistics
+                var gcInfo = GC.GetGCMemoryInfo();
+                var totalAllocated = GC.GetTotalAllocatedBytes(precise: false);
+                
+                // Get historical allocation
+                var historicalAllocation = _timeSeriesDb.GetRecentMetrics("GC_TotalAllocated_MB", 10);
+                if (historicalAllocation.Any())
+                {
+                    var previousAllocation = historicalAllocation.First().Value * 1024 * 1024; // Convert back to bytes
+                    var timeDiff = DateTime.UtcNow - historicalAllocation.First().Timestamp;
+                    
+                    if (timeDiff.TotalSeconds > 0)
+                    {
+                        var allocationDiff = totalAllocated - (long)previousAllocation;
+                        var allocationRateMBPerSec = (allocationDiff / (1024.0 * 1024.0)) / timeDiff.TotalSeconds;
+                        
+                        // Store allocation rate
+                        _timeSeriesDb.StoreMetric("GC_AllocationRate_MBPerSec", allocationRateMBPerSec, DateTime.UtcNow);
+                        
+                        // High allocation rate: > 100 MB/sec = high pressure
+                        var pressureFactor = Math.Min(allocationRateMBPerSec / 200.0, 1.0);
+                        return pressureFactor;
+                    }
+                }
+                
+                // Store current allocation
+                _timeSeriesDb.StoreMetric("GC_TotalAllocated_MB", totalAllocated / (1024.0 * 1024.0), DateTime.UtcNow);
+                
+                return 0.5; // Moderate default if no history
+            }
+            catch
+            {
+                return 0.5; // Moderate default
+            }
+        }
+
+        /// <summary>
+        /// Represents a memory pressure factor with its value and weight
+        /// </summary>
+        private class MemoryPressureFactor
+        {
+            public string Name { get; set; } = string.Empty;
+            public double Value { get; set; }
+            public double Weight { get; set; }
         }
 
         /// <summary>

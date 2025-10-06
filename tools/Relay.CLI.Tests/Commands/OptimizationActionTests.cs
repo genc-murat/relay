@@ -273,9 +273,10 @@ public class OptimizationActionTests
     public void OptimizationAction_FilePath_ShouldSupportAbsolutePath()
     {
         // Arrange & Act
+        var absolutePath = Path.IsPathRooted("/tmp") ? "/tmp/Relay/src/Handlers/GetUserHandler.cs" : @"C:\Projects\Relay\src\Handlers\GetUserHandler.cs";
         var action = new OptimizationAction
         {
-            FilePath = @"C:\Projects\Relay\src\Handlers\GetUserHandler.cs"
+            FilePath = absolutePath
         };
 
         // Assert
@@ -313,9 +314,10 @@ public class OptimizationActionTests
     public void OptimizationAction_FilePath_CanExtractFileName()
     {
         // Arrange
+        var absolutePath = Path.IsPathRooted("/tmp") ? "/tmp/Handler.cs" : @"C:\Projects\Handler.cs";
         var action = new OptimizationAction
         {
-            FilePath = @"C:\Projects\Handler.cs"
+            FilePath = absolutePath
         };
 
         // Act
@@ -329,9 +331,10 @@ public class OptimizationActionTests
     public void OptimizationAction_FilePath_CanExtractDirectory()
     {
         // Arrange
+        var absolutePath = Path.IsPathRooted("/tmp") ? "/tmp/Handlers/UserHandler.cs" : @"C:\Projects\Handlers\UserHandler.cs";
         var action = new OptimizationAction
         {
-            FilePath = @"C:\Projects\Handlers\UserHandler.cs"
+            FilePath = absolutePath
         };
 
         // Act

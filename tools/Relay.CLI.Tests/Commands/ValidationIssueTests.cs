@@ -6,7 +6,8 @@ public class ValidationIssueTests
 {
     private Type GetValidationIssueType()
     {
-        var assembly = Assembly.LoadFrom("C:\\projects\\relay\\tools\\Relay.CLI\\bin\\Debug\\net8.0\\Relay.CLI.dll");
+        // Use the same assembly that's already loaded via project reference
+        var assembly = typeof(Relay.CLI.Commands.OptimizationContext).Assembly;
         return assembly.GetTypes().First(t => t.Name == "ValidationIssue");
     }
 

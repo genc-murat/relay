@@ -26,7 +26,7 @@ public class TemplateGenerator
     {
         var result = new GenerationResult { Success = true, TemplateName = templateId };
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        
+
         try
         {
             // Validate project name first
@@ -39,28 +39,28 @@ public class TemplateGenerator
                 result.Errors.AddRange(validationResult.Errors);
                 return result;
             }
-            
+
             Console.WriteLine();
             Console.WriteLine($"🎨 Generating project '{projectName}' from template '{templateId}'...");
             Console.WriteLine();
-            
+
             // Setup variables
             SetupVariables(projectName, options);
-            
+
             // Create directory structure
             await CreateDirectoryStructureAsync(templateId, projectName, outputPath, options, result);
-            
+
             // Generate project files
             await GenerateProjectFilesAsync(templateId, projectName, outputPath, options, result);
-            
+
             // Generate common files
             await GenerateCommonFilesAsync(projectName, outputPath, options, result);
-            
+
             stopwatch.Stop();
             result.Duration = stopwatch.Elapsed;
             result.Success = true;
             result.Message = $"✅ Project '{projectName}' created successfully in {result.Duration.TotalSeconds:F1}s!";
-            
+
             // Display summary
             DisplayGenerationSummary(result, projectName);
         }
@@ -72,7 +72,7 @@ public class TemplateGenerator
             result.Message = $"❌ Error generating project: {ex.Message}";
             result.Errors.Add(ex.Message);
         }
-        
+
         return result;
     }
 
@@ -96,19 +96,19 @@ public class TemplateGenerator
     {
         Console.WriteLine("📁 Creating directory structure...");
         var directories = GetDirectoryStructure(templateId, projectName, options);
-        
+
         if (directories == null || directories.Length == 0)
         {
             throw new ArgumentException($"Invalid or unsupported template: {templateId}");
         }
-        
+
         foreach (var dir in directories)
         {
             var fullPath = Path.Combine(outputPath, dir);
             Directory.CreateDirectory(fullPath);
             result.CreatedDirectories.Add(dir);
         }
-        
+
         Console.WriteLine($"  ✓ Created {result.CreatedDirectories.Count} directories");
         await Task.CompletedTask;
     }
@@ -236,7 +236,7 @@ public class TemplateGenerator
     private async Task GenerateProjectFilesAsync(string templateId, string projectName, string outputPath, GenerationOptions options, GenerationResult result)
     {
         Console.WriteLine("📝 Generating project files...");
-        
+
         switch (templateId)
         {
             case "relay-webapi":
@@ -246,7 +246,7 @@ public class TemplateGenerator
                 await GenerateBasicProjectAsync(projectName, outputPath, options, result);
                 break;
         }
-        
+
         Console.WriteLine($"  ✓ Generated {result.CreatedFiles.Count} files");
     }
 
@@ -263,19 +263,91 @@ public class TemplateGenerator
 
     private async Task GenerateBasicProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
     {
-        // Basic project structure for other templates
-        await Task.CompletedTask;
-    }
+        // Generate solution file
+        await GenerateSolutionFileAsync(projectName, outputPath, result);
 
-    // [Previous file generation methods remain the same - truncated for space]
-    // Include GenerateSolutionFileAsync, GenerateApiProjectAsync, etc.
+        // Generate main project file
+        var projectPath = Path.Combine(outputPath, "src", projectName, $"{projectName}.csproj");
+        var projectContent = $@"<Project Sdk=""Microsoft.NET.Sdk.Web"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""Relay"" Version=""*"" />
+  </ItemGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(projectPath, projectContent);
+        result.CreatedFiles.Add($"src/{projectName}/{projectName}.csproj");
+
+        // Generate Program.cs
+        var programPath = Path.Combine(outputPath, "src", projectName, "Program.cs");
+        var programContent = @"var builder = WebApplication.CreateBuilder(args);
+
+// Add services
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+
+var app = builder.Build();
+
+// Configure middleware
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
+";
+        await File.WriteAllTextAsync(programPath, programContent);
+        result.CreatedFiles.Add($"src/{projectName}/Program.cs");
+
+        // Generate appsettings.json
+        var appsettingsPath = Path.Combine(outputPath, "src", projectName, "appsettings.json");
+        var appsettingsContent = @"{
+  ""Logging"": {
+    ""LogLevel"": {
+      ""Default"": ""Information"",
+      ""Microsoft.AspNetCore"": ""Warning""
+    }
+  },
+  ""AllowedHosts"": ""*""
+}
+";
+        await File.WriteAllTextAsync(appsettingsPath, appsettingsContent);
+        result.CreatedFiles.Add($"src/{projectName}/appsettings.json");
+
+        // Generate test project
+        var testProjectPath = Path.Combine(outputPath, "tests", $"{projectName}.Tests", $"{projectName}.Tests.csproj");
+        var testProjectContent = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""xunit"" Version=""2.5.0"" />
+    <PackageReference Include=""xunit.runner.visualstudio"" Version=""2.5.0"" />
+    <PackageReference Include=""FluentAssertions"" Version=""6.12.0"" />
+    <PackageReference Include=""Microsoft.NET.Test.Sdk"" Version=""17.8.0"" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include=""..\..\src\{projectName}\{projectName}.csproj"" />
+  </ItemGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(testProjectPath, testProjectContent);
+        result.CreatedFiles.Add($"tests/{projectName}.Tests/{projectName}.Tests.csproj");
+    }
 
     private async Task GenerateCommonFilesAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
     {
         Console.WriteLine("📄 Generating common files...");
         await GenerateGitignoreAsync(outputPath, result);
         await GenerateReadmeAsync(projectName, outputPath, options, result);
-        
+
         if (options.EnableDocker)
         {
             await GenerateDockerfilesAsync(projectName, outputPath, result);
@@ -310,11 +382,10 @@ public class TemplateGenerator
     private async Task GenerateSolutionFileAsync(string projectName, string outputPath, GenerationResult result)
     {
         var solutionPath = Path.Combine(outputPath, $"{projectName}.sln");
+        var vsVersion = GetVisualStudioVersion();
         var content = $@"
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
-MinimumVisualStudioVersion = 10.0.40219.1
+{vsVersion}MinimumVisualStudioVersion = 10.0.40219.1
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -324,6 +395,50 @@ EndGlobal
 ";
         await File.WriteAllTextAsync(solutionPath, content.TrimStart());
         result.CreatedFiles.Add($"{projectName}.sln");
+    }
+
+    private string GetVisualStudioVersion()
+    {
+        try
+        {
+            // Try to get VS version from vswhere
+            var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            var vswherePath = Path.Combine(programFiles, "Microsoft Visual Studio", "Installer", "vswhere.exe");
+
+            if (File.Exists(vswherePath))
+            {
+                var process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = vswherePath,
+                        Arguments = "-latest -property catalog_productDisplayVersion",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                var version = process.StandardOutput.ReadToEnd().Trim();
+                process.WaitForExit();
+
+                if (!string.IsNullOrEmpty(version) && version.StartsWith("17."))
+                {
+                    return $"# Visual Studio Version 17\nVisualStudioVersion = {version}\n";
+                }
+                else if (!string.IsNullOrEmpty(version) && int.TryParse(version.Split('.')[0], out int majorVersion))
+                {
+                    return $"# Visual Studio Version {majorVersion}\nVisualStudioVersion = {version}\n";
+                }
+            }
+        }
+        catch
+        {
+            // If we can't detect, return empty string - solution will still work
+        }
+
+        return string.Empty;
     }
 
     private async Task GenerateApiProjectAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
@@ -342,7 +457,7 @@ EndGlobal
 ";
         await File.WriteAllTextAsync(projectPath, content);
         result.CreatedFiles.Add($"src/{projectName}.Api/{projectName}.Api.csproj");
-        
+
         // Generate Program.cs
         var programPath = Path.Combine(outputPath, "src", $"{projectName}.Api", "Program.cs");
         var programContent = @"var builder = WebApplication.CreateBuilder(args);

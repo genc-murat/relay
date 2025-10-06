@@ -587,9 +587,10 @@ public class OptimizationContextTests
     public void OptimizationContext_BackupPath_CanBeAbsolute()
     {
         // Arrange & Act
+        var absolutePath = Path.IsPathRooted("/tmp") ? "/tmp/MyRelay/.backup" : @"C:\Projects\MyRelay\.backup";
         var context = new OptimizationContext
         {
-            BackupPath = @"C:\Projects\MyRelay\.backup"
+            BackupPath = absolutePath
         };
 
         // Assert
@@ -631,9 +632,10 @@ public class OptimizationContextTests
     public void OptimizationContext_ProjectPath_CanBeAbsolute()
     {
         // Arrange & Act
+        var absolutePath = Path.IsPathRooted("/tmp") ? "/tmp/MyRelay" : @"C:\Projects\MyRelay";
         var context = new OptimizationContext
         {
-            ProjectPath = @"C:\Projects\MyRelay"
+            ProjectPath = absolutePath
         };
 
         // Assert

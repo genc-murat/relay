@@ -3,60 +3,44 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using OpenTelemetry.Trace;
 
-namespace Relay.Core.DistributedTracing
+namespace Relay.Core.DistributedTracing;
+
+/// <summary>
+/// OpenTelemetry implementation of IDistributedTracingProvider.
+/// </summary>
+public class OpenTelemetryTracingProvider : IDistributedTracingProvider
 {
+    private readonly TracerProvider? _tracerProvider;
+    private readonly string _serviceName;
+
     /// <summary>
-    /// OpenTelemetry implementation of IDistributedTracingProvider.
+    /// Initializes a new instance of the <see cref="OpenTelemetryTracingProvider"/> class.
     /// </summary>
-    public class OpenTelemetryTracingProvider : IDistributedTracingProvider
+    /// <param name="tracerProvider">The OpenTelemetry tracer provider.</param>
+    /// <param name="serviceName">The name of the service.</param>
+    public OpenTelemetryTracingProvider(TracerProvider? tracerProvider = null, string serviceName = "Relay")
     {
-        private readonly TracerProvider? _tracerProvider;
-        private readonly string _serviceName;
+        _tracerProvider = tracerProvider;
+        _serviceName = serviceName;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OpenTelemetryTracingProvider"/> class.
-        /// </summary>
-        /// <param name="tracerProvider">The OpenTelemetry tracer provider.</param>
-        /// <param name="serviceName">The name of the service.</param>
-        public OpenTelemetryTracingProvider(TracerProvider? tracerProvider = null, string serviceName = "Relay")
+    /// <inheritdoc />
+    public Activity? StartActivity(string operationName, Type requestType, string? correlationId = null, IDictionary<string, object?>? tags = null)
+    {
+        var activityName = $"{_serviceName}.{operationName}";
+        var activity = Activity.Current?.Source.StartActivity(activityName, ActivityKind.Server)
+                      ?? new ActivitySource(_serviceName).StartActivity(activityName, ActivityKind.Server);
+
+        if (activity != null)
         {
-            _tracerProvider = tracerProvider;
-            _serviceName = serviceName;
-        }
+            activity.SetTag("request.type", requestType.FullName ?? requestType.Name);
 
-        /// <inheritdoc />
-        public Activity? StartActivity(string operationName, Type requestType, string? correlationId = null, IDictionary<string, object?>? tags = null)
-        {
-            var activityName = $"{_serviceName}.{operationName}";
-            var activity = Activity.Current?.Source.StartActivity(activityName, ActivityKind.Server)
-                          ?? new ActivitySource(_serviceName).StartActivity(activityName, ActivityKind.Server);
-
-            if (activity != null)
+            if (!string.IsNullOrWhiteSpace(correlationId))
             {
-                activity.SetTag("request.type", requestType.FullName ?? requestType.Name);
-
-                if (!string.IsNullOrWhiteSpace(correlationId))
-                {
-                    activity.SetTag("correlation.id", correlationId);
-                }
-
-                if (tags != null)
-                {
-                    foreach (var tag in tags)
-                    {
-                        activity.SetTag(tag.Key, tag.Value);
-                    }
-                }
+                activity.SetTag("correlation.id", correlationId);
             }
 
-            return activity;
-        }
-
-        /// <inheritdoc />
-        public void AddActivityTags(IDictionary<string, object?> tags)
-        {
-            var activity = Activity.Current;
-            if (activity != null)
+            if (tags != null)
             {
                 foreach (var tag in tags)
                 {
@@ -65,37 +49,52 @@ namespace Relay.Core.DistributedTracing
             }
         }
 
-        /// <inheritdoc />
-        public void RecordException(Exception exception, bool escaped = false)
+        return activity;
+    }
+
+    /// <inheritdoc />
+    public void AddActivityTags(IDictionary<string, object?> tags)
+    {
+        var activity = Activity.Current;
+        if (activity != null)
         {
-            var activity = Activity.Current;
-            if (activity != null && exception != null)
+            foreach (var tag in tags)
             {
-                // Use the new recommended method instead of obsolete RecordException
-                activity.AddException(exception);
+                activity.SetTag(tag.Key, tag.Value);
             }
         }
+    }
 
-        /// <inheritdoc />
-        public void SetActivityStatus(ActivityStatusCode status, string? description = null)
+    /// <inheritdoc />
+    public void RecordException(Exception exception, bool escaped = false)
+    {
+        var activity = Activity.Current;
+        if (activity != null && exception != null)
         {
-            var activity = Activity.Current;
-            if (activity != null)
-            {
-                activity.SetStatus(status, description);
-            }
+            // Use the new recommended method instead of obsolete RecordException
+            activity.AddException(exception);
         }
+    }
 
-        /// <inheritdoc />
-        public string? GetCurrentTraceId()
+    /// <inheritdoc />
+    public void SetActivityStatus(ActivityStatusCode status, string? description = null)
+    {
+        var activity = Activity.Current;
+        if (activity != null)
         {
-            return Activity.Current?.TraceId.ToString();
+            activity.SetStatus(status, description);
         }
+    }
 
-        /// <inheritdoc />
-        public string? GetCurrentSpanId()
-        {
-            return Activity.Current?.SpanId.ToString();
-        }
+    /// <inheritdoc />
+    public string? GetCurrentTraceId()
+    {
+        return Activity.Current?.TraceId.ToString();
+    }
+
+    /// <inheritdoc />
+    public string? GetCurrentSpanId()
+    {
+        return Activity.Current?.SpanId.ToString();
     }
 }

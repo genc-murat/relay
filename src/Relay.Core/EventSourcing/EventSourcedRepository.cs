@@ -3,88 +3,87 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.EventSourcing
+namespace Relay.Core.EventSourcing;
+
+/// <summary>
+/// Implementation of IEventSourcedRepository for event-sourced aggregates.
+/// </summary>
+/// <typeparam name="TAggregate">The type of the aggregate.</typeparam>
+/// <typeparam name="TId">The type of the aggregate identifier.</typeparam>
+public class EventSourcedRepository<TAggregate, TId> : IEventSourcedRepository<TAggregate, TId>
+    where TAggregate : AggregateRoot<TId>, new()
 {
+    private readonly IEventStore _eventStore;
+
     /// <summary>
-    /// Implementation of IEventSourcedRepository for event-sourced aggregates.
+    /// Initializes a new instance of the <see cref="EventSourcedRepository{TAggregate, TId}"/> class.
     /// </summary>
-    /// <typeparam name="TAggregate">The type of the aggregate.</typeparam>
-    /// <typeparam name="TId">The type of the aggregate identifier.</typeparam>
-    public class EventSourcedRepository<TAggregate, TId> : IEventSourcedRepository<TAggregate, TId>
-        where TAggregate : AggregateRoot<TId>, new()
+    /// <param name="eventStore">The event store to use.</param>
+    public EventSourcedRepository(IEventStore eventStore)
     {
-        private readonly IEventStore _eventStore;
+        _eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EventSourcedRepository{TAggregate, TId}"/> class.
-        /// </summary>
-        /// <param name="eventStore">The event store to use.</param>
-        public EventSourcedRepository(IEventStore eventStore)
+    /// <inheritdoc />
+    public async ValueTask<TAggregate?> GetByIdAsync(TId id, CancellationToken cancellationToken = default)
+    {
+        var aggregate = new TAggregate();
+
+        // Set the ID using reflection (since it's protected)
+        var idProperty = typeof(TAggregate).GetProperty(nameof(AggregateRoot<TId>.Id));
+        if (idProperty != null && idProperty.CanWrite)
         {
-            _eventStore = eventStore ?? throw new ArgumentNullException(nameof(eventStore));
+            idProperty.SetValue(aggregate, id);
         }
 
-        /// <inheritdoc />
-        public async ValueTask<TAggregate?> GetByIdAsync(TId id, CancellationToken cancellationToken = default)
+        // Load events from the event store
+        var events = _eventStore.GetEventsAsync(GetAggregateGuid(id), cancellationToken);
+        var eventList = new List<Event>();
+
+        await foreach (var @event in events.WithCancellation(cancellationToken))
         {
-            var aggregate = new TAggregate();
-
-            // Set the ID using reflection (since it's protected)
-            var idProperty = typeof(TAggregate).GetProperty(nameof(AggregateRoot<TId>.Id));
-            if (idProperty != null && idProperty.CanWrite)
-            {
-                idProperty.SetValue(aggregate, id);
-            }
-
-            // Load events from the event store
-            var events = _eventStore.GetEventsAsync(GetAggregateGuid(id), cancellationToken);
-            var eventList = new List<Event>();
-
-            await foreach (var @event in events.WithCancellation(cancellationToken))
-            {
-                eventList.Add(@event);
-            }
-
-            if (eventList.Count == 0)
-            {
-                return null;
-            }
-
-            // Apply events to the aggregate
-            aggregate.LoadFromHistory(eventList);
-            aggregate.ClearUncommittedEvents();
-
-            return aggregate;
+            eventList.Add(@event);
         }
 
-        /// <inheritdoc />
-        public async ValueTask SaveAsync(TAggregate aggregate, CancellationToken cancellationToken = default)
+        if (eventList.Count == 0)
         {
-            var uncommittedEvents = aggregate.UncommittedEvents;
-            if (uncommittedEvents.Count == 0)
-            {
-                return;
-            }
-
-            var aggregateId = GetAggregateGuid(aggregate.Id);
-            var expectedVersion = aggregate.Version - uncommittedEvents.Count;
-
-            // Save events to the event store
-            await _eventStore.SaveEventsAsync(aggregateId, uncommittedEvents, expectedVersion, cancellationToken);
-
-            // Clear uncommitted events
-            aggregate.ClearUncommittedEvents();
+            return null;
         }
 
-        private static Guid GetAggregateGuid(TId id)
-        {
-            if (id is Guid guid)
-            {
-                return guid;
-            }
+        // Apply events to the aggregate
+        aggregate.LoadFromHistory(eventList);
+        aggregate.ClearUncommittedEvents();
 
-            // For other types, create a GUID based on the string representation
-            return Guid.NewGuid(); // In a real implementation, you would use a more deterministic approach
+        return aggregate;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask SaveAsync(TAggregate aggregate, CancellationToken cancellationToken = default)
+    {
+        var uncommittedEvents = aggregate.UncommittedEvents;
+        if (uncommittedEvents.Count == 0)
+        {
+            return;
         }
+
+        var aggregateId = GetAggregateGuid(aggregate.Id);
+        var expectedVersion = aggregate.Version - uncommittedEvents.Count;
+
+        // Save events to the event store
+        await _eventStore.SaveEventsAsync(aggregateId, uncommittedEvents, expectedVersion, cancellationToken);
+
+        // Clear uncommitted events
+        aggregate.ClearUncommittedEvents();
+    }
+
+    private static Guid GetAggregateGuid(TId id)
+    {
+        if (id is Guid guid)
+        {
+            return guid;
+        }
+
+        // For other types, create a GUID based on the string representation
+        return Guid.NewGuid(); // In a real implementation, you would use a more deterministic approach
     }
 }

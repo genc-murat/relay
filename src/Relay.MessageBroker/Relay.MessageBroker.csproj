@@ -15,7 +15,7 @@
     <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
     
     <!-- Azure Service Bus -->
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
     
     <!-- AWS SQS/SNS -->
     <PackageReference Include="AWSSDK.SQS" Version="3.7.400.62" />

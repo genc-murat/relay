@@ -1166,7 +1166,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_InitializesWithDefaultValues()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult();
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult();
 
         // Assert
         result.Name.Should().Be("");
@@ -1182,7 +1182,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_StoresCorrectName()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "UltraFast Relay"
         };
@@ -1195,7 +1195,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_StoresCorrectTotalTime()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             TotalTime = TimeSpan.FromMilliseconds(500)
         };
@@ -1209,7 +1209,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_StoresCorrectIterations()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Iterations = 100000
         };
@@ -1222,7 +1222,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_StoresCorrectAverageTime()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             AverageTime = 3.5
         };
@@ -1235,7 +1235,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_StoresCorrectRequestsPerSecond()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             RequestsPerSecond = 333333.33
         };
@@ -1248,7 +1248,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_StoresCorrectMemoryAllocated()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             MemoryAllocated = 1024
         };
@@ -1261,7 +1261,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_StoresCorrectThreadCount()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Threads = 4
         };
@@ -1274,7 +1274,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_AllowsZeroAllocationResult()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Zero Allocation Handler",
             MemoryAllocated = 0
@@ -1294,7 +1294,7 @@ public class BenchmarkCommandTests : IDisposable
 
         // Act
         var averageTime = totalTime.TotalMicroseconds / iterations;
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             TotalTime = totalTime,
             Iterations = iterations,
@@ -1314,7 +1314,7 @@ public class BenchmarkCommandTests : IDisposable
 
         // Act
         var rps = iterations / totalTime.TotalSeconds;
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Iterations = iterations,
             TotalTime = totalTime,
@@ -1329,7 +1329,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_HandlesVeryFastExecutionTime()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Ultra Fast",
             TotalTime = TimeSpan.FromTicks(1),
@@ -1346,7 +1346,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_HandlesLargeNumberOfIterations()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Iterations = int.MaxValue
         };
@@ -1359,7 +1359,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_HandlesLargeMemoryAllocation()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             MemoryAllocated = long.MaxValue
         };
@@ -1372,13 +1372,13 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_ComparesWithOtherResults()
     {
         // Arrange
-        var fast = new Relay.CLI.Commands.BenchmarkResult
+        var fast = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Fast",
             AverageTime = 1.0
         };
 
-        var slow = new Relay.CLI.Commands.BenchmarkResult
+        var slow = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Slow",
             AverageTime = 10.0
@@ -1396,14 +1396,14 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_SupportsMultiThreadedResults()
     {
         // Arrange & Act
-        var singleThreaded = new Relay.CLI.Commands.BenchmarkResult
+        var singleThreaded = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Single Thread",
             Threads = 1,
             RequestsPerSecond = 100000
         };
 
-        var multiThreaded = new Relay.CLI.Commands.BenchmarkResult
+        var multiThreaded = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Multi Thread",
             Threads = 4,
@@ -1420,7 +1420,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_CanCalculateMemoryPerIteration()
     {
         // Arrange
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             MemoryAllocated = 10000,
             Iterations = 100
@@ -1437,7 +1437,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_CanCalculateThroughput()
     {
         // Arrange
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             RequestsPerSecond = 1000000
         };
@@ -1453,7 +1453,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_FormatsNameCorrectly()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Standard Relay"
         };
@@ -1468,7 +1468,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResult_AllPropertiesCanBeSet()
     {
         // Arrange & Act
-        var result = new Relay.CLI.Commands.BenchmarkResult
+        var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Complete Test",
             TotalTime = TimeSpan.FromMilliseconds(1000),
@@ -1494,7 +1494,7 @@ public class BenchmarkCommandTests : IDisposable
     public void TestConfiguration_InitializesWithDefaultValues()
     {
         // Arrange & Act
-        var config = new Relay.CLI.Commands.TestConfiguration();
+        var config = new Relay.CLI.Commands.Models.TestConfiguration();
 
         // Assert
         config.Iterations.Should().Be(0);
@@ -1513,7 +1513,7 @@ public class BenchmarkCommandTests : IDisposable
         var timestamp = DateTime.UtcNow;
 
         // Act
-        var config = new Relay.CLI.Commands.TestConfiguration
+        var config = new Relay.CLI.Commands.Models.TestConfiguration
         {
             Iterations = 100000,
             WarmupIterations = 1000,
@@ -1539,7 +1539,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResults_InitializesWithEmptyCollections()
     {
         // Arrange & Act
-        var results = new Relay.CLI.Commands.BenchmarkResults();
+        var results = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResults();
 
         // Assert
         results.TestConfiguration.Should().NotBeNull();
@@ -1553,8 +1553,8 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResults_CanAddRelayResults()
     {
         // Arrange
-        var results = new Relay.CLI.Commands.BenchmarkResults();
-        var relayResult = new Relay.CLI.Commands.BenchmarkResult
+        var results = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResults();
+        var relayResult = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "Standard Relay",
             AverageTime = 3.0
@@ -1572,8 +1572,8 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResults_CanAddComparisonResults()
     {
         // Arrange
-        var results = new Relay.CLI.Commands.BenchmarkResults();
-        var mediatrResult = new Relay.CLI.Commands.BenchmarkResult
+        var results = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResults();
+        var mediatrResult = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "MediatR",
             AverageTime = 9.0
@@ -1591,16 +1591,16 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResults_CanStoreMultipleResults()
     {
         // Arrange
-        var results = new Relay.CLI.Commands.BenchmarkResults();
+        var results = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResults();
 
         // Act
-        results.RelayResults.Add("Standard", new Relay.CLI.Commands.BenchmarkResult { Name = "Standard" });
-        results.RelayResults.Add("UltraFast", new Relay.CLI.Commands.BenchmarkResult { Name = "UltraFast" });
-        results.RelayResults.Add("SIMD", new Relay.CLI.Commands.BenchmarkResult { Name = "SIMD" });
-        results.RelayResults.Add("AOT", new Relay.CLI.Commands.BenchmarkResult { Name = "AOT" });
+        results.RelayResults.Add("Standard", new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult { Name = "Standard" });
+        results.RelayResults.Add("UltraFast", new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult { Name = "UltraFast" });
+        results.RelayResults.Add("SIMD", new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult { Name = "SIMD" });
+        results.RelayResults.Add("AOT", new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult { Name = "AOT" });
 
-        results.ComparisonResults.Add("DirectCall", new Relay.CLI.Commands.BenchmarkResult { Name = "DirectCall" });
-        results.ComparisonResults.Add("MediatR", new Relay.CLI.Commands.BenchmarkResult { Name = "MediatR" });
+        results.ComparisonResults.Add("DirectCall", new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult { Name = "DirectCall" });
+        results.ComparisonResults.Add("MediatR", new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult { Name = "MediatR" });
 
         // Assert
         results.RelayResults.Should().HaveCount(4);
@@ -1611,8 +1611,8 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResults_CanRetrieveResultsByKey()
     {
         // Arrange
-        var results = new Relay.CLI.Commands.BenchmarkResults();
-        var ultraFast = new Relay.CLI.Commands.BenchmarkResult
+        var results = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResults();
+        var ultraFast = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult
         {
             Name = "UltraFast Relay",
             AverageTime = 1.5
@@ -1632,7 +1632,7 @@ public class BenchmarkCommandTests : IDisposable
     public void BenchmarkResults_TestConfigurationIsModifiable()
     {
         // Arrange
-        var results = new Relay.CLI.Commands.BenchmarkResults();
+        var results = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResults();
 
         // Act
         results.TestConfiguration.Iterations = 50000;

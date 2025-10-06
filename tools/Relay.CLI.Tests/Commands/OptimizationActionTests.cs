@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Relay.CLI.Commands;
+using Relay.CLI.Commands.Models.Optimization;
 using Xunit;
 
 namespace Relay.CLI.Tests.Commands;

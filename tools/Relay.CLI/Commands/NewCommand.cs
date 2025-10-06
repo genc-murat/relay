@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Text.Json;
+using Relay.CLI.Commands.Models.Template;
 
 namespace Relay.CLI.Commands;
 

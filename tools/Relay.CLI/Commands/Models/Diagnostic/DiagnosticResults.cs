@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace Relay.CLI.Commands;
+namespace Relay.CLI.Commands.Models.Diagnostic;
 
 public class DiagnosticResults
 {

@@ -1,4 +1,4 @@
-namespace Relay.CLI.Commands;
+namespace Relay.CLI.Commands.Models;
 
 public class TestConfiguration
 {

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Relay.CLI.Commands;
+using Relay.CLI.Commands.Models.Template;
 using System.CommandLine;
 using Xunit;
 

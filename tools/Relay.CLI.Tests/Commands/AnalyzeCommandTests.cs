@@ -2,6 +2,8 @@ using System.CommandLine;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using Relay.CLI.Commands;
+using Relay.CLI.Commands.Models;
+using Relay.CLI.Commands.Models.Performance;
 
 namespace Relay.CLI.Tests.Commands;
 

@@ -1,6 +1,9 @@
 using System.CommandLine;
 using System.Diagnostics;
 using Spectre.Console;
+using Relay.CLI.Commands.Models.Diagnostic;
+using Relay.CLI.Commands.Models.Pipeline;
+using Relay.CLI.Commands.Models.Validation;
 
 namespace Relay.CLI.Commands;
 

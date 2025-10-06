@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spectre.Console;
+using Relay.CLI.Commands.Models.Performance;
 
 namespace Relay.CLI.Commands;
 

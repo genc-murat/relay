@@ -2,6 +2,11 @@ using System.CommandLine;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Spectre.Console;
+using DiagnosticSeverity = Relay.CLI.Commands.Models.Diagnostic.DiagnosticSeverity;
+using DiagnosticResult = Relay.CLI.Commands.Models.Diagnostic.DiagnosticResult;
+using DiagnosticResults = Relay.CLI.Commands.Models.Diagnostic.DiagnosticResults;
+using DiagnosticCheck = Relay.CLI.Commands.Models.Diagnostic.DiagnosticCheck;
+using DiagnosticIssue = Relay.CLI.Commands.Models.Diagnostic.DiagnosticIssue;
 
 namespace Relay.CLI.Commands;
 

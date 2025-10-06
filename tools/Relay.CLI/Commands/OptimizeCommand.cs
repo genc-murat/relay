@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Text;
 using System.Text.RegularExpressions;
 using Spectre.Console;
+using Relay.CLI.Commands.Models.Optimization;
 
 namespace Relay.CLI.Commands;
 

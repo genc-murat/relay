@@ -1,4 +1,5 @@
 using Relay.CLI.Commands;
+using Relay.CLI.Commands.Models.Template;
 
 namespace Relay.CLI.Tests.Commands;
 

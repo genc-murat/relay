@@ -1,4 +1,6 @@
-namespace Relay.CLI.Commands;
+using Relay.CLI.Commands.Models.Performance;
+
+namespace Relay.CLI.Commands.Models;
 
 // Data classes for analysis
 public class ProjectAnalysis

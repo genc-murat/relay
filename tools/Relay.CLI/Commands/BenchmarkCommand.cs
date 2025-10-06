@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Spectre.Console;
+using Relay.CLI.Commands.Models;
+using Relay.CLI.Commands.Models.Benchmark;
 
 namespace Relay.CLI.Commands;
 

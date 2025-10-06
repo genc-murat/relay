@@ -1,3 +1,4 @@
+using Relay.CLI.Commands.Models.Optimization;
 using System.Reflection;
 
 namespace Relay.CLI.Tests.Commands;
@@ -7,7 +8,7 @@ public class ValidationIssueTests
     private Type GetValidationIssueType()
     {
         // Use the same assembly that's already loaded via project reference
-        var assembly = typeof(Relay.CLI.Commands.OptimizationContext).Assembly;
+        var assembly = typeof(OptimizationContext).Assembly;
         return assembly.GetTypes().First(t => t.Name == "ValidationIssue");
     }
 

@@ -4,6 +4,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spectre.Console;
+using ValidationResult = Relay.CLI.Commands.Models.Validation.ValidationResult;
+using ValidationStatus = Relay.CLI.Commands.Models.Validation.ValidationStatus;
+using ValidationSeverity = Relay.CLI.Commands.Models.Validation.ValidationSeverity;
 
 namespace Relay.CLI.Commands;
 

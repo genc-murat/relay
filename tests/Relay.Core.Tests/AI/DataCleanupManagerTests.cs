@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
+using Relay.Core.AI.Optimization.Strategies;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

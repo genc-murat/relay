@@ -2,7 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Strategies
 {
     /// <summary>
     /// Manages caching strategies for connection metrics and optimization data

@@ -1,4 +1,4 @@
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Batching
 {
     /// <summary>
     /// Available batching strategies.

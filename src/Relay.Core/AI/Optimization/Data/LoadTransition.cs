@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Data
 {
     /// <summary>
     /// Represents a transition between load levels

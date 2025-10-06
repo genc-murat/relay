@@ -1,4 +1,4 @@
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Data
 {
     /// <summary>
     /// Metrics for threshold optimization using ROC curve analysis

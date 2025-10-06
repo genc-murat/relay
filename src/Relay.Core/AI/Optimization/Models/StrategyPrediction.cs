@@ -1,6 +1,6 @@
 using Microsoft.ML.Data;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Models
 {
     internal class StrategyPrediction
     {

@@ -159,14 +159,36 @@ public class TemplatePublisher
         }
         finally
         {
-            // Cleanup temporary directory
+            // Cleanup temporary directory with retry logic for Windows file handle delays
             if (Directory.Exists(tempPackageDir))
             {
-                Directory.Delete(tempPackageDir, true);
+                await TryDeleteDirectoryAsync(tempPackageDir);
             }
         }
 
         await Task.CompletedTask;
+    }
+
+    private static async Task TryDeleteDirectoryAsync(string directoryPath, int maxRetries = 3, int delayMs = 100)
+    {
+        for (int i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                Directory.Delete(directoryPath, true);
+                return;
+            }
+            catch (IOException) when (i < maxRetries - 1)
+            {
+                // File handles may still be open on Windows, wait and retry
+                await Task.Delay(delayMs);
+            }
+            catch (UnauthorizedAccessException) when (i < maxRetries - 1)
+            {
+                // File handles may still be open on Windows, wait and retry
+                await Task.Delay(delayMs);
+            }
+        }
     }
 
     private async Task CopyTemplateFilesAsync(string sourceDir, string targetDir)

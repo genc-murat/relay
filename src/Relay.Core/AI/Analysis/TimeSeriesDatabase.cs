@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using Microsoft.ML.TimeSeries;
+using Relay.Core.AI.Optimization.Models;
 
 namespace Relay.Core.AI
 {

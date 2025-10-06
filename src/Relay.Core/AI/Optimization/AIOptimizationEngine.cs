@@ -6,6 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Relay.Core.AI.Optimization.Models;
+using Relay.Core.AI.Optimization.Strategies;
+using Relay.Core.AI.Optimization.Data;
+using Relay.Core.AI.Optimization.Contexts;
 
 namespace Relay.Core.AI
 {

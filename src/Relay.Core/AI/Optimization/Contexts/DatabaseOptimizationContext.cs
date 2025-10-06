@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Contexts
 {
     /// <summary>
     /// Context for database optimization operations.

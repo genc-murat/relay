@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Batching
 {
     /// <summary>
     /// Result of batch execution.

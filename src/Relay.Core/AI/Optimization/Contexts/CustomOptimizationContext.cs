@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Contexts
 {
     /// <summary>
     /// Context for custom optimization operations.

@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Contexts
 {
     /// <summary>
     /// Statistics for parallel processing operations.

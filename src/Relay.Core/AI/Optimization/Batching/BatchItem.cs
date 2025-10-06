@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Batching
 {
     /// <summary>
     /// Represents a batch item waiting for processing.

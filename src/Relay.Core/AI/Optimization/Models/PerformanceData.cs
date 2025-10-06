@@ -1,4 +1,4 @@
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Models
 {
     // ML.NET Data Classes
     internal class PerformanceData

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using Relay.Core.AI.Optimization.Strategies;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Contexts
 {
     /// <summary>
     /// Statistics for custom optimization operations.

@@ -1,4 +1,4 @@
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Contexts
 {
     /// <summary>
     /// Statistics for memory pool operations.

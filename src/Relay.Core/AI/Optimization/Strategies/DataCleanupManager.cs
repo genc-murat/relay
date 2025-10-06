@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Strategies
 {
     /// <summary>
     /// Manages cleanup of old data to prevent memory leaks.

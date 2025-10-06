@@ -1,4 +1,5 @@
 using System;
+using Relay.Core.AI.Optimization.Batching;
 
 namespace Relay.Core.AI
 {

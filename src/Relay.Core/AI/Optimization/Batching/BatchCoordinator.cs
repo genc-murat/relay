@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Batching
 {
     /// <summary>
     /// Coordinates batch processing of requests.

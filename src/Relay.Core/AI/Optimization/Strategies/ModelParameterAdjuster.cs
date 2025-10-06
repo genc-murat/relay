@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Strategies
 {
     /// <summary>
     /// Adjusts machine learning model parameters based on performance feedback

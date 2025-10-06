@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Telemetry;
+using Relay.Core.AI.Optimization.Contexts;
 
 namespace Relay.Core.AI
 {

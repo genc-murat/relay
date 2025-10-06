@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Data
 {
     /// <summary>
     /// Load pattern data for analysis

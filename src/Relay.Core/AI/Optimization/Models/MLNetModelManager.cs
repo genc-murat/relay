@@ -7,7 +7,7 @@ using Microsoft.ML.Trainers;
 using Microsoft.ML.Trainers.FastTree;
 using Microsoft.ML.TimeSeries;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Optimization.Models
 {
     /// <summary>
     /// ML.NET model manager for AI optimization predictions

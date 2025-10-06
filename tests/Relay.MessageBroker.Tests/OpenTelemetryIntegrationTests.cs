@@ -2,6 +2,7 @@ using FluentAssertions;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using Relay.MessageBroker.Telemetry;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Xunit;
 
@@ -336,9 +337,9 @@ public class OpenTelemetryIntegrationTests
     {
         // Arrange
         var activitySource = new ActivitySource(ActivitySourceName);
-        var exportedActivities = new List<Activity>();
+        var exportedActivities = new ConcurrentBag<Activity>();
         var exporter = new TestExporter(exportedActivities);
-        
+
         // Use ParentBased sampler with AlwaysOffSampler as root
         using var tracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddSource(ActivitySourceName)
@@ -368,7 +369,7 @@ public class OpenTelemetryIntegrationTests
     public void BatchExporter_ShouldSupportBatchProcessing()
     {
         // Arrange
-        var exportedActivities = new List<Activity>();
+        var exportedActivities = new ConcurrentBag<Activity>();
         var exporter = new TestExporter(exportedActivities);
 
         using var tracerProvider = Sdk.CreateTracerProviderBuilder()
@@ -433,9 +434,9 @@ public class MessageBrokerTracingOptions
 
 public class TestExporter : BaseExporter<Activity>
 {
-    private readonly List<Activity> _exportedActivities;
+    private readonly ConcurrentBag<Activity> _exportedActivities;
 
-    public TestExporter(List<Activity> exportedActivities)
+    public TestExporter(ConcurrentBag<Activity> exportedActivities)
     {
         _exportedActivities = exportedActivities;
     }

@@ -1125,8 +1125,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    [InlineData(null)]
-    public void InitCommand_InvalidProjectNames_ShouldBeRejected(string projectName)
+    [InlineData(null!)]
+    public void InitCommand_InvalidProjectNames_ShouldBeRejected(string? projectName)
     {
         // Arrange & Act
         var isValid = !string.IsNullOrWhiteSpace(projectName);

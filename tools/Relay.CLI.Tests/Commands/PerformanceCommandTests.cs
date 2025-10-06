@@ -400,7 +400,6 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
     {
         // Arrange
         var totalRequests = 1000;
-        var cacheHits = 800;
         var cacheMisses = 200;
 
         // Act

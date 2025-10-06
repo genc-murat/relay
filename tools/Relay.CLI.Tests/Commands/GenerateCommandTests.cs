@@ -547,6 +547,7 @@ public class CreateUserHandler";
 
         // Assert
         requestContent.Should().Contain(expectedInterface);
+        _ = returnType; // Parameter is used to describe test cases
     }
 
     [Fact]

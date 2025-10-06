@@ -618,7 +618,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldValidateResponseTypes()
+    public void ValidateCommand_ShouldValidateResponseTypes()
     {
         // Arrange
         var response = "public record UserResponse(int Id, string Name, string Email);";
@@ -633,7 +633,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldCheckHandlerMethodSignature()
+    public void ValidateCommand_ShouldCheckHandlerMethodSignature()
     {
         // Arrange
         var validSignature = "public async ValueTask<UserResponse> HandleAsync(GetUserQuery request, CancellationToken cancellationToken)";
@@ -654,7 +654,7 @@ public record TestRequest : IRequest<string>;";
     [InlineData("CreateUserCommand", "Create", "Command")]
     [InlineData("UpdateUserCommand", "Update", "Command")]
     [InlineData("DeleteUserCommand", "Delete", "Command")]
-    public async Task ValidateCommand_ShouldRecognizeCQRSPatterns(string requestName, string action, string type)
+    public void ValidateCommand_ShouldRecognizeCQRSPatterns(string requestName, string action, string type)
     {
         // Act
         var isValid = requestName.StartsWith(action) && requestName.EndsWith(type);
@@ -664,7 +664,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldDetectMissingHandleAttribute()
+    public void ValidateCommand_ShouldDetectMissingHandleAttribute()
     {
         // Arrange
         var handlerWithoutAttribute = @"public class Handler
@@ -680,7 +680,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldValidateMultipleHandlersInSameFile()
+    public void ValidateCommand_ShouldValidateMultipleHandlersInSameFile()
     {
         // Arrange
         var multipleHandlers = @"
@@ -696,7 +696,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldCheckSuggestions()
+    public void ValidateCommand_ShouldCheckSuggestions()
     {
         // Arrange
         var suggestion = "Add Relay.Core package: dotnet add package Relay.Core";
@@ -709,7 +709,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldValidateCriticalSeverity()
+    public void ValidateCommand_ShouldValidateCriticalSeverity()
     {
         // Arrange
         var severity = "Critical";
@@ -722,7 +722,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldValidateMediumSeverity()
+    public void ValidateCommand_ShouldValidateMediumSeverity()
     {
         // Arrange
         var severity = "Medium";
@@ -735,7 +735,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldValidateInfoSeverity()
+    public void ValidateCommand_ShouldValidateInfoSeverity()
     {
         // Arrange
         var severity = "Info";

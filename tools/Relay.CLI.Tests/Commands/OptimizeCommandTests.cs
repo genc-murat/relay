@@ -556,7 +556,7 @@ using (var stream = File.OpenRead(""file.txt""))
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldDetectRecursion()
+    public void OptimizeCommand_ShouldDetectRecursion()
     {
         // Arrange
         var recursive = @"
@@ -571,7 +571,7 @@ public int Factorial(int n)
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSuggestIterativeApproach()
+    public void OptimizeCommand_ShouldSuggestIterativeApproach()
     {
         // Arrange
         var iterative = @"
@@ -589,10 +589,9 @@ public int Calculate(int n)
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldDetectRegexCompilation()
+    public void OptimizeCommand_ShouldDetectRegexCompilation()
     {
         // Arrange
-        var notCompiled = "new Regex(pattern)";
         var compiled = "new Regex(pattern, RegexOptions.Compiled)";
 
         // Assert
@@ -600,7 +599,7 @@ public int Calculate(int n)
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSuggestGeneratedRegex()
+    public void OptimizeCommand_ShouldSuggestGeneratedRegex()
     {
         // Arrange
         var generated = @"
@@ -612,7 +611,7 @@ private static partial Regex MyRegex();";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldDetectExcessiveReflection()
+    public void OptimizeCommand_ShouldDetectExcessiveReflection()
     {
         // Arrange
         var reflection = "type.GetMethod(\"MethodName\").Invoke(obj, args)";
@@ -623,7 +622,7 @@ private static partial Regex MyRegex();";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSuggestExpressionCompilation()
+    public void OptimizeCommand_ShouldSuggestExpressionCompilation()
     {
         // Arrange
         var expression = "Expression.Lambda<Func<int, int>>(body, param).Compile()";
@@ -633,10 +632,9 @@ private static partial Regex MyRegex();";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldDetectDateTimeNow()
+    public void OptimizeCommand_ShouldDetectDateTimeNow()
     {
         // Arrange
-        var now = "DateTime.Now";
         var utcNow = "DateTime.UtcNow";
 
         // Assert
@@ -644,7 +642,7 @@ private static partial Regex MyRegex();";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSuggestDateTimeOffset()
+    public void OptimizeCommand_ShouldSuggestDateTimeOffset()
     {
         // Arrange
         var better = "DateTimeOffset.UtcNow";
@@ -654,7 +652,7 @@ private static partial Regex MyRegex();";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldDetectGuidNewGuid()
+    public void OptimizeCommand_ShouldDetectGuidNewGuid()
     {
         // Arrange
         var standard = "Guid.NewGuid()";
@@ -664,7 +662,7 @@ private static partial Regex MyRegex();";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSuggestSequentialGuid()
+    public void OptimizeCommand_ShouldSuggestSequentialGuid()
     {
         // Arrange
         var sequential = "// Consider sequential GUID for database";
@@ -674,7 +672,7 @@ private static partial Regex MyRegex();";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldDetectAsyncOverSync()
+    public void OptimizeCommand_ShouldDetectAsyncOverSync()
     {
         // Arrange
         var syncOverAsync = "result = asyncMethod.Result;";
@@ -686,7 +684,7 @@ private static partial Regex MyRegex();";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSuggestCachingStrategy()
+    public void OptimizeCommand_ShouldSuggestCachingStrategy()
     {
         // Arrange
         var withCache = @"
@@ -699,7 +697,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldDetectLazyInitialization()
+    public void OptimizeCommand_ShouldDetectLazyInitialization()
     {
         // Arrange
         var lazy = "private readonly Lazy<ExpensiveObject> _obj = new(() => new ExpensiveObject());";
@@ -709,7 +707,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSuggestObjectPooling()
+    public void OptimizeCommand_ShouldSuggestObjectPooling()
     {
         // Arrange
         var pooled = "var obj = ObjectPool<MyObject>.Shared.Get();";
@@ -719,7 +717,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldDetectImmutableCollections()
+    public void OptimizeCommand_ShouldDetectImmutableCollections()
     {
         // Arrange
         var immutable = "ImmutableList<int>.Create(1, 2, 3)";
@@ -729,7 +727,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSuggestFrozenCollections()
+    public void OptimizeCommand_ShouldSuggestFrozenCollections()
     {
         // Arrange
         var frozen = "FrozenDictionary.ToFrozenDictionary(items)";
@@ -739,7 +737,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldCalculateOptimizationScore()
+    public void OptimizeCommand_ShouldCalculateOptimizationScore()
     {
         // Arrange
         var optimizations = new[]
@@ -758,7 +756,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldPrioritizeOptimizations()
+    public void OptimizeCommand_ShouldPrioritizeOptimizations()
     {
         // Arrange
         var priorities = new[]
@@ -778,7 +776,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldGenerateBeforeAfterComparison()
+    public void OptimizeCommand_ShouldGenerateBeforeAfterComparison()
     {
         // Arrange
         var comparison = new
@@ -795,7 +793,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSupportDryRun()
+    public void OptimizeCommand_ShouldSupportDryRun()
     {
         // Arrange
         var dryRun = true;
@@ -808,7 +806,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldValidateOptimizations()
+    public void OptimizeCommand_ShouldValidateOptimizations()
     {
         // Arrange
         var validationPassed = true;
@@ -818,7 +816,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
     }
 
     [Fact]
-    public async Task OptimizeCommand_ShouldSupportAggressiveMode()
+    public void OptimizeCommand_ShouldSupportAggressiveMode()
     {
         // Arrange
         var aggressiveMode = true;

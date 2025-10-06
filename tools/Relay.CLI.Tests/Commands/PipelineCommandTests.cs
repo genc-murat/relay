@@ -37,7 +37,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldSkipStages_WhenSkipOptionProvided()
+    public void Pipeline_ShouldSkipStages_WhenSkipOptionProvided()
     {
         // Arrange
         var skipStages = new[] { "init", "doctor" };
@@ -53,7 +53,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_InitStage_ShouldCreateProjectStructure()
+    public void Pipeline_InitStage_ShouldCreateProjectStructure()
     {
         // Arrange
         var testPath = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
@@ -77,7 +77,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_DoctorStage_ShouldDetectHealthIssues()
+    public void Pipeline_DoctorStage_ShouldDetectHealthIssues()
     {
         // Arrange
         var diagnostics = new List<(string Category, bool Pass)>
@@ -95,7 +95,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ValidateStage_ShouldValidateCode()
+    public void Pipeline_ValidateStage_ShouldValidateCode()
     {
         // Arrange
         var validationResults = new List<string>();
@@ -111,7 +111,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_OptimizeStage_ShouldApplyOptimizations()
+    public void Pipeline_OptimizeStage_ShouldApplyOptimizations()
     {
         // Arrange
         var optimizations = new List<(string Type, string Impact)>
@@ -167,7 +167,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldRunInCIMode_WhenCIFlagSet()
+    public void Pipeline_ShouldRunInCIMode_WhenCIFlagSet()
     {
         // Arrange
         var ciMode = true;
@@ -189,7 +189,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldCalculateSuccessRate()
+    public void Pipeline_ShouldCalculateSuccessRate()
     {
         // Arrange
         var stages = new[]
@@ -210,7 +210,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldStopOnCriticalError_WhenDoctorFails()
+    public void Pipeline_ShouldStopOnCriticalError_WhenDoctorFails()
     {
         // Arrange
         var stages = new List<string> { "init", "doctor", "validate", "optimize" };
@@ -237,7 +237,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldUseAggressiveOptimizations_WhenFlagSet()
+    public void Pipeline_ShouldUseAggressiveOptimizations_WhenFlagSet()
     {
         // Arrange
         var aggressive = true;
@@ -259,7 +259,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldAutoFixIssues_WhenAutoFixEnabled()
+    public void Pipeline_ShouldAutoFixIssues_WhenAutoFixEnabled()
     {
         // Arrange
         var autoFix = true;
@@ -283,7 +283,7 @@ public class PipelineCommandTests
     [InlineData("minimal")]
     [InlineData("standard")]
     [InlineData("enterprise")]
-    public async Task Pipeline_ShouldSupportAllTemplates(string template)
+    public void Pipeline_ShouldSupportAllTemplates(string template)
     {
         // Arrange & Act
         var validTemplates = new[] { "minimal", "standard", "enterprise" };
@@ -329,7 +329,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldReturnExitCode0_WhenSuccessful()
+    public void Pipeline_ShouldReturnExitCode0_WhenSuccessful()
     {
         // Arrange
         var allStagesSuccessful = true;
@@ -342,7 +342,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldReturnExitCode1_WhenFailed()
+    public void Pipeline_ShouldReturnExitCode1_WhenFailed()
     {
         // Arrange
         var allStagesSuccessful = false;
@@ -355,7 +355,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldReturnExitCode130_WhenCancelled()
+    public void Pipeline_ShouldReturnExitCode130_WhenCancelled()
     {
         // Arrange
         var cancelled = true;
@@ -368,7 +368,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldNotRunInit_WhenProjectNameIsNull()
+    public void Pipeline_ShouldNotRunInit_WhenProjectNameIsNull()
     {
         // Arrange
         string? projectName = null;
@@ -386,7 +386,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldIncludeTemplateInInitDetails()
+    public void Pipeline_ShouldIncludeTemplateInInitDetails()
     {
         // Arrange
         var template = "enterprise";
@@ -400,7 +400,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldIncludeLocationInInitDetails()
+    public void Pipeline_ShouldIncludeLocationInInitDetails()
     {
         // Arrange
         var path = @"C:\projects\test";
@@ -570,7 +570,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_Report_ShouldIncludeGeneratedTimestamp()
+    public void Pipeline_Report_ShouldIncludeGeneratedTimestamp()
     {
         // Arrange
         var now = DateTime.Now;
@@ -584,7 +584,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_Report_ShouldIncludeSuccessStatus()
+    public void Pipeline_Report_ShouldIncludeSuccessStatus()
     {
         // Arrange
         var success = true;
@@ -598,7 +598,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_Report_ShouldIncludeFailedStatus()
+    public void Pipeline_Report_ShouldIncludeFailedStatus()
     {
         // Arrange
         var success = false;
@@ -612,7 +612,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_Report_ShouldIncludeTotalDuration()
+    public void Pipeline_Report_ShouldIncludeTotalDuration()
     {
         // Arrange
         var duration = TimeSpan.FromSeconds(2.5);
@@ -626,7 +626,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_Report_ShouldIncludeStagesTable()
+    public void Pipeline_Report_ShouldIncludeStagesTable()
     {
         // Arrange
         var reportLines = new List<string>();
@@ -643,7 +643,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldCatchAndHandleGeneralExceptions()
+    public void Pipeline_ShouldCatchAndHandleGeneralExceptions()
     {
         // Arrange
         var exceptionCaught = false;
@@ -670,7 +670,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_InitStage_ShouldCaptureExceptionMessage()
+    public void Pipeline_InitStage_ShouldCaptureExceptionMessage()
     {
         // Arrange
         var errorMessage = "";
@@ -690,7 +690,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_DoctorStage_ShouldCaptureExceptionMessage()
+    public void Pipeline_DoctorStage_ShouldCaptureExceptionMessage()
     {
         // Arrange
         var errorMessage = "";
@@ -710,7 +710,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ValidateStage_ShouldCaptureExceptionMessage()
+    public void Pipeline_ValidateStage_ShouldCaptureExceptionMessage()
     {
         // Arrange
         var errorMessage = "";
@@ -730,7 +730,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_OptimizeStage_ShouldCaptureExceptionMessage()
+    public void Pipeline_OptimizeStage_ShouldCaptureExceptionMessage()
     {
         // Arrange
         var errorMessage = "";
@@ -755,7 +755,7 @@ public class PipelineCommandTests
     [InlineData(2, 50.0)]
     [InlineData(3, 75.0)]
     [InlineData(4, 100.0)]
-    public async Task Pipeline_ShouldCalculateCorrectSuccessRate(int successCount, double expectedRate)
+    public void Pipeline_ShouldCalculateCorrectSuccessRate(int successCount, double expectedRate)
     {
         // Arrange
         var totalStages = 4;
@@ -768,7 +768,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldDisplayNextSteps_WhenSuccessful()
+    public void Pipeline_ShouldDisplayNextSteps_WhenSuccessful()
     {
         // Arrange
         var success = true;
@@ -790,7 +790,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldNotDisplayNextSteps_WhenFailed()
+    public void Pipeline_ShouldNotDisplayNextSteps_WhenFailed()
     {
         // Arrange
         var success = false;
@@ -809,7 +809,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldCountCompletedStages()
+    public void Pipeline_ShouldCountCompletedStages()
     {
         // Arrange
         var stages = new[]
@@ -828,7 +828,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldFormatDurationCorrectly()
+    public void Pipeline_ShouldFormatDurationCorrectly()
     {
         // Arrange
         var duration = TimeSpan.FromMilliseconds(1234);
@@ -842,7 +842,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldDetermineOverallSuccess_WhenAllStagesPass()
+    public void Pipeline_ShouldDetermineOverallSuccess_WhenAllStagesPass()
     {
         // Arrange
         var stages = new[]
@@ -861,7 +861,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldDetermineOverallFailure_WhenAnyStagesFail()
+    public void Pipeline_ShouldDetermineOverallFailure_WhenAnyStagesFail()
     {
         // Arrange
         var stages = new[]
@@ -880,7 +880,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldFormatReportPath()
+    public void Pipeline_ShouldFormatReportPath()
     {
         // Arrange
         var reportPath = "pipeline-report.md";
@@ -897,7 +897,7 @@ public class PipelineCommandTests
     [InlineData("doctor")]
     [InlineData("validate")]
     [InlineData("optimize")]
-    public async Task Pipeline_ShouldRecognizeValidStageNames(string stageName)
+    public void Pipeline_ShouldRecognizeValidStageNames(string stageName)
     {
         // Arrange
         var validStages = new[] { "init", "doctor", "validate", "optimize" };
@@ -907,7 +907,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldHandleEmptySkipArray()
+    public void Pipeline_ShouldHandleEmptySkipArray()
     {
         // Arrange
         var skipStages = Array.Empty<string>();
@@ -921,7 +921,7 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task Pipeline_ShouldHandleMultipleSkipStages()
+    public void Pipeline_ShouldHandleMultipleSkipStages()
     {
         // Arrange
         var skipStages = new[] { "init", "doctor", "validate" };

@@ -764,7 +764,7 @@ public class MyExceptionHandler : IRequestExceptionHandler<MyRequest, MyResponse
 
         // Assert
         Assert.True(hasSuffix);
-        Assert.False(withoutSuffix.Contains("HandleAsync"));
+        Assert.DoesNotContain("HandleAsync", withoutSuffix);
     }
 
     [Fact]

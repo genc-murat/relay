@@ -935,6 +935,7 @@ private void UnusedMethod() // Never called
 
         // Assert
         isInRange.Should().BeTrue();
+        _ = category; // Parameter is used to describe test cases
     }
 
     [Fact]

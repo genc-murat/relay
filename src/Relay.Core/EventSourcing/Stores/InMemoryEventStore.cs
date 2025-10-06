@@ -1,3 +1,4 @@
+using Relay.Core.EventSourcing.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -5,7 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Stores;
 
 /// <summary>
 /// In-memory implementation of IEventStore for testing and development.

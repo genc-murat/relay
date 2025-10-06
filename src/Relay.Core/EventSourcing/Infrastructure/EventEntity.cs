@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Infrastructure;
 
 /// <summary>
 /// Database entity for storing events.

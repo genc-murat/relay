@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Infrastructure;
 
 /// <summary>
 /// Design-time factory for EventStoreDbContext.

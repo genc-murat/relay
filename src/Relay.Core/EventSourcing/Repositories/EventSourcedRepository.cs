@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.EventSourcing.Core;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Repositories;
 
 /// <summary>
 /// Implementation of IEventSourcedRepository for event-sourced aggregates.

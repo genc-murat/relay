@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Infrastructure;
 
 /// <summary>
 /// DbContext for event sourcing.

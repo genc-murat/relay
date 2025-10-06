@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Core;
 
 public abstract class AggregateRoot<TId>
 {

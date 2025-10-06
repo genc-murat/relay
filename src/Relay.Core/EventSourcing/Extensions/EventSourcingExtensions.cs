@@ -2,8 +2,10 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.EventSourcing.Core;
+using Relay.Core.EventSourcing.Infrastructure;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Extensions;
 
 /// <summary>
 /// Extension methods for configuring event sourcing with EF Core.

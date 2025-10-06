@@ -4,6 +4,9 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.EventSourcing;
+using Relay.Core.EventSourcing.Core;
+using Relay.Core.EventSourcing.Extensions;
+using Relay.Core.EventSourcing.Infrastructure;
 using Xunit;
 
 namespace Relay.Core.Tests.EventSourcing

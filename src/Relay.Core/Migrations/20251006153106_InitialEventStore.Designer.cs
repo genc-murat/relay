@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Relay.Core.EventSourcing;
+using Relay.Core.EventSourcing.Infrastructure;
 
 #nullable disable
 

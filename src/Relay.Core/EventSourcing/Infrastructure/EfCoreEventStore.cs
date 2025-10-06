@@ -1,13 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using Relay.Core.EventSourcing.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Infrastructure;
 
 /// <summary>
 /// EF Core implementation of IEventStore using PostgreSQL for persistence.

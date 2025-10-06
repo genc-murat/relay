@@ -3,6 +3,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Relay.Core.EventSourcing;
+using Relay.Core.EventSourcing.Core;
+using Relay.Core.EventSourcing.Repositories;
+using Relay.Core.EventSourcing.Stores;
 using Relay.Core.Extensions;
 using Xunit;
 

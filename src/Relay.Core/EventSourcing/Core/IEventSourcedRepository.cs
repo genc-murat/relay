@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Core;
 
 /// <summary>
 /// Interface for repositories that work with event-sourced aggregates.

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Core;
 
 /// <summary>
 /// Interface for event stores.

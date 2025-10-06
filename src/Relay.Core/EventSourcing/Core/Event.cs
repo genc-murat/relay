@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.EventSourcing;
+namespace Relay.Core.EventSourcing.Core;
 
 /// <summary>
 /// Base class for events in event sourcing.

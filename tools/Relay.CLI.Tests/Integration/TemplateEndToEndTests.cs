@@ -241,9 +241,18 @@ public class TemplateEndToEndTests : IDisposable
         var result = await _generator.GenerateAsync("relay-modular", projectName, _testOutputPath, options);
 
         // Assert
+        if (!result.Success)
+        {
+            Console.WriteLine($"Error: {result.Message}");
+            foreach (var error in result.Errors)
+            {
+                Console.WriteLine($"  - {error}");
+            }
+        }
+
         result.Success.Should().BeTrue();
         result.CreatedDirectories.Should().Contain(d => d.Contains("Modules"));
-        
+
         foreach (var module in options.Modules!)
         {
             result.CreatedDirectories.Should().Contain(d => d.Contains(module));

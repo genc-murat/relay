@@ -239,6 +239,21 @@ public class TemplateGenerator
             case "relay-webapi":
                 await GenerateWebApiFilesAsync(projectName, outputPath, options, result);
                 break;
+            case "relay-microservice":
+                await GenerateMicroserviceFilesAsync(projectName, outputPath, options, result);
+                break;
+            case "relay-ddd":
+                await GenerateDddFilesAsync(projectName, outputPath, options, result);
+                break;
+            case "relay-modular":
+                await GenerateModularFilesAsync(projectName, outputPath, options, result);
+                break;
+            case "relay-graphql":
+                await GenerateGraphQLFilesAsync(projectName, outputPath, options, result);
+                break;
+            case "relay-grpc":
+                await GenerateGrpcFilesAsync(projectName, outputPath, options, result);
+                break;
             default:
                 await GenerateBasicProjectAsync(projectName, outputPath, options, result);
                 break;
@@ -598,5 +613,203 @@ ENTRYPOINT [""dotnet"", ""Api.dll""]
 ";
         await File.WriteAllTextAsync(dockerfilePath, content);
         result.CreatedFiles.Add("Dockerfile");
+    }
+
+    private async Task GenerateMicroserviceFilesAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        await GenerateSolutionFileAsync(projectName, outputPath, result);
+        await GenerateBasicProjectAsync(projectName, outputPath, options, result);
+    }
+
+    private async Task GenerateDddFilesAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        await GenerateSolutionFileAsync(projectName, outputPath, result);
+        await GenerateApiProjectAsync(projectName, outputPath, options, result);
+        await GenerateApplicationProjectAsync(projectName, outputPath, options, result);
+        await GenerateDomainProjectAsync(projectName, outputPath, options, result);
+        await GenerateInfrastructureProjectAsync(projectName, outputPath, options, result);
+    }
+
+    private async Task GenerateModularFilesAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        await GenerateSolutionFileAsync(projectName, outputPath, result);
+
+        // Generate API project
+        var apiProjectPath = Path.Combine(outputPath, "src", $"{projectName}.Api", $"{projectName}.Api.csproj");
+        var apiContent = $@"<Project Sdk=""Microsoft.NET.Sdk.Web"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""Relay"" Version=""*"" />
+  </ItemGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(apiProjectPath, apiContent);
+        result.CreatedFiles.Add($"src/{projectName}.Api/{projectName}.Api.csproj");
+
+        // Generate shared project
+        var sharedProjectPath = Path.Combine(outputPath, "src", $"{projectName}.Shared", $"{projectName}.Shared.csproj");
+        var sharedContent = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(sharedProjectPath, sharedContent);
+        result.CreatedFiles.Add($"src/{projectName}.Shared/{projectName}.Shared.csproj");
+
+        // Generate module projects
+        var modules = options.Modules ?? new[] { "Catalog", "Orders" };
+        foreach (var module in modules)
+        {
+            var moduleProjectPath = Path.Combine(outputPath, "src", $"{projectName}.Modules", module, $"{module}.csproj");
+            var moduleContent = $@"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
+";
+            await File.WriteAllTextAsync(moduleProjectPath, moduleContent);
+            result.CreatedFiles.Add($"src/{projectName}.Modules/{module}/{module}.csproj");
+        }
+    }
+
+    private async Task GenerateGraphQLFilesAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        await GenerateSolutionFileAsync(projectName, outputPath, result);
+
+        // Generate main project with HotChocolate
+        var projectPath = Path.Combine(outputPath, "src", projectName, $"{projectName}.csproj");
+        var projectContent = $@"<Project Sdk=""Microsoft.NET.Sdk.Web"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""HotChocolate.AspNetCore"" Version=""13.9.0"" />
+    <PackageReference Include=""Relay"" Version=""*"" />
+  </ItemGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(projectPath, projectContent);
+        result.CreatedFiles.Add($"src/{projectName}/{projectName}.csproj");
+
+        // Generate Program.cs with GraphQL setup
+        var programPath = Path.Combine(outputPath, "src", projectName, "Program.cs");
+        var programContent = @"var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType<Query>()
+    .AddMutationType<Mutation>();
+
+var app = builder.Build();
+
+app.MapGraphQL();
+
+app.Run();
+
+public class Query
+{
+    public string Hello() => ""Hello from GraphQL!"";
+}
+
+public class Mutation
+{
+    public string Echo(string message) => message;
+}
+";
+        await File.WriteAllTextAsync(programPath, programContent);
+        result.CreatedFiles.Add($"src/{projectName}/Program.cs");
+    }
+
+    private async Task GenerateGrpcFilesAsync(string projectName, string outputPath, GenerationOptions options, GenerationResult result)
+    {
+        await GenerateSolutionFileAsync(projectName, outputPath, result);
+
+        // Generate main project with gRPC
+        var projectPath = Path.Combine(outputPath, "src", projectName, $"{projectName}.csproj");
+        var projectContent = $@"<Project Sdk=""Microsoft.NET.Sdk.Web"">
+  <PropertyGroup>
+    <TargetFramework>{options.TargetFramework ?? "net8.0"}</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include=""Grpc.AspNetCore"" Version=""2.60.0"" />
+    <PackageReference Include=""Relay"" Version=""*"" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include=""Protos\greet.proto"" GrpcServices=""Server"" />
+  </ItemGroup>
+</Project>
+";
+        await File.WriteAllTextAsync(projectPath, projectContent);
+        result.CreatedFiles.Add($"src/{projectName}/{projectName}.csproj");
+
+        // Generate sample proto file
+        var protoPath = Path.Combine(outputPath, "src", projectName, "Protos", "greet.proto");
+        var protoContent = @"syntax = ""proto3"";
+
+option csharp_namespace = ""GrpcService"";
+
+package greet;
+
+service Greeter {
+  rpc SayHello (HelloRequest) returns (HelloReply);
+}
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloReply {
+  string message = 1;
+}
+";
+        await File.WriteAllTextAsync(protoPath, protoContent);
+        result.CreatedFiles.Add($"src/{projectName}/Protos/greet.proto");
+
+        // Generate Program.cs
+        var programPath = Path.Combine(outputPath, "src", projectName, "Program.cs");
+        var programContent = @"var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddGrpc();
+
+var app = builder.Build();
+
+app.MapGrpcService<GreeterService>();
+
+app.Run();
+";
+        await File.WriteAllTextAsync(programPath, programContent);
+        result.CreatedFiles.Add($"src/{projectName}/Program.cs");
+
+        // Generate sample service
+        var servicePath = Path.Combine(outputPath, "src", projectName, "Services", "GreeterService.cs");
+        var serviceContent = @"using Grpc.Core;
+
+namespace GrpcService.Services;
+
+public class GreeterService : Greeter.GreeterBase
+{
+    public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+    {
+        return Task.FromResult(new HelloReply
+        {
+            Message = ""Hello "" + request.Name
+        });
+    }
+}
+";
+        await File.WriteAllTextAsync(servicePath, serviceContent);
+        result.CreatedFiles.Add($"src/{projectName}/Services/GreeterService.cs");
     }
 }

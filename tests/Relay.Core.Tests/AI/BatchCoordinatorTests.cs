@@ -545,7 +545,7 @@ namespace Relay.Core.Tests.AI
         }
 
         [Fact]
-        public void BatchCoordinator_Should_Be_Thread_Safe()
+        public async Task BatchCoordinator_Should_Be_Thread_Safe()
         {
             // Arrange
             var coordinator = new BatchCoordinator<TestRequest, TestResponse>(
@@ -574,7 +574,7 @@ namespace Relay.Core.Tests.AI
             });
 
             // Wait for all to complete
-            Task.WaitAll(tasks, TimeSpan.FromSeconds(15));
+            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromSeconds(15));
 
             // Assert
             Assert.All(tasks, task => Assert.True(task.IsCompleted));

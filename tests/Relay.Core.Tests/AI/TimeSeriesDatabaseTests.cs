@@ -795,7 +795,7 @@ namespace Relay.Core.Tests.AI
         }
 
         [Fact]
-        public void TimeSeriesDatabase_Should_Handle_Concurrent_Access()
+        public async System.Threading.Tasks.Task TimeSeriesDatabase_Should_Handle_Concurrent_Access()
         {
             // Arrange
             var baseTime = DateTime.UtcNow;
@@ -814,7 +814,7 @@ namespace Relay.Core.Tests.AI
                 });
             }
 
-            System.Threading.Tasks.Task.WaitAll(tasks);
+            await System.Threading.Tasks.Task.WhenAll(tasks);
 
             // Assert
             for (int i = 0; i < 10; i++)

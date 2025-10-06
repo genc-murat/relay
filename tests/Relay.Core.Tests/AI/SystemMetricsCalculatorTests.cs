@@ -534,7 +534,7 @@ namespace Relay.Core.Tests.AI
         #region Integration Tests
 
         [Fact]
-        public void SystemMetricsCalculator_Should_Handle_Concurrent_Access()
+        public async Task SystemMetricsCalculator_Should_Handle_Concurrent_Access()
         {
             // Arrange
             var tasks = Enumerable.Range(0, 10).Select(i => Task.Run(() =>
@@ -544,7 +544,7 @@ namespace Relay.Core.Tests.AI
             })).ToArray();
 
             // Act
-            Task.WaitAll(tasks);
+            await Task.WhenAll(tasks);
 
             var throughput = _calculator.CalculateCurrentThroughput();
             var responseTime = _calculator.CalculateAverageResponseTime();

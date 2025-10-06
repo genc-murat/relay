@@ -582,7 +582,7 @@ namespace Relay.Core.Tests.AI
             manager.CleanupOldData();
 
             // Assert
-            Assert.Equal(1, _recentPredictions.Count); // Only recent one should remain
+            Assert.Single(_recentPredictions); // Only recent one should remain
         }
 
         [Fact]

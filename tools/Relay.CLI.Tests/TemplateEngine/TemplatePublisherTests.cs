@@ -430,7 +430,7 @@ public class TemplatePublisherTests : IDisposable
     {
         // Arrange
         var templatePath = CreateValidTemplate();
-        var tempPathBefore = Directory.GetDirectories(Path.GetTempPath(), "relay_template_*").Length;
+        var tempDirsBefore = Directory.GetDirectories(Path.GetTempPath(), "relay_template_*").ToHashSet();
 
         // Act
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
@@ -441,8 +441,11 @@ public class TemplatePublisherTests : IDisposable
         // Give cleanup a moment
         await Task.Delay(100);
 
-        var tempPathAfter = Directory.GetDirectories(Path.GetTempPath(), "relay_template_*").Length;
-        tempPathAfter.Should().Be(tempPathBefore, "temporary directories should be cleaned up");
+        var tempDirsAfter = Directory.GetDirectories(Path.GetTempPath(), "relay_template_*").ToHashSet();
+
+        // Check that no new temporary directories were left behind
+        var newTempDirs = tempDirsAfter.Except(tempDirsBefore).ToList();
+        newTempDirs.Should().BeEmpty("temporary directories created during the operation should be cleaned up");
     }
 
     private string CreateValidTemplate(string? suffix = null)

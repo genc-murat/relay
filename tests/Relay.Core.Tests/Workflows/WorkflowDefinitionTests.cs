@@ -107,8 +107,8 @@ public class WorkflowDefinitionTests
         // Assert
         Assert.Equal(2, definition.Steps.Count);
         Assert.NotNull(definition.Steps[0].ParallelSteps);
-        Assert.Equal(2, definition.Steps[0].ParallelSteps.Count);
+        Assert.Equal(2, definition.Steps[0].ParallelSteps!.Count);
         Assert.NotNull(definition.Steps[1].ElseSteps);
-        Assert.Single(definition.Steps[1].ElseSteps);
+        Assert.Single(definition.Steps[1].ElseSteps!);
     }
 }

@@ -536,7 +536,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldReturnExitCode2OnFailure()
+    public void ValidateCommand_ShouldReturnExitCode2OnFailure()
     {
         // Arrange
         var failCount = 3;
@@ -549,7 +549,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldCheckConfigurationFiles()
+    public void ValidateCommand_ShouldCheckConfigurationFiles()
     {
         // Arrange
         var config = "{\"relay\":{\"enableCaching\":true}}";
@@ -562,7 +562,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldDetectCircularDependencies()
+    public void ValidateCommand_ShouldDetectCircularDependencies()
     {
         // Arrange - This would be complex in real validation
         var hasCircularDep = false;
@@ -572,7 +572,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldValidateRequestNamingConventions()
+    public void ValidateCommand_ShouldValidateRequestNamingConventions()
     {
         // Arrange
         var validNames = new[] { "GetUserQuery", "CreateUserCommand", "UserRequest" };
@@ -586,7 +586,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldValidateHandlerNamingConventions()
+    public void ValidateCommand_ShouldValidateHandlerNamingConventions()
     {
         // Arrange
         var validNames = new[] { "GetUserHandler", "CreateUserCommandHandler", "UserRequestHandler" };
@@ -599,7 +599,7 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ShouldCheckFileOrganization()
+    public void ValidateCommand_ShouldCheckFileOrganization()
     {
         // Arrange
         var expectedFolders = new[] { "Handlers", "Requests", "Responses" };

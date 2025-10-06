@@ -162,6 +162,7 @@ public class RelayPerformanceBenchmarks
 
         private static async IAsyncEnumerable<int> GenerateNumbers(int count, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
+            await Task.CompletedTask;
             for (int i = 0; i < count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();

@@ -54,6 +54,7 @@ namespace Relay.Core.Tests
 
             static async IAsyncEnumerable<string> GenerateItems(int count)
             {
+                await Task.CompletedTask;
                 for (int i = 0; i < count; i++)
                 {
                     yield return $"Item {i}";
@@ -100,6 +101,7 @@ namespace Relay.Core.Tests
 
             static async IAsyncEnumerable<string> GenerateTestItems()
             {
+                await Task.CompletedTask;
                 yield return "item1";
                 yield return "item2";
             }

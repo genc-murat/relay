@@ -245,6 +245,7 @@ public class TestStreamDispatcher : IStreamDispatcher
 
     private static async IAsyncEnumerable<TResponse> GenerateItems<TResponse>()
     {
+        await Task.CompletedTask;
         yield return (TResponse)(object)"Item1";
         yield return (TResponse)(object)"Item2";
         yield return (TResponse)(object)"Item3";

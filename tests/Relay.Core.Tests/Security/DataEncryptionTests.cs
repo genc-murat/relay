@@ -145,7 +145,7 @@ namespace Relay.Core.Tests.Security
             var encryptor = new AesDataEncryptor(logger, key);
 
             // Act & Assert
-            encryptor.Encrypt(null).Should().BeNull();
+            encryptor.Encrypt(null!).Should().BeNull();
             encryptor.Encrypt("").Should().Be("");
             encryptor.Encrypt(" ").Should().Be(" ");
         }
@@ -159,7 +159,7 @@ namespace Relay.Core.Tests.Security
             var encryptor = new AesDataEncryptor(logger, key);
 
             // Act & Assert
-            encryptor.Decrypt(null).Should().BeNull();
+            encryptor.Decrypt(null!).Should().BeNull();
             encryptor.Decrypt("").Should().Be("");
             encryptor.Decrypt(" ").Should().Be(" ");
         }

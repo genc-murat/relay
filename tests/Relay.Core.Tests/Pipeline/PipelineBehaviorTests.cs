@@ -140,6 +140,7 @@ namespace Relay.Core.Tests
 
             static async IAsyncEnumerable<string> GenerateItems()
             {
+                await Task.CompletedTask;
                 yield return "item1";
                 yield return "item2";
             }

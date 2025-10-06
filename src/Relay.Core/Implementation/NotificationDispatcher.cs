@@ -8,62 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Relay.Core
 {
-    /// <summary>
-    /// Configuration options for notification dispatching.
-    /// </summary>
-    public class NotificationDispatchOptions
-    {
-        /// <summary>
-        /// Gets or sets the default dispatch mode for notifications.
-        /// </summary>
-        public NotificationDispatchMode DefaultDispatchMode { get; set; } = NotificationDispatchMode.Parallel;
-
-        /// <summary>
-        /// Gets or sets whether to continue execution when a handler throws an exception.
-        /// </summary>
-        public bool ContinueOnException { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets the maximum degree of parallelism for parallel dispatch.
-        /// </summary>
-        public int MaxDegreeOfParallelism { get; set; } = Environment.ProcessorCount;
-    }
-
-    /// <summary>
-    /// Represents a notification handler registration with metadata.
-    /// </summary>
-    public class NotificationHandlerRegistration
-    {
-        /// <summary>
-        /// Gets or sets the notification type.
-        /// </summary>
-        public Type NotificationType { get; set; } = null!;
-
-        /// <summary>
-        /// Gets or sets the handler type.
-        /// </summary>
-        public Type HandlerType { get; set; } = null!;
-
-        /// <summary>
-        /// Gets or sets the dispatch mode for this handler.
-        /// </summary>
-        public NotificationDispatchMode DispatchMode { get; set; }
-
-        /// <summary>
-        /// Gets or sets the priority of this handler. Higher values indicate higher priority.
-        /// </summary>
-        public int Priority { get; set; }
-
-        /// <summary>
-        /// Gets or sets the handler factory function.
-        /// </summary>
-        public Func<IServiceProvider, object> HandlerFactory { get; set; } = null!;
-
-        /// <summary>
-        /// Gets or sets the handler execution function.
-        /// </summary>
-        public Func<object, INotification, CancellationToken, ValueTask> ExecuteHandler { get; set; } = null!;
-    }
 
     /// <summary>
     /// Default implementation of notification dispatcher with configurable dispatch strategies.

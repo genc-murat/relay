@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Options;
+using Relay.Core.Configuration.Options;
 
-namespace Relay.Core.Configuration;
+namespace Relay.Core.Configuration.Core;
 
 /// <summary>
 /// Validator for Relay configuration options.

@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
 
 namespace Relay.Core
 {

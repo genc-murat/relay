@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Relay.Core.Configuration;
+namespace Relay.Core.Configuration.Options;
 
 /// <summary>
 /// Global configuration options for the Relay framework.

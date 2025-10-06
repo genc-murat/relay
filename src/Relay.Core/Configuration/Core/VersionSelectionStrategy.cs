@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration;
+namespace Relay.Core.Configuration.Core;
 
 /// <summary>
 /// Strategies for version selection.

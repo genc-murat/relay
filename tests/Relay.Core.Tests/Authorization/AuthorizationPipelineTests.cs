@@ -8,6 +8,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Authorization;
 using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
 using Xunit;
 
 namespace Relay.Core.Tests.Authorization;

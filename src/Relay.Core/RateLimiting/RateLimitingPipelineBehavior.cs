@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
 
 namespace Relay.Core.RateLimiting
 {

@@ -3,8 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Core;
 
-namespace Relay.Core.Configuration;
+namespace Relay.Core.Configuration.Core;
 
 /// <summary>
 /// Extension methods for configuring Relay framework options.

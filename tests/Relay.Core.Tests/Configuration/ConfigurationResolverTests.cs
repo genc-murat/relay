@@ -1,6 +1,7 @@
-using System;
 using Microsoft.Extensions.Options;
-using Relay.Core.Configuration;
+using Relay.Core.Configuration.Core;
+using Relay.Core.Configuration.Options;
+using System;
 using Xunit;
 
 namespace Relay.Core.Tests.Configuration

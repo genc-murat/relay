@@ -1,6 +1,7 @@
 using System;
+using Relay.Core.Configuration.Resolved;
 
-namespace Relay.Core.Configuration;
+namespace Relay.Core.Configuration.Core;
 
 /// <summary>
 /// Interface for resolving configuration values with attribute parameter overrides.

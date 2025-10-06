@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.ObjectPool;
 using System;
 using System.Buffers;
-using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
 
 namespace Relay.Core.Performance
 {

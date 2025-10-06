@@ -1,13 +1,12 @@
-using System;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
 using Relay.Core.RateLimiting;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.RateLimiting

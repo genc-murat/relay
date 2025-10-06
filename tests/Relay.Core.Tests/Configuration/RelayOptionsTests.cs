@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
 using Xunit;
 
 namespace Relay.Core.Tests.Configuration

@@ -8,7 +8,8 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Core;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.Authorization;

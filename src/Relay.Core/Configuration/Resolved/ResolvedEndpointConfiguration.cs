@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration;
+namespace Relay.Core.Configuration.Resolved;
 
 /// <summary>
 /// Resolved configuration for an endpoint.

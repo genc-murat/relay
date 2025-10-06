@@ -1,7 +1,7 @@
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
-using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
+using System;
 
 namespace Relay
 {

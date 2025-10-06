@@ -1,9 +1,10 @@
-using System;
-using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Relay.Core.Configuration;
+using Relay.Core.Configuration.Core;
+using Relay.Core.Configuration.Options;
+using System;
+using System.Linq;
 using Xunit;
 
 namespace Relay.Core.Tests.Configuration

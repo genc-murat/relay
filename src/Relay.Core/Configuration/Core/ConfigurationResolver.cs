@@ -1,7 +1,9 @@
 using System;
 using Microsoft.Extensions.Options;
+using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Resolved;
 
-namespace Relay.Core.Configuration;
+namespace Relay.Core.Configuration.Core;
 
 /// <summary>
 /// Default implementation of configuration resolver that handles attribute parameter overrides.

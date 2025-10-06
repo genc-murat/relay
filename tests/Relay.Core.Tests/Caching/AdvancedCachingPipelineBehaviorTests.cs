@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.Caching;
 using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
 using Xunit;
 
 namespace Relay.Core.Tests.Caching

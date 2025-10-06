@@ -6,7 +6,8 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Relay.Core.Configuration;
+using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Core;
 
 namespace Relay.Core.DistributedTracing;
 

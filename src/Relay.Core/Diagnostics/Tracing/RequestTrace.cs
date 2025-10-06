@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Tracing;
 
 /// <summary>
 /// Represents a complete trace of a request execution

@@ -1,4 +1,10 @@
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Diagnostics.Core;
+using Relay.Core.Diagnostics.Metrics;
+using Relay.Core.Diagnostics.Tracing;
+using Relay.Core.Diagnostics.Validation;
+using Relay.Core.Diagnostics.Registry;
+using Relay.Core.Diagnostics.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -6,7 +12,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Services;
 
 /// <summary>
 /// Default implementation of IRelayDiagnostics

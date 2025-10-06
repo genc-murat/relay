@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Relay.Core.Diagnostics.Tracing;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Core;
 
 /// <summary>
 /// Interface for request tracing functionality

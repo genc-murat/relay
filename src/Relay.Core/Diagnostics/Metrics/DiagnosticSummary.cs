@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Metrics;
 
 /// <summary>
 /// Summary of diagnostic information

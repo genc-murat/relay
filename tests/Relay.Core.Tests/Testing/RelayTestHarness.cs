@@ -14,6 +14,12 @@ using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics;
+using Relay.Core.Diagnostics.Configuration;
+using Relay.Core.Diagnostics.Core;
+using Relay.Core.Diagnostics.Metrics;
+using Relay.Core.Diagnostics.Services;
+using Relay.Core.Diagnostics.Tracing;
+using Relay.Core.Diagnostics.Validation;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.Tests.Testing;

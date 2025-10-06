@@ -10,6 +10,8 @@ using Relay.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics;
+using Relay.Core.Diagnostics.Core;
+using Relay.Core.Diagnostics.Validation;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.Tests.Testing;

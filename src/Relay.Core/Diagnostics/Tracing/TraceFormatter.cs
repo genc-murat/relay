@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Tracing;
 
 /// <summary>
 /// Utilities for formatting request traces for display and logging

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Registry;
 
 /// <summary>
 /// Contains information about the current handler registry

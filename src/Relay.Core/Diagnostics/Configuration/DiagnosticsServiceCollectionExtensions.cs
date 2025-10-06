@@ -1,8 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Relay.Core.Diagnostics.Core;
+using Relay.Core.Diagnostics.Services;
+using Relay.Core.Diagnostics.Tracing;
 using System;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Configuration;
 
 /// <summary>
 /// Extension methods for registering Relay diagnostics services

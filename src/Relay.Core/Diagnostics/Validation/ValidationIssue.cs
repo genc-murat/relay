@@ -1,4 +1,4 @@
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Validation;
 
 /// <summary>
 /// A single validation issue

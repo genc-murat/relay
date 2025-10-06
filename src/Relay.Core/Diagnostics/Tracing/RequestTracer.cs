@@ -3,8 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Relay.Core.Diagnostics.Core;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Tracing;
 
 /// <summary>
 /// Default implementation of request tracing using AsyncLocal for context tracking

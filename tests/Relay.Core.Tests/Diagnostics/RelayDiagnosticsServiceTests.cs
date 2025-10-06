@@ -6,6 +6,10 @@ using Microsoft.Extensions.Options;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics;
+using Relay.Core.Diagnostics.Configuration;
+using Relay.Core.Diagnostics.Metrics;
+using Relay.Core.Diagnostics.Services;
+using Relay.Core.Diagnostics.Tracing;
 using Xunit;
 
 namespace Relay.Core.Tests.Diagnostics;

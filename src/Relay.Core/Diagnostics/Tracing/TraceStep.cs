@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Tracing;
 
 /// <summary>
 /// Represents a single step in request processing

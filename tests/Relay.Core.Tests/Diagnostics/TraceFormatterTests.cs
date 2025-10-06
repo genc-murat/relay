@@ -4,6 +4,7 @@ using System.Linq;
 using FluentAssertions;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics;
+using Relay.Core.Diagnostics.Tracing;
 using Xunit;
 
 namespace Relay.Core.Tests.Diagnostics;

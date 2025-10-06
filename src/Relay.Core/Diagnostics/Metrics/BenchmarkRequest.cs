@@ -1,4 +1,4 @@
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Metrics;
 
 /// <summary>
 /// Request model for running benchmarks

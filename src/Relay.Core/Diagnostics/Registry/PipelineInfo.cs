@@ -1,4 +1,4 @@
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Registry;
 
 /// <summary>
 /// Information about a registered pipeline behavior

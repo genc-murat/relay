@@ -8,8 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Diagnostics.Core;
+using Relay.Core.Diagnostics.Tracing;
+using Relay.Core.Diagnostics.Registry;
+using Relay.Core.Diagnostics.Configuration;
+using Relay.Core.Diagnostics.Metrics;
+using Relay.Core.Diagnostics.Validation;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Services;
 
 /// <summary>
 /// Service providing diagnostic endpoints for Relay runtime inspection

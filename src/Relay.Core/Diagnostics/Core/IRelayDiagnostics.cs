@@ -1,8 +1,12 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Diagnostics.Metrics;
+using Relay.Core.Diagnostics.Tracing;
+using Relay.Core.Diagnostics.Validation;
+using Relay.Core.Diagnostics.Registry;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Core;
 
 /// <summary>
 /// Provides diagnostic and inspection capabilities for Relay

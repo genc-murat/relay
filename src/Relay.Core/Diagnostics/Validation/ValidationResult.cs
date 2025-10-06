@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Validation;
 
 /// <summary>
 /// Result of configuration validation

@@ -1,10 +1,13 @@
+using FluentAssertions;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Diagnostics.Configuration;
+using Relay.Core.Diagnostics.Services;
+using Relay.Core.Diagnostics.Tracing;
+using Relay.Core.Diagnostics.Validation;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Contracts.Requests;
-using Relay.Core.Diagnostics;
 using Xunit;
 
 namespace Relay.Core.Tests.Diagnostics;

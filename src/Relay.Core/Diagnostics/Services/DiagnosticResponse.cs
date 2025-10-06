@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Services;
 
 /// <summary>
 /// Response wrapper for diagnostic operations

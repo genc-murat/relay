@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Metrics;
 
 /// <summary>
 /// Metrics for a specific handler.

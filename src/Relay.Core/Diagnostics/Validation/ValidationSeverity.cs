@@ -1,4 +1,4 @@
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Validation;
 
 /// <summary>
 /// Severity levels for validation issues

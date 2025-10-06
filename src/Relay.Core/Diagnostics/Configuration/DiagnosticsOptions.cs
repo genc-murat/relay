@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Diagnostics;
+namespace Relay.Core.Diagnostics.Configuration;
 
 /// <summary>
 /// Configuration options for Relay diagnostics

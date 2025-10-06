@@ -1,4 +1,4 @@
-namespace Relay.Core;
+namespace Relay.Core.Contracts.Requests;
 
 /// <summary>
 /// Marker interface for requests that return a response.

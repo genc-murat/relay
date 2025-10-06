@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Validation;
 
 namespace Relay.Core.Validation

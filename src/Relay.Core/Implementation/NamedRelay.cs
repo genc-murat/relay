@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core
 {

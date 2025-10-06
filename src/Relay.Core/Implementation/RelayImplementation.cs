@@ -1,15 +1,18 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Relay.Core.Configuration.Options;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Contracts.Infrastructure;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Relay.Core.Configuration.Options;
 
 namespace Relay.Core
 {

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Xunit;
 using Relay.Core;
 using Relay.Core.Performance;
+using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Tests.Performance;
 

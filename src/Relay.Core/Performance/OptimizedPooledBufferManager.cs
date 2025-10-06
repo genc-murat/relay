@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Performance;
 

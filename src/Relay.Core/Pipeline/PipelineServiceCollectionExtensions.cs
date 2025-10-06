@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Relay.Core.Contracts.Pipeline;
 using System;
 using System.Transactions;
 

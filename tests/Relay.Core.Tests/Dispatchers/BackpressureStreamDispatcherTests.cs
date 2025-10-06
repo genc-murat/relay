@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Tests.Testing;
 using Xunit;
 

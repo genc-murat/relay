@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Contracts.Pipeline;
 
-namespace Relay.Core;
+namespace Relay.Core.Contracts.Core;
 
 /// <summary>
 /// Interface for system modules that execute before user-defined pipeline behaviors.

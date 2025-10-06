@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Security;
 using Xunit;
 

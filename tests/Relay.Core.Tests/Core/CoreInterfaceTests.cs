@@ -8,6 +8,10 @@ using Xunit;
 using Relay.Core;
 using Relay.Core.Tests.Testing;
 using static Relay.Core.Tests.Testing.FluentAssertionsExtensions;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.Tests.Core;
 

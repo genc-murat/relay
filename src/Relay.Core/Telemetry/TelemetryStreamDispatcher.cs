@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.Telemetry;

@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Relay.Core.Configuration.Options;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Telemetry;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -8,9 +11,6 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using Relay.Core.Configuration.Options;
-using Relay.Core.Configuration.Core;
-using Relay.Core.Telemetry;
 
 namespace Relay.Core.Authorization;
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using Relay.Core.Workflows;
+using Relay.Core.Contracts.Core;
 
 namespace Relay.Core.Tests.Workflows;
 

@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Pipeline;
 using Xunit;
 

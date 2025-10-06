@@ -1,3 +1,5 @@
+using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -23,7 +25,8 @@ namespace Relay.Core
         public abstract IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken);
 
         /// <inheritdoc />
-        public abstract IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, string handlerName, CancellationToken cancellationToken);
+        public abstract IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request,
+            string handlerName, CancellationToken cancellationToken);
 
         /// <summary>
         /// Creates an async enumerable that throws a handler not found exception.

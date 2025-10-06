@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core;
+namespace Relay.Core.Contracts.Infrastructure;
 
 /// <summary>
 /// Factory delegate for resolving services from a service provider.

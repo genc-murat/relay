@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.Core;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Pipeline;
 using Relay.Core.Transactions;
 using Xunit;

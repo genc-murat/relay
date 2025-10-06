@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.ContractValidation;
 

@@ -1,12 +1,12 @@
+using FluentAssertions;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core;
-using Relay.Core.Telemetry;
 
 namespace Relay.Core.Tests.Testing;
 

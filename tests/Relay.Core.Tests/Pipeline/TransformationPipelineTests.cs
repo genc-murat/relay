@@ -2,6 +2,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
 using Xunit;
 
 namespace Relay.Core.Tests.Pipeline;

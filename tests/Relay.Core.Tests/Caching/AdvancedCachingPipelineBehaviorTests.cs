@@ -13,6 +13,8 @@ using Moq;
 using Relay.Core.Caching;
 using Relay.Core.Configuration;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
 using Xunit;
 
 namespace Relay.Core.Tests.Caching

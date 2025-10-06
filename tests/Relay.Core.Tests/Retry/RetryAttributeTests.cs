@@ -1,5 +1,6 @@
 using System;
 using FluentAssertions;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Retry;
 using Xunit;
 

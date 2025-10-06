@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.HandlerVersioning;
 using Xunit;
 

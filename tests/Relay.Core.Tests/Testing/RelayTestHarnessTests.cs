@@ -4,6 +4,10 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using Relay.Core;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Tests.Testing;
 using Xunit;
 

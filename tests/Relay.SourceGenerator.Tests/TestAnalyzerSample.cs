@@ -4,8 +4,8 @@ namespace Relay.SourceGenerator.Tests
 {
     // Test classes for analyzer validation
 
-    public class ValidTestRequest : RelayCore::Relay.Core.IRequest<string> { }
-    public class ValidTestNotification : RelayCore::Relay.Core.INotification { }
+    public class ValidTestRequest : RelayCore::Relay.Core.Contracts.Requests.IRequest<string> { }
+    public class ValidTestNotification : RelayCore::Relay.Core.Contracts.Requests.INotification { }
 
     public class ValidTestHandler
     {

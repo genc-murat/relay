@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Relay.Core.Contracts.Infrastructure;
+using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Extensions;
 
 namespace Relay.Core.Pipeline

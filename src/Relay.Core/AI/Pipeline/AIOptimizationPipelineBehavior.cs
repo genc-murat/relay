@@ -10,6 +10,8 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.AI

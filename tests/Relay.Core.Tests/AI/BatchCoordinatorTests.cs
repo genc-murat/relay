@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization.Batching;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
 using Xunit;
 
 namespace Relay.Core.Tests.AI
@@ -125,7 +127,7 @@ namespace Relay.Core.Tests.AI
                 logger: _logger);
 
             var request = new TestRequest { Value = "test" };
-            RequestHandlerDelegate<TestResponse> handler = () =>
+            Relay.Core.Contracts.Pipeline.RequestHandlerDelegate<TestResponse> handler = () =>
                 throw new InvalidOperationException("Test exception");
 
             var item = new BatchItem<TestRequest, TestResponse>

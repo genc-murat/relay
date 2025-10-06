@@ -38,6 +38,8 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine("using Microsoft.Extensions.DependencyInjection;");
             sourceBuilder.AppendLine("using Microsoft.Extensions.DependencyInjection.Extensions;");
             sourceBuilder.AppendLine("using Relay.Core;");
+            sourceBuilder.AppendLine("using Relay.Core.Contracts.Core;");
+            sourceBuilder.AppendLine("using Relay.Core.Contracts.Dispatchers;");
             sourceBuilder.AppendLine("using Relay.Generated;");
             sourceBuilder.AppendLine();
 
@@ -95,12 +97,12 @@ namespace Relay.SourceGenerator
 
             if (hasNotificationHandlers)
             {
-                sourceBuilder.AppendLine("            services.TryAddSingleton<INotificationDispatcher, Relay.Generated.GeneratedNotificationDispatcher>();");
+                sourceBuilder.AppendLine("            services.TryAddSingleton<INotificationDispatcher, GeneratedNotificationDispatcher>();");
             }
 
             sourceBuilder.AppendLine();
             sourceBuilder.AppendLine("            // Register endpoint metadata");
-            sourceBuilder.AppendLine("            Relay.Generated.GeneratedEndpointMetadata.RegisterEndpoints();");
+            sourceBuilder.AppendLine("            GeneratedEndpointMetadata.RegisterEndpoints();");
             sourceBuilder.AppendLine();
 
             // Register all handler types

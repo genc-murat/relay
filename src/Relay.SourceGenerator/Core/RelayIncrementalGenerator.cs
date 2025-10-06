@@ -185,22 +185,22 @@ namespace Relay.SourceGenerator
         private static bool IsRequestHandlerInterface(INamedTypeSymbol interfaceSymbol)
         {
             var fullName = interfaceSymbol.ToDisplayString();
-            return fullName.StartsWith("Relay.Core.IRequestHandler<") ||
-                   (interfaceSymbol.Name == "IRequestHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core");
+            return fullName.StartsWith("Relay.Core.Contracts.Handlers.IRequestHandler<") ||
+                   (interfaceSymbol.Name == "IRequestHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core.Contracts.Handlers");
         }
 
         private static bool IsNotificationHandlerInterface(INamedTypeSymbol interfaceSymbol)
         {
             var fullName = interfaceSymbol.ToDisplayString();
-            return fullName.StartsWith("Relay.Core.INotificationHandler<") ||
-                   (interfaceSymbol.Name == "INotificationHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core");
+            return fullName.StartsWith("Relay.Core.Contracts.Handlers.INotificationHandler<") ||
+                   (interfaceSymbol.Name == "INotificationHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core.Contracts.Handlers");
         }
 
         private static bool IsStreamHandlerInterface(INamedTypeSymbol interfaceSymbol)
         {
             var fullName = interfaceSymbol.ToDisplayString();
-            return fullName.StartsWith("Relay.Core.IStreamHandler<") ||
-                   (interfaceSymbol.Name == "IStreamHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core");
+            return fullName.StartsWith("Relay.Core.Contracts.Handlers.IStreamHandler<") ||
+                   (interfaceSymbol.Name == "IStreamHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core.Contracts.Handlers");
         }
 
         private static void Execute(SourceProductionContext context, (Compilation Left, ImmutableArray<HandlerClassInfo?> Right) source)
@@ -280,10 +280,10 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddRelayGenerated(this IServiceCollection services)
         {
             // Register core Relay services
-            services.TryAddTransient<IRelay, RelayImplementation>();
-            services.TryAddTransient<IRequestDispatcher, FallbackRequestDispatcher>();
-            services.TryAddTransient<IStreamDispatcher, StreamDispatcher>();
-            services.TryAddTransient<INotificationDispatcher, NotificationDispatcher>();
+            services.TryAddTransient<Relay.Core.Contracts.Core.IRelay, Relay.Core.RelayImplementation>();
+            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Core.FallbackRequestDispatcher>();
+            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IStreamDispatcher, Relay.Core.StreamDispatcher>();
+            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.INotificationDispatcher, Relay.Core.NotificationDispatcher>();
 
             return services;
         }
@@ -319,10 +319,10 @@ namespace Microsoft.Extensions.DependencyInjection
             sb.AppendLine("        public static IServiceCollection AddRelay(this IServiceCollection services)");
             sb.AppendLine("        {");
             sb.AppendLine("            // Register core Relay services");
-            sb.AppendLine("            services.TryAddTransient<IRelay, RelayImplementation>();");
-            sb.AppendLine("            services.TryAddTransient<IRequestDispatcher, FallbackRequestDispatcher>();");
-            sb.AppendLine("            services.TryAddTransient<IStreamDispatcher, StreamDispatcher>();");
-            sb.AppendLine("            services.TryAddTransient<INotificationDispatcher, NotificationDispatcher>();");
+            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Core.IRelay, Relay.Core.RelayImplementation>();");
+            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Core.FallbackRequestDispatcher>();");
+            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IStreamDispatcher, Relay.Core.StreamDispatcher>();");
+            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.INotificationDispatcher, Relay.Core.NotificationDispatcher>();");
             sb.AppendLine();
             sb.AppendLine("            // Register all discovered handlers");
 

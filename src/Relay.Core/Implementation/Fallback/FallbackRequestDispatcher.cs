@@ -1,3 +1,5 @@
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;

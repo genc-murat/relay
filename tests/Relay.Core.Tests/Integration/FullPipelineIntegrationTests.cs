@@ -9,6 +9,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Relay.Core;
 using Relay.Core.Tests.Testing;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.Tests.Integration;
 

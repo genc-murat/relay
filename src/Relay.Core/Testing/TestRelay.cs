@@ -1,3 +1,6 @@
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Infrastructure;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

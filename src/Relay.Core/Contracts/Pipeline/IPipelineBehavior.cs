@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core;
+namespace Relay.Core.Contracts.Pipeline;
 
 /// <summary>
 /// Delegate for the next handler in the request pipeline.

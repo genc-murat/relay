@@ -6,6 +6,10 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Infrastructure;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Tests.Testing;
 
 namespace Relay.Core.Tests.Performance;

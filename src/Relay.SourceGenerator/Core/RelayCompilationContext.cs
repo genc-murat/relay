@@ -58,9 +58,9 @@ namespace Relay.SourceGenerator
             // Fallback: detect by presence of known Relay.Core types in the compilation
             var knownTypeNames = new[]
             {
-                "Relay.Core.IRelay",
-                "Relay.Core.IRequest`1",
-                "Relay.Core.INotification"
+                "Relay.Core.Contracts.Core.IRelay",
+                "Relay.Core.Contracts.Requests.IRequest`1",
+                "Relay.Core.Contracts.Requests.INotification"
             };
 
             foreach (var typeName in knownTypeNames)

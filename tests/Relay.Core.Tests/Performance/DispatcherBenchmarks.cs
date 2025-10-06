@@ -9,6 +9,7 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Performance;
 
 namespace Relay.Core.Tests.Performance;

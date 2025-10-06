@@ -52,7 +52,7 @@ public interface IRelayDiagnostics
         TRequest request,
         int iterations = 1000,
         CancellationToken cancellationToken = default)
-        where TRequest : Core.IRequest;
+        where TRequest : Contracts.Requests.IRequest;
 
     /// <summary>
     /// Clears all diagnostic data (traces, metrics, etc.)

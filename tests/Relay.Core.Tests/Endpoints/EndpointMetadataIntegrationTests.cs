@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Xunit;
 using Relay.Core;
+using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Tests
 {

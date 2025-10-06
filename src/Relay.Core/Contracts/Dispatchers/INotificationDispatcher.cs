@@ -1,8 +1,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core;
+namespace Relay.Core.Contracts.Dispatchers;
 
 /// <summary>
 /// Interface for dispatching notifications to their handlers.

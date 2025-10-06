@@ -6,6 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
+using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.Tests.Testing;

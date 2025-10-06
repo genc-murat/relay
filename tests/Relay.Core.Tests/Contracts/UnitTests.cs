@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Relay.Core;
+using Relay.Core.Contracts.Infrastructure;
 using Xunit;
 
 namespace Relay.Core.Tests.Contracts

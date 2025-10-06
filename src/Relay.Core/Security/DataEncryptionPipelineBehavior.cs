@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Security
 {

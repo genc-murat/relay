@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Configuration.Options;
 using Relay.Core.Configuration.Core;
+using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.DistributedTracing;
 

@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Relay.Core.Validation;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.Tests.Validation
 {

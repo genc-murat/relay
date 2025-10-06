@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using Relay.Core;
+using Relay.Core.Contracts.Requests;
 using Xunit;
 
 namespace Relay.Core.Tests

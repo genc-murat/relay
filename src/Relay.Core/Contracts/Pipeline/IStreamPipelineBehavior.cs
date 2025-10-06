@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Relay.Core;
+namespace Relay.Core.Contracts.Pipeline;
 
 /// <summary>
 /// Interface for pipeline behaviors that can intercept and modify streaming request processing.

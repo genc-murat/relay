@@ -1,6 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Contracts.Infrastructure;
 using System;
 
 namespace Relay

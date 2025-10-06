@@ -1,13 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Relay.Core;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Publishing;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.Publishing

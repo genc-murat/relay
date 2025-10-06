@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Telemetry;
 using Relay.Core.AI.Optimization.Contexts;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.AI
 {

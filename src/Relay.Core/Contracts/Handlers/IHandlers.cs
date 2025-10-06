@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core
+namespace Relay.Core.Contracts.Handlers
 {
     /// <summary>
     /// Interface for handling requests that return a response.

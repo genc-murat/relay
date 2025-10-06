@@ -1,3 +1,4 @@
+extern alias RelayCore;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -149,7 +150,8 @@ namespace Relay.SourceGenerator.Tests
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.ValueTask).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Relay.Core.IRelay).Assembly.Location),
+                // Reference to Relay.Core assembly - use a type that exists in the Relay.Core namespace
+                MetadataReference.CreateFromFile(typeof(RelayCore::Relay.Core.Contracts.Core.IRelay).Assembly.Location),
             };
 
             return CSharpCompilation.Create(

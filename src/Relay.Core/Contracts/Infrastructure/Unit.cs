@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Relay.Core;
+namespace Relay.Core.Contracts.Infrastructure;
 
 /// <summary>
 /// Represents a void return type for requests that don't return a value

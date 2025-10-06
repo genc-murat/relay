@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Relay.Core.Authorization;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;

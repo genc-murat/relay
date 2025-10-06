@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Reflection;
 using System.Text.Json;

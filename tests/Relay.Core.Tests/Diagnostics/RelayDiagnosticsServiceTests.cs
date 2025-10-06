@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics;
 using Xunit;
 

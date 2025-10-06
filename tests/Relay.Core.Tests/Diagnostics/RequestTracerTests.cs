@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics;
 using Xunit;
 

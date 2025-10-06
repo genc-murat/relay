@@ -1,4 +1,4 @@
-namespace Relay.Core
+namespace Relay.Core.Contracts.Requests
 {
     /// <summary>
     /// Marker interface for notifications that can be published to multiple handlers.

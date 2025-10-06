@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Relay.Core.Configuration.Options;
 using Relay.Core.Configuration.Core;
+using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.Configuration.Core;
 

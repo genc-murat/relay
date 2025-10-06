@@ -1,3 +1,4 @@
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -97,7 +98,7 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
         TRequest request,
         int iterations = 1000,
         CancellationToken cancellationToken = default)
-        where TRequest : Core.IRequest
+        where TRequest : Contracts.Requests.IRequest
     {
         if (iterations <= 0)
             throw new ArgumentException("Iterations must be greater than 0", nameof(iterations));

@@ -15,10 +15,10 @@ namespace Relay.SourceGenerator.Tests
 
             // Act & Assert - This should compile without errors
             // In a real scenario, this would use the generated AddRelay extension method
-            services.AddSingleton<RelayCore::Relay.Core.IRelay, RelayCore::Relay.Core.RelayImplementation>();
+            services.AddSingleton<RelayCore::Relay.Core.Contracts.Core.IRelay, RelayCore::Relay.Core.RelayImplementation>();
 
             var serviceProvider = services.BuildServiceProvider();
-            var relay = serviceProvider.GetService<RelayCore::Relay.Core.IRelay>();
+            var relay = serviceProvider.GetService<RelayCore::Relay.Core.Contracts.Core.IRelay>();
 
             Assert.NotNull(relay);
             Assert.IsType<RelayCore::Relay.Core.RelayImplementation>(relay);

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Relay.Core.Telemetry;
 using Relay.Core.AI.Optimization.Batching;
 using Relay.Core.AI.Optimization.Contexts;
+using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.AI
 {

@@ -1,6 +1,9 @@
-using System.Linq;
 using FluentAssertions;
-using Relay.Core;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
+using System.Linq;
 using Xunit;
 
 namespace Relay.Core.Tests
@@ -268,9 +271,9 @@ namespace Relay.Core.Tests
             var notificationType = typeof(INotification);
 
             // Assert
-            relayType.Namespace.Should().Be("Relay.Core");
-            requestType.Namespace.Should().Be("Relay.Core");
-            notificationType.Namespace.Should().Be("Relay.Core");
+            relayType.Namespace.Should().Be("Relay.Core.Contracts.Core");
+            requestType.Namespace.Should().Be("Relay.Core.Contracts.Requests");
+            notificationType.Namespace.Should().Be("Relay.Core.Contracts.Requests");
         }
 
         [Fact]

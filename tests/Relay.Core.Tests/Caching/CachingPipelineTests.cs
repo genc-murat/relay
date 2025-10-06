@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 using Xunit;
 using System;
 using System.Threading;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.Tests.Caching
 {

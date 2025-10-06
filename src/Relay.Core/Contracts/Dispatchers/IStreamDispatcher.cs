@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
+using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core;
+namespace Relay.Core.Contracts.Dispatchers;
 
 /// <summary>
 /// Interface for dispatching streaming requests to their handlers.

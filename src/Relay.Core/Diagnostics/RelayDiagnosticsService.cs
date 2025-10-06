@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Diagnostics;
 

@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 using Relay.Core;
+using Relay.Core.Contracts.Infrastructure;
 
 namespace Relay.Core.Tests
 {

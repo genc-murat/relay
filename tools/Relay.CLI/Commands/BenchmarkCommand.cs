@@ -533,32 +533,3 @@ public static class BenchmarkCommand
         return Math.Max(count, 1);
     }
 }
-
-public class BenchmarkResults
-{
-    public TestConfiguration TestConfiguration { get; set; } = new();
-    public Dictionary<string, BenchmarkResult> RelayResults { get; set; } = new();
-    public Dictionary<string, BenchmarkResult> ComparisonResults { get; set; } = new();
-}
-
-public class TestConfiguration
-{
-    public int Iterations { get; set; }
-    public int WarmupIterations { get; set; }
-    public int Threads { get; set; }
-    public DateTime Timestamp { get; set; }
-    public string MachineName { get; set; } = "";
-    public int ProcessorCount { get; set; }
-    public string RuntimeVersion { get; set; } = "";
-}
-
-public class BenchmarkResult
-{
-    public string Name { get; set; } = "";
-    public TimeSpan TotalTime { get; set; }
-    public int Iterations { get; set; }
-    public double AverageTime { get; set; }
-    public double RequestsPerSecond { get; set; }
-    public long MemoryAllocated { get; set; }
-    public int Threads { get; set; }
-}

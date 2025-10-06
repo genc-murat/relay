@@ -1,7 +1,6 @@
 using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -913,82 +912,6 @@ public static class AnalyzeCommand
             return $"# Relay Project Analysis Report\nGenerated: {analysis.Timestamp:yyyy-MM-dd HH:mm:ss} UTC\n\nReport generation failed: {ex.Message}";
         }
     }
-}
-
-// Data classes for analysis
-public class ProjectAnalysis
-{
-    public string ProjectPath { get; set; } = "";
-    public string AnalysisDepth { get; set; } = "";
-    public bool IncludeTests { get; set; }
-    public DateTime Timestamp { get; set; }
-    public List<string> ProjectFiles { get; set; } = new();
-    public List<string> SourceFiles { get; set; } = new();
-    public List<HandlerInfo> Handlers { get; set; } = new();
-    public List<RequestInfo> Requests { get; set; } = new();
-    public List<PerformanceIssue> PerformanceIssues { get; set; } = new();
-    public List<ReliabilityIssue> ReliabilityIssues { get; set; } = new();
-    public List<Recommendation> Recommendations { get; set; } = new();
-    public bool HasRelayCore { get; set; }
-    public bool HasMediatR { get; set; }
-    public bool HasLogging { get; set; }
-    public bool HasValidation { get; set; }
-    public bool HasCaching { get; set; }
-}
-
-public class HandlerInfo
-{
-    public string Name { get; set; } = "";
-    public string FilePath { get; set; } = "";
-    public bool IsAsync { get; set; }
-    public bool HasDependencies { get; set; }
-    public bool UsesValueTask { get; set; }
-    public bool HasCancellationToken { get; set; }
-    public bool HasLogging { get; set; }
-    public bool HasValidation { get; set; }
-    public int LineCount { get; set; }
-}
-
-public class RequestInfo
-{
-    public string Name { get; set; } = "";
-    public string FilePath { get; set; } = "";
-    public bool IsRecord { get; set; }
-    public bool HasResponse { get; set; }
-    public bool HasValidation { get; set; }
-    public int ParameterCount { get; set; }
-    public bool HasCaching { get; set; }
-    public bool HasAuthorization { get; set; }
-}
-
-public class PerformanceIssue
-{
-    public string Type { get; set; } = "";
-    public string Severity { get; set; } = "";
-    public int Count { get; set; }
-    public string Description { get; set; } = "";
-    public string Recommendation { get; set; } = "";
-    public string PotentialImprovement { get; set; } = "";
-}
-
-public class ReliabilityIssue
-{
-    public string Type { get; set; } = "";
-    public string Severity { get; set; } = "";
-    public int Count { get; set; }
-    public string Description { get; set; } = "";
-    public string Recommendation { get; set; } = "";
-    public string Impact { get; set; } = "";
-}
-
-public class Recommendation
-{
-    public string Category { get; set; } = "";
-    public string Priority { get; set; } = "";
-    public string Title { get; set; } = "";
-    public string Description { get; set; } = "";
-    public List<string> Actions { get; set; } = new();
-    public string EstimatedImpact { get; set; } = "";
 }
 
 

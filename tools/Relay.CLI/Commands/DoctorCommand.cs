@@ -1,7 +1,6 @@
 using System.CommandLine;
 using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Spectre.Console;
 
 namespace Relay.CLI.Commands;
@@ -464,53 +463,4 @@ public static class DoctorCommand
         await Task.Delay(1000);
         AnsiConsole.MarkupLine("[green]✨ Fixes applied (feature coming soon)[/]");
     }
-}
-
-public class DiagnosticResults
-{
-    public List<DiagnosticCheck> Checks { get; } = new();
-    public int SuccessCount => Checks.SelectMany(c => c.Issues).Count(i => i.Severity == DiagnosticSeverity.Success);
-    public int InfoCount => Checks.SelectMany(c => c.Issues).Count(i => i.Severity == DiagnosticSeverity.Info);
-    public int WarningCount => Checks.SelectMany(c => c.Issues).Count(i => i.Severity == DiagnosticSeverity.Warning);
-    public int ErrorCount => Checks.SelectMany(c => c.Issues).Count(i => i.Severity == DiagnosticSeverity.Error);
-
-    public void AddCheck(DiagnosticCheck check) => Checks.Add(check);
-    public bool HasFixableIssues() => Checks.SelectMany(c => c.Issues).Any(i => i.IsFixable);
-    public int GetExitCode() => ErrorCount > 0 ? 2 : (WarningCount > 0 ? 1 : 0);
-}
-
-public class DiagnosticCheck
-{
-    public string Category { get; set; } = "";
-    public List<DiagnosticIssue> Issues { get; } = new();
-
-    public void AddIssue(string message, DiagnosticSeverity severity, string code, bool isFixable = false)
-    {
-        Issues.Add(new DiagnosticIssue
-        {
-            Message = message,
-            Severity = severity,
-            Code = code,
-            IsFixable = isFixable
-        });
-    }
-
-    public void AddSuccess(string message) => AddIssue(message, DiagnosticSeverity.Success, "SUCCESS");
-    public void AddInfo(string message) => AddIssue(message, DiagnosticSeverity.Info, "INFO");
-}
-
-public class DiagnosticIssue
-{
-    public string Message { get; set; } = "";
-    public DiagnosticSeverity Severity { get; set; }
-    public string Code { get; set; } = "";
-    public bool IsFixable { get; set; }
-}
-
-public enum DiagnosticSeverity
-{
-    Success,
-    Info,
-    Warning,
-    Error
 }

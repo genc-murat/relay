@@ -1,6 +1,3 @@
-using System.Text;
-using System.Text.Json;
-
 namespace Relay.CLI.TemplateEngine;
 
 /// <summary>
@@ -602,29 +599,4 @@ ENTRYPOINT [""dotnet"", ""Api.dll""]
         await File.WriteAllTextAsync(dockerfilePath, content);
         result.CreatedFiles.Add("Dockerfile");
     }
-}
-
-public class GenerationOptions
-{
-    public string? Author { get; set; }
-    public string? TargetFramework { get; set; }
-    public string? DatabaseProvider { get; set; }
-    public bool EnableAuth { get; set; }
-    public bool EnableSwagger { get; set; } = true;
-    public bool EnableDocker { get; set; } = true;
-    public bool EnableHealthChecks { get; set; } = true;
-    public bool EnableCaching { get; set; }
-    public bool EnableTelemetry { get; set; }
-    public string[]? Modules { get; set; }
-}
-
-public class GenerationResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string TemplateName { get; set; } = string.Empty;
-    public List<string> CreatedDirectories { get; set; } = new();
-    public List<string> CreatedFiles { get; set; } = new();
-    public List<string> Errors { get; set; } = new();
-    public TimeSpan Duration { get; set; }
 }

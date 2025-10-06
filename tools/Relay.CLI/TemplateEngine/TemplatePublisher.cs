@@ -347,21 +347,3 @@ public class TemplatePublisher
         return templates;
     }
 }
-
-public class PublishResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string PackagePath { get; set; } = string.Empty;
-    public List<string> Errors { get; set; } = new();
-}
-
-public class TemplateInfo
-{
-    public string Id { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string Author { get; set; } = string.Empty;
-    public string Path { get; set; } = string.Empty;
-    public string Version { get; set; } = "1.0.0";
-}

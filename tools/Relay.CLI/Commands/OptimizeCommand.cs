@@ -171,25 +171,3 @@ public static class OptimizeCommand
         _ => 1
     };
 }
-
-public class OptimizationContext
-{
-    public string ProjectPath { get; set; } = "";
-    public bool IsDryRun { get; set; }
-    public string Target { get; set; } = "";
-    public bool IsAggressive { get; set; }
-    public bool CreateBackup { get; set; }
-    public DateTime Timestamp { get; set; }
-    public string BackupPath { get; set; } = "";
-    public List<string> SourceFiles { get; set; } = new();
-    public List<OptimizationAction> OptimizationActions { get; set; } = new();
-}
-
-public class OptimizationAction
-{
-    public string FilePath { get; set; } = "";
-    public string Type { get; set; } = "";
-    public List<string> Modifications { get; set; } = new();
-    public string OriginalContent { get; set; } = "";
-    public string OptimizedContent { get; set; } = "";
-}

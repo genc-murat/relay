@@ -39,6 +39,24 @@ dotnet run
 # Open https://localhost:7xxx/swagger
 ```
 
+#### 2.5. **EventSourcingSample** ⭐⭐⭐ 🆕
+Demonstrates event sourcing patterns with both in-memory and EF Core/PostgreSQL persistence.
+
+**Features:**
+- In-memory event store for testing
+- EF Core event store with PostgreSQL for production
+- Aggregate root implementation
+- Event versioning and optimistic concurrency
+- Event replay and rehydration
+- Complete order processing example
+
+**Run:**
+```bash
+cd EventSourcingSample
+dotnet run
+# See EfCore/README.md for PostgreSQL setup
+```
+
 #### 3. **StreamingSample** ⭐⭐⭐
 Demonstrates `IAsyncEnumerable<T>` streaming support for handling large datasets efficiently.
 

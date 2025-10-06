@@ -18,7 +18,7 @@
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
     
     <!-- AWS SQS/SNS -->
-    <PackageReference Include="AWSSDK.SQS" Version="3.7.400.62" />
+    <PackageReference Include="AWSSDK.SQS" Version="4.0.1.8" />
     <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.62" />
     
     <!-- NATS -->

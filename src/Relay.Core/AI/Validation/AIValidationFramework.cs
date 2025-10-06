@@ -9,7 +9,7 @@ namespace Relay.Core.AI
 {
 
     /// <summary>
-    /// Production-ready AI validation framework implementation.
+    /// AI validation framework implementation.
     /// </summary>
     public sealed class AIValidationFramework : IAIValidationFramework
     {
@@ -249,9 +249,9 @@ namespace Relay.Core.AI
         }
 
         public async ValueTask<OptimizationValidationResult> ValidateOptimizationResultsAsync(
-            OptimizationStrategy[] appliedStrategies, 
-            RequestExecutionMetrics beforeMetrics, 
-            RequestExecutionMetrics afterMetrics, 
+            OptimizationStrategy[] appliedStrategies,
+            RequestExecutionMetrics beforeMetrics,
+            RequestExecutionMetrics afterMetrics,
             CancellationToken cancellationToken = default)
         {
             var results = new List<ValidationOptimizationResult>();
@@ -350,7 +350,7 @@ namespace Relay.Core.AI
             var errors = new List<string>();
             var warnings = new List<string>();
 
-            if (recommendation.Parameters.TryGetValue("ExpectedHitRate", out var hitRateObj) && 
+            if (recommendation.Parameters.TryGetValue("ExpectedHitRate", out var hitRateObj) &&
                 hitRateObj is double hitRate && hitRate < 0.3)
             {
                 warnings.Add($"Expected cache hit rate {hitRate:P} is low - caching may not be effective");
@@ -371,7 +371,7 @@ namespace Relay.Core.AI
             var errors = new List<string>();
             var warnings = new List<string>();
 
-            if (recommendation.Parameters.TryGetValue("OptimalBatchSize", out var batchSizeObj) && 
+            if (recommendation.Parameters.TryGetValue("OptimalBatchSize", out var batchSizeObj) &&
                 batchSizeObj is int batchSize)
             {
                 if (batchSize < 2)
@@ -393,7 +393,7 @@ namespace Relay.Core.AI
             var errors = new List<string>();
             var warnings = new List<string>();
 
-            if (recommendation.Parameters.TryGetValue("MemoryThreshold", out var thresholdObj) && 
+            if (recommendation.Parameters.TryGetValue("MemoryThreshold", out var thresholdObj) &&
                 thresholdObj is long threshold && threshold < 1024)
             {
                 warnings.Add($"Memory threshold {threshold} bytes is very low - pooling may not provide benefits");

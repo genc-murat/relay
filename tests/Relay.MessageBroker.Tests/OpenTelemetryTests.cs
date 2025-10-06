@@ -16,6 +16,7 @@ public class OpenTelemetryTests : IDisposable
 
     public OpenTelemetryTests()
     {
+        _exportedActivities.Clear();
         _tracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddRelayMessageBrokerInstrumentation(options =>
             {
@@ -47,6 +48,7 @@ public class OpenTelemetryTests : IDisposable
                 options.ServiceVersion = "2.0.0";
                 options.ResourceAttributes["custom.attribute"] = "custom.value";
             })
+            .SetSampler(new AlwaysOnSampler())
             .AddInMemoryExporter(exportedActivities)
             .Build();
 

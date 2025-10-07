@@ -8,7 +8,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Publishing;
+using Relay.Core.Publishing.Interfaces;
+using Relay.Core.Publishing.Extensions;
+using Relay.Core.Publishing.Options;
+using Relay.Core.Publishing.Strategies;
 using Xunit;
 
 namespace Relay.Core.Tests.Publishing

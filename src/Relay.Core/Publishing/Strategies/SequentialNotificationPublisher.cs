@@ -5,8 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Publishing.Interfaces;
 
-namespace Relay.Core.Publishing
+namespace Relay.Core.Publishing.Strategies
 {
     /// <summary>
     /// Sequential notification publisher that executes handlers one at a time in order.

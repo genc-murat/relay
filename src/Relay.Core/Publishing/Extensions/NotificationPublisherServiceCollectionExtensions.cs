@@ -1,8 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
+using Relay.Core.Publishing.Interfaces;
+using Relay.Core.Publishing.Options;
+using Relay.Core.Publishing.Strategies;
 
-namespace Relay.Core.Publishing
+namespace Relay.Core.Publishing.Extensions
 {
     /// <summary>
     /// Extension methods for configuring notification publishing strategies.

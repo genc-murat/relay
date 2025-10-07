@@ -1,6 +1,8 @@
 using System;
+using Relay.Core.Publishing.Interfaces;
+using Relay.Core.Publishing.Strategies;
 
-namespace Relay.Core.Publishing
+namespace Relay.Core.Publishing.Options
 {
     /// <summary>
     /// Configuration options for notification publishing strategy.

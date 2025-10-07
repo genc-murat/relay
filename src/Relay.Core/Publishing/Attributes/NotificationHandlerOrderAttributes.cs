@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Publishing
+namespace Relay.Core.Publishing.Attributes
 {
     /// <summary>
     /// Specifies the execution order of a notification handler.

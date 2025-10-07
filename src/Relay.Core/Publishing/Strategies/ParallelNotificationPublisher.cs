@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Publishing.Interfaces;
 
-namespace Relay.Core.Publishing
+namespace Relay.Core.Publishing.Strategies
 {
     /// <summary>
     /// Parallel notification publisher that executes all handlers concurrently.

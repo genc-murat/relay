@@ -7,8 +7,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Publishing.Attributes;
+using Relay.Core.Publishing.Interfaces;
+using Relay.Core.Publishing.Options;
 
-namespace Relay.Core.Publishing
+namespace Relay.Core.Publishing.Strategies
 {
     /// <summary>
     /// Notification publisher that respects handler ordering attributes and dependencies.

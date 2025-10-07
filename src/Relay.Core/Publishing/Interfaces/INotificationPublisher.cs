@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Publishing
+namespace Relay.Core.Publishing.Interfaces
 {
     /// <summary>
     /// Defines the strategy for publishing notifications to handlers.

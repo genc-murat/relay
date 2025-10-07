@@ -64,12 +64,13 @@ namespace Relay.Core.Retry
     /// mediator.Pipeline.AddBehavior(retryBehavior);
     /// </code>
     /// </example>
-    public sealed class DecorrelatedJitterRetryStrategy : IRetryStrategy
+    public sealed class DecorrelatedJitterRetryStrategy : IRetryStrategy, IDisposable
     {
         private readonly TimeSpan _baseDelay;
         private readonly TimeSpan _maxDelay;
         private readonly int? _maxAttempts;
         private readonly ThreadLocal<Random> _random;
+        private bool _disposed = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DecorrelatedJitterRetryStrategy"/> class.
@@ -160,6 +161,8 @@ namespace Relay.Core.Retry
         /// </remarks>
         public ValueTask<bool> ShouldRetryAsync(int attempt, Exception exception, CancellationToken cancellationToken = default)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
             // Don't retry on the initial attempt (attempt 0)
             if (attempt <= 0)
             {
@@ -213,6 +216,8 @@ namespace Relay.Core.Retry
         /// </remarks>
         public ValueTask<TimeSpan> GetRetryDelayAsync(int attempt, Exception exception, CancellationToken cancellationToken = default)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
             if (attempt <= 0)
             {
                 return new ValueTask<TimeSpan>(TimeSpan.Zero);
@@ -304,21 +309,31 @@ namespace Relay.Core.Retry
         /// <summary>
         /// Releases all resources used by the <see cref="DecorrelatedJitterRetryStrategy"/>.
         /// </summary>
-        /// <remarks>
-        /// This method properly disposes the thread-local Random instances to prevent resource leaks.
-        /// Always call Dispose when you're done using the strategy, or use it within a using statement.
-        /// </remarks>
-        ~DecorrelatedJitterRetryStrategy()
+        public void Dispose()
         {
-            Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
-        /// Releases the thread-local resources used by this strategy.
+        /// Releases the unmanaged resources used by the <see cref="DecorrelatedJitterRetryStrategy"/> and optionally releases the managed resources.
         /// </summary>
-        private void Dispose()
+        /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+        private void Dispose(bool disposing)
         {
-            _random?.Dispose();
+            if (!_disposed && disposing)
+            {
+                _random?.Dispose();
+                _disposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Finalizer that ensures resources are released if <see cref="Dispose()"/> was not called.
+        /// </summary>
+        ~DecorrelatedJitterRetryStrategy()
+        {
+            Dispose(false);
         }
     }
 }

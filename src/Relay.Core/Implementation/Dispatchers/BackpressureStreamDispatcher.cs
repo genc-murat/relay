@@ -1,12 +1,14 @@
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Base;
+using Relay.Core.Implementation.Core;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Dispatchers
 {
     /// <summary>
     /// Stream dispatcher that supports backpressure handling and flow control.

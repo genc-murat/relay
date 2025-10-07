@@ -8,6 +8,7 @@ using Xunit;
 using Relay.Core;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Contracts.Handlers;
+using Relay.Core.Implementation.Fallback;
 
 namespace Relay.Core.Tests
 {

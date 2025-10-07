@@ -20,6 +20,7 @@ using Relay.Core.Diagnostics.Metrics;
 using Relay.Core.Diagnostics.Services;
 using Relay.Core.Diagnostics.Tracing;
 using Relay.Core.Diagnostics.Validation;
+using Relay.Core.Implementation.Core;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.Tests.Testing;

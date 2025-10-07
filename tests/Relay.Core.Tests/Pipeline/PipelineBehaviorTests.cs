@@ -9,6 +9,7 @@ using Relay.Core;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Core;
 using Xunit;
 
 namespace Relay.Core.Tests

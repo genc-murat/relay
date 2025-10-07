@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Core;
 using Relay.Core.Transactions;
 using Xunit;
 

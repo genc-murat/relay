@@ -40,6 +40,9 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine("using Relay.Core;");
             sourceBuilder.AppendLine("using Relay.Core.Contracts.Core;");
             sourceBuilder.AppendLine("using Relay.Core.Contracts.Dispatchers;");
+            sourceBuilder.AppendLine("using Relay.Core.Implementation.Core;");
+            sourceBuilder.AppendLine("using Relay.Core.Implementation.Dispatchers;");
+            sourceBuilder.AppendLine("using Relay.Core.Implementation.Fallback;");
             sourceBuilder.AppendLine("using Relay.Generated;");
             sourceBuilder.AppendLine();
 

@@ -8,7 +8,7 @@ namespace Relay.Packaging.Tests;
 public class PackageValidationTests
 {
     private static readonly string PackageOutputBase = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "../../../../../src"));
+        Path.Combine(AppContext.BaseDirectory, "../../../../../../src"));
 
     [Theory]
     [InlineData("Relay")]
@@ -121,19 +121,34 @@ public class PackageValidationTests
     private static string GetPackagePath(string packageName)
     {
         var searchPattern = $"{packageName}.*.nupkg";
-        var packageDir = Path.Combine(PackageOutputBase, packageName, "bin", "Release");
-
-        if (!Directory.Exists(packageDir))
+        var baseDir = Path.Combine(PackageOutputBase, packageName, "bin");
+        
+        // Try different possible locations for the package
+        var possibleDirs = new[]
         {
-            throw new DirectoryNotFoundException($"Package directory not found: {packageDir}");
-        }
+            Path.Combine(baseDir, "Release"),
+            Path.Combine(baseDir, "windows", "Release"),
+            Path.Combine(baseDir, "Debug"),
+            Path.Combine(baseDir, "windows", "Debug")
+        };
 
-        var packageFiles = Directory.GetFiles(packageDir, searchPattern, SearchOption.AllDirectories);
-        var packageFile = packageFiles.FirstOrDefault(f => !f.Contains(".symbols."));
+        string packageFile = null;
+        foreach (var packageDir in possibleDirs)
+        {
+            if (Directory.Exists(packageDir))
+            {
+                var packageFiles = Directory.GetFiles(packageDir, searchPattern, SearchOption.AllDirectories);
+                packageFile = packageFiles.FirstOrDefault(f => !f.Contains(".symbols."));
+                if (packageFile != null)
+                {
+                    break;
+                }
+            }
+        }
 
         if (packageFile == null)
         {
-            throw new FileNotFoundException($"Package file not found matching pattern: {searchPattern} in {packageDir}");
+            throw new FileNotFoundException($"Package file not found matching pattern: {searchPattern} in any of the expected directories");
         }
 
         return packageFile;
@@ -142,9 +157,30 @@ public class PackageValidationTests
     private static string GetSymbolsPackagePath(string packageName)
     {
         var searchPattern = $"{packageName}.*.symbols.nupkg";
-        var packageDir = Path.Combine(PackageOutputBase, packageName, "bin", "Release");
+        var baseDir = Path.Combine(PackageOutputBase, packageName, "bin");
+        
+        // Try different possible locations for the symbols package
+        var possibleDirs = new[]
+        {
+            Path.Combine(baseDir, "Release"),
+            Path.Combine(baseDir, "windows", "Release"),
+            Path.Combine(baseDir, "Debug"),
+            Path.Combine(baseDir, "windows", "Debug")
+        };
 
-        var packageFiles = Directory.GetFiles(packageDir, searchPattern, SearchOption.AllDirectories);
-        return packageFiles.FirstOrDefault() ?? throw new FileNotFoundException($"Symbols package not found: {searchPattern}");
+        foreach (var packageDir in possibleDirs)
+        {
+            if (Directory.Exists(packageDir))
+            {
+                var packageFiles = Directory.GetFiles(packageDir, searchPattern, SearchOption.AllDirectories);
+                var packageFile = packageFiles.FirstOrDefault();
+                if (packageFile != null)
+                {
+                    return packageFile;
+                }
+            }
+        }
+
+        throw new FileNotFoundException($"Symbols package not found: {searchPattern} in any of the expected directories");
     }
 }

@@ -3,7 +3,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Configuration
 {
     /// <summary>
     /// Represents a notification handler registration with metadata.

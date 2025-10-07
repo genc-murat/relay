@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Base
 {
     /// <summary>
     /// Base class for generated dispatchers providing common functionality.

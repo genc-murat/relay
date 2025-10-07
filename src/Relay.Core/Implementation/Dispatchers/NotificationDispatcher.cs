@@ -7,8 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Base;
+using Relay.Core.Implementation.Configuration;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Dispatchers
 {
 
     /// <summary>

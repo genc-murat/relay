@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Contracts.Dispatchers;
 using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Core
 {
     /// <summary>
     /// Named relay implementation that supports handler name resolution.

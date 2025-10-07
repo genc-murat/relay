@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Core
 {
     /// <summary>
     /// Executes pipeline behaviors in the correct order with system modules having priority.

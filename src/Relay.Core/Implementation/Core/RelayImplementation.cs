@@ -14,7 +14,7 @@ using System.Runtime.Intrinsics.X86;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Core
 {
     /// <summary>
     /// High-performance implementation of the IRelay interface.

@@ -55,6 +55,7 @@ namespace Relay.SourceGenerator
             sourceBuilder.AppendLine("using Microsoft.Extensions.DependencyInjection;");
             sourceBuilder.AppendLine("using Microsoft.Extensions.Logging;");
             sourceBuilder.AppendLine("using Relay.Core;");
+            sourceBuilder.AppendLine("using Relay.Core.Implementation.Base;");
             sourceBuilder.AppendLine();
 
             // Namespace

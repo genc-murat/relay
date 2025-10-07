@@ -1,11 +1,12 @@
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Base;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Fallback
 {
     /// <summary>
     /// Fallback stream dispatcher that uses reflection when no generated dispatcher is available.

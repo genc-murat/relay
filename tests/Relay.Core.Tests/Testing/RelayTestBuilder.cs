@@ -14,6 +14,7 @@ using Relay.Core.Diagnostics;
 using Relay.Core.Diagnostics.Core;
 using Relay.Core.Diagnostics.Services;
 using Relay.Core.Diagnostics.Tracing;
+using Relay.Core.Implementation.Core;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.Tests.Testing;

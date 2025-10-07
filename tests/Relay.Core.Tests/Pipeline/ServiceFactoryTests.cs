@@ -11,6 +11,7 @@ using Relay.Core.Contracts.Infrastructure;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Extensions;
+using Relay.Core.Implementation.Core;
 using Relay.Core.Pipeline;
 using Xunit;
 

@@ -6,9 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Contracts.Handlers;
+using Relay.Core.Implementation.Base;
 using Relay.Core.Performance;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Fallback
 {
 
     /// <summary>

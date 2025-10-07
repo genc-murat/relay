@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Base
 {
     /// <summary>
     /// Base implementation of stream dispatcher with common functionality.

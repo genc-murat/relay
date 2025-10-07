@@ -4,6 +4,9 @@ using Relay.Core.Configuration.Options;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Dispatchers;
 using Relay.Core.Contracts.Infrastructure;
+using Relay.Core.Implementation.Core;
+using Relay.Core.Implementation.Dispatchers;
+using Relay.Core.Implementation.Fallback;
 using System;
 
 namespace Relay

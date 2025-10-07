@@ -8,6 +8,7 @@ using System.Threading;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Implementation.Core;
 
 namespace Relay.Core.Tests.Caching
 {

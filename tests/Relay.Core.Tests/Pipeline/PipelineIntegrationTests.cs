@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Core;
 using Xunit;
 
 namespace Relay.Core.Tests

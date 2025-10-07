@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Relay.Core;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Base;
 
 namespace Relay.Core.Tests
 {

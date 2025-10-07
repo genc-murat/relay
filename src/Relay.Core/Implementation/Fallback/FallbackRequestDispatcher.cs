@@ -1,5 +1,6 @@
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Base;
 using System;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
@@ -7,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Fallback
 {
     /// <summary>
     /// Fallback request dispatcher that uses reflection when no generated dispatcher is available.

@@ -1,48 +1,45 @@
 extern alias RelayCore;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using Xunit;
 
-namespace Relay.SourceGenerator.Tests
+namespace Relay.SourceGenerator.Tests;
+
+public class DIIntegrationTests
 {
-    public class DIIntegrationTests
+    [Fact]
+    public void ServiceCollection_CanRegisterRelayServices()
     {
-        [Fact]
-        public void ServiceCollection_CanRegisterRelayServices()
-        {
-            // Arrange
-            var services = new ServiceCollection();
+        // Arrange
+        var services = new ServiceCollection();
 
-            // Act & Assert - This should compile without errors
-            // In a real scenario, this would use the generated AddRelay extension method
-            services.AddSingleton<RelayCore::Relay.Core.Contracts.Core.IRelay, RelayCore::Relay.Core.RelayImplementation>();
+        // Act & Assert - This should compile without errors
+        // In a real scenario, this would use the generated AddRelay extension method
+        services.AddSingleton<RelayCore::Relay.Core.Contracts.Core.IRelay, RelayCore::Relay.Core.Implementation.Core.RelayImplementation>();
 
-            var serviceProvider = services.BuildServiceProvider();
-            var relay = serviceProvider.GetService<RelayCore::Relay.Core.Contracts.Core.IRelay>();
+        var serviceProvider = services.BuildServiceProvider();
+        var relay = serviceProvider.GetService<RelayCore::Relay.Core.Contracts.Core.IRelay>();
 
-            Assert.NotNull(relay);
-            Assert.IsType<RelayCore::Relay.Core.RelayImplementation>(relay);
-        }
+        Assert.NotNull(relay);
+        Assert.IsType<RelayCore::Relay.Core.Implementation.Core.RelayImplementation>(relay);
+    }
 
-        [Fact]
-        public void RelayImplementation_CanBeConstructed()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-            var serviceProvider = services.BuildServiceProvider();
+    [Fact]
+    public void RelayImplementation_CanBeConstructed()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var serviceProvider = services.BuildServiceProvider();
 
-            // Act
-            var relay = new RelayCore::Relay.Core.RelayImplementation(serviceProvider);
+        // Act
+        var relay = new RelayCore::Relay.Core.Implementation.Core.RelayImplementation(serviceProvider);
 
-            // Assert
-            Assert.NotNull(relay);
-        }
+        // Assert
+        Assert.NotNull(relay);
+    }
 
-        [Fact]
-        public void RelayImplementation_ThrowsForNullServiceProvider()
-        {
-            // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new RelayCore::Relay.Core.RelayImplementation(null!));
-        }
+    [Fact]
+    public void RelayImplementation_ThrowsForNullServiceProvider()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new RelayCore::Relay.Core.Implementation.Core.RelayImplementation(null!));
     }
 }

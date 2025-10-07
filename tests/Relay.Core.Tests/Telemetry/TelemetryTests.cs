@@ -10,6 +10,7 @@ using Relay.Core;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Dispatchers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Core;
 using Relay.Core.Telemetry;
 using Relay.Core.Tests.Testing;
 using Xunit;

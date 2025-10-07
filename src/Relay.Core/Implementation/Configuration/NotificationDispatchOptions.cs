@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Configuration
 {
     /// <summary>
     /// Configuration options for notification dispatching.

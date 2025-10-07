@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Configuration;
+using Relay.Core.Implementation.Dispatchers;
 using Xunit;
 
 namespace Relay.Core.Tests

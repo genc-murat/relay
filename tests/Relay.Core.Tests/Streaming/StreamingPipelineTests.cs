@@ -12,6 +12,8 @@ using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Implementation.Base;
+using Relay.Core.Implementation.Core;
 
 namespace Relay.Core.Tests
 {

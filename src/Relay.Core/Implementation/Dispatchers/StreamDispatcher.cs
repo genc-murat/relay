@@ -1,9 +1,11 @@
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Base;
+using Relay.Core.Implementation.Core;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace Relay.Core
+namespace Relay.Core.Implementation.Dispatchers
 {
     /// <summary>
     /// Default implementation of stream dispatcher that provides fallback behavior

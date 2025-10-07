@@ -280,10 +280,10 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddRelayGenerated(this IServiceCollection services)
         {
             // Register core Relay services
-            services.TryAddTransient<Relay.Core.Contracts.Core.IRelay, Relay.Core.RelayImplementation>();
-            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Core.FallbackRequestDispatcher>();
-            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IStreamDispatcher, Relay.Core.StreamDispatcher>();
-            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.INotificationDispatcher, Relay.Core.NotificationDispatcher>();
+            services.TryAddTransient<Relay.Core.Contracts.Core.IRelay, Relay.Core.Implementation.Core.RelayImplementation>();
+            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Core.Implementation.Fallback.FallbackRequestDispatcher>();
+            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IStreamDispatcher, Relay.Core.Implementation.Dispatchers.StreamDispatcher>();
+            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.INotificationDispatcher, Relay.Core.Implementation.Dispatchers.NotificationDispatcher>();
 
             return services;
         }
@@ -319,10 +319,10 @@ namespace Microsoft.Extensions.DependencyInjection
             sb.AppendLine("        public static IServiceCollection AddRelay(this IServiceCollection services)");
             sb.AppendLine("        {");
             sb.AppendLine("            // Register core Relay services");
-            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Core.IRelay, Relay.Core.RelayImplementation>();");
-            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Core.FallbackRequestDispatcher>();");
-            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IStreamDispatcher, Relay.Core.StreamDispatcher>();");
-            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.INotificationDispatcher, Relay.Core.NotificationDispatcher>();");
+            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Core.IRelay, Relay.Core.Implementation.Core.RelayImplementation>();");
+            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Core.Implementation.Fallback.FallbackRequestDispatcher>();");
+            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IStreamDispatcher, Relay.Core.Implementation.Dispatchers.StreamDispatcher>();");
+            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.INotificationDispatcher, Relay.Core.Implementation.Dispatchers.NotificationDispatcher>();");
             sb.AppendLine();
             sb.AppendLine("            // Register all discovered handlers");
 

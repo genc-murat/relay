@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Relay.Core.Configuration.Options;
 using Relay.Core.Configuration.Core;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Pipeline;
 
 namespace Relay.Core.Configuration.Core;
 
@@ -24,6 +25,7 @@ public static class RelayConfigurationExtensions
         // Use the standard options pattern and ensure default configuration exists
         services.AddOptions<RelayOptions>().Configure(options => { });
         services.TryAddSingleton<IConfigurationResolver, ConfigurationResolver>();
+        services.TryAddSingleton<ServiceFactory>(p => p.GetService);
         return services;
     }
 

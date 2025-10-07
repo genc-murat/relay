@@ -735,7 +735,9 @@ samples/
 ├── OpenTelemetrySample/        # Telemetry integration (NEW)
 ├── MessageCompressionSample/   # Compression examples (NEW)
 ├── SagaPatternSample/          # Saga orchestration (NEW)
-└── ... 26 more samples
+├── CachingSample/              # Enhanced caching features (NEW)
+├── AdvancedCachingSample/      # Production-ready caching scenarios (NEW)
+└── ... 24 more samples
 
 tools/
 └── Relay.CLI/                  # Command-line development tool

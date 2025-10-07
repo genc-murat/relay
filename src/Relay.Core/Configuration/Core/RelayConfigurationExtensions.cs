@@ -7,6 +7,7 @@ using Relay.Core.Configuration.Options;
 using Relay.Core.Configuration.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Pipeline;
+using Relay.Core.Contracts.Infrastructure;
 
 namespace Relay.Core.Configuration.Core;
 

@@ -130,7 +130,7 @@ public class EnhancedCachingPipelineBehaviorTests
         nextMock.Verify(x => x(), Times.Once);
         _metricsMock.Verify(x => x.RecordMiss(cacheKey, "TestRequest"), Times.Once);
         _metricsMock.Verify(x => x.RecordSet(cacheKey, "TestRequest", serializedResponse.Length), Times.Once);
-        _keyTrackerMock.Verify(x => x.AddKey(cacheKey, It.IsAny<string[]>()), Times.Once);
+        _keyTrackerMock.Verify(x => x.AddKey(cacheKey, It.IsAny<IEnumerable<string>>(), It.IsAny<IEnumerable<string>>()), Times.Once);
         _memoryCacheMock.Verify(x => x.CreateEntry(cacheKey), Times.Once);
         _distributedCacheMock.Verify(x => x.SetAsync(cacheKey, serializedResponse, It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }

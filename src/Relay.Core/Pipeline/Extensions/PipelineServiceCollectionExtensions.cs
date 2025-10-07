@@ -4,7 +4,6 @@ using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Pipeline.Behaviors;
 using Relay.Core.Pipeline.Interfaces;
 using System;
-using System.Transactions;
 
 namespace Relay.Core.Pipeline.Extensions
 {
@@ -311,70 +310,23 @@ namespace Relay.Core.Pipeline.Extensions
         }
 
         /// <summary>
-        /// Adds transaction support using TransactionScope for requests implementing ITransactionalRequest.
-        /// Automatically wraps handler execution in a transaction that commits on success and rolls back on failure.
+        /// Adds the unified transaction pipeline behavior for requests implementing <see cref="Relay.Core.Transactions.ITransactionalRequest"/>.
+        /// This behavior automatically begins a transaction, saves changes via <see cref="Relay.Core.Transactions.IUnitOfWork"/>,
+        /// and commits on success or rolls back on failure.
         /// </summary>
         /// <param name="services">The service collection.</param>
-        /// <param name="scopeOption">Transaction scope option (default: Required).</param>
-        /// <param name="isolationLevel">Transaction isolation level (default: ReadCommitted).</param>
-        /// <param name="timeout">Transaction timeout (default: 1 minute).</param>
         /// <returns>The service collection for chaining.</returns>
-        public static IServiceCollection AddRelayTransactions(
-            this IServiceCollection services,
-            TransactionScopeOption scopeOption = TransactionScopeOption.Required,
-            IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
-            TimeSpan? timeout = null)
+        public static IServiceCollection AddRelayTransactions(this IServiceCollection services)
         {
             if (services == null)
                 throw new ArgumentNullException(nameof(services));
 
-            var actualTimeout = timeout ?? TimeSpan.FromMinutes(1);
-
-            // Store configuration
-            services.Configure<Transactions.TransactionOptions>(options =>
-            {
-                options.ScopeOption = scopeOption;
-                options.IsolationLevel = isolationLevel;
-                options.Timeout = actualTimeout;
-            });
-
-            // Register TransactionBehavior as open generic
+            // Register the unified TransactionBehavior as an open generic.
+            // This single behavior handles the entire transaction lifecycle.
             services.TryAddEnumerable(
                 ServiceDescriptor.Transient(
                     typeof(IPipelineBehavior<,>),
                     typeof(Transactions.TransactionBehavior<,>)));
-
-            return services;
-        }
-
-        /// <summary>
-        /// Adds Unit of Work pattern support that automatically calls SaveChangesAsync after successful handler execution.
-        /// Works with any IUnitOfWork implementation (EF Core DbContext, custom repositories, etc.).
-        /// </summary>
-        /// <param name="services">The service collection.</param>
-        /// <param name="saveOnlyForTransactionalRequests">
-        /// If true, only saves changes for requests implementing ITransactionalRequest.
-        /// If false, saves changes for all requests. Default is false.
-        /// </param>
-        /// <returns>The service collection for chaining.</returns>
-        public static IServiceCollection AddRelayUnitOfWork(
-            this IServiceCollection services,
-            bool saveOnlyForTransactionalRequests = false)
-        {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            // Register UnitOfWorkBehavior as open generic
-            services.TryAddEnumerable(
-                ServiceDescriptor.Transient(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(Transactions.UnitOfWorkBehavior<,>)));
-
-            // Store configuration
-            services.Configure<Transactions.UnitOfWorkOptions>(options =>
-            {
-                options.SaveOnlyForTransactionalRequests = saveOnlyForTransactionalRequests;
-            });
 
             return services;
         }

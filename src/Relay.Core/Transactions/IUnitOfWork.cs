@@ -15,15 +15,25 @@ namespace Relay.Core.Transactions
     /// <code>
     /// public class ApplicationDbContext : DbContext, IUnitOfWork
     /// {
-    ///     public Task&lt;int&gt; SaveChangesAsync(CancellationToken cancellationToken = default)
+    ///     public async Task&lt;IDbTransaction&gt; BeginTransactionAsync(CancellationToken cancellationToken = default)
     ///     {
-    ///         return base.SaveChangesAsync(cancellationToken);
+    ///         var efTransaction = await Database.BeginTransactionAsync(cancellationToken);
+    ///         return new EfDbTransaction(efTransaction); // Assumes an EfDbTransaction wrapper exists
     ///     }
+    ///
+    ///     // SaveChangesAsync is already part of DbContext
     /// }
     /// </code>
     /// </remarks>
     public interface IUnitOfWork
     {
+        /// <summary>
+        /// Starts a new database transaction.
+        /// </summary>
+        /// <param name="cancellationToken">A token to cancel the operation.</param>
+        /// <returns>An <see cref="IDbTransaction"/> that can be used to control the transaction.</returns>
+        Task<IDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Saves all changes made in this unit of work to the database.
         /// </summary>

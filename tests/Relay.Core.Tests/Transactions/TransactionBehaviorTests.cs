@@ -1,16 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Transactions;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Relay.Core;
-using Relay.Core.Contracts.Pipeline;
+using Microsoft.Extensions.Logging.Abstractions;
+using Relay.Core.Contracts.Infrastructure; // Corrected
+using Relay.Core.Contracts.Pipeline;       // Corrected
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Pipeline;
-using Relay.Core.Pipeline.Extensions;
 using Relay.Core.Transactions;
 using Xunit;
 
@@ -18,241 +14,158 @@ namespace Relay.Core.Tests.Transactions
 {
     public class TransactionBehaviorTests
     {
-        #region Test Models
+        #region Test Models & Mocks
 
-        // Transactional request
-        public record CreateOrderCommand(int UserId, decimal Amount)
-            : IRequest<Order>, ITransactionalRequest<Order>;
+        private record TransactionalCommand : IRequest, ITransactionalRequest;
 
-        // Non-transactional request
-        public record GetOrderQuery(int OrderId) : IRequest<Order>;
+        private record NonTransactionalQuery : IRequest;
 
-        public class Order
+        private class MockDbTransaction : IDbTransaction
         {
-            public int Id { get; set; }
-            public int UserId { get; set; }
-            public decimal Amount { get; set; }
+            private readonly List<string> _callLog;
+
+            public MockDbTransaction(List<string> callLog)
+            {
+                _callLog = callLog;
+            }
+
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+            public Task CommitAsync(CancellationToken cancellationToken = default)
+            {
+                _callLog.Add(nameof(CommitAsync));
+                return Task.CompletedTask;
+            }
+
+            public Task RollbackAsync(CancellationToken cancellationToken = default)
+            {
+                _callLog.Add(nameof(RollbackAsync));
+                return Task.CompletedTask;
+            }
         }
 
-        // Test handler delegate
-        private class TestHandlerDelegate
+        private class MockUnitOfWork : IUnitOfWork
         {
-            public bool WasCalled { get; private set; }
-            public bool ShouldThrow { get; set; }
+            public readonly List<string> CallLog = new();
+            public bool ShouldThrowOnSave { get; set; }
 
-            public async ValueTask<Order> Execute()
+            public Task<IDbTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
             {
-                WasCalled = true;
+                CallLog.Add(nameof(BeginTransactionAsync));
+                return Task.FromResult<IDbTransaction>(new MockDbTransaction(CallLog));
+            }
 
-                if (ShouldThrow)
-                    throw new InvalidOperationException("Handler failed");
-
-                await Task.CompletedTask;
-                return new Order { Id = 1, UserId = 123, Amount = 99.99m };
+            public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+            {
+                CallLog.Add(nameof(SaveChangesAsync));
+                if (ShouldThrowOnSave)
+                {
+                    throw new InvalidOperationException("Save failed");
+                }
+                return Task.FromResult(1);
             }
         }
 
         #endregion
 
-        #region TransactionBehavior Tests
-
         [Fact]
-        public async Task TransactionBehavior_Should_Skip_For_NonTransactional_Requests()
+        public async Task Handle_Should_CallNext_And_DoNothing_When_Request_Is_Not_Transactional()
         {
             // Arrange
-            var behavior = new TransactionBehavior<GetOrderQuery, Order>();
-            var request = new GetOrderQuery(1);
-            var handlerDelegate = new TestHandlerDelegate();
-
-            // Act
-            var result = await behavior.HandleAsync(
-                request,
-                handlerDelegate.Execute,
-                CancellationToken.None);
-
-            // Assert
-            handlerDelegate.WasCalled.Should().BeTrue();
-            result.Should().NotBeNull();
-            result.Id.Should().Be(1);
-        }
-
-        [Fact]
-        public async Task TransactionBehavior_Should_Create_Transaction_For_Transactional_Requests()
-        {
-            // Arrange
-            var behavior = new TransactionBehavior<CreateOrderCommand, Order>();
-            var request = new CreateOrderCommand(123, 99.99m);
-            var handlerDelegate = new TestHandlerDelegate();
-
-            Transaction? capturedTransaction = null;
-
-            // Act
-            var result = await behavior.HandleAsync(
-                request,
-                async () =>
-                {
-                    capturedTransaction = Transaction.Current;
-                    return await handlerDelegate.Execute();
-                },
-                CancellationToken.None);
-
-            // Assert
-            handlerDelegate.WasCalled.Should().BeTrue();
-            capturedTransaction.Should().NotBeNull("Transaction should be active during handler execution");
-            result.Should().NotBeNull();
-        }
-
-        [Fact]
-        public async Task TransactionBehavior_Should_Commit_On_Success()
-        {
-            // Arrange
-            var behavior = new TransactionBehavior<CreateOrderCommand, Order>();
-            var request = new CreateOrderCommand(123, 99.99m);
-            var handlerDelegate = new TestHandlerDelegate();
-
-            // Act
-            var result = await behavior.HandleAsync(
-                request,
-                handlerDelegate.Execute,
-                CancellationToken.None);
-
-            // Assert
-            handlerDelegate.WasCalled.Should().BeTrue();
-            result.Should().NotBeNull();
-            // Transaction should be completed without exception
-        }
-
-        [Fact]
-        public async Task TransactionBehavior_Should_Rollback_On_Exception()
-        {
-            // Arrange
-            var behavior = new TransactionBehavior<CreateOrderCommand, Order>();
-            var request = new CreateOrderCommand(123, 99.99m);
-            var handlerDelegate = new TestHandlerDelegate { ShouldThrow = true };
-
-            // Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            var unitOfWork = new MockUnitOfWork();
+            var logger = new NullLogger<TransactionBehavior<NonTransactionalQuery, Unit>>();
+            var behavior = new TransactionBehavior<NonTransactionalQuery, Unit>(unitOfWork, logger);
+            var request = new NonTransactionalQuery();
+            var handlerCalled = false;
+            RequestHandlerDelegate<Unit> next = () =>
             {
-                await behavior.HandleAsync(
-                    request,
-                    handlerDelegate.Execute,
-                    CancellationToken.None);
-            });
+                handlerCalled = true;
+                return ValueTask.FromResult(Unit.Value);
+            };
 
-            handlerDelegate.WasCalled.Should().BeTrue();
-            // Transaction should be rolled back (not completed)
+            // Act
+            await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            handlerCalled.Should().BeTrue();
+            unitOfWork.CallLog.Should().BeEmpty();
         }
 
         [Fact]
-        public async Task TransactionBehavior_Should_Use_Custom_IsolationLevel()
+        public async Task Handle_Should_Execute_Full_Transaction_Lifecycle_On_Success()
         {
             // Arrange
-            var options = Options.Create(new Relay.Core.Transactions.TransactionOptions
+            var unitOfWork = new MockUnitOfWork();
+            var logger = new NullLogger<TransactionBehavior<TransactionalCommand, Unit>>();
+            var behavior = new TransactionBehavior<TransactionalCommand, Unit>(unitOfWork, logger);
+            var request = new TransactionalCommand();
+            var handlerCalled = false;
+            RequestHandlerDelegate<Unit> next = () =>
             {
-                ScopeOption = TransactionScopeOption.Required,
-                IsolationLevel = IsolationLevel.Serializable,
-                Timeout = TimeSpan.FromMinutes(2)
-            });
-
-            var behavior = new TransactionBehavior<CreateOrderCommand, Order>(options);
-
-            var request = new CreateOrderCommand(123, 99.99m);
-
-            IsolationLevel? capturedIsolationLevel = null;
+                handlerCalled = true;
+                unitOfWork.CallLog.Add("Handler");
+                return ValueTask.FromResult(Unit.Value);
+            };
 
             // Act
-            await behavior.HandleAsync(
-                request,
-                async () =>
-                {
-                    capturedIsolationLevel = Transaction.Current?.IsolationLevel;
-                    await Task.CompletedTask;
-                    return new Order();
-                },
-                CancellationToken.None);
+            await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            capturedIsolationLevel.Should().Be(IsolationLevel.Serializable);
+            handlerCalled.Should().BeTrue();
+            unitOfWork.CallLog.Should().Equal(
+                nameof(IUnitOfWork.BeginTransactionAsync),
+                "Handler",
+                nameof(IUnitOfWork.SaveChangesAsync),
+                nameof(IDbTransaction.CommitAsync)
+            );
         }
 
         [Fact]
-        public async Task TransactionBehavior_Should_Support_Nested_Transactions()
+        public async Task Handle_Should_Rollback_Transaction_On_Handler_Failure()
         {
             // Arrange
-            var outerBehavior = new TransactionBehavior<CreateOrderCommand, Order>();
-            var innerBehavior = new TransactionBehavior<CreateOrderCommand, Order>();
-
-            var request = new CreateOrderCommand(123, 99.99m);
-
-            Transaction? outerTransaction = null;
-            Transaction? innerTransaction = null;
+            var unitOfWork = new MockUnitOfWork();
+            var logger = new NullLogger<TransactionBehavior<TransactionalCommand, Unit>>();
+            var behavior = new TransactionBehavior<TransactionalCommand, Unit>(unitOfWork, logger);
+            var request = new TransactionalCommand();
+            RequestHandlerDelegate<Unit> next = () => throw new InvalidOperationException("Handler failed");
 
             // Act
-            await outerBehavior.HandleAsync(
-                request,
-                async () =>
-                {
-                    outerTransaction = Transaction.Current;
-
-                    return await innerBehavior.HandleAsync(
-                        request,
-                        async () =>
-                        {
-                            innerTransaction = Transaction.Current;
-                            await Task.CompletedTask;
-                            return new Order();
-                        },
-                        CancellationToken.None);
-                },
-                CancellationToken.None);
+            var act = async () => await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            outerTransaction.Should().NotBeNull();
-            innerTransaction.Should().NotBeNull();
-            // Both should reference the same ambient transaction
-            outerTransaction.Should().BeSameAs(innerTransaction);
-        }
-
-        #endregion
-
-        #region DI Registration Tests
-
-        [Fact]
-        public void AddRelayTransactions_Should_Register_TransactionBehavior()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-
-            // Act
-            services.AddRelayTransactions();
-            var provider = services.BuildServiceProvider();
-
-            // Note: TransactionBehavior is registered as open generic IPipelineBehavior<,>
-            // We can't directly resolve it without specific types, but we can verify registration
-            var behaviors = provider.GetServices<IPipelineBehavior<CreateOrderCommand, Order>>();
-
-            // Assert
-            // The registration should succeed without exceptions
-            services.Should().NotBeNull();
+            await act.Should().ThrowAsync<InvalidOperationException>();
+            unitOfWork.CallLog.Should().Equal(
+                nameof(IUnitOfWork.BeginTransactionAsync),
+                nameof(IDbTransaction.RollbackAsync)
+            );
         }
 
         [Fact]
-        public void AddRelayTransactions_Should_Accept_Custom_Settings()
+        public async Task Handle_Should_Rollback_Transaction_On_SaveChanges_Failure()
         {
             // Arrange
-            var services = new ServiceCollection();
+            var unitOfWork = new MockUnitOfWork { ShouldThrowOnSave = true };
+            var logger = new NullLogger<TransactionBehavior<TransactionalCommand, Unit>>();
+            var behavior = new TransactionBehavior<TransactionalCommand, Unit>(unitOfWork, logger);
+            var request = new TransactionalCommand();
+            RequestHandlerDelegate<Unit> next = () =>
+            {
+                unitOfWork.CallLog.Add("Handler");
+                return ValueTask.FromResult(Unit.Value);
+            };
 
             // Act
-            services.AddRelayTransactions(
-                scopeOption: TransactionScopeOption.RequiresNew,
-                isolationLevel: IsolationLevel.Snapshot,
-                timeout: TimeSpan.FromMinutes(5));
+            var act = async () => await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            // Should register without exceptions
-            services.Should().NotBeNull();
+            await act.Should().ThrowAsync<InvalidOperationException>();
+            unitOfWork.CallLog.Should().Equal(
+                nameof(IUnitOfWork.BeginTransactionAsync),
+                "Handler",
+                nameof(IUnitOfWork.SaveChangesAsync),
+                nameof(IDbTransaction.RollbackAsync)
+            );
         }
-
-        #endregion
     }
 }

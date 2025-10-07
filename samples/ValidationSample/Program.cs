@@ -6,7 +6,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Relay;
 using Relay.Core;
-using Relay.Core.Validation;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Validation.Attributes;
+using Relay.Core.Validation.Exceptions;
+using Relay.Core.Validation.Extensions;
+using Relay.Core.Validation.Interfaces;
 
 namespace Relay.Validation.Example
 {

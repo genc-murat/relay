@@ -8,7 +8,7 @@ namespace Relay.Packaging.Tests;
 public class PackageValidationTests
 {
     private static readonly string PackageOutputBase = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "../../../../../../src"));
+        Path.Combine(AppContext.BaseDirectory, "../../../../../src"));
 
     [Theory]
     [InlineData("Relay")]

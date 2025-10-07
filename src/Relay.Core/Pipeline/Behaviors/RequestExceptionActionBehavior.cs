@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Pipeline.Interfaces;
 
-namespace Relay.Core.Pipeline
+namespace Relay.Core.Pipeline.Behaviors
 {
     /// <summary>
     /// Pipeline behavior that executes exception actions when exceptions occur.

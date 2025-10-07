@@ -8,6 +8,9 @@ using Relay.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Pipeline;
+using Relay.Core.Pipeline.Behaviors;
+using Relay.Core.Pipeline.Extensions;
+using Relay.Core.Pipeline.Interfaces;
 using Xunit;
 
 namespace Relay.Core.Tests.Pipeline

@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Pipeline
+namespace Relay.Core.Pipeline.Interfaces
 {
     /// <summary>
     /// Defines the result of exception handling, indicating whether the exception was handled

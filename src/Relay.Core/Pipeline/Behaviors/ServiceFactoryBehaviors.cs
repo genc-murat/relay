@@ -6,7 +6,7 @@ using Relay.Core.Contracts.Infrastructure;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Extensions;
 
-namespace Relay.Core.Pipeline
+namespace Relay.Core.Pipeline.Behaviors
 {
     /// <summary>
     /// Example pipeline behavior demonstrating ServiceFactory usage for dynamic service resolution.

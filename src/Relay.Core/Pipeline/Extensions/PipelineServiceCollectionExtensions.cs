@@ -1,10 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Pipeline.Behaviors;
+using Relay.Core.Pipeline.Interfaces;
 using System;
 using System.Transactions;
 
-namespace Relay.Core.Pipeline
+namespace Relay.Core.Pipeline.Extensions
 {
     /// <summary>
     /// Extension methods for registering pipeline behaviors (pre/post processors, exception handlers, transactions).

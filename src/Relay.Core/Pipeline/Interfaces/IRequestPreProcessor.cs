@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Pipeline
+namespace Relay.Core.Pipeline.Interfaces
 {
     /// <summary>
     /// Defines a request pre-processor for a handler.

@@ -1,10 +1,9 @@
+using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Relay.Core.Contracts.Dispatchers;
-using Relay.Core.Contracts.Requests;
-using Relay.Core.Telemetry;
 
 namespace Relay.Core.Telemetry;
 

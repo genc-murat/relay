@@ -1,9 +1,8 @@
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Dispatchers;
-using Relay.Core.Telemetry;
+using System;
 
 namespace Relay.Core.Telemetry;
 

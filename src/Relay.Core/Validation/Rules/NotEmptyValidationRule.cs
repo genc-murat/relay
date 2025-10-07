@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Interfaces;
 
-namespace Relay.Core.Validation
+namespace Relay.Core.Validation.Rules
 {
     /// <summary>
     /// Example validation rule that checks if a string property is not null or empty.

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Relay.Core.Validation
+namespace Relay.Core.Validation.Exceptions
 {
     /// <summary>
     /// Exception thrown when request validation fails.

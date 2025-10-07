@@ -5,6 +5,11 @@ using Xunit;
 using Relay.Core.Validation;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Validation.Exceptions;
+using Relay.Core.Validation.Interfaces;
+using Relay.Core.Validation.Rules;
+using Relay.Core.Validation.Pipeline;
+using Relay.Core.Validation.Extensions;
 
 namespace Relay.Core.Tests.Validation
 {

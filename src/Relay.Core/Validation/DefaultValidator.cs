@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Attributes;
+using Relay.Core.Validation.Interfaces;
 
 namespace Relay.Core.Validation
 {
@@ -36,7 +38,13 @@ namespace Relay.Core.Validation
                 return errors;
 
             // Execute validation rules in order
-            foreach (var rule in _validationRules.OrderBy(r => r is ValidationRuleAttribute attr ? attr.Order : 0))
+            foreach (var rule in _validationRules.OrderBy(r =>
+            {
+                var attr = r.GetType().GetCustomAttributes(typeof(ValidationRuleAttribute), false)
+                    .OfType<ValidationRuleAttribute>()
+                    .FirstOrDefault();
+                return attr?.Order ?? 0;
+            }))
             {
                 try
                 {

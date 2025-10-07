@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Validation
+namespace Relay.Core.Validation.Attributes
 {
     /// <summary>
     /// Attribute to mark classes as validation rules for specific request types.

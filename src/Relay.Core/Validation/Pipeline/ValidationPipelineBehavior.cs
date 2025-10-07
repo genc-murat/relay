@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Exceptions;
+using Relay.Core.Validation.Interfaces;
 
-namespace Relay.Core.Validation
+namespace Relay.Core.Validation.Pipeline
 {
     /// <summary>
     /// Pipeline behavior that automatically validates requests before they reach handlers.

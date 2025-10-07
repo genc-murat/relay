@@ -4,8 +4,10 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Validation;
+using Relay.Core.Validation.Interfaces;
+using Relay.Core.Validation.Pipeline;
 
-namespace Relay.Core.Validation
+namespace Relay.Core.Validation.Extensions
 {
     /// <summary>
     /// Extension methods for configuring validation services.

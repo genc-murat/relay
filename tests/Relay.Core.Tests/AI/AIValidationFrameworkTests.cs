@@ -45,14 +45,14 @@ namespace Relay.Core.Tests.AI
         public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
         {
             // Arrange & Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new AIValidationFramework(null, _options));
+            Assert.Throws<ArgumentNullException>(() => new AIValidationFramework(null!, _options));
         }
 
         [Fact]
         public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
         {
             // Arrange & Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new AIValidationFramework(_logger, null));
+            Assert.Throws<ArgumentNullException>(() => new AIValidationFramework(_logger, null!));
         }
 
         #endregion

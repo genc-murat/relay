@@ -95,9 +95,10 @@ namespace Relay.Core.Tests.ContractValidation
         {            
             // Arrange
             var method = typeof(TestClassWithAttribute).GetMethod(nameof(TestClassWithAttribute.TestMethodWithAttribute));
+            method.Should().NotBeNull();
 
             // Act
-            var attribute = method.GetCustomAttribute<ValidateContractAttribute>();
+            var attribute = method!.GetCustomAttribute<ValidateContractAttribute>();
 
             // Assert
             attribute.Should().NotBeNull();

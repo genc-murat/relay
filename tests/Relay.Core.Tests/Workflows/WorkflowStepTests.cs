@@ -85,132 +85,137 @@ public class WorkflowStepTests
         Assert.Equal("userData", step.OutputKey);
     }
 
-    [Fact]
-    public void ConditionalStep_ShouldSupportConditionAndElseSteps()
-    {
-        // Arrange & Act
-        var step = new WorkflowStep
-        {
-            Name = "CheckStatus",
-            Type = StepType.Conditional,
-            Condition = "status == success",
-            ElseSteps = new List<WorkflowStep>
+            [Fact]
+            public void ConditionalStep_ShouldSupportConditionAndElseSteps()
             {
-                new WorkflowStep { Name = "HandleError", Type = StepType.Request }
-            }
-        };
-
-        // Assert
-        Assert.Equal("CheckStatus", step.Name);
-        Assert.Equal(StepType.Conditional, step.Type);
-        Assert.Equal("status == success", step.Condition);
-        Assert.NotNull(step.ElseSteps);
-        Assert.Single(step.ElseSteps);
-        Assert.Equal("HandleError", step.ElseSteps[0].Name);
-    }
-
-    [Fact]
-    public void ParallelStep_ShouldSupportParallelSteps()
-    {
-        // Arrange & Act
-        var step = new WorkflowStep
-        {
-            Name = "ProcessParallel",
-            Type = StepType.Parallel,
-            ParallelSteps = new List<WorkflowStep>
-            {
-                new WorkflowStep { Name = "Task1", Type = StepType.Request },
-                new WorkflowStep { Name = "Task2", Type = StepType.Request },
-                new WorkflowStep { Name = "Task3", Type = StepType.Request }
-            }
-        };
-
-        // Assert
-        Assert.Equal("ProcessParallel", step.Name);
-        Assert.Equal(StepType.Parallel, step.Type);
-        Assert.NotNull(step.ParallelSteps);
-        Assert.Equal(3, step.ParallelSteps.Count);
-        Assert.Equal("Task1", step.ParallelSteps[0].Name);
-        Assert.Equal("Task2", step.ParallelSteps[1].Name);
-        Assert.Equal("Task3", step.ParallelSteps[2].Name);
-    }
-
-    [Fact]
-    public void WaitStep_ShouldConfigureWaitTime()
-    {
-        // Arrange & Act
-        var step = new WorkflowStep
-        {
-            Name = "WaitForProcessing",
-            Type = StepType.Wait,
-            WaitTimeMs = 3000
-        };
-
-        // Assert
-        Assert.Equal("WaitForProcessing", step.Name);
-        Assert.Equal(StepType.Wait, step.Type);
-        Assert.Equal(3000, step.WaitTimeMs);
-    }
-
-    [Fact]
-    public void ContinueOnError_ShouldAllowStepToFailGracefully()
-    {
-        // Arrange & Act
-        var step = new WorkflowStep
-        {
-            Name = "OptionalStep",
-            Type = StepType.Request,
-            RequestType = "OptionalRequest",
-            ContinueOnError = true
-        };
-
-        // Assert
-        Assert.True(step.ContinueOnError);
-    }
-
-    [Fact]
-    public void Step_ShouldSupportNestedStepHierarchy()
-    {
-        // Arrange & Act
-        var step = new WorkflowStep
-        {
-            Name = "ParentStep",
-            Type = StepType.Parallel,
-            ParallelSteps = new List<WorkflowStep>
-            {
-                new WorkflowStep
+                // Arrange & Act
+                var step = new WorkflowStep
                 {
-                    Name = "NestedConditional",
+                    Name = "CheckStatus",
                     Type = StepType.Conditional,
-                    Condition = "value > 10",
+                    Condition = "status == success",
                     ElseSteps = new List<WorkflowStep>
                     {
-                        new WorkflowStep { Name = "DefaultAction", Type = StepType.Request }
+                        new WorkflowStep { Name = "HandleError", Type = StepType.Request }
                     }
-                },
-                new WorkflowStep
+                };
+    
+                // Assert
+                Assert.Equal("CheckStatus", step.Name);
+                Assert.Equal(StepType.Conditional, step.Type);
+                Assert.Equal("status == success", step.Condition);
+                Assert.NotNull(step.ElseSteps);
+                var elseStep = Assert.Single(step.ElseSteps);
+                Assert.Equal("HandleError", elseStep.Name);
+            }
+    
+            [Fact]
+            public void ParallelStep_ShouldSupportParallelSteps()
+            {
+                // Arrange & Act
+                var step = new WorkflowStep
                 {
-                    Name = "NestedParallel",
+                    Name = "ProcessParallel",
                     Type = StepType.Parallel,
                     ParallelSteps = new List<WorkflowStep>
                     {
-                        new WorkflowStep { Name = "SubTask1", Type = StepType.Request },
-                        new WorkflowStep { Name = "SubTask2", Type = StepType.Request }
+                        new WorkflowStep { Name = "Task1", Type = StepType.Request },
+                        new WorkflowStep { Name = "Task2", Type = StepType.Request },
+                        new WorkflowStep { Name = "Task3", Type = StepType.Request }
                     }
-                }
+                };
+    
+                // Assert
+                Assert.Equal("ProcessParallel", step.Name);
+                Assert.Equal(StepType.Parallel, step.Type);
+                Assert.NotNull(step.ParallelSteps);
+                Assert.Equal(3, step.ParallelSteps.Count);
+                Assert.Equal("Task1", step.ParallelSteps[0].Name);
+                Assert.Equal("Task2", step.ParallelSteps[1].Name);
+                Assert.Equal("Task3", step.ParallelSteps[2].Name);
             }
-        };
-
-        // Assert
-        Assert.Equal(2, step.ParallelSteps!.Count);
-        Assert.Equal(StepType.Conditional, step.ParallelSteps[0].Type);
-        Assert.NotNull(step.ParallelSteps[0].ElseSteps);
-        Assert.Single(step.ParallelSteps[0].ElseSteps);
-        Assert.Equal(StepType.Parallel, step.ParallelSteps[1].Type);
-        Assert.NotNull(step.ParallelSteps[1].ParallelSteps);
-        Assert.Equal(2, step.ParallelSteps[1].ParallelSteps.Count);
-    }
-
+    
+            [Fact]
+            public void WaitStep_ShouldConfigureWaitTime()
+            {
+                // Arrange & Act
+                var step = new WorkflowStep
+                {
+                    Name = "WaitForProcessing",
+                    Type = StepType.Wait,
+                    WaitTimeMs = 3000
+                };
+    
+                // Assert
+                Assert.Equal("WaitForProcessing", step.Name);
+                Assert.Equal(StepType.Wait, step.Type);
+                Assert.Equal(3000, step.WaitTimeMs);
+            }
+    
+            [Fact]
+            public void ContinueOnError_ShouldAllowStepToFailGracefully()
+            {
+                // Arrange & Act
+                var step = new WorkflowStep
+                {
+                    Name = "OptionalStep",
+                    Type = StepType.Request,
+                    RequestType = "OptionalRequest",
+                    ContinueOnError = true
+                };
+    
+                // Assert
+                Assert.True(step.ContinueOnError);
+            }
+    
+            [Fact]
+            public void Step_ShouldSupportNestedStepHierarchy()
+            {
+                // Arrange & Act
+                var step = new WorkflowStep
+                {
+                    Name = "ParentStep",
+                    Type = StepType.Parallel,
+                    ParallelSteps = new List<WorkflowStep>
+                    {
+                        new WorkflowStep
+                        {
+                            Name = "NestedConditional",
+                            Type = StepType.Conditional,
+                            Condition = "value > 10",
+                            ElseSteps = new List<WorkflowStep>
+                            {
+                                new WorkflowStep { Name = "DefaultAction", Type = StepType.Request }
+                            }
+                        },
+                        new WorkflowStep
+                        {
+                            Name = "NestedParallel",
+                            Type = StepType.Parallel,
+                            ParallelSteps = new List<WorkflowStep>
+                            {
+                                new WorkflowStep { Name = "SubTask1", Type = StepType.Request },
+                                new WorkflowStep { Name = "SubTask2", Type = StepType.Request }
+                            }
+                        }
+                    }
+                };
+    
+                // Assert
+                Assert.NotNull(step.ParallelSteps);
+                Assert.Equal(2, step.ParallelSteps.Count);
+    
+                var nestedConditional = step.ParallelSteps[0];
+                Assert.Equal(StepType.Conditional, nestedConditional.Type);
+                Assert.NotNull(nestedConditional.ElseSteps);
+                var defaultAction = Assert.Single(nestedConditional.ElseSteps);
+                Assert.Equal("DefaultAction", defaultAction.Name);
+    
+                var nestedParallel = step.ParallelSteps[1];
+                Assert.Equal(StepType.Parallel, nestedParallel.Type);
+                Assert.NotNull(nestedParallel.ParallelSteps);
+                Assert.Equal(2, nestedParallel.ParallelSteps.Count);
+            }
     [Fact]
     public void OutputKey_ShouldSpecifyContextStorageKey()
     {

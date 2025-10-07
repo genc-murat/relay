@@ -309,7 +309,7 @@ namespace Relay.Core.Tests.Authorization
                 {
                     throw new AuthorizationException("Original");
                 }
-                catch (AuthorizationException ex)
+                catch (AuthorizationException)
                 {
                     // Log or process
                     throw; // Rethrow

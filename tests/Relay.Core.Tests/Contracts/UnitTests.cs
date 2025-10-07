@@ -20,14 +20,15 @@ namespace Relay.Core.Tests.Contracts
         }
 
         [Fact]
-        public void Unit_Task_ShouldReturnCompletedValueTask()
+        public async Task Unit_Task_ShouldReturnCompletedValueTask()
         {
             // Act
             var task = Unit.Task;
+            var result = await task;
 
             // Assert
             task.IsCompleted.Should().BeTrue();
-            task.Result.Should().Be(Unit.Value);
+            result.Should().Be(Unit.Value);
         }
 
         [Fact]
@@ -113,17 +114,18 @@ namespace Relay.Core.Tests.Contracts
         }
 
         [Fact]
-        public void Unit_ImplicitConversionToValueTask_ShouldWork()
+        public async Task Unit_ImplicitConversionToValueTask_ShouldWork()
         {
             // Arrange
             var unit = Unit.Value;
 
             // Act
             ValueTask<Unit> task = unit;
+            var result = await task;
 
             // Assert
             task.IsCompleted.Should().BeTrue();
-            task.Result.Should().Be(Unit.Value);
+            result.Should().Be(Unit.Value);
         }
 
         [Fact]

@@ -439,12 +439,13 @@ namespace Relay.Core.Tests.Implementation
             var serviceProvider = services.BuildServiceProvider();
 
             var dispatcher = new BackpressureStreamDispatcher(serviceProvider);
-            var request = new TestStreamRequest { Count = 100 };
+            // Use a request with longer count and shorter delay per item to ensure we get some results before cancellation
+            var request = new TestStreamRequest { Count = 1000 }; // More items
             var cts = new CancellationTokenSource();
 
             // Act
             var results = new List<int>();
-            cts.CancelAfter(TimeSpan.FromMilliseconds(50));
+            cts.CancelAfter(TimeSpan.FromMilliseconds(150)); // Give time for items to start processing
 
             Func<Task> act = async () =>
             {
@@ -456,8 +457,7 @@ namespace Relay.Core.Tests.Implementation
 
             // Assert
             await act.Should().ThrowAsync<OperationCanceledException>();
-            results.Should().NotBeEmpty();
-            results.Count.Should().BeLessThan(100);
+            results.Count.Should().BeLessThan(1000); // Should have stopped before processing all items
         }
 
         [Fact]

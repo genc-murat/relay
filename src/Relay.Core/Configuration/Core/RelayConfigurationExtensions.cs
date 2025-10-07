@@ -175,7 +175,7 @@ public static class RelayConfigurationExtensions
 
     /// <summary>
     /// Adds and configures rate limiting for Relay requests.
-    /// This registers the <see cref="RateLimiting.RateLimitingPipelineBehavior{TRequest, TResponse}"/>
+    /// This registers the <see cref="RateLimiting.Behaviors.RateLimitingPipelineBehavior{TRequest, TResponse}"/>
     /// and the required rate limiting services.
     /// </summary>
     /// <param name="services">The service collection.</param>
@@ -184,7 +184,7 @@ public static class RelayConfigurationExtensions
     {
         services.AddMemoryCache();
         // Rate limiting implementation - interfaces exist, implementation is functional
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(RateLimiting.RateLimitingPipelineBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(RateLimiting.Behaviors.RateLimitingPipelineBehavior<,>));
         return services;
     }
 

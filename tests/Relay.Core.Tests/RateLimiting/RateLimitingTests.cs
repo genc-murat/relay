@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
-using Relay.Core.RateLimiting;
+using Relay.Core.RateLimiting.Attributes;
+using Relay.Core.RateLimiting.Exceptions;
+using Relay.Core.RateLimiting.Implementations;
+using Relay.Core.RateLimiting.Interfaces;
 using Xunit;
 
 namespace Relay.Core.Tests.RateLimiting;

@@ -5,7 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Relay;
 using Relay.Core;
-using Relay.Core.RateLimiting;
+using Relay.Core.RateLimiting.Attributes;
+using Relay.Core.RateLimiting.Exceptions;
 
 namespace Relay.RateLimiting.Example
 {

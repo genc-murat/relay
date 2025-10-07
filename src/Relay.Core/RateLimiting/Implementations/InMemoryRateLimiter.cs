@@ -3,8 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Relay.Core.RateLimiting.Interfaces;
 
-namespace Relay.Core.RateLimiting
+namespace Relay.Core.RateLimiting.Implementations
 {
     /// <summary>
     /// In-memory implementation of IRateLimiter using sliding windows.

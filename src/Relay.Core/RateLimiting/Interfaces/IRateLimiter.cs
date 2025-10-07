@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.RateLimiting
+namespace Relay.Core.RateLimiting.Interfaces
 {
     /// <summary>
     /// Interface for rate limiting strategies.

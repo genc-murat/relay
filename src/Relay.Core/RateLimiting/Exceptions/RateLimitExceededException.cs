@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.RateLimiting
+namespace Relay.Core.RateLimiting.Exceptions
 {
     /// <summary>
     /// Exception thrown when a request is rate limited.

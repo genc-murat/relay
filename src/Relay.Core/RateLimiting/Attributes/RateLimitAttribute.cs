@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.RateLimiting
+namespace Relay.Core.RateLimiting.Attributes
 {
     /// <summary>
     /// Attribute to mark handlers or requests that should be rate limited.

@@ -7,8 +7,11 @@ using System.Threading.Tasks;
 using Relay.Core.Configuration;
 using Relay.Core.Configuration.Options;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.RateLimiting.Attributes;
+using Relay.Core.RateLimiting.Exceptions;
+using Relay.Core.RateLimiting.Interfaces;
 
-namespace Relay.Core.RateLimiting
+namespace Relay.Core.RateLimiting.Behaviors
 {
     /// <summary>
     /// A pipeline behavior that implements rate limiting for requests.

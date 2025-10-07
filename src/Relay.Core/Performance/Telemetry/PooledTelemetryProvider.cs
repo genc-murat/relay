@@ -4,7 +4,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.Telemetry;
 
 /// <summary>
 /// High-performance telemetry provider that uses object pooling to reduce allocations

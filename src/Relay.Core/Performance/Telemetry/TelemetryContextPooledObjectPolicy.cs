@@ -3,7 +3,7 @@ using Relay.Core.Telemetry;
 using System;
 using System.Collections.Generic;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.Telemetry;
 
 /// <summary>
 /// Object pool policy for telemetry contexts

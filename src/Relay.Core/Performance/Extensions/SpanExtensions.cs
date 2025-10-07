@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.Extensions;
 
 /// <summary>
 /// Extensions and utilities for memory-efficient data handling with Span&lt;T&gt;

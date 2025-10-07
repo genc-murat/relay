@@ -173,7 +173,7 @@ namespace Relay.Core.Implementation.Core
             // SIMD optimization: Prefetch memory if enabled
             if (_performanceOptions.EnableMemoryPrefetch && Sse.IsSupported)
             {
-                Performance.PerformanceHelpers.PrefetchMemory(request);
+                Performance.Optimization.PerformanceHelpers.PrefetchMemory(request);
             }
 
             // Cached dispatcher reference for micro-optimization
@@ -203,7 +203,7 @@ namespace Relay.Core.Implementation.Core
             // SIMD optimization: Prefetch memory if enabled
             if (_performanceOptions.EnableMemoryPrefetch && Sse.IsSupported)
             {
-                Performance.PerformanceHelpers.PrefetchMemory(request);
+                Performance.Optimization.PerformanceHelpers.PrefetchMemory(request);
             }
 
             // Cached dispatcher reference

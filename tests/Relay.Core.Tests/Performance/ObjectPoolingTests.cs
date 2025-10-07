@@ -1,11 +1,11 @@
-using System;
-using System.Diagnostics;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.ObjectPool;
 using Relay.Core.Performance;
-using Relay.Core.Telemetry;
+using Relay.Core.Performance.BufferManagement;
+using Relay.Core.Performance.Telemetry;
+using System;
+using System.Threading.Tasks;
 using Xunit;
+using Relay.Core.Performance.Extensions;
 
 namespace Relay.Core.Tests.Performance;
 

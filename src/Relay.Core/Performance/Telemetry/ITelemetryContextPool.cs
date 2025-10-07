@@ -1,6 +1,6 @@
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.Telemetry;
 
 /// <summary>
 /// Interface for pooling telemetry contexts to reduce allocations

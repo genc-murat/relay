@@ -3,7 +3,7 @@ using Relay.Core.Telemetry;
 using System;
 using System.Diagnostics;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.Telemetry;
 
 /// <summary>
 /// Default implementation of telemetry context pool using Microsoft.Extensions.ObjectPool

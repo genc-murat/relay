@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Microsoft.Extensions.ObjectPool;
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.Telemetry;
 
 /// <summary>
 /// Static accessor for telemetry context pooling

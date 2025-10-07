@@ -5,6 +5,8 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Performance;
+using Relay.Core.Performance.BufferManagement;
+using Relay.Core.Performance.Telemetry;
 using Relay.Core.Telemetry;
 
 namespace Relay.Core.Tests.Performance;

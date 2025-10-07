@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.BufferManagement;
 
 /// <summary>
 /// Interface for managing pooled buffers to reduce allocations

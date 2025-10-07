@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.Optimization;
 
 /// <summary>
 /// Optimizes service provider calls by caching service instances and factory delegates

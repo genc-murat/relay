@@ -1,6 +1,8 @@
 using System;
 using Xunit;
-using Relay.Core.Performance;
+using Relay.Core.Performance.Extensions;
+using Relay.Core.Performance.Telemetry;
+using Relay.Core.Performance.BufferManagement;
 
 namespace Relay.Core.Tests.Performance;
 

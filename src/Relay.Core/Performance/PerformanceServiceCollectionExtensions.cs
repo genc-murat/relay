@@ -4,6 +4,8 @@ using Microsoft.Extensions.ObjectPool;
 using System;
 using System.Buffers;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Performance.BufferManagement;
+using Relay.Core.Performance.Telemetry;
 
 namespace Relay.Core.Performance
 {

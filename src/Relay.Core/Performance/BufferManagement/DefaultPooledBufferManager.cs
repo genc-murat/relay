@@ -1,7 +1,7 @@
 using System;
 using System.Buffers;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.BufferManagement;
 
 /// <summary>
 /// Default implementation of pooled buffer manager using optimized ArrayPool configuration

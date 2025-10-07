@@ -6,7 +6,7 @@ using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.BufferManagement;
 
 /// <summary>
 /// Optimized pooled buffer manager with workload-specific tuning

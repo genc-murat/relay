@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
-namespace Relay.Core.Performance;
+namespace Relay.Core.Performance.Optimization;
 
 /// <summary>
 /// SIMD and hardware acceleration helper functions

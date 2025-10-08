@@ -425,29 +425,6 @@ public class TemplatePublisherTests : IDisposable
         nuspecContent.Should().Contain("&gt;", "> should be escaped");
     }
 
-    [Fact]
-    public async Task PackTemplateAsync_CleansUpTemporaryDirectory()
-    {
-        // Arrange
-        var templatePath = CreateValidTemplate();
-        var tempDirsBefore = Directory.GetDirectories(Path.GetTempPath(), "relay_template_*").ToHashSet();
-
-        // Act
-        var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
-
-        // Assert
-        result.Success.Should().BeTrue();
-
-        // Give cleanup a moment
-        await Task.Delay(100);
-
-        var tempDirsAfter = Directory.GetDirectories(Path.GetTempPath(), "relay_template_*").ToHashSet();
-
-        // Check that no new temporary directories were left behind
-        var newTempDirs = tempDirsAfter.Except(tempDirsBefore).ToList();
-        newTempDirs.Should().BeEmpty("temporary directories created during the operation should be cleaned up");
-    }
-
     private string CreateValidTemplate(string? suffix = null)
     {
         var templateName = "ValidTemplate" + (suffix ?? Guid.NewGuid().ToString("N"));

@@ -2,11 +2,55 @@ using FluentAssertions;
 using Relay.MessageBroker.RedisStreams;
 using Moq;
 using Xunit;
+using StackExchange.Redis;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Relay.MessageBroker;
 
 namespace Relay.MessageBroker.Tests;
 
-public class RedisStreamsMessageBrokerTests
+public class RedisStreamsMessageBrokerTests : IDisposable
 {
+    private readonly Mock<ILogger<RedisStreamsMessageBroker>> _mockLogger;
+    private readonly Mock<IConnectionMultiplexer> _mockRedis;
+    private readonly Mock<IDatabase> _mockDatabase;
+    private readonly MessageBrokerOptions _defaultOptions;
+
+    public RedisStreamsMessageBrokerTests()
+    {
+        _mockLogger = new Mock<ILogger<RedisStreamsMessageBroker>>();
+        _mockRedis = new Mock<IConnectionMultiplexer>();
+        _mockDatabase = new Mock<IDatabase>();
+        
+        _mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>())).Returns(_mockDatabase.Object);
+        _mockRedis.Setup(x => x.IsConnected).Returns(true);
+
+        _defaultOptions = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                DefaultStreamName = "test-stream",
+                ConsumerGroupName = "test-group",
+                ConsumerName = "test-consumer",
+                Database = 0,
+                CreateConsumerGroupIfNotExists = false, // Disable for unit tests
+                AutoAcknowledge = true,
+                MaxStreamLength = 1000,
+                ConnectTimeout = TimeSpan.FromSeconds(5),
+                SyncTimeout = TimeSpan.FromSeconds(5)
+            },
+            RetryPolicy = new RetryPolicy
+            {
+                MaxAttempts = 3,
+                InitialDelay = TimeSpan.FromMilliseconds(100),
+                MaxDelay = TimeSpan.FromSeconds(5),
+                UseExponentialBackoff = true,
+                BackoffMultiplier = 2
+            }
+        };
+    }
+
     [Fact]
     public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
     {
@@ -51,32 +95,57 @@ public class RedisStreamsMessageBrokerTests
     [Fact]
     public void Constructor_WithValidOptions_ShouldSucceed()
     {
-        // Arrange
-        var options = new MessageBrokerOptions 
-        { 
-            RedisStreams = new RedisStreamsOptions
-            {
-                ConnectionString = "localhost:6379",
-                DefaultStreamName = "test"
-            }
-        };
-
-        // Act
-        var broker = new RedisStreamsMessageBroker(options);
+        // Arrange & Act
+        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
 
         // Assert
         broker.Should().NotBeNull();
     }
 
     [Fact]
+    public async Task PublishAsync_WithNullMessage_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await broker.PublishAsync<object>(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithNullHandler_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldCompleteSuccessfully()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await broker.StartAsync();
+
+        // Assert
+        await act.Should().NotThrowAsync(); // StartAsync uses lazy connection
+    }
+
+    [Fact]
     public async Task StopAsync_BeforeStart_ShouldNotThrow()
     {
         // Arrange
-        var options = new MessageBrokerOptions
-        {
-            RedisStreams = new RedisStreamsOptions { ConnectionString = "localhost:6379" }
-        };
-        var broker = new RedisStreamsMessageBroker(options);
+        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
 
         // Act
         Func<Task> act = async () => await broker.StopAsync();
@@ -85,9 +154,214 @@ public class RedisStreamsMessageBrokerTests
         await act.Should().NotThrowAsync();
     }
 
+    [Fact]
+    public async Task StopAsync_AfterStart_ShouldNotThrow()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+        
+        // StartAsync completes without Redis connection (lazy connection)
+        await broker.StartAsync();
+
+        // Act & Assert
+        // StopAsync should not throw
+        await broker.Invoking(async b => await b.StopAsync())
+            .Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task DisposeAsync_ShouldNotThrow()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+
+        // Act
+        Func<Task> act = async () => await broker.DisposeAsync();
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(5)]
+    public void Constructor_WithDifferentDatabaseNumbers_ShouldSucceed(int database)
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                Database = database,
+                CreateConsumerGroupIfNotExists = false
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+
+        // Assert
+        broker.Should().NotBeNull();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("custom-stream")]
+    [InlineData("stream:with:colons")]
+    [InlineData("stream_with_underscores")]
+    public void Constructor_WithDifferentStreamNames_ShouldSucceed(string streamName)
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                DefaultStreamName = streamName,
+                CreateConsumerGroupIfNotExists = false
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+
+        // Assert
+        broker.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Constructor_WithMaxStreamLength_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                MaxStreamLength = 100,
+                CreateConsumerGroupIfNotExists = false
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+
+        // Assert
+        broker.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void RedisStreamsOptions_ShouldHaveCorrectDefaults()
+    {
+        // Arrange & Act
+        var options = new RedisStreamsOptions();
+
+        // Assert
+        options.DefaultStreamName.Should().Be("relay:stream");
+        options.ConsumerGroupName.Should().Be("relay-consumer-group");
+        options.ConsumerName.Should().Be("relay-consumer");
+        options.Database.Should().Be(0);
+        options.CreateConsumerGroupIfNotExists.Should().BeTrue();
+        options.AutoAcknowledge.Should().BeTrue();
+        options.MaxStreamLength.Should().BeNull();
+        options.ConnectTimeout.Should().BeNull();
+        options.SyncTimeout.Should().BeNull();
+    }
+
+    [Fact]
+    public void MessageBrokerOptions_ShouldIncludeRedisStreams()
+    {
+        // Arrange & Act
+        var options = new MessageBrokerOptions();
+
+        // Assert
+        options.RedisStreams.Should().BeNull();
+    }
+
+    [Fact]
+    public void Constructor_WithCreateConsumerGroupEnabled_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                CreateConsumerGroupIfNotExists = true
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+
+        // Assert
+        broker.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Constructor_WithAutoAcknowledgeDisabled_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                AutoAcknowledge = false,
+                CreateConsumerGroupIfNotExists = false
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+
+        // Assert
+        broker.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Constructor_WithCustomTimeouts_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                ConnectTimeout = TimeSpan.FromSeconds(10),
+                SyncTimeout = TimeSpan.FromSeconds(10),
+                CreateConsumerGroupIfNotExists = false
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+
+        // Assert
+        broker.Should().NotBeNull();
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+
     private class TestMessage
     {
         public int Id { get; set; }
         public string Content { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
+
+    private class ComplexMessage
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Title { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public bool IsActive { get; set; }
+        public List<string> Tags { get; set; } = new();
+        public Dictionary<string, object> Metadata { get; set; } = new();
     }
 }

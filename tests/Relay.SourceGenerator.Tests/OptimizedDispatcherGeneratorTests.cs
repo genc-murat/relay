@@ -1,6 +1,9 @@
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System.Collections.Generic;
+using System.Linq;
+using Relay.SourceGenerator;
 using Xunit;
 
 namespace Relay.SourceGenerator.Tests;
@@ -40,6 +43,49 @@ namespace Test
             new[] { syntaxTree },
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+    }
+
+    private HandlerInfo CreateMockHandler(string requestType, string responseType, string handlerType = "TestHandler", string methodName = "HandleAsync", bool isStatic = false, string? handlerName = null, int priority = 0)
+    {
+        var compilation = CreateCompilation($@"
+namespace Test {{
+    public class {requestType} : Relay.Core.IRequest<{responseType}> {{ }}
+    public class {handlerType} {{
+        {(isStatic ? "public static" : "public")} async System.Threading.Tasks.ValueTask<{responseType}> {methodName}({requestType} request, System.Threading.CancellationToken cancellationToken) => default;
+    }}
+}}");
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
+        var requestTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName($"Test.{requestType}");
+        var responseTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName($"Test.{responseType}");
+        var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName($"Test.{handlerType}");
+
+        var methodSymbol = handlerTypeSymbol?.GetMembers(methodName).OfType<IMethodSymbol>().FirstOrDefault();
+
+        var handler = new HandlerInfo
+        {
+            MethodSymbol = methodSymbol,
+            HandlerTypeSymbol = handlerTypeSymbol,
+            RequestTypeSymbol = requestTypeSymbol,
+            ResponseTypeSymbol = responseTypeSymbol,
+            Attributes = new List<RelayAttributeInfo>
+            {
+                new RelayAttributeInfo
+                {
+                    Type = RelayAttributeType.Handle,
+                    AttributeData = CreateMockAttributeData(handlerName, priority)
+                }
+            }
+        };
+
+        return handler;
+    }
+
+    private AttributeData CreateMockAttributeData(string? handlerName, int priority)
+    {
+        // For testing purposes, we'll create a mock attribute data
+        // In a real scenario, this would be created from actual syntax
+        return null!;
     }
 
     [Fact]
@@ -347,5 +393,538 @@ namespace Test
         source.Should().NotContain("TODO");
         source.Should().NotContain("HACK");
         source.Should().Contain("public static class OptimizedDispatcher");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithSingleHandler_ShouldGenerateSpecializedMethod()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler = CreateMockHandler("TestRequest", "string", "TestHandler", "HandleAsync", false);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("Dispatch_Test_TestRequest");
+        source.Should().Contain("Specialized dispatch method for Test.TestRequest");
+        source.Should().Contain("Direct invocation for single handler - maximum performance");
+        source.Should().Contain("serviceProvider.GetRequiredService<Test.TestHandler>()");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithStaticHandler_ShouldGenerateStaticInvocation()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler = CreateMockHandler("TestRequest", "string", "TestHandler", "HandleAsync", true);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().NotContain("serviceProvider.GetRequiredService");
+        source.Should().Contain("Test.TestHandler.HandleAsync(request, cancellationToken)");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithMultipleHandlers_ShouldGenerateSelectionLogic()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        // Create two handlers with the same request type but different handler types
+        var compilation = CreateCompilation(@"
+namespace Test {
+    public class TestRequest : Relay.Core.IRequest<string> { }
+    public class TestHandler1 {
+        public async System.Threading.Tasks.ValueTask<string> HandleAsync(TestRequest request, System.Threading.CancellationToken cancellationToken) => default;
+    }
+    public class TestHandler2 {
+        public async System.Threading.Tasks.ValueTask<string> HandleAsync(TestRequest request, System.Threading.CancellationToken cancellationToken) => default;
+    }
+}");
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
+        var requestTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.TestRequest");
+        
+        foreach (var handlerName in new[] { "TestHandler1", "TestHandler2" })
+        {
+            var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName($"Test.{handlerName}");
+            var methodSymbol = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
+
+            var handler = new HandlerInfo
+            {
+                MethodSymbol = methodSymbol,
+                HandlerTypeSymbol = handlerTypeSymbol,
+                RequestTypeSymbol = requestTypeSymbol,
+                Attributes = new List<RelayAttributeInfo>
+                {
+                    new RelayAttributeInfo { Type = RelayAttributeType.Handle }
+                }
+            };
+            
+            discoveryResult.Handlers.Add(handler);
+        }
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("Optimized handler selection with branch prediction");
+        source.Should().Contain("Most common handlers first for better branch prediction");
+        source.Should().Contain("No handler found with name");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithVoidResponse_ShouldGenerateVoidMethod()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler = CreateMockHandler("TestRequest", "void", "TestHandler", "HandleAsync", false);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("public static async ValueTask Dispatch_Test_TestRequest(");
+        source.Should().NotContain("ValueTask<void>");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithTypedResponse_ShouldGenerateTypedMethod()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler = CreateMockHandler("TestRequest", "string", "TestHandler", "HandleAsync", false);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("public static async ValueTask<string> Dispatch_Test_TestRequest(");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithStreamingHandlers_ShouldGenerateStreamingMethods()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        // Create a mock streaming handler
+        var compilation = CreateCompilation(@"
+namespace Test {
+    public class StreamRequest : Relay.Core.IStreamRequest<string> { }
+    public class StreamHandler {
+        public async System.Collections.Generic.IAsyncEnumerable<string> HandleAsync(StreamRequest request, System.Threading.CancellationToken cancellationToken) => default;
+    }
+}");
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
+        var requestTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.StreamRequest");
+        var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.StreamHandler");
+        var methodSymbol = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
+
+        var handler = new HandlerInfo
+        {
+            MethodSymbol = methodSymbol,
+            HandlerTypeSymbol = handlerTypeSymbol,
+            RequestTypeSymbol = requestTypeSymbol,
+            Attributes = new List<RelayAttributeInfo>
+            {
+                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
+            }
+        };
+        
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("DispatchStreamAsync<TRequest, TResponse>");
+        source.Should().Contain("Optimized streaming dispatch method");
+        source.Should().Contain("IAsyncEnumerable<TResponse>");
+        source.Should().Contain("where TRequest : IStreamRequest<TResponse>");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithNotificationHandlers_ShouldGenerateNotificationMethods()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        // Create a mock notification handler
+        var compilation = CreateCompilation(@"
+namespace Test {
+    public class TestNotification : Relay.Core.INotification { }
+    public class NotificationHandler {
+        public async System.Threading.Tasks.ValueTask HandleAsync(TestNotification notification, System.Threading.CancellationToken cancellationToken) => default;
+    }
+}");
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
+        var notificationTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.TestNotification");
+        var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.NotificationHandler");
+        var methodSymbol = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
+
+        var handler = new HandlerInfo
+        {
+            MethodSymbol = methodSymbol,
+            HandlerTypeSymbol = handlerTypeSymbol,
+            RequestTypeSymbol = notificationTypeSymbol,
+            Attributes = new List<RelayAttributeInfo>
+            {
+                new RelayAttributeInfo { Type = RelayAttributeType.Notification }
+            }
+        };
+        
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("DispatchNotificationAsync<TNotification>");
+        source.Should().Contain("Optimized notification dispatch method");
+        source.Should().Contain("where TNotification : INotification");
+        source.Should().Contain("var tasks = new List<ValueTask>()");
+        source.Should().Contain("ValueTask.WhenAll");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithMainDispatchMethod_ShouldGenerateTypeSwitching()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler = CreateMockHandler("TestRequest", "string", "TestHandler", "HandleAsync", false);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("DispatchAsync<TRequest, TResponse>");
+        source.Should().Contain("Main dispatch method with optimized type switching");
+        source.Should().Contain("Optimized type switching - most common types first");
+        source.Should().Contain("var requestType = typeof(TRequest)");
+        source.Should().Contain("if (requestType == typeof(Test.TestRequest))");
+        source.Should().Contain("await Dispatch_Test_TestRequest((Test.TestRequest)(object)request");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithComplexTypeNames_ShouldSanitizeCorrectly()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        // Create a handler with a complex type name
+        var compilation = CreateCompilation(@"
+namespace Test {
+    public class ComplexRequest<T> : Relay.Core.IRequest<string> where T : class { }
+    public class ComplexHandler {
+        public async System.Threading.Tasks.ValueTask<string> HandleAsync(ComplexRequest<object> request, System.Threading.CancellationToken cancellationToken) => default;
+    }
+}");
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
+        var requestTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.ComplexRequest`1")?.Construct(semanticModel.Compilation.GetSpecialType(SpecialType.System_Object));
+        var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.ComplexHandler");
+        var methodSymbol = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
+
+        var handler = new HandlerInfo
+        {
+            MethodSymbol = methodSymbol,
+            HandlerTypeSymbol = handlerTypeSymbol,
+            RequestTypeSymbol = requestTypeSymbol,
+            Attributes = new List<RelayAttributeInfo>
+            {
+                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
+            }
+        };
+        
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("Dispatch_Test_ComplexRequest_object_"); // Sanitized method name
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithMultipleRequestTypes_ShouldGenerateMultipleMethods()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler1 = CreateMockHandler("Request1", "string", "Handler1", "HandleAsync", false);
+        var handler2 = CreateMockHandler("Request2", "int", "Handler2", "HandleAsync", false);
+        
+        discoveryResult.Handlers.Add(handler1);
+        discoveryResult.Handlers.Add(handler2);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("Dispatch_Test_Request1");
+        source.Should().Contain("Dispatch_Test_Request2");
+        source.Should().Contain("ValueTask<string> Dispatch_Test_Request1(");
+        source.Should().Contain("ValueTask<int> Dispatch_Test_Request2(");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithNoHandlers_ShouldGenerateBasicStructure()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult(); // Empty
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("public static class OptimizedDispatcher");
+        source.Should().NotContain("Dispatch_");
+        source.Should().NotContain("DispatchStreamAsync");
+        source.Should().NotContain("DispatchNotificationAsync");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithMixedHandlerTypes_ShouldGenerateAllMethods()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        // Add regular handler
+        var regularHandler = CreateMockHandler("RegularRequest", "string", "RegularHandler", "HandleAsync", false);
+        discoveryResult.Handlers.Add(regularHandler);
+
+        // Add streaming handler
+        var compilation = CreateCompilation(@"
+namespace Test {
+    public class StreamRequest : Relay.Core.IStreamRequest<int> { }
+    public class StreamHandler {
+        public async System.Collections.Generic.IAsyncEnumerable<int> HandleAsync(StreamRequest request, System.Threading.CancellationToken cancellationToken) => default;
+    }
+}");
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
+        var streamRequestTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.StreamRequest");
+        var streamHandlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.StreamHandler");
+        var streamMethodSymbol = streamHandlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
+
+        var streamHandler = new HandlerInfo
+        {
+            MethodSymbol = streamMethodSymbol,
+            HandlerTypeSymbol = streamHandlerTypeSymbol,
+            RequestTypeSymbol = streamRequestTypeSymbol,
+            Attributes = new List<RelayAttributeInfo>
+            {
+                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
+            }
+        };
+        discoveryResult.Handlers.Add(streamHandler);
+
+        // Add notification handler
+        var notificationCompilation = CreateCompilation(@"
+namespace Test {
+    public class TestNotification : Relay.Core.INotification { }
+    public class NotificationHandler {
+        public async System.Threading.Tasks.ValueTask HandleAsync(TestNotification notification, System.Threading.CancellationToken cancellationToken) => default;
+    }
+}");
+        var notificationSemanticModel = notificationCompilation.GetSemanticModel(notificationCompilation.SyntaxTrees.First());
+        var notificationTypeSymbol = notificationSemanticModel.Compilation.GetTypeByMetadataName("Test.TestNotification");
+        var notificationHandlerTypeSymbol = notificationSemanticModel.Compilation.GetTypeByMetadataName("Test.NotificationHandler");
+        var notificationMethodSymbol = notificationHandlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
+
+        var notificationHandler = new HandlerInfo
+        {
+            MethodSymbol = notificationMethodSymbol,
+            HandlerTypeSymbol = notificationHandlerTypeSymbol,
+            RequestTypeSymbol = notificationTypeSymbol,
+            Attributes = new List<RelayAttributeInfo>
+            {
+                new RelayAttributeInfo { Type = RelayAttributeType.Notification }
+            }
+        };
+        discoveryResult.Handlers.Add(notificationHandler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("Dispatch_Test_RegularRequest");
+        source.Should().Contain("DispatchStreamAsync");
+        source.Should().Contain("DispatchNotificationAsync");
+        source.Should().Contain("IAsyncEnumerable<TResponse>");
+        source.Should().Contain("where TRequest : IStreamRequest<TResponse>");
+        source.Should().Contain("where TNotification : INotification");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithGenericTypeParameters_ShouldHandleCorrectly()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler = CreateMockHandler("GenericRequest", "List<string>", "GenericHandler", "HandleAsync", false);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("ValueTask<List<string>> Dispatch_Test_GenericRequest(");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_ShouldIncludeErrorHandlingForUnknownTypes()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler = CreateMockHandler("TestRequest", "string", "TestHandler", "HandleAsync", false);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("No handler found for request type");
+        // Note: "No handler found with name" only appears with multiple handlers
+        // "No streaming handler found for request type" only appears with streaming handlers
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_ShouldUseAggressiveInlining()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler = CreateMockHandler("TestRequest", "string", "TestHandler", "HandleAsync", false);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        var inlineCount = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None)
+            .Count(line => line.Contains("MethodImpl(MethodImplOptions.AggressiveInlining)"));
+        
+        inlineCount.Should().BeGreaterOrEqualTo(2); // Should have at least 2 methods with inlining
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithMultipleNotificationHandlers_ShouldGenerateParallelExecution()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        // Create multiple notification handlers for the same notification type
+        var compilation = CreateCompilation(@"
+namespace Test {
+    public class TestNotification : Relay.Core.INotification { }
+    public class NotificationHandler1 {
+        public async System.Threading.Tasks.ValueTask HandleAsync(TestNotification notification, System.Threading.CancellationToken cancellationToken) => default;
+    }
+    public class NotificationHandler2 {
+        public async System.Threading.Tasks.ValueTask HandleAsync(TestNotification notification, System.Threading.CancellationToken cancellationToken) => default;
+    }
+}");
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
+        var notificationTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.TestNotification");
+        
+        foreach (var handlerName in new[] { "NotificationHandler1", "NotificationHandler2" })
+        {
+            var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName($"Test.{handlerName}");
+            var methodSymbol = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
+
+            var handler = new HandlerInfo
+            {
+                MethodSymbol = methodSymbol,
+                HandlerTypeSymbol = handlerTypeSymbol,
+                RequestTypeSymbol = notificationTypeSymbol,
+                Attributes = new List<RelayAttributeInfo>
+                {
+                    new RelayAttributeInfo { Type = RelayAttributeType.Notification }
+                }
+            };
+            
+            discoveryResult.Handlers.Add(handler);
+        }
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("var tasks = new List<ValueTask>()");
+        source.Should().Contain("ValueTask.WhenAll(tasks.ToArray())");
+        source.Should().Contain("NotificationHandler1");
+        source.Should().Contain("NotificationHandler2");
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithMultipleHandlers_ShouldIncludeErrorHandlingForUnknownHandlerNames()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        
+        var handler1 = CreateMockHandler("TestRequest", "string", "TestHandler1", "HandleAsync", false, "default", 1);
+        var handler2 = CreateMockHandler("TestRequest", "string", "TestHandler2", "HandleAsync", false, "special", 2);
+        
+        discoveryResult.Handlers.Add(handler1);
+        discoveryResult.Handlers.Add(handler2);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        source.Should().Contain("No handler found with name");
+        source.Should().Contain("Optimized handler selection with branch prediction");
     }
 }

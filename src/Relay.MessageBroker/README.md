@@ -15,6 +15,12 @@ Enterprise-grade message broker integration for Relay Framework with support for
 - ✅ **Flexible Publishing** - Support for routing keys, headers, priorities, and expiration
 - ✅ **Reliable Subscriptions** - Manual and automatic acknowledgment modes
 - ✅ **Retry Policies** - Built-in retry mechanisms with exponential backoff
+- ✅ **Session Support** - Message ordering and session-based processing
+- ✅ **Batch Operations** - High-performance batch message processing
+- ✅ **Message Scheduling** - Schedule messages for future delivery
+- ✅ **Dead Letter Queue** - Automatic handling of failed messages
+- ✅ **Transaction Support** - Atomic operations across multiple messages
+- ✅ **Telemetry & Metrics** - OpenTelemetry integration for observability
 - ✅ **Hosted Service** - Automatic lifecycle management with .NET hosting
 - ✅ **Testing Support** - In-memory broker for unit testing
 
@@ -24,10 +30,10 @@ Enterprise-grade message broker integration for Relay Framework with support for
 |--------|--------|----------|
 | **RabbitMQ** | ✅ Production Ready | General-purpose messaging, routing patterns |
 | **Apache Kafka** | ✅ Production Ready | Event streaming, high-throughput scenarios |
-| **Azure Service Bus** | 🚧 In Development | Cloud-native Azure applications |
-| **AWS SQS/SNS** | 🚧 In Development | Cloud-native AWS applications |
-| **NATS** | 🚧 In Development | Microservices, edge computing, IoT |
-| **Redis Streams** | 🚧 In Development | Real-time messaging, simple pub/sub |
+| **Azure Service Bus** | ✅ Production Ready | Cloud-native Azure applications with enterprise features |
+| **AWS SQS/SNS** | ✅ Production Ready | Cloud-native AWS applications |
+| **NATS** | ✅ Production Ready | Microservices, edge computing, IoT |
+| **Redis Streams** | ✅ Production Ready | Real-time messaging, simple pub/sub |
 
 ## Installation
 
@@ -100,6 +106,9 @@ builder.Services.AddAzureServiceBus(options =>
     options.MaxConcurrentCalls = 10;
     options.PrefetchCount = 10;
     options.AutoCompleteMessages = false;
+    options.SessionsEnabled = true; // Enable session support
+    options.EntityType = AzureEntityType.Topic; // Use Topic or Queue
+    options.SubscriptionName = "my-subscription"; // Required for topics
 });
 
 // Add hosted service for automatic start/stop
@@ -216,6 +225,44 @@ public class OrderService
         });
     }
 }
+```
+
+### Batch Publishing (Azure Service Bus)
+
+```csharp
+// Publish multiple messages in a batch for better performance
+var events = new List<OrderCreatedEvent>
+{
+    new() { OrderId = 1, Amount = 99.99m, CreatedAt = DateTime.UtcNow },
+    new() { OrderId = 2, Amount = 149.99m, CreatedAt = DateTime.UtcNow },
+    new() { OrderId = 3, Amount = 79.99m, CreatedAt = DateTime.UtcNow }
+};
+
+await ((AzureServiceBusMessageBroker)_messageBroker).PublishBatchAsync(events);
+```
+
+### Scheduled Publishing (Azure Service Bus)
+
+```csharp
+// Schedule a message to be sent in the future
+var scheduledTime = DateTime.UtcNow.AddHours(1);
+await ((AzureServiceBusMessageBroker)_messageBroker).ScheduleMessageAsync(
+    new OrderCreatedEvent { OrderId = 123, Amount = 99.99m, CreatedAt = DateTime.UtcNow },
+    scheduledTime);
+```
+
+### Publishing with Sessions (Azure Service Bus)
+
+```csharp
+await _messageBroker.PublishAsync(
+    new OrderCreatedEvent { OrderId = 123, Amount = 99.99m },
+    new PublishOptions
+    {
+        Headers = new Dictionary<string, object>
+        {
+            { "SessionId", $"order-{orderId}" } // Ensures ordering for this order
+        }
+    });
 ```
 
 ### Publishing with Options
@@ -372,6 +419,59 @@ builder.Services.AddMessageBroker(options =>
         UseExponentialBackoff = true
     };
 });
+```
+
+### Azure Service Bus Advanced Configuration
+
+```csharp
+builder.Services.AddAzureServiceBus(options =>
+{
+    options.ConnectionString = "Endpoint=sb://myservicebus.servicebus.windows.net/;SharedAccessKeyName=...";
+    options.DefaultEntityName = "relay-events";
+    options.EntityType = AzureEntityType.Topic;
+    options.SubscriptionName = "relay-subscription";
+    options.MaxConcurrentCalls = 20;
+    options.PrefetchCount = 100;
+    options.AutoCompleteMessages = false;
+    options.SessionsEnabled = true;
+    options.MessageTimeToLive = TimeSpan.FromDays(7);
+});
+```
+
+### Transaction Support (Azure Service Bus)
+
+```csharp
+// Execute operations within a transaction
+await ((AzureServiceBusMessageBroker)_messageBroker).ExecuteInTransactionAsync(async (transaction, ct) =>
+{
+    // Publish multiple messages atomically
+    await ((AzureServiceBusMessageBroker)_messageBroker).PublishInTransactionAsync(
+        new OrderCreatedEvent { OrderId = 1 }, transaction);
+    
+    await ((AzureServiceBusMessageBroker)_messageBroker).PublishInTransactionAsync(
+        new PaymentProcessedEvent { OrderId = 1, Amount = 99.99m }, transaction);
+    
+    // All messages will be sent atomically or none at all
+});
+```
+
+### Dead Letter Queue Processing (Azure Service Bus)
+
+```csharp
+// Process dead-lettered messages
+await ((AzureServiceBusMessageBroker)_messageBroker).ProcessDeadLetterMessagesAsync<OrderCreatedEvent>(
+    async (message, context, ct) =>
+    {
+        _logger.LogWarning("Processing failed order: {OrderId}", message.OrderId);
+        
+        // Try to process again or handle the failure
+        await HandleFailedOrderAsync(message);
+        
+        await context.Acknowledge();
+    });
+
+// Requeue a specific dead-lettered message
+await ((AzureServiceBusMessageBroker)_messageBroker).RequeueDeadLetterMessageAsync(messageId);
 ```
 
 ### Kafka Advanced Configuration

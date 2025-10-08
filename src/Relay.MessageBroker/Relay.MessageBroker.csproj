@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -27,6 +27,9 @@
     <!-- Redis Streams -->
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
 
+    <!-- Polly for resilience -->
+    <PackageReference Include="Polly" Version="8.4.2" />
+    
     <!-- OpenTelemetry -->
     <PackageReference Include="OpenTelemetry" Version="1.9.0" />
     <PackageReference Include="OpenTelemetry.Api" Version="1.9.0" />

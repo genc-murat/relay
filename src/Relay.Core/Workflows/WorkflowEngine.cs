@@ -575,6 +575,9 @@ namespace Relay.Core.Workflows
 
         public ValueTask<bool> DeleteDefinitionAsync(string definitionId, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrEmpty(definitionId))
+                return ValueTask.FromResult(false);
+
             lock (_lock)
             {
                 var removed = _definitions.Remove(definitionId);

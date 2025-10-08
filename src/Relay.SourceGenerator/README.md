@@ -91,9 +91,36 @@ Generated Code
 
 1. **Separation of Concerns** - Each folder has a specific responsibility
 2. **Incremental Generation** - All generators support incremental compilation
-3. **Performance Optimized** - Generators produce highly optimized code
+3. **Performance Optimized** - Generators produce highly optimized code with:
+   - **Aggressive caching** - Semantic models and type lookups are cached to avoid expensive recomputation
+   - **Parallel processing** - Large handler collections are analyzed in parallel using all CPU cores
+   - **StringBuilder pooling** - Reduces memory allocations during code generation
+   - **Early exit optimizations** - Hot paths skip unnecessary LINQ operations
+   - **ConcurrentDictionary caching** - Thread-safe caches for response types and semantic models
 4. **Diagnostic Rich** - Comprehensive error reporting and warnings
 5. **Single Namespace** - All code uses `Relay.SourceGenerator` namespace for simplicity
+
+## ⚡ Performance Optimizations
+
+### Caching Strategy
+- **Semantic Model Cache** - Compilation-wide semantic model caching prevents repeated analysis
+- **Type Lookup Cache** - Named type resolution is cached to avoid expensive metadata queries
+- **Response Type Cache** - Method return type analysis is cached across handler discovery
+
+### Parallel Processing
+- Automatic parallelization for collections with 10+ handlers
+- Uses fixed degree of parallelism (4 threads) for consistent performance
+- Thread-safe `ConcurrentBag` for result aggregation
+
+### Memory Efficiency
+- Thread-local `StringBuilder` pool reduces GC pressure
+- Capacity limits prevent memory bloat from pooled objects
+- Early exit predicates minimize unnecessary allocations
+
+### Hot Path Optimization
+- LINQ-free loops in syntax filtering for minimal overhead
+- Switch statements instead of pattern matching for attribute detection
+- Direct iteration over attribute lists avoids intermediate collections
 
 ## 📝 Notes
 

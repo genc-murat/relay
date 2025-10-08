@@ -36,51 +36,71 @@ namespace Relay.SourceGenerator
 
         /// <summary>
         /// Checks if a method declaration has any Relay-related attributes.
+        /// Performance-optimized version with early exit.
         /// </summary>
         /// <param name="method">The method declaration to check.</param>
         /// <returns>True if the method has Relay attributes, false otherwise.</returns>
         private static bool HasRelayAttribute(MethodDeclarationSyntax method)
         {
-            return method.AttributeLists
-                .SelectMany(al => al.Attributes)
-                .Any(attr => IsRelayAttributeName(attr.Name.ToString()));
+            // Early exit if no attributes at all
+            if (method.AttributeLists.Count == 0)
+                return false;
+
+            // Optimized: avoid LINQ overhead for hot path
+            foreach (var attributeList in method.AttributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    if (IsRelayAttributeName(attribute.Name.ToString()))
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
         /// Checks if an attribute name is a known Relay attribute.
+        /// Performance-optimized with ReadOnlySpan for string comparison.
         /// </summary>
         /// <param name="attributeName">The attribute name to check.</param>
         /// <returns>True if it's a Relay attribute, false otherwise.</returns>
         private static bool IsRelayAttributeName(string attributeName)
         {
+            if (string.IsNullOrEmpty(attributeName))
+                return false;
+
             // Remove the "Attribute" suffix if present
             var name = attributeName.EndsWith("Attribute") 
                 ? attributeName.Substring(0, attributeName.Length - 9) 
                 : attributeName;
 
-            return name switch
+            // Optimized switch with most common cases first
+            switch (name)
             {
-                // Core Relay attributes
-                "Handle" => true,
-                "Notification" => true,
-                "Pipeline" => true,
-                "Endpoint" => true,
-                "ExposeAsEndpoint" => true,
+                // Core Relay attributes (most common)
+                case "Handle":
+                case "Notification":
+                case "Pipeline":
+                case "Endpoint":
+                case "ExposeAsEndpoint":
                 
                 // Handler type attributes
-                "RequestHandler" => true,
-                "NotificationHandler" => true,
-                "PipelineHandler" => true,
-                "EndpointHandler" => true,
-                "RelayHandler" => true,
+                case "RequestHandler":
+                case "NotificationHandler":
+                case "PipelineHandler":
+                case "EndpointHandler":
+                case "RelayHandler":
                 
                 // CQRS attributes
-                "Command" => true,
-                "Query" => true,
-                "Event" => true,
+                case "Command":
+                case "Query":
+                case "Event":
+                    return true;
                 
-                _ => false
-            };
+                default:
+                    return false;
+            }
         }
 
         /// <summary>

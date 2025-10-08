@@ -1,18 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Relay.SourceGenerator
 {
     /// <summary>
-    /// Discovers and validates handler methods in the compilation.
+    /// Discovers and validates handler methods in the compilation with parallel processing support.
     /// </summary>
     public class HandlerDiscoveryEngine
     {
         private readonly RelayCompilationContext _context;
+        private readonly ConcurrentDictionary<IMethodSymbol, ITypeSymbol?> _responseTypeCache = new(SymbolEqualityComparer.Default);
 
         public HandlerDiscoveryEngine(RelayCompilationContext context)
         {
@@ -20,15 +23,38 @@ namespace Relay.SourceGenerator
         }
 
         /// <summary>
-        /// Discovers all valid handler methods from the candidate methods.
+        /// Discovers all valid handler methods from the candidate methods with parallel processing.
         /// </summary>
         public HandlerDiscoveryResult DiscoverHandlers(IEnumerable<MethodDeclarationSyntax?> candidateMethods, IDiagnosticReporter diagnosticReporter)
         {
             var result = new HandlerDiscoveryResult();
+            var methodList = candidateMethods.Where(m => m != null).ToList();
 
-            foreach (var method in candidateMethods)
+            if (methodList.Count == 0)
+                return result;
+
+            // For small collections, use sequential processing to avoid overhead
+            if (methodList.Count < 10)
             {
-                if (method == null) continue; // Skip null methods
+                ProcessMethodsSequentially(methodList, result, diagnosticReporter);
+            }
+            else
+            {
+                // For larger collections, use parallel processing
+                ProcessMethodsInParallel(methodList, result, diagnosticReporter);
+            }
+
+            // Validate for duplicate handlers
+            ValidateForDuplicates(result.Handlers, diagnosticReporter);
+
+            return result;
+        }
+
+        private void ProcessMethodsSequentially(List<MethodDeclarationSyntax?> methods, HandlerDiscoveryResult result, IDiagnosticReporter diagnosticReporter)
+        {
+            foreach (var method in methods)
+            {
+                if (method == null) continue;
 
                 _context.CancellationToken.ThrowIfCancellationRequested();
 
@@ -46,11 +72,47 @@ namespace Relay.SourceGenerator
                     diagnosticReporter.ReportDiagnostic(diagnostic);
                 }
             }
+        }
 
-            // Validate for duplicate handlers
-            ValidateForDuplicates(result.Handlers, diagnosticReporter);
+        private void ProcessMethodsInParallel(List<MethodDeclarationSyntax?> methods, HandlerDiscoveryResult result, IDiagnosticReporter diagnosticReporter)
+        {
+            var handlers = new ConcurrentBag<HandlerInfo>();
+            var diagnostics = new ConcurrentBag<Diagnostic>();
 
-            return result;
+            // Use a reasonable degree of parallelism without Environment.ProcessorCount
+            // Most machines have 4-16 cores, use 4 as a safe default
+            Parallel.ForEach(methods,
+                new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = _context.CancellationToken },
+                method =>
+                {
+                    if (method == null) return;
+
+                    try
+                    {
+                        var handlerInfo = AnalyzeHandlerMethod(method, diagnosticReporter);
+                        if (handlerInfo != null)
+                        {
+                            handlers.Add(handlerInfo);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.GeneratorError, Location.None, $"Error analyzing handler method '{method.Identifier.ValueText}': {ex.Message}");
+                        diagnostics.Add(diagnostic);
+                    }
+                });
+
+            // Add all handlers to result
+            foreach (var handler in handlers)
+            {
+                result.Handlers.Add(handler);
+            }
+
+            // Report all diagnostics
+            foreach (var diagnostic in diagnostics)
+            {
+                diagnosticReporter.ReportDiagnostic(diagnostic);
+            }
         }
 
         private HandlerInfo? AnalyzeHandlerMethod(MethodDeclarationSyntax method, IDiagnosticReporter diagnosticReporter)
@@ -80,7 +142,7 @@ namespace Relay.SourceGenerator
                 HandlerTypeSymbol = methodSymbol.ContainingType,
                 MethodName = methodSymbol.Name,
                 RequestTypeSymbol = methodSymbol.Parameters.FirstOrDefault()?.Type,
-                ResponseTypeSymbol = GetResponseType(methodSymbol.ReturnType)
+                ResponseTypeSymbol = GetResponseType(methodSymbol)
             };
 
             // Validate method signature based on attribute type
@@ -95,26 +157,32 @@ namespace Relay.SourceGenerator
             return handlerInfo;
         }
 
-        private ITypeSymbol? GetResponseType(ITypeSymbol returnType)
+        private ITypeSymbol? GetResponseType(IMethodSymbol methodSymbol)
         {
-            if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
+            // Use cache to avoid repeated type analysis
+            return _responseTypeCache.GetOrAdd(methodSymbol, symbol =>
             {
-                var genericDef = namedType.OriginalDefinition.ToDisplayString();
-                if (genericDef == "System.Threading.Tasks.Task<TResult>" ||
-                    genericDef == "System.Threading.Tasks.ValueTask<TResult>" ||
-                    genericDef == "System.Collections.Generic.IAsyncEnumerable<T>")
+                var returnType = symbol.ReturnType;
+                
+                if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
                 {
-                    return namedType.TypeArguments.FirstOrDefault();
+                    var genericDef = namedType.OriginalDefinition.ToDisplayString();
+                    if (genericDef == "System.Threading.Tasks.Task<TResult>" ||
+                        genericDef == "System.Threading.Tasks.ValueTask<TResult>" ||
+                        genericDef == "System.Collections.Generic.IAsyncEnumerable<T>")
+                    {
+                        return namedType.TypeArguments.FirstOrDefault();
+                    }
                 }
-            }
 
-            var returnTypeString = returnType.ToDisplayString();
-            if (returnTypeString == "System.Threading.Tasks.Task" || returnTypeString == "System.Threading.Tasks.ValueTask")
-            {
-                return _context.Compilation.GetTypeByMetadataName("Relay.Core.Unit");
-            }
+                var returnTypeString = returnType.ToDisplayString();
+                if (returnTypeString == "System.Threading.Tasks.Task" || returnTypeString == "System.Threading.Tasks.ValueTask")
+                {
+                    return _context.FindType("Relay.Core.Unit");
+                }
 
-            return returnType;
+                return returnType;
+            });
         }
 
         private List<RelayAttributeInfo> GetRelayAttributes(IMethodSymbol methodSymbol)
@@ -409,6 +477,14 @@ namespace Relay.SourceGenerator
                 return method.Parameters[0].Type.ToDisplayString();
             }
             return "Unknown";
+        }
+
+        /// <summary>
+        /// Clears all internal caches. Useful for testing.
+        /// </summary>
+        public void ClearCaches()
+        {
+            _responseTypeCache.Clear();
         }
     }
 }

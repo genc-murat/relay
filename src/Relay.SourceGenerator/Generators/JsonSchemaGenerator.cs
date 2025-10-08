@@ -33,11 +33,16 @@ namespace Relay.SourceGenerator
                 var properties = new Dictionary<string, object>();
                 var required = new List<string>();
 
-                // Get all public properties and fields
-                var members = namedType.GetMembers()
-                    .Where(m => m.DeclaredAccessibility == Accessibility.Public)
-                    .Where(m => m is IPropertySymbol || m is IFieldSymbol)
-                    .ToList();
+                // Get all public properties and fields including inherited ones
+                var members = new List<ISymbol>();
+                var currentType = namedType;
+                while (currentType != null)
+                {
+                    members.AddRange(currentType.GetMembers()
+                        .Where(m => m.DeclaredAccessibility == Accessibility.Public)
+                        .Where(m => m is IPropertySymbol || m is IFieldSymbol));
+                    currentType = currentType.BaseType;
+                }
 
                 foreach (var member in members)
                 {
@@ -112,7 +117,7 @@ namespace Relay.SourceGenerator
                     schema["format"] = "date-time";
                     break;
                 default:
-                    // Handle arrays and collections
+                    // Handle arrays and collections FIRST
                     if (IsArrayOrCollection(underlyingType))
                     {
                         schema["type"] = "array";
@@ -191,12 +196,18 @@ namespace Relay.SourceGenerator
                 // Check for common collection interfaces
                 var collectionInterfaces = new[]
                 {
-                    "System.Collections.Generic.IEnumerable",
-                    "System.Collections.Generic.ICollection",
-                    "System.Collections.Generic.IList"
+                    "System.Collections.Generic.IEnumerable`1",
+                    "System.Collections.Generic.ICollection`1",
+                    "System.Collections.Generic.IList`1",
+                    "System.Collections.Generic.ISet`1",
+                    "System.Collections.Generic.IEnumerable<T>",
+                    "System.Collections.Generic.ICollection<T>",
+                    "System.Collections.Generic.IList<T>",
+                    "System.Collections.Generic.ISet<T>"
                 };
 
                 return namedType.AllInterfaces.Any(i =>
+                    collectionInterfaces.Contains(i.OriginalDefinition?.ToDisplayString()) ||
                     collectionInterfaces.Contains(i.ConstructedFrom?.ToDisplayString()));
             }
 
@@ -212,7 +223,7 @@ namespace Relay.SourceGenerator
 
             if (typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType)
             {
-                // For generic collections, return the first type argument
+                // For generic collections like List<T>, IList<T>, etc., return the first type argument
                 return namedType.TypeArguments.FirstOrDefault();
             }
 

@@ -359,6 +359,9 @@ namespace Microsoft.Extensions.DependencyInjection
             sb.AppendLine("using System.Threading.Tasks;");
             sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
             sb.AppendLine("using Relay.Core;");
+            sb.AppendLine("using Relay.Core.Contracts;");
+            sb.AppendLine("using Relay.Core.Contracts.Requests;");
+            sb.AppendLine("using Relay.Core.Contracts.Handlers;");
             sb.AppendLine();
             sb.AppendLine("namespace Relay.Generated");
             sb.AppendLine("{");
@@ -375,21 +378,22 @@ namespace Microsoft.Extensions.DependencyInjection
             sb.AppendLine("            return request switch");
             sb.AppendLine("            {");
 
-            // Generate switch cases for each request type
-            var requestHandlers = handlerClasses
+            // Generate switch cases for requests with a response
+            var responseRequestHandlers = handlerClasses
                 .Where(h => h != null)
                 .SelectMany(h => h!.ImplementedInterfaces)
-                .Where(i => i.InterfaceType == HandlerType.Request)
+                .Where(i => i.InterfaceType == HandlerType.Request && i.ResponseType != null)
                 .GroupBy(i => i.RequestType?.ToDisplayString())
                 .ToList();
 
-            foreach (var group in requestHandlers)
+            foreach (var group in responseRequestHandlers)
             {
                 var requestType = group.Key;
                 if (string.IsNullOrEmpty(requestType)) continue;
 
                 var handlerInterface = group.First();
-                var responseType = handlerInterface.ResponseType?.ToDisplayString() ?? "object";
+                var responseType = handlerInterface.ResponseType?.ToDisplayString();
+                if (string.IsNullOrEmpty(responseType)) continue;
                 
                 sb.AppendLine($"                {requestType} req when request is {requestType} => ");
                 sb.AppendLine($"                    (ValueTask<TResponse>)(object)ServiceProvider.GetRequiredService<IRequestHandler<{requestType}, {responseType}>>().HandleAsync(req, cancellationToken),");
@@ -401,7 +405,27 @@ namespace Microsoft.Extensions.DependencyInjection
             sb.AppendLine();
             sb.AppendLine("        public override ValueTask DispatchAsync(IRequest request, CancellationToken cancellationToken)");
             sb.AppendLine("        {");
-            sb.AppendLine("            throw new NotImplementedException(\"Void requests not yet supported in generated dispatcher\");");
+            sb.AppendLine("            return request switch");
+            sb.AppendLine("            {");
+
+            // Generate switch cases for void requests
+            var voidRequestHandlers = handlerClasses
+                .Where(h => h != null)
+                .SelectMany(h => h!.ImplementedInterfaces)
+                .Where(i => i.InterfaceType == HandlerType.Request && i.ResponseType == null)
+                .GroupBy(i => i.RequestType?.ToDisplayString())
+                .ToList();
+
+            foreach (var group in voidRequestHandlers)
+            {
+                var requestType = group.Key;
+                if (string.IsNullOrEmpty(requestType)) continue;
+
+                sb.AppendLine($"                {requestType} req => ServiceProvider.GetRequiredService<IRequestHandler<{requestType}>>().HandleAsync(req, cancellationToken),");
+            }
+
+            sb.AppendLine("                _ => ValueTask.FromException(new HandlerNotFoundException(request.GetType().Name))");
+            sb.AppendLine("            };");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        public override ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)");

@@ -147,6 +147,8 @@ namespace Relay.Core.Workflows
                 if (step.ContinueOnError)
                 {
                     _logger.LogWarning(ex, "Step {StepName} failed but continuing due to ContinueOnError", step.Name);
+                    // Save the execution state with the failed step
+                    await _stateStore.SaveExecutionAsync(execution, cancellationToken);
                 }
                 else
                 {

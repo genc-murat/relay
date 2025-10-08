@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -24,15 +25,17 @@ namespace Relay.Core.Tests.Publishing
 
         public class TestHandler1 : INotificationHandler<TestNotification>
         {
-            public static List<string> ExecutionLog { get; } = new();
+            public static ConcurrentQueue<string> ExecutionLog { get; private set; } = new();
             public static int ExecutionDelay { get; set; } = 0;
+
+            public static void ClearLog() => ExecutionLog = new ConcurrentQueue<string>();
 
             public async ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
             {
-                ExecutionLog.Add($"Handler1-Start: {notification.Message}");
+                ExecutionLog.Enqueue($"Handler1-Start: {notification.Message}");
                 if (ExecutionDelay > 0)
                     await Task.Delay(ExecutionDelay, cancellationToken);
-                ExecutionLog.Add($"Handler1-End: {notification.Message}");
+                ExecutionLog.Enqueue($"Handler1-End: {notification.Message}");
             }
         }
 
@@ -42,10 +45,10 @@ namespace Relay.Core.Tests.Publishing
 
             public async ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
             {
-                TestHandler1.ExecutionLog.Add($"Handler2-Start: {notification.Message}");
+                TestHandler1.ExecutionLog.Enqueue($"Handler2-Start: {notification.Message}");
                 if (ExecutionDelay > 0)
                     await Task.Delay(ExecutionDelay, cancellationToken);
-                TestHandler1.ExecutionLog.Add($"Handler2-End: {notification.Message}");
+                TestHandler1.ExecutionLog.Enqueue($"Handler2-End: {notification.Message}");
             }
         }
 
@@ -55,10 +58,10 @@ namespace Relay.Core.Tests.Publishing
 
             public async ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
             {
-                TestHandler1.ExecutionLog.Add($"Handler3-Start: {notification.Message}");
+                TestHandler1.ExecutionLog.Enqueue($"Handler3-Start: {notification.Message}");
                 if (ExecutionDelay > 0)
                     await Task.Delay(ExecutionDelay, cancellationToken);
-                TestHandler1.ExecutionLog.Add($"Handler3-End: {notification.Message}");
+                TestHandler1.ExecutionLog.Enqueue($"Handler3-End: {notification.Message}");
             }
         }
 
@@ -66,7 +69,7 @@ namespace Relay.Core.Tests.Publishing
         {
             public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
             {
-                TestHandler1.ExecutionLog.Add($"ThrowingHandler: {notification.Message}");
+                TestHandler1.ExecutionLog.Enqueue($"ThrowingHandler: {notification.Message}");
                 throw new InvalidOperationException("Handler failed");
             }
         }
@@ -79,7 +82,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task SequentialPublisher_Should_Execute_Handlers_In_Order()
         {
             // Arrange
-            TestHandler1.ExecutionLog.Clear();
+            TestHandler1.ClearLog();
             TestHandler1.ExecutionDelay = 10;
             TestHandler2.ExecutionDelay = 10;
             TestHandler3.ExecutionDelay = 10;
@@ -100,19 +103,19 @@ namespace Relay.Core.Tests.Publishing
             // Assert
             TestHandler1.ExecutionLog.Should().HaveCount(6);
             // Sequential execution means handlers complete one at a time
-            TestHandler1.ExecutionLog[0].Should().Be("Handler1-Start: test");
-            TestHandler1.ExecutionLog[1].Should().Be("Handler1-End: test");
-            TestHandler1.ExecutionLog[2].Should().Be("Handler2-Start: test");
-            TestHandler1.ExecutionLog[3].Should().Be("Handler2-End: test");
-            TestHandler1.ExecutionLog[4].Should().Be("Handler3-Start: test");
-            TestHandler1.ExecutionLog[5].Should().Be("Handler3-End: test");
+            TestHandler1.ExecutionLog.ElementAt(0).Should().Be("Handler1-Start: test");
+            TestHandler1.ExecutionLog.ElementAt(1).Should().Be("Handler1-End: test");
+            TestHandler1.ExecutionLog.ElementAt(2).Should().Be("Handler2-Start: test");
+            TestHandler1.ExecutionLog.ElementAt(3).Should().Be("Handler2-End: test");
+            TestHandler1.ExecutionLog.ElementAt(4).Should().Be("Handler3-Start: test");
+            TestHandler1.ExecutionLog.ElementAt(5).Should().Be("Handler3-End: test");
         }
 
         [Fact]
         public async Task SequentialPublisher_Should_Stop_On_Exception()
         {
             // Arrange
-            TestHandler1.ExecutionLog.Clear();
+            TestHandler1.ClearLog();
 
             var publisher = new SequentialNotificationPublisher();
             var handlers = new INotificationHandler<TestNotification>[]
@@ -143,7 +146,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task ParallelPublisher_Should_Fail_Fast_On_Exception()
         {
             // Arrange
-            TestHandler1.ExecutionLog.Clear();
+            TestHandler1.ClearLog();
 
             var publisher = new ParallelNotificationPublisher();
             var handlers = new INotificationHandler<TestNotification>[]
@@ -166,7 +169,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task ParallelPublisher_Should_Optimize_Single_Handler()
         {
             // Arrange
-            TestHandler1.ExecutionLog.Clear();
+            TestHandler1.ClearLog();
 
             var publisher = new ParallelNotificationPublisher();
             var handlers = new INotificationHandler<TestNotification>[]
@@ -181,8 +184,8 @@ namespace Relay.Core.Tests.Publishing
 
             // Assert
             TestHandler1.ExecutionLog.Should().HaveCount(2);
-            TestHandler1.ExecutionLog[0].Should().Be("Handler1-Start: test");
-            TestHandler1.ExecutionLog[1].Should().Be("Handler1-End: test");
+            TestHandler1.ExecutionLog.ElementAt(0).Should().Be("Handler1-Start: test");
+            TestHandler1.ExecutionLog.ElementAt(1).Should().Be("Handler1-End: test");
         }
 
         #endregion
@@ -193,7 +196,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task ParallelWhenAllPublisher_Should_Continue_On_Exception()
         {
             // Arrange
-            TestHandler1.ExecutionLog.Clear();
+            TestHandler1.ClearLog();
 
             var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: true);
             var handlers = new INotificationHandler<TestNotification>[]
@@ -224,7 +227,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task ParallelWhenAllPublisher_Should_Collect_Multiple_Exceptions()
         {
             // Arrange
-            TestHandler1.ExecutionLog.Clear();
+            TestHandler1.ClearLog();
 
             var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: true);
             var handlers = new INotificationHandler<TestNotification>[]
@@ -250,7 +253,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task ParallelWhenAllPublisher_Should_Not_Throw_If_No_Exceptions()
         {
             // Arrange
-            TestHandler1.ExecutionLog.Clear();
+            TestHandler1.ClearLog();
 
             var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: true);
             var handlers = new INotificationHandler<TestNotification>[]

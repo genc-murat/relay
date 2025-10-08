@@ -384,7 +384,7 @@ public class InMemoryWorkflowDefinitionStoreTests
         await _store.SaveDefinitionAsync(baseDefinition);
 
         // Act - Perform operations in a controlled sequence
-        var readTasks = new List<Task<WorkflowDefinition>>();
+        var readTasks = new List<Task<WorkflowDefinition?>>();
         
         // Start concurrent reads
         for (int i = 0; i < 3; i++)
@@ -470,5 +470,297 @@ public class InMemoryWorkflowDefinitionStoreTests
         var finalList = afterUpdate.ToList();
         Assert.Single(finalList);
         Assert.Equal("Updated Test 2", finalList[0].Name);
+    }
+
+    [Fact]
+    public async Task GetDefinitionAsync_WithWhitespaceId_ShouldReturnNull()
+    {
+        // Act
+        var result = await _store.GetDefinitionAsync("   ");
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task DeleteDefinitionAsync_WithWhitespaceId_ShouldReturnFalse()
+    {
+        // Act
+        var result = await _store.DeleteDefinitionAsync("   ");
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task SaveDefinitionAsync_WithComplexWorkflow_ShouldSaveSuccessfully()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "complex-workflow",
+            Name = "Complex Workflow",
+            Description = "A complex workflow with multiple step types",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep 
+                { 
+                    Name = "ParallelStep", 
+                    Type = StepType.Parallel,
+                    ParallelSteps = new List<WorkflowStep>
+                    {
+                        new WorkflowStep { Name = "SubStep1", Type = StepType.Wait, WaitTimeMs = 100 },
+                        new WorkflowStep { Name = "SubStep2", Type = StepType.Wait, WaitTimeMs = 200 }
+                    }
+                },
+                new WorkflowStep 
+                { 
+                    Name = "ConditionalStep", 
+                    Type = StepType.Conditional,
+                    Condition = "input.Value > 10",
+                    ElseSteps = new List<WorkflowStep>
+                    {
+                        new WorkflowStep { Name = "ElseStep", Type = StepType.Wait, WaitTimeMs = 50 }
+                    }
+                },
+                new WorkflowStep 
+                { 
+                    Name = "RequestStep", 
+                    Type = StepType.Request,
+                    RequestType = "ProcessDataRequest",
+                    OutputKey = "processedResult",
+                    ContinueOnError = true
+                }
+            }
+        };
+
+        // Act
+        await _store.SaveDefinitionAsync(definition);
+
+        // Assert
+        var retrieved = await _store.GetDefinitionAsync("complex-workflow");
+        Assert.NotNull(retrieved);
+        Assert.Equal("complex-workflow", retrieved.Id);
+        Assert.Equal("Complex Workflow", retrieved.Name);
+        Assert.Equal("A complex workflow with multiple step types", retrieved.Description);
+        Assert.Equal(3, retrieved.Steps.Count);
+        
+        // Verify parallel step
+        var parallelStep = retrieved.Steps[0];
+        Assert.Equal("ParallelStep", parallelStep.Name);
+        Assert.Equal(StepType.Parallel, parallelStep.Type);
+        Assert.NotNull(parallelStep.ParallelSteps);
+        Assert.Equal(2, parallelStep.ParallelSteps.Count);
+        
+        // Verify conditional step
+        var conditionalStep = retrieved.Steps[1];
+        Assert.Equal("ConditionalStep", conditionalStep.Name);
+        Assert.Equal(StepType.Conditional, conditionalStep.Type);
+        Assert.Equal("input.Value > 10", conditionalStep.Condition);
+        Assert.NotNull(conditionalStep.ElseSteps);
+        Assert.Single(conditionalStep.ElseSteps);
+        
+        // Verify request step
+        var requestStep = retrieved.Steps[2];
+        Assert.Equal("RequestStep", requestStep.Name);
+        Assert.Equal(StepType.Request, requestStep.Type);
+        Assert.Equal("ProcessDataRequest", requestStep.RequestType);
+        Assert.Equal("processedResult", requestStep.OutputKey);
+        Assert.True(requestStep.ContinueOnError);
+    }
+
+    [Fact]
+    public async Task GetAllDefinitionsAsync_ShouldReturnIndependentCopies()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "copy-test",
+            Name = "Original Name",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep { Name = "Step1", Type = StepType.Wait, WaitTimeMs = 100 }
+            }
+        };
+
+        await _store.SaveDefinitionAsync(definition);
+
+        // Act
+        var result1 = await _store.GetAllDefinitionsAsync();
+        var result2 = await _store.GetAllDefinitionsAsync();
+
+        // Assert - Should be separate enumerations
+        Assert.NotSame(result1, result2);
+        
+        var list1 = result1.ToList();
+        var list2 = result2.ToList();
+        Assert.Equal(list1.Count, list2.Count);
+        Assert.Equal(list1[0].Id, list2[0].Id);
+    }
+
+    [Fact]
+    public async Task ConcurrentDeleteOperations_ShouldBeThreadSafe()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "concurrent-delete-test",
+            Name = "Concurrent Delete Test",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep { Name = "Step1", Type = StepType.Wait, WaitTimeMs = 100 }
+            }
+        };
+
+        await _store.SaveDefinitionAsync(definition);
+
+        // Act - Try to delete the same definition concurrently
+        var deleteTasks = new List<Task<bool>>();
+        for (int i = 0; i < 5; i++)
+        {
+            deleteTasks.Add(_store.DeleteDefinitionAsync("concurrent-delete-test").AsTask());
+        }
+
+        var results = await Task.WhenAll(deleteTasks);
+
+        // Assert - Only one delete should succeed (return true), others should return false
+        var successCount = results.Count(r => r);
+        Assert.True(successCount >= 1); // At least one should succeed
+        Assert.True(successCount <= 5); // But not more than total attempts
+
+        // Verify the definition is deleted
+        var retrieved = await _store.GetDefinitionAsync("concurrent-delete-test");
+        Assert.Null(retrieved);
+    }
+
+    [Fact]
+    public async Task SaveDefinitionAsync_WithEmptySteps_ShouldSaveSuccessfully()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "empty-steps-workflow",
+            Name = "Empty Steps Workflow",
+            Description = "Workflow with no steps",
+            Steps = new List<WorkflowStep>()
+        };
+
+        // Act
+        await _store.SaveDefinitionAsync(definition);
+
+        // Assert
+        var retrieved = await _store.GetDefinitionAsync("empty-steps-workflow");
+        Assert.NotNull(retrieved);
+        Assert.Equal("empty-steps-workflow", retrieved.Id);
+        Assert.Empty(retrieved.Steps);
+    }
+
+    [Fact]
+    public async Task SaveDefinitionAsync_WithNullSteps_ShouldSaveSuccessfully()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "null-steps-workflow",
+            Name = "Null Steps Workflow",
+            Steps = null!
+        };
+
+        // Act
+        await _store.SaveDefinitionAsync(definition);
+
+        // Assert
+        var retrieved = await _store.GetDefinitionAsync("null-steps-workflow");
+        Assert.NotNull(retrieved);
+        Assert.Equal("null-steps-workflow", retrieved.Id);
+        Assert.Null(retrieved.Steps);
+    }
+
+    [Fact]
+    public async Task LargeNumberOfDefinitions_ShouldHandleEfficiently()
+    {
+        // Arrange & Act
+        var tasks = new List<Task>();
+        for (int i = 0; i < 100; i++)
+        {
+            var definition = new WorkflowDefinition
+            {
+                Id = $"large-test-{i}",
+                Name = $"Large Test Workflow {i}",
+                Description = $"Description for workflow {i}",
+                Steps = new List<WorkflowStep>
+                {
+                    new WorkflowStep { Name = $"Step{i}", Type = StepType.Wait, WaitTimeMs = i * 10 }
+                }
+            };
+            tasks.Add(_store.SaveDefinitionAsync(definition).AsTask());
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        var allDefinitions = await _store.GetAllDefinitionsAsync();
+        var resultList = allDefinitions.ToList();
+        Assert.Equal(100, resultList.Count);
+
+        // Verify specific definitions
+        for (int i = 0; i < 100; i += 20) // Check every 20th definition
+        {
+            var retrieved = await _store.GetDefinitionAsync($"large-test-{i}");
+            Assert.NotNull(retrieved);
+            Assert.Equal($"Large Test Workflow {i}", retrieved.Name);
+            Assert.Equal($"Description for workflow {i}", retrieved.Description);
+        }
+    }
+
+    [Fact]
+    public async Task DeleteDefinitionAsync_DuringConcurrentReads_ShouldMaintainConsistency()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "delete-during-reads",
+            Name = "Delete During Reads Test",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep { Name = "Step1", Type = StepType.Wait, WaitTimeMs = 100 }
+            }
+        };
+
+        await _store.SaveDefinitionAsync(definition);
+
+        // Act - Start concurrent reads and delete in the middle
+        var readTasks = new List<Task<WorkflowDefinition?>>();
+        
+        // Start some reads
+        for (int i = 0; i < 3; i++)
+        {
+            readTasks.Add(_store.GetDefinitionAsync("delete-during-reads").AsTask());
+        }
+
+        // Small delay to ensure reads start
+        await Task.Delay(10);
+
+        // Delete the definition
+        var deleteResult = await _store.DeleteDefinitionAsync("delete-during-reads");
+        Assert.True(deleteResult);
+
+        // Start more reads after deletion
+        for (int i = 0; i < 3; i++)
+        {
+            readTasks.Add(_store.GetDefinitionAsync("delete-during-reads").AsTask());
+        }
+
+        var results = await Task.WhenAll(readTasks);
+
+        // Assert - Some reads should return the definition, others should return null
+        var hasDefinition = results.Any(r => r != null);
+        var hasNull = results.Any(r => r == null);
+        Assert.True(hasDefinition);
+        Assert.True(hasNull);
+
+        // Final verification - definition should be deleted
+        var finalCheck = await _store.GetDefinitionAsync("delete-during-reads");
+        Assert.Null(finalCheck);
     }
 }

@@ -367,6 +367,8 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
         string? entityName = null,
         CancellationToken cancellationToken = default)
     {
+        if (handler == null) throw new ArgumentNullException(nameof(handler));
+
         try
         {
             _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
@@ -529,6 +531,8 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
         string? entityName = null,
         CancellationToken cancellationToken = default)
     {
+        if (operation == null) throw new ArgumentNullException(nameof(operation));
+
         try
         {
             await operation(cancellationToken);

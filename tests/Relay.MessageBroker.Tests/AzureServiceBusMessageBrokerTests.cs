@@ -87,6 +87,146 @@ public class AzureServiceBusMessageBrokerTests
         await act.Should().NotThrowAsync();
     }
 
+    [Fact]
+    public async Task PublishAsync_WithNullMessage_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions 
+        { 
+            AzureServiceBus = new AzureServiceBusOptions
+            {
+                ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
+            }
+        };
+        var broker = new AzureServiceBusMessageBroker(options);
+
+        // Act
+        Func<Task> act = async () => await broker.PublishAsync<TestMessage>(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task PublishBatchAsync_WithNullMessages_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions 
+        { 
+            AzureServiceBus = new AzureServiceBusOptions
+            {
+                ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
+            }
+        };
+        var broker = new AzureServiceBusMessageBroker(options);
+
+        // Act
+        Func<Task> act = async () => await broker.PublishBatchAsync<TestMessage>(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task ScheduleMessageAsync_WithNullMessage_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions 
+        { 
+            AzureServiceBus = new AzureServiceBusOptions
+            {
+                ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
+            }
+        };
+        var broker = new AzureServiceBusMessageBroker(options);
+
+        // Act
+        Func<Task> act = async () => await broker.ScheduleMessageAsync<TestMessage>(null!, DateTime.UtcNow.AddHours(1));
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithNullHandler_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions 
+        { 
+            AzureServiceBus = new AzureServiceBusOptions
+            {
+                ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
+            }
+        };
+        var broker = new AzureServiceBusMessageBroker(options);
+
+        // Act
+        Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task PublishInTransactionAsync_WithNullMessage_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions 
+        { 
+            AzureServiceBus = new AzureServiceBusOptions
+            {
+                ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
+            }
+        };
+        var broker = new AzureServiceBusMessageBroker(options);
+
+        // Act
+        Func<Task> act = async () => await broker.PublishInTransactionAsync<TestMessage>(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task ProcessDeadLetterMessagesAsync_WithNullHandler_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions 
+        { 
+            AzureServiceBus = new AzureServiceBusOptions
+            {
+                ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
+            }
+        };
+        var broker = new AzureServiceBusMessageBroker(options);
+
+        // Act
+        Func<Task> act = async () => await broker.ProcessDeadLetterMessagesAsync<TestMessage>(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task ExecuteInTransactionAsync_WithNullOperation_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions 
+        { 
+            AzureServiceBus = new AzureServiceBusOptions
+            {
+                ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
+            }
+        };
+        var broker = new AzureServiceBusMessageBroker(options);
+
+        // Act
+        Func<Task> act = async () => await broker.ExecuteInTransactionAsync(null!);
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentNullException>();
+    }
+
     private class TestMessage
     {
         public int Id { get; set; }

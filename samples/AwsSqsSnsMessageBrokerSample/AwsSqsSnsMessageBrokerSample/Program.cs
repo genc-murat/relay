@@ -10,24 +10,29 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add Relay MessageBroker with AWS SQS/SNS
-builder.Services.AddMessageBroker(mb =>
+builder.Services.AddAwsSqsSns(options =>
 {
     var config = builder.Configuration.GetSection("MessageBroker:AwsSqsSns");
     var useLocalStack = config.GetValue<bool>("UseLocalStack");
 
-    mb.UseAwsSqsSns(options =>
-    {
-        options.Region = config["Region"] ?? "us-east-1";
-        options.QueueUrl = config["QueueUrl"] ?? "";
-        options.TopicArn = config["TopicArn"] ?? "";
+    options.Region = config["Region"] ?? "us-east-1";
+    options.DefaultQueueUrl = config["QueueUrl"] ?? "";
+    options.DefaultTopicArn = config["TopicArn"] ?? "";
+    options.MaxNumberOfMessages = config.GetValue<int>("MaxNumberOfMessages", 10);
+    options.WaitTimeSeconds = TimeSpan.FromSeconds(config.GetValue<int>("WaitTimeSeconds", 20));
+    options.AutoDeleteMessages = config.GetValue<bool>("AutoDeleteMessages", true);
+    options.VisibilityTimeout = TimeSpan.FromSeconds(config.GetValue<int>("VisibilityTimeout", 30));
 
-        if (useLocalStack)
-        {
-            options.ServiceUrl = config["LocalStackUrl"] ?? "http://localhost:4566";
-            options.AccessKey = "test";
-            options.SecretKey = "test";
-        }
-    });
+    // FIFO queue support
+    options.UseFifoQueue = config.GetValue<bool>("UseFifoQueue", false);
+    options.MessageGroupId = config["MessageGroupId"];
+    options.MessageDeduplicationId = config["MessageDeduplicationId"];
+
+    if (useLocalStack)
+    {
+        options.AccessKeyId = "test";
+        options.SecretAccessKey = "test";
+    }
 });
 
 // Add event handlers

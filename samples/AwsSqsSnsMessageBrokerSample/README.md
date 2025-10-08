@@ -6,10 +6,16 @@ This sample demonstrates how to use Relay.MessageBroker with AWS SQS and SNS for
 
 - Publishing events to AWS SNS topics
 - Subscribing to events from AWS SQS queues
+- **Enhanced retry policies with exponential backoff**
+- **Circuit breaker patterns for resilience**
+- **Timeout policies for preventing hanging operations**
 - Error handling and retry mechanisms
 - Message context usage
 - Correlation IDs
 - Dead letter queues
+- **FIFO queue support**
+- **Message attributes and headers**
+- **Long polling optimization**
 
 ## Prerequisites
 
@@ -50,7 +56,26 @@ Update `appsettings.json` with your AWS settings:
       "QueueUrl": "https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
       "TopicArn": "arn:aws:sns:us-east-1:123456789012:my-topic",
       "UseLocalStack": false,
-      "LocalStackUrl": "http://localhost:4566"
+      "LocalStackUrl": "http://localhost:4566",
+      "MaxNumberOfMessages": 10,
+      "WaitTimeSeconds": 20,
+      "AutoDeleteMessages": true,
+      "VisibilityTimeout": 30,
+      "UseFifoQueue": false,
+      "MessageGroupId": "",
+      "MessageDeduplicationId": ""
+    },
+    "RetryPolicy": {
+      "MaxAttempts": 3,
+      "InitialDelayMs": 1000,
+      "MaxDelaySeconds": 30,
+      "UseExponentialBackoff": true,
+      "BackoffMultiplier": 2.0
+    },
+    "CircuitBreaker": {
+      "FailureThreshold": 5,
+      "BreakDurationSeconds": 30,
+      "ResetTimeoutSeconds": 60
     }
   }
 }
@@ -252,6 +277,62 @@ aws --endpoint-url=http://localhost:4566 sns subscribe \
 
 For testing, use LocalStack to avoid AWS charges.
 
+## Enhanced Features
+
+### Retry Policies
+
+The enhanced AWS SQS/SNS broker includes comprehensive retry policies:
+
+```csharp
+mb.WithRetryPolicy(retry =>
+{
+    retry.MaxAttempts = 3;
+    retry.InitialDelay = TimeSpan.FromMilliseconds(1000);
+    retry.MaxDelay = TimeSpan.FromSeconds(30);
+    retry.UseExponentialBackoff = true;
+    retry.BackoffMultiplier = 2.0;
+});
+```
+
+### Circuit Breaker
+
+Protects against cascading failures:
+
+```csharp
+mb.WithCircuitBreaker(circuitBreaker =>
+{
+    circuitBreaker.FailureThreshold = 5;
+    circuitBreaker.BreakDuration = TimeSpan.FromSeconds(30);
+    circuitBreaker.ResetTimeout = TimeSpan.FromSeconds(60);
+});
+```
+
+### FIFO Queue Support
+
+For guaranteed message ordering:
+
+```csharp
+options.UseFifoQueue = true;
+options.MessageGroupId = "order-group";
+options.MessageDeduplicationId = "order-{orderId}";
+```
+
+### Message Headers
+
+Add custom metadata to messages:
+
+```csharp
+await _messageBroker.PublishAsync(orderEvent, new PublishOptions
+{
+    Headers = new Dictionary<string, object>
+    {
+        ["CorrelationId"] = correlationId,
+        ["UserId"] = userId,
+        ["Priority"] = "High"
+    }
+});
+```
+
 ## Best Practices
 
 1. **Use Dead Letter Queues**: Configure DLQs for handling failed messages
@@ -260,6 +341,10 @@ For testing, use LocalStack to avoid AWS charges.
 4. **Use IAM Roles**: In production, use IAM roles instead of access keys
 5. **Enable Encryption**: Use SSE-SQS or SSE-KMS for sensitive data
 6. **Tag Resources**: Use tags for cost tracking and organization
+7. **Configure Retry Policies**: Use appropriate retry settings for your use case
+8. **Implement Circuit Breakers**: Protect against cascading failures
+9. **Use FIFO Queues**: When message ordering is critical
+10. **Monitor Circuit Breaker State**: Track circuit breaker events in your logging
 
 ## Additional Resources
 

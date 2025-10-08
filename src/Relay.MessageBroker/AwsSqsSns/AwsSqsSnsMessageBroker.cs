@@ -5,6 +5,10 @@ using Amazon.SimpleNotificationService.Model;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
+using Polly.Timeout;
 using SqsMessageAttributeValue = Amazon.SQS.Model.MessageAttributeValue;
 using SnsMessageAttributeValue = Amazon.SimpleNotificationService.Model.MessageAttributeValue;
 
@@ -18,6 +22,13 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
     private readonly MessageBrokerOptions _options;
     private readonly ILogger<AwsSqsSnsMessageBroker>? _logger;
     private readonly Dictionary<Type, List<Func<object, MessageContext, CancellationToken, ValueTask>>> _handlers = new();
+    private readonly Dictionary<string, CancellationTokenSource> _consumerTasks = new();
+    private readonly AsyncRetryPolicy _sqsRetryPolicy;
+    private readonly AsyncRetryPolicy _snsRetryPolicy;
+    private readonly AsyncCircuitBreakerPolicy _sqsCircuitBreaker;
+    private readonly AsyncCircuitBreakerPolicy _snsCircuitBreaker;
+    private readonly AsyncTimeoutPolicy _sqsTimeoutPolicy;
+    private readonly AsyncTimeoutPolicy _snsTimeoutPolicy;
     private AmazonSQSClient? _sqsClient;
     private AmazonSimpleNotificationServiceClient? _snsClient;
     private bool _isStarted;
@@ -33,6 +44,46 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
         
         if (_options.AwsSqsSns == null)
             throw new InvalidOperationException("AWS SQS/SNS options are required.");
+
+        // Configure retry policies for AWS operations
+        _sqsRetryPolicy = Policy
+            .Handle<AmazonSQSException>(ex => ex.StatusCode != System.Net.HttpStatusCode.Unauthorized)
+            .Or<HttpRequestException>()
+            .WaitAndRetryAsync(
+                retryCount: _options.RetryPolicy?.MaxAttempts ?? 3,
+                sleepDurationProvider: retryAttempt => 
+                    TimeSpan.FromMilliseconds(Math.Min(
+                        1000 * Math.Pow(2, retryAttempt), 
+                        (_options.RetryPolicy?.MaxDelay ?? TimeSpan.FromSeconds(30)).TotalMilliseconds)));
+
+        _snsRetryPolicy = Policy
+            .Handle<AmazonSimpleNotificationServiceException>(ex => ex.StatusCode != System.Net.HttpStatusCode.Unauthorized)
+            .Or<HttpRequestException>()
+            .WaitAndRetryAsync(
+                retryCount: _options.RetryPolicy?.MaxAttempts ?? 3,
+                sleepDurationProvider: retryAttempt => 
+                    TimeSpan.FromMilliseconds(Math.Min(
+                        1000 * Math.Pow(2, retryAttempt), 
+                        (_options.RetryPolicy?.MaxDelay ?? TimeSpan.FromSeconds(30)).TotalMilliseconds)));
+
+        // Configure circuit breaker policies
+        _sqsCircuitBreaker = Policy
+            .Handle<AmazonSQSException>()
+            .Or<HttpRequestException>()
+            .CircuitBreakerAsync(
+                exceptionsAllowedBeforeBreaking: _options.CircuitBreaker?.FailureThreshold ?? 5,
+                durationOfBreak: _options.CircuitBreaker?.Timeout ?? TimeSpan.FromSeconds(30));
+
+        _snsCircuitBreaker = Policy
+            .Handle<AmazonSimpleNotificationServiceException>()
+            .Or<HttpRequestException>()
+            .CircuitBreakerAsync(
+                exceptionsAllowedBeforeBreaking: _options.CircuitBreaker?.FailureThreshold ?? 5,
+                durationOfBreak: _options.CircuitBreaker?.Timeout ?? TimeSpan.FromSeconds(30));
+
+        // Configure timeout policies
+        _sqsTimeoutPolicy = Policy.TimeoutAsync(TimeSpan.FromSeconds(30));
+        _snsTimeoutPolicy = Policy.TimeoutAsync(TimeSpan.FromSeconds(30));
     }
 
     public async ValueTask PublishAsync<TMessage>(TMessage message, PublishOptions? options = null, CancellationToken cancellationToken = default)
@@ -68,7 +119,11 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
                     }
                 }
 
-                await _snsClient.PublishAsync(publishRequest, cancellationToken);
+                await _snsTimeoutPolicy.WrapAsync(_snsCircuitBreaker.WrapAsync(_snsRetryPolicy))
+                    .ExecuteAsync(async () =>
+                    {
+                        await _snsClient!.PublishAsync(publishRequest, cancellationToken);
+                    });
                 _logger?.LogDebug("Published message {MessageType} to SNS topic", typeof(TMessage).Name);
             }
             // Use SQS for direct queue messaging
@@ -109,7 +164,11 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
                     }
                 }
 
-                await _sqsClient.SendMessageAsync(sendRequest, cancellationToken);
+                await _sqsTimeoutPolicy.WrapAsync(_sqsCircuitBreaker.WrapAsync(_sqsRetryPolicy))
+                    .ExecuteAsync(async () =>
+                    {
+                        await _sqsClient!.SendMessageAsync(sendRequest, cancellationToken);
+                    });
                 _logger?.LogDebug("Published message {MessageType} to SQS queue", typeof(TMessage).Name);
             }
             else
@@ -173,7 +232,11 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
                             MessageAttributeNames = new List<string> { "All" }
                         };
 
-                        var response = await _sqsClient.ReceiveMessageAsync(receiveRequest, _pollingCts.Token);
+                        var response = await _sqsTimeoutPolicy.WrapAsync(_sqsCircuitBreaker.WrapAsync(_sqsRetryPolicy))
+                            .ExecuteAsync(async () =>
+                            {
+                                return await _sqsClient.ReceiveMessageAsync(receiveRequest, _pollingCts.Token);
+                            });
 
                         foreach (var sqsMessage in response.Messages)
                         {
@@ -298,11 +361,15 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
     {
         try
         {
-            await _sqsClient!.DeleteMessageAsync(queueUrl, receiptHandle, cancellationToken);
+            await _sqsTimeoutPolicy.WrapAsync(_sqsCircuitBreaker.WrapAsync(_sqsRetryPolicy))
+                .ExecuteAsync(async () =>
+                {
+                    await _sqsClient!.DeleteMessageAsync(queueUrl, receiptHandle, cancellationToken);
+                });
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error deleting SQS message");
+            _logger?.LogError(ex, "Error deleting SQS message {ReceiptHandle}", receiptHandle);
         }
     }
 

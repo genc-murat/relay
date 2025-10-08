@@ -37,6 +37,7 @@ public class OrderEventHandler
                     Status = "Processed",
                     ProcessedAt = DateTime.UtcNow
                 },
+                null,
                 cancellationToken);
 
             _logger.LogInformation("OrderProcessedEvent published for order {OrderId}", orderEvent.OrderId);

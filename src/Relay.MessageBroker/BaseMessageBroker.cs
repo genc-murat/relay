@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.MessageBroker.Compression;
+using Relay.Core;
 using Relay.Core.ContractValidation;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Interfaces;
@@ -103,8 +105,23 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
             // Validate against schema if provided
             if (_validation != null && options?.Schema != null)
             {
-                // For now, skip schema validation until we can resolve the type reference
-                // TODO: Fix JsonSchemaContract reference when available
+                // Convert schema object to JsonSchemaContract if needed
+                JsonSchemaContract? schemaContract = options.Schema as JsonSchemaContract;
+
+                if (schemaContract == null && options.Schema is string schemaString)
+                {
+                    schemaContract = new JsonSchemaContract { Schema = schemaString };
+                }
+
+                if (schemaContract != null && !string.IsNullOrWhiteSpace(schemaContract.Schema))
+                {
+                    var schemaErrors = await _validation.ValidateMessageSchemaAsync(message, schemaContract, cancellationToken);
+                    if (schemaErrors.Any())
+                    {
+                        var errorMessage = $"Message schema validation failed: {string.Join(", ", schemaErrors)}";
+                        throw new InvalidOperationException(errorMessage);
+                    }
+                }
             }
             
             var serializedMessage = SerializeMessage(message);

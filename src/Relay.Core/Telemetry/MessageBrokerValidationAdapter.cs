@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -128,6 +129,61 @@ public class MessageBrokerValidationAdapter
             _logger.LogError(ex, "Schema validation failed with exception");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Validates a message against a JSON schema contract and returns validation errors.
+    /// </summary>
+    /// <param name="message">The message to validate.</param>
+    /// <param name="schema">The JSON schema to validate against.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A collection of validation errors, empty if valid.</returns>
+    public async ValueTask<IEnumerable<string>> ValidateMessageSchemaAsync(
+        object message,
+        JsonSchemaContract schema,
+        CancellationToken cancellationToken = default)
+    {
+        var errors = new List<string>();
+
+        if (message == null)
+        {
+            errors.Add("Message cannot be null");
+            _logger.LogWarning("Schema validation failed: message is null");
+            return errors;
+        }
+
+        if (schema == null)
+        {
+            errors.Add("Schema cannot be null");
+            _logger.LogWarning("Schema validation failed: schema is null");
+            return errors;
+        }
+
+        if (_contractValidator == null)
+        {
+            _logger.LogWarning("Schema validation skipped: no contract validator available");
+            return errors; // Return empty errors - validation is optional
+        }
+
+        try
+        {
+            var validationErrors = await _contractValidator.ValidateRequestAsync(message, schema, cancellationToken);
+            if (validationErrors != null && validationErrors.Any())
+            {
+                errors.AddRange(validationErrors);
+                foreach (var error in validationErrors)
+                {
+                    _logger.LogWarning("Schema validation error: {Error}", error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Schema validation failed with exception: {ex.Message}");
+            _logger.LogError(ex, "Schema validation failed with exception");
+        }
+
+        return errors;
     }
 
     /// <summary>

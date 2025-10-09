@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
@@ -21,21 +22,41 @@ namespace Relay.Core.AI.Optimization.Models
         private ITransformer? _anomalyDetectionModel;
         private ITransformer? _forecastModel;
         private bool _disposed;
-        
+
         // Sliding window buffer for forecasting model updates
         private readonly List<MetricData> _forecastingDataBuffer = new();
         private readonly int _maxBufferSize = 1000;
         private int _currentForecastHorizon = 12;
-        
+
         // Store training data for feature importance calculation
         private IDataView? _regressionTrainingData;
 
-        public MLNetModelManager(ILogger<MLNetModelManager> logger)
+        // Model persistence
+        private readonly string _modelStoragePath;
+        private const string RegressionModelFile = "regression_model.zip";
+        private const string ClassificationModelFile = "classification_model.zip";
+        private const string AnomalyModelFile = "anomaly_model.zip";
+        private const string ForecastModelFile = "forecast_model.zip";
+
+        public MLNetModelManager(ILogger<MLNetModelManager> logger, string? modelStoragePath = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _mlContext = new MLContext(seed: 42);
 
-            _logger.LogInformation("ML.NET Model Manager initialized");
+            // Default to temp directory if not specified
+            _modelStoragePath = modelStoragePath ?? Path.Combine(Path.GetTempPath(), "RelayAIModels");
+
+            // Ensure directory exists
+            if (!Directory.Exists(_modelStoragePath))
+            {
+                Directory.CreateDirectory(_modelStoragePath);
+                _logger.LogInformation("Created model storage directory: {Path}", _modelStoragePath);
+            }
+
+            _logger.LogInformation("ML.NET Model Manager initialized with storage path: {Path}", _modelStoragePath);
+
+            // Try to load existing models
+            LoadModelsFromDisk();
         }
 
         /// <summary>
@@ -80,6 +101,9 @@ namespace Relay.Core.AI.Optimization.Models
 
                 _logger.LogInformation("Regression model trained: R²={RSquared:F3}, MAE={MAE:F3}, RMSE={RMSE:F3}",
                     metrics.RSquared, metrics.MeanAbsoluteError, metrics.RootMeanSquaredError);
+
+                // Save model to disk
+                SaveModelToDisk(_regressionModel, RegressionModelFile);
             }
             catch (Exception ex)
             {
@@ -152,6 +176,9 @@ namespace Relay.Core.AI.Optimization.Models
 
                 _logger.LogInformation("Classification model trained: Accuracy={Accuracy:F3}, AUC={AUC:F3}, F1={F1:F3}",
                     metrics.Accuracy, metrics.AreaUnderRocCurve, metrics.F1Score);
+
+                // Save model to disk
+                SaveModelToDisk(_classificationModel, ClassificationModelFile);
             }
             catch (Exception ex)
             {
@@ -208,6 +235,9 @@ namespace Relay.Core.AI.Optimization.Models
                 _anomalyDetectionModel = pipeline.Fit(dataView);
 
                 _logger.LogInformation("Anomaly detection model trained successfully");
+
+                // Save model to disk
+                SaveModelToDisk(_anomalyDetectionModel, AnomalyModelFile);
             }
             catch (Exception ex)
             {
@@ -272,22 +302,36 @@ namespace Relay.Core.AI.Optimization.Models
 
                 var dataView = _mlContext.Data.LoadFromEnumerable(_forecastingDataBuffer);
 
+                // Calculate SSA parameters based on data size
+                // SSA requirements: windowSize < seriesLength <= trainSize
+                int trainSize = _forecastingDataBuffer.Count;
+                int seriesLength = Math.Min(Math.Max(trainSize / 2, 10), trainSize);
+                int windowSize = Math.Min(Math.Max(seriesLength / 3, 5), seriesLength - 1);
+
+                _logger.LogDebug("SSA parameters: trainSize={TrainSize}, seriesLength={SeriesLength}, windowSize={WindowSize}, horizon={Horizon}",
+                    trainSize, seriesLength, windowSize, horizon);
+
                 // SSA (Singular Spectrum Analysis) forecasting
                 var forecastingPipeline = _mlContext.Forecasting.ForecastBySsa(
                     outputColumnName: nameof(MetricForecast.ForecastedValues),
                     inputColumnName: nameof(MetricData.Value),
-                    windowSize: 30,
-                    seriesLength: 60,
-                    trainSize: _forecastingDataBuffer.Count,
+                    windowSize: windowSize,
+                    seriesLength: seriesLength,
+                    trainSize: trainSize,
                     horizon: horizon,
                     confidenceLevel: 0.95f,
                     confidenceLowerBoundColumn: nameof(MetricForecast.LowerBound),
                     confidenceUpperBoundColumn: nameof(MetricForecast.UpperBound));
 
+                _logger.LogDebug("Fitting forecasting model...");
                 _forecastModel = forecastingPipeline.Fit(dataView);
+                _logger.LogDebug("Forecasting model fitted successfully");
 
-                _logger.LogInformation("Forecasting model trained successfully with buffer size {BufferSize}", 
+                _logger.LogInformation("Forecasting model trained successfully with buffer size {BufferSize}",
                     _forecastingDataBuffer.Count);
+
+                // Save model to disk
+                SaveModelToDisk(_forecastModel, ForecastModelFile);
             }
             catch (Exception ex)
             {
@@ -586,6 +630,118 @@ namespace Relay.Core.AI.Optimization.Models
                 return 0f;
 
             return (float)(numerator / Math.Sqrt(xVariance * yVariance));
+        }
+
+        /// <summary>
+        /// Save a trained model to disk
+        /// </summary>
+        private void SaveModelToDisk(ITransformer model, string fileName)
+        {
+            try
+            {
+                var filePath = Path.Combine(_modelStoragePath, fileName);
+
+                // Create a dummy data view schema for saving (ML.NET requirement)
+                IDataView? schemaDataView = null;
+
+                // Determine which schema to use based on model type
+                if (fileName == RegressionModelFile && _regressionTrainingData != null)
+                {
+                    schemaDataView = _regressionTrainingData;
+                }
+                else
+                {
+                    // Create minimal schema for other model types
+                    var emptyData = _mlContext.Data.LoadFromEnumerable(new[] { new PerformanceData() });
+                    schemaDataView = emptyData;
+                }
+
+                _mlContext.Model.Save(model, schemaDataView.Schema, filePath);
+
+                _logger.LogInformation("Model saved to: {Path}", filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to save model {FileName} to disk", fileName);
+            }
+        }
+
+        /// <summary>
+        /// Load all trained models from disk
+        /// </summary>
+        private void LoadModelsFromDisk()
+        {
+            LoadModelFromDisk(RegressionModelFile, model => _regressionModel = model, "Regression");
+            LoadModelFromDisk(ClassificationModelFile, model => _classificationModel = model, "Classification");
+            LoadModelFromDisk(AnomalyModelFile, model => _anomalyDetectionModel = model, "Anomaly Detection");
+            LoadModelFromDisk(ForecastModelFile, model => _forecastModel = model, "Forecasting");
+        }
+
+        /// <summary>
+        /// Load a specific model from disk
+        /// </summary>
+        private void LoadModelFromDisk(string fileName, Action<ITransformer> modelSetter, string modelName)
+        {
+            try
+            {
+                var filePath = Path.Combine(_modelStoragePath, fileName);
+
+                if (!File.Exists(filePath))
+                {
+                    _logger.LogDebug("{ModelName} model not found at {Path}, will train from scratch", modelName, filePath);
+                    return;
+                }
+
+                var model = _mlContext.Model.Load(filePath, out var modelInputSchema);
+                modelSetter(model);
+
+                _logger.LogInformation("{ModelName} model loaded successfully from {Path}", modelName, filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load {ModelName} model from {FileName}, will train from scratch", modelName, fileName);
+            }
+        }
+
+        /// <summary>
+        /// Get model storage path
+        /// </summary>
+        public string GetModelStoragePath() => _modelStoragePath;
+
+        /// <summary>
+        /// Check if models exist on disk
+        /// </summary>
+        public bool HasPersistedModels()
+        {
+            return File.Exists(Path.Combine(_modelStoragePath, RegressionModelFile)) ||
+                   File.Exists(Path.Combine(_modelStoragePath, ClassificationModelFile)) ||
+                   File.Exists(Path.Combine(_modelStoragePath, AnomalyModelFile)) ||
+                   File.Exists(Path.Combine(_modelStoragePath, ForecastModelFile));
+        }
+
+        /// <summary>
+        /// Clear all persisted models from disk
+        /// </summary>
+        public void ClearPersistedModels()
+        {
+            try
+            {
+                var files = new[] { RegressionModelFile, ClassificationModelFile, AnomalyModelFile, ForecastModelFile };
+
+                foreach (var file in files)
+                {
+                    var filePath = Path.Combine(_modelStoragePath, file);
+                    if (File.Exists(filePath))
+                    {
+                        File.Delete(filePath);
+                        _logger.LogInformation("Deleted persisted model: {File}", file);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to clear persisted models");
+            }
         }
 
         public void Dispose()

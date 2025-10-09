@@ -28,18 +28,24 @@ namespace Relay.Core.AI
         public DefaultAIModelTrainer(ILogger<DefaultAIModelTrainer> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            
+
             var mlLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<MLNetModelManager>.Instance;
-            _mlNetManager = new MLNetModelManager(mlLogger);
+            _mlNetManager = new MLNetModelManager(mlLogger, modelStoragePath: null);
         }
 
-        public async ValueTask TrainModelAsync(AITrainingData trainingData, CancellationToken cancellationToken = default)
+        public ValueTask TrainModelAsync(AITrainingData trainingData, CancellationToken cancellationToken = default)
+        {
+            return TrainModelAsync(trainingData, null, cancellationToken);
+        }
+
+        public async ValueTask TrainModelAsync(AITrainingData trainingData, TrainingProgressCallback? progressCallback, CancellationToken cancellationToken = default)
         {
             if (trainingData == null)
                 throw new ArgumentNullException(nameof(trainingData));
 
             _totalTrainingSessions++;
             var sessionId = _totalTrainingSessions;
+            var startTime = DateTime.UtcNow;
 
             _logger.LogInformation("AI model training session #{Session} started with {ExecutionCount} execution samples, {OptimizationCount} optimization samples, and {SystemLoadCount} system load samples",
                 sessionId,
@@ -50,42 +56,75 @@ namespace Relay.Core.AI
             try
             {
                 // 1. Validate training data quality
+                ReportProgress(progressCallback, TrainingPhase.Validation, 0, "Validating training data...", trainingData, startTime);
+
                 var validationResult = ValidateTrainingData(trainingData);
                 if (!validationResult.IsValid)
                 {
-                    _logger.LogWarning("Training data validation failed for session #{Session}: {Reason}", 
+                    _logger.LogWarning("Training data validation failed for session #{Session}: {Reason}",
                         sessionId, validationResult.ValidationMessage);
+                    ReportProgress(progressCallback, TrainingPhase.Completed, 100, $"Validation failed: {validationResult.ValidationMessage}", trainingData, startTime);
                     return;
                 }
 
-                _logger.LogInformation("Training data validation passed with quality score: {QualityScore:F2}", 
+                _logger.LogInformation("Training data validation passed with quality score: {QualityScore:F2}",
                     validationResult.QualityScore);
 
                 // 2. Train ML.NET models for performance prediction
+                ReportProgress(progressCallback, TrainingPhase.PerformanceModels, 20, "Training performance prediction models...", trainingData, startTime);
                 await TrainPerformanceModelsAsync(trainingData, cancellationToken);
 
                 // 3. Train optimization strategy classifiers
+                ReportProgress(progressCallback, TrainingPhase.OptimizationClassifiers, 40, "Training optimization classifiers...", trainingData, startTime);
                 await TrainOptimizationClassifiersAsync(trainingData, cancellationToken);
 
                 // 4. Train anomaly detection models
+                ReportProgress(progressCallback, TrainingPhase.AnomalyDetection, 60, "Training anomaly detection models...", trainingData, startTime);
                 await TrainAnomalyDetectionModelsAsync(trainingData, cancellationToken);
 
                 // 5. Train time-series forecasting models
+                ReportProgress(progressCallback, TrainingPhase.Forecasting, 80, "Training forecasting models...", trainingData, startTime);
                 await TrainForecastingModelsAsync(trainingData, cancellationToken);
 
                 // 6. Update model metrics and statistics
+                ReportProgress(progressCallback, TrainingPhase.Statistics, 90, "Calculating model statistics...", trainingData, startTime);
                 UpdateModelStatistics();
 
                 _lastTrainingDate = DateTime.UtcNow;
 
+                var duration = DateTime.UtcNow - startTime;
                 _logger.LogInformation("AI model training session #{Session} completed successfully. Total training time: {Duration}ms",
-                    sessionId, (DateTime.UtcNow - _lastTrainingDate).TotalMilliseconds);
+                    sessionId, duration.TotalMilliseconds);
+
+                ReportProgress(progressCallback, TrainingPhase.Completed, 100, "Training completed successfully", trainingData, startTime);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during AI model training session #{Session}", sessionId);
+                ReportProgress(progressCallback, TrainingPhase.Completed, 100, $"Training failed: {ex.Message}", trainingData, startTime);
                 throw;
             }
+        }
+
+        private void ReportProgress(TrainingProgressCallback? callback, TrainingPhase phase, double percentage, string message, AITrainingData trainingData, DateTime startTime)
+        {
+            if (callback == null) return;
+
+            var totalSamples = (trainingData.ExecutionHistory?.Length ?? 0) +
+                             (trainingData.OptimizationHistory?.Length ?? 0) +
+                             (trainingData.SystemLoadHistory?.Length ?? 0);
+
+            var progress = new TrainingProgress
+            {
+                Phase = phase,
+                ProgressPercentage = percentage,
+                StatusMessage = message,
+                SamplesProcessed = (int)(totalSamples * (percentage / 100.0)),
+                TotalSamples = totalSamples,
+                ElapsedTime = DateTime.UtcNow - startTime
+            };
+
+            callback(progress);
         }
 
         private ValidationResult ValidateTrainingData(AITrainingData trainingData)

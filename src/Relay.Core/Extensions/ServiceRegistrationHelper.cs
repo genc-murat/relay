@@ -8,7 +8,7 @@ namespace Relay.Core.Extensions
     /// <summary>
     /// Helper class for common service registration patterns to eliminate duplication across ServiceCollectionExtensions.
     /// </summary>
-    internal static class ServiceRegistrationHelper
+    public static class ServiceRegistrationHelper
     {
         /// <summary>
         /// Validates that the service collection is not null.
@@ -47,6 +47,23 @@ namespace Relay.Core.Extensions
         /// <summary>
         /// Registers a singleton service if not already registered.
         /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="serviceType">The service type.</param>
+        /// <param name="implementationType">The implementation type.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection TryAddSingleton(
+            IServiceCollection services,
+            Type serviceType,
+            Type implementationType)
+        {
+            ValidateServices(services);
+            services.TryAddSingleton(serviceType, implementationType);
+            return services;
+        }
+
+        /// <summary>
+        /// Registers a singleton service if not already registered.
+        /// </summary>
         /// <typeparam name="TService">The service type.</typeparam>
         /// <typeparam name="TImplementation">The implementation type.</typeparam>
         /// <param name="services">The service collection.</param>
@@ -72,6 +89,23 @@ namespace Relay.Core.Extensions
         {
             ValidateServicesAndFactory(services, factory);
             services.TryAddSingleton(factory);
+            return services;
+        }
+
+        /// <summary>
+        /// Registers a transient service if not already registered.
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="serviceType">The service type.</param>
+        /// <param name="implementationType">The implementation type.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection TryAddTransient(
+            IServiceCollection services,
+            Type serviceType,
+            Type implementationType)
+        {
+            ValidateServices(services);
+            services.TryAddTransient(serviceType, implementationType);
             return services;
         }
 
@@ -109,6 +143,25 @@ namespace Relay.Core.Extensions
         /// <summary>
         /// Registers an enumerable service (for multiple implementations) if not already registered.
         /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="serviceType">The service type.</param>
+        /// <param name="implementationType">The implementation type.</param>
+        /// <param name="lifetime">The service lifetime.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection TryAddEnumerable(
+            IServiceCollection services, 
+            Type serviceType,
+            Type implementationType,
+            ServiceLifetime lifetime = ServiceLifetime.Transient)
+        {
+            ValidateServices(services);
+            services.TryAddEnumerable(new ServiceDescriptor(serviceType, implementationType, lifetime));
+            return services;
+        }
+
+        /// <summary>
+        /// Registers an enumerable service (for multiple implementations) if not already registered.
+        /// </summary>
         /// <typeparam name="TService">The service type.</typeparam>
         /// <typeparam name="TImplementation">The implementation type.</typeparam>
         /// <param name="services">The service collection.</param>
@@ -120,9 +173,7 @@ namespace Relay.Core.Extensions
             where TService : class
             where TImplementation : class, TService
         {
-            ValidateServices(services);
-            services.TryAddEnumerable(new ServiceDescriptor(typeof(TService), typeof(TImplementation), lifetime));
-            return services;
+            return TryAddEnumerable(services, typeof(TService), typeof(TImplementation), lifetime);
         }
 
         /// <summary>

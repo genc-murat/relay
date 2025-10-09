@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Extensions;
 using System;
 
 namespace Relay.Core.Telemetry;
@@ -19,32 +20,33 @@ public static class TelemetryServiceCollectionExtensions
     /// <returns>The service collection for chaining</returns>
     public static IServiceCollection AddRelayTelemetry(this IServiceCollection services, Action<ITelemetryProvider>? configureTelemetry = null)
     {
-        // Register the default metrics provider
-        services.TryAddSingleton<IMetricsProvider, DefaultMetricsProvider>();
-
-        // Register the default telemetry provider
-        services.TryAddSingleton<ITelemetryProvider, DefaultTelemetryProvider>();
-
-        // Decorate existing dispatchers with telemetry
-        services.Decorate<IRequestDispatcher, TelemetryRequestDispatcher>();
-        services.Decorate<IStreamDispatcher, TelemetryStreamDispatcher>();
-        services.Decorate<INotificationDispatcher, TelemetryNotificationDispatcher>();
-
-        // Decorate the main Relay interface with telemetry
-        services.Decorate<IRelay, TelemetryRelay>();
-
-        // Configure telemetry if provided
-        if (configureTelemetry != null)
+        return services.RegisterCoreServices(svc =>
         {
-            services.AddSingleton(provider =>
-            {
-                var telemetryProvider = provider.GetRequiredService<ITelemetryProvider>();
-                configureTelemetry(telemetryProvider);
-                return telemetryProvider;
-            });
-        }
+            // Register the default metrics provider
+            ServiceRegistrationHelper.TryAddSingleton<IMetricsProvider, DefaultMetricsProvider>(svc);
 
-        return services;
+            // Register the default telemetry provider
+            ServiceRegistrationHelper.TryAddSingleton<ITelemetryProvider, DefaultTelemetryProvider>(svc);
+
+            // Decorate existing dispatchers with telemetry
+            ServiceRegistrationHelper.DecorateService<IRequestDispatcher, TelemetryRequestDispatcher>(svc);
+            ServiceRegistrationHelper.DecorateService<IStreamDispatcher, TelemetryStreamDispatcher>(svc);
+            ServiceRegistrationHelper.DecorateService<INotificationDispatcher, TelemetryNotificationDispatcher>(svc);
+
+            // Decorate the main Relay interface with telemetry
+            ServiceRegistrationHelper.DecorateService<IRelay, TelemetryRelay>(svc);
+
+            // Configure telemetry if provided
+            if (configureTelemetry != null)
+            {
+                ServiceRegistrationHelper.TryAddSingleton(svc, provider =>
+                {
+                    var telemetryProvider = provider.GetRequiredService<ITelemetryProvider>();
+                    configureTelemetry(telemetryProvider);
+                    return telemetryProvider;
+                });
+            }
+        });
     }
 
     /// <summary>
@@ -56,17 +58,18 @@ public static class TelemetryServiceCollectionExtensions
     public static IServiceCollection AddRelayTelemetry<TTelemetryProvider>(this IServiceCollection services)
         where TTelemetryProvider : class, ITelemetryProvider
     {
-        services.TryAddSingleton<ITelemetryProvider, TTelemetryProvider>();
+        return services.RegisterCoreServices(svc =>
+        {
+            ServiceRegistrationHelper.TryAddSingleton<ITelemetryProvider, TTelemetryProvider>(svc);
 
-        // Decorate existing dispatchers with telemetry
-        services.Decorate<IRequestDispatcher, TelemetryRequestDispatcher>();
-        services.Decorate<IStreamDispatcher, TelemetryStreamDispatcher>();
-        services.Decorate<INotificationDispatcher, TelemetryNotificationDispatcher>();
+            // Decorate existing dispatchers with telemetry
+            ServiceRegistrationHelper.DecorateService<IRequestDispatcher, TelemetryRequestDispatcher>(svc);
+            ServiceRegistrationHelper.DecorateService<IStreamDispatcher, TelemetryStreamDispatcher>(svc);
+            ServiceRegistrationHelper.DecorateService<INotificationDispatcher, TelemetryNotificationDispatcher>(svc);
 
-        // Decorate the main Relay interface with telemetry
-        services.Decorate<IRelay, TelemetryRelay>();
-
-        return services;
+            // Decorate the main Relay interface with telemetry
+            ServiceRegistrationHelper.DecorateService<IRelay, TelemetryRelay>(svc);
+        });
     }
 
     /// <summary>
@@ -77,18 +80,19 @@ public static class TelemetryServiceCollectionExtensions
     /// <returns>The service collection for chaining</returns>
     public static IServiceCollection AddRelayTelemetry(this IServiceCollection services, Func<IServiceProvider, ITelemetryProvider> factory)
     {
-        services.TryAddSingleton<IMetricsProvider, DefaultMetricsProvider>();
-        services.TryAddSingleton(factory);
+        return services.RegisterCoreServices(svc =>
+        {
+            ServiceRegistrationHelper.TryAddSingleton<IMetricsProvider, DefaultMetricsProvider>(svc);
+            ServiceRegistrationHelper.TryAddSingleton(svc, factory);
 
-        // Decorate existing dispatchers with telemetry
-        services.Decorate<IRequestDispatcher, TelemetryRequestDispatcher>();
-        services.Decorate<IStreamDispatcher, TelemetryStreamDispatcher>();
-        services.Decorate<INotificationDispatcher, TelemetryNotificationDispatcher>();
+            // Decorate existing dispatchers with telemetry
+            ServiceRegistrationHelper.DecorateService<IRequestDispatcher, TelemetryRequestDispatcher>(svc);
+            ServiceRegistrationHelper.DecorateService<IStreamDispatcher, TelemetryStreamDispatcher>(svc);
+            ServiceRegistrationHelper.DecorateService<INotificationDispatcher, TelemetryNotificationDispatcher>(svc);
 
-        // Decorate the main Relay interface with telemetry
-        services.Decorate<IRelay, TelemetryRelay>();
-
-        return services;
+            // Decorate the main Relay interface with telemetry
+            ServiceRegistrationHelper.DecorateService<IRelay, TelemetryRelay>(svc);
+        });
     }
 
     /// <summary>
@@ -100,8 +104,7 @@ public static class TelemetryServiceCollectionExtensions
     public static IServiceCollection AddRelayMetrics<TMetricsProvider>(this IServiceCollection services)
         where TMetricsProvider : class, IMetricsProvider
     {
-        services.TryAddSingleton<IMetricsProvider, TMetricsProvider>();
-        return services;
+        return ServiceRegistrationHelper.TryAddSingleton<IMetricsProvider, TMetricsProvider>(services);
     }
 
     /// <summary>
@@ -112,7 +115,6 @@ public static class TelemetryServiceCollectionExtensions
     /// <returns>The service collection for chaining</returns>
     public static IServiceCollection AddRelayMetrics(this IServiceCollection services, Func<IServiceProvider, IMetricsProvider> factory)
     {
-        services.TryAddSingleton(factory);
-        return services;
+        return ServiceRegistrationHelper.TryAddSingleton(services, factory);
     }
 }

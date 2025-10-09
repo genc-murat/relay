@@ -4,6 +4,7 @@ using System;
 using Relay.Core.Publishing.Interfaces;
 using Relay.Core.Publishing.Options;
 using Relay.Core.Publishing.Strategies;
+using Relay.Core.Extensions;
 
 namespace Relay.Core.Publishing.Extensions
 {
@@ -22,47 +23,17 @@ namespace Relay.Core.Publishing.Extensions
             this IServiceCollection services,
             Action<NotificationPublisherOptions> configure)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (configure == null)
-                throw new ArgumentNullException(nameof(configure));
+            ServiceRegistrationHelper.ValidateServicesAndConfiguration(services, configure);
 
             var options = new NotificationPublisherOptions();
             configure(options);
 
-            // If a specific publisher instance is provided, use it
-            if (options.Publisher != null)
-            {
-                services.TryAdd(new ServiceDescriptor(
-                    typeof(INotificationPublisher),
-                    options.Publisher));
-                return services;
-            }
-
-            // If a publisher type is specified, register it
-            if (options.PublisherType != null)
-            {
-                if (!typeof(INotificationPublisher).IsAssignableFrom(options.PublisherType))
-                {
-                    throw new ArgumentException(
-                        $"Publisher type {options.PublisherType.Name} must implement INotificationPublisher",
-                        nameof(configure));
-                }
-
-                services.TryAdd(new ServiceDescriptor(
-                    typeof(INotificationPublisher),
-                    options.PublisherType,
-                    options.Lifetime));
-                return services;
-            }
-
-            // Default to SequentialNotificationPublisher
-            services.TryAdd(new ServiceDescriptor(
-                typeof(INotificationPublisher),
-                typeof(SequentialNotificationPublisher),
-                options.Lifetime));
-
-            return services;
+            // Use the unified registration method with options
+            return services.RegisterServiceWithOptions<INotificationPublisher>(
+                implementationType: options.PublisherType,
+                factory: options.Publisher != null ? _ => options.Publisher : null,
+                instance: options.Publisher,
+                lifetime: options.Lifetime);
         }
 
         /// <summary>
@@ -76,15 +47,7 @@ namespace Relay.Core.Publishing.Extensions
             this IServiceCollection services,
             ServiceLifetime lifetime = ServiceLifetime.Singleton)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            services.TryAdd(new ServiceDescriptor(
-                typeof(INotificationPublisher),
-                typeof(SequentialNotificationPublisher),
-                lifetime));
-
-            return services;
+            return ServiceRegistrationHelper.AddService<INotificationPublisher, SequentialNotificationPublisher>(services, lifetime);
         }
 
         /// <summary>
@@ -98,15 +61,7 @@ namespace Relay.Core.Publishing.Extensions
             this IServiceCollection services,
             ServiceLifetime lifetime = ServiceLifetime.Singleton)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            services.TryAdd(new ServiceDescriptor(
-                typeof(INotificationPublisher),
-                typeof(ParallelNotificationPublisher),
-                lifetime));
-
-            return services;
+            return ServiceRegistrationHelper.AddService<INotificationPublisher, ParallelNotificationPublisher>(services, lifetime);
         }
 
         /// <summary>
@@ -122,17 +77,11 @@ namespace Relay.Core.Publishing.Extensions
             bool continueOnException = true,
             ServiceLifetime lifetime = ServiceLifetime.Singleton)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            services.TryAdd(new ServiceDescriptor(
-                typeof(INotificationPublisher),
+            return ServiceRegistrationHelper.AddService<INotificationPublisher>(services, 
                 sp => new ParallelWhenAllNotificationPublisher(
                     continueOnException,
                     sp.GetService<Microsoft.Extensions.Logging.ILogger<ParallelWhenAllNotificationPublisher>>()),
-                lifetime));
-
-            return services;
+                lifetime);
         }
 
         /// <summary>
@@ -147,15 +96,7 @@ namespace Relay.Core.Publishing.Extensions
             ServiceLifetime lifetime = ServiceLifetime.Singleton)
             where TPublisher : class, INotificationPublisher
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            services.TryAdd(new ServiceDescriptor(
-                typeof(INotificationPublisher),
-                typeof(TPublisher),
-                lifetime));
-
-            return services;
+            return ServiceRegistrationHelper.AddService<INotificationPublisher, TPublisher>(services, lifetime);
         }
 
         /// <summary>
@@ -170,17 +111,7 @@ namespace Relay.Core.Publishing.Extensions
             Func<IServiceProvider, INotificationPublisher> implementationFactory,
             ServiceLifetime lifetime = ServiceLifetime.Singleton)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (implementationFactory == null)
-                throw new ArgumentNullException(nameof(implementationFactory));
-
-            services.TryAdd(new ServiceDescriptor(
-                typeof(INotificationPublisher),
-                implementationFactory,
-                lifetime));
-
-            return services;
+            return ServiceRegistrationHelper.AddService(services, implementationFactory, lifetime);
         }
 
         /// <summary>
@@ -207,18 +138,12 @@ namespace Relay.Core.Publishing.Extensions
             int maxDegreeOfParallelism = -1,
             ServiceLifetime lifetime = ServiceLifetime.Singleton)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            services.TryAdd(new ServiceDescriptor(
-                typeof(INotificationPublisher),
+            return ServiceRegistrationHelper.AddService<INotificationPublisher>(services, 
                 sp => new OrderedNotificationPublisher(
                     sp.GetService<Microsoft.Extensions.Logging.ILogger<OrderedNotificationPublisher>>(),
                     continueOnException,
                     maxDegreeOfParallelism),
-                lifetime));
-
-            return services;
+                lifetime);
         }
     }
 }

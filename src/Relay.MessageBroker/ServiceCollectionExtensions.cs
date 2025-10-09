@@ -9,6 +9,7 @@ using Relay.MessageBroker.Nats;
 using Relay.MessageBroker.RabbitMQ;
 using Relay.MessageBroker.RedisStreams;
 using Relay.Core.ContractValidation;
+using Relay.Core.Extensions;
 
 namespace Relay.MessageBroker;
 
@@ -27,57 +28,51 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Action<MessageBrokerOptions> configure)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configure);
+        ServiceRegistrationHelper.ValidateServicesAndConfiguration(services, configure);
 
-        var options = new MessageBrokerOptions();
-        configure(options);
-        services.AddSingleton(options);
+        // Use standard options pattern to avoid registration conflicts
+        services.Configure(configure);
 
-        services.AddSingleton<IOptions<MessageBrokerOptions>>(new OptionsWrapper<MessageBrokerOptions>(options));
-
-        services.AddSingleton<IMessageBroker>(sp =>
+        return ServiceRegistrationHelper.AddService<IMessageBroker>(services, sp =>
         {
-            var options = sp.GetRequiredService<IOptions<MessageBrokerOptions>>();
+            var brokerOptions = sp.GetRequiredService<IOptions<MessageBrokerOptions>>();
             var contractValidator = sp.GetService<IContractValidator>();
 
-            return options.Value.BrokerType switch
+            return brokerOptions.Value.BrokerType switch
             {
                 MessageBrokerType.RabbitMQ => new RabbitMQMessageBroker(
-                    options,
+                    brokerOptions,
                     sp.GetRequiredService<ILogger<RabbitMQMessageBroker>>(),
                     null,
                     contractValidator),
                 MessageBrokerType.Kafka => new KafkaMessageBroker(
-                    options,
+                    brokerOptions,
                     sp.GetRequiredService<ILogger<KafkaMessageBroker>>(),
                     null,
                     contractValidator),
-MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
-                    options,
+                MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
+                    brokerOptions,
                     sp.GetRequiredService<ILogger<AzureServiceBusMessageBroker>>(),
                     null,
                     contractValidator),
                 MessageBrokerType.AwsSqsSns => new AwsSqsSnsMessageBroker(
-                    options,
+                    brokerOptions,
                     sp.GetService<ILogger<AwsSqsSnsMessageBroker>>(),
                     null,
                     contractValidator),
                 MessageBrokerType.Nats => new NatsMessageBroker(
-                    options,
+                    brokerOptions,
                     sp.GetService<ILogger<NatsMessageBroker>>(),
                     null,
                     contractValidator),
                 MessageBrokerType.RedisStreams => new RedisStreamsMessageBroker(
-                    options,
+                    brokerOptions,
                     sp.GetRequiredService<ILogger<RedisStreamsMessageBroker>>(),
                     null,
                     contractValidator),
-                _ => throw new NotSupportedException($"Message broker type {options.Value.BrokerType} is not supported.")
+                _ => throw new NotSupportedException($"Message broker type {brokerOptions.Value.BrokerType} is not supported.")
             };
         });
-
-        return services;
     }
 
     /// <summary>
@@ -90,16 +85,12 @@ MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
         this IServiceCollection services,
         Action<RabbitMQOptions>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.AddMessageBroker(options =>
+        return services.AddMessageBroker(options =>
         {
             options.BrokerType = MessageBrokerType.RabbitMQ;
             options.RabbitMQ = new RabbitMQOptions();
             configure?.Invoke(options.RabbitMQ);
         });
-
-        return services;
     }
 
     /// <summary>
@@ -112,16 +103,12 @@ MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
         this IServiceCollection services,
         Action<KafkaOptions>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.AddMessageBroker(options =>
+        return services.AddMessageBroker(options =>
         {
             options.BrokerType = MessageBrokerType.Kafka;
             options.Kafka = new KafkaOptions();
             configure?.Invoke(options.Kafka);
         });
-
-        return services;
     }
 
     /// <summary>
@@ -134,16 +121,12 @@ MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
         this IServiceCollection services,
         Action<AzureServiceBusOptions>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.AddMessageBroker(options =>
+        return services.AddMessageBroker(options =>
         {
             options.BrokerType = MessageBrokerType.AzureServiceBus;
             options.AzureServiceBus = new AzureServiceBusOptions();
             configure?.Invoke(options.AzureServiceBus);
         });
-
-        return services;
     }
 
     /// <summary>
@@ -156,16 +139,12 @@ MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
         this IServiceCollection services,
         Action<AwsSqsSnsOptions>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.AddMessageBroker(options =>
+        return services.AddMessageBroker(options =>
         {
             options.BrokerType = MessageBrokerType.AwsSqsSns;
             options.AwsSqsSns = new AwsSqsSnsOptions();
             configure?.Invoke(options.AwsSqsSns);
         });
-
-        return services;
     }
 
     /// <summary>
@@ -178,16 +157,12 @@ MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
         this IServiceCollection services,
         Action<NatsOptions>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.AddMessageBroker(options =>
+        return services.AddMessageBroker(options =>
         {
             options.BrokerType = MessageBrokerType.Nats;
             options.Nats = new NatsOptions();
             configure?.Invoke(options.Nats);
         });
-
-        return services;
     }
 
     /// <summary>
@@ -200,16 +175,12 @@ MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
         this IServiceCollection services,
         Action<RedisStreamsOptions>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.AddMessageBroker(options =>
+        return services.AddMessageBroker(options =>
         {
             options.BrokerType = MessageBrokerType.RedisStreams;
             options.RedisStreams = new RedisStreamsOptions();
             configure?.Invoke(options.RedisStreams);
         });
-
-        return services;
     }
 
     /// <summary>
@@ -219,10 +190,6 @@ MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddMessageBrokerHostedService(this IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(services);
-
-        services.AddHostedService<MessageBrokerHostedService>();
-
-        return services;
+        return services.RegisterCoreServices(svc => svc.AddHostedService<MessageBrokerHostedService>());
     }
 }

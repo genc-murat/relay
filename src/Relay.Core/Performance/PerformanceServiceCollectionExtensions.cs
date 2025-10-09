@@ -6,6 +6,7 @@ using System.Buffers;
 using Relay.Core.Configuration.Options;
 using Relay.Core.Performance.BufferManagement;
 using Relay.Core.Performance.Telemetry;
+using Relay.Core.Extensions;
 
 namespace Relay.Core.Performance
 {
@@ -21,20 +22,21 @@ namespace Relay.Core.Performance
         /// <returns>The service collection for chaining</returns>
         public static IServiceCollection AddRelayPerformanceOptimizations(this IServiceCollection services)
         {
-            // Add object pool provider if not already registered
-            services.TryAddSingleton<ObjectPoolProvider, DefaultObjectPoolProvider>();
+            return services.RegisterCoreServices(svc =>
+            {
+                // Add object pool provider if not already registered
+                ServiceRegistrationHelper.TryAddSingleton<ObjectPoolProvider, DefaultObjectPoolProvider>(svc);
 
-            // Add telemetry context pool
-            services.TryAddSingleton<ITelemetryContextPool, DefaultTelemetryContextPool>();
+                // Add telemetry context pool
+                ServiceRegistrationHelper.TryAddSingleton<ITelemetryContextPool, DefaultTelemetryContextPool>(svc);
 
-            // Add buffer manager
-            services.TryAddSingleton<IPooledBufferManager>(provider =>
-                new DefaultPooledBufferManager(ArrayPool<byte>.Shared));
+                // Add buffer manager
+                ServiceRegistrationHelper.TryAddSingleton(svc, provider =>
+                    new DefaultPooledBufferManager(ArrayPool<byte>.Shared));
 
             // Add pooled telemetry provider
-            services.TryAddSingleton<PooledTelemetryProvider>();
-
-            return services;
+            svc.TryAddSingleton<PooledTelemetryProvider>();
+            });
         }
 
         /// <summary>
@@ -45,12 +47,7 @@ namespace Relay.Core.Performance
         /// <returns>The service collection for chaining</returns>
         public static IServiceCollection WithPerformanceProfile(this IServiceCollection services, PerformanceProfile profile)
         {
-            services.Configure<RelayOptions>(options =>
-            {
-                options.Performance.Profile = profile;
-            });
-
-            return services;
+            return ServiceRegistrationHelper.ConfigureOptions<RelayOptions>(services, options => options.Performance.Profile = profile);
         }
 
         /// <summary>
@@ -61,13 +58,11 @@ namespace Relay.Core.Performance
         /// <returns>The service collection for chaining</returns>
         public static IServiceCollection ConfigurePerformance(this IServiceCollection services, Action<PerformanceOptions> configure)
         {
-            services.Configure<RelayOptions>(options =>
+            return ServiceRegistrationHelper.ConfigureOptions<RelayOptions>(services, options =>
             {
                 options.Performance.Profile = PerformanceProfile.Custom;
                 configure(options.Performance);
             });
-
-            return services;
         }
     }
 }

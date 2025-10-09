@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Relay.Core.Diagnostics.Core;
 using Relay.Core.Diagnostics.Services;
 using Relay.Core.Diagnostics.Tracing;
+using Relay.Core.Extensions;
 using System;
 
 namespace Relay.Core.Diagnostics.Configuration;
@@ -22,22 +23,13 @@ public static class DiagnosticsServiceCollectionExtensions
         this IServiceCollection services,
         Action<DiagnosticsOptions>? configureOptions = null)
     {
-        // Configure options
-        if (configureOptions != null)
+        return services.RegisterWithConfiguration(configureOptions ?? (options => { }), svc =>
         {
-            services.Configure(configureOptions);
-        }
-        else
-        {
-            services.Configure<DiagnosticsOptions>(options => { });
-        }
-
-        // Register core diagnostic services
-        services.TryAddSingleton<IRequestTracer, RequestTracer>();
-        services.TryAddSingleton<IRelayDiagnostics, DefaultRelayDiagnostics>();
-        services.TryAddSingleton<RelayDiagnosticsService>();
-
-        return services;
+            // Register core diagnostic services
+            ServiceRegistrationHelper.TryAddSingleton<IRequestTracer, RequestTracer>(svc);
+            ServiceRegistrationHelper.TryAddSingleton<IRelayDiagnostics, DefaultRelayDiagnostics>(svc);
+            svc.TryAddSingleton<RelayDiagnosticsService>();
+        });
     }
 
     /// <summary>

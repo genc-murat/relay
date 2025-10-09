@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Extensions;
 
 namespace Relay.Core.AI
 {
@@ -36,22 +37,15 @@ namespace Relay.Core.AI
             this IServiceCollection services,
             Action<AIOptimizationOptions> configureOptions)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (configureOptions == null)
-                throw new ArgumentNullException(nameof(configureOptions));
+            return services.RegisterWithConfiguration(configureOptions, svc =>
+            {
+                // Register core AI services
+                ServiceRegistrationHelper.TryAddSingleton<IAIOptimizationEngine, Relay.Core.AI.AIOptimizationEngine>(svc);
+                svc.TryAddSingleton<SystemLoadMetricsProvider>();
 
-            // Configure options
-            services.Configure(configureOptions);
-
-            // Register core AI services
-            services.TryAddSingleton<IAIOptimizationEngine, Relay.Core.AI.AIOptimizationEngine>();
-            services.TryAddSingleton<SystemLoadMetricsProvider>();
-
-            // Register pipeline behaviors
-            services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
-
-            return services;
+                // Register pipeline behaviors
+                ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
+            });
         }
 
         /// <summary>
@@ -66,21 +60,19 @@ namespace Relay.Core.AI
             IConfiguration configuration,
             string sectionName = "Relay:AI")
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (configuration == null)
-                throw new ArgumentNullException(nameof(configuration));
-            if (string.IsNullOrWhiteSpace(sectionName))
-                throw new ArgumentException("Section name cannot be null or whitespace", nameof(sectionName));
+            return services.RegisterWithConfiguration<AIOptimizationOptions>(
+                configuration,
+                sectionName,
+                serviceRegistrations: svc =>
+                {
+                // Register core AI services
+                ServiceRegistrationHelper.TryAddSingleton<IAIOptimizationEngine, Relay.Core.AI.AIOptimizationEngine>(svc);
+                svc.TryAddSingleton<SystemLoadMetricsProvider>();
 
-            // Bind configuration
-            services.Configure<AIOptimizationOptions>(configuration.GetSection(sectionName));
-
-            // Validate configuration on startup
-            services.PostConfigure<AIOptimizationOptions>(options => options.Validate());
-
-            // Register AI services
-            return services.AddAIOptimization(_ => { });
+                    // Register pipeline behaviors
+                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
+                },
+                postConfigure: options => options.Validate());
         }
 
         /// <summary>
@@ -99,15 +91,18 @@ namespace Relay.Core.AI
 
             if (enableAdvancedFeatures)
             {
-                // Add advanced AI services
-                services.TryAddSingleton<IAIModelTrainer, DefaultAIModelTrainer>();
-                services.TryAddSingleton<IAIPredictionCache, DefaultAIPredictionCache>();
-                services.TryAddSingleton<IAIMetricsExporter, DefaultAIMetricsExporter>();
+                return services.RegisterCoreServices(svc =>
+                {
+                    // Add advanced AI services
+                    ServiceRegistrationHelper.TryAddSingleton<IAIModelTrainer, DefaultAIModelTrainer>(svc);
+                    ServiceRegistrationHelper.TryAddSingleton<IAIPredictionCache, DefaultAIPredictionCache>(svc);
+                    ServiceRegistrationHelper.TryAddSingleton<IAIMetricsExporter, DefaultAIMetricsExporter>(svc);
 
-                // Add specialized pipeline behaviors
-                services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(AIPerformanceTrackingBehavior<,>));
-                services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(AIBatchOptimizationBehavior<,>));
-                services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(AICachingOptimizationBehavior<,>));
+                    // Add specialized pipeline behaviors
+                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIPerformanceTrackingBehavior<,>));
+                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIBatchOptimizationBehavior<,>));
+                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AICachingOptimizationBehavior<,>));
+                });
             }
 
             return services;
@@ -190,10 +185,8 @@ namespace Relay.Core.AI
             Action<AIOptimizationOptions> configureOptions)
             where TPredictionModel : class, IAIPredictionModel
         {
-            services.AddAIOptimization(configureOptions);
-            services.TryAddSingleton<IAIPredictionModel, TPredictionModel>();
-
-            return services;
+            return services.AddAIOptimization(configureOptions)
+                .RegisterCoreServices(svc => ServiceRegistrationHelper.TryAddSingleton<IAIPredictionModel, TPredictionModel>(svc));
         }
 
         /// <summary>
@@ -203,17 +196,12 @@ namespace Relay.Core.AI
         /// <returns>The service collection for chaining</returns>
         public static IServiceCollection AddAIOptimizationHealthChecks(this IServiceCollection services)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            // Register AI health check services
-            services.TryAddSingleton<AIOptimizationHealthCheck>();
-            services.TryAddSingleton<AIModelHealthCheck>();
-            services.TryAddSingleton<AIMetricsHealthCheck>();
-            services.TryAddSingleton<AICircuitBreakerHealthCheck>();
-            services.TryAddSingleton<AISystemHealthCheck>();
-
-            return services;
+            return services.RegisterHealthChecks(
+                typeof(AIOptimizationHealthCheck),
+                typeof(AIModelHealthCheck),
+                typeof(AIMetricsHealthCheck),
+                typeof(AICircuitBreakerHealthCheck),
+                typeof(AISystemHealthCheck));
         }
 
         /// <summary>
@@ -226,18 +214,8 @@ namespace Relay.Core.AI
             this IServiceCollection services,
             Action<AIHealthCheckOptions> configureHealthChecks)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (configureHealthChecks == null)
-                throw new ArgumentNullException(nameof(configureHealthChecks));
-
-            // Configure health check options
-            services.Configure(configureHealthChecks);
-
-            // Register health check services
-            services.AddAIOptimizationHealthChecks();
-
-            return services;
+            return services.RegisterWithConfiguration(configureHealthChecks, 
+                serviceRegistrations: svc => svc.AddAIOptimizationHealthChecks());
         }
 
         /// <summary>

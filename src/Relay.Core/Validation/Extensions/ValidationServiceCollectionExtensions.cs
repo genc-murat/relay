@@ -6,6 +6,7 @@ using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Interfaces;
 using Relay.Core.Validation.Pipeline;
+using Relay.Core.Extensions;
 
 namespace Relay.Core.Validation.Extensions
 {
@@ -21,14 +22,12 @@ namespace Relay.Core.Validation.Extensions
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayValidation(this IServiceCollection services)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            // Register the validation pipeline behaviors
-            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehavior<,>));
-            services.AddTransient(typeof(IStreamPipelineBehavior<,>), typeof(StreamValidationPipelineBehavior<,>));
-
-            return services;
+            return services.RegisterCoreServices(svc =>
+            {
+                // Register the validation pipeline behaviors
+                ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehavior<,>));
+                ServiceRegistrationHelper.TryAddTransient(svc, typeof(IStreamPipelineBehavior<,>), typeof(StreamValidationPipelineBehavior<,>));
+            });
         }
 
         /// <summary>
@@ -39,44 +38,33 @@ namespace Relay.Core.Validation.Extensions
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddValidationRulesFromAssembly(this IServiceCollection services, Assembly assembly)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
+            ServiceRegistrationHelper.ValidateServices(services);
+            ArgumentNullException.ThrowIfNull(assembly);
 
-            if (assembly == null)
-                throw new ArgumentNullException(nameof(assembly));
-
-            // Find all types that implement IValidationRule<>
-            var validationRuleTypes = assembly.GetTypes()
-                .Where(t => !t.IsAbstract && !t.IsInterface && t.GetInterfaces()
-                    .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValidationRule<>)));
-
-            // Register each validation rule
-            foreach (var ruleType in validationRuleTypes)
-            {
-                var interfaces = ruleType.GetInterfaces()
-                    .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValidationRule<>));
-
-                foreach (var @interface in interfaces)
+            return services.RegisterFromAssembly(assembly, 
+                interfaceType => interfaceType.IsGenericType && 
+                                interfaceType.GetGenericTypeDefinition() == typeof(IValidationRule<>),
+                ServiceLifetime.Transient)
+                .RegisterCoreServices(svc =>
                 {
-                    services.AddTransient(@interface, ruleType);
-                }
-            }
+                    // Register validators for each unique request type
+                    var validationRuleTypes = assembly.GetTypes()
+                        .Where(t => !t.IsAbstract && !t.IsInterface && t.GetInterfaces()
+                            .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValidationRule<>)));
 
-            // Register validators for each unique request type
-            var requestTypes = validationRuleTypes
-                .SelectMany(t => t.GetInterfaces())
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValidationRule<>))
-                .Select(i => i.GetGenericArguments()[0])
-                .Distinct();
+                    var requestTypes = validationRuleTypes
+                        .SelectMany(t => t.GetInterfaces())
+                        .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValidationRule<>))
+                        .Select(i => i.GetGenericArguments()[0])
+                        .Distinct();
 
-            foreach (var requestType in requestTypes)
-            {
-                var validatorType = typeof(DefaultValidator<>).MakeGenericType(requestType);
-                var validatorInterface = typeof(IValidator<>).MakeGenericType(requestType);
-                services.AddTransient(validatorInterface, validatorType);
-            }
-
-            return services;
+                    foreach (var requestType in requestTypes)
+                    {
+                        var validatorType = typeof(DefaultValidator<>).MakeGenericType(requestType);
+                        var validatorInterface = typeof(IValidator<>).MakeGenericType(requestType);
+                        ServiceRegistrationHelper.TryAddTransient(svc, validatorInterface, validatorType);
+                    }
+                });
         }
 
         /// <summary>
@@ -86,7 +74,7 @@ namespace Relay.Core.Validation.Extensions
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddValidationRulesFromCallingAssembly(this IServiceCollection services)
         {
-            return AddValidationRulesFromAssembly(services, Assembly.GetCallingAssembly());
+            return services.AddValidationRulesFromAssembly(Assembly.GetCallingAssembly());
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Pipeline.Behaviors;
 using Relay.Core.Pipeline.Interfaces;
+using Relay.Core.Extensions;
 using System;
 
 namespace Relay.Core.Pipeline.Extensions
@@ -20,22 +21,13 @@ namespace Relay.Core.Pipeline.Extensions
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayPrePostProcessors(this IServiceCollection services)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            // Register the pipeline behaviors as open generics
-            // This allows them to work with any TRequest and TResponse types
-            services.TryAddEnumerable(
-                ServiceDescriptor.Transient(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(RequestPreProcessorBehavior<,>)));
-
-            services.TryAddEnumerable(
-                ServiceDescriptor.Transient(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(RequestPostProcessorBehavior<,>)));
-
-            return services;
+            return services.RegisterCoreServices(svc =>
+            {
+                // Register the pipeline behaviors as open generics
+                // This allows them to work with any TRequest and TResponse types
+                ServiceRegistrationHelper.TryAddEnumerable(svc, typeof(IPipelineBehavior<,>), typeof(RequestPreProcessorBehavior<,>));
+                ServiceRegistrationHelper.TryAddEnumerable(svc, typeof(IPipelineBehavior<,>), typeof(RequestPostProcessorBehavior<,>));
+            });
         }
 
         /// <summary>
@@ -47,22 +39,14 @@ namespace Relay.Core.Pipeline.Extensions
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayExceptionHandlers(this IServiceCollection services)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
+            return services.RegisterCoreServices(svc =>
+            {
+                // Register exception handler behavior
+                ServiceRegistrationHelper.TryAddEnumerable(svc, typeof(IPipelineBehavior<,>), typeof(RequestExceptionHandlerBehavior<,>));
 
-            // Register exception handler behavior
-            services.TryAddEnumerable(
-                ServiceDescriptor.Transient(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(RequestExceptionHandlerBehavior<,>)));
-
-            // Register exception action behavior
-            services.TryAddEnumerable(
-                ServiceDescriptor.Transient(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(RequestExceptionActionBehavior<,>)));
-
-            return services;
+                // Register exception action behavior
+                ServiceRegistrationHelper.TryAddEnumerable(svc, typeof(IPipelineBehavior<,>), typeof(RequestExceptionActionBehavior<,>));
+            });
         }
 
         /// <summary>
@@ -80,17 +64,7 @@ namespace Relay.Core.Pipeline.Extensions
             ServiceLifetime lifetime = ServiceLifetime.Transient)
             where TPreProcessor : class, IRequestPreProcessor<TRequest>
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            var descriptor = new ServiceDescriptor(
-                typeof(IRequestPreProcessor<TRequest>),
-                typeof(TPreProcessor),
-                lifetime);
-
-            services.Add(descriptor);
-
-            return services;
+            return ServiceRegistrationHelper.AddService<IRequestPreProcessor<TRequest>, TPreProcessor>(services, lifetime);
         }
 
         /// <summary>
@@ -108,19 +82,7 @@ namespace Relay.Core.Pipeline.Extensions
             ServiceLifetime lifetime = ServiceLifetime.Transient)
             where TPreProcessor : class, IRequestPreProcessor<TRequest>
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (implementationFactory == null)
-                throw new ArgumentNullException(nameof(implementationFactory));
-
-            var descriptor = new ServiceDescriptor(
-                typeof(IRequestPreProcessor<TRequest>),
-                implementationFactory,
-                lifetime);
-
-            services.Add(descriptor);
-
-            return services;
+            return ServiceRegistrationHelper.AddService(services, implementationFactory, lifetime);
         }
 
         /// <summary>
@@ -139,17 +101,7 @@ namespace Relay.Core.Pipeline.Extensions
             ServiceLifetime lifetime = ServiceLifetime.Transient)
             where TPostProcessor : class, IRequestPostProcessor<TRequest, TResponse>
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            var descriptor = new ServiceDescriptor(
-                typeof(IRequestPostProcessor<TRequest, TResponse>),
-                typeof(TPostProcessor),
-                lifetime);
-
-            services.Add(descriptor);
-
-            return services;
+            return ServiceRegistrationHelper.AddService<IRequestPostProcessor<TRequest, TResponse>, TPostProcessor>(services, lifetime);
         }
 
         /// <summary>
@@ -168,19 +120,7 @@ namespace Relay.Core.Pipeline.Extensions
             ServiceLifetime lifetime = ServiceLifetime.Transient)
             where TPostProcessor : class, IRequestPostProcessor<TRequest, TResponse>
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (implementationFactory == null)
-                throw new ArgumentNullException(nameof(implementationFactory));
-
-            var descriptor = new ServiceDescriptor(
-                typeof(IRequestPostProcessor<TRequest, TResponse>),
-                implementationFactory,
-                lifetime);
-
-            services.Add(descriptor);
-
-            return services;
+            return ServiceRegistrationHelper.AddService(services, implementationFactory, lifetime);
         }
 
         /// <summary>
@@ -201,17 +141,7 @@ namespace Relay.Core.Pipeline.Extensions
             where TException : Exception
             where THandler : class, IRequestExceptionHandler<TRequest, TResponse, TException>
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            var descriptor = new ServiceDescriptor(
-                typeof(IRequestExceptionHandler<TRequest, TResponse, TException>),
-                typeof(THandler),
-                lifetime);
-
-            services.Add(descriptor);
-
-            return services;
+            return ServiceRegistrationHelper.AddService<IRequestExceptionHandler<TRequest, TResponse, TException>, THandler>(services, lifetime);
         }
 
         /// <summary>
@@ -232,19 +162,7 @@ namespace Relay.Core.Pipeline.Extensions
             where TException : Exception
             where THandler : class, IRequestExceptionHandler<TRequest, TResponse, TException>
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (implementationFactory == null)
-                throw new ArgumentNullException(nameof(implementationFactory));
-
-            var descriptor = new ServiceDescriptor(
-                typeof(IRequestExceptionHandler<TRequest, TResponse, TException>),
-                implementationFactory,
-                lifetime);
-
-            services.Add(descriptor);
-
-            return services;
+            return ServiceRegistrationHelper.AddService(services, implementationFactory, lifetime);
         }
 
         /// <summary>
@@ -264,17 +182,7 @@ namespace Relay.Core.Pipeline.Extensions
             where TException : Exception
             where TAction : class, IRequestExceptionAction<TRequest, TException>
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            var descriptor = new ServiceDescriptor(
-                typeof(IRequestExceptionAction<TRequest, TException>),
-                typeof(TAction),
-                lifetime);
-
-            services.Add(descriptor);
-
-            return services;
+            return ServiceRegistrationHelper.AddService<IRequestExceptionAction<TRequest, TException>, TAction>(services, lifetime);
         }
 
         /// <summary>
@@ -294,19 +202,7 @@ namespace Relay.Core.Pipeline.Extensions
             where TException : Exception
             where TAction : class, IRequestExceptionAction<TRequest, TException>
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-            if (implementationFactory == null)
-                throw new ArgumentNullException(nameof(implementationFactory));
-
-            var descriptor = new ServiceDescriptor(
-                typeof(IRequestExceptionAction<TRequest, TException>),
-                implementationFactory,
-                lifetime);
-
-            services.Add(descriptor);
-
-            return services;
+            return ServiceRegistrationHelper.AddService(services, implementationFactory, lifetime);
         }
 
         /// <summary>
@@ -318,17 +214,12 @@ namespace Relay.Core.Pipeline.Extensions
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayTransactions(this IServiceCollection services)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
-
-            // Register the unified TransactionBehavior as an open generic.
-            // This single behavior handles the entire transaction lifecycle.
-            services.TryAddEnumerable(
-                ServiceDescriptor.Transient(
-                    typeof(IPipelineBehavior<,>),
-                    typeof(Transactions.TransactionBehavior<,>)));
-
-            return services;
+            return services.RegisterCoreServices(svc =>
+            {
+                // Register the unified TransactionBehavior as an open generic.
+                // This single behavior handles the entire transaction lifecycle.
+                ServiceRegistrationHelper.TryAddEnumerable(svc, typeof(IPipelineBehavior<,>), typeof(Transactions.TransactionBehavior<,>));
+            });
         }
     }
 }

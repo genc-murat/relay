@@ -7,6 +7,7 @@ using Relay.Core.Contracts.Infrastructure;
 using Relay.Core.Implementation.Core;
 using Relay.Core.Implementation.Dispatchers;
 using Relay.Core.Implementation.Fallback;
+using Relay.Core.Extensions;
 using System;
 
 namespace Relay
@@ -24,22 +25,20 @@ namespace Relay
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection AddRelayConfiguration(this IServiceCollection services)
         {
-            if (services == null)
-                throw new ArgumentNullException(nameof(services));
+            return services.RegisterCoreServices(svc =>
+            {
+                // Add core Relay configuration (NOT calling AddRelayConfiguration recursively!)
+                ServiceRegistrationHelper.ConfigureOptionsWithDefault<RelayOptions>(svc);
+                ServiceRegistrationHelper.TryAddTransient<IRelay, RelayImplementation>(svc);
 
-            // Add core Relay configuration (NOT calling AddRelayConfiguration recursively!)
-            services.Configure<RelayOptions>(options => { }); // Register default options
-            services.AddTransient<IRelay, RelayImplementation>();
+                // Register default dispatchers (will be replaced by generated ones if available)
+                ServiceRegistrationHelper.TryAddTransient<IRequestDispatcher, FallbackRequestDispatcher>(svc);
+                ServiceRegistrationHelper.TryAddTransient<IStreamDispatcher, StreamDispatcher>(svc);
+                ServiceRegistrationHelper.TryAddTransient<INotificationDispatcher, NotificationDispatcher>(svc);
 
-            // Register default dispatchers (will be replaced by generated ones if available)
-            services.AddTransient<IRequestDispatcher, FallbackRequestDispatcher>();
-            services.AddTransient<IStreamDispatcher, StreamDispatcher>();
-            services.AddTransient<INotificationDispatcher, NotificationDispatcher>();
-
-            // Register ServiceFactory delegate for MediatR-compatible service resolution
-            services.AddTransient<ServiceFactory>(sp => sp.GetService);
-
-            return services;
+                // Register ServiceFactory delegate for MediatR-compatible service resolution
+                ServiceRegistrationHelper.TryAddTransient<ServiceFactory>(svc, sp => sp.GetService);
+            });
         }
     }
 }

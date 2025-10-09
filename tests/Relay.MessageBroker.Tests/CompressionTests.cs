@@ -24,7 +24,14 @@ public class CompressionTests
     public async Task Compress_AndDecompress_ShouldPreserveData(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = CreateCompressor(algorithm);
+        var coreAlgorithm = algorithm switch
+        {
+            CompressionAlgorithm.GZip => Relay.Core.Caching.Compression.CompressionAlgorithm.GZip,
+            CompressionAlgorithm.Deflate => Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate,
+            CompressionAlgorithm.Brotli => Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli,
+            _ => throw new ArgumentException($"Unsupported algorithm: {algorithm}")
+        };
+        var compressor = CreateCompressor(coreAlgorithm);
 
         // Act
         var compressed = await compressor.CompressAsync(_testData);
@@ -41,7 +48,14 @@ public class CompressionTests
     public async Task Compress_ShouldReduceDataSize(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = CreateCompressor(algorithm);
+        var coreAlgorithm = algorithm switch
+        {
+            CompressionAlgorithm.GZip => Relay.Core.Caching.Compression.CompressionAlgorithm.GZip,
+            CompressionAlgorithm.Deflate => Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate,
+            CompressionAlgorithm.Brotli => Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli,
+            _ => throw new ArgumentException($"Unsupported algorithm: {algorithm}")
+        };
+        var compressor = CreateCompressor(coreAlgorithm);
 
         // Act
         var compressed = await compressor.CompressAsync(_testData);
@@ -175,7 +189,7 @@ public class CompressionTests
         var options = new CompressionOptions
         {
             Enabled = true,
-            Algorithm = CompressionAlgorithm.GZip,
+            Algorithm = Relay.Core.Caching.Compression.CompressionAlgorithm.GZip,
             MinimumSizeBytes = 1024 // 1 KB minimum
         };
         var smallData = Encoding.UTF8.GetBytes("Small message");
@@ -194,7 +208,7 @@ public class CompressionTests
         var options = new CompressionOptions
         {
             Enabled = true,
-            Algorithm = CompressionAlgorithm.GZip,
+            Algorithm = Relay.Core.Caching.Compression.CompressionAlgorithm.GZip,
             MinimumSizeBytes = 100
         };
         var largeData = new byte[200]; // Larger than minimum
@@ -271,7 +285,7 @@ public class CompressionTests
 
         // Assert
         options.Enabled.Should().BeFalse();
-        options.Algorithm.Should().Be(CompressionAlgorithm.GZip);
+        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
         options.MinimumSizeBytes.Should().Be(1024);
         options.Level.Should().Be(6);
     }
@@ -280,7 +294,7 @@ public class CompressionTests
     public async Task CompressionPerformance_ShouldBeReasonablyFast()
     {
         // Arrange
-        var compressor = new GZipCompressor();
+        var compressor = CreateCompressor(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
         // Create compressible data (repeated pattern)
         var largeData = new byte[1024 * 100]; // 100 KB
         for (int i = 0; i < largeData.Length; i++)
@@ -298,15 +312,10 @@ public class CompressionTests
         compressed.Length.Should().BeLessThan(largeData.Length);
     }
 
-    private IMessageCompressor CreateCompressor(CompressionAlgorithm algorithm)
+    private Relay.MessageBroker.Compression.IMessageCompressor CreateCompressor(Relay.Core.Caching.Compression.CompressionAlgorithm algorithm)
     {
-        return algorithm switch
-        {
-            CompressionAlgorithm.GZip => new GZipCompressor(),
-            CompressionAlgorithm.Deflate => new DeflateCompressor(),
-            CompressionAlgorithm.Brotli => new BrotliCompressor(),
-            _ => throw new ArgumentException($"Unsupported algorithm: {algorithm}")
-        };
+        var unifiedCompressor = Relay.Core.Caching.Compression.CompressionFactory.CreateUnified(algorithm);
+        return new Relay.MessageBroker.Compression.MessageCompressorAdapter(unifiedCompressor);
     }
 }
 
@@ -317,7 +326,7 @@ public interface IMessageCompressor
     ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default);
 }
 
-public class GZipCompressor : IMessageCompressor
+public class GZipCompressor : Relay.MessageBroker.Compression.IMessageCompressor
 {
     private readonly CompressionLevel _level;
 
@@ -325,6 +334,10 @@ public class GZipCompressor : IMessageCompressor
     {
         _level = level;
     }
+
+    public Relay.MessageBroker.Compression.CompressionAlgorithm Algorithm => Relay.MessageBroker.Compression.CompressionAlgorithm.GZip;
+    
+    public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.GZip;
 
     public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
     {
@@ -336,6 +349,12 @@ public class GZipCompressor : IMessageCompressor
             await gzipStream.WriteAsync(data, cancellationToken);
         }
         return outputStream.ToArray();
+    }
+
+    public bool IsCompressed(byte[] data)
+    {
+        if (data == null || data.Length < 2) return false;
+        return (data[0] & 0x0F) <= 0x0D;
     }
 
     public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
@@ -352,42 +371,7 @@ public class GZipCompressor : IMessageCompressor
     }
 }
 
-public class DeflateCompressor : IMessageCompressor
-{
-    private readonly CompressionLevel _level;
-
-    public DeflateCompressor(CompressionLevel level = CompressionLevel.Fastest)
-    {
-        _level = level;
-    }
-
-    public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
-    {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-
-        using var outputStream = new MemoryStream();
-        using (var deflateStream = new DeflateStream(outputStream, _level))
-        {
-            await deflateStream.WriteAsync(data, cancellationToken);
-        }
-        return outputStream.ToArray();
-    }
-
-    public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
-    {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-
-        using var inputStream = new MemoryStream(data);
-        using var outputStream = new MemoryStream();
-        using (var deflateStream = new DeflateStream(inputStream, CompressionMode.Decompress))
-        {
-            await deflateStream.CopyToAsync(outputStream, cancellationToken);
-        }
-        return outputStream.ToArray();
-    }
-}
-
-public class BrotliCompressor : IMessageCompressor
+public class BrotliCompressor : Relay.MessageBroker.Compression.IMessageCompressor
 {
     private readonly CompressionLevel _level;
 
@@ -395,6 +379,10 @@ public class BrotliCompressor : IMessageCompressor
     {
         _level = level;
     }
+
+    public Relay.MessageBroker.Compression.CompressionAlgorithm Algorithm => Relay.MessageBroker.Compression.CompressionAlgorithm.Brotli;
+    
+    public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli;
 
     public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
     {
@@ -408,6 +396,13 @@ public class BrotliCompressor : IMessageCompressor
         return outputStream.ToArray();
     }
 
+public bool IsCompressed(byte[] data)
+    {
+        if (data == null || data.Length < 4) return false;
+        // Brotli magic number: 0x8b, 0x02, 0x80, 0xXX
+        return data[0] == 0x8b && data[1] == 0x02 && (data[2] & 0x80) != 0;
+    }
+
     public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
     {
         if (data == null) throw new ArgumentNullException(nameof(data));
@@ -417,6 +412,52 @@ public class BrotliCompressor : IMessageCompressor
         using (var brotliStream = new BrotliStream(inputStream, CompressionMode.Decompress))
         {
             await brotliStream.CopyToAsync(outputStream, cancellationToken);
+        }
+        return outputStream.ToArray();
+    }
+}
+
+public class DeflateCompressor : Relay.MessageBroker.Compression.IMessageCompressor
+{
+    private readonly CompressionLevel _level;
+
+    public DeflateCompressor(CompressionLevel level = CompressionLevel.Fastest)
+    {
+        _level = level;
+    }
+
+    public Relay.MessageBroker.Compression.CompressionAlgorithm Algorithm => Relay.MessageBroker.Compression.CompressionAlgorithm.Deflate;
+    
+    public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate;
+
+    public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+
+        using var outputStream = new MemoryStream();
+        using (var deflateStream = new DeflateStream(outputStream, _level))
+        {
+            await deflateStream.WriteAsync(data, cancellationToken);
+        }
+        return outputStream.ToArray();
+    }
+
+    public bool IsCompressed(byte[] data)
+    {
+        if (data == null || data.Length < 2) return false;
+        // Deflate header check (simplified)
+        return (data[0] & 0x0F) == 0x08 && (data[0] >> 4) <= 0x07;
+    }
+
+    public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+
+        using var inputStream = new MemoryStream(data);
+        using var outputStream = new MemoryStream();
+        using (var deflateStream = new DeflateStream(inputStream, CompressionMode.Decompress))
+        {
+            await deflateStream.CopyToAsync(outputStream, cancellationToken);
         }
         return outputStream.ToArray();
     }

@@ -21,11 +21,16 @@ public sealed class GZipMessageCompressor : IMessageCompressor
     /// <param name="level">The compression level (0-9).</param>
     public GZipMessageCompressor(int level = 6)
     {
-        _innerCompressor = MessageBrokerCompressionFactory.CreateGZip(level);
+        var unified = Relay.Core.Caching.Compression.CompressionFactory.CreateUnified(
+            Relay.Core.Caching.Compression.CompressionAlgorithm.GZip, level, 1024);
+        _innerCompressor = new MessageCompressorAdapter(unified);
     }
 
     /// <inheritdoc/>
     public CompressionAlgorithm Algorithm => CompressionAlgorithm.GZip;
+
+    /// <inheritdoc/>
+    public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.GZip;
 
     /// <inheritdoc/>
     public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
@@ -59,11 +64,16 @@ public sealed class DeflateMessageCompressor : IMessageCompressor
     /// <param name="level">The compression level (0-9).</param>
     public DeflateMessageCompressor(int level = 6)
     {
-        _innerCompressor = MessageBrokerCompressionFactory.CreateDeflate(level);
+        var unified = Relay.Core.Caching.Compression.CompressionFactory.CreateUnified(
+            Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate, level, 1024);
+        _innerCompressor = new MessageCompressorAdapter(unified);
     }
 
     /// <inheritdoc/>
     public CompressionAlgorithm Algorithm => CompressionAlgorithm.Deflate;
+
+    /// <inheritdoc/>
+    public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate;
 
     /// <inheritdoc/>
     public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
@@ -97,11 +107,16 @@ public sealed class BrotliMessageCompressor : IMessageCompressor
     /// <param name="level">The compression level (0-9).</param>
     public BrotliMessageCompressor(int level = 6)
     {
-        _innerCompressor = MessageBrokerCompressionFactory.CreateBrotli(level);
+        var unified = Relay.Core.Caching.Compression.CompressionFactory.CreateUnified(
+            Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli, level, 1024);
+        _innerCompressor = new MessageCompressorAdapter(unified);
     }
 
     /// <inheritdoc/>
     public CompressionAlgorithm Algorithm => CompressionAlgorithm.Brotli;
+
+    /// <inheritdoc/>
+    public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli;
 
     /// <inheritdoc/>
     public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)

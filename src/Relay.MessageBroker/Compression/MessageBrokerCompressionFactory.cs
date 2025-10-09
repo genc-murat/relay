@@ -7,24 +7,7 @@ namespace Relay.MessageBroker.Compression;
 /// </summary>
 public static class MessageBrokerCompressionFactory
 {
-    /// <summary>
-    /// Creates a message compressor adapter.
-    /// </summary>
-    /// <param name="algorithm">The compression algorithm.</param>
-    /// <param name="level">The compression level (0-9).</param>
-    /// <param name="minimumSizeBytes">Minimum data size to compress.</param>
-    /// <returns>A message compressor instance.</returns>
-    public static IMessageCompressor CreateMessage(
-        CompressionAlgorithm algorithm = CompressionAlgorithm.GZip, 
-        int level = 6, 
-        int minimumSizeBytes = 1024)
-    {
-        var coreAlgorithm = (Relay.Core.Caching.Compression.CompressionAlgorithm)Enum.Parse(
-            typeof(Relay.Core.Caching.Compression.CompressionAlgorithm), 
-            algorithm.ToString());
-        var unified = CompressionFactory.CreateUnified(coreAlgorithm, level, minimumSizeBytes);
-        return new MessageCompressorAdapter(unified);
-    }
+
 
     /// <summary>
     /// Creates a message compressor adapter with custom options.
@@ -39,52 +22,15 @@ public static class MessageBrokerCompressionFactory
     }
 
     /// <summary>
-    /// Creates a GZip message compressor.
+    /// Creates a message compressor adapter directly from core options.
     /// </summary>
-    /// <param name="level">The compression level (0-9).</param>
-    /// <returns>A GZip message compressor.</returns>
-    public static IMessageCompressor CreateGZip(int level = 6)
+    /// <param name="options">The core compression options.</param>
+    /// <returns>A message compressor instance.</returns>
+    public static IMessageCompressor CreateFromCore(Relay.Core.Caching.Compression.CompressionOptions options)
     {
-        return CreateMessage(CompressionAlgorithm.GZip, level, 1024);
+        var unified = CompressionFactory.CreateUnified(options);
+        return new MessageCompressorAdapter(unified);
     }
 
-    /// <summary>
-    /// Creates a Deflate message compressor.
-    /// </summary>
-    /// <param name="level">The compression level (0-9).</param>
-    /// <returns>A Deflate message compressor.</returns>
-    public static IMessageCompressor CreateDeflate(int level = 6)
-    {
-        return CreateMessage(CompressionAlgorithm.Deflate, level, 1024);
-    }
 
-    /// <summary>
-    /// Creates a Brotli message compressor.
-    /// </summary>
-    /// <param name="level">The compression level (0-9).</param>
-    /// <returns>A Brotli message compressor.</returns>
-    public static IMessageCompressor CreateBrotli(int level = 6)
-    {
-        return CreateMessage(CompressionAlgorithm.Brotli, level, 1024);
-    }
-
-    /// <summary>
-    /// Creates an LZ4 message compressor.
-    /// </summary>
-    /// <param name="level">The compression level (0-9).</param>
-    /// <returns>An LZ4 message compressor.</returns>
-    public static IMessageCompressor CreateLZ4(int level = 6)
-    {
-        return CreateMessage(CompressionAlgorithm.LZ4, level, 1024);
-    }
-
-    /// <summary>
-    /// Creates a Zstandard message compressor.
-    /// </summary>
-    /// <param name="level">The compression level (0-9).</param>
-    /// <returns>A Zstandard message compressor.</returns>
-    public static IMessageCompressor CreateZstd(int level = 6)
-    {
-        return CreateMessage(CompressionAlgorithm.Zstd, level, 1024);
-    }
 }

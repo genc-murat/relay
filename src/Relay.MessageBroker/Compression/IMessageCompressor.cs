@@ -27,6 +27,11 @@ public interface IMessageCompressor
     CompressionAlgorithm Algorithm { get; }
 
     /// <summary>
+    /// Gets the core compression algorithm.
+    /// </summary>
+    Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm { get; }
+
+    /// <summary>
     /// Checks if the data appears to be already compressed.
     /// </summary>
     /// <param name="data">The data to check.</param>

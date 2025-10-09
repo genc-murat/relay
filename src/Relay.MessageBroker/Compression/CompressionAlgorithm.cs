@@ -1,5 +1,4 @@
-// This file is deprecated - use Relay.Core.Caching.Compression.CompressionAlgorithm instead
-// This type alias is provided for backward compatibility
+// This type provides compatibility with Relay.Core.Caching.Compression.CompressionAlgorithm
 using Relay.Core.Caching.Compression;
 
 namespace Relay.MessageBroker.Compression;

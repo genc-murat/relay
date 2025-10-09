@@ -86,7 +86,7 @@ public class EnumComprehensiveTests
         var options = new CompressionOptions();
 
         // Assert
-        options.Algorithm.Should().Be(CompressionAlgorithm.GZip);
+        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
     }
 
     #endregion

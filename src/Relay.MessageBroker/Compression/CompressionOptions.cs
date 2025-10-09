@@ -4,42 +4,10 @@ namespace Relay.MessageBroker.Compression;
 
 /// <summary>
 /// Configuration options for message compression.
-/// This wraps the core compression options with message-specific settings.
+/// This extends the core compression options with message-specific settings.
 /// </summary>
-public sealed class CompressionOptions
+public sealed class CompressionOptions : Relay.Core.Caching.Compression.CompressionOptions
 {
-    /// <summary>
-    /// Gets or sets whether compression is enabled.
-    /// </summary>
-    public bool Enabled { get; set; } = false;
-
-    /// <summary>
-    /// Gets or sets the compression algorithm to use.
-    /// </summary>
-    public CompressionAlgorithm Algorithm { get; set; } = CompressionAlgorithm.GZip;
-
-    /// <summary>
-    /// Gets or sets the compression level (0-9, where 0 is no compression and 9 is maximum).
-    /// </summary>
-    public int Level { get; set; } = 6;
-
-    /// <summary>
-    /// Gets or sets the minimum message size (in bytes) to compress.
-    /// Messages smaller than this will not be compressed.
-    /// </summary>
-    public int MinimumSizeBytes { get; set; } = 1024; // 1 KB
-
-    /// <summary>
-    /// Gets or sets whether to automatically detect if message is already compressed.
-    /// </summary>
-    public bool AutoDetectCompressed { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the expected compression ratio threshold (0.0 to 1.0).
-    /// If actual ratio is worse than this, compression will be skipped.
-    /// </summary>
-    public double ExpectedCompressionRatio { get; set; } = 0.7;
-
     /// <summary>
     /// Gets or sets the content types that should be compressed (e.g., "application/json", "text/plain").
     /// Empty list means compress all types.
@@ -78,16 +46,19 @@ public sealed class CompressionOptions
     public bool TrackStatistics { get; set; } = true;
 
     /// <summary>
-    /// Converts to core compression options.
+    /// Gets or sets whether compression is enabled for messages.
+    /// </summary>
+    public bool Enabled { get; set; } = false;
+
+    /// <summary>
+    /// Converts to core compression options for base class functionality.
     /// </summary>
     /// <returns>Core compression options.</returns>
-    internal Relay.Core.Caching.Compression.CompressionOptions ToCoreOptions()
+    public Relay.Core.Caching.Compression.CompressionOptions ToCoreOptions()
     {
         return new Relay.Core.Caching.Compression.CompressionOptions
         {
-            Algorithm = (Relay.Core.Caching.Compression.CompressionAlgorithm)Enum.Parse(
-                typeof(Relay.Core.Caching.Compression.CompressionAlgorithm), 
-                Algorithm.ToString()),
+            Algorithm = Algorithm,
             Level = Level,
             MinimumSizeBytes = MinimumSizeBytes,
             AutoDetectCompressed = AutoDetectCompressed,

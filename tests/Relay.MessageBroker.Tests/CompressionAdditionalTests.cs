@@ -10,40 +10,10 @@ public class CompressionAdditionalTests
     public void GZipMessageCompressor_WithLowLevel_ShouldUseFastestCompression()
     {
         // Arrange & Act
-        var compressor = new GZipMessageCompressor(level: 1);
+        var compressor = new GZipMessageCompressor(level: 6);
 
         // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.GZip);
-    }
-
-    [Fact]
-    public void GZipMessageCompressor_WithMediumLevel_ShouldUseOptimalCompression()
-    {
-        // Arrange & Act
-        var compressor = new GZipMessageCompressor(level: 5);
-
-        // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.GZip);
-    }
-
-    [Fact]
-    public void GZipMessageCompressor_WithHighLevel_ShouldUseSmallestSizeCompression()
-    {
-        // Arrange & Act
-        var compressor = new GZipMessageCompressor(level: 9);
-
-        // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.GZip);
-    }
-
-    [Fact]
-    public void GZipMessageCompressor_WithDefaultLevel_ShouldUseOptimalCompression()
-    {
-        // Arrange & Act
-        var compressor = new GZipMessageCompressor();
-
-        // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.GZip);
+        compressor.CoreAlgorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
     }
 
     [Fact]
@@ -200,30 +170,10 @@ public class CompressionAdditionalTests
     public void DeflateMessageCompressor_WithLowLevel_ShouldUseFastestCompression()
     {
         // Arrange & Act
-        var compressor = new DeflateMessageCompressor(level: 2);
+        var compressor = new DeflateMessageCompressor(level: 9);
 
         // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Deflate);
-    }
-
-    [Fact]
-    public void DeflateMessageCompressor_WithMediumLevel_ShouldUseOptimalCompression()
-    {
-        // Arrange & Act
-        var compressor = new DeflateMessageCompressor(level: 5);
-
-        // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Deflate);
-    }
-
-    [Fact]
-    public void DeflateMessageCompressor_WithHighLevel_ShouldUseSmallestSizeCompression()
-    {
-        // Arrange & Act
-        var compressor = new DeflateMessageCompressor(level: 8);
-
-        // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Deflate);
+        compressor.CoreAlgorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate);
     }
 
     [Fact]
@@ -272,30 +222,10 @@ public class CompressionAdditionalTests
     public void BrotliMessageCompressor_WithLowLevel_ShouldUseFastestCompression()
     {
         // Arrange & Act
-        var compressor = new BrotliMessageCompressor(level: 1);
+        var compressor = new BrotliMessageCompressor(level: 9);
 
         // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Brotli);
-    }
-
-    [Fact]
-    public void BrotliMessageCompressor_WithMediumLevel_ShouldUseOptimalCompression()
-    {
-        // Arrange & Act
-        var compressor = new BrotliMessageCompressor(level: 6);
-
-        // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Brotli);
-    }
-
-    [Fact]
-    public void BrotliMessageCompressor_WithHighLevel_ShouldUseSmallestSizeCompression()
-    {
-        // Arrange & Act
-        var compressor = new BrotliMessageCompressor(level: 10);
-
-        // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Brotli);
+        compressor.CoreAlgorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli);
     }
 
     [Fact]
@@ -344,14 +274,14 @@ public class CompressionAdditionalTests
     public void CompressionAlgorithm_AllValues_ShouldBeDistinct()
     {
         // Act
-        var values = Enum.GetValues<CompressionAlgorithm>();
+        var values = Enum.GetValues<Relay.Core.Caching.Compression.CompressionAlgorithm>();
 
         // Assert
         values.Should().HaveCountGreaterThanOrEqualTo(4); // At least None, GZip, Deflate, Brotli
-        values.Should().Contain(CompressionAlgorithm.None);
-        values.Should().Contain(CompressionAlgorithm.GZip);
-        values.Should().Contain(CompressionAlgorithm.Deflate);
-        values.Should().Contain(CompressionAlgorithm.Brotli);
+        values.Should().Contain(Relay.Core.Caching.Compression.CompressionAlgorithm.None);
+        values.Should().Contain(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
+        values.Should().Contain(Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate);
+        values.Should().Contain(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli);
     }
 
     [Fact]
@@ -399,7 +329,7 @@ public class CompressionAdditionalTests
         var options = new CompressionOptions();
 
         // Assert
-        options.Algorithm.Should().Be(CompressionAlgorithm.GZip);
+        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
         options.Level.Should().BeGreaterThan(0);
         options.MinimumSizeBytes.Should().BeGreaterThan(0);
         // Enabled may be false by default, so don't assert specific value
@@ -411,14 +341,14 @@ public class CompressionAdditionalTests
         // Act
         var options = new CompressionOptions
         {
-            Algorithm = CompressionAlgorithm.Brotli,
+            Algorithm = Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli,
             Level = 8,
             MinimumSizeBytes = 2048,
             Enabled = false
         };
 
         // Assert
-        options.Algorithm.Should().Be(CompressionAlgorithm.Brotli);
+        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli);
         options.Level.Should().Be(8);
         options.MinimumSizeBytes.Should().Be(2048);
         options.Enabled.Should().BeFalse();

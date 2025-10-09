@@ -559,7 +559,7 @@ public class MessageCompressorImplementationTests
 
         // Assert
         options.Enabled.Should().BeFalse();
-        options.Algorithm.Should().Be(CompressionAlgorithm.GZip);
+        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
         options.Level.Should().Be(6);
         options.MinimumSizeBytes.Should().Be(1024);
         options.AutoDetectCompressed.Should().BeTrue();
@@ -590,7 +590,7 @@ public class MessageCompressorImplementationTests
         var options = new CompressionOptions
         {
             Enabled = true,
-            Algorithm = CompressionAlgorithm.Brotli,
+            Algorithm = Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli,
             Level = 9,
             MinimumSizeBytes = 2048,
             AutoDetectCompressed = false,
@@ -601,7 +601,7 @@ public class MessageCompressorImplementationTests
 
         // Assert
         options.Enabled.Should().BeTrue();
-        options.Algorithm.Should().Be(CompressionAlgorithm.Brotli);
+        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli);
         options.Level.Should().Be(9);
         options.MinimumSizeBytes.Should().Be(2048);
         options.AutoDetectCompressed.Should().BeFalse();

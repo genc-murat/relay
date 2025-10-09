@@ -24,6 +24,11 @@ public sealed class MessageCompressorAdapter : IMessageCompressor
             typeof(CompressionAlgorithm), 
             _unifiedCompressor.Algorithm.ToString());
 
+    /// <summary>
+    /// Gets the core compression algorithm.
+    /// </summary>
+    public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => _unifiedCompressor.Algorithm;
+
     /// <inheritdoc/>
     public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
     {

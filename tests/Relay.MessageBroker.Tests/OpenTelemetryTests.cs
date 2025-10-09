@@ -1,12 +1,9 @@
-using System.Diagnostics;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using FluentAssertions;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Relay.Core.Telemetry;
-using Xunit;
+using System.Diagnostics;
 
 namespace Relay.MessageBroker.Tests;
 

@@ -1,7 +1,10 @@
+using Relay.Core.Caching.Compression;
+
 namespace Relay.MessageBroker.Compression;
 
 /// <summary>
 /// Configuration options for message compression.
+/// This wraps the core compression options with message-specific settings.
 /// </summary>
 public sealed class CompressionOptions
 {
@@ -30,6 +33,12 @@ public sealed class CompressionOptions
     /// Gets or sets whether to automatically detect if message is already compressed.
     /// </summary>
     public bool AutoDetectCompressed { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the expected compression ratio threshold (0.0 to 1.0).
+    /// If actual ratio is worse than this, compression will be skipped.
+    /// </summary>
+    public double ExpectedCompressionRatio { get; set; } = 0.7;
 
     /// <summary>
     /// Gets or sets the content types that should be compressed (e.g., "application/json", "text/plain").
@@ -69,10 +78,22 @@ public sealed class CompressionOptions
     public bool TrackStatistics { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the expected compression ratio threshold (0.0 to 1.0).
-    /// If actual ratio is worse than this, compression will be skipped.
+    /// Converts to core compression options.
     /// </summary>
-    public double ExpectedCompressionRatio { get; set; } = 0.7;
+    /// <returns>Core compression options.</returns>
+    internal Relay.Core.Caching.Compression.CompressionOptions ToCoreOptions()
+    {
+        return new Relay.Core.Caching.Compression.CompressionOptions
+        {
+            Algorithm = (Relay.Core.Caching.Compression.CompressionAlgorithm)Enum.Parse(
+                typeof(Relay.Core.Caching.Compression.CompressionAlgorithm), 
+                Algorithm.ToString()),
+            Level = Level,
+            MinimumSizeBytes = MinimumSizeBytes,
+            AutoDetectCompressed = AutoDetectCompressed,
+            ExpectedCompressionRatio = ExpectedCompressionRatio
+        };
+    }
 }
 
 /// <summary>

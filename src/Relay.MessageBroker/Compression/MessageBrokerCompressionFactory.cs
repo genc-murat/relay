@@ -33,16 +33,7 @@ public static class MessageBrokerCompressionFactory
     /// <returns>A message compressor instance.</returns>
     public static IMessageCompressor CreateMessage(CompressionOptions options)
     {
-        var coreOptions = new Relay.Core.Caching.Compression.CompressionOptions
-        {
-            Algorithm = (Relay.Core.Caching.Compression.CompressionAlgorithm)Enum.Parse(
-                typeof(Relay.Core.Caching.Compression.CompressionAlgorithm), 
-                options.Algorithm.ToString()),
-            Level = options.Level,
-            MinimumSizeBytes = options.MinimumSizeBytes,
-            AutoDetectCompressed = options.AutoDetectCompressed,
-            ExpectedCompressionRatio = options.ExpectedCompressionRatio
-        };
+        var coreOptions = options.ToCoreOptions();
         var unified = CompressionFactory.CreateUnified(coreOptions);
         return new MessageCompressorAdapter(unified);
     }
@@ -75,5 +66,25 @@ public static class MessageBrokerCompressionFactory
     public static IMessageCompressor CreateBrotli(int level = 6)
     {
         return CreateMessage(CompressionAlgorithm.Brotli, level, 1024);
+    }
+
+    /// <summary>
+    /// Creates an LZ4 message compressor.
+    /// </summary>
+    /// <param name="level">The compression level (0-9).</param>
+    /// <returns>An LZ4 message compressor.</returns>
+    public static IMessageCompressor CreateLZ4(int level = 6)
+    {
+        return CreateMessage(CompressionAlgorithm.LZ4, level, 1024);
+    }
+
+    /// <summary>
+    /// Creates a Zstandard message compressor.
+    /// </summary>
+    /// <param name="level">The compression level (0-9).</param>
+    /// <returns>A Zstandard message compressor.</returns>
+    public static IMessageCompressor CreateZstd(int level = 6)
+    {
+        return CreateMessage(CompressionAlgorithm.Zstd, level, 1024);
     }
 }

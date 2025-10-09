@@ -3,7 +3,7 @@ namespace Relay.Core.Caching.Compression;
 /// <summary>
 /// Configuration options for unified compression.
 /// </summary>
-public sealed class CompressionOptions
+public class CompressionOptions
 {
     /// <summary>
     /// Gets or sets the compression algorithm to use.

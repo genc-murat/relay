@@ -3,6 +3,12 @@ using Relay.Core.Caching.Compression;
 namespace Relay.MessageBroker.Compression;
 
 /// <summary>
+/// Compression implementations using the unified compression library.
+/// These classes are now thin wrappers around the unified system for backward compatibility.
+/// Consider using MessageBrokerCompressionFactory directly for new code.
+/// </summary>
+
+/// <summary>
 /// GZip compression implementation using the unified compression library.
 /// </summary>
 public sealed class GZipMessageCompressor : IMessageCompressor

@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using Relay.Core.ContractValidation;
+using Relay.MessageBroker.Compression;
 
 namespace Relay.MessageBroker.RabbitMQ;
 
@@ -18,8 +20,10 @@ public sealed class RabbitMQMessageBroker : BaseMessageBroker
 
     public RabbitMQMessageBroker(
         IOptions<MessageBrokerOptions> options,
-        ILogger<RabbitMQMessageBroker> logger)
-        : base(options, logger)
+        ILogger<RabbitMQMessageBroker> logger,
+        IMessageCompressor? compressor = null,
+        IContractValidator? contractValidator = null)
+        : base(options, logger, compressor, contractValidator)
     {
     }
 

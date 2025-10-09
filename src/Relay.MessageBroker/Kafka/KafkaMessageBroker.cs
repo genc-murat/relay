@@ -4,6 +4,7 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.MessageBroker.Compression;
+using Relay.Core.ContractValidation;
 
 namespace Relay.MessageBroker.Kafka;
 
@@ -19,8 +20,9 @@ public sealed class KafkaMessageBroker : BaseMessageBroker
     public KafkaMessageBroker(
         IOptions<MessageBrokerOptions> options,
         ILogger<KafkaMessageBroker> logger,
-        IMessageCompressor? compressor = null)
-        : base(options, logger, compressor)
+        IMessageCompressor? compressor = null,
+        IContractValidator? contractValidator = null)
+        : base(options, logger, compressor, contractValidator)
     {
     }
 

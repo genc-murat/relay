@@ -1,7 +1,7 @@
 using FluentAssertions;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
-using Relay.MessageBroker.Telemetry;
+using Relay.Core.Telemetry;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Xunit;

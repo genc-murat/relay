@@ -8,6 +8,7 @@ using Relay.MessageBroker.Kafka;
 using Relay.MessageBroker.Nats;
 using Relay.MessageBroker.RabbitMQ;
 using Relay.MessageBroker.RedisStreams;
+using Relay.Core.ContractValidation;
 
 namespace Relay.MessageBroker;
 
@@ -38,27 +39,40 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMessageBroker>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<MessageBrokerOptions>>();
+            var contractValidator = sp.GetService<IContractValidator>();
 
             return options.Value.BrokerType switch
             {
                 MessageBrokerType.RabbitMQ => new RabbitMQMessageBroker(
                     options,
-                    sp.GetRequiredService<ILogger<RabbitMQMessageBroker>>()),
+                    sp.GetRequiredService<ILogger<RabbitMQMessageBroker>>(),
+                    null,
+                    contractValidator),
                 MessageBrokerType.Kafka => new KafkaMessageBroker(
                     options,
-                    sp.GetRequiredService<ILogger<KafkaMessageBroker>>()),
+                    sp.GetRequiredService<ILogger<KafkaMessageBroker>>(),
+                    null,
+                    contractValidator),
 MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
                     options,
-                    sp.GetRequiredService<ILogger<AzureServiceBusMessageBroker>>()),
+                    sp.GetRequiredService<ILogger<AzureServiceBusMessageBroker>>(),
+                    null,
+                    contractValidator),
                 MessageBrokerType.AwsSqsSns => new AwsSqsSnsMessageBroker(
                     options,
-                    sp.GetService<ILogger<AwsSqsSnsMessageBroker>>()),
+                    sp.GetService<ILogger<AwsSqsSnsMessageBroker>>(),
+                    null,
+                    contractValidator),
                 MessageBrokerType.Nats => new NatsMessageBroker(
                     options,
-                    sp.GetService<ILogger<NatsMessageBroker>>()),
+                    sp.GetService<ILogger<NatsMessageBroker>>(),
+                    null,
+                    contractValidator),
                 MessageBrokerType.RedisStreams => new RedisStreamsMessageBroker(
                     options,
-                    sp.GetRequiredService<ILogger<RedisStreamsMessageBroker>>()),
+                    sp.GetRequiredService<ILogger<RedisStreamsMessageBroker>>(),
+                    null,
+                    contractValidator),
                 _ => throw new NotSupportedException($"Message broker type {options.Value.BrokerType} is not supported.")
             };
         });

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NATS.Client.Core;
 using Relay.MessageBroker.Compression;
+using Relay.Core.ContractValidation;
 
 namespace Relay.MessageBroker.Nats;
 
@@ -18,8 +19,9 @@ public sealed class NatsMessageBroker : BaseMessageBroker
     public NatsMessageBroker(
         IOptions<MessageBrokerOptions> options,
         ILogger<NatsMessageBroker> logger,
-        IMessageCompressor? compressor = null)
-        : base(options, logger, compressor)
+        IMessageCompressor? compressor = null,
+        IContractValidator? contractValidator = null)
+        : base(options, logger, compressor, contractValidator)
     {
         if (_options.Nats == null)
             throw new InvalidOperationException("NATS options are required.");

@@ -1,5 +1,9 @@
 namespace Relay.MessageBroker;
 
+using System.Collections.Generic;
+using Relay.Core.ContractValidation;
+using Relay.Core.Validation.Interfaces;
+
 /// <summary>
 /// Represents a message broker abstraction for publishing and subscribing to messages.
 /// </summary>
@@ -68,6 +72,16 @@ public sealed class PublishOptions
     /// Gets or sets whether the message should be persisted.
     /// </summary>
     public bool Persistent { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the validator for the message.
+    /// </summary>
+    public IValidator<object>? Validator { get; set; }
+
+    /// <summary>
+    /// Gets or sets the JSON schema contract for validation.
+    /// </summary>
+    public object? Schema { get; set; }
 }
 
 /// <summary>

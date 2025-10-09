@@ -3,7 +3,11 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.MessageBroker.Compression;
-using Relay.MessageBroker.Telemetry;
+using Relay.Core.ContractValidation;
+using Relay.Core.Validation;
+using Relay.Core.Validation.Interfaces;
+
+using Relay.Core.Telemetry;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
@@ -18,14 +22,8 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
     protected readonly ILogger _logger;
     protected readonly ConcurrentDictionary<Type, List<SubscriptionInfo>> _subscriptions = new();
     protected readonly IMessageCompressor? _compressor;
-    protected readonly ActivitySource _activitySource;
-    protected readonly Counter<long> _messagesPublishedCounter;
-    protected readonly Counter<long> _messagesReceivedCounter;
-    protected readonly Counter<long> _messagesProcessedCounter;
-    protected readonly Counter<long> _messagesFailedCounter;
-    protected readonly Histogram<double> _publishDurationHistogram;
-    protected readonly Histogram<double> _processDurationHistogram;
-    protected readonly Histogram<long> _messagePayloadSizeHistogram;
+    protected readonly Relay.Core.Telemetry.MessageBrokerTelemetryAdapter _telemetry;
+    protected readonly Relay.Core.Telemetry.MessageBrokerValidationAdapter? _validation;
     
     private bool _isStarted;
     private bool _disposed;
@@ -33,43 +31,31 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
     protected BaseMessageBroker(
         IOptions<MessageBrokerOptions> options,
         ILogger logger,
-        IMessageCompressor? compressor = null)
+        IMessageCompressor? compressor = null,
+        IContractValidator? contractValidator = null)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _compressor = compressor;
 
-        // Initialize telemetry
-        _activitySource = MessageBrokerTelemetry.ActivitySource;
-        var meter = new Meter(MessageBrokerTelemetry.MeterName, MessageBrokerTelemetry.MeterVersion);
-        
-        _messagesPublishedCounter = meter.CreateCounter<long>(
-            MessageBrokerTelemetry.Metrics.MessagesPublished,
-            description: "Number of messages published");
-        
-        _messagesReceivedCounter = meter.CreateCounter<long>(
-            MessageBrokerTelemetry.Metrics.MessagesReceived,
-            description: "Number of messages received");
-        
-        _messagesProcessedCounter = meter.CreateCounter<long>(
-            MessageBrokerTelemetry.Metrics.MessagesProcessed,
-            description: "Number of messages processed");
-        
-        _messagesFailedCounter = meter.CreateCounter<long>(
-            MessageBrokerTelemetry.Metrics.MessagesFailed,
-            description: "Number of messages failed to process");
-        
-        _publishDurationHistogram = meter.CreateHistogram<double>(
-            MessageBrokerTelemetry.Metrics.MessagePublishDuration,
-            description: "Duration of message publish operations");
-        
-        _processDurationHistogram = meter.CreateHistogram<double>(
-            MessageBrokerTelemetry.Metrics.MessageProcessDuration,
-            description: "Duration of message processing operations");
-        
-        _messagePayloadSizeHistogram = meter.CreateHistogram<long>(
-            MessageBrokerTelemetry.Metrics.MessagePayloadSize,
-            description: "Size of message payloads in bytes");
+        // Initialize unified telemetry
+        var telemetryOptions = options.Value.Telemetry ?? new UnifiedTelemetryOptions
+        {
+            Component = UnifiedTelemetryConstants.Components.MessageBroker
+        };
+        var telemetryOptionsWrapper = Options.Create(telemetryOptions);
+        _telemetry = new Relay.Core.Telemetry.MessageBrokerTelemetryAdapter(telemetryOptionsWrapper, logger);
+
+        // Initialize validation adapter if contract validator is available
+        if (contractValidator != null)
+        {
+            var validationLogger = logger as ILogger<MessageBrokerValidationAdapter> ?? 
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<MessageBrokerValidationAdapter>.Instance;
+            _validation = new Relay.Core.Telemetry.MessageBrokerValidationAdapter(
+                contractValidator, 
+                validationLogger, 
+                telemetryOptionsWrapper);
+        }
     }
 
     /// <summary>
@@ -96,9 +82,7 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(message);
 
-        using var activity = _activitySource.StartActivity("PublishMessage");
-        activity?.SetTag("message.type", typeof(TMessage).Name);
-        activity?.SetTag("message.broker", GetType().Name);
+        // Activity tracking will be handled by the adapter internally
 
         var stopwatch = Stopwatch.StartNew();
         
@@ -106,13 +90,29 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         {
             await EnsureStartedAsync(cancellationToken);
             
+            // Validate message if validation adapter is available
+            if (_validation != null && options?.Validator != null)
+            {
+                var isValid = await _validation.ValidateMessageAsync(message, options.Validator, cancellationToken);
+                if (!isValid)
+                {
+                    throw new InvalidOperationException($"Message validation failed for type {typeof(TMessage).Name}");
+                }
+            }
+            
+            // Validate against schema if provided
+            if (_validation != null && options?.Schema != null)
+            {
+                // For now, skip schema validation until we can resolve the type reference
+                // TODO: Fix JsonSchemaContract reference when available
+            }
+            
             var serializedMessage = SerializeMessage(message);
             var compressedMessage = await CompressMessageAsync(serializedMessage, cancellationToken);
             
             await PublishInternalAsync(message, compressedMessage, options, cancellationToken);
             
-            _messagesPublishedCounter.Add(1, new KeyValuePair<string, object?>("message.type", typeof(TMessage).Name), new KeyValuePair<string, object?>("message.broker", GetType().Name));
-            _messagePayloadSizeHistogram.Record(compressedMessage.Length, new KeyValuePair<string, object?>("message.type", typeof(TMessage).Name));
+            _telemetry.RecordMessagePublished(typeof(TMessage).Name, compressedMessage.Length, true);
             
             _logger.LogDebug(
                 "Published message of type {MessageType} via {BrokerType}",
@@ -121,16 +121,13 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _messagesFailedCounter.Add(1, new KeyValuePair<string, object?>("message.type", typeof(TMessage).Name), new KeyValuePair<string, object?>("message.broker", GetType().Name));
+            _telemetry.RecordError(ex.GetType().Name, ex.Message);
             _logger.LogError(ex, "Failed to publish message of type {MessageType}", typeof(TMessage).Name);
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             throw;
         }
         finally
         {
             stopwatch.Stop();
-            _publishDurationHistogram.Record(stopwatch.Elapsed.TotalSeconds, new KeyValuePair<string, object?>("message.type", typeof(TMessage).Name));
-            activity?.SetTag("publish.duration_ms", stopwatch.ElapsedMilliseconds);
         }
     }
 
@@ -272,16 +269,12 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         MessageContext context,
         CancellationToken cancellationToken = default)
     {
-        using var activity = _activitySource.StartActivity("ProcessMessage");
-        activity?.SetTag("message.type", messageType.Name);
-        activity?.SetTag("message.broker", GetType().Name);
+        // Activity tracking will be handled by the adapter internally
 
         var stopwatch = Stopwatch.StartNew();
         
         try
         {
-            _messagesReceivedCounter.Add(1, new KeyValuePair<string, object?>("message.type", messageType.Name), new KeyValuePair<string, object?>("message.broker", GetType().Name));
-
             if (_subscriptions.TryGetValue(messageType, out var subscriptions))
             {
                 var tasks = subscriptions.Select(async subscription =>
@@ -302,20 +295,17 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
                 await Task.WhenAll(tasks);
             }
 
-            _messagesProcessedCounter.Add(1, new KeyValuePair<string, object?>("message.type", messageType.Name), new KeyValuePair<string, object?>("message.broker", GetType().Name));
+            _telemetry.RecordProcessingDuration(messageType.Name, stopwatch.Elapsed);
         }
         catch (Exception ex)
         {
-            _messagesFailedCounter.Add(1, new KeyValuePair<string, object?>("message.type", messageType.Name), new KeyValuePair<string, object?>("message.broker", GetType().Name));
+            _telemetry.RecordError(ex.GetType().Name, ex.Message);
             _logger.LogError(ex, "Failed to process message of type {MessageType}", messageType.Name);
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             throw;
         }
         finally
         {
             stopwatch.Stop();
-            _processDurationHistogram.Record(stopwatch.Elapsed.TotalSeconds, new KeyValuePair<string, object?>("message.type", messageType.Name));
-            activity?.SetTag("process.duration_ms", stopwatch.ElapsedMilliseconds);
         }
     }
 

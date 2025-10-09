@@ -1,9 +1,12 @@
-namespace Relay.MessageBroker.Telemetry;
+using System;
+using System.Collections.Generic;
+
+namespace Relay.Core.Telemetry;
 
 /// <summary>
-/// Configuration options for OpenTelemetry integration.
+/// Unified configuration options for all Relay telemetry and logging
 /// </summary>
-public sealed class TelemetryOptions
+public sealed class UnifiedTelemetryOptions
 {
     /// <summary>
     /// Gets or sets whether telemetry is enabled.
@@ -28,7 +31,7 @@ public sealed class TelemetryOptions
     /// <summary>
     /// Gets or sets the service name for telemetry.
     /// </summary>
-    public string ServiceName { get; set; } = "Relay.MessageBroker";
+    public string ServiceName { get; set; } = "Relay";
 
     /// <summary>
     /// Gets or sets the service version.
@@ -39,6 +42,11 @@ public sealed class TelemetryOptions
     /// Gets or sets the service namespace.
     /// </summary>
     public string? ServiceNamespace { get; set; }
+
+    /// <summary>
+    /// Gets or sets the component name (Core, MessageBroker, etc.)
+    /// </summary>
+    public string Component { get; set; } = UnifiedTelemetryConstants.Components.Core;
 
     /// <summary>
     /// Gets or sets whether to capture message payloads in traces.
@@ -113,6 +121,11 @@ public sealed class TelemetryOptions
     /// Gets or sets the OpenTelemetry exporters configuration.
     /// </summary>
     public TelemetryExportersOptions Exporters { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets metrics provider specific options.
+    /// </summary>
+    public MetricsProviderOptions Metrics { get; set; } = new();
 }
 
 /// <summary>

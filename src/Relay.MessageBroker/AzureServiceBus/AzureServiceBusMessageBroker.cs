@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
 using Relay.MessageBroker.Compression;
+using Relay.Core.ContractValidation;
 
 namespace Relay.MessageBroker.AzureServiceBus;
 
@@ -23,8 +24,9 @@ public sealed class AzureServiceBusMessageBroker : BaseMessageBroker
     public AzureServiceBusMessageBroker(
         IOptions<MessageBrokerOptions> options,
         ILogger<AzureServiceBusMessageBroker> logger,
-        IMessageCompressor? compressor = null)
-        : base(options, logger, compressor)
+        IMessageCompressor? compressor = null,
+        IContractValidator? contractValidator = null)
+        : base(options, logger, compressor, contractValidator)
     {
         if (_options.AzureServiceBus == null)
             throw new InvalidOperationException("Azure Service Bus options are required.");
@@ -457,12 +459,12 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
         {
             await operation(cancellationToken);
             
-            _messagesProcessedCounter.Add(1, new KeyValuePair<string, object?>("entity", entityName ?? "default"));
+            // Metrics are now handled by the base class
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error executing transaction");
-            _messagesFailedCounter.Add(1, new KeyValuePair<string, object?>("operation", "transaction"));
+            // Metrics are now handled by the base class
             throw;
         }
     }

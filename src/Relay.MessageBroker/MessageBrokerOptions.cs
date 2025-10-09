@@ -88,7 +88,7 @@ public sealed class MessageBrokerOptions
     /// <summary>
     /// Gets or sets the telemetry options.
     /// </summary>
-    public Telemetry.TelemetryOptions? Telemetry { get; set; }
+    public Relay.Core.Telemetry.UnifiedTelemetryOptions? Telemetry { get; set; }
 
     /// <summary>
     /// Gets or sets the saga options.

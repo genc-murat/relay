@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.MessageBroker;
+using Relay.Core.Telemetry;
 using Xunit;
 
 namespace Relay.MessageBroker.Tests;
@@ -150,7 +151,7 @@ public class MessageBrokerOptionsTests
         {
             CircuitBreaker = new CircuitBreaker.CircuitBreakerOptions(),
             Compression = new Compression.CompressionOptions(),
-            Telemetry = new Telemetry.TelemetryOptions(),
+            Telemetry = new UnifiedTelemetryOptions(),
             Saga = new Saga.SagaOptions(),
             RetryPolicy = new RetryPolicy()
         };

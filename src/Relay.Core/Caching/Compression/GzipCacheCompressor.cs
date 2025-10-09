@@ -1,15 +1,11 @@
-using System;
-using System.IO;
-using System.IO.Compression;
-
 namespace Relay.Core.Caching.Compression;
 
 /// <summary>
-/// GZIP-based cache compressor.
+/// GZIP-based cache compressor using the unified compression library.
 /// </summary>
 public class GzipCacheCompressor : ICacheCompressor
 {
-    private readonly int _compressionThreshold;
+    private readonly ICacheCompressor _innerCompressor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GzipCacheCompressor"/> class.
@@ -17,36 +13,30 @@ public class GzipCacheCompressor : ICacheCompressor
     /// <param name="compressionThreshold">Minimum data size in bytes to compress (default: 1024).</param>
     public GzipCacheCompressor(int compressionThreshold = 1024)
     {
-        _compressionThreshold = compressionThreshold;
+        _innerCompressor = CompressionFactory.CreateGzipCache(compressionThreshold);
     }
 
+    /// <summary>
+    /// Compresses the given data.
+    /// </summary>
     public byte[] Compress(byte[] data)
     {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-
-        using var output = new MemoryStream();
-        using (var gzip = new GZipStream(output, CompressionMode.Compress, true))
-        {
-            gzip.Write(data, 0, data.Length);
-        }
-        return output.ToArray();
+        return _innerCompressor.Compress(data);
     }
 
+    /// <summary>
+    /// Decompresses the given data.
+    /// </summary>
     public byte[] Decompress(byte[] compressedData)
     {
-        if (compressedData == null) throw new ArgumentNullException(nameof(compressedData));
-
-        using var input = new MemoryStream(compressedData);
-        using var output = new MemoryStream();
-        using (var gzip = new GZipStream(input, CompressionMode.Decompress, true))
-        {
-            gzip.CopyTo(output);
-        }
-        return output.ToArray();
+        return _innerCompressor.Decompress(compressedData);
     }
 
+    /// <summary>
+    /// Gets whether compression should be applied for the given data size.
+    /// </summary>
     public bool ShouldCompress(int dataSize)
     {
-        return dataSize >= _compressionThreshold;
+        return _innerCompressor.ShouldCompress(dataSize);
     }
 }

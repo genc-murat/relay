@@ -5,6 +5,7 @@ using StackExchange.Redis;
 using Polly;
 using Polly.Retry;
 using Relay.MessageBroker.Compression;
+using Relay.Core.ContractValidation;
 
 namespace Relay.MessageBroker.RedisStreams;
 
@@ -23,8 +24,9 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
     public RedisStreamsMessageBroker(
         IOptions<MessageBrokerOptions> options,
         ILogger<RedisStreamsMessageBroker> logger,
-        IMessageCompressor? compressor = null)
-        : base(options, logger, compressor)
+        IMessageCompressor? compressor = null,
+        IContractValidator? contractValidator = null)
+        : base(options, logger, compressor, contractValidator)
     {
         if (_options.RedisStreams == null)
             throw new InvalidOperationException("Redis Streams options are required.");
@@ -235,19 +237,35 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
             // Extract message ID if available
             var customMessageId = entries.TryGetValue("messageId", out var msgId) ? msgId : messageId;
 
-            // Validate required fields
-            if (!entries.TryGetValue("type", out var messageType))
-            {
-                _logger?.LogWarning("Message {MessageId} missing 'type' field", customMessageId);
-                await AcknowledgeMessageAsync(streamName, groupName, message.Id, cancellationToken);
-                return;
-            }
+            // Extract message type and data for validation and processing
+            var messageType = entries.TryGetValue("type", out var mt) ? mt : null;
+            var messageData = entries.TryGetValue("data", out var md) ? md : null;
 
-            if (!entries.TryGetValue("data", out var messageData))
+            // Validate required fields using consolidated validation
+            if (_validation != null)
             {
-                _logger?.LogWarning("Message {MessageId} missing 'data' field", customMessageId);
-                await AcknowledgeMessageAsync(streamName, groupName, message.Id, cancellationToken);
-                return;
+                if (!_validation.ValidateBasicMessageFields(messageType, messageData, customMessageId))
+                {
+                    await AcknowledgeMessageAsync(streamName, groupName, message.Id, cancellationToken);
+                    return;
+                }
+            }
+            else
+            {
+                // Fallback to basic validation
+                if (string.IsNullOrEmpty(messageType))
+                {
+                    _logger?.LogWarning("Message {MessageId} missing 'type' field", customMessageId);
+                    await AcknowledgeMessageAsync(streamName, groupName, message.Id, cancellationToken);
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(messageData))
+                {
+                    _logger?.LogWarning("Message {MessageId} missing 'data' field", customMessageId);
+                    await AcknowledgeMessageAsync(streamName, groupName, message.Id, cancellationToken);
+                    return;
+                }
             }
 
             // Check for message expiration

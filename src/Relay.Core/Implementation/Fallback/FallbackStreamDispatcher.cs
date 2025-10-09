@@ -14,45 +14,6 @@ namespace Relay.Core.Implementation.Fallback
     /// </summary>
     public class FallbackStreamDispatcher : BaseStreamDispatcher
     {
-        private static class StreamInvokerCache<TResponse>
-        {
-            public sealed class Entry
-            {
-                public required Type HandlerInterfaceType { get; init; }
-                public required Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>> Invoke { get; init; }
-            }
-
-            private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Entry> Cache = new();
-
-            public static Entry GetOrCreate(Type requestType)
-            {
-                return Cache.GetOrAdd(requestType, static rt =>
-                {
-                    var handlerInterface = typeof(IStreamHandler<,>).MakeGenericType(rt, typeof(TResponse));
-
-                    var handlerParam = System.Linq.Expressions.Expression.Parameter(typeof(object), "handler");
-                    var requestParam = System.Linq.Expressions.Expression.Parameter(typeof(object), "request");
-                    var ctParam = System.Linq.Expressions.Expression.Parameter(typeof(CancellationToken), "ct");
-
-                    var castedHandler = System.Linq.Expressions.Expression.Convert(handlerParam, handlerInterface);
-                    var castedRequest = System.Linq.Expressions.Expression.Convert(requestParam, rt);
-
-                    var method = handlerInterface.GetMethod("HandleAsync");
-                    if (method == null)
-                        throw new MissingMethodException(handlerInterface.FullName, "HandleAsync");
-
-                    var call = System.Linq.Expressions.Expression.Call(castedHandler, method, castedRequest, ctParam);
-                    var lambda = System.Linq.Expressions.Expression.Lambda<Func<object, object, CancellationToken, IAsyncEnumerable<TResponse>>>(
-                        call, handlerParam, requestParam, ctParam);
-
-                    return new Entry
-                    {
-                        HandlerInterfaceType = handlerInterface,
-                        Invoke = lambda.Compile()
-                    };
-                });
-            }
-        }
         /// <summary>
         /// Initializes a new instance of the FallbackStreamDispatcher class.
         /// </summary>
@@ -69,7 +30,7 @@ namespace Relay.Core.Implementation.Fallback
             try
             {
                 var requestType = request.GetType();
-                var entry = StreamInvokerCache<TResponse>.GetOrCreate(requestType);
+                var entry = FallbackDispatcherBase.StreamInvokerCache<TResponse>.GetOrCreate(requestType);
                 var handler = ServiceProvider.GetService(entry.HandlerInterfaceType);
                 if (handler == null)
                 {

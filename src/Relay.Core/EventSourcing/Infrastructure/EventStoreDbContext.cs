@@ -21,6 +21,11 @@ public class EventStoreDbContext : DbContext
     /// </summary>
     public DbSet<EventEntity> Events { get; set; } = null!;
 
+    /// <summary>
+    /// Gets or sets the Snapshots DbSet.
+    /// </summary>
+    public DbSet<SnapshotEntity> Snapshots { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -53,6 +58,39 @@ public class EventStoreDbContext : DbContext
                 .HasMaxLength(500);
 
             entity.Property(e => e.EventData)
+                .IsRequired();
+
+            entity.Property(e => e.Timestamp)
+                .IsRequired();
+        });
+
+        modelBuilder.Entity<SnapshotEntity>(entity =>
+        {
+            entity.ToTable("Snapshots");
+
+            entity.HasKey(e => e.Id);
+
+            entity.HasIndex(e => e.AggregateId)
+                .HasDatabaseName("IX_Snapshots_AggregateId");
+
+            entity.HasIndex(e => new { e.AggregateId, e.Version })
+                .IsUnique()
+                .HasDatabaseName("IX_Snapshots_AggregateId_Version");
+
+            entity.Property(e => e.Id)
+                .IsRequired();
+
+            entity.Property(e => e.AggregateId)
+                .IsRequired();
+
+            entity.Property(e => e.Version)
+                .IsRequired();
+
+            entity.Property(e => e.AggregateType)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(e => e.SnapshotData)
                 .IsRequired();
 
             entity.Property(e => e.Timestamp)

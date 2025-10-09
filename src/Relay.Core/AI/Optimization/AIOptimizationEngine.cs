@@ -53,6 +53,11 @@ namespace Relay.Core.AI
         private readonly ConcurrentQueue<OptimizationStrategyData> _strategyTrainingData = new();
         private readonly ConcurrentQueue<MetricData> _metricTimeSeriesData = new();
 
+        // Pattern Recognition Model State
+        private readonly ConcurrentDictionary<string, double> _requestTypePatternWeights = new();
+        private readonly ConcurrentDictionary<string, double> _strategyEffectivenessWeights = new();
+        private readonly ConcurrentDictionary<string, double> _temporalPatternWeights = new();
+
         public AIOptimizationEngine(
             ILogger<AIOptimizationEngine> logger,
             IOptions<AIOptimizationOptions> options)
@@ -6075,12 +6080,12 @@ namespace Relay.Core.AI
             var totalRequests = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
             var totalErrors = _requestAnalytics.Values.Sum(x => x.FailedExecutions);
             var avgExecutionTime = _requestAnalytics.Values.Average(x => x.AverageExecutionTime.TotalMilliseconds);
-            
+
             var reliability = totalRequests > 0 ? 1.0 - ((double)totalErrors / totalRequests) : 1.0;
             var performance = Math.Max(0, 1.0 - (avgExecutionTime / 5000)); // 5s baseline
             var scalability = CalculateScalabilityScore();
-            var security = 0.85; // Placeholder - would integrate with security metrics
-            var maintainability = 0.80; // Placeholder - would analyze code complexity
+            var security = CalculateSecurityScore();
+            var maintainability = CalculateMaintainabilityScore();
             
             var overall = (reliability * 0.3 + performance * 0.25 + scalability * 0.2 + security * 0.15 + maintainability * 0.1);
             
@@ -6106,9 +6111,131 @@ namespace Relay.Core.AI
         {
             var maxConcurrency = _requestAnalytics.Values.Max(x => x.ConcurrentExecutionPeaks);
             var avgConcurrency = _requestAnalytics.Values.Average(x => x.ConcurrentExecutionPeaks);
-            
+
             // Scalability based on how well the system handles increasing concurrency
             return maxConcurrency > 0 ? Math.Min(1.0, avgConcurrency / Math.Max(1, maxConcurrency * 0.8)) : 1.0;
+        }
+
+        private double CalculateSecurityScore()
+        {
+            // Security score based on error rates, authentication patterns, and request patterns
+            var totalRequests = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
+            if (totalRequests == 0) return 1.0;
+
+            var totalErrors = _requestAnalytics.Values.Sum(x => x.FailedExecutions);
+            var errorRate = (double)totalErrors / totalRequests;
+
+            // Security indicators:
+            // 1. Low error rate (fewer attack attempts succeeding)
+            var errorScore = Math.Max(0, 1.0 - (errorRate * 5)); // Penalize high error rates
+
+            // 2. Consistent request patterns (no suspicious spikes)
+            var requestVariance = CalculateRequestVariance();
+            var patternScore = Math.Max(0, 1.0 - Math.Min(1.0, requestVariance / 2.0));
+
+            // 3. Response time consistency (DDoS detection)
+            var timeVariance = CalculateResponseTimeVariance();
+            var consistencyScore = Math.Max(0, 1.0 - Math.Min(1.0, timeVariance / 1000.0));
+
+            // Weighted average
+            return (errorScore * 0.4) + (patternScore * 0.3) + (consistencyScore * 0.3);
+        }
+
+        private double CalculateMaintainabilityScore()
+        {
+            // Maintainability score based on code complexity indicators
+            var totalHandlers = _requestAnalytics.Count;
+            if (totalHandlers == 0) return 1.0;
+
+            // 1. Handler complexity (based on execution time variance)
+            var complexityScore = 1.0 - Math.Min(1.0, CalculateHandlerComplexity() / 10.0);
+
+            // 2. Error diversity (more error types = harder to maintain)
+            var errorDiversity = CalculateErrorDiversity();
+            var stabilityScore = Math.Max(0, 1.0 - Math.Min(1.0, errorDiversity / 5.0));
+
+            // 3. Optimization success rate (easier to optimize = better design)
+            var optimizationRate = CalculateOptimizationSuccessRate();
+            var designScore = optimizationRate;
+
+            // Weighted average
+            return (complexityScore * 0.4) + (stabilityScore * 0.3) + (designScore * 0.3);
+        }
+
+        private double CalculateRequestVariance()
+        {
+            if (_requestAnalytics.Count == 0) return 0.0;
+
+            var executions = _requestAnalytics.Values.Select(x => (double)x.TotalExecutions).ToList();
+            if (executions.Count < 2) return 0.0;
+
+            var mean = executions.Average();
+            var variance = executions.Sum(x => Math.Pow(x - mean, 2)) / executions.Count;
+            return Math.Sqrt(variance) / Math.Max(1, mean); // Coefficient of variation
+        }
+
+        private double CalculateResponseTimeVariance()
+        {
+            if (_requestAnalytics.Count == 0) return 0.0;
+
+            var times = _requestAnalytics.Values.Select(x => x.AverageExecutionTime.TotalMilliseconds).ToList();
+            if (times.Count < 2) return 0.0;
+
+            var mean = times.Average();
+            var variance = times.Sum(x => Math.Pow(x - mean, 2)) / times.Count;
+            return Math.Sqrt(variance);
+        }
+
+        private double CalculateHandlerComplexity()
+        {
+            if (_requestAnalytics.Count == 0) return 0.0;
+
+            // Complexity indicators:
+            // - High execution time variance
+            // - Many external dependencies (DB calls, API calls)
+            var avgDatabaseCalls = _requestAnalytics.Values.Average(x => x.DatabaseCalls);
+            var avgApiCalls = _requestAnalytics.Values.Average(x => x.ExternalApiCalls);
+            var avgExecutionVariance = _requestAnalytics.Values.Average(x => x.CalculateExecutionVariance());
+
+            var dependencyComplexity = (avgDatabaseCalls * 0.5) + (avgApiCalls * 1.0);
+            var varianceComplexity = avgExecutionVariance * 2.0; // Higher variance = more complex
+
+            return dependencyComplexity + varianceComplexity;
+        }
+
+        private double CalculateErrorDiversity()
+        {
+            // Count distinct error patterns across handlers
+            // More diverse errors = potentially more complex codebase
+
+            // Count handlers with failures
+            var handlersWithErrors = _requestAnalytics.Values.Count(x => x.FailedExecutions > 0);
+
+            // More handlers with errors = more diverse error patterns
+            return handlersWithErrors;
+        }
+
+        private double CalculateOptimizationSuccessRate()
+        {
+            try
+            {
+                // Get recent optimization results from all tracked requests
+                var recentResults = _requestAnalytics.Values
+                    .SelectMany(x => x.GetMostEffectiveStrategies())
+                    .ToList();
+
+                if (recentResults.Count == 0) return 0.75; // Default neutral score
+
+                // Count distinct successful strategies as a proxy for success rate
+                var uniqueStrategies = recentResults.Distinct().Count();
+                var totalPossibleStrategies = Enum.GetValues(typeof(OptimizationStrategy)).Length;
+
+                return Math.Min(1.0, (double)uniqueStrategies / Math.Max(1, totalPossibleStrategies));
+            }
+            catch
+            {
+                return 0.75; // Default neutral score on error
+            }
         }
 
         private PredictiveAnalysis GeneratePredictiveAnalysis()
@@ -6762,8 +6889,10 @@ namespace Relay.Core.AI
                     var successRate = (double)typeSuccesses / typePredictions.Length;
 
                     // Update pattern weights for this request type
-                    var currentWeight = 1.0; // Placeholder - would retrieve from model state
+                    var requestTypeName = requestType.Name;
+                    var currentWeight = _requestTypePatternWeights.GetOrAdd(requestTypeName, 1.0);
                     var newWeight = CalculateNewPatternWeight(currentWeight, successRate);
+                    _requestTypePatternWeights[requestTypeName] = newWeight;
 
                     // Store pattern characteristics
                     var avgImprovement = typePredictions
@@ -9286,9 +9415,28 @@ namespace Relay.Core.AI
 
         private int GetQValueCount()
         {
-            // Estimate number of Q-values being tracked
-            // In a full implementation, would maintain a Q-table data structure
-            return 100; // Placeholder
+            // Count actual Q-values being tracked
+            // Q-table is represented by our pattern weight dictionaries
+            // Each state-action pair has a Q-value
+
+            try
+            {
+                // Count unique states from pattern weights
+                var requestTypeStates = _requestTypePatternWeights.Count;
+                var strategyStates = _strategyEffectivenessWeights.Count;
+                var temporalStates = _temporalPatternWeights.Count;
+
+                // Total Q-values = states × possible actions
+                // Assuming ~4 optimization strategies per state
+                var estimatedActions = 4;
+                var totalQValues = (requestTypeStates + strategyStates + temporalStates) * estimatedActions;
+
+                return Math.Max(totalQValues, _requestAnalytics.Count); // At least one per request type
+            }
+            catch
+            {
+                return _requestAnalytics.Count; // Fallback to request count
+            }
         }
 
         private int GetExperienceCount()

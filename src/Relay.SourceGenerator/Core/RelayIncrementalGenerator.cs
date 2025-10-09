@@ -502,12 +502,127 @@ namespace Microsoft.Extensions.DependencyInjection
                 sb.AppendLine();
                 sb.AppendLine("        public override ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)");
                 sb.AppendLine("        {");
-                sb.AppendLine("            throw new NotImplementedException(\"Named handlers not yet supported in generated dispatcher\");");
+                sb.AppendLine("            ValidateRequest(request);");
+                sb.AppendLine("            ValidateHandlerName(handlerName);");
+                sb.AppendLine();
+                sb.AppendLine("            return DispatchNamedRequestWithResponse(request, handlerName, cancellationToken);");
                 sb.AppendLine("        }");
                 sb.AppendLine();
                 sb.AppendLine("        public override ValueTask DispatchAsync(IRequest request, string handlerName, CancellationToken cancellationToken)");
                 sb.AppendLine("        {");
-                sb.AppendLine("            throw new NotImplementedException(\"Named handlers not yet supported in generated dispatcher\");");
+                sb.AppendLine("            ValidateRequest(request);");
+                sb.AppendLine("            ValidateHandlerName(handlerName);");
+                sb.AppendLine();
+                sb.AppendLine("            return DispatchNamedRequestVoid(request, handlerName, cancellationToken);");
+                sb.AppendLine("        }");
+                sb.AppendLine();
+
+                // Generate helper methods for named handler dispatch
+                sb.AppendLine("        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+                sb.AppendLine("        private ValueTask<TResponse> DispatchNamedRequestWithResponse<TResponse>(IRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)");
+                sb.AppendLine("        {");
+                sb.AppendLine("            return request switch");
+                sb.AppendLine("            {");
+
+                // Generate switch cases for named requests with a response
+                foreach (var group in responseRequestHandlers)
+                {
+                    var requestType = group.Key;
+                    if (string.IsNullOrEmpty(requestType)) continue;
+
+                    var handlerInterface = group.First();
+                    var responseType = handlerInterface.ResponseType?.ToDisplayString();
+                    if (string.IsNullOrEmpty(responseType)) continue;
+
+                    sb.Append("                ");
+                    sb.Append(requestType);
+                    sb.Append(" req when request is ");
+                    sb.Append(requestType);
+                    sb.AppendLine(" => ");
+                    sb.AppendLine("                    (ValueTask<TResponse>)(object)DispatchNamedHandlerWithResponse(");
+                    sb.Append("                        req, handlerName, typeof(");
+                    sb.Append(requestType);
+                    sb.Append("), typeof(");
+                    sb.Append(responseType);
+                    sb.AppendLine("), cancellationToken),");
+                }
+
+                sb.AppendLine("                _ => ValueTask.FromException<TResponse>(CreateHandlerNotFoundException(request.GetType(), handlerName))");
+                sb.AppendLine("            };");
+                sb.AppendLine("        }");
+                sb.AppendLine();
+
+                sb.AppendLine("        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+                sb.AppendLine("        private ValueTask DispatchNamedRequestVoid(IRequest request, string handlerName, CancellationToken cancellationToken)");
+                sb.AppendLine("        {");
+                sb.AppendLine("            return request switch");
+                sb.AppendLine("            {");
+
+                // Generate switch cases for named void requests
+                foreach (var group in voidRequestHandlers)
+                {
+                    var requestType = group.Key;
+                    if (string.IsNullOrEmpty(requestType)) continue;
+
+                    sb.Append("                ");
+                    sb.Append(requestType);
+                    sb.Append(" req => DispatchNamedHandlerVoid(req, handlerName, typeof(");
+                    sb.Append(requestType);
+                    sb.AppendLine("), cancellationToken),");
+                }
+
+                sb.AppendLine("                _ => ValueTask.FromException(CreateHandlerNotFoundException(request.GetType(), handlerName))");
+                sb.AppendLine("            };");
+                sb.AppendLine("        }");
+                sb.AppendLine();
+
+                // Generate generic named handler resolution methods
+                sb.AppendLine("        private async ValueTask<TResponse> DispatchNamedHandlerWithResponse<TRequest, TResponse>(");
+                sb.AppendLine("            TRequest request, string handlerName, Type requestType, Type responseType, CancellationToken cancellationToken)");
+                sb.AppendLine("            where TRequest : IRequest<TResponse>");
+                sb.AppendLine("        {");
+                sb.AppendLine("            // Try to get keyed service first (for .NET 8+ named services)");
+                sb.AppendLine("            var handlerInterfaceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);");
+                sb.AppendLine("            ");
+                sb.AppendLine("            // Attempt keyed service resolution");
+                sb.AppendLine("            var keyedProvider = ServiceProvider.GetService<Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider>();");
+                sb.AppendLine("            if (keyedProvider != null)");
+                sb.AppendLine("            {");
+                sb.AppendLine("                var keyedHandler = keyedProvider.GetKeyedService(handlerInterfaceType, handlerName);");
+                sb.AppendLine("                if (keyedHandler != null)");
+                sb.AppendLine("                {");
+                sb.AppendLine("                    var handler = (IRequestHandler<TRequest, TResponse>)keyedHandler;");
+                sb.AppendLine("                    return await handler.HandleAsync(request, cancellationToken);");
+                sb.AppendLine("                }");
+                sb.AppendLine("            }");
+                sb.AppendLine();
+                sb.AppendLine("            // Fallback: throw handler not found exception");
+                sb.AppendLine("            throw CreateHandlerNotFoundException(requestType, handlerName);");
+                sb.AppendLine("        }");
+                sb.AppendLine();
+
+                sb.AppendLine("        private async ValueTask DispatchNamedHandlerVoid<TRequest>(");
+                sb.AppendLine("            TRequest request, string handlerName, Type requestType, CancellationToken cancellationToken)");
+                sb.AppendLine("            where TRequest : IRequest");
+                sb.AppendLine("        {");
+                sb.AppendLine("            // Try to get keyed service first (for .NET 8+ named services)");
+                sb.AppendLine("            var handlerInterfaceType = typeof(IRequestHandler<>).MakeGenericType(requestType);");
+                sb.AppendLine("            ");
+                sb.AppendLine("            // Attempt keyed service resolution");
+                sb.AppendLine("            var keyedProvider = ServiceProvider.GetService<Microsoft.Extensions.DependencyInjection.IKeyedServiceProvider>();");
+                sb.AppendLine("            if (keyedProvider != null)");
+                sb.AppendLine("            {");
+                sb.AppendLine("                var keyedHandler = keyedProvider.GetKeyedService(handlerInterfaceType, handlerName);");
+                sb.AppendLine("                if (keyedHandler != null)");
+                sb.AppendLine("                {");
+                sb.AppendLine("                    var handler = (IRequestHandler<TRequest>)keyedHandler;");
+                sb.AppendLine("                    await handler.HandleAsync(request, cancellationToken);");
+                sb.AppendLine("                    return;");
+                sb.AppendLine("                }");
+                sb.AppendLine("            }");
+                sb.AppendLine();
+                sb.AppendLine("            // Fallback: throw handler not found exception");
+                sb.AppendLine("            throw CreateHandlerNotFoundException(requestType, handlerName);");
                 sb.AppendLine("        }");
                 sb.AppendLine("    }");
                 sb.AppendLine("}");

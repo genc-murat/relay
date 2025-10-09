@@ -1,4 +1,3 @@
-using System;
 using Relay.Core.AI.Optimization.Batching;
 
 namespace Relay.Core.AI
@@ -6,8 +5,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Enables intelligent request batching for high-frequency operations.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class SmartBatchingAttribute : Attribute
+    public sealed class SmartBatchingAttribute : SmartAttributeBase
     {
         /// <summary>
         /// Gets or sets the batching algorithm to use.
@@ -28,11 +26,6 @@ namespace Relay.Core.AI
         /// Gets or sets the maximum wait time for batch completion.
         /// </summary>
         public int MaxWaitTimeMilliseconds { get; set; } = 100;
-
-        /// <summary>
-        /// Gets or sets whether to use AI-predicted optimal batch sizes.
-        /// </summary>
-        public bool UseAIPrediction { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the batching strategy.

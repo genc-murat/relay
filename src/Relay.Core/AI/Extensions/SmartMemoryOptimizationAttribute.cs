@@ -1,12 +1,9 @@
-using System;
-
 namespace Relay.Core.AI
 {
     /// <summary>
     /// Enables AI-powered memory optimization.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class SmartMemoryOptimizationAttribute : Attribute
+    public sealed class SmartMemoryOptimizationAttribute : SmartAttributeBase
     {
         /// <summary>
         /// Gets or sets whether to enable object pooling.

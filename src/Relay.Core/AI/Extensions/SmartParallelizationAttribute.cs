@@ -1,12 +1,9 @@
-using System;
-
 namespace Relay.Core.AI
 {
     /// <summary>
     /// Enables AI-powered parallel processing optimization.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class SmartParallelizationAttribute : Attribute
+    public sealed class SmartParallelizationAttribute : SmartAttributeBase
     {
         /// <summary>
         /// Gets or sets the minimum collection size for parallelization consideration.
@@ -17,11 +14,6 @@ namespace Relay.Core.AI
         /// Gets or sets the maximum degree of parallelism.
         /// </summary>
         public int MaxDegreeOfParallelism { get; set; } = -1; // Use system default
-
-        /// <summary>
-        /// Gets or sets whether to use AI-predicted optimal parallelism.
-        /// </summary>
-        public bool UseAIPrediction { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the parallelization strategy.

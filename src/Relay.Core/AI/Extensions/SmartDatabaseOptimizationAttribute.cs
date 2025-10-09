@@ -1,12 +1,9 @@
-using System;
-
 namespace Relay.Core.AI
 {
     /// <summary>
     /// Configures AI-powered database query optimization.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class SmartDatabaseOptimizationAttribute : Attribute
+    public sealed class SmartDatabaseOptimizationAttribute : SmartAttributeBase
     {
         /// <summary>
         /// Gets or sets whether to enable query batching.

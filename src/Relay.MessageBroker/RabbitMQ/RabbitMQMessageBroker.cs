@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -11,39 +10,31 @@ namespace Relay.MessageBroker.RabbitMQ;
 /// <summary>
 /// RabbitMQ implementation of the message broker.
 /// </summary>
-public sealed class RabbitMQMessageBroker : IMessageBroker, IDisposable
+public sealed class RabbitMQMessageBroker : BaseMessageBroker
 {
-    private readonly MessageBrokerOptions _options;
-    private readonly ILogger<RabbitMQMessageBroker> _logger;
-    private readonly ConcurrentDictionary<Type, List<SubscriptionInfo>> _subscriptions = new();
     private IConnection? _connection;
     private IChannel? _publishChannel;
     private readonly List<IChannel> _consumerChannels = new();
-    private bool _isStarted;
-    private bool _disposed;
 
     public RabbitMQMessageBroker(
         IOptions<MessageBrokerOptions> options,
         ILogger<RabbitMQMessageBroker> logger)
+        : base(options, logger)
     {
-        _options = options.Value;
-        _logger = logger;
     }
 
-    public async ValueTask PublishAsync<TMessage>(
+    protected override async ValueTask PublishInternalAsync<TMessage>(
         TMessage message,
-        PublishOptions? options = null,
-        CancellationToken cancellationToken = default)
+        byte[] serializedMessage,
+        PublishOptions? options,
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(message);
-
         await EnsureConnectionAsync(cancellationToken);
 
         var messageType = typeof(TMessage);
         var routingKey = options?.RoutingKey ?? GetRoutingKey(messageType);
         var exchange = options?.Exchange ?? _options.DefaultExchange;
 
-        var body = SerializeMessage(message);
         var properties = new BasicProperties
         {
             Persistent = options?.Persistent ?? true,
@@ -77,7 +68,7 @@ public sealed class RabbitMQMessageBroker : IMessageBroker, IDisposable
             routingKey: routingKey,
             mandatory: false,
             basicProperties: properties,
-            body: body,
+            body: serializedMessage,
             cancellationToken: cancellationToken);
 
         _logger.LogDebug(
@@ -87,47 +78,16 @@ public sealed class RabbitMQMessageBroker : IMessageBroker, IDisposable
             routingKey);
     }
 
-    public async ValueTask SubscribeAsync<TMessage>(
-        Func<TMessage, MessageContext, CancellationToken, ValueTask> handler,
-        SubscriptionOptions? options = null,
-        CancellationToken cancellationToken = default)
+    protected override async ValueTask SubscribeInternalAsync(
+        Type messageType,
+        SubscriptionInfo subscriptionInfo,
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(handler);
-
-        var messageType = typeof(TMessage);
-        var subscriptionInfo = new SubscriptionInfo
-        {
-            MessageType = messageType,
-            Handler = async (msg, ctx, ct) => await handler((TMessage)msg, ctx, ct),
-            Options = options ?? new SubscriptionOptions()
-        };
-
-        _subscriptions.AddOrUpdate(
-            messageType,
-            _ => new List<SubscriptionInfo> { subscriptionInfo },
-            (_, list) =>
-            {
-                list.Add(subscriptionInfo);
-                return list;
-            });
-
-        if (_isStarted)
-        {
-            await SetupConsumerAsync(subscriptionInfo, cancellationToken);
-        }
-
-        _logger.LogInformation(
-            "Subscribed to messages of type {MessageType}",
-            messageType.Name);
+        await SetupConsumerAsync(subscriptionInfo, cancellationToken);
     }
 
-    public async ValueTask StartAsync(CancellationToken cancellationToken = default)
+    protected override async ValueTask StartInternalAsync(CancellationToken cancellationToken)
     {
-        if (_isStarted)
-        {
-            return;
-        }
-
         await EnsureConnectionAsync(cancellationToken);
 
         foreach (var subscriptionGroup in _subscriptions.Values)
@@ -138,17 +98,11 @@ public sealed class RabbitMQMessageBroker : IMessageBroker, IDisposable
             }
         }
 
-        _isStarted = true;
         _logger.LogInformation("RabbitMQ message broker started");
     }
 
-    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
+    protected override async ValueTask StopInternalAsync(CancellationToken cancellationToken)
     {
-        if (!_isStarted)
-        {
-            return;
-        }
-
         foreach (var channel in _consumerChannels)
         {
             await channel.CloseAsync(cancellationToken);
@@ -157,8 +111,13 @@ public sealed class RabbitMQMessageBroker : IMessageBroker, IDisposable
 
         _consumerChannels.Clear();
 
-        _isStarted = false;
         _logger.LogInformation("RabbitMQ message broker stopped");
+    }
+
+    protected override async ValueTask DisposeInternalAsync()
+    {
+        _publishChannel?.Dispose();
+        _connection?.Dispose();
     }
 
     private async ValueTask EnsureConnectionAsync(CancellationToken cancellationToken)
@@ -234,10 +193,10 @@ public sealed class RabbitMQMessageBroker : IMessageBroker, IDisposable
         {
             try
             {
-                var message = DeserializeMessage(ea.Body.ToArray(), subscription.MessageType);
+                var message = DeserializeMessage<object>(ea.Body.ToArray());
                 var context = CreateMessageContext(ea, channel);
 
-                await subscription.Handler(message, context, CancellationToken.None);
+                await ProcessMessageAsync(message, subscription.MessageType, context, CancellationToken.None);
 
                 if (!subscription.Options.AutoAck)
                 {
@@ -295,39 +254,5 @@ public sealed class RabbitMQMessageBroker : IMessageBroker, IDisposable
         return _options.DefaultRoutingKeyPattern
             .Replace("{MessageType}", messageType.Name)
             .Replace("{MessageFullName}", messageType.FullName ?? messageType.Name);
-    }
-
-    private byte[] SerializeMessage<TMessage>(TMessage message)
-    {
-        var json = JsonSerializer.Serialize(message);
-        return Encoding.UTF8.GetBytes(json);
-    }
-
-    private object DeserializeMessage(byte[] body, Type messageType)
-    {
-        var json = Encoding.UTF8.GetString(body);
-        return JsonSerializer.Deserialize(json, messageType)!;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        StopAsync().AsTask().Wait();
-
-        _publishChannel?.Dispose();
-        _connection?.Dispose();
-
-        _disposed = true;
-    }
-
-    private sealed class SubscriptionInfo
-    {
-        public required Type MessageType { get; init; }
-        public required Func<object, MessageContext, CancellationToken, ValueTask> Handler { get; init; }
-        public required SubscriptionOptions Options { get; init; }
     }
 }

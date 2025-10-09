@@ -6,6 +6,7 @@ using Amazon.SQS;
 using Amazon.SQS.Model;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Relay.MessageBroker.AwsSqsSns;
 using Xunit;
@@ -48,14 +49,14 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
             }
         };
 
-        _broker = new AwsSqsSnsMessageBroker(_options, _loggerMock.Object);
+        _broker = new AwsSqsSnsMessageBroker(Options.Create(_options), _loggerMock.Object);
     }
 
     [Fact]
     public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
     {
         // Arrange & Act
-        Action act = () => new AwsSqsSnsMessageBroker(null!);
+        Action act = () => new AwsSqsSnsMessageBroker(null!, _loggerMock.Object);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -68,7 +69,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         var options = new MessageBrokerOptions();
 
         // Act
-        Action act = () => new AwsSqsSnsMessageBroker(options);
+        Action act = () => new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -88,7 +89,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new AwsSqsSnsMessageBroker(options);
+        var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -122,7 +123,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
                 // No DefaultQueueUrl
             }
         };
-        var brokerWithoutQueue = new AwsSqsSnsMessageBroker(optionsWithoutQueue);
+        var brokerWithoutQueue = new AwsSqsSnsMessageBroker(Options.Create(optionsWithoutQueue), _loggerMock.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await brokerWithoutQueue.StartAsync());
@@ -132,9 +133,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
     public async Task StartAsync_CalledTwice_ShouldNotThrow()
     {
         // Arrange - Create a fresh broker for this test
-        var broker = new AwsSqsSnsMessageBroker(_options);
-        
-        // Act
+        var broker = new AwsSqsSnsMessageBroker(Options.Create(_options), _loggerMock.Object);
         await broker.StartAsync();
         Func<Task> act = async () => { await broker.StartAsync(); };
 
@@ -167,7 +166,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
                 Region = "us-east-1"
             }
         };
-        var broker = new AwsSqsSnsMessageBroker(options);
+        var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.StopAsync();
@@ -182,7 +181,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
     public async Task StopAsync_CalledTwice_ShouldNotThrow()
     {
         // Arrange - Create a fresh broker for this test
-        var broker = new AwsSqsSnsMessageBroker(_options);
+        var broker = new AwsSqsSnsMessageBroker(Options.Create(_options), _loggerMock.Object);
         await broker.StartAsync();
         
         // Act & Assert - TaskCanceledException is expected when stopping
@@ -236,7 +235,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
     public async Task DisposeAsync_ShouldStopAndDisposeSuccessfully()
     {
         // Arrange - Create a fresh broker for this test
-        var broker = new AwsSqsSnsMessageBroker(_options);
+        var broker = new AwsSqsSnsMessageBroker(Options.Create(_options), _loggerMock.Object);
         await broker.StartAsync();
 
         // Give the polling task a moment to start
@@ -268,7 +267,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new AwsSqsSnsMessageBroker(optionsWithRetry);
+        var broker = new AwsSqsSnsMessageBroker(Options.Create(optionsWithRetry), _loggerMock.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -293,7 +292,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new AwsSqsSnsMessageBroker(optionsWithCircuitBreaker);
+        var broker = new AwsSqsSnsMessageBroker(Options.Create(optionsWithCircuitBreaker), _loggerMock.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -316,7 +315,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new AwsSqsSnsMessageBroker(fifoOptions);
+        var broker = new AwsSqsSnsMessageBroker(Options.Create(fifoOptions), _loggerMock.Object);
 
         // Assert
         broker.Should().NotBeNull();

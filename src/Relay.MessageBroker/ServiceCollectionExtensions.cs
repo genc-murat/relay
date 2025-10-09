@@ -47,18 +47,18 @@ public static class ServiceCollectionExtensions
                 MessageBrokerType.Kafka => new KafkaMessageBroker(
                     options,
                     sp.GetRequiredService<ILogger<KafkaMessageBroker>>()),
-                MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
-                    options.Value,
-                    sp.GetService<ILogger<AzureServiceBusMessageBroker>>()),
+MessageBrokerType.AzureServiceBus => new AzureServiceBusMessageBroker(
+                    options,
+                    sp.GetRequiredService<ILogger<AzureServiceBusMessageBroker>>()),
                 MessageBrokerType.AwsSqsSns => new AwsSqsSnsMessageBroker(
-                    options.Value,
+                    options,
                     sp.GetService<ILogger<AwsSqsSnsMessageBroker>>()),
                 MessageBrokerType.Nats => new NatsMessageBroker(
-                    options.Value,
+                    options,
                     sp.GetService<ILogger<NatsMessageBroker>>()),
                 MessageBrokerType.RedisStreams => new RedisStreamsMessageBroker(
-                    options.Value,
-                    sp.GetService<ILogger<RedisStreamsMessageBroker>>()),
+                    options,
+                    sp.GetRequiredService<ILogger<RedisStreamsMessageBroker>>()),
                 _ => throw new NotSupportedException($"Message broker type {options.Value.BrokerType} is not supported.")
             };
         });

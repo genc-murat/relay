@@ -5,10 +5,12 @@ using Amazon.SimpleNotificationService.Model;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
 using Polly.Timeout;
+using Relay.MessageBroker.Compression;
 using SqsMessageAttributeValue = Amazon.SQS.Model.MessageAttributeValue;
 using SnsMessageAttributeValue = Amazon.SimpleNotificationService.Model.MessageAttributeValue;
 
@@ -17,11 +19,8 @@ namespace Relay.MessageBroker.AwsSqsSns;
 /// <summary>
 /// AWS SQS/SNS implementation of message broker.
 /// </summary>
-public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
+public sealed class AwsSqsSnsMessageBroker : BaseMessageBroker
 {
-    private readonly MessageBrokerOptions _options;
-    private readonly ILogger<AwsSqsSnsMessageBroker>? _logger;
-    private readonly Dictionary<Type, List<Func<object, MessageContext, CancellationToken, ValueTask>>> _handlers = new();
     private readonly Dictionary<string, CancellationTokenSource> _consumerTasks = new();
     private readonly AsyncRetryPolicy _sqsRetryPolicy;
     private readonly AsyncRetryPolicy _snsRetryPolicy;
@@ -31,17 +30,15 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
     private readonly AsyncTimeoutPolicy _snsTimeoutPolicy;
     private AmazonSQSClient? _sqsClient;
     private AmazonSimpleNotificationServiceClient? _snsClient;
-    private bool _isStarted;
     private CancellationTokenSource? _pollingCts;
     private Task? _pollingTask;
 
     public AwsSqsSnsMessageBroker(
-        MessageBrokerOptions options,
-        ILogger<AwsSqsSnsMessageBroker>? logger = null)
+        IOptions<MessageBrokerOptions> options,
+        ILogger<AwsSqsSnsMessageBroker> logger,
+        IMessageCompressor? compressor = null)
+        : base(options, logger, compressor)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger;
-        
         if (_options.AwsSqsSns == null)
             throw new InvalidOperationException("AWS SQS/SNS options are required.");
 
@@ -86,213 +83,171 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
         _snsTimeoutPolicy = Policy.TimeoutAsync(TimeSpan.FromSeconds(30));
     }
 
-    public async ValueTask PublishAsync<TMessage>(TMessage message, PublishOptions? options = null, CancellationToken cancellationToken = default)
+protected override async ValueTask PublishInternalAsync<TMessage>(
+        TMessage message,
+        byte[] serializedMessage,
+        PublishOptions? options,
+        CancellationToken cancellationToken)
     {
-        if (message == null) throw new ArgumentNullException(nameof(message));
+        var messageBody = System.Text.Encoding.UTF8.GetString(serializedMessage);
+        var messageType = typeof(TMessage).FullName ?? typeof(TMessage).Name;
 
-        try
+        // Use SNS for pub/sub if topic ARN is provided
+        if (!string.IsNullOrWhiteSpace(_options.AwsSqsSns!.DefaultTopicArn))
         {
-            var messageBody = JsonSerializer.Serialize(message);
-            var messageType = typeof(TMessage).FullName ?? typeof(TMessage).Name;
+            _snsClient ??= CreateSnsClient();
 
-            // Use SNS for pub/sub if topic ARN is provided
-            if (!string.IsNullOrWhiteSpace(_options.AwsSqsSns!.DefaultTopicArn))
+            var publishRequest = new PublishRequest
             {
-                _snsClient ??= CreateSnsClient();
+                TopicArn = options?.RoutingKey ?? _options.AwsSqsSns.DefaultTopicArn,
+                Message = messageBody,
+                Subject = messageType
+            };
 
-                var publishRequest = new PublishRequest
-                {
-                    TopicArn = options?.RoutingKey ?? _options.AwsSqsSns.DefaultTopicArn,
-                    Message = messageBody,
-                    Subject = messageType
-                };
-
-                if (options?.Headers != null)
-                {
-                    foreach (var header in options.Headers)
-                    {
-                        publishRequest.MessageAttributes[header.Key] = new SnsMessageAttributeValue
-                        {
-                            DataType = "String",
-                            StringValue = header.Value?.ToString() ?? string.Empty
-                        };
-                    }
-                }
-
-                await _snsTimeoutPolicy.WrapAsync(_snsCircuitBreaker.WrapAsync(_snsRetryPolicy))
-                    .ExecuteAsync(async () =>
-                    {
-                        await _snsClient!.PublishAsync(publishRequest, cancellationToken);
-                    });
-                _logger?.LogDebug("Published message {MessageType} to SNS topic", typeof(TMessage).Name);
-            }
-            // Use SQS for direct queue messaging
-            else if (!string.IsNullOrWhiteSpace(_options.AwsSqsSns.DefaultQueueUrl))
+            if (options?.Headers != null)
             {
-                _sqsClient ??= CreateSqsClient();
-
-                var sendRequest = new SendMessageRequest
+                foreach (var header in options.Headers)
                 {
-                    QueueUrl = options?.RoutingKey ?? _options.AwsSqsSns.DefaultQueueUrl,
-                    MessageBody = messageBody
-                };
-
-                sendRequest.MessageAttributes["MessageType"] = new SqsMessageAttributeValue
-                {
-                    DataType = "String",
-                    StringValue = messageType
-                };
-
-                if (options?.Headers != null)
-                {
-                    foreach (var header in options.Headers)
+                    publishRequest.MessageAttributes[header.Key] = new SnsMessageAttributeValue
                     {
-                        sendRequest.MessageAttributes[header.Key] = new SqsMessageAttributeValue
-                        {
-                            DataType = "String",
-                            StringValue = header.Value?.ToString() ?? string.Empty
-                        };
-                    }
+                        DataType = "String",
+                        StringValue = header.Value?.ToString() ?? string.Empty
+                    };
                 }
+            }
 
-                if (_options.AwsSqsSns.UseFifoQueue && !string.IsNullOrWhiteSpace(_options.AwsSqsSns.MessageGroupId))
+            await _snsTimeoutPolicy.WrapAsync(_snsCircuitBreaker.WrapAsync(_snsRetryPolicy))
+                .ExecuteAsync(async () =>
                 {
-                    sendRequest.MessageGroupId = _options.AwsSqsSns.MessageGroupId;
-                    if (!string.IsNullOrWhiteSpace(_options.AwsSqsSns.MessageDeduplicationId))
-                    {
-                        sendRequest.MessageDeduplicationId = _options.AwsSqsSns.MessageDeduplicationId;
-                    }
-                }
-
-                await _sqsTimeoutPolicy.WrapAsync(_sqsCircuitBreaker.WrapAsync(_sqsRetryPolicy))
-                    .ExecuteAsync(async () =>
-                    {
-                        await _sqsClient!.SendMessageAsync(sendRequest, cancellationToken);
-                    });
-                _logger?.LogDebug("Published message {MessageType} to SQS queue", typeof(TMessage).Name);
-            }
-            else
-            {
-                throw new InvalidOperationException("Either DefaultTopicArn or DefaultQueueUrl must be configured.");
-            }
+                    await _snsClient!.PublishAsync(publishRequest, cancellationToken);
+                });
+            _logger.LogDebug("Published message {MessageType} to SNS topic", typeof(TMessage).Name);
         }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error publishing message {MessageType}", typeof(TMessage).Name);
-            throw;
-        }
-    }
-
-    public ValueTask SubscribeAsync<TMessage>(
-        Func<TMessage, MessageContext, CancellationToken, ValueTask> handler,
-        SubscriptionOptions? options = null,
-        CancellationToken cancellationToken = default)
-    {
-        if (handler == null) throw new ArgumentNullException(nameof(handler));
-
-        var messageType = typeof(TMessage);
-        
-        if (!_handlers.ContainsKey(messageType))
-        {
-            _handlers[messageType] = new List<Func<object, MessageContext, CancellationToken, ValueTask>>();
-        }
-
-        _handlers[messageType].Add(async (msg, ctx, ct) => await handler((TMessage)msg, ctx, ct));
-        
-        _logger?.LogDebug("Subscribed to message type {MessageType}", typeof(TMessage).Name);
-
-        return ValueTask.CompletedTask;
-    }
-
-    public async ValueTask StartAsync(CancellationToken cancellationToken = default)
-    {
-        if (_isStarted) return;
-
-        try
+        // Use SQS for direct queue messaging
+        else if (!string.IsNullOrWhiteSpace(_options.AwsSqsSns.DefaultQueueUrl))
         {
             _sqsClient ??= CreateSqsClient();
-            _pollingCts = new CancellationTokenSource();
-            
-            var queueUrl = _options.AwsSqsSns!.DefaultQueueUrl 
-                ?? throw new InvalidOperationException("DefaultQueueUrl is required for consuming messages.");
 
-            _pollingTask = Task.Run(async () =>
+            var sendRequest = new SendMessageRequest
             {
-                _logger?.LogInformation("Starting SQS long polling for queue {QueueUrl}", queueUrl);
+                QueueUrl = options?.RoutingKey ?? _options.AwsSqsSns.DefaultQueueUrl,
+                MessageBody = messageBody
+            };
 
-                while (!_pollingCts.Token.IsCancellationRequested)
+            sendRequest.MessageAttributes["MessageType"] = new SqsMessageAttributeValue
+            {
+                DataType = "String",
+                StringValue = messageType
+            };
+
+            if (options?.Headers != null)
+            {
+                foreach (var header in options.Headers)
                 {
-                    try
+                    sendRequest.MessageAttributes[header.Key] = new SqsMessageAttributeValue
                     {
-                        var receiveRequest = new ReceiveMessageRequest
-                        {
-                            QueueUrl = queueUrl,
-                            MaxNumberOfMessages = _options.AwsSqsSns.MaxNumberOfMessages,
-                            WaitTimeSeconds = (int)_options.AwsSqsSns.WaitTimeSeconds.TotalSeconds,
-                            MessageAttributeNames = new List<string> { "All" }
-                        };
+                        DataType = "String",
+                        StringValue = header.Value?.ToString() ?? string.Empty
+                    };
+                }
+            }
 
-                        var response = await _sqsTimeoutPolicy.WrapAsync(_sqsCircuitBreaker.WrapAsync(_sqsRetryPolicy))
-                            .ExecuteAsync(async () =>
-                            {
-                                return await _sqsClient.ReceiveMessageAsync(receiveRequest, _pollingCts.Token);
-                            });
+            if (_options.AwsSqsSns.UseFifoQueue && !string.IsNullOrWhiteSpace(_options.AwsSqsSns.MessageGroupId))
+            {
+                sendRequest.MessageGroupId = _options.AwsSqsSns.MessageGroupId;
+                if (!string.IsNullOrWhiteSpace(_options.AwsSqsSns.MessageDeduplicationId))
+                {
+                    sendRequest.MessageDeduplicationId = _options.AwsSqsSns.MessageDeduplicationId;
+                }
+            }
 
-                        foreach (var sqsMessage in response.Messages)
+            await _sqsTimeoutPolicy.WrapAsync(_sqsCircuitBreaker.WrapAsync(_sqsRetryPolicy))
+                .ExecuteAsync(async () =>
+                {
+                    await _sqsClient!.SendMessageAsync(sendRequest, cancellationToken);
+                });
+            _logger.LogDebug("Published message {MessageType} to SQS queue", typeof(TMessage).Name);
+        }
+        else
+        {
+            throw new InvalidOperationException("Either DefaultTopicArn or DefaultQueueUrl must be configured.");
+        }
+    }
+
+protected override async ValueTask SubscribeInternalAsync(
+        Type messageType,
+        SubscriptionInfo subscriptionInfo,
+        CancellationToken cancellationToken)
+    {
+        // AWS SQS/SNS handles subscriptions in StartInternalAsync
+        await ValueTask.CompletedTask;
+    }
+
+protected override async ValueTask StartInternalAsync(CancellationToken cancellationToken)
+    {
+        _sqsClient ??= CreateSqsClient();
+        _pollingCts = new CancellationTokenSource();
+        
+        var queueUrl = _options.AwsSqsSns!.DefaultQueueUrl 
+            ?? throw new InvalidOperationException("DefaultQueueUrl is required for consuming messages.");
+
+        _pollingTask = Task.Run(async () =>
+        {
+            _logger.LogInformation("Starting SQS long polling for queue {QueueUrl}", queueUrl);
+
+            while (!_pollingCts.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    var receiveRequest = new ReceiveMessageRequest
+                    {
+                        QueueUrl = queueUrl,
+                        MaxNumberOfMessages = _options.AwsSqsSns.MaxNumberOfMessages,
+                        WaitTimeSeconds = (int)_options.AwsSqsSns.WaitTimeSeconds.TotalSeconds,
+                        MessageAttributeNames = new List<string> { "All" }
+                    };
+
+                    var response = await _sqsTimeoutPolicy.WrapAsync(_sqsCircuitBreaker.WrapAsync(_sqsRetryPolicy))
+                        .ExecuteAsync(async () =>
                         {
-                            await ProcessMessageAsync(sqsMessage, queueUrl, _pollingCts.Token);
-                        }
-                    }
-                    catch (OperationCanceledException)
+                            return await _sqsClient.ReceiveMessageAsync(receiveRequest, _pollingCts.Token);
+                        });
+
+                    foreach (var sqsMessage in response.Messages)
                     {
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogError(ex, "Error in SQS polling loop");
-                        await Task.Delay(TimeSpan.FromSeconds(5), _pollingCts.Token);
+                        await ProcessMessageAsync(sqsMessage, queueUrl, _pollingCts.Token);
                     }
                 }
-            }, _pollingCts.Token);
-
-            _isStarted = true;
-            await Task.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error starting AWS SQS/SNS message broker");
-            throw;
-        }
-    }
-
-    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
-    {
-        if (!_isStarted) return;
-
-        try
-        {
-            _pollingCts?.Cancel();
-            
-            if (_pollingTask != null)
-            {
-                await _pollingTask;
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in SQS polling loop");
+                    await Task.Delay(TimeSpan.FromSeconds(5), _pollingCts.Token);
+                }
             }
-            
-            _pollingCts?.Dispose();
-            _pollingCts = null;
-            _pollingTask = null;
-            
-            _isStarted = false;
-            _logger?.LogInformation("AWS SQS/SNS message broker stopped");
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error stopping AWS SQS/SNS message broker");
-            throw;
-        }
+        }, _pollingCts.Token);
     }
 
-    private async Task ProcessMessageAsync(Message sqsMessage, string queueUrl, CancellationToken cancellationToken)
+protected override async ValueTask StopInternalAsync(CancellationToken cancellationToken)
+    {
+        _pollingCts?.Cancel();
+        
+        if (_pollingTask != null)
+        {
+            await _pollingTask;
+        }
+        
+        _pollingCts?.Dispose();
+        _pollingCts = null;
+        _pollingTask = null;
+        
+        _logger.LogInformation("AWS SQS/SNS message broker stopped");
+    }
+
+private async Task ProcessMessageAsync(Message sqsMessage, string queueUrl, CancellationToken cancellationToken)
     {
         try
         {
@@ -304,18 +259,19 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
                 ? Type.GetType(messageType) 
                 : null;
 
-            if (type == null || !_handlers.ContainsKey(type))
+            if (type == null)
             {
-                _logger?.LogWarning("No handler found for message type {MessageType}", messageType);
+                _logger.LogWarning("No handler found for message type {MessageType}", messageType);
                 await DeleteMessageAsync(queueUrl, sqsMessage.ReceiptHandle, cancellationToken);
                 return;
             }
 
-            var message = JsonSerializer.Deserialize(sqsMessage.Body, type);
+            var messageBytes = System.Text.Encoding.UTF8.GetBytes(sqsMessage.Body);
+            var message = DeserializeMessage<object>(messageBytes);
 
             if (message == null)
             {
-                _logger?.LogWarning("Failed to deserialize message of type {MessageType}", messageType);
+                _logger.LogWarning("Failed to deserialize message of type {MessageType}", messageType);
                 await DeleteMessageAsync(queueUrl, sqsMessage.ReceiptHandle, cancellationToken);
                 return;
             }
@@ -339,11 +295,7 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
                 }
             };
 
-            var handlers = _handlers[type];
-            foreach (var handler in handlers)
-            {
-                await handler(message, context, cancellationToken);
-            }
+            await ProcessMessageAsync(message, type, context, cancellationToken);
 
             // Auto-acknowledge if enabled
             if (_options.AwsSqsSns!.AutoDeleteMessages && context.Acknowledge != null)
@@ -353,7 +305,7 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error processing SQS message {MessageId}", sqsMessage.MessageId);
+            _logger.LogError(ex, "Error processing SQS message {MessageId}", sqsMessage.MessageId);
         }
     }
 
@@ -369,7 +321,7 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error deleting SQS message {ReceiptHandle}", receiptHandle);
+            _logger.LogError(ex, "Error deleting SQS message {ReceiptHandle}", receiptHandle);
         }
     }
 
@@ -405,10 +357,8 @@ public sealed class AwsSqsSnsMessageBroker : IMessageBroker, IAsyncDisposable
         return new AmazonSimpleNotificationServiceClient(region);
     }
 
-    public async ValueTask DisposeAsync()
+protected override async ValueTask DisposeInternalAsync()
     {
-        await StopAsync();
-        
         _sqsClient?.Dispose();
         _snsClient?.Dispose();
     }

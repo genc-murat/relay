@@ -87,35 +87,35 @@ public class KafkaMessageBrokerTests
     }
 
     [Fact]
-    public void Dispose_ShouldNotThrow()
+    public async Task DisposeAsync_ShouldNotThrow()
     {
         // Arrange
         var options = Options.Create(_options);
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
         // Act
-        Action act = () => broker.Dispose();
+        Func<Task> act = async () => await broker.DisposeAsync();
 
         // Assert
-        act.Should().NotThrow();
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]
-    public void Dispose_MultipleTimes_ShouldNotThrow()
+    public async Task DisposeAsync_MultipleTimes_ShouldNotThrow()
     {
         // Arrange
         var options = Options.Create(_options);
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
         // Act
-        Action act = () =>
+        Func<Task> act = async () =>
         {
-            broker.Dispose();
-            broker.Dispose(); // Dispose twice
+            await broker.DisposeAsync();
+            await broker.DisposeAsync(); // Dispose twice
         };
 
         // Assert
-        act.Should().NotThrow();
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]

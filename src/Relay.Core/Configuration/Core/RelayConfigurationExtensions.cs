@@ -149,32 +149,20 @@ public static class RelayConfigurationExtensions
     }
 
     /// <summary>
-    /// Adds and configures in-memory caching for Relay requests.
-    /// This registers the <see cref="Caching.CachingPipelineBehavior{TRequest, TResponse}"/>
-    /// and the required <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> service.
+    /// Adds and configures unified caching for Relay requests.
+    /// This registers the <see cref="Caching.Behaviors.UnifiedCachingPipelineBehavior{TRequest, TResponse}"/>
+    /// and the required caching services.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddRelayCaching(this IServiceCollection services)
     {
         services.AddMemoryCache();
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Caching.CachingPipelineBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Caching.Behaviors.UnifiedCachingPipelineBehavior<,>));
         return services;
     }
 
-    /// <summary>
-    /// Adds and configures advanced caching for Relay requests.
-    /// This registers the <see cref="Caching.AdvancedCachingPipelineBehavior{TRequest, TResponse}"/>
-    /// and the required caching services.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddRelayAdvancedCaching(this IServiceCollection services)
-    {
-        services.AddMemoryCache();
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Caching.AdvancedCachingPipelineBehavior<,>));
-        return services;
-    }
+
 
     /// <summary>
     /// Adds and configures rate limiting for Relay requests.

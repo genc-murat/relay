@@ -1,34 +1,31 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using Polly;
 using Polly.Retry;
+using Relay.MessageBroker.Compression;
 
 namespace Relay.MessageBroker.RedisStreams;
 
 /// <summary>
 /// Redis Streams implementation of message broker with enhanced enterprise features.
 /// </summary>
-public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
+public sealed class RedisStreamsMessageBroker : BaseMessageBroker
 {
-    private readonly MessageBrokerOptions _options;
-    private readonly ILogger<RedisStreamsMessageBroker>? _logger;
-    private readonly Dictionary<Type, List<Func<object, MessageContext, CancellationToken, ValueTask>>> _handlers = new();
     private readonly Dictionary<string, CancellationTokenSource> _consumerTasks = new();
     private readonly AsyncRetryPolicy _redisRetryPolicy;
     private ConnectionMultiplexer? _redis;
     private IDatabase? _database;
-    private bool _isStarted;
     private CancellationTokenSource? _pollingCts;
     private Task? _pendingEntriesTask;
 
     public RedisStreamsMessageBroker(
-        MessageBrokerOptions options,
-        ILogger<RedisStreamsMessageBroker>? logger = null)
+        IOptions<MessageBrokerOptions> options,
+        ILogger<RedisStreamsMessageBroker> logger,
+        IMessageCompressor? compressor = null)
+        : base(options, logger, compressor)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger;
-        
         if (_options.RedisStreams == null)
             throw new InvalidOperationException("Redis Streams options are required.");
         
@@ -48,118 +45,101 @@ public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
                         (_options.RetryPolicy?.MaxDelay ?? TimeSpan.FromSeconds(30)).TotalMilliseconds)),
                 onRetry: (outcome, timespan, retryAttempt, context) =>
                 {
-                    _logger?.LogWarning(outcome, 
+                    _logger.LogWarning(outcome, 
                         "Redis operation failed (attempt {RetryAttempt}/{MaxRetries}). Retrying in {Delay}ms...", 
                         retryAttempt, _options.RetryPolicy?.MaxAttempts ?? 3, timespan.TotalMilliseconds);
                 });
     }
 
-    public async ValueTask PublishAsync<TMessage>(TMessage message, PublishOptions? options = null, CancellationToken cancellationToken = default)
+    protected override async ValueTask PublishInternalAsync<TMessage>(
+        TMessage message,
+        byte[] serializedMessage,
+        PublishOptions? options,
+        CancellationToken cancellationToken)
     {
-        if (message == null) throw new ArgumentNullException(nameof(message));
+        await EnsureConnectedAsync();
 
-        try
+        var streamName = options?.RoutingKey ?? _options.RedisStreams!.DefaultStreamName ?? "relay:stream";
+        var messageBody = System.Text.Encoding.UTF8.GetString(serializedMessage);
+        var messageType = typeof(TMessage).FullName ?? typeof(TMessage).Name;
+        var messageId = Guid.NewGuid().ToString();
+
+        var entries = new List<NameValueEntry>
         {
-            await EnsureConnectedAsync();
+            new NameValueEntry("type", messageType),
+            new NameValueEntry("data", messageBody),
+            new NameValueEntry("timestamp", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString()),
+            new NameValueEntry("messageId", messageId)
+        };
 
-            var streamName = options?.RoutingKey ?? _options.RedisStreams!.DefaultStreamName ?? "relay:stream";
-            var messageBody = JsonSerializer.Serialize(message);
-            var messageType = typeof(TMessage).FullName ?? typeof(TMessage).Name;
-            var messageId = Guid.NewGuid().ToString();
+        // Add correlation ID if provided
+        if (options?.Headers?.ContainsKey("CorrelationId") == true)
+        {
+            entries.Add(new NameValueEntry("correlationId", options.Headers["CorrelationId"].ToString() ?? string.Empty));
+        }
 
-            var entries = new List<NameValueEntry>
+        // Add custom headers
+        if (options?.Headers != null)
+        {
+            foreach (var header in options.Headers)
             {
-                new NameValueEntry("type", messageType),
-                new NameValueEntry("data", messageBody),
-                new NameValueEntry("timestamp", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString()),
-                new NameValueEntry("messageId", messageId)
-            };
-
-            // Add correlation ID if provided
-            if (options?.Headers?.ContainsKey("CorrelationId") == true)
-            {
-                entries.Add(new NameValueEntry("correlationId", options.Headers["CorrelationId"].ToString() ?? string.Empty));
-            }
-
-            // Add custom headers
-            if (options?.Headers != null)
-            {
-                foreach (var header in options.Headers)
+                if (header.Key != "CorrelationId")
                 {
-                    if (header.Key != "CorrelationId")
-                    {
-                        entries.Add(new NameValueEntry($"header:{header.Key}", header.Value?.ToString() ?? string.Empty));
-                    }
+                    entries.Add(new NameValueEntry($"header:{header.Key}", header.Value?.ToString() ?? string.Empty));
                 }
             }
-
-            // Add priority if specified
-            if (options?.Priority.HasValue == true)
-            {
-                entries.Add(new NameValueEntry("priority", options.Priority.Value.ToString()));
-            }
-
-            // Add expiration if specified
-            if (options?.Expiration.HasValue == true)
-            {
-                entries.Add(new NameValueEntry("expiration", options.Expiration.Value.TotalMilliseconds.ToString()));
-            }
-
-            var maxLength = _options.RedisStreams.MaxStreamLength > 0 
-                ? _options.RedisStreams.MaxStreamLength 
-                : (int?)null;
-
-            await _redisRetryPolicy.ExecuteAsync(async () =>
-            {
-                var result = await _database!.StreamAddAsync(
-                    streamName, 
-                    entries.ToArray(),
-                    maxLength: maxLength,
-                    useApproximateMaxLength: true);
-
-                _logger?.LogDebug("Published message {MessageType} with ID {MessageId} to Redis stream {StreamName}", 
-                    typeof(TMessage).Name, result, streamName);
-            });
-
-            // Trim stream if needed (separate operation for better performance)
-            if (maxLength.HasValue && maxLength.Value > 0)
-            {
-                await TrimStreamAsync(streamName, maxLength.Value);
-            }
         }
-        catch (Exception ex)
+
+        // Add priority if specified
+        if (options?.Priority.HasValue == true)
         {
-            _logger?.LogError(ex, "Error publishing message {MessageType}", typeof(TMessage).Name);
-            throw;
+            entries.Add(new NameValueEntry("priority", options.Priority.Value.ToString()));
+        }
+
+        // Add expiration if specified
+        if (options?.Expiration.HasValue == true)
+        {
+            entries.Add(new NameValueEntry("expiration", options.Expiration.Value.TotalMilliseconds.ToString()));
+        }
+
+        var maxLength = _options.RedisStreams.MaxStreamLength > 0 
+            ? _options.RedisStreams.MaxStreamLength 
+            : (int?)null;
+
+        await _redisRetryPolicy.ExecuteAsync(async () =>
+        {
+            var result = await _database!.StreamAddAsync(
+                streamName, 
+                entries.ToArray(),
+                maxLength: maxLength,
+                useApproximateMaxLength: true);
+
+            _logger.LogDebug("Published message {MessageType} with ID {MessageId} to Redis stream {StreamName}", 
+                typeof(TMessage).Name, result, streamName);
+        });
+
+        // Trim stream if needed (separate operation for better performance)
+        if (maxLength.HasValue && maxLength.Value > 0)
+        {
+            await TrimStreamAsync(streamName, maxLength.Value);
         }
     }
 
-    public async ValueTask SubscribeAsync<TMessage>(
-        Func<TMessage, MessageContext, CancellationToken, ValueTask> handler,
-        SubscriptionOptions? options = null,
-        CancellationToken cancellationToken = default)
+    protected override async ValueTask SubscribeInternalAsync(
+        Type messageType,
+        SubscriptionInfo subscriptionInfo,
+        CancellationToken cancellationToken)
     {
-        if (handler == null) throw new ArgumentNullException(nameof(handler));
-
-        var messageType = typeof(TMessage);
-        
-        if (!_handlers.ContainsKey(messageType))
-        {
-            _handlers[messageType] = new List<Func<object, MessageContext, CancellationToken, ValueTask>>();
-        }
-
-        _handlers[messageType].Add(async (msg, ctx, ct) => await handler((TMessage)msg, ctx, ct));
+        await EnsureConnectedAsync();
         
         // Start consumer for specific stream if not already running
-        var streamName = options?.QueueName ?? _options.RedisStreams!.DefaultStreamName ?? "relay:stream";
+        var streamName = subscriptionInfo.Options.QueueName ?? _options.RedisStreams!.DefaultStreamName ?? "relay:stream";
         
         if (!_consumerTasks.ContainsKey(streamName))
         {
-            await EnsureConnectedAsync();
-            
-            var groupName = options?.ConsumerGroup ?? _options.RedisStreams.ConsumerGroupName ?? "relay-consumer-group";
-            var consumerName = options?.ConsumerGroup != null 
-                ? $"{options.ConsumerGroup}-{Environment.MachineName}-{Guid.NewGuid():N}"
+            var groupName = subscriptionInfo.Options.ConsumerGroup ?? _options.RedisStreams.ConsumerGroupName ?? "relay-consumer-group";
+            var consumerName = subscriptionInfo.Options.ConsumerGroup != null 
+                ? $"{subscriptionInfo.Options.ConsumerGroup}-{Environment.MachineName}-{Guid.NewGuid():N}"
                 : _options.RedisStreams.ConsumerName ?? $"relay-consumer-{Environment.MachineName}";
 
             // Create consumer group if not exists
@@ -174,7 +154,7 @@ public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
             // Start consumer task for this stream
             _ = Task.Run(async () =>
             {
-                _logger?.LogInformation("Starting Redis Streams consumer for stream {StreamName}, group {GroupName}, consumer {ConsumerName}", 
+                _logger.LogInformation("Starting Redis Streams consumer for stream {StreamName}, group {GroupName}, consumer {ConsumerName}", 
                     streamName, groupName, consumerName);
 
                 while (!cts.Token.IsCancellationRequested)
@@ -189,82 +169,54 @@ public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogError(ex, "Error in Redis Streams consumer for stream {StreamName}", streamName);
+                        _logger.LogError(ex, "Error in Redis Streams consumer for stream {StreamName}", streamName);
                         await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
                     }
                 }
             }, cts.Token);
         }
+    }
+
+    protected override async ValueTask StartInternalAsync(CancellationToken cancellationToken)
+    {
+        await EnsureConnectedAsync();
         
-        _logger?.LogDebug("Subscribed to message type {MessageType} on stream {StreamName}", typeof(TMessage).Name, streamName);
+        // Note: Pending entries monitoring can be enabled here if needed in the future
+        // Currently disabled as MonitorPendingEntries property is not available in RedisStreamsOptions
+        
+        _logger.LogInformation("Redis Streams message broker started");
     }
 
-    public async ValueTask StartAsync(CancellationToken cancellationToken = default)
+    protected override async ValueTask StopInternalAsync(CancellationToken cancellationToken)
     {
-        if (_isStarted) return;
-
-        try
+        // Cancel all consumer tasks
+        foreach (var kvp in _consumerTasks)
         {
-            await EnsureConnectedAsync();
-
-            // Start pending entries monitoring task
-            _pollingCts = new CancellationTokenSource();
-            _pendingEntriesTask = Task.Run(async () =>
+            kvp.Value.Cancel();
+            try
             {
-                await MonitorPendingEntriesAsync(_pollingCts.Token);
-            }, _pollingCts.Token);
-
-            _isStarted = true;
-            _logger?.LogInformation("Redis Streams message broker started successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error starting Redis Streams message broker");
-            throw;
-        }
-    }
-
-    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
-    {
-        if (!_isStarted) return;
-
-        try
-        {
-            // Cancel all consumer tasks
-            foreach (var kvp in _consumerTasks)
-            {
-                kvp.Value.Cancel();
-                try
-                {
-                    kvp.Value.Dispose();
-                }
-                catch
-                {
-                    // Ignore disposal errors
-                }
+                kvp.Value.Dispose();
             }
-            _consumerTasks.Clear();
-
-            // Cancel pending entries monitoring
-            _pollingCts?.Cancel();
-            
-            if (_pendingEntriesTask != null)
+            catch
             {
-                await _pendingEntriesTask;
+                // Ignore disposal errors
             }
-            
-            _pollingCts?.Dispose();
-            _pollingCts = null;
-            _pendingEntriesTask = null;
-            
-            _isStarted = false;
-            _logger?.LogInformation("Redis Streams message broker stopped");
         }
-        catch (Exception ex)
+        _consumerTasks.Clear();
+
+        // Cancel pending entries monitoring
+        _pollingCts?.Cancel();
+        
+        if (_pendingEntriesTask != null)
         {
-            _logger?.LogError(ex, "Error stopping Redis Streams message broker");
-            throw;
+            await _pendingEntriesTask;
         }
+        
+        _pollingCts?.Dispose();
+        _pollingCts = null;
+        _pendingEntriesTask = null;
+        
+        _logger.LogInformation("Redis Streams message broker stopped");
     }
 
     private async Task ProcessMessageAsync(
@@ -313,9 +265,9 @@ public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
 
             var type = Type.GetType(messageType);
 
-            if (type == null || !_handlers.ContainsKey(type))
+            if (type == null)
             {
-                _logger?.LogWarning("No handler found for message type {MessageType} for message {MessageId}", 
+                _logger.LogWarning("Unknown message type {MessageType} for message {MessageId}", 
                     messageType, customMessageId);
                 await AcknowledgeMessageAsync(streamName, groupName, message.Id, cancellationToken);
                 return;
@@ -391,12 +343,8 @@ public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
                 }
             };
 
-            // Process message with all handlers
-            var handlers = _handlers[type];
-            var processingTasks = handlers.Select(handler => 
-                ProcessWithRetryAsync(handler, deserializedMessage, context, cancellationToken));
-
-            await Task.WhenAll(processingTasks);
+            // Process message using base class
+            await ProcessMessageAsync(deserializedMessage, type, context, cancellationToken);
 
             // Auto-acknowledge if enabled
             if (_options.RedisStreams!.AutoAcknowledge && context.Acknowledge != null)
@@ -405,7 +353,7 @@ public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
             }
 
             var processingTime = DateTimeOffset.UtcNow - startTime;
-            _logger?.LogDebug("Successfully processed message {MessageId} of type {MessageType} in {ProcessingTime}ms", 
+            _logger.LogDebug("Successfully processed message {MessageId} of type {MessageType} in {ProcessingTime}ms", 
                 customMessageId, messageType, processingTime.TotalMilliseconds);
         }
         catch (Exception ex)
@@ -418,39 +366,7 @@ public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
         }
     }
 
-    private async Task ProcessWithRetryAsync(
-        Func<object, MessageContext, CancellationToken, ValueTask> handler,
-        object message,
-        MessageContext context,
-        CancellationToken cancellationToken)
-    {
-        var retryCount = 0;
-        var maxRetries = _options.RetryPolicy?.MaxAttempts ?? 3;
 
-        while (retryCount <= maxRetries)
-        {
-            try
-            {
-                await handler(message, context, cancellationToken);
-                return; // Success, exit retry loop
-            }
-            catch (Exception ex) when (retryCount < maxRetries)
-            {
-                retryCount++;
-                var delay = _options.RetryPolicy?.UseExponentialBackoff == true
-                    ? TimeSpan.FromMilliseconds((_options.RetryPolicy.InitialDelay.TotalMilliseconds * Math.Pow(_options.RetryPolicy.BackoffMultiplier, retryCount - 1)))
-                    : _options.RetryPolicy?.InitialDelay ?? TimeSpan.FromSeconds(1);
-
-                _logger?.LogWarning(ex, "Handler failed for message {MessageId} (attempt {RetryAttempt}/{MaxRetries}). Retrying in {Delay}ms...", 
-                    context.MessageId, retryCount, maxRetries, delay.TotalMilliseconds);
-
-                await Task.Delay(delay, cancellationToken);
-            }
-        }
-
-        // Final attempt - let it throw if it fails
-        await handler(message, context, cancellationToken);
-    }
 
     private async Task AcknowledgeMessageAsync(
         string streamName, 
@@ -601,10 +517,8 @@ public sealed class RedisStreamsMessageBroker : IMessageBroker, IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync()
+    protected override async ValueTask DisposeInternalAsync()
     {
-        await StopAsync();
-
         if (_redis != null)
         {
             await _redis.DisposeAsync();

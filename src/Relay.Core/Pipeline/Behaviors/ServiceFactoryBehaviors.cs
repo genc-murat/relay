@@ -140,7 +140,7 @@ namespace Relay.Core.Pipeline.Behaviors
             // Try to resolve an optional service - doesn't throw if not registered
             if (_serviceFactory.TryGetService<IRequestAuditor>(out var auditor) && auditor != null)
             {
-                await auditor.AuditRequestAsync(typeof(TRequest).Name, request, cancellationToken);
+                await auditor.AuditRequestAsync(typeof(TRequest).Name, request!, cancellationToken);
             }
 
             var response = await next();

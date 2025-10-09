@@ -1,6 +1,7 @@
 
 using System;
 using Relay.Core.Caching;
+using Relay.Core.Caching.Attributes;
 using Xunit;
 using FluentAssertions;
 
@@ -35,11 +36,11 @@ namespace Relay.Core.Tests.Caching
         }
 
         [Fact]
-        public void GenerateKey_WithDefaultPattern_GeneratesCorrectKey()
+        public void GenerateKey_WithUnifiedAttributeAndDefaultPattern_GeneratesCorrectKey()
         {
             // Arrange
             var request = new SimpleRequest { Id = 1, Name = "Test" };
-            var attribute = new DistributedCacheAttribute(); // Uses default pattern
+            var attribute = new UnifiedCacheAttribute(); // Uses default pattern
 
             // Act
             var key = _keyGenerator.GenerateKey(request, attribute);
@@ -51,11 +52,11 @@ namespace Relay.Core.Tests.Caching
         }
 
         [Fact]
-        public void GenerateKey_WithCustomPattern_GeneratesCorrectKey()
+        public void GenerateKey_WithUnifiedAttributeAndCustomPattern_GeneratesCorrectKey()
         {
             // Arrange
             var request = new SimpleRequest { Id = 1, Name = "Test" };
-            var attribute = new DistributedCacheAttribute
+            var attribute = new UnifiedCacheAttribute
             {
                 KeyPattern = "MyCache:{Region}:{RequestType}-{RequestHash}",
                 Region = "Users"
@@ -74,7 +75,7 @@ namespace Relay.Core.Tests.Caching
             // Arrange
             var request1 = new SimpleRequest { Id = 123, Name = "SameName" };
             var request2 = new SimpleRequest { Id = 123, Name = "SameName" };
-            var attribute = new DistributedCacheAttribute();
+            var attribute = new UnifiedCacheAttribute();
 
             // Act
             var key1 = _keyGenerator.GenerateKey(request1, attribute);
@@ -90,7 +91,7 @@ namespace Relay.Core.Tests.Caching
             // Arrange
             var request1 = new SimpleRequest { Id = 1, Name = "A" };
             var request2 = new SimpleRequest { Id = 2, Name = "B" };
-            var attribute = new DistributedCacheAttribute();
+            var attribute = new UnifiedCacheAttribute();
 
             // Act
             var key1 = _keyGenerator.GenerateKey(request1, attribute);
@@ -106,7 +107,7 @@ namespace Relay.Core.Tests.Caching
             // Arrange
             var request1 = new SimpleRequest { Id = 1, Name = "Same" };
             var request2 = new AnotherRequest { Id = 1, Name = "Same" };
-            var attribute = new DistributedCacheAttribute();
+            var attribute = new UnifiedCacheAttribute();
 
             // Act
             var key1 = _keyGenerator.GenerateKey(request1, attribute);
@@ -131,7 +132,7 @@ namespace Relay.Core.Tests.Caching
                     Tags = new[] { "tag1", "tag2" }
                 }
             };
-            var attribute = new DistributedCacheAttribute();
+            var attribute = new UnifiedCacheAttribute();
 
             // Act
             var key = _keyGenerator.GenerateKey(request, attribute);
@@ -145,11 +146,9 @@ namespace Relay.Core.Tests.Caching
         public void GenerateKey_WithDifferentPropertyOrder_GeneratesSameKey()
         {
             // Arrange
-            // Note: JsonSerializer does not guarantee property order, but for a given type, it's typically consistent.
-            // This test verifies that two objects that are equivalent result in the same key.
             var request1 = new SimpleRequest { Name = "OrderTest", Id = 99 };
             var request2 = new SimpleRequest { Id = 99, Name = "OrderTest" };
-            var attribute = new DistributedCacheAttribute();
+            var attribute = new UnifiedCacheAttribute();
 
             // Act
             var key1 = _keyGenerator.GenerateKey(request1, attribute);
@@ -158,5 +157,7 @@ namespace Relay.Core.Tests.Caching
             // Assert
             key1.Should().Be(key2);
         }
+
+
     }
 }

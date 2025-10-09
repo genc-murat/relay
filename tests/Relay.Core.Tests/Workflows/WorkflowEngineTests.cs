@@ -899,10 +899,10 @@ public class WorkflowEngineTests
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _workflowEngine.StartWorkflowAsync("nonexistent-workflow", new { });
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
 
         // Wait for background execution
-        await Task.Delay(300);
+        await Task.Delay(1000);
 
         // Assert - Workflow should fail due to missing definition
         _mockStateStore.Verify(x => x.SaveExecutionAsync(

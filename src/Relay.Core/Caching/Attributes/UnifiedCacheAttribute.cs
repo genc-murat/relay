@@ -3,10 +3,11 @@ using System;
 namespace Relay.Core.Caching.Attributes;
 
 /// <summary>
-/// Enhanced cache attribute with additional configuration options.
+/// Unified cache attribute with comprehensive configuration options for all caching scenarios.
+/// Replaces CacheAttribute, EnhancedCacheAttribute, and DistributedCacheAttribute.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public sealed class EnhancedCacheAttribute : Attribute
+public sealed class UnifiedCacheAttribute : Attribute
 {
     /// <summary>
     /// Gets the absolute expiration time for the cache, in seconds.
@@ -54,23 +55,53 @@ public sealed class EnhancedCacheAttribute : Attribute
     public bool EnableMetrics { get; set; } = true;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="EnhancedCacheAttribute"/> class.
+    /// Gets whether to use distributed cache for this request type.
     /// </summary>
-    public EnhancedCacheAttribute()
+    public bool UseDistributedCache { get; set; } = false;
+
+    /// <summary>
+    /// Gets whether caching is enabled for this request type.
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UnifiedCacheAttribute"/> class with default settings.
+    /// </summary>
+    public UnifiedCacheAttribute()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="EnhancedCacheAttribute"/> class.
+    /// Initializes a new instance of the <see cref="UnifiedCacheAttribute"/> class with specified absolute expiration.
     /// </summary>
     /// <param name="absoluteExpirationSeconds">The absolute expiration time in seconds.</param>
-    public EnhancedCacheAttribute(int absoluteExpirationSeconds)
+    public UnifiedCacheAttribute(int absoluteExpirationSeconds)
     {
         if (absoluteExpirationSeconds <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(absoluteExpirationSeconds), "Cache duration must be a positive number.");
         }
         AbsoluteExpirationSeconds = absoluteExpirationSeconds;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UnifiedCacheAttribute"/> class with specified absolute and sliding expiration.
+    /// </summary>
+    /// <param name="absoluteExpirationSeconds">The absolute expiration time in seconds.</param>
+    /// <param name="slidingExpirationSeconds">The sliding expiration time in seconds.</param>
+    public UnifiedCacheAttribute(int absoluteExpirationSeconds, int slidingExpirationSeconds)
+    {
+        if (absoluteExpirationSeconds <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(absoluteExpirationSeconds), "Cache duration must be a positive number.");
+        }
+        if (slidingExpirationSeconds < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(slidingExpirationSeconds), "Sliding expiration cannot be negative.");
+        }
+        
+        AbsoluteExpirationSeconds = absoluteExpirationSeconds;
+        SlidingExpirationSeconds = slidingExpirationSeconds;
     }
 }
 

@@ -5,6 +5,7 @@ using Xunit;
 using StackExchange.Redis;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Relay.MessageBroker;
 
 namespace Relay.MessageBroker.Tests;
@@ -55,7 +56,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
     {
         // Arrange & Act
-        Action act = () => new RedisStreamsMessageBroker(null!);
+        Action act = () => new RedisStreamsMessageBroker(null!, _mockLogger.Object);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -68,7 +69,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         var options = new MessageBrokerOptions();
 
         // Act
-        Action act = () => new RedisStreamsMessageBroker(options);
+        Action act = () => new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -85,7 +86,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         };
 
         // Act
-        Action act = () => new RedisStreamsMessageBroker(options);
+        Action act = () => new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -96,7 +97,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     public void Constructor_WithValidOptions_ShouldSucceed()
     {
         // Arrange & Act
-        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -106,7 +107,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     public async Task PublishAsync_WithNullMessage_ShouldThrowArgumentNullException()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
 
         // Act
         Func<Task> act = async () => await broker.PublishAsync<object>(null!);
@@ -119,7 +120,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     public async Task SubscribeAsync_WithNullHandler_ShouldThrowArgumentNullException()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
 
         // Act
         Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(null!);
@@ -132,7 +133,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     public async Task StartAsync_ShouldCompleteSuccessfully()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
 
         // Act
         Func<Task> act = async () => await broker.StartAsync();
@@ -145,7 +146,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     public async Task StopAsync_BeforeStart_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
 
         // Act
         Func<Task> act = async () => await broker.StopAsync();
@@ -158,7 +159,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     public async Task StopAsync_AfterStart_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
         
         // StartAsync completes without Redis connection (lazy connection)
         await broker.StartAsync();
@@ -173,7 +174,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     public async Task DisposeAsync_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(_defaultOptions, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
 
         // Act
         Func<Task> act = async () => await broker.DisposeAsync();
@@ -200,7 +201,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -225,7 +226,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -246,7 +247,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -294,7 +295,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -315,7 +316,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -337,7 +338,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         };
 
         // Act
-        var broker = new RedisStreamsMessageBroker(options, _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
 
         // Assert
         broker.Should().NotBeNull();

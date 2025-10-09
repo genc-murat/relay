@@ -2,44 +2,30 @@ using System.Text;
 using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using Relay.MessageBroker.Telemetry;
+using Relay.MessageBroker.Compression;
 
 namespace Relay.MessageBroker.AzureServiceBus;
 
 /// <summary>
 /// Azure Service Bus implementation of message broker.
 /// </summary>
-public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposable
+public sealed class AzureServiceBusMessageBroker : BaseMessageBroker
 {
-    private readonly MessageBrokerOptions _options;
-    private readonly ILogger<AzureServiceBusMessageBroker>? _logger;
-    private readonly Dictionary<Type, List<Func<object, MessageContext, CancellationToken, ValueTask>>> _handlers = new();
     private readonly Dictionary<string, ServiceBusSessionProcessor?> _sessionProcessors = new();
     private ServiceBusClient? _client;
     private ServiceBusSender? _sender;
     private ServiceBusProcessor? _processor;
     private readonly AsyncRetryPolicy _retryPolicy;
-    private readonly ActivitySource _activitySource;
-    private readonly Counter<long> _messagesPublishedCounter;
-    private readonly Counter<long> _messagesReceivedCounter;
-    private readonly Counter<long> _messagesProcessedCounter;
-    private readonly Counter<long> _messagesFailedCounter;
-    private readonly Histogram<double> _publishDurationHistogram;
-    private readonly Histogram<double> _processDurationHistogram;
-    private readonly Histogram<long> _messagePayloadSizeHistogram;
-    private bool _isStarted;
 
     public AzureServiceBusMessageBroker(
-        MessageBrokerOptions options,
-        ILogger<AzureServiceBusMessageBroker>? logger = null)
+        IOptions<MessageBrokerOptions> options,
+        ILogger<AzureServiceBusMessageBroker> logger,
+        IMessageCompressor? compressor = null)
+        : base(options, logger, compressor)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger;
-        
         if (_options.AzureServiceBus == null)
             throw new InvalidOperationException("Azure Service Bus options are required.");
         
@@ -60,135 +46,69 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
                         retryOptions.MaxDelay.TotalMilliseconds)),
                 onRetry: (exception, timespan, retryAttempt, context) =>
                 {
-                    _logger?.LogWarning(exception, 
+                    _logger.LogWarning(exception, 
                         "Retry {RetryAttempt} after {Delay}ms due to error: {Error}", 
                         retryAttempt, timespan.TotalMilliseconds, exception?.Message);
                 });
-
-        // Initialize telemetry
-        _activitySource = MessageBrokerTelemetry.ActivitySource;
-        var meter = new Meter(MessageBrokerTelemetry.MeterName, MessageBrokerTelemetry.MeterVersion);
-        
-        _messagesPublishedCounter = meter.CreateCounter<long>(
-            MessageBrokerTelemetry.Metrics.MessagesPublished,
-            description: "Number of messages published");
-        
-        _messagesReceivedCounter = meter.CreateCounter<long>(
-            MessageBrokerTelemetry.Metrics.MessagesReceived,
-            description: "Number of messages received");
-        
-        _messagesProcessedCounter = meter.CreateCounter<long>(
-            MessageBrokerTelemetry.Metrics.MessagesProcessed,
-            description: "Number of messages processed");
-        
-        _messagesFailedCounter = meter.CreateCounter<long>(
-            MessageBrokerTelemetry.Metrics.MessagesFailed,
-            description: "Number of messages failed to process");
-        
-        _publishDurationHistogram = meter.CreateHistogram<double>(
-            MessageBrokerTelemetry.Metrics.MessagePublishDuration,
-            description: "Duration of message publish operations");
-        
-        _processDurationHistogram = meter.CreateHistogram<double>(
-            MessageBrokerTelemetry.Metrics.MessageProcessDuration,
-            description: "Duration of message processing operations");
-        
-        _messagePayloadSizeHistogram = meter.CreateHistogram<long>(
-            MessageBrokerTelemetry.Metrics.MessagePayloadSize,
-            description: "Size of message payloads in bytes");
     }
 
-    public async ValueTask PublishAsync<TMessage>(TMessage message, PublishOptions? options = null, CancellationToken cancellationToken = default)
+protected override async ValueTask PublishInternalAsync<TMessage>(
+        TMessage message,
+        byte[] serializedMessage,
+        PublishOptions? options,
+        CancellationToken cancellationToken)
     {
-        if (message == null) throw new ArgumentNullException(nameof(message));
+        _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
+        
+        var entityName = options?.RoutingKey 
+            ?? _options.AzureServiceBus.DefaultEntityName 
+            ?? typeof(TMessage).Name;
+        
+        _sender ??= _client.CreateSender(entityName);
 
-        using var activity = _activitySource.StartActivity("message.publish");
-        activity?.SetTag(MessageBrokerTelemetry.Attributes.MessagingSystem, "azure_service_bus");
-        activity?.SetTag(MessageBrokerTelemetry.Attributes.MessageType, typeof(TMessage).Name);
-        activity?.SetTag(MessageBrokerTelemetry.Attributes.MessagingOperation, "publish");
-
-        var stopwatch = Stopwatch.StartNew();
-
-        try
+        var messageBody = Encoding.UTF8.GetString(serializedMessage);
+        var serviceBusMessage = new ServiceBusMessage(messageBody)
         {
-            _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
-            
-            var entityName = options?.RoutingKey 
-                ?? _options.AzureServiceBus.DefaultEntityName 
-                ?? typeof(TMessage).Name;
-            
-            _sender ??= _client.CreateSender(entityName);
+            MessageId = Guid.NewGuid().ToString(),
+            ContentType = "application/json",
+            Subject = typeof(TMessage).FullName
+        };
 
-            var messageBody = JsonSerializer.Serialize(message);
-            var serviceBusMessage = new ServiceBusMessage(messageBody)
-            {
-                MessageId = Guid.NewGuid().ToString(),
-                ContentType = "application/json",
-                Subject = typeof(TMessage).FullName
-            };
-
-            if (options?.Headers != null)
-            {
-                foreach (var header in options.Headers)
-                {
-                    serviceBusMessage.ApplicationProperties[header.Key] = header.Value;
-                }
-            }
-
-            if (options?.Expiration.HasValue == true)
-            {
-                serviceBusMessage.TimeToLive = options.Expiration.Value;
-            }
-
-            // Add session ID if provided in headers
-            if (options?.Headers?.ContainsKey("SessionId") == true)
-            {
-                serviceBusMessage.SessionId = options.Headers["SessionId"]?.ToString();
-            }
-
-            // Support for scheduled enqueue time
-            if (options?.Headers?.ContainsKey("ScheduledEnqueueTime") == true)
-            {
-                if (DateTime.TryParse(options.Headers["ScheduledEnqueueTime"]?.ToString(), out var scheduledTime))
-                {
-                    serviceBusMessage.ScheduledEnqueueTime = scheduledTime;
-                }
-            }
-
-            // Record telemetry
-            var payloadSize = Encoding.UTF8.GetByteCount(messageBody);
-            _messagePayloadSizeHistogram.Record(payloadSize);
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.MessagingPayloadSize, payloadSize);
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.MessagingDestination, entityName);
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.MessagingDestinationKind, "queue");
-
-            await _retryPolicy.ExecuteAsync(async () =>
-            {
-                await _sender.SendMessageAsync(serviceBusMessage, cancellationToken);
-            });
-            
-            stopwatch.Stop();
-            _publishDurationHistogram.Record(stopwatch.Elapsed.TotalSeconds);
-            _messagesPublishedCounter.Add(1, new KeyValuePair<string, object>("message_type", typeof(TMessage).Name));
-            
-            activity?.SetStatus(ActivityStatusCode.Ok);
-            activity?.AddEvent(new ActivityEvent(MessageBrokerTelemetry.Events.MessagePublished));
-            
-            _logger?.LogDebug("Published message {MessageType} to {EntityName}", 
-                typeof(TMessage).Name, entityName);
-        }
-        catch (Exception ex)
+        if (options?.Headers != null)
         {
-            stopwatch.Stop();
-            _messagesFailedCounter.Add(1, new KeyValuePair<string, object>("message_type", typeof(TMessage).Name));
-            
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.ErrorType, ex.GetType().Name);
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.ErrorMessage, ex.Message);
-            
-            _logger?.LogError(ex, "Error publishing message {MessageType}", typeof(TMessage).Name);
-            throw;
+            foreach (var header in options.Headers)
+            {
+                serviceBusMessage.ApplicationProperties[header.Key] = header.Value;
+            }
         }
+
+        if (options?.Expiration.HasValue == true)
+        {
+            serviceBusMessage.TimeToLive = options.Expiration.Value;
+        }
+
+        // Add session ID if provided in headers
+        if (options?.Headers?.ContainsKey("SessionId") == true)
+        {
+            serviceBusMessage.SessionId = options.Headers["SessionId"]?.ToString();
+        }
+
+        // Support for scheduled enqueue time
+        if (options?.Headers?.ContainsKey("ScheduledEnqueueTime") == true)
+        {
+            if (DateTime.TryParse(options.Headers["ScheduledEnqueueTime"]?.ToString(), out var scheduledTime))
+            {
+                serviceBusMessage.ScheduledEnqueueTime = scheduledTime;
+            }
+        }
+
+        await _retryPolicy.ExecuteAsync(async () =>
+        {
+            await _sender.SendMessageAsync(serviceBusMessage, cancellationToken);
+        });
+        
+        _logger.LogDebug("Published message {MessageType} to {EntityName}", 
+            typeof(TMessage).Name, entityName);
     }
 
     /// <summary>
@@ -638,135 +558,97 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
         }
     }
 
-    public ValueTask SubscribeAsync<TMessage>(
-        Func<TMessage, MessageContext, CancellationToken, ValueTask> handler,
-        SubscriptionOptions? options = null,
-        CancellationToken cancellationToken = default)
+protected override async ValueTask SubscribeInternalAsync(
+        Type messageType,
+        SubscriptionInfo subscriptionInfo,
+        CancellationToken cancellationToken)
     {
-        if (handler == null) throw new ArgumentNullException(nameof(handler));
-
-        var messageType = typeof(TMessage);
-        
-        if (!_handlers.ContainsKey(messageType))
-        {
-            _handlers[messageType] = new List<Func<object, MessageContext, CancellationToken, ValueTask>>();
-        }
-
-        _handlers[messageType].Add(async (msg, ctx, ct) => await handler((TMessage)msg, ctx, ct));
-        
-        _logger?.LogDebug("Subscribed to message type {MessageType}", typeof(TMessage).Name);
-
-        return ValueTask.CompletedTask;
+        // Azure Service Bus handles subscriptions in StartInternalAsync
+        await ValueTask.CompletedTask;
     }
 
-    public async ValueTask StartAsync(CancellationToken cancellationToken = default)
+protected override async ValueTask StartInternalAsync(CancellationToken cancellationToken)
     {
-        if (_isStarted) return;
-
-        try
+        _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
+        
+        var entityName = _options.AzureServiceBus.DefaultEntityName ?? "relay-messages";
+        
+        var processorOptions = new ServiceBusProcessorOptions
         {
-            _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
-            
-            var entityName = _options.AzureServiceBus.DefaultEntityName ?? "relay-messages";
-            
-            var processorOptions = new ServiceBusProcessorOptions
+            MaxConcurrentCalls = _options.AzureServiceBus.MaxConcurrentCalls,
+            AutoCompleteMessages = _options.AzureServiceBus.AutoCompleteMessages,
+            PrefetchCount = _options.AzureServiceBus.PrefetchCount,
+            ReceiveMode = _options.AzureServiceBus.AutoCompleteMessages 
+                ? ServiceBusReceiveMode.ReceiveAndDelete 
+                : ServiceBusReceiveMode.PeekLock
+        };
+
+        // Create regular processor for non-session messages
+        _processor = _options.AzureServiceBus.EntityType == AzureEntityType.Topic && 
+                     !string.IsNullOrWhiteSpace(_options.AzureServiceBus.SubscriptionName)
+            ? _client.CreateProcessor(entityName, _options.AzureServiceBus.SubscriptionName, processorOptions)
+            : _client.CreateProcessor(entityName, processorOptions);
+
+        _processor.ProcessMessageAsync += ProcessMessageAsync;
+        _processor.ProcessErrorAsync += ProcessErrorAsync;
+
+        await _processor.StartProcessingAsync(cancellationToken);
+
+        // Create session processor if sessions are enabled
+        if (_options.AzureServiceBus.SessionsEnabled)
+        {
+            var sessionProcessorOptions = new ServiceBusSessionProcessorOptions
             {
-                MaxConcurrentCalls = _options.AzureServiceBus.MaxConcurrentCalls,
+                MaxConcurrentCallsPerSession = 1,
                 AutoCompleteMessages = _options.AzureServiceBus.AutoCompleteMessages,
                 PrefetchCount = _options.AzureServiceBus.PrefetchCount,
                 ReceiveMode = _options.AzureServiceBus.AutoCompleteMessages 
                     ? ServiceBusReceiveMode.ReceiveAndDelete 
-                    : ServiceBusReceiveMode.PeekLock
+                    : ServiceBusReceiveMode.PeekLock,
+                MaxConcurrentSessions = _options.AzureServiceBus.MaxConcurrentCalls,
+                SessionIdleTimeout = TimeSpan.FromMinutes(1)
             };
 
-            // Create regular processor for non-session messages
-            _processor = _options.AzureServiceBus.EntityType == AzureEntityType.Topic && 
-                         !string.IsNullOrWhiteSpace(_options.AzureServiceBus.SubscriptionName)
-                ? _client.CreateProcessor(entityName, _options.AzureServiceBus.SubscriptionName, processorOptions)
-                : _client.CreateProcessor(entityName, processorOptions);
+            var sessionProcessor = _options.AzureServiceBus.EntityType == AzureEntityType.Topic && 
+                                  !string.IsNullOrWhiteSpace(_options.AzureServiceBus.SubscriptionName)
+                ? _client.CreateSessionProcessor(entityName, _options.AzureServiceBus.SubscriptionName, sessionProcessorOptions)
+                : _client.CreateSessionProcessor(entityName, sessionProcessorOptions);
 
-            _processor.ProcessMessageAsync += ProcessMessageAsync;
-            _processor.ProcessErrorAsync += ProcessErrorAsync;
+            sessionProcessor.ProcessMessageAsync += ProcessSessionMessageAsync;
+            sessionProcessor.ProcessErrorAsync += ProcessErrorAsync;
+            sessionProcessor.SessionInitializingAsync += SessionInitializingAsync;
+            sessionProcessor.SessionClosingAsync += SessionClosingAsync;
 
-            await _processor.StartProcessingAsync(cancellationToken);
-
-            // Create session processor if sessions are enabled
-            if (_options.AzureServiceBus.SessionsEnabled)
-            {
-                var sessionProcessorOptions = new ServiceBusSessionProcessorOptions
-                {
-                    MaxConcurrentCallsPerSession = 1,
-                    AutoCompleteMessages = _options.AzureServiceBus.AutoCompleteMessages,
-                    PrefetchCount = _options.AzureServiceBus.PrefetchCount,
-                    ReceiveMode = _options.AzureServiceBus.AutoCompleteMessages 
-                        ? ServiceBusReceiveMode.ReceiveAndDelete 
-                        : ServiceBusReceiveMode.PeekLock,
-                    MaxConcurrentSessions = _options.AzureServiceBus.MaxConcurrentCalls,
-                    SessionIdleTimeout = TimeSpan.FromMinutes(1)
-                };
-
-                var sessionProcessor = _options.AzureServiceBus.EntityType == AzureEntityType.Topic && 
-                                      !string.IsNullOrWhiteSpace(_options.AzureServiceBus.SubscriptionName)
-                    ? _client.CreateSessionProcessor(entityName, _options.AzureServiceBus.SubscriptionName, sessionProcessorOptions)
-                    : _client.CreateSessionProcessor(entityName, sessionProcessorOptions);
-
-                sessionProcessor.ProcessMessageAsync += ProcessSessionMessageAsync;
-                sessionProcessor.ProcessErrorAsync += ProcessErrorAsync;
-                sessionProcessor.SessionInitializingAsync += SessionInitializingAsync;
-                sessionProcessor.SessionClosingAsync += SessionClosingAsync;
-
-                await sessionProcessor.StartProcessingAsync(cancellationToken);
-                _sessionProcessors[entityName] = sessionProcessor;
-            }
-            
-            _isStarted = true;
-            _logger?.LogInformation("Azure Service Bus message broker started for entity {EntityName}", entityName);
+            await sessionProcessor.StartProcessingAsync(cancellationToken);
+            _sessionProcessors[entityName] = sessionProcessor;
         }
-        catch (Exception ex)
+        
+        _logger.LogInformation("Azure Service Bus message broker started for entity {EntityName}", entityName);
+    }
+
+protected override async ValueTask StopInternalAsync(CancellationToken cancellationToken)
+    {
+        // Stop session processors
+        foreach (var sessionProcessor in _sessionProcessors.Values)
         {
-            _logger?.LogError(ex, "Error starting Azure Service Bus message broker");
-            throw;
+            if (sessionProcessor != null)
+            {
+                await sessionProcessor.StopProcessingAsync(cancellationToken);
+                await sessionProcessor.DisposeAsync();
+            }
+        }
+        _sessionProcessors.Clear();
+
+        // Stop regular processor
+        if (_processor != null)
+        {
+            await _processor.StopProcessingAsync(cancellationToken);
+            _logger.LogInformation("Azure Service Bus message broker stopped");
         }
     }
 
-    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
+private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
     {
-        if (!_isStarted) return;
-
-        try
-        {
-            // Stop session processors
-            foreach (var sessionProcessor in _sessionProcessors.Values)
-            {
-                if (sessionProcessor != null)
-                {
-                    await sessionProcessor.StopProcessingAsync(cancellationToken);
-                    await sessionProcessor.DisposeAsync();
-                }
-            }
-            _sessionProcessors.Clear();
-
-            // Stop regular processor
-            if (_processor != null)
-            {
-                await _processor.StopProcessingAsync(cancellationToken);
-                _logger?.LogInformation("Azure Service Bus message broker stopped");
-            }
-
-            _isStarted = false;
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error stopping Azure Service Bus message broker");
-            throw;
-        }
-    }
-
-    private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
-    {
-        using var activity = _activitySource.StartActivity("message.process");
-        var stopwatch = Stopwatch.StartNew();
-
         try
         {
             var messageType = args.Message.Subject;
@@ -774,16 +656,9 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
                 ? Type.GetType(messageType) 
                 : null;
 
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.MessagingSystem, "azure_service_bus");
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.MessagingOperation, "receive");
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.MessagingMessageId, args.Message.MessageId);
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.MessageType, messageType);
-
-            _messagesReceivedCounter.Add(1);
-
-            if (type == null || !_handlers.ContainsKey(type))
+            if (type == null)
             {
-                _logger?.LogWarning("No handler found for message type {MessageType}", messageType);
+                _logger.LogWarning("No handler found for message type {MessageType}", messageType);
                 
                 if (!_options.AzureServiceBus!.AutoCompleteMessages)
                 {
@@ -792,12 +667,12 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
                 return;
             }
 
-            var messageBody = args.Message.Body.ToString();
-            var message = JsonSerializer.Deserialize(messageBody, type);
+            var messageBody = args.Message.Body.ToArray();
+            var message = DeserializeMessage<object>(messageBody);
 
             if (message == null)
             {
-                _logger?.LogWarning("Failed to deserialize message of type {MessageType}", messageType);
+                _logger.LogWarning("Failed to deserialize message of type {MessageType}", messageType);
                 
                 if (!_options.AzureServiceBus!.AutoCompleteMessages)
                 {
@@ -837,35 +712,16 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
                 }
             };
 
-            var handlers = _handlers[type];
-            foreach (var handler in handlers)
-            {
-                await handler(message, context, args.CancellationToken);
-            }
+            await ProcessMessageAsync(message, type, context, args.CancellationToken);
 
             if (!_options.AzureServiceBus!.AutoCompleteMessages && context.Acknowledge != null)
             {
                 await context.Acknowledge();
             }
-
-            stopwatch.Stop();
-            _processDurationHistogram.Record(stopwatch.Elapsed.TotalSeconds);
-            _messagesProcessedCounter.Add(1, new KeyValuePair<string, object>("message_type", type.Name));
-            
-            activity?.SetStatus(ActivityStatusCode.Ok);
-            activity?.AddEvent(new ActivityEvent(MessageBrokerTelemetry.Events.MessageProcessed));
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-            _messagesFailedCounter.Add(1);
-            
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.ErrorType, ex.GetType().Name);
-            activity?.SetTag(MessageBrokerTelemetry.Attributes.ErrorMessage, ex.Message);
-            activity?.AddEvent(new ActivityEvent(MessageBrokerTelemetry.Events.MessageFailed));
-            
-            _logger?.LogError(ex, "Error processing Azure Service Bus message");
+            _logger.LogError(ex, "Error processing Azure Service Bus message");
             
             if (!_options.AzureServiceBus!.AutoCompleteMessages)
             {
@@ -883,7 +739,7 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
         return Task.CompletedTask;
     }
 
-    private async Task ProcessSessionMessageAsync(ProcessSessionMessageEventArgs args)
+private async Task ProcessSessionMessageAsync(ProcessSessionMessageEventArgs args)
     {
         try
         {
@@ -892,9 +748,9 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
                 ? Type.GetType(messageType) 
                 : null;
 
-            if (type == null || !_handlers.ContainsKey(type))
+            if (type == null)
             {
-                _logger?.LogWarning("No handler found for session message type {MessageType}", messageType);
+                _logger.LogWarning("No handler found for session message type {MessageType}", messageType);
                 
                 if (!_options.AzureServiceBus!.AutoCompleteMessages)
                 {
@@ -903,12 +759,12 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
                 return;
             }
 
-            var messageBody = args.Message.Body.ToString();
-            var message = JsonSerializer.Deserialize(messageBody, type);
+            var messageBody = args.Message.Body.ToArray();
+            var message = DeserializeMessage<object>(messageBody);
 
             if (message == null)
             {
-                _logger?.LogWarning("Failed to deserialize session message of type {MessageType}", messageType);
+                _logger.LogWarning("Failed to deserialize session message of type {MessageType}", messageType);
                 
                 if (!_options.AzureServiceBus!.AutoCompleteMessages)
                 {
@@ -949,11 +805,7 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
                 }
             };
 
-            var handlers = _handlers[type];
-            foreach (var handler in handlers)
-            {
-                await handler(message, context, args.CancellationToken);
-            }
+            await ProcessMessageAsync(message, type, context, args.CancellationToken);
 
             if (!_options.AzureServiceBus!.AutoCompleteMessages && context.Acknowledge != null)
             {
@@ -962,7 +814,7 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error processing Azure Service Bus session message");
+            _logger.LogError(ex, "Error processing Azure Service Bus session message");
             
             if (!_options.AzureServiceBus!.AutoCompleteMessages)
             {
@@ -971,19 +823,21 @@ public sealed class AzureServiceBusMessageBroker : IMessageBroker, IAsyncDisposa
         }
     }
 
-    private Task SessionInitializingAsync(ProcessSessionEventArgs args)
+private Task SessionInitializingAsync(ProcessSessionEventArgs args)
     {
-        _logger?.LogDebug("Session {SessionId} initializing", args.SessionId);
+        _logger.LogDebug("Session {SessionId} initializing", args.SessionId);
         return Task.CompletedTask;
     }
 
     private Task SessionClosingAsync(ProcessSessionEventArgs args)
     {
-        _logger?.LogDebug("Session {SessionId} closing", args.SessionId);
+        _logger.LogDebug("Session {SessionId} closing", args.SessionId);
         return Task.CompletedTask;
     }
 
-    public async ValueTask DisposeAsync()
+    
+
+    protected override async ValueTask DisposeInternalAsync()
     {
         // Dispose session processors
         foreach (var sessionProcessor in _sessionProcessors.Values)

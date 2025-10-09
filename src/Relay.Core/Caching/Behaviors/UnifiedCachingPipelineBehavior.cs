@@ -14,25 +14,26 @@ using System.Threading.Tasks;
 namespace Relay.Core.Caching.Behaviors;
 
 /// <summary>
-/// Enhanced caching pipeline behavior with advanced features.
+/// Unified caching pipeline behavior that supports both memory and distributed caching
+/// with comprehensive configuration options.
 /// </summary>
 /// <typeparam name="TRequest">The type of the request.</typeparam>
 /// <typeparam name="TResponse">The type of the response.</typeparam>
-public class EnhancedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public class UnifiedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
     private readonly IMemoryCache _memoryCache;
     private readonly IDistributedCache? _distributedCache;
-    private readonly ILogger<EnhancedCachingPipelineBehavior<TRequest, TResponse>> _logger;
+    private readonly ILogger<UnifiedCachingPipelineBehavior<TRequest, TResponse>> _logger;
     private readonly ICacheKeyGenerator _keyGenerator;
     private readonly ICacheSerializer _serializer;
     private readonly ICacheMetrics? _metrics;
     private readonly ICacheInvalidator? _invalidator;
     private readonly ICacheKeyTracker? _keyTracker;
 
-    public EnhancedCachingPipelineBehavior(
+    public UnifiedCachingPipelineBehavior(
         IMemoryCache memoryCache,
-        ILogger<EnhancedCachingPipelineBehavior<TRequest, TResponse>> logger,
+        ILogger<UnifiedCachingPipelineBehavior<TRequest, TResponse>> logger,
         ICacheKeyGenerator keyGenerator,
         ICacheSerializer serializer,
         ICacheMetrics? metrics = null,
@@ -53,7 +54,7 @@ public class EnhancedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeh
     public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var cacheAttribute = GetCacheAttribute();
-        if (cacheAttribute == null)
+        if (cacheAttribute == null || !cacheAttribute.Enabled)
         {
             return await next();
         }
@@ -62,7 +63,7 @@ public class EnhancedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeh
         var requestType = typeof(TRequest).Name;
 
         // Try to get from cache
-        var cacheResult = await TryGetFromCacheAsync(cacheKey, cancellationToken);
+        var cacheResult = await TryGetFromCacheAsync(cacheKey, cacheAttribute, cancellationToken);
         if (cacheResult.Success)
         {
             _metrics?.RecordHit(cacheKey, requestType);
@@ -81,14 +82,33 @@ public class EnhancedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeh
         return response;
     }
 
-    private EnhancedCacheAttribute? GetCacheAttribute()
+    private UnifiedCacheAttribute? GetCacheAttribute()
     {
-        return typeof(TRequest).GetCustomAttribute<EnhancedCacheAttribute>();
+        return typeof(TRequest).GetCustomAttribute<UnifiedCacheAttribute>();
     }
 
-private string GenerateCacheKey(TRequest request, EnhancedCacheAttribute cacheAttribute)
+    private string GenerateCacheKey(TRequest request, UnifiedCacheAttribute cacheAttribute)
     {
-        return _keyGenerator.GenerateKey(request, cacheAttribute);
+        // For backward compatibility, we need to handle different key generation methods
+        if (cacheAttribute.KeyPattern.Contains("{RequestHash}"))
+        {
+            return GenerateKeyWithHash(request, cacheAttribute);
+        }
+        else
+        {
+            return _keyGenerator.GenerateKey(request, cacheAttribute);
+        }
+    }
+
+    private string GenerateKeyWithHash(TRequest request, UnifiedCacheAttribute cacheAttribute)
+    {
+        var requestHash = GenerateRequestHash(request);
+        var keyPattern = cacheAttribute.KeyPattern
+            .Replace("{RequestType}", typeof(TRequest).Name)
+            .Replace("{RequestHash}", requestHash)
+            .Replace("{Region}", cacheAttribute.Region);
+        
+        return keyPattern;
     }
 
     private string GenerateRequestHash(TRequest request)
@@ -99,7 +119,7 @@ private string GenerateCacheKey(TRequest request, EnhancedCacheAttribute cacheAt
         return Convert.ToBase64String(hashBytes)[..8];
     }
 
-    private async Task<(bool Success, TResponse? Response)> TryGetFromCacheAsync(string cacheKey, CancellationToken cancellationToken)
+    private async Task<(bool Success, TResponse? Response)> TryGetFromCacheAsync(string cacheKey, UnifiedCacheAttribute cacheAttribute, CancellationToken cancellationToken)
     {
         // Try memory cache first
         if (_memoryCache.TryGetValue(cacheKey, out TResponse? cachedResponse))
@@ -107,8 +127,8 @@ private string GenerateCacheKey(TRequest request, EnhancedCacheAttribute cacheAt
             return (true, cachedResponse);
         }
 
-        // Try distributed cache if available
-        if (_distributedCache != null)
+        // Try distributed cache if enabled and available
+        if (cacheAttribute.UseDistributedCache && _distributedCache != null)
         {
             try
             {
@@ -118,10 +138,7 @@ private string GenerateCacheKey(TRequest request, EnhancedCacheAttribute cacheAt
                     cachedResponse = _serializer.Deserialize<TResponse>(cachedData);
                     
                     // Store in memory cache for faster access
-                    var memoryCacheOptions = new MemoryCacheEntryOptions
-                    {
-                        SlidingExpiration = TimeSpan.FromMinutes(5)
-                    };
+                    var memoryCacheOptions = CreateMemoryCacheOptions(cacheAttribute);
                     _memoryCache.Set(cacheKey, cachedResponse, memoryCacheOptions);
                     
                     return (true, cachedResponse);
@@ -139,7 +156,7 @@ private string GenerateCacheKey(TRequest request, EnhancedCacheAttribute cacheAt
     private async Task CacheResponseAsync(
         string cacheKey,
         TResponse response,
-        EnhancedCacheAttribute cacheAttribute,
+        UnifiedCacheAttribute cacheAttribute,
         CancellationToken cancellationToken)
     {
         try
@@ -159,8 +176,8 @@ private string GenerateCacheKey(TRequest request, EnhancedCacheAttribute cacheAt
             var memoryCacheOptions = CreateMemoryCacheOptions(cacheAttribute);
             _memoryCache.Set(cacheKey, response, memoryCacheOptions);
 
-            // Cache in distributed cache if available
-            if (_distributedCache != null)
+            // Cache in distributed cache if enabled and available
+            if (cacheAttribute.UseDistributedCache && _distributedCache != null)
             {
                 var distributedCacheOptions = CreateDistributedCacheOptions(cacheAttribute);
                 await _distributedCache.SetAsync(cacheKey, serializedResponse, distributedCacheOptions, cancellationToken);
@@ -174,7 +191,7 @@ private string GenerateCacheKey(TRequest request, EnhancedCacheAttribute cacheAt
         }
     }
 
-    private MemoryCacheEntryOptions CreateMemoryCacheOptions(EnhancedCacheAttribute cacheAttribute)
+    private MemoryCacheEntryOptions CreateMemoryCacheOptions(UnifiedCacheAttribute cacheAttribute)
     {
         var options = new MemoryCacheEntryOptions();
 
@@ -199,7 +216,7 @@ private string GenerateCacheKey(TRequest request, EnhancedCacheAttribute cacheAt
         return options;
     }
 
-    private DistributedCacheEntryOptions CreateDistributedCacheOptions(EnhancedCacheAttribute cacheAttribute)
+    private DistributedCacheEntryOptions CreateDistributedCacheOptions(UnifiedCacheAttribute cacheAttribute)
     {
         var options = new DistributedCacheEntryOptions();
 

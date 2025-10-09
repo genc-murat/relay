@@ -9,20 +9,7 @@ namespace Relay.Core.Caching;
 /// </summary>
 public class DefaultCacheKeyGenerator : ICacheKeyGenerator
 {
-    public string GenerateKey<TRequest>(TRequest request, DistributedCacheAttribute cacheAttribute)
-    {
-        var requestType = typeof(TRequest).Name;
-        var requestHash = GenerateRequestHash(request);
-        
-        var key = cacheAttribute.KeyPattern
-            .Replace("{RequestType}", requestType)
-            .Replace("{RequestHash}", requestHash)
-            .Replace("{Region}", cacheAttribute.Region);
-
-        return key;
-    }
-
-    public string GenerateKey<TRequest>(TRequest request, EnhancedCacheAttribute cacheAttribute)
+    public string GenerateKey<TRequest>(TRequest request, UnifiedCacheAttribute cacheAttribute)
     {
         var requestType = typeof(TRequest).Name;
         var requestHash = GenerateRequestHash(request);

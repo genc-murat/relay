@@ -1,4 +1,7 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
 using Relay.MessageBroker.AzureServiceBus;
 using Xunit;
 
@@ -6,11 +9,18 @@ namespace Relay.MessageBroker.Tests;
 
 public class AzureServiceBusMessageBrokerTests
 {
+    private readonly Mock<ILogger<AzureServiceBusMessageBroker>> _loggerMock;
+
+    public AzureServiceBusMessageBrokerTests()
+    {
+        _loggerMock = new Mock<ILogger<AzureServiceBusMessageBroker>>();
+    }
+
     [Fact]
     public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
     {
         // Arrange & Act
-        Action act = () => new AzureServiceBusMessageBroker(null!);
+        Action act = () => new AzureServiceBusMessageBroker(null!, _loggerMock.Object);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -23,7 +33,7 @@ public class AzureServiceBusMessageBrokerTests
         var options = new MessageBrokerOptions();
 
         // Act
-        Action act = () => new AzureServiceBusMessageBroker(options);
+        Action act = () => new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -40,7 +50,7 @@ public class AzureServiceBusMessageBrokerTests
         };
 
         // Act
-        Action act = () => new AzureServiceBusMessageBroker(options);
+        Action act = () => new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -61,7 +71,7 @@ public class AzureServiceBusMessageBrokerTests
         };
 
         // Act
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Assert
         broker.Should().NotBeNull();
@@ -78,7 +88,7 @@ public class AzureServiceBusMessageBrokerTests
                 ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
             }
         };
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.StopAsync();
@@ -98,7 +108,7 @@ public class AzureServiceBusMessageBrokerTests
                 ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
             }
         };
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.PublishAsync<TestMessage>(null!);
@@ -118,7 +128,7 @@ public class AzureServiceBusMessageBrokerTests
                 ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
             }
         };
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.PublishBatchAsync<TestMessage>(null!);
@@ -138,7 +148,7 @@ public class AzureServiceBusMessageBrokerTests
                 ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
             }
         };
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.ScheduleMessageAsync<TestMessage>(null!, DateTime.UtcNow.AddHours(1));
@@ -158,7 +168,7 @@ public class AzureServiceBusMessageBrokerTests
                 ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
             }
         };
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(null!);
@@ -178,7 +188,7 @@ public class AzureServiceBusMessageBrokerTests
                 ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
             }
         };
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.PublishInTransactionAsync<TestMessage>(null!);
@@ -198,7 +208,7 @@ public class AzureServiceBusMessageBrokerTests
                 ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
             }
         };
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.ProcessDeadLetterMessagesAsync<TestMessage>(null!);
@@ -218,7 +228,7 @@ public class AzureServiceBusMessageBrokerTests
                 ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test"
             }
         };
-        var broker = new AzureServiceBusMessageBroker(options);
+        var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act
         Func<Task> act = async () => await broker.ExecuteInTransactionAsync(null!);

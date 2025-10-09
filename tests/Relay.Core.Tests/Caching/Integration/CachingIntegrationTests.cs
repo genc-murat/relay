@@ -62,7 +62,7 @@ public class CachingIntegrationTests
     {
         // Arrange
         var keyGenerator = new DefaultCacheKeyGenerator();
-        var attribute = new EnhancedCacheAttribute { KeyPattern = "{RequestType}:{RequestHash}" };
+        var attribute = new UnifiedCacheAttribute { KeyPattern = "{RequestType}:{RequestHash}" };
         var request = new TestRequest { Id = 1, Name = "Test" };
 
         // Act

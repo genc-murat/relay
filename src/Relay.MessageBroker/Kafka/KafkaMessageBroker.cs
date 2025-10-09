@@ -1,41 +1,35 @@
-using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Relay.MessageBroker.Compression;
 
 namespace Relay.MessageBroker.Kafka;
 
 /// <summary>
 /// Kafka implementation of the message broker.
 /// </summary>
-public sealed class KafkaMessageBroker : IMessageBroker, IDisposable
+public sealed class KafkaMessageBroker : BaseMessageBroker
 {
-    private readonly MessageBrokerOptions _options;
-    private readonly ILogger<KafkaMessageBroker> _logger;
-    private readonly ConcurrentDictionary<Type, List<SubscriptionInfo>> _subscriptions = new();
     private IProducer<string, byte[]>? _producer;
     private readonly List<IConsumer<string, byte[]>> _consumers = new();
     private readonly CancellationTokenSource _consumeCts = new();
-    private bool _isStarted;
-    private bool _disposed;
 
     public KafkaMessageBroker(
         IOptions<MessageBrokerOptions> options,
-        ILogger<KafkaMessageBroker> logger)
+        ILogger<KafkaMessageBroker> logger,
+        IMessageCompressor? compressor = null)
+        : base(options, logger, compressor)
     {
-        _options = options.Value;
-        _logger = logger;
     }
 
-    public async ValueTask PublishAsync<TMessage>(
+protected override async ValueTask PublishInternalAsync<TMessage>(
         TMessage message,
-        PublishOptions? options = null,
-        CancellationToken cancellationToken = default)
+        byte[] serializedMessage,
+        PublishOptions? options,
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(message);
-
         EnsureProducer();
 
         var messageType = typeof(TMessage);
@@ -44,7 +38,6 @@ public sealed class KafkaMessageBroker : IMessageBroker, IDisposable
             ? options.Headers["Key"]?.ToString() ?? Guid.NewGuid().ToString()
             : Guid.NewGuid().ToString();
 
-        var body = SerializeMessage(message);
         var headers = new Headers();
 
         headers.Add("MessageType", Encoding.UTF8.GetBytes(messageType.FullName ?? messageType.Name));
@@ -65,7 +58,7 @@ public sealed class KafkaMessageBroker : IMessageBroker, IDisposable
         var kafkaMessage = new Message<string, byte[]>
         {
             Key = key,
-            Value = body,
+            Value = serializedMessage,
             Headers = headers
         };
 
@@ -79,49 +72,16 @@ public sealed class KafkaMessageBroker : IMessageBroker, IDisposable
             result.Offset);
     }
 
-    public async ValueTask SubscribeAsync<TMessage>(
-        Func<TMessage, MessageContext, CancellationToken, ValueTask> handler,
-        SubscriptionOptions? options = null,
-        CancellationToken cancellationToken = default)
+protected override async ValueTask SubscribeInternalAsync(
+        Type messageType,
+        SubscriptionInfo subscriptionInfo,
+        CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(handler);
-
-        var messageType = typeof(TMessage);
-        var subscriptionInfo = new SubscriptionInfo
-        {
-            MessageType = messageType,
-            Handler = async (msg, ctx, ct) => await handler((TMessage)msg, ctx, ct),
-            Options = options ?? new SubscriptionOptions()
-        };
-
-        _subscriptions.AddOrUpdate(
-            messageType,
-            _ => new List<SubscriptionInfo> { subscriptionInfo },
-            (_, list) =>
-            {
-                list.Add(subscriptionInfo);
-                return list;
-            });
-
-        if (_isStarted)
-        {
-            await SetupConsumerAsync(subscriptionInfo, cancellationToken);
-        }
-
-        _logger.LogInformation(
-            "Subscribed to messages of type {MessageType}",
-            messageType.Name);
-
-        await ValueTask.CompletedTask;
+        await SetupConsumerAsync(subscriptionInfo, cancellationToken);
     }
 
-    public async ValueTask StartAsync(CancellationToken cancellationToken = default)
+protected override async ValueTask StartInternalAsync(CancellationToken cancellationToken)
     {
-        if (_isStarted)
-        {
-            return;
-        }
-
         EnsureProducer();
 
         foreach (var subscriptionGroup in _subscriptions.Values)
@@ -132,17 +92,11 @@ public sealed class KafkaMessageBroker : IMessageBroker, IDisposable
             }
         }
 
-        _isStarted = true;
         _logger.LogInformation("Kafka message broker started");
     }
 
-    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
+protected override async ValueTask StopInternalAsync(CancellationToken cancellationToken)
     {
-        if (!_isStarted)
-        {
-            return;
-        }
-
         await _consumeCts.CancelAsync();
 
         foreach (var consumer in _consumers)
@@ -153,7 +107,6 @@ public sealed class KafkaMessageBroker : IMessageBroker, IDisposable
 
         _consumers.Clear();
 
-        _isStarted = false;
         _logger.LogInformation("Kafka message broker stopped");
     }
 
@@ -247,17 +200,17 @@ public sealed class KafkaMessageBroker : IMessageBroker, IDisposable
         await ValueTask.CompletedTask;
     }
 
-    private async ValueTask ProcessMessageAsync(
+private async ValueTask ProcessMessageAsync(
         ConsumeResult<string, byte[]> result,
         SubscriptionInfo subscription,
         IConsumer<string, byte[]> consumer)
     {
         try
         {
-            var message = DeserializeMessage(result.Message.Value, subscription.MessageType);
+            var message = DeserializeMessage<object>(result.Message.Value);
             var context = CreateMessageContext(result, consumer);
 
-            await subscription.Handler(message, context, CancellationToken.None);
+            await ProcessMessageAsync(message, subscription.MessageType, context, CancellationToken.None);
 
             if (!subscription.Options.AutoAck && !_options.Kafka!.EnableAutoCommit)
             {
@@ -331,37 +284,9 @@ public sealed class KafkaMessageBroker : IMessageBroker, IDisposable
             .ToLowerInvariant();
     }
 
-    private byte[] SerializeMessage<TMessage>(TMessage message)
+protected override async ValueTask DisposeInternalAsync()
     {
-        var json = JsonSerializer.Serialize(message);
-        return Encoding.UTF8.GetBytes(json);
-    }
-
-    private object DeserializeMessage(byte[] body, Type messageType)
-    {
-        var json = Encoding.UTF8.GetString(body);
-        return JsonSerializer.Deserialize(json, messageType)!;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        StopAsync().AsTask().Wait();
-
         _producer?.Dispose();
         _consumeCts.Dispose();
-
-        _disposed = true;
-    }
-
-    private sealed class SubscriptionInfo
-    {
-        public required Type MessageType { get; init; }
-        public required Func<object, MessageContext, CancellationToken, ValueTask> Handler { get; init; }
-        public required SubscriptionOptions Options { get; init; }
     }
 }

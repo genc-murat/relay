@@ -7,6 +7,5 @@ namespace Relay.Core.Caching;
 /// </summary>
 public interface ICacheKeyGenerator
 {
-    string GenerateKey<TRequest>(TRequest request, DistributedCacheAttribute cacheAttribute);
-    string GenerateKey<TRequest>(TRequest request, EnhancedCacheAttribute cacheAttribute);
+    string GenerateKey<TRequest>(TRequest request, UnifiedCacheAttribute cacheAttribute);
 }

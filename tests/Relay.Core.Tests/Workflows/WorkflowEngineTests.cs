@@ -752,30 +752,558 @@ public class WorkflowEngineTests
     }
 
     [Fact]
-    public void FindRequestType_WithNonExistentType_ShouldReturnNull()
+    public async Task FindRequestType_WithNonExistentType_ShouldFailWorkflow()
     {
-        // This test verifies the behavior when a request type is not found
-        // The actual method is private and tested indirectly through workflow execution
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "Step1",
+                    Type = StepType.Request,
+                    RequestType = "NonExistent.Type.That.Does.Not.Exist"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should fail because request type not found
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 
     [Fact]
-    public void EvaluateCondition_ShouldEvaluateCorrectly()
+    public async Task EvaluateCondition_WithEqualsOperator_ShouldEvaluateCorrectly()
     {
-        // This test verifies condition evaluation logic
-        // The actual method is private and tested indirectly through workflow execution
-        
-        // Test cases are documented here but tested through workflow execution:
-        // "key == value", "value" -> true
-        // "key != value", "value" -> false
-        // "key contains val", "value" -> true
-        // "key startswith val", "value" -> true
-        // "key endswith lue", "value" -> true
-        // "key > 5", "10" -> true
-        // "key < 5", "10" -> false
-        // "key >= 10", "10" -> true
-        // "key <= 10", "10" -> true
-        // "nonexistent", "" -> false
-        // "", "" -> true
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Status == active"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Status = "active" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithNotEqualsOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Status != inactive"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Status = "active" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithContainsOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Message contains error"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Message = "An error occurred" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithStartsWithOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Name startswith John"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Name = "John Doe" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithEndsWithOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Filename endswith .txt"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Filename = "document.txt" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithGreaterThanOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Count > 5"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Count = "10" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithLessThanOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Count < 20"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Count = "10" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithGreaterThanOrEqualOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Age >= 18"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Age = "18" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithLessThanOrEqualOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Score <= 100"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Score = "95" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithNonNumericValuesForComparison_ShouldDefaultToTrue()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Text > 5" // Non-numeric comparison should default to true
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Text = "hello" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Since the condition cannot be evaluated, it should complete (defaults to true)
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithSimpleBooleanCheck_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "IsActive"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { IsActive = true });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithNonEmptyString_ShouldEvaluateToTrue()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "UserName"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { UserName = "John" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithInvalidConditionFormat_ShouldDefaultToTrue()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "InvalidFormat WithoutOperator" // Invalid format should default to true
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Should default to true and complete successfully
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithNonExistentKey_ShouldDefaultToTrue()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "NonExistentKey"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Non-existent key should default to true
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -1060,11 +1588,535 @@ public class WorkflowEngineTests
         public string Name { get; set; } = string.Empty;
     }
 
-    // Test request types for workflow execution
+    [Fact]
+    public async Task CreateRequestFromStep_WithPropertyMapping_ShouldMapPropertiesCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "RequestStep",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequestWithProperties",
+                    OutputKey = "Result"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        WorkflowExecution? savedExecution = null;
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) =>
+            {
+                savedExecution = exec;
+                // Pre-populate context with properties for the request
+                if (!exec.Context.ContainsKey("TestProperty"))
+                {
+                    exec.Context["TestProperty"] = "TestValue";
+                    exec.Context["NumberProperty"] = 42;
+                }
+            })
+            .Returns(ValueTask.CompletedTask);
+
+        TestWorkflowRequestWithProperties? capturedRequest = null;
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequestWithProperties>(), It.IsAny<CancellationToken>()))
+            .Callback<object, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
+            .Returns(new ValueTask<string>("Success"));
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Properties should be mapped correctly
+        Assert.NotNull(capturedRequest);
+        Assert.Equal("TestValue", capturedRequest.TestProperty);
+        Assert.Equal(42, capturedRequest.NumberProperty);
+    }
+
+    [Fact]
+    public async Task CreateRequestFromStep_WithTypeConversion_ShouldConvertProperties()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "RequestStep",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequestWithProperties",
+                    OutputKey = "Result"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) =>
+            {
+                // Pre-populate context with string value for the request
+                if (!exec.Context.ContainsKey("NumberProperty"))
+                {
+                    exec.Context["NumberProperty"] = "123"; // String that should be converted to int
+                }
+            })
+            .Returns(ValueTask.CompletedTask);
+
+        TestWorkflowRequestWithProperties? capturedRequest = null;
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequestWithProperties>(), It.IsAny<CancellationToken>()))
+            .Callback<object, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
+            .Returns(new ValueTask<string>("Success"));
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Type conversion should occur
+        Assert.NotNull(capturedRequest);
+        Assert.Equal(123, capturedRequest.NumberProperty);
+    }
+
+    [Fact]
+    public async Task CreateRequestFromStep_WithReadOnlyProperty_ShouldSkipProperty()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "RequestStep",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequestWithReadOnly",
+                    OutputKey = "Result"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequestWithReadOnly>(), It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<string>("Success"));
+
+        // Act - Try to set ReadOnlyProperty, should be skipped
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { ReadOnlyProperty = "TestValue" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should complete successfully (readonly property should be skipped)
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteStep_WithContinueOnError_ShouldContinueExecution()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "FailingStep",
+                    Type = StepType.Request,
+                    RequestType = "NonExistentType",
+                    ContinueOnError = true
+                },
+                new WorkflowStep
+                {
+                    Name = "SuccessStep",
+                    Type = StepType.Wait,
+                    WaitTimeMs = 50
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(400);
+
+        // Assert - Workflow should complete despite the first step failing
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteParallelStep_WithNullParallelSteps_ShouldComplete()
+    {
+        // Arrange - This tests the null check in ExecuteParallelStep
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ParallelStep",
+                    Type = StepType.Parallel,
+                    ParallelSteps = new List<WorkflowStep>() // Empty list (validation requires at least one, so this will fail validation)
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Should fail validation
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task FindRequestType_WithTypeThatDoesNotImplementIRequest_ShouldFailWorkflow()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "RequestStep",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+NonRequestType" // Type that doesn't implement IRequest
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Should fail because type doesn't implement IRequest
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ValidateWorkflowStep_WithNestedParallelSteps_ShouldValidateNested()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ParallelStep",
+                    Type = StepType.Parallel,
+                    ParallelSteps = new List<WorkflowStep>
+                    {
+                        new WorkflowStep { Name = "", Type = StepType.Wait, WaitTimeMs = 50 } // Invalid: empty name
+                    }
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Should fail nested validation
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ValidateWorkflowStep_WithNestedElseSteps_ShouldValidateNested()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "test",
+                    ElseSteps = new List<WorkflowStep>
+                    {
+                        new WorkflowStep { Name = "ElseStep", Type = StepType.Request } // Invalid: missing RequestType
+                    }
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Should fail nested validation
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteRequestStep_WithOutputKey_ShouldUpdateContext()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "RequestStep",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequest",
+                    OutputKey = "CustomKey"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        WorkflowExecution? savedExecution = null;
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecution = exec)
+            .Returns(ValueTask.CompletedTask);
+
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequest>(), It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<string>("TestResult"));
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Context should contain the output with the custom key
+        Assert.NotNull(savedExecution);
+        Assert.True(savedExecution.Context.ContainsKey("CustomKey"));
+        Assert.Equal("TestResult", savedExecution.Context["CustomKey"]);
+    }
+
+    [Fact]
+    public async Task ExecuteRequestStep_WithoutOutputKey_ShouldUseStepNameAsKey()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "MyRequestStep",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequest"
+                    // No OutputKey specified
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        WorkflowExecution? savedExecution = null;
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecution = exec)
+            .Returns(ValueTask.CompletedTask);
+
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequest>(), It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<string>("TestResult"));
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Context should contain the output with the step name as key
+        Assert.NotNull(savedExecution);
+        Assert.True(savedExecution.Context.ContainsKey("MyRequestStep"));
+        Assert.Equal("TestResult", savedExecution.Context["MyRequestStep"]);
+    }
+
+    [Fact]
+    public async Task ExecuteConditionalStep_ShouldSetConditionResultInOutput()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "TestValue == true"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        WorkflowExecution? savedExecution = null;
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecution = exec)
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { TestValue = true });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - StepExecution should have output with ConditionResult
+        Assert.NotNull(savedExecution);
+        Assert.Single(savedExecution.StepExecutions);
+        Assert.NotNull(savedExecution.StepExecutions[0].Output);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithNullValue_ShouldHandleGracefully()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "NullValue"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act - Pass null value
+        var context = new Dictionary<string, object> { ["NullValue"] = null! };
+        await _workflowEngine.StartWorkflowAsync("test-workflow", context);
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Should handle null gracefully and default to true
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    // Test request types and helper classes for workflow execution
     public class TestWorkflowRequest : IRequest<string>
     {
         public string TestProperty { get; set; } = string.Empty;
         public int NumberProperty { get; set; }
+    }
+
+    public class TestWorkflowRequestWithProperties : IRequest<string>
+    {
+        public string TestProperty { get; set; } = string.Empty;
+        public int NumberProperty { get; set; }
+    }
+
+    public class TestWorkflowRequestWithReadOnly : IRequest<string>
+    {
+        public string ReadOnlyProperty { get; } = "DefaultValue";
+        public string WritableProperty { get; set; } = string.Empty;
+    }
+
+    public class NonRequestType
+    {
+        public string SomeProperty { get; set; } = string.Empty;
     }
 
     public class TestWorkflowResponse

@@ -1,6 +1,5 @@
 using Relay.CLI.Commands;
 using System.CommandLine;
-using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
 
@@ -27,8 +26,8 @@ public class BenchmarkCommandTests : IDisposable
         stopwatch.Stop();
 
         // Assert - Allow significant margin for timing variance in CI/CD environments
-        stopwatch.ElapsedMilliseconds.Should().BeGreaterThan(0);
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(100);
+        Assert.True(stopwatch.ElapsedMilliseconds > 0);
+        Assert.True(stopwatch.ElapsedMilliseconds < 100);
     }
 
     [Fact]
@@ -42,7 +41,7 @@ public class BenchmarkCommandTests : IDisposable
         var improvement = (mediatrTime - relayTime).TotalMilliseconds / mediatrTime.TotalMilliseconds * 100;
 
         // Assert
-        improvement.Should().BeApproximately(67, 1); // ~67% faster
+        Assert.Equal(67, improvement, 1); // ~67% faster
     }
 
     [Fact]
@@ -60,8 +59,8 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.Allocations.Should().Be(1024);
-        result.Gen0Collections.Should().BeGreaterThan(0);
+        Assert.Equal(1024, result.Allocations);
+        Assert.True(result.Gen0Collections > 0);
     }
 
     [Fact]
@@ -85,8 +84,8 @@ public class BenchmarkCommandTests : IDisposable
         var allocationReduction = (baseline.Allocations - optimized.Allocations) * 100.0 / baseline.Allocations;
 
         // Assert
-        speedup.Should().BeApproximately(1.49, 0.01); // 49% faster
-        allocationReduction.Should().Be(100); // 100% reduction (zero-allocation)
+        Assert.Equal(1.49, speedup, 0.01); // 49% faster
+        Assert.Equal(100, allocationReduction); // 100% reduction (zero-allocation)
     }
 
     [Fact]
@@ -105,9 +104,9 @@ public class BenchmarkCommandTests : IDisposable
         var formatted = $"{result.Name}: {result.ExecutionTime.TotalMicroseconds:F2}μs, {result.Allocations}B, {result.ThroughputPerSecond:N0} ops/s";
 
         // Assert
-        formatted.Should().Contain("TestHandler");
-        formatted.Should().Contain("3");
-        formatted.Should().Contain("333"); // Accept culture-invariant format
+        Assert.Contains("TestHandler", formatted);
+        Assert.Contains("3", formatted);
+        Assert.Contains("333", formatted); // Accept culture-invariant format
     }
 
     [Fact]
@@ -125,7 +124,7 @@ public class BenchmarkCommandTests : IDisposable
         }
 
         // Assert
-        counter.Should().Be(warmupCount);
+        Assert.Equal(warmupCount, counter);
     }
 
     [Fact]
@@ -145,7 +144,7 @@ public class BenchmarkCommandTests : IDisposable
         }
 
         // Assert
-        times.Should().HaveCount(iterations);
+        Assert.Equal(iterations, times.Count);
     }
 
     [Fact]
@@ -158,7 +157,7 @@ public class BenchmarkCommandTests : IDisposable
         var average = times.Average();
 
         // Assert
-        average.Should().Be(3.0);
+        Assert.Equal(3.0, average);
     }
 
     [Fact]
@@ -172,7 +171,7 @@ public class BenchmarkCommandTests : IDisposable
         var median = times[times.Length / 2];
 
         // Assert
-        median.Should().Be(3.0);
+        Assert.Equal(3.0, median);
     }
 
     [Fact]
@@ -188,9 +187,9 @@ public class BenchmarkCommandTests : IDisposable
         var p99 = times[99];
 
         // Assert
-        p50.Should().Be(51);
-        p95.Should().Be(96);
-        p99.Should().Be(100);
+        Assert.Equal(51, p50);
+        Assert.Equal(96, p95);
+        Assert.Equal(100, p99);
     }
 
     [Fact]
@@ -205,7 +204,7 @@ public class BenchmarkCommandTests : IDisposable
         var stdDev = Math.Sqrt(variance);
 
         // Assert
-        stdDev.Should().BeApproximately(1.414, 0.01);
+        Assert.Equal(1.414, stdDev, 0.01);
     }
 
     [Theory]
@@ -218,7 +217,7 @@ public class BenchmarkCommandTests : IDisposable
         var opsPerSecond = (long)(1_000_000 / microseconds);
 
         // Assert
-        opsPerSecond.Should().Be(expectedOps);
+        Assert.Equal(expectedOps, opsPerSecond);
     }
 
     [Fact]
@@ -239,7 +238,7 @@ public class BenchmarkCommandTests : IDisposable
 
         // Assert
         var gen0After = GC.CollectionCount(0);
-        gen0After.Should().BeGreaterThan(gen0Before);
+        Assert.True(gen0After > gen0Before);
     }
 
     [Fact]
@@ -253,7 +252,7 @@ public class BenchmarkCommandTests : IDisposable
         var regression = (current - baseline).TotalMilliseconds / baseline.TotalMilliseconds * 100;
 
         // Assert
-        regression.Should().Be(60); // 60% slower - regression detected!
+        Assert.Equal(60, regression); // 60% slower - regression detected!
     }
 
     [Fact]
@@ -274,9 +273,9 @@ public class BenchmarkCommandTests : IDisposable
 | Handler2 |    2000.0 |      1024 B |";
 
         // Assert
-        markdown.Should().Contain("Handler1");
-        markdown.Should().Contain("1000.0");
-        markdown.Should().Contain("0 B");
+        Assert.Contains("Handler1", markdown);
+        Assert.Contains("1000.0", markdown);
+        Assert.Contains("0 B", markdown);
     }
 
     [Fact]
@@ -294,9 +293,9 @@ public class BenchmarkCommandTests : IDisposable
         await File.WriteAllTextAsync(csvPath, csv);
 
         // Assert
-        File.Exists(csvPath).Should().BeTrue();
+        Assert.True(File.Exists(csvPath));
         var content = await File.ReadAllTextAsync(csvPath);
-        content.Should().Contain("Test");
+        Assert.Contains("Test", content);
     }
 
     [Fact]
@@ -307,7 +306,7 @@ public class BenchmarkCommandTests : IDisposable
         var actualIterations = 150;
 
         // Assert
-        actualIterations.Should().BeGreaterThanOrEqualTo(minIterations);
+        Assert.True(actualIterations >= minIterations);
     }
 
     [Fact]
@@ -330,7 +329,7 @@ public class BenchmarkCommandTests : IDisposable
         var ratio = mediatrResult.ExecutionTime.TotalMicroseconds / relayResult.ExecutionTime.TotalMicroseconds;
 
         // Assert
-        ratio.Should().BeApproximately(3.0, 0.1); // MediatR is ~3x slower
+        Assert.Equal(3.0, ratio, 0.1); // MediatR is ~3x slower
     }
 
     [Fact]
@@ -340,7 +339,7 @@ public class BenchmarkCommandTests : IDisposable
         var result = new BenchmarkResult { Allocations = 0 };
 
         // Assert
-        result.Allocations.Should().Be(0, "zero-allocation is optimal");
+        Assert.Equal(0, result.Allocations);
     }
 
     [Fact]
@@ -357,11 +356,11 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.Name.Should().NotBeEmpty();
-        result.ExecutionTime.Should().BeGreaterThan(TimeSpan.Zero);
-        result.Allocations.Should().BeGreaterThan(0);
-        result.Gen0Collections.Should().BeGreaterThan(0);
-        result.ThroughputPerSecond.Should().BeGreaterThan(0);
+        Assert.NotEmpty(result.Name);
+        Assert.True(result.ExecutionTime > TimeSpan.Zero);
+        Assert.True(result.Allocations > 0);
+        Assert.True(result.Gen0Collections > 0);
+        Assert.True(result.ThroughputPerSecond > 0);
     }
 
     [Fact]
@@ -374,7 +373,7 @@ public class BenchmarkCommandTests : IDisposable
         var min = times.Min();
 
         // Assert
-        min.Should().Be(2.0);
+        Assert.Equal(2.0, min);
     }
 
     [Fact]
@@ -387,7 +386,7 @@ public class BenchmarkCommandTests : IDisposable
         var max = times.Max();
 
         // Assert
-        max.Should().Be(9.0);
+        Assert.Equal(9.0, max);
     }
 
     [Fact]
@@ -400,7 +399,7 @@ public class BenchmarkCommandTests : IDisposable
         var range = times.Max() - times.Min();
 
         // Assert
-        range.Should().Be(7.0);
+        Assert.Equal(7.0, range);
     }
 
     [Theory]
@@ -414,7 +413,7 @@ public class BenchmarkCommandTests : IDisposable
         var throughput = (long)(1_000_000 / microseconds);
 
         // Assert
-        throughput.Should().Be(expectedThroughput);
+        Assert.Equal(expectedThroughput, throughput);
     }
 
     [Fact]
@@ -427,8 +426,8 @@ public class BenchmarkCommandTests : IDisposable
         var formatted = $"{time.TotalMicroseconds:F2}μs";
 
         // Assert
-        formatted.Should().Contain("1234");
-        formatted.Should().Contain("μs");
+        Assert.Contains("1234", formatted);
+        Assert.Contains("μs", formatted);
     }
 
     [Fact]
@@ -441,8 +440,8 @@ public class BenchmarkCommandTests : IDisposable
         var formatted = $"{time.TotalMilliseconds:F2}ms";
 
         // Assert
-        formatted.Should().Contain("12");
-        formatted.Should().Contain("ms");
+        Assert.Contains("12", formatted);
+        Assert.Contains("ms", formatted);
     }
 
     [Fact]
@@ -455,8 +454,8 @@ public class BenchmarkCommandTests : IDisposable
         var formatted = $"{time.TotalSeconds:F2}s";
 
         // Assert
-        formatted.Should().Contain("1");
-        formatted.Should().Contain("s");
+        Assert.Contains("1", formatted);
+        Assert.Contains("s", formatted);
     }
 
     [Fact]
@@ -470,7 +469,7 @@ public class BenchmarkCommandTests : IDisposable
         var outlier = times.Last();
 
         // Assert
-        outlier.Should().BeGreaterThan(mean * 2);
+        Assert.True(outlier > mean * 2);
     }
 
     [Fact]
@@ -484,7 +483,7 @@ public class BenchmarkCommandTests : IDisposable
         var improvement = (baseline - current) / baseline * 100;
 
         // Assert
-        improvement.Should().Be(20); // 20% improvement
+        Assert.Equal(20, improvement); // 20% improvement
     }
 
     [Fact]
@@ -498,7 +497,7 @@ public class BenchmarkCommandTests : IDisposable
         var speedup = oldTime / newTime;
 
         // Assert
-        speedup.Should().Be(2.0); // 2x faster
+        Assert.Equal(2.0, speedup); // 2x faster
     }
 
     [Fact]
@@ -514,7 +513,7 @@ public class BenchmarkCommandTests : IDisposable
         }
 
         // Assert
-        warmupIterations.Should().BeGreaterThan(0);
+        Assert.True(warmupIterations > 0);
     }
 
     [Fact]
@@ -528,9 +527,9 @@ public class BenchmarkCommandTests : IDisposable
         var actualResults = allTimes.Skip(warmupCount).ToArray();
 
         // Assert
-        actualResults.Should().HaveCount(3);
-        actualResults.Should().NotContain(100.0);
-        actualResults.Should().NotContain(90.0);
+        Assert.Equal(3, actualResults.Length);
+        Assert.DoesNotContain(100.0, actualResults);
+        Assert.DoesNotContain(90.0, actualResults);
     }
 
     [Fact]
@@ -544,8 +543,8 @@ public class BenchmarkCommandTests : IDisposable
         var containsTime = json.Contains("time");
 
         // Assert
-        containsName.Should().BeTrue();
-        containsTime.Should().BeTrue();
+        Assert.True(containsName);
+        Assert.True(containsTime);
     }
 
     [Fact]
@@ -562,8 +561,8 @@ public class BenchmarkCommandTests : IDisposable
         var upperBound = mean + marginOfError;
 
         // Assert
-        lowerBound.Should().BeLessThan(mean);
-        upperBound.Should().BeGreaterThan(mean);
+        Assert.True(lowerBound < mean);
+        Assert.True(upperBound > mean);
     }
 
     [Fact()]
@@ -585,7 +584,7 @@ public class BenchmarkCommandTests : IDisposable
 
         // Assert
         var memoryGrowth = afterMemory - beforeMemory;
-        memoryGrowth.Should().BeGreaterThan(500 * 1024,
+        Assert.True(memoryGrowth > 500 * 1024,
             "allocating 1MB should increase memory by at least 500KB");
 
         // Keep reference to prevent GC
@@ -608,8 +607,8 @@ public class BenchmarkCommandTests : IDisposable
         var slowest = results.MaxBy(r => r.ExecutionTime.TotalMicroseconds);
 
         // Assert
-        fastest?.Name.Should().Be("Fast");
-        slowest?.Name.Should().Be("Slow");
+        Assert.Equal("Fast", fastest?.Name);
+        Assert.Equal("Slow", slowest?.Name);
     }
 
     [Fact]
@@ -627,9 +626,9 @@ public class BenchmarkCommandTests : IDisposable
         var ranked = results.OrderBy(r => r.ExecutionTime.TotalMicroseconds).ToArray();
 
         // Assert
-        ranked[0].Name.Should().Be("A");
-        ranked[1].Name.Should().Be("B");
-        ranked[2].Name.Should().Be("C");
+        Assert.Equal("A", ranked[0].Name);
+        Assert.Equal("B", ranked[1].Name);
+        Assert.Equal("C", ranked[2].Name);
     }
 
     [Fact]
@@ -643,7 +642,7 @@ public class BenchmarkCommandTests : IDisposable
         var allocationRate = allocations / executionTime.TotalSeconds;
 
         // Assert
-        allocationRate.Should().Be(1024); // 1024 B/s
+        Assert.Equal(1024, allocationRate); // 1024 B/s
     }
 
     [Fact]
@@ -656,7 +655,7 @@ public class BenchmarkCommandTests : IDisposable
         var formatted = $"{bytes} B";
 
         // Assert
-        formatted.Should().Be("1024 B");
+        Assert.Equal("1024 B", formatted);
     }
 
     [Fact]
@@ -670,8 +669,8 @@ public class BenchmarkCommandTests : IDisposable
         var formatted = $"{kb:F2} KB";
 
         // Assert
-        formatted.Should().Contain("1024");
-        formatted.Should().Contain("KB");
+        Assert.Contains("1024", formatted);
+        Assert.Contains("KB", formatted);
     }
 
     [Fact]
@@ -685,7 +684,7 @@ public class BenchmarkCommandTests : IDisposable
         var p50 = times[50];
 
         // Assert
-        p50.Should().Be(51);
+        Assert.Equal(51, p50);
     }
 
     [Fact]
@@ -699,7 +698,7 @@ public class BenchmarkCommandTests : IDisposable
         var p90 = times[90];
 
         // Assert
-        p90.Should().Be(91);
+        Assert.Equal(91, p90);
     }
 
     [Fact]
@@ -713,7 +712,7 @@ public class BenchmarkCommandTests : IDisposable
         var p99 = times[99];
 
         // Assert
-        p99.Should().Be(100);
+        Assert.Equal(100, p99);
     }
 
     [Fact]
@@ -729,8 +728,8 @@ public class BenchmarkCommandTests : IDisposable
         var hasRegression = regressionPercent > threshold;
 
         // Assert
-        hasRegression.Should().BeTrue();
-        regressionPercent.Should().Be(50);
+        Assert.True(hasRegression);
+        Assert.Equal(50, regressionPercent);
     }
 
     [Fact]
@@ -743,10 +742,10 @@ public class BenchmarkCommandTests : IDisposable
         var lines = csv.Split('\n');
 
         // Assert
-        lines.Should().HaveCount(3);
-        lines[0].Should().Contain("Name");
-        lines[1].Should().Contain("Handler1");
-        lines[2].Should().Contain("Handler2");
+        Assert.Equal(3, lines.Length);
+        Assert.Contains("Name", lines[0]);
+        Assert.Contains("Handler1", lines[1]);
+        Assert.Contains("Handler2", lines[2]);
     }
 
     [Fact]
@@ -760,7 +759,7 @@ public class BenchmarkCommandTests : IDisposable
         var isValid = actualIterations >= minIterations;
 
         // Assert
-        isValid.Should().BeTrue();
+        Assert.True(isValid);
     }
 
     [Fact]
@@ -774,7 +773,7 @@ public class BenchmarkCommandTests : IDisposable
         var variance = times.Select(t => Math.Pow(t - mean, 2)).Average();
 
         // Assert
-        variance.Should().Be(2.0);
+        Assert.Equal(2.0, variance);
     }
 
     [Fact]
@@ -789,7 +788,7 @@ public class BenchmarkCommandTests : IDisposable
         var cv = (stdDev / mean) * 100; // Coefficient of variation as percentage
 
         // Assert
-        cv.Should().BeLessThan(10); // Low variance is good
+        Assert.True(cv < 10); // Low variance is good
     }
 
     [Fact]
@@ -803,7 +802,7 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync("--iterations 100 --warmup 10", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -818,11 +817,11 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
-        File.Exists(outputPath).Should().BeTrue();
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(outputPath));
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("TestConfiguration");
-        content.Should().Contain("RelayResults");
+        Assert.Contains("TestConfiguration", content);
+        Assert.Contains("RelayResults", content);
     }
 
     [Fact]
@@ -837,11 +836,11 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format html", console);
 
         // Assert
-        result.Should().Be(0);
-        File.Exists(outputPath).Should().BeTrue();
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(outputPath));
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("<!DOCTYPE html>");
-        content.Should().Contain("Relay Performance Benchmark Results");
+        Assert.Contains("<!DOCTYPE html>", content);
+        Assert.Contains("Relay Performance Benchmark Results", content);
     }
 
     [Fact]
@@ -856,10 +855,10 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format csv", console);
 
         // Assert
-        result.Should().Be(0);
-        File.Exists(outputPath).Should().BeTrue();
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(outputPath));
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("Implementation,Average Time");
+        Assert.Contains("Implementation,Average Time", content);
     }
 
     [Fact]
@@ -874,9 +873,9 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --tests relay --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("RelayResults");
+        Assert.Contains("RelayResults", content);
     }
 
     [Fact]
@@ -891,9 +890,9 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --tests comparison --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("ComparisonResults");
+        Assert.Contains("ComparisonResults", content);
     }
 
     [Fact]
@@ -908,10 +907,10 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --tests all --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("RelayResults");
-        content.Should().Contain("ComparisonResults");
+        Assert.Contains("RelayResults", content);
+        Assert.Contains("ComparisonResults", content);
     }
 
     [Fact]
@@ -926,9 +925,9 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 500 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("\"Iterations\": 500");
+        Assert.Contains("\"Iterations\": 500", content);
     }
 
     [Fact]
@@ -943,9 +942,9 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --warmup 50 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("\"WarmupIterations\": 50");
+        Assert.Contains("\"WarmupIterations\": 50", content);
     }
 
     [Fact]
@@ -960,9 +959,9 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 1000 --threads 4 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("\"Threads\": 4");
+        Assert.Contains("\"Threads\": 4", content);
     }
 
     [Fact]
@@ -977,11 +976,11 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("MachineName");
-        content.Should().Contain("ProcessorCount");
-        content.Should().Contain("RuntimeVersion");
+        Assert.Contains("MachineName", content);
+        Assert.Contains("ProcessorCount", content);
+        Assert.Contains("RuntimeVersion", content);
     }
 
     [Fact]
@@ -996,11 +995,11 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("AverageTime");
-        content.Should().Contain("RequestsPerSecond");
-        content.Should().Contain("MemoryAllocated");
+        Assert.Contains("AverageTime", content);
+        Assert.Contains("RequestsPerSecond", content);
+        Assert.Contains("MemoryAllocated", content);
     }
 
     [Fact]
@@ -1015,10 +1014,10 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format html", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("chart.js");
-        content.Should().Contain("performanceChart");
+        Assert.Contains("chart.js", content);
+        Assert.Contains("performanceChart", content);
     }
 
     [Fact]
@@ -1033,12 +1032,12 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --tests relay --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("Standard");
-        content.Should().Contain("UltraFast");
-        content.Should().Contain("SIMD");
-        content.Should().Contain("AOT");
+        Assert.Contains("Standard", content);
+        Assert.Contains("UltraFast", content);
+        Assert.Contains("SIMD", content);
+        Assert.Contains("AOT", content);
     }
 
     [Fact]
@@ -1053,10 +1052,10 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --tests all --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("MediatR");
-        content.Should().Contain("DirectCall");
+        Assert.Contains("MediatR", content);
+        Assert.Contains("DirectCall", content);
     }
 
     [Fact]
@@ -1072,8 +1071,8 @@ public class BenchmarkCommandTests : IDisposable
         stopwatch.Stop();
 
         // Assert
-        result.Should().Be(0);
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(5000); // Should complete in less than 5 seconds
+        Assert.Equal(0, result);
+        Assert.True(stopwatch.ElapsedMilliseconds < 5000); // Should complete in less than 5 seconds
     }
 
     [Fact]
@@ -1088,9 +1087,9 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("Timestamp");
+        Assert.Contains("Timestamp", content);
     }
 
     [Fact]
@@ -1105,9 +1104,9 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("TotalTime");
+        Assert.Contains("TotalTime", content);
     }
 
     [Fact]
@@ -1121,7 +1120,7 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync("--iterations 100", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -1136,9 +1135,9 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --threads 1 --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("\"Threads\": 1");
+        Assert.Contains("\"Threads\": 1", content);
     }
 
     [Fact]
@@ -1153,12 +1152,12 @@ public class BenchmarkCommandTests : IDisposable
         var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format csv", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
         var firstLine = content.Split('\n')[0];
-        firstLine.Should().Contain("Implementation");
-        firstLine.Should().Contain("Average Time");
-        firstLine.Should().Contain("Memory");
+        Assert.Contains("Implementation", firstLine);
+        Assert.Contains("Average Time", firstLine);
+        Assert.Contains("Memory", firstLine);
     }
 
     // BenchmarkResult class tests (from BenchmarkCommand.cs)
@@ -1169,13 +1168,13 @@ public class BenchmarkCommandTests : IDisposable
         var result = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult();
 
         // Assert
-        result.Name.Should().Be("");
-        result.TotalTime.Should().Be(TimeSpan.Zero);
-        result.Iterations.Should().Be(0);
-        result.AverageTime.Should().Be(0);
-        result.RequestsPerSecond.Should().Be(0);
-        result.MemoryAllocated.Should().Be(0);
-        result.Threads.Should().Be(0);
+        Assert.Equal("", result.Name);
+        Assert.Equal(TimeSpan.Zero, result.TotalTime);
+        Assert.Equal(0, result.Iterations);
+        Assert.Equal(0, result.AverageTime);
+        Assert.Equal(0, result.RequestsPerSecond);
+        Assert.Equal(0, result.MemoryAllocated);
+        Assert.Equal(0, result.Threads);
     }
 
     [Fact]
@@ -1188,7 +1187,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.Name.Should().Be("UltraFast Relay");
+        Assert.Equal("UltraFast Relay", result.Name);
     }
 
     [Fact]
@@ -1201,8 +1200,8 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.TotalTime.Should().Be(TimeSpan.FromMilliseconds(500));
-        result.TotalTime.TotalMilliseconds.Should().Be(500);
+        Assert.Equal(TimeSpan.FromMilliseconds(500), result.TotalTime);
+        Assert.Equal(500, result.TotalTime.TotalMilliseconds);
     }
 
     [Fact]
@@ -1215,7 +1214,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.Iterations.Should().Be(100000);
+        Assert.Equal(100000, result.Iterations);
     }
 
     [Fact]
@@ -1228,7 +1227,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.AverageTime.Should().Be(3.5);
+        Assert.Equal(3.5, result.AverageTime);
     }
 
     [Fact]
@@ -1241,7 +1240,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.RequestsPerSecond.Should().BeApproximately(333333.33, 0.01);
+        Assert.Equal(333333.33, result.RequestsPerSecond, 0.01);
     }
 
     [Fact]
@@ -1254,7 +1253,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.MemoryAllocated.Should().Be(1024);
+        Assert.Equal(1024, result.MemoryAllocated);
     }
 
     [Fact]
@@ -1267,7 +1266,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.Threads.Should().Be(4);
+        Assert.Equal(4, result.Threads);
     }
 
     [Fact]
@@ -1281,8 +1280,8 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.MemoryAllocated.Should().Be(0);
-        result.Name.Should().Contain("Zero Allocation");
+        Assert.Equal(0, result.MemoryAllocated);
+        Assert.Contains("Zero Allocation", result.Name);
     }
 
     [Fact]
@@ -1302,7 +1301,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.AverageTime.Should().Be(10); // 1000ms / 100000 = 10μs
+        Assert.Equal(10, result.AverageTime); // 1000ms / 100000 = 10μs
     }
 
     [Fact]
@@ -1322,7 +1321,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.RequestsPerSecond.Should().Be(333333);
+        Assert.Equal(333333, result.RequestsPerSecond);
     }
 
     [Fact]
@@ -1338,8 +1337,8 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.TotalTime.Ticks.Should().Be(1);
-        result.AverageTime.Should().BeGreaterThan(0);
+        Assert.Equal(1, result.TotalTime.Ticks);
+        Assert.True(result.AverageTime > 0);
     }
 
     [Fact]
@@ -1352,7 +1351,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.Iterations.Should().Be(int.MaxValue);
+        Assert.Equal(int.MaxValue, result.Iterations);
     }
 
     [Fact]
@@ -1365,7 +1364,7 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.MemoryAllocated.Should().Be(long.MaxValue);
+        Assert.Equal(long.MaxValue, result.MemoryAllocated);
     }
 
     [Fact]
@@ -1388,8 +1387,8 @@ public class BenchmarkCommandTests : IDisposable
         var speedup = slow.AverageTime / fast.AverageTime;
 
         // Assert
-        speedup.Should().Be(10);
-        fast.AverageTime.Should().BeLessThan(slow.AverageTime);
+        Assert.Equal(10, speedup);
+        Assert.True(fast.AverageTime < slow.AverageTime);
     }
 
     [Fact]
@@ -1411,9 +1410,9 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        multiThreaded.RequestsPerSecond.Should().BeGreaterThan(singleThreaded.RequestsPerSecond);
-        multiThreaded.Threads.Should().Be(4);
-        singleThreaded.Threads.Should().Be(1);
+        Assert.True(multiThreaded.RequestsPerSecond > singleThreaded.RequestsPerSecond);
+        Assert.Equal(4, multiThreaded.Threads);
+        Assert.Equal(1, singleThreaded.Threads);
     }
 
     [Fact]
@@ -1430,7 +1429,7 @@ public class BenchmarkCommandTests : IDisposable
         var memoryPerIteration = result.MemoryAllocated / (double)result.Iterations;
 
         // Assert
-        memoryPerIteration.Should().Be(100); // 10000 / 100 = 100 bytes per iteration
+        Assert.Equal(100, memoryPerIteration); // 10000 / 100 = 100 bytes per iteration
     }
 
     [Fact]
@@ -1446,7 +1445,7 @@ public class BenchmarkCommandTests : IDisposable
         var throughputPerMs = result.RequestsPerSecond / 1000;
 
         // Assert
-        throughputPerMs.Should().Be(1000); // 1000 requests per millisecond
+        Assert.Equal(1000, throughputPerMs); // 1000 requests per millisecond
     }
 
     [Fact]
@@ -1459,9 +1458,9 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.Name.Should().StartWith("Standard");
-        result.Name.Should().EndWith("Relay");
-        result.Name.Should().HaveLength(14);
+        Assert.StartsWith("Standard", result.Name);
+        Assert.EndsWith("Relay", result.Name);
+        Assert.Equal(14, result.Name.Length);
     }
 
     [Fact]
@@ -1480,13 +1479,13 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        result.Name.Should().Be("Complete Test");
-        result.TotalTime.Should().Be(TimeSpan.FromMilliseconds(1000));
-        result.Iterations.Should().Be(100000);
-        result.AverageTime.Should().Be(10.0);
-        result.RequestsPerSecond.Should().Be(100000);
-        result.MemoryAllocated.Should().Be(2048);
-        result.Threads.Should().Be(2);
+        Assert.Equal("Complete Test", result.Name);
+        Assert.Equal(TimeSpan.FromMilliseconds(1000), result.TotalTime);
+        Assert.Equal(100000, result.Iterations);
+        Assert.Equal(10.0, result.AverageTime);
+        Assert.Equal(100000, result.RequestsPerSecond);
+        Assert.Equal(2048, result.MemoryAllocated);
+        Assert.Equal(2, result.Threads);
     }
 
     // TestConfiguration class tests
@@ -1497,13 +1496,13 @@ public class BenchmarkCommandTests : IDisposable
         var config = new Relay.CLI.Commands.Models.TestConfiguration();
 
         // Assert
-        config.Iterations.Should().Be(0);
-        config.WarmupIterations.Should().Be(0);
-        config.Threads.Should().Be(0);
-        config.Timestamp.Should().Be(default(DateTime));
-        config.MachineName.Should().Be("");
-        config.ProcessorCount.Should().Be(0);
-        config.RuntimeVersion.Should().Be("");
+        Assert.Equal(0, config.Iterations);
+        Assert.Equal(0, config.WarmupIterations);
+        Assert.Equal(0, config.Threads);
+        Assert.Equal(default(DateTime), config.Timestamp);
+        Assert.Equal("", config.MachineName);
+        Assert.Equal(0, config.ProcessorCount);
+        Assert.Equal("", config.RuntimeVersion);
     }
 
     [Fact]
@@ -1525,13 +1524,13 @@ public class BenchmarkCommandTests : IDisposable
         };
 
         // Assert
-        config.Iterations.Should().Be(100000);
-        config.WarmupIterations.Should().Be(1000);
-        config.Threads.Should().Be(4);
-        config.Timestamp.Should().Be(timestamp);
-        config.MachineName.Should().Be("TEST-MACHINE");
-        config.ProcessorCount.Should().Be(8);
-        config.RuntimeVersion.Should().Be("8.0.0");
+        Assert.Equal(100000, config.Iterations);
+        Assert.Equal(1000, config.WarmupIterations);
+        Assert.Equal(4, config.Threads);
+        Assert.Equal(timestamp, config.Timestamp);
+        Assert.Equal("TEST-MACHINE", config.MachineName);
+        Assert.Equal(8, config.ProcessorCount);
+        Assert.Equal("8.0.0", config.RuntimeVersion);
     }
 
     // BenchmarkResults class tests
@@ -1542,11 +1541,11 @@ public class BenchmarkCommandTests : IDisposable
         var results = new Relay.CLI.Commands.Models.Benchmark.BenchmarkResults();
 
         // Assert
-        results.TestConfiguration.Should().NotBeNull();
-        results.RelayResults.Should().NotBeNull();
-        results.RelayResults.Should().BeEmpty();
-        results.ComparisonResults.Should().NotBeNull();
-        results.ComparisonResults.Should().BeEmpty();
+        Assert.NotNull(results.TestConfiguration);
+        Assert.NotNull(results.RelayResults);
+        Assert.Empty(results.RelayResults);
+        Assert.NotNull(results.ComparisonResults);
+        Assert.Empty(results.ComparisonResults);
     }
 
     [Fact]
@@ -1564,8 +1563,8 @@ public class BenchmarkCommandTests : IDisposable
         results.RelayResults.Add("Standard", relayResult);
 
         // Assert
-        results.RelayResults.Should().HaveCount(1);
-        results.RelayResults["Standard"].Should().Be(relayResult);
+        Assert.Equal(1, results.RelayResults.Count);
+        Assert.Equal(relayResult, results.RelayResults["Standard"]);
     }
 
     [Fact]
@@ -1583,8 +1582,8 @@ public class BenchmarkCommandTests : IDisposable
         results.ComparisonResults.Add("MediatR", mediatrResult);
 
         // Assert
-        results.ComparisonResults.Should().HaveCount(1);
-        results.ComparisonResults["MediatR"].Should().Be(mediatrResult);
+        Assert.Equal(1, results.ComparisonResults.Count);
+        Assert.Equal(mediatrResult, results.ComparisonResults["MediatR"]);
     }
 
     [Fact]
@@ -1603,8 +1602,8 @@ public class BenchmarkCommandTests : IDisposable
         results.ComparisonResults.Add("MediatR", new Relay.CLI.Commands.Models.Benchmark.BenchmarkResult { Name = "MediatR" });
 
         // Assert
-        results.RelayResults.Should().HaveCount(4);
-        results.ComparisonResults.Should().HaveCount(2);
+        Assert.Equal(4, results.RelayResults.Count);
+        Assert.Equal(2, results.ComparisonResults.Count);
     }
 
     [Fact]

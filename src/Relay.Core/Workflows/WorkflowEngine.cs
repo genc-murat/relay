@@ -154,6 +154,7 @@ namespace Relay.Core.Workflows
                 else
                 {
                     execution.Status = WorkflowStatus.Failed;
+                    await _stateStore.SaveExecutionAsync(execution, cancellationToken);
                     throw;
                 }
             }

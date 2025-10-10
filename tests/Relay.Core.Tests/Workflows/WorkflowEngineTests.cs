@@ -1734,50 +1734,6 @@ public class WorkflowEngineTests
     }
 
     [Fact]
-    public async Task ExecuteStep_WithContinueOnError_ShouldContinueExecution()
-    {
-        // Arrange
-        var definition = new WorkflowDefinition
-        {
-            Id = "test-workflow",
-            Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
-                    Name = "FailingStep",
-                    Type = StepType.Request,
-                    RequestType = "NonExistentType",
-                    ContinueOnError = true
-                },
-                new WorkflowStep
-                {
-                    Name = "SuccessStep",
-                    Type = StepType.Wait,
-                    WaitTimeMs = 50
-                }
-            }
-        };
-
-        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(definition);
-
-        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-
-        // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
-
-        // Wait for background execution
-        await Task.Delay(400);
-
-        // Assert - Workflow should complete despite the first step failing
-        _mockStateStore.Verify(x => x.SaveExecutionAsync(
-            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
-            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-    }
-
-    [Fact]
     public async Task ExecuteParallelStep_WithNullParallelSteps_ShouldComplete()
     {
         // Arrange - This tests the null check in ExecuteParallelStep

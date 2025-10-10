@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="2.11.1" />
+    <PackageReference Include="Confluent.Kafka" Version="2.12.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.9" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
@@ -15,30 +15,34 @@
     <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
     
     <!-- Azure Service Bus -->
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
     
     <!-- AWS SQS/SNS -->
-    <PackageReference Include="AWSSDK.SQS" Version="3.7.400.62" />
-    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.62" />
+    <PackageReference Include="AWSSDK.SQS" Version="4.0.1.9" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="4.0.1.7" />
     
     <!-- NATS -->
-    <PackageReference Include="NATS.Client.Core" Version="2.4.0" />
+    <PackageReference Include="NATS.Client.Core" Version="2.6.10" />
     
     <!-- Redis Streams -->
-    <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
+    <PackageReference Include="StackExchange.Redis" Version="2.9.25" />
 
     <!-- Polly for resilience -->
-    <PackageReference Include="Polly" Version="8.4.2" />
+    <PackageReference Include="Polly" Version="8.6.4" />
     
     <!-- OpenTelemetry -->
-    <PackageReference Include="OpenTelemetry" Version="1.12.0" />
-    <PackageReference Include="OpenTelemetry.Api" Version="1.12.0" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry" Version="1.13.1" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.13.1" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.1" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

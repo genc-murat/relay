@@ -27,7 +27,7 @@ public class TestHandler
 }";
 
             var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
-            Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
             var context = new RelayCompilationContext(compilation, default);
             var discoveryEngine = new HandlerDiscoveryEngine(context);
@@ -77,7 +77,7 @@ public class TestHandler
 }";
 
             var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
-            Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
             var context = new RelayCompilationContext(compilation, default);
             var discoveryEngine = new HandlerDiscoveryEngine(context);
@@ -122,7 +122,7 @@ public class TestHandler
 }";
 
             var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
-            Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
             var context = new RelayCompilationContext(compilation, default);
             var discoveryEngine = new HandlerDiscoveryEngine(context);
@@ -167,7 +167,7 @@ public class TestHandler
 }";
 
             var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
-            Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
             var context = new RelayCompilationContext(compilation, default);
             var discoveryEngine = new HandlerDiscoveryEngine(context);
@@ -210,7 +210,7 @@ public class TestHandler
 }";
 
             var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
-            Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
             var context = new RelayCompilationContext(compilation, default);
             var discoveryEngine = new HandlerDiscoveryEngine(context);
@@ -264,7 +264,7 @@ public class TestHandler
 }";
 
             var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
-            Assert.Empty(diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
             var context = new RelayCompilationContext(compilation, default);
             var discoveryEngine = new HandlerDiscoveryEngine(context);

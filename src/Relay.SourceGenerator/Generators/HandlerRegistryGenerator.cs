@@ -190,7 +190,7 @@ namespace Relay.SourceGenerator
 
         private string GetResponseType(HandlerInfo handler)
         {
-            var returnType = handler.MethodSymbol.ReturnType;
+            ITypeSymbol returnType = handler.MethodSymbol.ReturnType;
             var returnTypeString = returnType.ToDisplayString();
 
             // Handle ValueTask<T>, Task<T>

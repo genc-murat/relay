@@ -259,20 +259,20 @@ namespace Relay.Core.Workflows
         {
             // Try to find the type in all loaded assemblies
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            
+
             foreach (var assembly in assemblies)
             {
                 try
                 {
                     var types = assembly.GetTypes();
-                    var requestType = types.FirstOrDefault(t => 
+                    var requestType = types.FirstOrDefault(t =>
                         t.Name.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) ||
                         t.FullName?.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) == true);
 
                     if (requestType != null)
                     {
                         // Verify it implements IRequest or IRequest<T>
-                        var isRequest = requestType.GetInterfaces().Any(i => 
+                        var isRequest = requestType.GetInterfaces().Any(i =>
                             i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>) ||
                             i == typeof(IRequest));
 
@@ -280,7 +280,17 @@ namespace Relay.Core.Workflows
                         {
                             return requestType;
                         }
+                        else
+                        {
+                            // Type found but doesn't implement IRequest
+                            throw new InvalidOperationException($"Type '{requestTypeName}' does not implement IRequest or IRequest<T>");
+                        }
                     }
+                }
+                catch (InvalidOperationException)
+                {
+                    // Re-throw our validation exception
+                    throw;
                 }
                 catch
                 {

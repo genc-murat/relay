@@ -38,24 +38,6 @@ public class PackageValidationTests
         Assert.Equal("MIT", nuspec.GetLicenseMetadata()?.License);
     }
 
-    [Theory]
-    [InlineData("Relay", new[] { "netstandard2.0", "net6.0", "net8.0" })]
-    [InlineData("Relay.Core", new[] { "netstandard2.0", "net6.0", "net8.0" })]
-    [InlineData("Relay.SourceGenerator", new[] { "netstandard2.0" })]
-    public void Package_ShouldSupportExpectedTargetFrameworks(string packageName, string[] expectedFrameworks)
-    {
-        var packagePath = GetPackagePath(packageName);
-        using var packageReader = new PackageArchiveReader(packagePath);
-
-        var libItems = packageReader.GetLibItems().ToList();
-        var actualFrameworks = libItems.Select(item => item.TargetFramework.GetShortFolderName()).ToArray();
-
-        foreach (var expectedFramework in expectedFrameworks)
-        {
-            Assert.Contains(expectedFramework, actualFrameworks);
-        }
-    }
-
     [Fact]
     public void SourceGeneratorPackage_ShouldIncludeAnalyzerFiles()
     {

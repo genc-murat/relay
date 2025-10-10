@@ -1,5 +1,4 @@
 using Xunit;
-using FluentAssertions;
 using Relay.CLI.TemplateEngine;
 
 namespace Relay.CLI.Tests.Integration;
@@ -45,25 +44,25 @@ public class TemplateEndToEndTests : IDisposable
     {
         // Step 1: Create a template
         var templatePath = CreateTestTemplate();
-        templatePath.Should().NotBeEmpty();
-        Directory.Exists(templatePath).Should().BeTrue();
+        Assert.NotEmpty(templatePath);
+        Assert.True(Directory.Exists(templatePath));
 
         // Step 2: Validate template
         var validationResult = await _validator.ValidateAsync(templatePath);
-        validationResult.IsValid.Should().BeTrue();
-        validationResult.Errors.Should().BeEmpty();
+        Assert.True(validationResult.IsValid);
+        Assert.Empty(validationResult.Errors);
 
         // Step 3: Package template
         var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
-        packResult.Success.Should().BeTrue();
-        packResult.PackagePath.Should().NotBeEmpty();
+        Assert.True(packResult.Success);
+        Assert.NotEmpty(packResult.PackagePath);
 
         // Step 4: Publish template (simulated)
         var packagePath = packResult.PackagePath.Replace(".nupkg", ".zip");
         if (File.Exists(packagePath))
         {
             var publishResult = await _publisher.PublishTemplateAsync(packagePath, "https://test-registry.com");
-            publishResult.Success.Should().BeTrue();
+            Assert.True(publishResult.Success);
         }
     }
 
@@ -86,11 +85,11 @@ public class TemplateEndToEndTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", projectName, _testOutputPath, options);
 
         // Assert
-        result.Success.Should().BeTrue();
-        result.CreatedDirectories.Should().NotBeEmpty();
-        result.CreatedDirectories.Should().Contain(d => d.Contains("src"));
-        result.CreatedDirectories.Should().Contain(d => d.Contains("tests"));
-        result.Duration.Should().BeLessThan(TimeSpan.FromMinutes(1));
+        Assert.True(result.Success);
+        Assert.NotEmpty(result.CreatedDirectories);
+        Assert.Contains(result.CreatedDirectories, d => d.Contains("src"));
+        Assert.Contains(result.CreatedDirectories, d => d.Contains("tests"));
+        Assert.True(result.Duration < TimeSpan.FromMinutes(1));
     }
 
     [Fact]
@@ -111,8 +110,8 @@ public class TemplateEndToEndTests : IDisposable
         }
 
         // Assert
-        results.Should().AllSatisfy(r => r.Success.Should().BeTrue());
-        results.Should().HaveCount(3);
+        Assert.All(results, r => Assert.True(r.Success));
+        Assert.Equal(3, results.Count);
     }
 
     [Fact]
@@ -124,7 +123,7 @@ public class TemplateEndToEndTests : IDisposable
 
         // Act - Validation
         var validationResult = _validator.ValidateProjectName(invalidProjectName);
-        validationResult.IsValid.Should().BeFalse();
+        Assert.False(validationResult.IsValid);
 
         // Act - Generation (should handle error)
         var result = await _generator.GenerateAsync(
@@ -134,9 +133,9 @@ public class TemplateEndToEndTests : IDisposable
             options);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.Errors.Should().NotBeEmpty();
+        Assert.NotNull(result);
+        Assert.False(result.Success);
+        Assert.NotEmpty(result.Errors);
     }
 
     [Fact]
@@ -159,14 +158,14 @@ public class TemplateEndToEndTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", projectName, _testOutputPath, options);
 
         // Assert
-        result.Success.Should().BeTrue();
-        result.CreatedFiles.Should().NotBeEmpty();
+        Assert.True(result.Success);
+        Assert.NotEmpty(result.CreatedFiles);
         
         // Should have created multiple project layers
-        result.CreatedDirectories.Should().Contain(d => d.Contains("Api"));
-        result.CreatedDirectories.Should().Contain(d => d.Contains("Application"));
-        result.CreatedDirectories.Should().Contain(d => d.Contains("Domain"));
-        result.CreatedDirectories.Should().Contain(d => d.Contains("Infrastructure"));
+        Assert.Contains(result.CreatedDirectories, d => d.Contains("Api"));
+        Assert.Contains(result.CreatedDirectories, d => d.Contains("Application"));
+        Assert.Contains(result.CreatedDirectories, d => d.Contains("Domain"));
+        Assert.Contains(result.CreatedDirectories, d => d.Contains("Infrastructure"));
     }
 
     [Fact]
@@ -188,8 +187,8 @@ public class TemplateEndToEndTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", projectName, _testOutputPath, options);
 
         // Assert
-        result.Success.Should().BeTrue();
-        result.CreatedDirectories.Should().NotBeEmpty();
+        Assert.True(result.Success);
+        Assert.NotEmpty(result.CreatedDirectories);
     }
 
     [Fact]
@@ -204,8 +203,8 @@ public class TemplateEndToEndTests : IDisposable
         var templates = await _publisher.ListAvailableTemplatesAsync();
 
         // Assert
-        templates.Should().NotBeEmpty();
-        templates.Count.Should().BeGreaterThanOrEqualTo(3);
+        Assert.NotEmpty(templates);
+        Assert.True(templates.Count >= 3);
     }
 
     [Theory]
@@ -224,7 +223,7 @@ public class TemplateEndToEndTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", $"Test{provider}", projectPath, options);
         
         // Assert
-        result.Success.Should().BeTrue($"generation with {provider} should succeed");
+        Assert.True(result.Success, $"generation with {provider} should succeed");
     }
 
     [Fact]
@@ -250,12 +249,12 @@ public class TemplateEndToEndTests : IDisposable
             }
         }
 
-        result.Success.Should().BeTrue();
-        result.CreatedDirectories.Should().Contain(d => d.Contains("Modules"));
+        Assert.True(result.Success);
+        Assert.Contains(result.CreatedDirectories, d => d.Contains("Modules"));
 
         foreach (var module in options.Modules!)
         {
-            result.CreatedDirectories.Should().Contain(d => d.Contains(module));
+            Assert.Contains(result.CreatedDirectories, d => d.Contains(module));
         }
     }
 
@@ -272,11 +271,11 @@ public class TemplateEndToEndTests : IDisposable
         stopwatch.Stop();
 
         // Assert
-        result.Success.Should().BeTrue();
-        result.Duration.Should().BeGreaterThan(TimeSpan.Zero);
-        result.Duration.Should().BeLessThan(TimeSpan.FromSeconds(30),
+        Assert.True(result.Success);
+        Assert.True(result.Duration > TimeSpan.Zero);
+        Assert.True(result.Duration < TimeSpan.FromSeconds(30),
             "generation should complete within 30 seconds");
-        stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromMinutes(1));
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromMinutes(1));
     }
 
     [Fact]
@@ -284,45 +283,45 @@ public class TemplateEndToEndTests : IDisposable
     {
         // Step 1: Create a complete template with all necessary files
         var templatePath = CreateCompleteTemplate();
-        templatePath.Should().NotBeEmpty();
-        Directory.Exists(templatePath).Should().BeTrue();
+        Assert.NotEmpty(templatePath);
+        Assert.True(Directory.Exists(templatePath));
 
         // Step 2: Validate the template structure
         var validationResult = await _validator.ValidateAsync(templatePath);
-        validationResult.IsValid.Should().BeTrue("template should be valid");
-        validationResult.Errors.Should().BeEmpty("valid template should have no errors");
+        Assert.True(validationResult.IsValid, "template should be valid");
+        Assert.True(validationResult.Errors.Count == 0, "valid template should have no errors");
 
         // Step 3: Package the template into NuGet format
         var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
-        packResult.Success.Should().BeTrue("packaging should succeed");
-        packResult.PackagePath.Should().NotBeEmpty();
-        File.Exists(packResult.PackagePath).Should().BeTrue("package file should exist");
+        Assert.True(packResult.Success, "packaging should succeed");
+        Assert.NotEmpty(packResult.PackagePath);
+        Assert.True(File.Exists(packResult.PackagePath), "package file should exist");
 
         // Step 4: Verify package is a valid NuGet package
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(packResult.PackagePath);
         var entries = zipArchive.Entries.Select(e => e.FullName).ToList();
 
         // Verify core NuGet package structure
-        entries.Should().Contain("[Content_Types].xml");
-        entries.Should().Contain(e => e.EndsWith(".nuspec"));
-        entries.Should().Contain("_rels/.rels");
-        entries.Should().Contain(e => e.StartsWith("package/services/metadata/core-properties/"));
-        entries.Should().Contain(e => e.StartsWith("content/"));
+        Assert.Contains("[Content_Types].xml", entries);
+        Assert.Contains(entries, e => e.EndsWith(".nuspec"));
+        Assert.Contains("_rels/.rels", entries);
+        Assert.Contains(entries, e => e.StartsWith("package/services/metadata/core-properties/"));
+        Assert.Contains(entries, e => e.StartsWith("content/"));
 
         // Step 5: Verify .nuspec content
         var nuspecEntry = zipArchive.Entries.First(e => e.FullName.EndsWith(".nuspec"));
         using var nuspecReader = new StreamReader(nuspecEntry.Open());
         var nuspecContent = await nuspecReader.ReadToEndAsync();
 
-        nuspecContent.Should().Contain("<packageType name=\"Template\" />");
-        nuspecContent.Should().Contain("<id>");
-        nuspecContent.Should().Contain("<version>");
-        nuspecContent.Should().Contain("<authors>");
-        nuspecContent.Should().Contain("<description>");
+        Assert.Contains("<packageType name=\"Template\" />", nuspecContent);
+        Assert.Contains("<id>", nuspecContent);
+        Assert.Contains("<version>", nuspecContent);
+        Assert.Contains("<authors>", nuspecContent);
+        Assert.Contains("<description>", nuspecContent);
 
         // Step 6: Verify template files were copied
         var templateJsonEntry = entries.FirstOrDefault(e => e.Contains("template.json"));
-        templateJsonEntry.Should().NotBeNull("template.json should be in package");
+        Assert.True(templateJsonEntry != null, "template.json should be in package");
     }
 
     [Fact]
@@ -341,15 +340,16 @@ public class TemplateEndToEndTests : IDisposable
         var results = await Task.WhenAll(packTasks);
 
         // Assert
-        results.Should().AllSatisfy(r =>
+        Assert.All(results, r =>
         {
-            r.Success.Should().BeTrue();
-            r.PackagePath.Should().NotBeEmpty();
-            File.Exists(r.PackagePath).Should().BeTrue();
+            Assert.True(r.Success);
+            Assert.NotEmpty(r.PackagePath);
+            Assert.True(File.Exists(r.PackagePath));
         });
 
         // Verify all packages have unique names
-        results.Select(r => Path.GetFileName(r.PackagePath)).Should().OnlyHaveUniqueItems();
+        var packageNames = results.Select(r => Path.GetFileName(r.PackagePath)).ToList();
+        Assert.Equal(packageNames.Count, packageNames.Distinct().Count());
     }
 
     [Fact]
@@ -360,14 +360,14 @@ public class TemplateEndToEndTests : IDisposable
 
         // Act 1 - Package version 1.0.0
         var result1 = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
-        result1.Success.Should().BeTrue();
+        Assert.True(result1.Success);
 
         // Arrange - Update template to version 2.0.0
         UpdateTemplateVersion(templatePath, "2.0.0");
 
         // Act 2 - Package version 2.0.0
         var result2 = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
-        result2.Success.Should().BeTrue();
+        Assert.True(result2.Success);
 
         // Assert - Verify version in second package
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result2.PackagePath);
@@ -375,7 +375,7 @@ public class TemplateEndToEndTests : IDisposable
         using var reader = new StreamReader(nuspecEntry.Open());
         var nuspecContent = await reader.ReadToEndAsync();
 
-        nuspecContent.Should().Contain("<version>2.0.0</version>");
+        Assert.Contains("<version>2.0.0</version>", nuspecContent);
     }
 
     [Fact]
@@ -386,7 +386,7 @@ public class TemplateEndToEndTests : IDisposable
 
         // Act
         var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
-        packResult.Success.Should().BeTrue();
+        Assert.True(packResult.Success);
 
         // Assert - Open and read all entries to verify integrity
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(packResult.PackagePath);
@@ -400,7 +400,7 @@ public class TemplateEndToEndTests : IDisposable
 
                 // Should be able to read without exceptions
                 var content = await reader.ReadToEndAsync();
-                content.Should().NotBeNull($"entry {entry.FullName} should be readable");
+                Assert.True(content != null, $"entry {entry.FullName} should be readable");
             }
         }
     }
@@ -415,12 +415,12 @@ public class TemplateEndToEndTests : IDisposable
         var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
 
         // Assert
-        packResult.Success.Should().BeTrue();
+        Assert.True(packResult.Success);
 
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(packResult.PackagePath);
         var contentFiles = zipArchive.Entries.Where(e => e.FullName.StartsWith("content/")).ToList();
 
-        contentFiles.Should().HaveCountGreaterThan(50, "should contain many files");
+        Assert.True(contentFiles.Count > 50, "should contain many files");
     }
 
     [Fact]
@@ -429,15 +429,15 @@ public class TemplateEndToEndTests : IDisposable
         // Step 1: Create and package template
         var templatePath = CreateCompleteTemplate("e2e-template");
         var packResult = await _publisher.PackTemplateAsync(templatePath, _testOutputPath);
-        packResult.Success.Should().BeTrue();
+        Assert.True(packResult.Success);
 
         // Step 2: Publish (simulated)
         var publishResult = await _publisher.PublishTemplateAsync(packResult.PackagePath, "https://nuget.org");
-        publishResult.Success.Should().BeTrue();
+        Assert.True(publishResult.Success);
 
         // Step 3: List templates
         var templates = await _publisher.ListAvailableTemplatesAsync();
-        templates.Should().Contain(t => t.Id.Contains("e2e-template"));
+        Assert.Contains(templates, t => t.Id.Contains("e2e-template"));
     }
 
     private string CreateTestTemplate(string? suffix = null)

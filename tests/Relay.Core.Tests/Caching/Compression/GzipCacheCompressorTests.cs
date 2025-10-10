@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.Core.Caching.Compression;
 using System;
 using System.IO;
@@ -16,7 +15,7 @@ public class GzipCacheCompressorTests
         var compressor = new GzipCacheCompressor();
 
         // Assert
-        compressor.Should().NotBeNull();
+        Assert.NotNull(compressor);
     }
 
     [Fact]
@@ -26,7 +25,7 @@ public class GzipCacheCompressorTests
         var compressor = new GzipCacheCompressor(2048);
 
         // Assert
-        compressor.Should().NotBeNull();
+        Assert.NotNull(compressor);
     }
 
     [Fact]
@@ -41,7 +40,7 @@ public class GzipCacheCompressorTests
         var decompressed = compressor.Decompress(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(originalData);
+        Assert.Equal(originalData, decompressed);
     }
 
     [Fact]
@@ -55,8 +54,8 @@ public class GzipCacheCompressorTests
         var compressed = compressor.Compress(originalData);
 
         // Assert
-        compressed.Should().NotBeEquivalentTo(originalData);
-        compressed.Length.Should().BeLessThan(originalData.Length);
+        Assert.NotEqual(originalData, compressed);
+        Assert.True(compressed.Length < originalData.Length);
     }
 
     [Fact]
@@ -70,7 +69,7 @@ public class GzipCacheCompressorTests
         var shouldCompress = compressor.ShouldCompress(largeData.Length);
 
         // Assert
-        shouldCompress.Should().BeTrue();
+        Assert.True(shouldCompress);
     }
 
     [Fact]
@@ -84,7 +83,7 @@ public class GzipCacheCompressorTests
         var shouldCompress = compressor.ShouldCompress(smallData.Length);
 
         // Assert
-        shouldCompress.Should().BeFalse();
+        Assert.False(shouldCompress);
     }
 
     [Fact]
@@ -136,6 +135,6 @@ public class GzipCacheCompressorTests
         var decompressed = compressor.Decompress(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(originalData);
+        Assert.Equal(originalData, decompressed);
     }
 }

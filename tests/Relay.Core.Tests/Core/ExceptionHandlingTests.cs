@@ -1,7 +1,6 @@
 using System;
-using FluentAssertions;
-using Xunit;
 using Relay.Core;
+using Xunit;
 
 namespace Relay.Core.Tests.Core;
 
@@ -23,10 +22,10 @@ public class ExceptionHandlingTests
         var exception = new RelayException(requestType, handlerName, message, innerException);
 
         // Assert
-        exception.RequestType.Should().Be(requestType);
-        exception.HandlerName.Should().Be(handlerName);
-        exception.Message.Should().Be(message);
-        exception.InnerException.Should().BeSameAs(innerException);
+        Assert.Equal(requestType, exception.RequestType);
+        Assert.Equal(handlerName, exception.HandlerName);
+        Assert.Equal(message, exception.Message);
+        Assert.Same(innerException, exception.InnerException);
     }
 
     [Fact]
@@ -41,10 +40,10 @@ public class ExceptionHandlingTests
         var exception = new RelayException(requestType, handlerName, message);
 
         // Assert
-        exception.RequestType.Should().Be(requestType);
-        exception.HandlerName.Should().Be(handlerName);
-        exception.Message.Should().Be(message);
-        exception.InnerException.Should().BeNull();
+        Assert.Equal(requestType, exception.RequestType);
+        Assert.Equal(handlerName, exception.HandlerName);
+        Assert.Equal(message, exception.Message);
+        Assert.Null(exception.InnerException);
     }
 
     [Fact]
@@ -58,9 +57,9 @@ public class ExceptionHandlingTests
         var exception = new RelayException(requestType, null, message);
 
         // Assert
-        exception.RequestType.Should().Be(requestType);
-        exception.HandlerName.Should().BeNull();
-        exception.Message.Should().Be(message);
+        Assert.Equal(requestType, exception.RequestType);
+        Assert.Null(exception.HandlerName);
+        Assert.Equal(message, exception.Message);
     }
 
     [Fact]
@@ -73,10 +72,10 @@ public class ExceptionHandlingTests
         var exception = new HandlerNotFoundException(requestType);
 
         // Assert
-        exception.RequestType.Should().Be(requestType);
-        exception.HandlerName.Should().BeNull();
-        exception.Message.Should().Be($"No handler found for request type '{requestType}'");
-        exception.InnerException.Should().BeNull();
+        Assert.Equal(requestType, exception.RequestType);
+        Assert.Null(exception.HandlerName);
+        Assert.Equal($"No handler found for request type '{requestType}'", exception.Message);
+        Assert.Null(exception.InnerException);
     }
 
     [Fact]
@@ -90,10 +89,10 @@ public class ExceptionHandlingTests
         var exception = new HandlerNotFoundException(requestType, handlerName);
 
         // Assert
-        exception.RequestType.Should().Be(requestType);
-        exception.HandlerName.Should().Be(handlerName);
-        exception.Message.Should().Be($"No handler named '{handlerName}' found for request type '{requestType}'");
-        exception.InnerException.Should().BeNull();
+        Assert.Equal(requestType, exception.RequestType);
+        Assert.Equal(handlerName, exception.HandlerName);
+        Assert.Equal($"No handler named '{handlerName}' found for request type '{requestType}'", exception.Message);
+        Assert.Null(exception.InnerException);
     }
 
     [Fact]
@@ -103,7 +102,7 @@ public class ExceptionHandlingTests
         var exception = new HandlerNotFoundException("TestRequest");
 
         // Assert
-        exception.Should().BeAssignableTo<RelayException>();
+        Assert.IsAssignableFrom<RelayException>(exception);
     }
 
     [Fact]
@@ -116,9 +115,9 @@ public class ExceptionHandlingTests
         var exception = new MultipleHandlersException(requestType);
 
         // Assert
-        exception.RequestType.Should().Be(requestType);
-        exception.HandlerName.Should().BeNull();
-        exception.Message.Should().Be($"Multiple handlers found for request type '{requestType}'. Use named handlers or ensure only one handler is registered.");
+        Assert.Equal(requestType, exception.RequestType);
+        Assert.Null(exception.HandlerName);
+        Assert.Equal($"Multiple handlers found for request type '{requestType}'. Use named handlers or ensure only one handler is registered.", exception.Message);
     }
 
     [Fact]
@@ -128,10 +127,8 @@ public class ExceptionHandlingTests
         var exception = new MultipleHandlersException("TestRequest");
 
         // Assert
-        exception.Should().BeAssignableTo<RelayException>();
+        Assert.IsAssignableFrom<RelayException>(exception);
     }
-
-
 
     [Fact]
     public void ExceptionSerialization_ShouldPreserveProperties()
@@ -143,18 +140,18 @@ public class ExceptionHandlingTests
         var serialized = originalException.ToString();
 
         // Assert
-        serialized.Should().Contain("TestRequest");
-        serialized.Should().Contain("TestHandler");
-        serialized.Should().Contain("Test message");
+        Assert.Contains("TestRequest", serialized);
+        Assert.Contains("TestHandler", serialized);
+        Assert.Contains("Test message", serialized);
     }
 
     [Fact]
     public void ExceptionHierarchy_ShouldBeCorrect()
     {
         // Assert
-        typeof(RelayException).Should().BeDerivedFrom<Exception>();
-        typeof(HandlerNotFoundException).Should().BeDerivedFrom<RelayException>();
-        typeof(MultipleHandlersException).Should().BeDerivedFrom<RelayException>();
+        Assert.True(typeof(Exception).IsAssignableFrom(typeof(RelayException)));
+        Assert.True(typeof(RelayException).IsAssignableFrom(typeof(HandlerNotFoundException)));
+        Assert.True(typeof(RelayException).IsAssignableFrom(typeof(MultipleHandlersException)));
     }
 
     [Theory]
@@ -164,7 +161,7 @@ public class ExceptionHandlingTests
     {
         // Act & Assert - Should not throw
         var exception = new RelayException(requestType!, null, "test message");
-        exception.RequestType.Should().Be(requestType);
+        Assert.Equal(requestType, exception.RequestType);
     }
 
     [Fact]
@@ -184,7 +181,9 @@ public class ExceptionHandlingTests
         var requestTypeProperty = typeof(RelayException).GetProperty(nameof(RelayException.RequestType));
         var handlerNameProperty = typeof(RelayException).GetProperty(nameof(RelayException.HandlerName));
 
-        requestTypeProperty!.CanWrite.Should().BeFalse();
-        handlerNameProperty!.CanWrite.Should().BeFalse();
+        Assert.NotNull(requestTypeProperty);
+        Assert.False(requestTypeProperty.CanWrite);
+        Assert.NotNull(handlerNameProperty);
+        Assert.False(handlerNameProperty.CanWrite);
     }
 }

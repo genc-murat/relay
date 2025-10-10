@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core;
 using Relay.Core.Contracts.Dispatchers;
 using Relay.Core.Contracts.Handlers;
@@ -11,7 +10,6 @@ using Relay.Core.Contracts.Infrastructure;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Tests.Testing;
 using Xunit;
-using static Relay.Core.Tests.Testing.FluentAssertionsExtensions;
 
 namespace Relay.Core.Tests.Core;
 
@@ -27,13 +25,13 @@ public class DispatcherInterfaceTests
         var dispatcherType = typeof(IRequestDispatcher);
 
         // Assert
-        dispatcherType.Should().BeInterface();
+        Assert.True(dispatcherType.IsInterface);
 
         var methods = dispatcherType.GetMethods();
-        methods.Should().HaveCount(4);
+        Assert.Equal(4, methods.Length);
 
         // Check DispatchAsync with response
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "DispatchAsync" &&
             m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
@@ -41,19 +39,19 @@ public class DispatcherInterfaceTests
             m.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
 
         // Check DispatchAsync without response
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "DispatchAsync" &&
             !m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
             m.ReturnType == typeof(ValueTask));
 
         // Check named handler variants
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "DispatchAsync" &&
             m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 3);
 
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "DispatchAsync" &&
             !m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 3);
@@ -66,20 +64,20 @@ public class DispatcherInterfaceTests
         var dispatcherType = typeof(IStreamDispatcher);
 
         // Assert
-        dispatcherType.Should().BeInterface();
+        Assert.True(dispatcherType.IsInterface);
 
         var methods = dispatcherType.GetMethods();
-        methods.Should().HaveCount(2);
+        Assert.Equal(2, methods.Length);
 
         // Check DispatchAsync methods
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "DispatchAsync" &&
             m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
             m.ReturnType.IsGenericType &&
             m.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
 
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "DispatchAsync" &&
             m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 3);
@@ -92,16 +90,16 @@ public class DispatcherInterfaceTests
         var dispatcherType = typeof(INotificationDispatcher);
 
         // Assert
-        dispatcherType.Should().BeInterface();
+        Assert.True(dispatcherType.IsInterface);
 
         var methods = dispatcherType.GetMethods();
-        methods.Should().HaveCount(1);
+        Assert.Equal(1, methods.Length);
 
         var method = methods[0];
-        method.Name.Should().Be("DispatchAsync");
-        method.IsGenericMethodDefinition.Should().BeTrue();
-        method.GetParameters().Should().HaveCount(2);
-        method.ReturnType.Should().Be(typeof(ValueTask));
+        Assert.Equal("DispatchAsync", method.Name);
+        Assert.True(method.IsGenericMethodDefinition);
+        Assert.Equal(2, method.GetParameters().Length);
+        Assert.Equal(typeof(ValueTask), method.ReturnType);
     }
 
     [Fact]
@@ -119,8 +117,8 @@ public class DispatcherInterfaceTests
         var result = await dispatcher.DispatchAsync(request, CancellationToken.None);
 
         // Assert
-        result.Should().Be("test response");
-        handler.WasCalled.Should().BeTrue();
+        Assert.Equal("test response", result);
+        Assert.True(handler.WasCalled);
     }
 
     [Fact]
@@ -138,7 +136,7 @@ public class DispatcherInterfaceTests
         await dispatcher.DispatchAsync(request, CancellationToken.None);
 
         // Assert
-        handler.WasCalled.Should().BeTrue();
+        Assert.True(handler.WasCalled);
     }
 
     [Fact]
@@ -160,8 +158,8 @@ public class DispatcherInterfaceTests
         }
 
         // Assert
-        results.Should().BeEquivalentTo(new[] { 1, 2, 3 });
-        handler.WasCalled.Should().BeTrue();
+        Assert.Equal(new List<int> { 1, 2, 3 }, results);
+        Assert.True(handler.WasCalled);
     }
 
     [Fact]
@@ -179,8 +177,8 @@ public class DispatcherInterfaceTests
         await dispatcher.DispatchAsync(notification, CancellationToken.None);
 
         // Assert
-        handler.WasCalled.Should().BeTrue();
-        handler.LastNotification.Should().BeSameAs(notification);
+        Assert.True(handler.WasCalled);
+        Assert.Same(notification, handler.LastNotification);
     }
 
     [Fact]

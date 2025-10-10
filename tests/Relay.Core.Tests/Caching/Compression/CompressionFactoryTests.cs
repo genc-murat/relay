@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.Core.Caching.Compression;
 using Xunit;
 
@@ -13,8 +12,8 @@ public class CompressionFactoryTests
         var compressor = CompressionFactory.CreateUnified();
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.GZip);
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.GZip, compressor.Algorithm);
     }
 
     [Fact]
@@ -24,8 +23,8 @@ public class CompressionFactoryTests
         var compressor = CompressionFactory.CreateUnified(CompressionAlgorithm.Deflate);
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Deflate);
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.Deflate, compressor.Algorithm);
     }
 
     [Fact]
@@ -43,10 +42,10 @@ public class CompressionFactoryTests
         var compressor = CompressionFactory.CreateUnified(options);
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Brotli);
-        compressor.ShouldCompress(3000).Should().BeTrue();
-        compressor.ShouldCompress(1000).Should().BeFalse();
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.Brotli, compressor.Algorithm);
+        Assert.True(compressor.ShouldCompress(3000));
+        Assert.False(compressor.ShouldCompress(1000));
     }
 
     [Fact]
@@ -56,8 +55,8 @@ public class CompressionFactoryTests
         var compressor = CompressionFactory.CreateCache();
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Should().BeAssignableTo<ICacheCompressor>();
+        Assert.NotNull(compressor);
+        Assert.IsAssignableFrom<ICacheCompressor>(compressor);
     }
 
     [Fact]
@@ -67,8 +66,8 @@ public class CompressionFactoryTests
         var compressor = CompressionFactory.CreateCache(CompressionAlgorithm.Deflate);
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Should().BeAssignableTo<ICacheCompressor>();
+        Assert.NotNull(compressor);
+        Assert.IsAssignableFrom<ICacheCompressor>(compressor);
     }
 
     [Fact]
@@ -86,13 +85,11 @@ public class CompressionFactoryTests
         var compressor = CompressionFactory.CreateCache(options);
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Should().BeAssignableTo<ICacheCompressor>();
-        compressor.ShouldCompress(3000).Should().BeTrue();
-        compressor.ShouldCompress(1000).Should().BeFalse();
+        Assert.NotNull(compressor);
+        Assert.IsAssignableFrom<ICacheCompressor>(compressor);
+        Assert.True(compressor.ShouldCompress(3000));
+        Assert.False(compressor.ShouldCompress(1000));
     }
-
-
 
     [Fact]
     public void CreateGzipCache_WithDefaultThreshold_ShouldCreateGZipCompressor()
@@ -101,10 +98,10 @@ public class CompressionFactoryTests
         var compressor = CompressionFactory.CreateGzipCache();
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Should().BeAssignableTo<ICacheCompressor>();
-        compressor.ShouldCompress(2000).Should().BeTrue();
-        compressor.ShouldCompress(500).Should().BeFalse();
+        Assert.NotNull(compressor);
+        Assert.IsAssignableFrom<ICacheCompressor>(compressor);
+        Assert.True(compressor.ShouldCompress(2000));
+        Assert.False(compressor.ShouldCompress(500));
     }
 
     [Fact]
@@ -114,9 +111,9 @@ public class CompressionFactoryTests
         var compressor = CompressionFactory.CreateGzipCache(2048);
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Should().BeAssignableTo<ICacheCompressor>();
-        compressor.ShouldCompress(3000).Should().BeTrue();
-        compressor.ShouldCompress(1000).Should().BeFalse();
+        Assert.NotNull(compressor);
+        Assert.IsAssignableFrom<ICacheCompressor>(compressor);
+        Assert.True(compressor.ShouldCompress(3000));
+        Assert.False(compressor.ShouldCompress(1000));
     }
 }

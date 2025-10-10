@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Caching.Metrics;
@@ -37,11 +36,11 @@ public class DefaultCacheMetricsTests
 
         // Assert
         var stats = _metrics.GetStatistics();
-        stats.Hits.Should().Be(1);
-        stats.Misses.Should().Be(0);
-        stats.Sets.Should().Be(0);
-        stats.Evictions.Should().Be(0);
-        stats.HitRatio.Should().Be(1.0);
+        Assert.Equal(1, stats.Hits);
+        Assert.Equal(0, stats.Misses);
+        Assert.Equal(0, stats.Sets);
+        Assert.Equal(0, stats.Evictions);
+        Assert.Equal(1.0, stats.HitRatio);
     }
 
     [Fact]
@@ -56,11 +55,11 @@ public class DefaultCacheMetricsTests
 
         // Assert
         var stats = _metrics.GetStatistics();
-        stats.Hits.Should().Be(0);
-        stats.Misses.Should().Be(1);
-        stats.Sets.Should().Be(0);
-        stats.Evictions.Should().Be(0);
-        stats.HitRatio.Should().Be(0.0);
+        Assert.Equal(0, stats.Hits);
+        Assert.Equal(1, stats.Misses);
+        Assert.Equal(0, stats.Sets);
+        Assert.Equal(0, stats.Evictions);
+        Assert.Equal(0.0, stats.HitRatio);
     }
 
     [Fact]
@@ -76,12 +75,12 @@ public class DefaultCacheMetricsTests
 
         // Assert
         var stats = _metrics.GetStatistics();
-        stats.Hits.Should().Be(0);
-        stats.Misses.Should().Be(0);
-        stats.Sets.Should().Be(1);
-        stats.Evictions.Should().Be(0);
-        stats.TotalDataSize.Should().Be(dataSize);
-        stats.AverageDataSize.Should().Be(dataSize);
+        Assert.Equal(0, stats.Hits);
+        Assert.Equal(0, stats.Misses);
+        Assert.Equal(1, stats.Sets);
+        Assert.Equal(0, stats.Evictions);
+        Assert.Equal(dataSize, stats.TotalDataSize);
+        Assert.Equal(dataSize, stats.AverageDataSize);
     }
 
     [Fact]
@@ -96,10 +95,10 @@ public class DefaultCacheMetricsTests
 
         // Assert
         var stats = _metrics.GetStatistics();
-        stats.Hits.Should().Be(0);
-        stats.Misses.Should().Be(0);
-        stats.Sets.Should().Be(0);
-        stats.Evictions.Should().Be(1);
+        Assert.Equal(0, stats.Hits);
+        Assert.Equal(0, stats.Misses);
+        Assert.Equal(0, stats.Sets);
+        Assert.Equal(1, stats.Evictions);
     }
 
     [Fact]
@@ -119,13 +118,13 @@ public class DefaultCacheMetricsTests
 
         // Assert
         var stats = _metrics.GetStatistics();
-        stats.Hits.Should().Be(2);
-        stats.Misses.Should().Be(1);
-        stats.Sets.Should().Be(2);
-        stats.Evictions.Should().Be(1);
-        stats.TotalDataSize.Should().Be(2000);
-        stats.HitRatio.Should().Be(2.0 / 3.0); // 2 hits out of 3 total requests
-        stats.AverageDataSize.Should().Be(1000); // 2000 / 2 sets
+        Assert.Equal(2, stats.Hits);
+        Assert.Equal(1, stats.Misses);
+        Assert.Equal(2, stats.Sets);
+        Assert.Equal(1, stats.Evictions);
+        Assert.Equal(2000, stats.TotalDataSize);
+        Assert.Equal(2.0 / 3.0, stats.HitRatio);
+        Assert.Equal(1000, stats.AverageDataSize);
     }
 
     [Fact]
@@ -143,17 +142,17 @@ public class DefaultCacheMetricsTests
         var type2Stats = _metrics.GetStatistics("RequestType2");
 
         // Assert
-        globalStats.Hits.Should().Be(2);
-        globalStats.Misses.Should().Be(1);
-        globalStats.Sets.Should().Be(1);
+        Assert.Equal(2, globalStats.Hits);
+        Assert.Equal(1, globalStats.Misses);
+        Assert.Equal(1, globalStats.Sets);
 
-        type1Stats.Hits.Should().Be(1);
-        type1Stats.Misses.Should().Be(1);
-        type1Stats.Sets.Should().Be(1);
+        Assert.Equal(1, type1Stats.Hits);
+        Assert.Equal(1, type1Stats.Misses);
+        Assert.Equal(1, type1Stats.Sets);
 
-        type2Stats.Hits.Should().Be(1);
-        type2Stats.Misses.Should().Be(0);
-        type2Stats.Sets.Should().Be(0);
+        Assert.Equal(1, type2Stats.Hits);
+        Assert.Equal(0, type2Stats.Misses);
+        Assert.Equal(0, type2Stats.Sets);
     }
 
     [Fact]
@@ -163,13 +162,13 @@ public class DefaultCacheMetricsTests
         var stats = _metrics.GetStatistics();
 
         // Assert
-        stats.Hits.Should().Be(0);
-        stats.Misses.Should().Be(0);
-        stats.Sets.Should().Be(0);
-        stats.Evictions.Should().Be(0);
-        stats.TotalDataSize.Should().Be(0);
-        stats.HitRatio.Should().Be(0.0);
-        stats.AverageDataSize.Should().Be(0.0);
+        Assert.Equal(0, stats.Hits);
+        Assert.Equal(0, stats.Misses);
+        Assert.Equal(0, stats.Sets);
+        Assert.Equal(0, stats.Evictions);
+        Assert.Equal(0, stats.TotalDataSize);
+        Assert.Equal(0.0, stats.HitRatio);
+        Assert.Equal(0.0, stats.AverageDataSize);
     }
 
     [Fact]
@@ -179,7 +178,7 @@ public class DefaultCacheMetricsTests
         var stats = _metrics.GetStatistics();
 
         // Assert
-        stats.HitRatio.Should().Be(0.0);
+        Assert.Equal(0.0, stats.HitRatio);
     }
 
     [Theory]
@@ -203,6 +202,6 @@ public class DefaultCacheMetricsTests
         var stats = _metrics.GetStatistics();
 
         // Assert
-        stats.HitRatio.Should().BeApproximately(expectedRatio, 0.0001);
+        Assert.InRange(stats.HitRatio, expectedRatio - 0.0001, expectedRatio + 0.0001);
     }
 }

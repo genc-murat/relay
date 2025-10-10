@@ -1,7 +1,6 @@
-using System;
-using FluentAssertions;
 using Relay.Core.Caching.Compression;
 using Relay.Core.Caching.Compression.Adapters;
+using System;
 using System.Text;
 using Xunit;
 
@@ -19,11 +18,8 @@ public class CacheCompressorAdapterTests
     [Fact]
     public void Constructor_WithNullCompressor_ShouldThrowArgumentNullException()
     {
-        // Arrange & Act
-        Action act = () => new CacheCompressorAdapter(null!);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new CacheCompressorAdapter(null!));
     }
 
     [Fact]
@@ -36,7 +32,7 @@ public class CacheCompressorAdapterTests
         var adapter = new CacheCompressorAdapter(unifiedCompressor);
 
         // Assert
-        adapter.Should().NotBeNull();
+        Assert.NotNull(adapter);
     }
 
     [Fact]
@@ -50,12 +46,12 @@ public class CacheCompressorAdapterTests
         var compressed = adapter.Compress(_testData);
 
         // Assert
-        compressed.Should().NotBeNull();
-        compressed.Should().NotBeEquivalentTo(_testData);
+        Assert.NotNull(compressed);
+        Assert.NotEqual(_testData, compressed);
         // Compression should reduce size for this repetitive data
         if (_testData.Length > 100)
         {
-            compressed.Length.Should().BeLessThan((int)(_testData.Length * 0.9)); // At least 10% compression
+            Assert.True(compressed.Length < (int)(_testData.Length * 0.9)); // At least 10% compression
         }
     }
 
@@ -71,7 +67,7 @@ public class CacheCompressorAdapterTests
         var decompressed = adapter.Decompress(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Fact]
@@ -86,8 +82,8 @@ public class CacheCompressorAdapterTests
         var shouldCompressSmall = adapter.ShouldCompress(50);
 
         // Assert
-        shouldCompressLarge.Should().BeTrue();
-        shouldCompressSmall.Should().BeFalse();
+        Assert.True(shouldCompressLarge);
+        Assert.False(shouldCompressSmall);
     }
 
     [Fact]
@@ -127,12 +123,12 @@ public class CacheCompressorAdapterTests
         var decompressed = adapter.Decompress(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
         // Compression should reduce size for this repetitive data
         // Allow some tolerance for different algorithms and overhead
         if (_testData.Length > 100)
         {
-            compressed.Length.Should().BeLessThan((int)(_testData.Length * 0.9)); // At least 10% compression
+            Assert.True(compressed.Length < (int)(_testData.Length * 0.9)); // At least 10% compression
         }
     }
 }

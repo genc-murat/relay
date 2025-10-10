@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.Core.Caching.Invalidation;
 using System;
 using System.Linq;
@@ -19,8 +18,8 @@ public class CacheDependencyAttributeTests
         var attribute = new CacheDependencyAttribute(dependencyKey, dependencyType);
 
         // Assert
-        attribute.DependencyKey.Should().Be(dependencyKey);
-        attribute.DependencyType.Should().Be(dependencyType);
+        Assert.Equal(dependencyKey, attribute.DependencyKey);
+        Assert.Equal(dependencyType, attribute.DependencyType);
     }
 
     [Fact]
@@ -33,8 +32,8 @@ public class CacheDependencyAttributeTests
         var attribute = new CacheDependencyAttribute(dependencyKey);
 
         // Assert
-        attribute.DependencyKey.Should().Be(dependencyKey);
-        attribute.DependencyType.Should().Be(CacheDependencyType.InvalidateOnUpdate);
+        Assert.Equal(dependencyKey, attribute.DependencyKey);
+        Assert.Equal(CacheDependencyType.InvalidateOnUpdate, attribute.DependencyType);
     }
 
     [Fact]
@@ -58,8 +57,8 @@ public class CacheDependencyAttributeTests
         var attribute = new CacheDependencyAttribute(dependencyKey, dependencyType);
 
         // Assert
-        attribute.DependencyKey.Should().Be(dependencyKey);
-        attribute.DependencyType.Should().Be(dependencyType);
+        Assert.Equal(dependencyKey, attribute.DependencyKey);
+        Assert.Equal(dependencyType, attribute.DependencyType);
     }
 
     [Fact]
@@ -72,19 +71,19 @@ public class CacheDependencyAttributeTests
             .First();
 
         // Assert
-        attributeUsage.ValidOn.Should().Be(AttributeTargets.Class);
-        attributeUsage.Inherited.Should().BeFalse();
-        attributeUsage.AllowMultiple.Should().BeTrue();
+        Assert.Equal(AttributeTargets.Class, attributeUsage.ValidOn);
+        Assert.False(attributeUsage.Inherited);
+        Assert.True(attributeUsage.AllowMultiple);
     }
 
     [Fact]
     public void CacheDependencyType_Enum_ShouldHaveCorrectValues()
     {
         // Arrange & Act & Assert
-        Enum.GetNames(typeof(CacheDependencyType)).Should().HaveCount(4);
-        Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnUpdate).Should().BeTrue();
-        Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnCreate).Should().BeTrue();
-        Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnDelete).Should().BeTrue();
-        Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnAnyChange).Should().BeTrue();
+        Assert.Equal(4, Enum.GetNames(typeof(CacheDependencyType)).Length);
+        Assert.True(Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnUpdate));
+        Assert.True(Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnCreate));
+        Assert.True(Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnDelete));
+        Assert.True(Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnAnyChange));
     }
 }

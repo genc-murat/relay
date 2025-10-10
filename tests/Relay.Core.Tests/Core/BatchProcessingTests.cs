@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Pipeline;
@@ -41,8 +40,8 @@ public class BatchProcessingTests
 
         var provider = services.BuildServiceProvider();
         var executor = new PipelineExecutor(provider);
-        var request = new BatchRequest 
-        { 
+        var request = new BatchRequest
+        {
             Items = new List<string> { "item1", "item2", "item3" }
         };
 
@@ -53,8 +52,10 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().HaveCount(3);
-        result.Should().Contain(new[] { "ITEM1", "ITEM2", "ITEM3" });
+        Assert.Equal(3, result.Count);
+        Assert.Contains("ITEM1", result);
+        Assert.Contains("ITEM2", result);
+        Assert.Contains("ITEM3", result);
     }
 
     public class BatchWithValidationRequest : IRequest<List<int>>
@@ -141,7 +142,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Equal(2, 4, 6, 8);
+        Assert.Equal(new List<int> { 2, 4, 6, 8 }, result);
     }
 
     [Fact]
@@ -168,7 +169,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -193,9 +194,9 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().HaveCount(1000);
-        result[0].Should().Be("ITEM1");
-        result[999].Should().Be("ITEM1000");
+        Assert.Equal(1000, result.Count);
+        Assert.Equal("ITEM1", result[0]);
+        Assert.Equal("ITEM1000", result[999]);
     }
 
     [Fact]
@@ -273,8 +274,8 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().HaveCount(3);
-        result.Should().Equal("ITEM1", "ITEM2", "ITEM3");
+        Assert.Equal(3, result.Count);
+        Assert.Equal(new List<string> { "ITEM1", "ITEM2", "ITEM3" }, result);
     }
 
     [Fact]
@@ -301,8 +302,8 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().HaveCount(1);
-        result[0].Should().Be("SINGLE");
+        Assert.Equal(1, result.Count);
+        Assert.Equal("SINGLE", result[0]);
     }
 
     public class BatchWithDuplicatesRequest : IRequest<List<string>>
@@ -343,8 +344,10 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().HaveCount(3);
-        result.Should().Contain(new[] { "a", "b", "c" });
+        Assert.Equal(3, result.Count);
+        Assert.Contains("a", result);
+        Assert.Contains("b", result);
+        Assert.Contains("c", result);
     }
 
     public class BatchPartitionRequest : IRequest<Dictionary<bool, List<int>>>
@@ -387,8 +390,8 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result[true].Should().Equal(2, 4, 6, 8, 10);
-        result[false].Should().Equal(1, 3, 5, 7, 9);
+        Assert.Equal(new List<int> { 2, 4, 6, 8, 10 }, result[true]);
+        Assert.Equal(new List<int> { 1, 3, 5, 7, 9 }, result[false]);
     }
 
     public class BatchAggregationRequest : IRequest<int>
@@ -429,7 +432,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Be(15);
+        Assert.Equal(15, result);
     }
 
     [Fact]
@@ -498,7 +501,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Equal("Number: 1", "Number: 2", "Number: 3");
+        Assert.Equal(new List<string> { "Number: 1", "Number: 2", "Number: 3" }, result);
     }
 
     public class BatchFilterRequest : IRequest<List<int>>
@@ -541,7 +544,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Equal(8, 9);
+        Assert.Equal(new List<int> { 8, 9 }, result);
     }
 
     [Fact]
@@ -569,7 +572,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     public class BatchSortRequest : IRequest<List<int>>
@@ -614,7 +617,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Equal(1, 2, 3, 5, 8, 9);
+        Assert.Equal(new List<int> { 1, 2, 3, 5, 8, 9 }, result);
     }
 
     [Fact]
@@ -642,7 +645,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Equal(9, 8, 5, 3, 2, 1);
+        Assert.Equal(new List<int> { 9, 8, 5, 3, 2, 1 }, result);
     }
 
     public class BatchWithSpecialCharsRequest : IRequest<List<string>>
@@ -683,7 +686,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Equal("hello", "tab", "newline");
+        Assert.Equal(new List<string> { "hello", "tab", "newline" }, result);
     }
 
     [Fact]
@@ -710,7 +713,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Equal(0, 0, 0);
+        Assert.Equal(new List<int> { 0, 0, 0 }, result);
     }
 
     public class BatchCountRequest : IRequest<Dictionary<string, int>>
@@ -753,8 +756,8 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        result["a"].Should().Be(3);
-        result["b"].Should().Be(2);
-        result["c"].Should().Be(1);
+        Assert.Equal(3, result["a"]);
+        Assert.Equal(2, result["b"]);
+        Assert.Equal(1, result["c"]);
     }
 }

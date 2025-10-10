@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Xunit;
 using Relay.Core;
-using Relay.Core.Tests.Testing;
-using static Relay.Core.Tests.Testing.FluentAssertionsExtensions;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Pipeline;
+using Xunit;
 
 namespace Relay.Core.Tests.Core;
 
@@ -27,9 +24,9 @@ public class CoreInterfaceTests
         var requestType = typeof(IRequest);
 
         // Assert
-        requestType.Should().BeInterface();
-        requestType.GetMethods().Should().BeEmpty();
-        requestType.GetProperties().Should().BeEmpty();
+        Assert.True(requestType.IsInterface);
+        Assert.Empty(requestType.GetMethods());
+        Assert.Empty(requestType.GetProperties());
     }
 
     [Fact]
@@ -39,10 +36,10 @@ public class CoreInterfaceTests
         var requestType = typeof(IRequest<>);
 
         // Assert
-        requestType.Should().BeInterface();
-        requestType.IsGenericTypeDefinition.Should().BeTrue();
-        requestType.GetMethods().Should().BeEmpty();
-        requestType.GetProperties().Should().BeEmpty();
+        Assert.True(requestType.IsInterface);
+        Assert.True(requestType.IsGenericTypeDefinition);
+        Assert.Empty(requestType.GetMethods());
+        Assert.Empty(requestType.GetProperties());
     }
 
     [Fact]
@@ -52,10 +49,10 @@ public class CoreInterfaceTests
         var requestType = typeof(IStreamRequest<>);
 
         // Assert
-        requestType.Should().BeInterface();
-        requestType.IsGenericTypeDefinition.Should().BeTrue();
-        requestType.GetMethods().Should().BeEmpty();
-        requestType.GetProperties().Should().BeEmpty();
+        Assert.True(requestType.IsInterface);
+        Assert.True(requestType.IsGenericTypeDefinition);
+        Assert.Empty(requestType.GetMethods());
+        Assert.Empty(requestType.GetProperties());
     }
 
     [Fact]
@@ -65,9 +62,9 @@ public class CoreInterfaceTests
         var notificationType = typeof(INotification);
 
         // Assert
-        notificationType.Should().BeInterface();
-        notificationType.GetMethods().Should().BeEmpty();
-        notificationType.GetProperties().Should().BeEmpty();
+        Assert.True(notificationType.IsInterface);
+        Assert.Empty(notificationType.GetMethods());
+        Assert.Empty(notificationType.GetProperties());
     }
 
     [Fact]
@@ -77,13 +74,13 @@ public class CoreInterfaceTests
         var relayType = typeof(IRelay);
 
         // Assert
-        relayType.Should().BeInterface();
+        Assert.True(relayType.IsInterface);
 
         var methods = relayType.GetMethods();
-        methods.Should().HaveCount(4);
+        Assert.Equal(4, methods.Length);
 
         // Check SendAsync with response
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "SendAsync" &&
             m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
@@ -91,20 +88,20 @@ public class CoreInterfaceTests
             m.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>));
 
         // Check SendAsync without response
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "SendAsync" &&
             !m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
             m.ReturnType == typeof(ValueTask));
 
         // Check StreamAsync
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "StreamAsync" &&
             m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2);
 
         // Check PublishAsync
-        methods.Should().Contain(m =>
+        Assert.Contains(methods, m =>
             m.Name == "PublishAsync" &&
             m.IsGenericMethodDefinition &&
             m.GetParameters().Length == 2 &&
@@ -118,18 +115,18 @@ public class CoreInterfaceTests
         var handlerType = typeof(IRequestHandler<,>);
 
         // Assert
-        handlerType.Should().BeInterface();
-        handlerType.IsGenericTypeDefinition.Should().BeTrue();
-        handlerType.GetGenericArguments().Should().HaveCount(2);
+        Assert.True(handlerType.IsInterface);
+        Assert.True(handlerType.IsGenericTypeDefinition);
+        Assert.Equal(2, handlerType.GetGenericArguments().Length);
 
         var methods = handlerType.GetMethods();
-        methods.Should().HaveCount(1);
+        Assert.Equal(1, methods.Length);
 
         var handleMethod = methods[0];
-        handleMethod.Name.Should().Be("HandleAsync");
-        handleMethod.GetParameters().Should().HaveCount(2);
-        handleMethod.ReturnType.IsGenericType.Should().BeTrue();
-        handleMethod.ReturnType.GetGenericTypeDefinition().Should().Be(typeof(ValueTask<>));
+        Assert.Equal("HandleAsync", handleMethod.Name);
+        Assert.Equal(2, handleMethod.GetParameters().Length);
+        Assert.True(handleMethod.ReturnType.IsGenericType);
+        Assert.Equal(typeof(ValueTask<>), handleMethod.ReturnType.GetGenericTypeDefinition());
     }
 
     [Fact]
@@ -139,18 +136,18 @@ public class CoreInterfaceTests
         var handlerType = typeof(IStreamHandler<,>);
 
         // Assert
-        handlerType.Should().BeInterface();
-        handlerType.IsGenericTypeDefinition.Should().BeTrue();
-        handlerType.GetGenericArguments().Should().HaveCount(2);
+        Assert.True(handlerType.IsInterface);
+        Assert.True(handlerType.IsGenericTypeDefinition);
+        Assert.Equal(2, handlerType.GetGenericArguments().Length);
 
         var methods = handlerType.GetMethods();
-        methods.Should().HaveCount(1);
+        Assert.Equal(1, methods.Length);
 
         var handleMethod = methods[0];
-        handleMethod.Name.Should().Be("HandleAsync");
-        handleMethod.GetParameters().Should().HaveCount(2);
-        handleMethod.ReturnType.IsGenericType.Should().BeTrue();
-        handleMethod.ReturnType.GetGenericTypeDefinition().Should().Be(typeof(IAsyncEnumerable<>));
+        Assert.Equal("HandleAsync", handleMethod.Name);
+        Assert.Equal(2, handleMethod.GetParameters().Length);
+        Assert.True(handleMethod.ReturnType.IsGenericType);
+        Assert.Equal(typeof(IAsyncEnumerable<>), handleMethod.ReturnType.GetGenericTypeDefinition());
     }
 
     [Fact]
@@ -160,17 +157,17 @@ public class CoreInterfaceTests
         var handlerType = typeof(INotificationHandler<>);
 
         // Assert
-        handlerType.Should().BeInterface();
-        handlerType.IsGenericTypeDefinition.Should().BeTrue();
-        handlerType.GetGenericArguments().Should().HaveCount(1);
+        Assert.True(handlerType.IsInterface);
+        Assert.True(handlerType.IsGenericTypeDefinition);
+        Assert.Equal(1, handlerType.GetGenericArguments().Length);
 
         var methods = handlerType.GetMethods();
-        methods.Should().HaveCount(1);
+        Assert.Equal(1, methods.Length);
 
         var handleMethod = methods[0];
-        handleMethod.Name.Should().Be("HandleAsync");
-        handleMethod.GetParameters().Should().HaveCount(2);
-        handleMethod.ReturnType.Should().Be(typeof(ValueTask));
+        Assert.Equal("HandleAsync", handleMethod.Name);
+        Assert.Equal(2, handleMethod.GetParameters().Length);
+        Assert.Equal(typeof(ValueTask), handleMethod.ReturnType);
     }
 
     [Fact]
@@ -180,18 +177,18 @@ public class CoreInterfaceTests
         var pipelineType = typeof(IPipelineBehavior<,>);
 
         // Assert
-        pipelineType.Should().BeInterface();
-        pipelineType.IsGenericTypeDefinition.Should().BeTrue();
-        pipelineType.GetGenericArguments().Should().HaveCount(2);
+        Assert.True(pipelineType.IsInterface);
+        Assert.True(pipelineType.IsGenericTypeDefinition);
+        Assert.Equal(2, pipelineType.GetGenericArguments().Length);
 
         var methods = pipelineType.GetMethods();
-        methods.Should().HaveCount(1);
+        Assert.Equal(1, methods.Length);
 
         var handleMethod = methods[0];
-        handleMethod.Name.Should().Be("HandleAsync");
-        handleMethod.GetParameters().Should().HaveCount(3);
-        handleMethod.ReturnType.IsGenericType.Should().BeTrue();
-        handleMethod.ReturnType.GetGenericTypeDefinition().Should().Be(typeof(ValueTask<>));
+        Assert.Equal("HandleAsync", handleMethod.Name);
+        Assert.Equal(3, handleMethod.GetParameters().Length);
+        Assert.True(handleMethod.ReturnType.IsGenericType);
+        Assert.Equal(typeof(ValueTask<>), handleMethod.ReturnType.GetGenericTypeDefinition());
     }
 
     [Fact]
@@ -201,18 +198,18 @@ public class CoreInterfaceTests
         var pipelineType = typeof(IStreamPipelineBehavior<,>);
 
         // Assert
-        pipelineType.Should().BeInterface();
-        pipelineType.IsGenericTypeDefinition.Should().BeTrue();
-        pipelineType.GetGenericArguments().Should().HaveCount(2);
+        Assert.True(pipelineType.IsInterface);
+        Assert.True(pipelineType.IsGenericTypeDefinition);
+        Assert.Equal(2, pipelineType.GetGenericArguments().Length);
 
         var methods = pipelineType.GetMethods();
-        methods.Should().HaveCount(1);
+        Assert.Equal(1, methods.Length);
 
         var handleMethod = methods[0];
-        handleMethod.Name.Should().Be("HandleAsync");
-        handleMethod.GetParameters().Should().HaveCount(3);
-        handleMethod.ReturnType.IsGenericType.Should().BeTrue();
-        handleMethod.ReturnType.GetGenericTypeDefinition().Should().Be(typeof(IAsyncEnumerable<>));
+        Assert.Equal("HandleAsync", handleMethod.Name);
+        Assert.Equal(3, handleMethod.GetParameters().Length);
+        Assert.True(handleMethod.ReturnType.IsGenericType);
+        Assert.Equal(typeof(IAsyncEnumerable<>), handleMethod.ReturnType.GetGenericTypeDefinition());
     }
 
     [Fact]
@@ -222,7 +219,7 @@ public class CoreInterfaceTests
         var request = new TestConcreteRequest();
 
         // Assert
-        request.Should().BeAssignableTo<IRequest<string>>();
+        Assert.IsAssignableFrom<IRequest<string>>(request);
     }
 
     [Fact]
@@ -232,7 +229,7 @@ public class CoreInterfaceTests
         var request = new TestConcreteVoidRequest();
 
         // Assert
-        request.Should().BeAssignableTo<IRequest>();
+        Assert.IsAssignableFrom<IRequest>(request);
     }
 
     [Fact]
@@ -242,7 +239,7 @@ public class CoreInterfaceTests
         var request = new TestConcreteStreamRequest();
 
         // Assert
-        request.Should().BeAssignableTo<IStreamRequest<int>>();
+        Assert.IsAssignableFrom<IStreamRequest<int>>(request);
     }
 
     [Fact]
@@ -252,7 +249,7 @@ public class CoreInterfaceTests
         var notification = new TestConcreteNotification();
 
         // Assert
-        notification.Should().BeAssignableTo<INotification>();
+        Assert.IsAssignableFrom<INotification>(notification);
     }
 
     [Fact]
@@ -262,7 +259,7 @@ public class CoreInterfaceTests
         var handler = new TestConcreteHandler();
 
         // Assert
-        handler.Should().BeAssignableTo<IRequestHandler<TestConcreteRequest, string>>();
+        Assert.IsAssignableFrom<IRequestHandler<TestConcreteRequest, string>>(handler);
     }
 
     [Fact]
@@ -272,7 +269,7 @@ public class CoreInterfaceTests
         var handler = new TestConcreteStreamHandler();
 
         // Assert
-        handler.Should().BeAssignableTo<IStreamHandler<TestConcreteStreamRequest, int>>();
+        Assert.IsAssignableFrom<IStreamHandler<TestConcreteStreamRequest, int>>(handler);
     }
 
     [Fact]
@@ -282,7 +279,7 @@ public class CoreInterfaceTests
         var handler = new TestConcreteNotificationHandler();
 
         // Assert
-        handler.Should().BeAssignableTo<INotificationHandler<TestConcreteNotification>>();
+        Assert.IsAssignableFrom<INotificationHandler<TestConcreteNotification>>(handler);
     }
 
     [Fact]
@@ -292,7 +289,7 @@ public class CoreInterfaceTests
         var pipeline = new TestConcretePipelineBehavior();
 
         // Assert
-        pipeline.Should().BeAssignableTo<IPipelineBehavior<TestConcreteRequest, string>>();
+        Assert.IsAssignableFrom<IPipelineBehavior<TestConcreteRequest, string>>(pipeline);
     }
 
     [Fact]
@@ -302,7 +299,7 @@ public class CoreInterfaceTests
         var pipeline = new TestConcreteStreamPipelineBehavior();
 
         // Assert
-        pipeline.Should().BeAssignableTo<IStreamPipelineBehavior<TestConcreteStreamRequest, int>>();
+        Assert.IsAssignableFrom<IStreamPipelineBehavior<TestConcreteStreamRequest, int>>(pipeline);
     }
 
     // Test implementations

@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.ContractValidation;
 using Xunit;
 
@@ -34,7 +33,7 @@ namespace Relay.Core.Tests.ContractValidation
             var errors = await _validator.ValidateRequestAsync(request, schema);
 
             // Assert
-            errors.Should().BeEmpty();
+            Assert.Empty(errors);
         }
 
         [Fact]
@@ -47,8 +46,8 @@ namespace Relay.Core.Tests.ContractValidation
             var errors = await _validator.ValidateRequestAsync(null!, schema);
 
             // Assert
-            errors.Should().ContainSingle();
-            errors.First().Should().Be("Request cannot be null");
+            Assert.Single(errors);
+            Assert.Equal("Request cannot be null", errors.First());
         }
 
         [Fact]
@@ -62,7 +61,7 @@ namespace Relay.Core.Tests.ContractValidation
             var errors = await _validator.ValidateResponseAsync(response, schema);
 
             // Assert
-            errors.Should().BeEmpty();
+            Assert.Empty(errors);
         }
 
         [Fact]
@@ -75,8 +74,8 @@ namespace Relay.Core.Tests.ContractValidation
             var errors = await _validator.ValidateResponseAsync(null!, schema);
 
             // Assert
-            errors.Should().ContainSingle();
-            errors.First().Should().Be("Response cannot be null according to schema");
+            Assert.Single(errors);
+            Assert.Equal("Response cannot be null according to schema", errors.First());
         }
 
         [Fact]
@@ -89,7 +88,7 @@ namespace Relay.Core.Tests.ContractValidation
             var errors = await _validator.ValidateResponseAsync(null!, schema);
 
             // Assert
-            errors.Should().BeEmpty();
+            Assert.Empty(errors);
         }
 
         [Fact]
@@ -103,8 +102,8 @@ namespace Relay.Core.Tests.ContractValidation
             var errors = await _validator.ValidateRequestAsync(request, schema);
 
             // Assert
-            errors.Should().ContainSingle();
-            errors.First().Should().Be("Invalid JSON schema format");
+            Assert.Single(errors);
+            Assert.Equal("Invalid JSON schema format", errors.First());
         }
     }
 }

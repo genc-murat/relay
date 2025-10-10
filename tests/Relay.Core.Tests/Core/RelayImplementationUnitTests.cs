@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Relay.Core;
@@ -32,8 +31,8 @@ public class RelayImplementationUnitTests
         var relay = new RelayImplementation(serviceProvider);
 
         // Assert
-        relay.Should().NotBeNull();
-        relay.Should().BeAssignableTo<IRelay>();
+        Assert.NotNull(relay);
+        Assert.IsAssignableFrom<IRelay>(relay);
     }
 
     [Fact]
@@ -65,7 +64,7 @@ public class RelayImplementationUnitTests
         var result = await relay.SendAsync(request);
 
         // Assert
-        result.Should().Be(expectedResponse);
+        Assert.Equal(expectedResponse, result);
         mockDispatcher.Verify(d => d.DispatchAsync(request, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -132,7 +131,7 @@ public class RelayImplementationUnitTests
         var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() =>
             relay.SendAsync(request).AsTask());
 
-        exception.RequestType.Should().Contain("TestRequest");
+        Assert.Contains("TestRequest", exception.RequestType);
     }
 
     [Fact]
@@ -161,7 +160,7 @@ public class RelayImplementationUnitTests
         }
 
         // Assert
-        results.Should().BeEquivalentTo(expectedItems);
+        Assert.Equal(expectedItems, results);
         mockDispatcher.Verify(d => d.DispatchAsync(request, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -196,7 +195,7 @@ public class RelayImplementationUnitTests
             }
         });
 
-        exception.RequestType.Should().Contain("TestStreamRequest");
+        Assert.Contains("TestStreamRequest", exception.RequestType);
     }
 
     [Fact]
@@ -363,8 +362,8 @@ public class RelayImplementationUnitTests
         await relay.PublishAsync(new TestNotification());
 
         // Assert
-        requestResult.Should().Be("request result");
-        streamResults.Should().BeEquivalentTo(new[] { 1, 2, 3 });
+        Assert.Equal("request result", requestResult);
+        Assert.Equal(new[] { 1, 2, 3 }, streamResults);
 
         mockRequestDispatcher.Verify(d => d.DispatchAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()), Times.Once);
         mockStreamDispatcher.Verify(d => d.DispatchAsync(It.IsAny<IStreamRequest<int>>(), It.IsAny<CancellationToken>()), Times.Once);

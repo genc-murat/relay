@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Pipeline;
@@ -17,8 +16,8 @@ namespace Relay.Core.Tests
             var relayType = typeof(IRelay);
 
             // Assert
-            relayType.Should().NotBeNull();
-            relayType.IsInterface.Should().BeTrue();
+            Assert.NotNull(relayType);
+            Assert.True(relayType.IsInterface);
         }
 
         [Fact]
@@ -30,14 +29,14 @@ namespace Relay.Core.Tests
             var streamRequestType = typeof(IStreamRequest<>);
 
             // Assert
-            requestType.Should().NotBeNull();
-            requestType.IsInterface.Should().BeTrue();
+            Assert.NotNull(requestType);
+            Assert.True(requestType.IsInterface);
 
-            requestVoidType.Should().NotBeNull();
-            requestVoidType.IsInterface.Should().BeTrue();
+            Assert.NotNull(requestVoidType);
+            Assert.True(requestVoidType.IsInterface);
 
-            streamRequestType.Should().NotBeNull();
-            streamRequestType.IsInterface.Should().BeTrue();
+            Assert.NotNull(streamRequestType);
+            Assert.True(streamRequestType.IsInterface);
         }
 
         [Fact]
@@ -47,8 +46,8 @@ namespace Relay.Core.Tests
             var notificationType = typeof(INotification);
 
             // Assert
-            notificationType.Should().NotBeNull();
-            notificationType.IsInterface.Should().BeTrue();
+            Assert.NotNull(notificationType);
+            Assert.True(notificationType.IsInterface);
         }
 
         [Fact]
@@ -61,17 +60,17 @@ namespace Relay.Core.Tests
             var notificationHandlerType = typeof(INotificationHandler<>);
 
             // Assert
-            requestHandlerType.Should().NotBeNull();
-            requestHandlerType.IsInterface.Should().BeTrue();
+            Assert.NotNull(requestHandlerType);
+            Assert.True(requestHandlerType.IsInterface);
 
-            requestVoidHandlerType.Should().NotBeNull();
-            requestVoidHandlerType.IsInterface.Should().BeTrue();
+            Assert.NotNull(requestVoidHandlerType);
+            Assert.True(requestVoidHandlerType.IsInterface);
 
-            streamHandlerType.Should().NotBeNull();
-            streamHandlerType.IsInterface.Should().BeTrue();
+            Assert.NotNull(streamHandlerType);
+            Assert.True(streamHandlerType.IsInterface);
 
-            notificationHandlerType.Should().NotBeNull();
-            notificationHandlerType.IsInterface.Should().BeTrue();
+            Assert.NotNull(notificationHandlerType);
+            Assert.True(notificationHandlerType.IsInterface);
         }
 
         [Fact]
@@ -82,8 +81,8 @@ namespace Relay.Core.Tests
             var sendMethods = relayType.GetMethods().Where(m => m.Name == "SendAsync");
 
             // Assert
-            sendMethods.Should().NotBeEmpty();
-            sendMethods.All(m => m.ReturnType.Name.Contains("ValueTask")).Should().BeTrue();
+            Assert.NotEmpty(sendMethods);
+            Assert.True(sendMethods.All(m => m.ReturnType.Name.Contains("ValueTask")));
         }
 
         [Fact]
@@ -94,8 +93,8 @@ namespace Relay.Core.Tests
             var publishMethods = relayType.GetMethods().Where(m => m.Name == "PublishAsync");
 
             // Assert
-            publishMethods.Should().NotBeEmpty();
-            publishMethods.All(m => m.ReturnType.Name.Contains("ValueTask")).Should().BeTrue();
+            Assert.NotEmpty(publishMethods);
+            Assert.True(publishMethods.All(m => m.ReturnType.Name.Contains("ValueTask")));
         }
 
         [Fact]
@@ -105,8 +104,8 @@ namespace Relay.Core.Tests
             var requestType = typeof(IRequest<>);
 
             // Assert
-            requestType.IsGenericType.Should().BeTrue();
-            requestType.GetGenericArguments().Should().HaveCount(1);
+            Assert.True(requestType.IsGenericType);
+            Assert.Equal(1, requestType.GetGenericArguments().Length);
         }
 
         [Fact]
@@ -116,7 +115,7 @@ namespace Relay.Core.Tests
             var requestVoidType = typeof(IRequest);
 
             // Assert
-            requestVoidType.IsGenericType.Should().BeFalse();
+            Assert.False(requestVoidType.IsGenericType);
         }
 
         [Fact]
@@ -126,8 +125,8 @@ namespace Relay.Core.Tests
             var streamRequestType = typeof(IStreamRequest<>);
 
             // Assert
-            streamRequestType.IsGenericType.Should().BeTrue();
-            streamRequestType.GetGenericArguments().Should().HaveCount(1);
+            Assert.True(streamRequestType.IsGenericType);
+            Assert.Equal(1, streamRequestType.GetGenericArguments().Length);
         }
 
         [Fact]
@@ -138,8 +137,8 @@ namespace Relay.Core.Tests
             var handleMethod = handlerType.GetMethod("HandleAsync");
 
             // Assert
-            handleMethod.Should().NotBeNull();
-            handleMethod!.ReturnType.Name.Should().Contain("ValueTask");
+            Assert.NotNull(handleMethod);
+            Assert.Contains("ValueTask", handleMethod.ReturnType.Name);
         }
 
         [Fact]
@@ -150,8 +149,8 @@ namespace Relay.Core.Tests
             var handleMethod = handlerType.GetMethod("HandleAsync");
 
             // Assert
-            handleMethod.Should().NotBeNull();
-            handleMethod!.ReturnType.Name.Should().Contain("ValueTask");
+            Assert.NotNull(handleMethod);
+            Assert.Contains("ValueTask", handleMethod.ReturnType.Name);
         }
 
         [Fact]
@@ -162,8 +161,8 @@ namespace Relay.Core.Tests
             var handleMethod = streamHandlerType.GetMethod("HandleAsync");
 
             // Assert
-            handleMethod.Should().NotBeNull();
-            handleMethod!.ReturnType.Name.Should().Contain("IAsyncEnumerable");
+            Assert.NotNull(handleMethod);
+            Assert.Contains("IAsyncEnumerable", handleMethod.ReturnType.Name);
         }
 
         [Fact]
@@ -174,8 +173,8 @@ namespace Relay.Core.Tests
             var handleMethod = notificationHandlerType.GetMethod("HandleAsync");
 
             // Assert
-            handleMethod.Should().NotBeNull();
-            handleMethod!.ReturnType.Name.Should().Contain("ValueTask");
+            Assert.NotNull(handleMethod);
+            Assert.Contains("ValueTask", handleMethod.ReturnType.Name);
         }
 
         [Fact]
@@ -185,7 +184,7 @@ namespace Relay.Core.Tests
             var requestType = typeof(IRequest<>);
 
             // Assert
-            requestType.IsPublic.Should().BeTrue();
+            Assert.True(requestType.IsPublic);
         }
 
         [Fact]
@@ -195,7 +194,7 @@ namespace Relay.Core.Tests
             var notificationType = typeof(INotification);
 
             // Assert
-            notificationType.IsPublic.Should().BeTrue();
+            Assert.True(notificationType.IsPublic);
         }
 
         [Fact]
@@ -205,7 +204,7 @@ namespace Relay.Core.Tests
             var relayType = typeof(IRelay);
 
             // Assert
-            relayType.IsPublic.Should().BeTrue();
+            Assert.True(relayType.IsPublic);
         }
 
         [Fact]
@@ -217,9 +216,9 @@ namespace Relay.Core.Tests
             var notificationHandlerType = typeof(INotificationHandler<>);
 
             // Assert
-            requestHandlerType.IsPublic.Should().BeTrue();
-            streamHandlerType.IsPublic.Should().BeTrue();
-            notificationHandlerType.IsPublic.Should().BeTrue();
+            Assert.True(requestHandlerType.IsPublic);
+            Assert.True(streamHandlerType.IsPublic);
+            Assert.True(notificationHandlerType.IsPublic);
         }
 
         [Fact]
@@ -229,7 +228,7 @@ namespace Relay.Core.Tests
             var requestHandlerType = typeof(IRequestHandler<,>);
 
             // Assert
-            requestHandlerType.GetGenericArguments().Should().HaveCount(2);
+            Assert.Equal(2, requestHandlerType.GetGenericArguments().Length);
         }
 
         [Fact]
@@ -239,7 +238,7 @@ namespace Relay.Core.Tests
             var requestVoidHandlerType = typeof(IRequestHandler<>);
 
             // Assert
-            requestVoidHandlerType.GetGenericArguments().Should().HaveCount(1);
+            Assert.Equal(1, requestVoidHandlerType.GetGenericArguments().Length);
         }
 
         [Fact]
@@ -249,7 +248,7 @@ namespace Relay.Core.Tests
             var streamHandlerType = typeof(IStreamHandler<,>);
 
             // Assert
-            streamHandlerType.GetGenericArguments().Should().HaveCount(2);
+            Assert.Equal(2, streamHandlerType.GetGenericArguments().Length);
         }
 
         [Fact]
@@ -259,7 +258,7 @@ namespace Relay.Core.Tests
             var notificationHandlerType = typeof(INotificationHandler<>);
 
             // Assert
-            notificationHandlerType.GetGenericArguments().Should().HaveCount(1);
+            Assert.Equal(1, notificationHandlerType.GetGenericArguments().Length);
         }
 
         [Fact]
@@ -271,9 +270,9 @@ namespace Relay.Core.Tests
             var notificationType = typeof(INotification);
 
             // Assert
-            relayType.Namespace.Should().Be("Relay.Core.Contracts.Core");
-            requestType.Namespace.Should().Be("Relay.Core.Contracts.Requests");
-            notificationType.Namespace.Should().Be("Relay.Core.Contracts.Requests");
+            Assert.Equal("Relay.Core.Contracts.Core", relayType.Namespace);
+            Assert.Equal("Relay.Core.Contracts.Requests", requestType.Namespace);
+            Assert.Equal("Relay.Core.Contracts.Requests", notificationType.Namespace);
         }
 
         [Fact]
@@ -283,9 +282,9 @@ namespace Relay.Core.Tests
             var pipelineBehaviorType = typeof(IPipelineBehavior<,>);
 
             // Assert
-            pipelineBehaviorType.Should().NotBeNull();
-            pipelineBehaviorType.IsInterface.Should().BeTrue();
-            pipelineBehaviorType.IsGenericType.Should().BeTrue();
+            Assert.NotNull(pipelineBehaviorType);
+            Assert.True(pipelineBehaviorType.IsInterface);
+            Assert.True(pipelineBehaviorType.IsGenericType);
         }
 
         [Fact]
@@ -296,8 +295,8 @@ namespace Relay.Core.Tests
             var handleMethod = pipelineBehaviorType.GetMethod("HandleAsync");
 
             // Assert
-            handleMethod.Should().NotBeNull();
-            handleMethod!.ReturnType.Name.Should().Contain("ValueTask");
+            Assert.NotNull(handleMethod);
+            Assert.Contains("ValueTask", handleMethod.ReturnType.Name);
         }
 
         [Fact]
@@ -307,8 +306,8 @@ namespace Relay.Core.Tests
             var delegateType = typeof(RequestHandlerDelegate<>);
 
             // Assert
-            delegateType.Should().NotBeNull();
-            delegateType.IsGenericType.Should().BeTrue();
+            Assert.NotNull(delegateType);
+            Assert.True(delegateType.IsGenericType);
         }
 
         [Fact]
@@ -321,10 +320,10 @@ namespace Relay.Core.Tests
             var notificationType = typeof(INotification);
 
             // Assert
-            requestType.GetMethods().Should().BeEmpty();
-            requestVoidType.GetMethods().Should().BeEmpty();
-            streamRequestType.GetMethods().Should().BeEmpty();
-            notificationType.GetMethods().Should().BeEmpty();
+            Assert.Empty(requestType.GetMethods());
+            Assert.Empty(requestVoidType.GetMethods());
+            Assert.Empty(streamRequestType.GetMethods());
+            Assert.Empty(notificationType.GetMethods());
         }
 
         [Fact]
@@ -335,8 +334,8 @@ namespace Relay.Core.Tests
             var sendMethods = relayType.GetMethods().Where(m => m.Name == "SendAsync");
 
             // Assert
-            sendMethods.Should().NotBeEmpty();
-            sendMethods.All(m => m.GetParameters().Any(p => p.ParameterType.Name.Contains("CancellationToken"))).Should().BeTrue();
+            Assert.NotEmpty(sendMethods);
+            Assert.True(sendMethods.All(m => m.GetParameters().Any(p => p.ParameterType.Name.Contains("CancellationToken"))));
         }
 
         [Fact]
@@ -347,8 +346,8 @@ namespace Relay.Core.Tests
             var publishMethods = relayType.GetMethods().Where(m => m.Name == "PublishAsync");
 
             // Assert
-            publishMethods.Should().NotBeEmpty();
-            publishMethods.All(m => m.GetParameters().Any(p => p.ParameterType.Name.Contains("CancellationToken"))).Should().BeTrue();
+            Assert.NotEmpty(publishMethods);
+            Assert.True(publishMethods.All(m => m.GetParameters().Any(p => p.ParameterType.Name.Contains("CancellationToken"))));
         }
 
         [Fact]
@@ -360,7 +359,7 @@ namespace Relay.Core.Tests
             var parameters = handleMethod!.GetParameters();
 
             // Assert
-            parameters.Should().Contain(p => p.ParameterType.Name.Contains("CancellationToken"));
+            Assert.Contains(parameters, p => p.ParameterType.Name.Contains("CancellationToken"));
         }
 
         [Fact]
@@ -371,7 +370,7 @@ namespace Relay.Core.Tests
             var handleMethod = streamHandlerType.GetMethod("HandleAsync");
 
             // Assert
-            handleMethod!.ReturnType.Name.Should().Contain("IAsyncEnumerable");
+            Assert.Contains("IAsyncEnumerable", handleMethod!.ReturnType.Name);
         }
 
         [Fact]
@@ -384,10 +383,10 @@ namespace Relay.Core.Tests
             var handlerType = typeof(IRequestHandler<,>);
 
             // Assert
-            relayType.Name.Should().StartWith("I");
-            requestType.Name.Should().StartWith("I");
-            notificationType.Name.Should().StartWith("I");
-            handlerType.Name.Should().StartWith("I");
+            Assert.StartsWith("I", relayType.Name);
+            Assert.StartsWith("I", requestType.Name);
+            Assert.StartsWith("I", notificationType.Name);
+            Assert.StartsWith("I", handlerType.Name);
         }
     }
 }

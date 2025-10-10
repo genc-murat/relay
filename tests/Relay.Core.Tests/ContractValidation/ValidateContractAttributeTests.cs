@@ -1,6 +1,5 @@
 using System;
 using System.Reflection;
-using FluentAssertions;
 using Relay.Core.ContractValidation;
 using Xunit;
 
@@ -15,9 +14,9 @@ namespace Relay.Core.Tests.ContractValidation
             var attribute = new ValidateContractAttribute();
 
             // Assert
-            attribute.ValidateRequest.Should().BeTrue();
-            attribute.ValidateResponse.Should().BeTrue();
-            attribute.ThrowOnValidationFailure.Should().BeTrue();
+            Assert.True(attribute.ValidateRequest);
+            Assert.True(attribute.ValidateResponse);
+            Assert.True(attribute.ThrowOnValidationFailure);
         }
 
         [Theory]
@@ -31,9 +30,9 @@ namespace Relay.Core.Tests.ContractValidation
             var attribute = new ValidateContractAttribute(validateRequest, validateResponse);
 
             // Assert
-            attribute.ValidateRequest.Should().Be(validateRequest);
-            attribute.ValidateResponse.Should().Be(validateResponse);
-            attribute.ThrowOnValidationFailure.Should().BeTrue(); // Should still be default
+            Assert.Equal(validateRequest, attribute.ValidateRequest);
+            Assert.Equal(validateResponse, attribute.ValidateResponse);
+            Assert.True(attribute.ThrowOnValidationFailure); // Should still be default
         }
 
         [Fact]
@@ -46,7 +45,7 @@ namespace Relay.Core.Tests.ContractValidation
             attribute.ThrowOnValidationFailure = false;
 
             // Assert
-            attribute.ThrowOnValidationFailure.Should().BeFalse();
+            Assert.False(attribute.ThrowOnValidationFailure);
         }
 
         [Fact]
@@ -59,10 +58,10 @@ namespace Relay.Core.Tests.ContractValidation
             var usage = attributeType.GetCustomAttribute<AttributeUsageAttribute>();
 
             // Assert
-            usage.Should().NotBeNull();
-            usage.ValidOn.Should().Be(AttributeTargets.Class | AttributeTargets.Method);
-            usage.AllowMultiple.Should().BeFalse();
-            usage.Inherited.Should().BeTrue();
+            Assert.NotNull(usage);
+            Assert.Equal(AttributeTargets.Class | AttributeTargets.Method, usage.ValidOn);
+            Assert.False(usage.AllowMultiple);
+            Assert.True(usage.Inherited);
         }
 
         [ValidateContract(false, false, ThrowOnValidationFailure = false)]
@@ -84,27 +83,27 @@ namespace Relay.Core.Tests.ContractValidation
             var attribute = type.GetCustomAttribute<ValidateContractAttribute>();
 
             // Assert
-            attribute.Should().NotBeNull();
-            attribute.ValidateRequest.Should().BeFalse();
-            attribute.ValidateResponse.Should().BeFalse();
-            attribute.ThrowOnValidationFailure.Should().BeFalse();
+            Assert.NotNull(attribute);
+            Assert.False(attribute.ValidateRequest);
+            Assert.False(attribute.ValidateResponse);
+            Assert.False(attribute.ThrowOnValidationFailure);
         }
 
         [Fact]
         public void Attribute_CanBeAppliedToMethod()
-        {            
+        {
             // Arrange
             var method = typeof(TestClassWithAttribute).GetMethod(nameof(TestClassWithAttribute.TestMethodWithAttribute));
-            method.Should().NotBeNull();
 
             // Act
             var attribute = method!.GetCustomAttribute<ValidateContractAttribute>();
 
             // Assert
-            attribute.Should().NotBeNull();
-            attribute.ValidateRequest.Should().BeTrue();
-            attribute.ValidateResponse.Should().BeTrue();
-            attribute.ThrowOnValidationFailure.Should().BeTrue();
+            Assert.NotNull(method);
+            Assert.NotNull(attribute);
+            Assert.True(attribute.ValidateRequest);
+            Assert.True(attribute.ValidateResponse);
+            Assert.True(attribute.ThrowOnValidationFailure);
         }
     }
 }

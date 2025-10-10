@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -61,7 +60,7 @@ namespace Relay.Core.Tests.ContractValidation
             var result = await _behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Should().Be(response);
+            Assert.Equal(response, result);
             _mockValidator.Verify(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Once);
             _mockValidator.Verify(x => x.ValidateResponseAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Once);
         }
@@ -127,7 +126,7 @@ namespace Relay.Core.Tests.ContractValidation
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Should().Be(response);
+            Assert.Equal(response, result);
             _mockValidator.Verify(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Never);
             _mockValidator.Verify(x => x.ValidateResponseAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -166,7 +165,7 @@ namespace Relay.Core.Tests.ContractValidation
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Should().Be(response);
+            Assert.Equal(response, result);
         }
 
         public class TestRequest : IRequest<TestResponse>

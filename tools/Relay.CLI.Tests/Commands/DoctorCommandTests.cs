@@ -24,8 +24,8 @@ public class DoctorCommandTests : IDisposable
         var hasHandlerFile = File.Exists(Path.Combine(_testPath, "Handler.cs"));
 
         // Assert
-        hasProjectFile.Should().BeTrue();
-        hasHandlerFile.Should().BeTrue();
+        Assert.True(hasProjectFile);
+        Assert.True(hasHandlerFile);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class DoctorCommandTests : IDisposable
         var projectFiles = Directory.GetFiles(_testPath, "*.csproj");
 
         // Assert
-        projectFiles.Should().BeEmpty();
+        Assert.Empty(projectFiles);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class DoctorCommandTests : IDisposable
         var hasRelayPackage = csprojContent.Contains("Relay.Core");
 
         // Assert
-        hasRelayPackage.Should().BeTrue();
+        Assert.True(hasRelayPackage);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class DoctorCommandTests : IDisposable
         var isModern = csproj.Contains("net8.0") || csproj.Contains("net9.0");
 
         // Assert
-        isModern.Should().BeTrue();
+        Assert.True(isModern);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class DoctorCommandTests : IDisposable
         var isOutdated = csproj.Contains("netcoreapp") || csproj.Contains("net4");
 
         // Assert
-        isOutdated.Should().BeTrue();
+        Assert.True(isOutdated);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class DoctorCommandTests : IDisposable
         var hasNullable = csproj.Contains("<Nullable>enable</Nullable>");
 
         // Assert
-        hasNullable.Should().BeTrue();
+        Assert.True(hasNullable);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class DoctorCommandTests : IDisposable
         var hasLatestLang = csproj.Contains("<LangVersion>latest</LangVersion>");
 
         // Assert
-        hasLatestLang.Should().BeTrue();
+        Assert.True(hasLatestLang);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class DoctorCommandTests : IDisposable
         var usesValueTask = handler.Contains("ValueTask");
 
         // Assert
-        usesValueTask.Should().BeTrue();
+        Assert.True(usesValueTask);
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public class DoctorCommandTests : IDisposable
         var usesTask = handler.Contains("Task<");
 
         // Assert
-        usesTask.Should().BeTrue();
+        Assert.True(usesTask);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class DoctorCommandTests : IDisposable
         var hasCancellationToken = handler.Contains("CancellationToken");
 
         // Assert
-        hasCancellationToken.Should().BeTrue();
+        Assert.True(hasCancellationToken);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class DoctorCommandTests : IDisposable
         var hasHandleAttribute = handler.Contains("[Handle]");
 
         // Assert
-        hasHandleAttribute.Should().BeTrue();
+        Assert.True(hasHandleAttribute);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class DoctorCommandTests : IDisposable
         var isHandler = code.Contains("IRequestHandler");
 
         // Assert
-        isHandler.Should().BeTrue();
+        Assert.True(isHandler);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class DoctorCommandTests : IDisposable
         var isHandler = code.Contains("INotificationHandler");
 
         // Assert
-        isHandler.Should().BeTrue();
+        Assert.True(isHandler);
     }
 
     [Fact]
@@ -192,7 +192,7 @@ public class DoctorCommandTests : IDisposable
         var hasTieredCompilation = csproj.Contains("<TieredCompilation>true</TieredCompilation>");
 
         // Assert
-        hasTieredCompilation.Should().BeTrue();
+        Assert.True(hasTieredCompilation);
     }
 
     [Fact]
@@ -205,7 +205,7 @@ public class DoctorCommandTests : IDisposable
         var hasPGO = csproj.Contains("<TieredPGO>true</TieredPGO>");
 
         // Assert
-        hasPGO.Should().BeTrue();
+        Assert.True(hasPGO);
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public class DoctorCommandTests : IDisposable
         var hasOptimize = csproj.Contains("<Optimize>true</Optimize>");
 
         // Assert
-        hasOptimize.Should().BeTrue();
+        Assert.True(hasOptimize);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public class DoctorCommandTests : IDisposable
         var hasTrimming = csproj.Contains("<PublishTrimmed>true</PublishTrimmed>");
 
         // Assert
-        hasTrimming.Should().BeTrue();
+        Assert.True(hasTrimming);
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public class DoctorCommandTests : IDisposable
         var usesRecord = request.Contains("public record");
 
         // Assert
-        usesRecord.Should().BeTrue();
+        Assert.True(usesRecord);
     }
 
     [Fact]
@@ -257,7 +257,7 @@ public class DoctorCommandTests : IDisposable
         var usesClass = request.Contains("public class");
 
         // Assert
-        usesClass.Should().BeTrue();
+        Assert.True(usesClass);
     }
 
     [Fact]
@@ -270,7 +270,7 @@ public class DoctorCommandTests : IDisposable
         var hasAsyncSuffix = method.Contains("Async(");
 
         // Assert
-        hasAsyncSuffix.Should().BeTrue();
+        Assert.True(hasAsyncSuffix);
     }
 
     [Fact]
@@ -283,7 +283,7 @@ public class DoctorCommandTests : IDisposable
         var shouldExclude = filePath.Contains("bin") || filePath.Contains("obj");
 
         // Assert
-        shouldExclude.Should().BeTrue();
+        Assert.True(shouldExclude);
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public class DoctorCommandTests : IDisposable
         // Assert
         foreach (var folder in expectedFolders)
         {
-            Directory.Exists(Path.Combine(_testPath, folder)).Should().BeTrue();
+            Assert.True(Directory.Exists(Path.Combine(_testPath, folder)));
         }
     }
 
@@ -318,7 +318,7 @@ public class DoctorCommandTests : IDisposable
         var count = results.SuccessCount;
 
         // Assert
-        count.Should().Be(1);
+        Assert.Equal(1, count);
     }
 
     [Fact]
@@ -334,7 +334,7 @@ public class DoctorCommandTests : IDisposable
         var count = results.WarningCount;
 
         // Assert
-        count.Should().Be(1);
+        Assert.Equal(1, count);
     }
 
     [Fact]
@@ -350,7 +350,7 @@ public class DoctorCommandTests : IDisposable
         var count = results.ErrorCount;
 
         // Assert
-        count.Should().Be(1);
+        Assert.Equal(1, count);
     }
 
     [Fact]
@@ -366,7 +366,7 @@ public class DoctorCommandTests : IDisposable
         var count = results.InfoCount;
 
         // Assert
-        count.Should().Be(1);
+        Assert.Equal(1, count);
     }
 
     [Fact]
@@ -382,7 +382,7 @@ public class DoctorCommandTests : IDisposable
         var exitCode = results.GetExitCode();
 
         // Assert
-        exitCode.Should().Be(0);
+        Assert.Equal(0, exitCode);
     }
 
     [Fact]
@@ -398,7 +398,7 @@ public class DoctorCommandTests : IDisposable
         var exitCode = results.GetExitCode();
 
         // Assert
-        exitCode.Should().Be(1);
+        Assert.Equal(1, exitCode);
     }
 
     [Fact]
@@ -414,7 +414,7 @@ public class DoctorCommandTests : IDisposable
         var exitCode = results.GetExitCode();
 
         // Assert
-        exitCode.Should().Be(2);
+        Assert.Equal(2, exitCode);
     }
 
     [Fact]
@@ -430,7 +430,7 @@ public class DoctorCommandTests : IDisposable
         var hasFixable = results.HasFixableIssues();
 
         // Assert
-        hasFixable.Should().BeTrue();
+        Assert.True(hasFixable);
     }
 
     [Fact]
@@ -443,9 +443,9 @@ public class DoctorCommandTests : IDisposable
         check.AddIssue("Test issue", DiagnosticSeverity.Error, "TEST");
 
         // Assert
-        check.Issues.Should().HaveCount(1);
-        check.Issues[0].Message.Should().Be("Test issue");
-        check.Issues[0].Severity.Should().Be(DiagnosticSeverity.Error);
+        Assert.Single(check.Issues);
+        Assert.Equal("Test issue", check.Issues[0].Message);
+        Assert.Equal(DiagnosticSeverity.Error, check.Issues[0].Severity);
     }
 
     [Fact]
@@ -461,7 +461,7 @@ public class DoctorCommandTests : IDisposable
         };
 
         // Assert
-        issue.IsFixable.Should().BeTrue();
+        Assert.True(issue.IsFixable);
     }
 
     [Theory]
@@ -481,7 +481,7 @@ public class DoctorCommandTests : IDisposable
         };
 
         // Assert
-        validSeverities.Should().Contain(severity);
+        Assert.Contains(severity, validSeverities);
     }
 
     [Fact]
@@ -494,7 +494,7 @@ public class DoctorCommandTests : IDisposable
         var isCompatible = csproj.Contains("netstandard2.0") || csproj.Contains("net6.0");
 
         // Assert
-        isCompatible.Should().BeTrue();
+        Assert.True(isCompatible);
     }
 
     [Fact]
@@ -507,7 +507,7 @@ public class DoctorCommandTests : IDisposable
         var isCompatible = csproj.Contains("netstandard2.0");
 
         // Assert
-        isCompatible.Should().BeTrue();
+        Assert.True(isCompatible);
     }
 
     [Fact]
@@ -520,7 +520,7 @@ public class DoctorCommandTests : IDisposable
         var shouldExclude = filePath.Contains("Migrations");
 
         // Assert
-        shouldExclude.Should().BeTrue();
+        Assert.True(shouldExclude);
     }
 
     [Fact]
@@ -533,7 +533,7 @@ public class DoctorCommandTests : IDisposable
         var hasRelease = csproj.Contains("<Configuration>Release</Configuration>");
 
         // Assert
-        hasRelease.Should().BeTrue();
+        Assert.True(hasRelease);
     }
 
     [Fact]
@@ -547,7 +547,7 @@ public class DoctorCommandTests : IDisposable
         var projectFiles = Directory.GetFiles(_testPath, "*.csproj");
 
         // Assert
-        projectFiles.Should().HaveCount(2);
+        Assert.Equal(2, projectFiles.Length);
     }
 
     private async Task CreateValidProject()

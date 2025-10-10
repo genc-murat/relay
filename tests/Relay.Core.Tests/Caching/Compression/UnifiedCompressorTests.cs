@@ -1,9 +1,8 @@
 using System;
 using System.Linq;
-using FluentAssertions;
-using Relay.Core.Caching.Compression;
 using System.Text;
 using System.Threading.Tasks;
+using Relay.Core.Caching.Compression;
 using Xunit;
 
 namespace Relay.Core.Tests.Caching.Compression;
@@ -29,7 +28,7 @@ public class UnifiedCompressorTests
         var compressor = new UnifiedCompressor(algorithm);
 
         // Assert
-        compressor.Algorithm.Should().Be(algorithm);
+        Assert.Equal(algorithm, compressor.Algorithm);
     }
 
     [Theory]
@@ -46,7 +45,7 @@ public class UnifiedCompressorTests
         var decompressed = compressor.Decompress(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Theory]
@@ -63,7 +62,7 @@ public class UnifiedCompressorTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Theory]
@@ -79,11 +78,11 @@ public class UnifiedCompressorTests
         var compressed = compressor.Compress(_testData);
 
         // Assert
-        compressed.Length.Should().BeLessThan(_testData.Length);
-        
+        Assert.True(compressed.Length < _testData.Length);
+
         // Should achieve at least 50% compression for our test data
         var compressionRatio = (double)compressed.Length / _testData.Length;
-        compressionRatio.Should().BeLessThan(0.5);
+        Assert.True(compressionRatio < 0.5);
     }
 
     [Theory]
@@ -100,7 +99,7 @@ public class UnifiedCompressorTests
         var shouldCompress = compressor.ShouldCompress(largeData.Length);
 
         // Assert
-        shouldCompress.Should().BeTrue();
+        Assert.True(shouldCompress);
     }
 
     [Theory]
@@ -117,7 +116,7 @@ public class UnifiedCompressorTests
         var shouldCompress = compressor.ShouldCompress(smallData.Length);
 
         // Assert
-        shouldCompress.Should().BeFalse();
+        Assert.False(shouldCompress);
     }
 
     [Fact]
@@ -131,7 +130,7 @@ public class UnifiedCompressorTests
         var result = compressor.IsCompressed(data);
 
         // Assert
-        result.Should().BeTrue();
+        Assert.True(result);
     }
 
     [Fact]
@@ -145,7 +144,7 @@ public class UnifiedCompressorTests
         var result = compressor.IsCompressed(data);
 
         // Assert
-        result.Should().BeTrue();
+        Assert.True(result);
     }
 
     [Fact]
@@ -159,7 +158,7 @@ public class UnifiedCompressorTests
         var result = compressor.IsCompressed(data);
 
         // Assert
-        result.Should().BeTrue();
+        Assert.True(result);
     }
 
     [Theory]
@@ -197,11 +196,8 @@ public class UnifiedCompressorTests
         // Arrange
         var compressor = new UnifiedCompressor(algorithm);
 
-        // Act
-        Func<Task> act = async () => await compressor.CompressAsync(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await compressor.CompressAsync(null!));
     }
 
     [Theory]
@@ -213,11 +209,8 @@ public class UnifiedCompressorTests
         // Arrange
         var compressor = new UnifiedCompressor(algorithm);
 
-        // Act
-        Func<Task> act = async () => await compressor.DecompressAsync(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await compressor.DecompressAsync(null!));
     }
 
     [Theory]
@@ -234,7 +227,7 @@ public class UnifiedCompressorTests
         var compressed = compressor.Compress(emptyData);
 
         // Assert
-        compressed.Should().BeEmpty();
+        Assert.Empty(compressed);
     }
 
     [Theory]
@@ -251,7 +244,7 @@ public class UnifiedCompressorTests
         var compressed = await compressor.CompressAsync(emptyData);
 
         // Assert
-        compressed.Should().BeEmpty();
+        Assert.Empty(compressed);
     }
 
     [Fact]
@@ -279,9 +272,9 @@ public class UnifiedCompressorTests
         var compressor = new UnifiedCompressor(options);
 
         // Assert
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.GZip);
-        compressor.ShouldCompress(3000).Should().BeTrue();
-        compressor.ShouldCompress(1000).Should().BeFalse();
+        Assert.Equal(CompressionAlgorithm.GZip, compressor.Algorithm);
+        Assert.True(compressor.ShouldCompress(3000));
+        Assert.False(compressor.ShouldCompress(1000));
     }
 
     [Theory]
@@ -302,6 +295,6 @@ public class UnifiedCompressorTests
         var decompressed = compressor.Decompress(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(originalData);
+        Assert.Equal(originalData, decompressed);
     }
 }

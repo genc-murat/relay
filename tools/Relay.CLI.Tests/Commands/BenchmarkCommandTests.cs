@@ -41,7 +41,7 @@ public class BenchmarkCommandTests : IDisposable
         var improvement = (mediatrTime - relayTime).TotalMilliseconds / mediatrTime.TotalMilliseconds * 100;
 
         // Assert
-        Assert.Equal(67, improvement, 1); // ~67% faster
+        Assert.Equal(66.7, improvement, 0.1); // ~66.7% faster
     }
 
     [Fact]
@@ -1622,9 +1622,9 @@ public class BenchmarkCommandTests : IDisposable
         var retrieved = results.RelayResults["UltraFast"];
 
         // Assert
-        retrieved.Should().Be(ultraFast);
-        retrieved.Name.Should().Be("UltraFast Relay");
-        retrieved.AverageTime.Should().Be(1.5);
+        Assert.Equal(ultraFast, retrieved);
+        Assert.Equal("UltraFast Relay", retrieved.Name);
+        Assert.Equal(1.5, retrieved.AverageTime);
     }
 
     [Fact]
@@ -1638,8 +1638,8 @@ public class BenchmarkCommandTests : IDisposable
         results.TestConfiguration.Threads = 8;
 
         // Assert
-        results.TestConfiguration.Iterations.Should().Be(50000);
-        results.TestConfiguration.Threads.Should().Be(8);
+        Assert.Equal(50000, results.TestConfiguration.Iterations);
+        Assert.Equal(8, results.TestConfiguration.Threads);
     }
 
     public void Dispose()

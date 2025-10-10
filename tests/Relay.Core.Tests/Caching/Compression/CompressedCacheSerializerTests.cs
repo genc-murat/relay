@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.Core.Caching;
 using Relay.Core.Caching.Compression;
 using System;
@@ -23,7 +22,7 @@ public class CompressedCacheSerializerTests
     public void Constructor_WithNullInnerSerializer_ShouldThrowException()
     {
         // Arrange & Act & Assert
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             new CompressedCacheSerializer(null!, _compressor));
     }
 
@@ -31,7 +30,7 @@ public class CompressedCacheSerializerTests
     public void Constructor_WithNullCompressor_ShouldThrowException()
     {
         // Arrange & Act & Assert
-        Assert.Throws<ArgumentNullException>(() => 
+        Assert.Throws<ArgumentNullException>(() =>
             new CompressedCacheSerializer(_innerSerializer, null!));
     }
 
@@ -46,8 +45,8 @@ public class CompressedCacheSerializerTests
         var result = _compressedSerializer.Serialize(testObject);
 
         // Assert
-        result.Should().BeEquivalentTo(_innerSerializer.SerializeResult);
-        _innerSerializer.SerializeCalled.Should().BeTrue();
+        Assert.Equal(_innerSerializer.SerializeResult, result);
+        Assert.True(_innerSerializer.SerializeCalled);
     }
 
     [Fact]
@@ -61,10 +60,10 @@ public class CompressedCacheSerializerTests
         var result = _compressedSerializer.Serialize(testObject);
 
         // Assert
-        result.Length.Should().BeGreaterThan(4); // Should have compression header
-        result[0].Should().Be(0x43); // 'C'
-        result[1].Should().Be(0x5A); // 'Z'
-        _innerSerializer.SerializeCalled.Should().BeTrue();
+        Assert.True(result.Length > 4); // Should have compression header
+        Assert.Equal(0x43, result[0]); // 'C'
+        Assert.Equal(0x5A, result[1]); // 'Z'
+        Assert.True(_innerSerializer.SerializeCalled);
     }
 
     [Fact]
@@ -79,9 +78,9 @@ public class CompressedCacheSerializerTests
         var result = _compressedSerializer.Deserialize<TestData>(uncompressedData);
 
         // Assert
-        result.Should().Be(expectedObject);
-        _innerSerializer.DeserializeCalled.Should().BeTrue();
-        _innerSerializer.DeserializeData.Should().BeEquivalentTo(uncompressedData);
+        Assert.Equal(expectedObject, result);
+        Assert.True(_innerSerializer.DeserializeCalled);
+        Assert.Equal(uncompressedData, _innerSerializer.DeserializeData);
     }
 
     [Fact]
@@ -90,7 +89,7 @@ public class CompressedCacheSerializerTests
         // Arrange
         var originalData = new byte[100];
         var compressedData = _compressor.Compress(originalData);
-        
+
         // Add compression header
         var dataWithHeader = new byte[4 + compressedData.Length];
         dataWithHeader[0] = 0x43; // 'C'
@@ -106,18 +105,18 @@ public class CompressedCacheSerializerTests
         var result = _compressedSerializer.Deserialize<TestData>(dataWithHeader);
 
         // Assert
-        result.Should().Be(expectedObject);
-        _innerSerializer.DeserializeCalled.Should().BeTrue();
-        _innerSerializer.DeserializeData.Should().BeEquivalentTo(originalData);
+        Assert.Equal(expectedObject, result);
+        Assert.True(_innerSerializer.DeserializeCalled);
+        Assert.Equal(originalData, _innerSerializer.DeserializeData);
     }
 
-[Fact]
+    [Fact]
     public void Serialize_Deserialize_RoundTrip_ShouldPreserveObject()
     {
         // Arrange
-        var testObject = new TestData 
-        { 
-            Id = 42, 
+        var testObject = new TestData
+        {
+            Id = 42,
             Name = "Test Object with a longer name to trigger compression",
             Description = new string('A', 200) // Large content to trigger compression
         };
@@ -130,7 +129,7 @@ public class CompressedCacheSerializerTests
         var deserialized = _compressedSerializer.Deserialize<TestData>(serialized);
 
         // Assert
-        deserialized.Should().BeEquivalentTo(testObject);
+        Assert.Equal(testObject, deserialized);
     }
 
     private class TestData

@@ -1,9 +1,7 @@
-
-using System;
 using Relay.Core.Caching;
 using Relay.Core.Caching.Attributes;
+using System;
 using Xunit;
-using FluentAssertions;
 
 namespace Relay.Core.Tests.Caching
 {
@@ -46,9 +44,9 @@ namespace Relay.Core.Tests.Caching
             var key = _keyGenerator.GenerateKey(request, attribute);
 
             // Assert
-            key.Should().StartWith("SimpleRequest:");
-            key.Should().NotContain("{"); // No unresolved placeholders
-            key.Should().NotContain("}");
+            Assert.StartsWith("SimpleRequest:", key);
+            Assert.DoesNotContain("{", key); // No unresolved placeholders
+            Assert.DoesNotContain("}", key);
         }
 
         [Fact]
@@ -66,7 +64,7 @@ namespace Relay.Core.Tests.Caching
             var key = _keyGenerator.GenerateKey(request, attribute);
 
             // Assert
-            key.Should().StartWith("MyCache:Users:SimpleRequest-");
+            Assert.StartsWith("MyCache:Users:SimpleRequest-", key);
         }
 
         [Fact]
@@ -82,7 +80,7 @@ namespace Relay.Core.Tests.Caching
             var key2 = _keyGenerator.GenerateKey(request2, attribute);
 
             // Assert
-            key1.Should().Be(key2);
+            Assert.Equal(key1, key2);
         }
 
         [Fact]
@@ -98,7 +96,7 @@ namespace Relay.Core.Tests.Caching
             var key2 = _keyGenerator.GenerateKey(request2, attribute);
 
             // Assert
-            key1.Should().NotBe(key2);
+            Assert.NotEqual(key1, key2);
         }
 
         [Fact]
@@ -114,9 +112,9 @@ namespace Relay.Core.Tests.Caching
             var key2 = _keyGenerator.GenerateKey(request2, attribute);
 
             // Assert
-            key1.Should().NotBe(key2);
-            key1.Should().Contain("SimpleRequest");
-            key2.Should().Contain("AnotherRequest");
+            Assert.NotEqual(key1, key2);
+            Assert.Contains("SimpleRequest", key1);
+            Assert.Contains("AnotherRequest", key2);
         }
 
         [Fact]
@@ -138,8 +136,8 @@ namespace Relay.Core.Tests.Caching
             var key = _keyGenerator.GenerateKey(request, attribute);
 
             // Assert
-            key.Should().NotBeNullOrEmpty();
-            key.Should().StartWith("ComplexRequest:");
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.StartsWith("ComplexRequest:", key);
         }
 
         [Fact]
@@ -155,9 +153,7 @@ namespace Relay.Core.Tests.Caching
             var key2 = _keyGenerator.GenerateKey(request2, attribute);
 
             // Assert
-            key1.Should().Be(key2);
+            Assert.Equal(key1, key2);
         }
-
-
     }
 }

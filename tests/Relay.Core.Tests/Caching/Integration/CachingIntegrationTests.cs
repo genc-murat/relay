@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -49,12 +48,12 @@ public class CachingIntegrationTests
         var invalidator = serviceProvider.GetRequiredService<ICacheInvalidator>();
         var keyTracker = serviceProvider.GetRequiredService<ICacheKeyTracker>();
 
-        keyGenerator.Should().NotBeNull();
-        serializer.Should().NotBeNull();
-        compressor.Should().NotBeNull();
-        metrics.Should().NotBeNull();
-        invalidator.Should().NotBeNull();
-        keyTracker.Should().NotBeNull();
+        Assert.NotNull(keyGenerator);
+        Assert.NotNull(serializer);
+        Assert.NotNull(compressor);
+        Assert.NotNull(metrics);
+        Assert.NotNull(invalidator);
+        Assert.NotNull(keyTracker);
     }
 
     [Fact]
@@ -70,8 +69,8 @@ public class CachingIntegrationTests
         var key2 = keyGenerator.GenerateKey(request, attribute);
 
         // Assert
-        key1.Should().Be(key2);
-        key1.Should().Contain("TestRequest");
+        Assert.Equal(key1, key2);
+        Assert.Contains("TestRequest", key1);
     }
 
     [Fact]
@@ -88,11 +87,11 @@ public class CachingIntegrationTests
 
         // Assert
         var stats = metrics.GetStatistics();
-        stats.Hits.Should().Be(1);
-        stats.Misses.Should().Be(1);
-        stats.Sets.Should().Be(1);
-        stats.TotalDataSize.Should().Be(100);
-        stats.HitRatio.Should().Be(0.5);
+        Assert.Equal(1, stats.Hits);
+        Assert.Equal(1, stats.Misses);
+        Assert.Equal(1, stats.Sets);
+        Assert.Equal(100, stats.TotalDataSize);
+        Assert.Equal(0.5, stats.HitRatio);
     }
 
     [Fact]
@@ -107,8 +106,8 @@ public class CachingIntegrationTests
         var decompressed = compressor.Decompress(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(originalData);
-        compressed.Length.Should().BeLessThan(originalData.Length);
+        Assert.Equal(originalData, decompressed);
+        Assert.True(compressed.Length < originalData.Length);
     }
 
     private class TestRequest
@@ -152,12 +151,12 @@ public class InMemoryCacheKeyTracker : ICacheKeyTracker
     public void RemoveKey(string key)
     {
         _allKeys.Remove(key);
-        
+
         foreach (var tagKeys in _keysByTag.Values)
         {
             tagKeys.Remove(key);
         }
-        
+
         foreach (var depKeys in _keysByDependency.Values)
         {
             depKeys.Remove(key);

@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core;
 using Relay.Core.Contracts.Infrastructure;
 using Xunit;
@@ -16,7 +15,7 @@ namespace Relay.Core.Tests.Contracts
             var unit = Unit.Value;
 
             // Assert
-            unit.Should().Be(default(Unit));
+            Assert.Equal(default(Unit), unit);
         }
 
         [Fact]
@@ -27,8 +26,8 @@ namespace Relay.Core.Tests.Contracts
             var result = await task;
 
             // Assert
-            task.IsCompleted.Should().BeTrue();
-            result.Should().Be(Unit.Value);
+            Assert.True(task.IsCompleted);
+            Assert.Equal(Unit.Value, result);
         }
 
         [Fact]
@@ -39,8 +38,8 @@ namespace Relay.Core.Tests.Contracts
             var unit2 = Unit.Value;
 
             // Act & Assert
-            unit1.Equals(unit2).Should().BeTrue();
-            unit1.Equals((object)unit2).Should().BeTrue();
+            Assert.True(unit1.Equals(unit2));
+            Assert.True(unit1.Equals((object)unit2));
         }
 
         [Fact]
@@ -51,8 +50,8 @@ namespace Relay.Core.Tests.Contracts
             var other = new object();
 
             // Act & Assert
-            unit.Equals(other).Should().BeFalse();
-            unit.Equals(null).Should().BeFalse();
+            Assert.False(unit.Equals(other));
+            Assert.False(unit.Equals(null));
         }
 
         [Fact]
@@ -65,7 +64,7 @@ namespace Relay.Core.Tests.Contracts
             var hashCode = unit.GetHashCode();
 
             // Assert
-            hashCode.Should().Be(0);
+            Assert.Equal(0, hashCode);
         }
 
         [Fact]
@@ -78,7 +77,7 @@ namespace Relay.Core.Tests.Contracts
             var str = unit.ToString();
 
             // Assert
-            str.Should().Be("()");
+            Assert.Equal("()", str);
         }
 
         [Fact]
@@ -89,7 +88,7 @@ namespace Relay.Core.Tests.Contracts
             var unit2 = Unit.Value;
 
             // Act & Assert
-            (unit1 == unit2).Should().BeTrue();
+            Assert.True(unit1 == unit2);
         }
 
         [Fact]
@@ -100,7 +99,7 @@ namespace Relay.Core.Tests.Contracts
             var unit2 = Unit.Value;
 
             // Act & Assert
-            (unit1 != unit2).Should().BeFalse();
+            Assert.False(unit1 != unit2);
         }
 
         [Fact]
@@ -110,7 +109,7 @@ namespace Relay.Core.Tests.Contracts
             Unit unit = default(ValueTuple);
 
             // Assert
-            unit.Should().Be(Unit.Value);
+            Assert.Equal(Unit.Value, unit);
         }
 
         [Fact]
@@ -124,8 +123,8 @@ namespace Relay.Core.Tests.Contracts
             var result = await task;
 
             // Assert
-            task.IsCompleted.Should().BeTrue();
-            result.Should().Be(Unit.Value);
+            Assert.True(task.IsCompleted);
+            Assert.Equal(Unit.Value, result);
         }
 
         [Fact]
@@ -135,7 +134,7 @@ namespace Relay.Core.Tests.Contracts
             var result = await ReturnsUnitAsync();
 
             // Assert
-            result.Should().Be(Unit.Value);
+            Assert.Equal(Unit.Value, result);
         }
 
         [Fact]
@@ -145,7 +144,7 @@ namespace Relay.Core.Tests.Contracts
             var result = await Unit.Task;
 
             // Assert
-            result.Should().Be(Unit.Value);
+            Assert.Equal(Unit.Value, result);
         }
 
         [Fact]
@@ -159,9 +158,9 @@ namespace Relay.Core.Tests.Contracts
             {
                 foreach (var unit2 in units)
                 {
-                    unit1.Should().Be(unit2);
-                    unit1.Equals(unit2).Should().BeTrue();
-                    (unit1 == unit2).Should().BeTrue();
+                    Assert.Equal(unit1, unit2);
+                    Assert.True(unit1.Equals(unit2));
+                    Assert.True(unit1 == unit2);
                 }
             }
         }
@@ -174,7 +173,7 @@ namespace Relay.Core.Tests.Contracts
             var valueUnit = Unit.Value;
 
             // Assert
-            defaultUnit.Should().Be(valueUnit);
+            Assert.Equal(valueUnit, defaultUnit);
         }
 
         private async ValueTask<Unit> ReturnsUnitAsync()

@@ -1,6 +1,6 @@
 using System;
+using System.Text;
 using System.Text.Json;
-using FluentAssertions;
 using Relay.Core.Caching;
 using Xunit;
 
@@ -34,7 +34,11 @@ namespace Relay.Core.Tests.Caching
             var deserialized = serializer.Deserialize<TestObject>(serialized);
 
             // Assert
-            deserialized.Should().BeEquivalentTo(original);
+            Assert.NotNull(deserialized);
+            Assert.Equal(original.Id, deserialized.Id);
+            Assert.Equal(original.StringValue, deserialized.StringValue);
+            Assert.Equal(original.Timestamp, deserialized.Timestamp);
+            Assert.Equal(original.IsActive, deserialized.IsActive);
         }
 
         [Fact]
@@ -46,10 +50,10 @@ namespace Relay.Core.Tests.Caching
 
             // Act
             var serialized = serializer.Serialize(original);
-            var jsonString = System.Text.Encoding.UTF8.GetString(serialized);
+            var jsonString = Encoding.UTF8.GetString(serialized);
 
             // Assert
-            jsonString.Should().Contain("\"stringValue\":\"Test\"");
+            Assert.Contains("\"stringValue\":\"Test\"", jsonString);
         }
 
         [Fact]
@@ -62,10 +66,10 @@ namespace Relay.Core.Tests.Caching
 
             // Act
             var serialized = serializer.Serialize(original);
-            var jsonString = System.Text.Encoding.UTF8.GetString(serialized);
+            var jsonString = Encoding.UTF8.GetString(serialized);
 
             // Assert
-            jsonString.Should().Contain("\"string_value\":\"Test\"");
+            Assert.Contains("\"string_value\":\"Test\"", jsonString);
         }
 
         [Fact]
@@ -76,10 +80,10 @@ namespace Relay.Core.Tests.Caching
 
             // Act
             var serialized = serializer.Serialize<TestObject?>(null);
-            var jsonString = System.Text.Encoding.UTF8.GetString(serialized);
+            var jsonString = Encoding.UTF8.GetString(serialized);
 
             // Assert
-            jsonString.Should().Be("null");
+            Assert.Equal("null", jsonString);
         }
 
         [Fact]
@@ -87,13 +91,13 @@ namespace Relay.Core.Tests.Caching
         {
             // Arrange
             var serializer = new JsonCacheSerializer();
-            var data = System.Text.Encoding.UTF8.GetBytes("null");
+            var data = Encoding.UTF8.GetBytes("null");
 
             // Act
             var deserialized = serializer.Deserialize<TestObject?>(data);
 
             // Assert
-            deserialized.Should().BeNull();
+            Assert.Null(deserialized);
         }
 
         [Fact]
@@ -101,13 +105,13 @@ namespace Relay.Core.Tests.Caching
         {
             // Arrange
             var serializer = new JsonCacheSerializer();
-            var invalidData = System.Text.Encoding.UTF8.GetBytes("{ not json }");
+            var invalidData = Encoding.UTF8.GetBytes("{ not json }");
 
             // Act
-            Action act = () => serializer.Deserialize<TestObject>(invalidData);
+            var exception = Assert.Throws<JsonException>(() => serializer.Deserialize<TestObject>(invalidData));
 
             // Assert
-            act.Should().Throw<JsonException>();
+            Assert.NotNull(exception);
         }
 
         [Fact]
@@ -118,10 +122,10 @@ namespace Relay.Core.Tests.Caching
             var emptyData = Array.Empty<byte>();
 
             // Act
-            Action act = () => serializer.Deserialize<TestObject>(emptyData);
+            var exception = Assert.Throws<JsonException>(() => serializer.Deserialize<TestObject>(emptyData));
 
             // Assert
-            act.Should().Throw<JsonException>();
+            Assert.NotNull(exception);
         }
     }
 }

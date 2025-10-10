@@ -76,7 +76,7 @@ namespace Relay.Core.Tests.ContractValidation
 
             // Assert
             errors.Should().ContainSingle();
-            errors.First().Should().Be("Response cannot be null");
+            errors.First().Should().Be("Response cannot be null according to schema");
         }
 
         [Fact]
@@ -93,23 +93,18 @@ namespace Relay.Core.Tests.ContractValidation
         }
 
         [Fact]
-        public async Task ValidateRequestAsync_WithSerializationFailure_ShouldReturnError()
+        public async Task ValidateRequestAsync_WithInvalidJsonSchema_ShouldReturnError()
         {
             // Arrange
-            var request = new UnserializableRequest();
-            var schema = new JsonSchemaContract();
+            var request = new TestRequest { Name = "Test", Value = 123 };
+            var schema = new JsonSchemaContract { Schema = "invalid json schema {" };
 
             // Act
             var errors = await _validator.ValidateRequestAsync(request, schema);
 
             // Assert
-            errors.Should().NotBeEmpty();
-            errors.First().Should().Contain("Request validation failed");
-        }
-
-        public class UnserializableRequest
-        {
-            public UnserializableRequest Self => this;
+            errors.Should().ContainSingle();
+            errors.First().Should().Be("Invalid JSON schema format");
         }
     }
 }

@@ -21,8 +21,8 @@ public class MediatRAnalyzerTests
         var result = await _analyzer.AnalyzeProjectAsync(_testProjectPath);
 
         // Assert
-        result.CanMigrate.Should().BeFalse();
-        result.Issues.Should().Contain(i => i.Code == "NO_PROJECT");
+        Assert.False(result.CanMigrate);
+        Assert.Contains(result.Issues, i => i.Code == "NO_PROJECT");
     }
 
     [Fact]
@@ -45,9 +45,9 @@ public class MediatRAnalyzerTests
         var result = await _analyzer.AnalyzeProjectAsync(_testProjectPath);
 
         // Assert
-        result.PackageReferences.Should().HaveCount(1);
-        result.PackageReferences.First().Name.Should().Be("MediatR");
-        result.PackageReferences.First().CurrentVersion.Should().Be("12.0.1");
+        Assert.Equal(1, result.PackageReferences.Count);
+        Assert.Equal("MediatR", result.PackageReferences.First().Name);
+        Assert.Equal("12.0.1", result.PackageReferences.First().CurrentVersion);
     }
 
     [Fact]
@@ -74,9 +74,9 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, string>
         var result = await _analyzer.AnalyzeProjectAsync(_testProjectPath);
 
         // Assert
-        result.HandlersFound.Should().Be(1);
-        result.RequestsFound.Should().Be(1);
-        result.CanMigrate.Should().BeTrue();
+        Assert.Equal(1, result.HandlersFound);
+        Assert.Equal(1, result.RequestsFound);
+        Assert.True(result.CanMigrate);
     }
 
     private async Task CreateTestProject()

@@ -31,10 +31,10 @@ public class TestClass { }";
         var result = await _transformer.TransformFileAsync("test.cs", content, _options);
 
         // Assert
-        result.WasModified.Should().BeTrue();
-        result.NewContent.Should().Contain("Relay.Core");
-        result.NewContent.Should().NotContain("MediatR");
-        result.Changes.Should().Contain(c => c.Category == "Using Directives");
+        Assert.True(result.WasModified);
+        Assert.Contains("Relay.Core", result.NewContent);
+        Assert.DoesNotContain("MediatR", result.NewContent);
+        Assert.Contains(result.Changes, c => c.Category == "Using Directives");
     }
 
     [Fact]
@@ -55,9 +55,9 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var result = await _transformer.TransformFileAsync("test.cs", content, _options);
 
         // Assert
-        result.WasModified.Should().BeTrue();
-        result.NewContent.Should().Contain("HandleAsync");
-        result.Changes.Should().Contain(c => 
+        Assert.True(result.WasModified);
+        Assert.Contains("HandleAsync", result.NewContent);
+        Assert.Contains(result.Changes, c => 
             c.Category == "Method Signatures" && 
             c.Type == ChangeType.Modify);
     }
@@ -80,9 +80,9 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var result = await _transformer.TransformFileAsync("test.cs", content, _options);
 
         // Assert
-        result.WasModified.Should().BeTrue();
-        result.NewContent.Should().Contain("ValueTask<string>");
-        result.Changes.Should().Contain(c => 
+        Assert.True(result.WasModified);
+        Assert.Contains("ValueTask<string>", result.NewContent);
+        Assert.Contains(result.Changes, c => 
             c.Category == "Return Types" && 
             c.Description.Contains("ValueTask"));
     }

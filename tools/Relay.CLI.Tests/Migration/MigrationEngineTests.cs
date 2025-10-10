@@ -44,9 +44,9 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.AnalyzeAsync(options);
 
         // Assert
-        result.Should().NotBeNull();
-        result.CanMigrate.Should().BeFalse();
-        result.Issues.Should().Contain(i => i.Code == "NO_PROJECT");
+        Assert.NotNull(result);
+        Assert.False(result.CanMigrate);
+        Assert.Contains(result.Issues, i => i.Code == "NO_PROJECT");
     }
 
     [Fact]
@@ -63,9 +63,9 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.AnalyzeAsync(options);
 
         // Assert
-        result.Should().NotBeNull();
-        result.ProjectPath.Should().Be(_testProjectPath);
-        result.AnalysisDate.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        Assert.NotNull(result);
+        Assert.Equal(_testProjectPath, result.ProjectPath);
+        Assert.True((result.AnalysisDate - DateTime.UtcNow).Duration() < TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -82,8 +82,8 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.AnalyzeAsync(options);
 
         // Assert
-        result.PackageReferences.Should().NotBeEmpty();
-        result.PackageReferences.Should().Contain(p => p.Name == "MediatR");
+        Assert.NotEmpty(result.PackageReferences);
+        Assert.Contains(result.PackageReferences, p => p.Name == "MediatR");
     }
 
     [Fact]
@@ -100,9 +100,9 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.AnalyzeAsync(options);
 
         // Assert
-        result.HandlersFound.Should().BeGreaterThan(0);
-        result.RequestsFound.Should().BeGreaterThan(0);
-        result.FilesAffected.Should().BeGreaterThan(0);
+        Assert.True(result.HandlersFound > 0);
+        Assert.True(result.RequestsFound > 0);
+        Assert.True(result.FilesAffected > 0);
     }
 
     #endregion
@@ -124,8 +124,8 @@ public class MigrationEngineTests : IDisposable
         var backupPath = await _engine.CreateBackupAsync(options);
 
         // Assert
-        backupPath.Should().NotBeNullOrEmpty();
-        Directory.Exists(backupPath).Should().BeTrue();
+        Assert.NotEmpty(backupPath);
+        Assert.True(Directory.Exists(backupPath));
     }
 
     [Fact]
@@ -143,8 +143,8 @@ public class MigrationEngineTests : IDisposable
         var backupPath = await _engine.CreateBackupAsync(options);
 
         // Assert
-        backupPath.Should().Contain("backup_");
-        backupPath.Should().Match(p => System.Text.RegularExpressions.Regex.IsMatch(p, @"backup_\d{8}_\d{6}"));
+        Assert.Contains("backup_", backupPath);
+        Assert.True(System.Text.RegularExpressions.Regex.IsMatch(backupPath, @"backup_\d{8}_\d{6}"));
     }
 
     [Fact]
@@ -166,9 +166,9 @@ public class MigrationEngineTests : IDisposable
 
         // Assert
         var backupFile = Path.Combine(backupPath, "Test.cs");
-        File.Exists(backupFile).Should().BeTrue();
+        Assert.True(File.Exists(backupFile));
         var content = await File.ReadAllTextAsync(backupFile);
-        content.Should().Be("// test content");
+        Assert.Equal("// test content", content);
     }
 
     #endregion
@@ -188,8 +188,8 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.Status.Should().Be(MigrationStatus.Failed);
-        result.Issues.Should().NotBeEmpty();
+        Assert.Equal(MigrationStatus.Failed, result.Status);
+        Assert.NotEmpty(result.Issues);
     }
 
     [Fact]
@@ -209,11 +209,11 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.Status.Should().BeOneOf(MigrationStatus.Success, MigrationStatus.Partial);
-        result.Changes.Should().NotBeEmpty();
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+        Assert.NotEmpty(result.Changes);
 
         var currentContent = await File.ReadAllTextAsync(Path.Combine(_testProjectPath, "Handler.cs"));
-        currentContent.Should().Be(originalContent);
+        Assert.Equal(originalContent, currentContent);
     }
 
     [Fact]
@@ -233,9 +233,9 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.CreatedBackup.Should().BeTrue();
-        result.BackupPath.Should().NotBeNullOrEmpty();
-        Directory.Exists(result.BackupPath).Should().BeTrue();
+        Assert.True(result.CreatedBackup);
+        Assert.NotEmpty(result.BackupPath);
+        Assert.True(Directory.Exists(result.BackupPath));
     }
 
     [Fact]
@@ -254,8 +254,8 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.CreatedBackup.Should().BeFalse();
-        result.BackupPath.Should().BeNullOrEmpty();
+        Assert.False(result.CreatedBackup);
+        Assert.Null(result.BackupPath);
     }
 
     [Fact]
@@ -273,10 +273,10 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.Status.Should().BeOneOf(MigrationStatus.Success, MigrationStatus.Partial);
-        result.HandlersMigrated.Should().BeGreaterThan(0);
-        result.FilesModified.Should().BeGreaterThan(0);
-        result.Changes.Should().Contain(c => c.Category == "Using Directives");
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+        Assert.True(result.HandlersMigrated > 0);
+        Assert.True(result.FilesModified > 0);
+        Assert.Contains(result.Changes, c => c.Category == "Using Directives");
     }
 
     [Fact]
@@ -294,9 +294,9 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.Changes.Should().Contain(c => c.Category == "Package References");
-        result.Changes.Should().Contain(c => c.Type == ChangeType.Remove && c.Description.Contains("MediatR"));
-        result.Changes.Should().Contain(c => c.Type == ChangeType.Add && c.Description.Contains("Relay.Core"));
+        Assert.Contains(result.Changes, c => c.Category == "Package References");
+        Assert.Contains(result.Changes, c => c.Type == ChangeType.Remove && c.Description.Contains("MediatR"));
+        Assert.Contains(result.Changes, c => c.Type == ChangeType.Add && c.Description.Contains("Relay.Core"));
     }
 
     [Fact]
@@ -314,9 +314,9 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.StartTime.Should().BeBefore(result.EndTime);
-        result.Duration.Should().BePositive();
-        result.Duration.Should().BeLessThan(TimeSpan.FromMinutes(1)); // Reasonable timeout
+        Assert.True(result.StartTime < result.EndTime);
+        Assert.True(result.Duration > TimeSpan.Zero);
+        Assert.True(result.Duration < TimeSpan.FromMinutes(1)); // Reasonable timeout
     }
 
     [Fact]
@@ -334,7 +334,7 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.ManualSteps.Should().Contain(s => s.Contains("custom IMediator"));
+        Assert.Contains(result.ManualSteps, s => s.Contains("custom IMediator"));
     }
 
     [Fact]
@@ -352,7 +352,7 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.ManualSteps.Should().Contain(s => s.Contains("pipeline behaviors"));
+        Assert.Contains(result.ManualSteps, s => s.Contains("pipeline behaviors"));
     }
 
     [Fact]
@@ -379,8 +379,8 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.Changes.Should().NotContain(c => c.FilePath.Contains("\\bin\\"));
-        result.Changes.Should().NotContain(c => c.FilePath.Contains("\\obj\\"));
+        Assert.DoesNotContain(result.Changes, c => c.FilePath.Contains("\\bin\\"));
+        Assert.DoesNotContain(result.Changes, c => c.FilePath.Contains("\\obj\\"));
     }
 
     [Fact]
@@ -397,8 +397,8 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.MigrateAsync(options);
 
         // Assert
-        result.Status.Should().Be(MigrationStatus.Failed);
-        result.Issues.Should().Contain(i => i.Contains("failed"));
+        Assert.Equal(MigrationStatus.Failed, result.Status);
+        Assert.Contains(result.Issues, i => i.Contains("failed"));
     }
 
     #endregion
@@ -426,9 +426,9 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.RollbackAsync(backupPath);
 
         // Assert
-        result.Should().BeTrue();
+        Assert.True(result);
         var content = await File.ReadAllTextAsync(testFile);
-        content.Should().NotContain("Modified");
+        Assert.DoesNotContain("Modified", content);
     }
 
     [Fact]
@@ -441,7 +441,7 @@ public class MigrationEngineTests : IDisposable
         var result = await _engine.RollbackAsync(invalidPath);
 
         // Assert
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     #endregion

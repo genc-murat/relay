@@ -21,9 +21,9 @@ public class MigrationReportTests
         var json = JsonSerializer.Serialize(report);
 
         // Assert
-        json.Should().Contain("ProjectPath");
-        json.Should().Contain("Success");
-        json.Should().Contain("true");
+        Assert.Contains("ProjectPath", json);
+        Assert.Contains("Success", json);
+        Assert.Contains("true", json);
     }
 
     [Fact]
@@ -38,9 +38,9 @@ public class MigrationReportTests
         var markdown = $"{title}\n\n{successMessage}\n\n{filesList}";
 
         // Assert
-        markdown.Should().Contain("# Migration Report");
-        markdown.Should().Contain("✅ Migration Successful");
-        markdown.Should().Contain("Handler.cs");
+        Assert.Contains("# Migration Report", markdown);
+        Assert.Contains("✅ Migration Successful", markdown);
+        Assert.Contains("Handler.cs", markdown);
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public class MigrationReportTests
         var success = errors.Count == 0;
 
         // Assert
-        success.Should().BeFalse();
-        errors.Should().HaveCount(2);
+        Assert.False(success);
+        Assert.Equal(2, errors.Count);
     }
 
     [Fact]
@@ -73,10 +73,10 @@ public class MigrationReportTests
         var percentageModified = (double)modifiedFiles / totalFiles * 100;
 
         // Assert
-        totalFiles.Should().Be(10);
-        modifiedFiles.Should().Be(7);
-        unchangedFiles.Should().Be(3);
-        percentageModified.Should().Be(70.0);
+        Assert.Equal(10, totalFiles);
+        Assert.Equal(7, modifiedFiles);
+        Assert.Equal(3, unchangedFiles);
+        Assert.Equal(70.0, percentageModified);
     }
 
     [Fact]
@@ -90,6 +90,6 @@ public class MigrationReportTests
         var duration = endTime - startTime;
 
         // Assert
-        duration.TotalMinutes.Should().Be(5);
+        Assert.Equal(5, duration.TotalMinutes);
     }
 }

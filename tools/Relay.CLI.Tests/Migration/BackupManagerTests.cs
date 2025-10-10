@@ -27,8 +27,8 @@ public class BackupManagerTests : IDisposable
         var backupPath = await _backupManager.CreateBackupAsync(_testSourcePath, _testBackupPath);
 
         // Assert
-        Directory.Exists(backupPath).Should().BeTrue();
-        backupPath.Should().Be(_testBackupPath);
+        Assert.True(Directory.Exists(backupPath));
+        Assert.Equal(_testBackupPath, backupPath);
     }
 
     [Fact]
@@ -41,8 +41,8 @@ public class BackupManagerTests : IDisposable
         await _backupManager.CreateBackupAsync(_testSourcePath, _testBackupPath);
 
         // Assert
-        File.Exists(Path.Combine(_testBackupPath, "test.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(_testBackupPath, "test.csproj")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(_testBackupPath, "test.cs")));
+        Assert.True(File.Exists(Path.Combine(_testBackupPath, "test.csproj")));
     }
 
     [Fact]
@@ -56,12 +56,12 @@ public class BackupManagerTests : IDisposable
 
         // Assert
         var metadataPath = Path.Combine(_testBackupPath, "backup-metadata.json");
-        File.Exists(metadataPath).Should().BeTrue();
+        Assert.True(File.Exists(metadataPath));
 
         var content = await File.ReadAllTextAsync(metadataPath);
-        content.Should().Contain("BackupId");
-        content.Should().Contain("SourcePath");
-        content.Should().Contain("FileCount");
+        Assert.Contains("BackupId", content);
+        Assert.Contains("SourcePath", content);
+        Assert.Contains("FileCount", content);
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public class BackupManagerTests : IDisposable
         await _backupManager.CreateBackupAsync(_testSourcePath, _testBackupPath);
 
         // Assert
-        Directory.Exists(Path.Combine(_testBackupPath, "bin")).Should().BeFalse();
-        Directory.Exists(Path.Combine(_testBackupPath, "obj")).Should().BeFalse();
+        Assert.False(Directory.Exists(Path.Combine(_testBackupPath, "bin")));
+        Assert.False(Directory.Exists(Path.Combine(_testBackupPath, "obj")));
     }
 
     [Fact]
@@ -100,9 +100,9 @@ public class BackupManagerTests : IDisposable
         var restored = await _backupManager.RestoreBackupAsync(_testBackupPath);
 
         // Assert
-        restored.Should().BeTrue();
-        File.Exists(Path.Combine(_testSourcePath, "test.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(_testSourcePath, "test.csproj")).Should().BeTrue();
+        Assert.True(restored);
+        Assert.True(File.Exists(Path.Combine(_testSourcePath, "test.cs")));
+        Assert.True(File.Exists(Path.Combine(_testSourcePath, "test.csproj")));
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class BackupManagerTests : IDisposable
         var valid = await _backupManager.VerifyBackupAsync(_testBackupPath);
 
         // Assert
-        valid.Should().BeTrue();
+        Assert.True(valid);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class BackupManagerTests : IDisposable
         var valid = await _backupManager.VerifyBackupAsync(_testBackupPath);
 
         // Assert
-        valid.Should().BeFalse();
+        Assert.False(valid);
     }
 
     private async Task CreateTestFiles()

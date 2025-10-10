@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics.Configuration;
 using Relay.Core.Diagnostics.Services;
@@ -27,7 +26,8 @@ public class DiagnosticsTests
         Action act = () => new DefaultRelayDiagnostics(null!, new DiagnosticsOptions());
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("tracer");
+        var exception = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("tracer", exception.ParamName);
     }
 
     [Fact]
@@ -40,7 +40,8 @@ public class DiagnosticsTests
         Action act = () => new DefaultRelayDiagnostics(tracer, null!);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("options");
+        var exception = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("options", exception.ParamName);
     }
 
     [Fact]
@@ -55,11 +56,11 @@ public class DiagnosticsTests
         var registry = diagnostics.GetHandlerRegistry();
 
         // Assert
-        registry.Should().NotBeNull();
-        registry.AssemblyName.Should().NotBeNullOrEmpty();
-        registry.Handlers.Should().NotBeNull();
-        registry.Pipelines.Should().NotBeNull();
-        registry.Warnings.Should().NotBeNull();
+        Assert.NotNull(registry);
+        Assert.False(string.IsNullOrEmpty(registry.AssemblyName));
+        Assert.NotNull(registry.Handlers);
+        Assert.NotNull(registry.Pipelines);
+        Assert.NotNull(registry.Warnings);
     }
 
     [Fact]
@@ -74,7 +75,7 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics();
 
         // Assert
-        metrics.Should().BeEmpty();
+        Assert.Empty(metrics);
     }
 
     [Fact]
@@ -90,7 +91,7 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics();
 
         // Assert
-        metrics.Should().BeEmpty();
+        Assert.Empty(metrics);
     }
 
     [Fact]
@@ -106,13 +107,13 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics().ToList();
 
         // Assert
-        metrics.Should().HaveCount(1);
+        Assert.Single(metrics);
         var metric = metrics[0];
-        metric.RequestType.Should().Be("TestRequest");
-        metric.InvocationCount.Should().Be(1);
-        metric.SuccessCount.Should().Be(1);
-        metric.ErrorCount.Should().Be(0);
-        metric.TotalAllocatedBytes.Should().Be(1024);
+        Assert.Equal("TestRequest", metric.RequestType);
+        Assert.Equal(1, metric.InvocationCount);
+        Assert.Equal(1, metric.SuccessCount);
+        Assert.Equal(0, metric.ErrorCount);
+        Assert.Equal(1024, metric.TotalAllocatedBytes);
     }
 
     [Fact]
@@ -128,10 +129,10 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics().ToList();
 
         // Assert
-        metrics.Should().HaveCount(1);
+        Assert.Single(metrics);
         var metric = metrics[0];
-        metric.SuccessCount.Should().Be(0);
-        metric.ErrorCount.Should().Be(1);
+        Assert.Equal(0, metric.SuccessCount);
+        Assert.Equal(1, metric.ErrorCount);
     }
 
     [Fact]
@@ -149,14 +150,14 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics().ToList();
 
         // Assert
-        metrics.Should().HaveCount(1);
+        Assert.Single(metrics);
         var metric = metrics[0];
-        metric.InvocationCount.Should().Be(3);
-        metric.SuccessCount.Should().Be(2);
-        metric.ErrorCount.Should().Be(1);
-        metric.MinExecutionTime.Should().Be(TimeSpan.FromMilliseconds(100));
-        metric.MaxExecutionTime.Should().Be(TimeSpan.FromMilliseconds(200));
-        metric.TotalAllocatedBytes.Should().Be(896);
+        Assert.Equal(3, metric.InvocationCount);
+        Assert.Equal(2, metric.SuccessCount);
+        Assert.Equal(1, metric.ErrorCount);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), metric.MinExecutionTime);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), metric.MaxExecutionTime);
+        Assert.Equal(896, metric.TotalAllocatedBytes);
     }
 
     [Fact]
@@ -177,8 +178,8 @@ public class DiagnosticsTests
         var result = diagnostics.ValidateConfiguration();
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.Issues.Where(i => i.Severity == ValidationSeverity.Error).Should().BeEmpty();
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Issues.Where(i => i.Severity == ValidationSeverity.Error));
     }
 
     [Fact]
@@ -199,8 +200,9 @@ public class DiagnosticsTests
         var result = diagnostics.ValidateConfiguration();
 
         // Assert
-        result.Issues.Where(i => i.Severity == ValidationSeverity.Warning).Should().ContainSingle();
-        result.Issues.Where(i => i.Severity == ValidationSeverity.Warning).First().Message.Should().Contain("Both request tracing and performance metrics are disabled");
+        var warnings = result.Issues.Where(i => i.Severity == ValidationSeverity.Warning).ToList();
+        Assert.Single(warnings);
+        Assert.Contains("Both request tracing and performance metrics are disabled", warnings.First().Message);
     }
 
     [Fact]
@@ -220,9 +222,10 @@ public class DiagnosticsTests
         var result = diagnostics.ValidateConfiguration();
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Issues.Where(i => i.Severity == ValidationSeverity.Error).Should().ContainSingle();
-        result.Issues.Where(i => i.Severity == ValidationSeverity.Error).First().Message.Should().Contain("Trace buffer size must be greater than 0");
+        Assert.False(result.IsValid);
+        var errors = result.Issues.Where(i => i.Severity == ValidationSeverity.Error).ToList();
+        Assert.Single(errors);
+        Assert.Contains("Trace buffer size must be greater than 0", errors.First().Message);
     }
 
     [Fact]
@@ -242,9 +245,10 @@ public class DiagnosticsTests
         var result = diagnostics.ValidateConfiguration();
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Issues.Where(i => i.Severity == ValidationSeverity.Error).Should().ContainSingle();
-        result.Issues.Where(i => i.Severity == ValidationSeverity.Error).First().Message.Should().Contain("Metrics retention period must be greater than 0");
+        Assert.False(result.IsValid);
+        var errors = result.Issues.Where(i => i.Severity == ValidationSeverity.Error).ToList();
+        Assert.Single(errors);
+        Assert.Contains("Metrics retention period must be greater than 0", errors.First().Message);
     }
 
     [Fact]
@@ -267,7 +271,8 @@ public class DiagnosticsTests
         var result = diagnostics.ValidateConfiguration();
 
         // Assert
-        result.Issues.Where(i => i.Severity == ValidationSeverity.Warning).Should().Contain(w => w.Message.Contains("Diagnostic endpoints are enabled without authentication"));
+        var warnings = result.Issues.Where(i => i.Severity == ValidationSeverity.Warning).ToList();
+        Assert.Contains(warnings, w => w.Message.Contains("Diagnostic endpoints are enabled without authentication"));
     }
 
     [Fact]
@@ -283,7 +288,8 @@ public class DiagnosticsTests
         Func<Task> act = async () => await diagnostics.BenchmarkHandlerAsync(request, 0);
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>().WithParameterName("iterations");
+        var exception = await Assert.ThrowsAsync<ArgumentException>(act);
+        Assert.Equal("iterations", exception.ParamName);
     }
 
     [Fact]
@@ -299,13 +305,13 @@ public class DiagnosticsTests
         var result = await diagnostics.BenchmarkHandlerAsync(request, 10);
 
         // Assert
-        result.Should().NotBeNull();
-        result.RequestType.Should().Be("TestRequest");
-        result.Iterations.Should().Be(10);
-        result.TotalTime.Should().BeGreaterThan(TimeSpan.Zero);
-        result.MinTime.Should().BeGreaterThan(TimeSpan.Zero);
-        result.MaxTime.Should().BeGreaterThan(TimeSpan.Zero);
-        result.StandardDeviation.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
+        Assert.NotNull(result);
+        Assert.Equal("TestRequest", result.RequestType);
+        Assert.Equal(10, result.Iterations);
+        Assert.True(result.TotalTime > TimeSpan.Zero);
+        Assert.True(result.MinTime > TimeSpan.Zero);
+        Assert.True(result.MaxTime > TimeSpan.Zero);
+        Assert.True(result.StandardDeviation >= TimeSpan.Zero);
     }
 
     [Fact]
@@ -324,7 +330,7 @@ public class DiagnosticsTests
         Func<Task> act = async () => await diagnostics.BenchmarkHandlerAsync(request, 1000, cts.Token);
 
         // Assert
-        await act.Should().ThrowAsync<OperationCanceledException>();
+        await Assert.ThrowsAsync<OperationCanceledException>(act);
     }
 
     [Fact]
@@ -342,7 +348,7 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics();
 
         // Assert
-        metrics.Should().BeEmpty();
+        Assert.Empty(metrics);
     }
 
     [Fact]
@@ -361,10 +367,10 @@ public class DiagnosticsTests
         var summary = diagnostics.GetDiagnosticSummary();
 
         // Assert
-        summary.Should().NotBeNull();
-        summary.IsTracingEnabled.Should().BeTrue();
-        summary.IsMetricsEnabled.Should().BeTrue();
-        summary.Uptime.Should().BeGreaterThan(TimeSpan.Zero);
+        Assert.NotNull(summary);
+        Assert.True(summary.IsTracingEnabled);
+        Assert.True(summary.IsMetricsEnabled);
+        Assert.True(summary.Uptime > TimeSpan.Zero);
     }
 
     [Fact]
@@ -382,10 +388,10 @@ public class DiagnosticsTests
         var summary = diagnostics.GetDiagnosticSummary();
 
         // Assert
-        summary.TotalInvocations.Should().Be(2);
-        summary.TotalSuccessfulInvocations.Should().Be(1);
-        summary.TotalFailedInvocations.Should().Be(1);
-        summary.TotalAllocatedBytes.Should().Be(1536);
+        Assert.Equal(2, summary.TotalInvocations);
+        Assert.Equal(1, summary.TotalSuccessfulInvocations);
+        Assert.Equal(1, summary.TotalFailedInvocations);
+        Assert.Equal(1536, summary.TotalAllocatedBytes);
     }
 
     [Fact]
@@ -400,7 +406,7 @@ public class DiagnosticsTests
         var trace = diagnostics.GetCurrentTrace();
 
         // Assert
-        trace.Should().BeNull();
+        Assert.Null(trace);
     }
 
     [Fact]
@@ -415,7 +421,7 @@ public class DiagnosticsTests
         var traces = diagnostics.GetCompletedTraces();
 
         // Assert
-        traces.Should().BeEmpty();
+        Assert.Empty(traces);
     }
 
     [Fact]
@@ -434,7 +440,7 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics().First();
 
         // Assert
-        metrics.MinExecutionTime.Should().Be(TimeSpan.FromMilliseconds(50));
+        Assert.Equal(TimeSpan.FromMilliseconds(50), metrics.MinExecutionTime);
     }
 
     [Fact]
@@ -453,7 +459,7 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics().First();
 
         // Assert
-        metrics.MaxExecutionTime.Should().Be(TimeSpan.FromMilliseconds(300));
+        Assert.Equal(TimeSpan.FromMilliseconds(300), metrics.MaxExecutionTime);
     }
 
     [Fact]
@@ -474,7 +480,7 @@ public class DiagnosticsTests
         var secondTime = diagnostics.GetHandlerMetrics().First().LastInvocation;
 
         // Assert
-        secondTime.Should().BeAfter(firstTime);
+        Assert.True(secondTime > firstTime);
     }
 
     [Fact]
@@ -492,7 +498,7 @@ public class DiagnosticsTests
         var metrics = diagnostics.GetHandlerMetrics().ToList();
 
         // Assert
-        metrics.Should().HaveCount(2);
+        Assert.Equal(2, metrics.Count);
     }
 
     [Fact]
@@ -508,7 +514,7 @@ public class DiagnosticsTests
         var result = await diagnostics.BenchmarkHandlerAsync(request, 100);
 
         // Assert
-        result.StandardDeviation.Should().NotBe(TimeSpan.Zero);
+        Assert.NotEqual(TimeSpan.Zero, result.StandardDeviation);
     }
 
     [Fact]
@@ -529,8 +535,8 @@ public class DiagnosticsTests
         var result = diagnostics.ValidateConfiguration();
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Issues.Count(i => i.Severity == ValidationSeverity.Error).Should().BeGreaterThan(1);
+        Assert.False(result.IsValid);
+        Assert.True(result.Issues.Count(i => i.Severity == ValidationSeverity.Error) > 1);
     }
 
     [Fact]
@@ -548,6 +554,6 @@ public class DiagnosticsTests
         var summary = diagnostics.GetDiagnosticSummary();
 
         // Assert
-        summary.AverageExecutionTime.Should().BeGreaterThan(TimeSpan.Zero);
+        Assert.True(summary.AverageExecutionTime > TimeSpan.Zero);
     }
 }

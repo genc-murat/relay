@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FluentAssertions;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics;
 using Relay.Core.Diagnostics.Tracing;
@@ -65,7 +64,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(null!);
 
         // Assert
-        result.Should().Be("No trace available");
+        Assert.Equal("No trace available", result);
     }
 
     [Fact]
@@ -78,10 +77,10 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace);
 
         // Assert
-        result.Should().Contain("Request Trace: TestRequest");
-        result.Should().Contain($"Request ID: {trace.RequestId}");
-        result.Should().Contain($"Correlation ID: {trace.CorrelationId}");
-        result.Should().Contain("Status: Success");
+        Assert.Contains("Request Trace: TestRequest", result);
+        Assert.Contains($"Request ID: {trace.RequestId}", result);
+        Assert.Contains($"Correlation ID: {trace.CorrelationId}", result);
+        Assert.Contains("Status: Success", result);
     }
 
     [Fact]
@@ -94,9 +93,9 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace);
 
         // Assert
-        result.Should().Contain("Status: In Progress");
-        result.Should().NotContain("End Time:");
-        result.Should().NotContain("Total Duration:");
+        Assert.Contains("Status: In Progress", result);
+        Assert.DoesNotContain("End Time:", result);
+        Assert.DoesNotContain("Total Duration:", result);
     }
 
     [Fact]
@@ -109,8 +108,8 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace);
 
         // Assert
-        result.Should().Contain("Status: Failed");
-        result.Should().Contain("Exception: InvalidOperationException - Test exception");
+        Assert.Contains("Status: Failed", result);
+        Assert.Contains("Exception: InvalidOperationException - Test exception", result);
     }
 
     [Fact]
@@ -123,11 +122,11 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace);
 
         // Assert
-        result.Should().Contain("Execution Steps:");
-        result.Should().Contain("1. [Handler] Step1");
-        result.Should().Contain("2. [Pipeline] Step2");
-        result.Should().Contain("Duration: 100");
-        result.Should().Contain("Duration: 150");
+        Assert.Contains("Execution Steps:", result);
+        Assert.Contains("1. [Handler] Step1", result);
+        Assert.Contains("2. [Pipeline] Step2", result);
+        Assert.Contains("Duration: 100", result);
+        Assert.Contains("Duration: 150", result);
     }
 
     [Fact]
@@ -140,7 +139,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace);
 
         // Assert
-        result.Should().Contain("Handler: TestHandler");
+        Assert.Contains("Handler: TestHandler", result);
     }
 
     [Fact]
@@ -153,9 +152,9 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace, includeMetadata: true);
 
         // Assert
-        result.Should().Contain("Request Metadata:");
-        result.Should().Contain("TestKey:");
-        result.Should().Contain("TestValue");
+        Assert.Contains("Request Metadata:", result);
+        Assert.Contains("TestKey:", result);
+        Assert.Contains("TestValue", result);
     }
 
     [Fact]
@@ -168,7 +167,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace, includeMetadata: false);
 
         // Assert
-        result.Should().NotContain("Request Metadata:");
+        Assert.DoesNotContain("Request Metadata:", result);
     }
 
     [Fact]
@@ -182,7 +181,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace);
 
         // Assert
-        result.Should().Contain("Exception: ArgumentException - Step error");
+        Assert.Contains("Exception: ArgumentException - Step error", result);
     }
 
     [Fact]
@@ -195,7 +194,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace);
 
         // Assert
-        result.Should().Contain("Total Step Time: 250");
+        Assert.Contains("Total Step Time: 250", result);
     }
 
     [Fact]
@@ -205,7 +204,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceAsJson(null!);
 
         // Assert
-        result.Should().Be("null");
+        Assert.Equal("null", result);
     }
 
     [Fact]
@@ -218,10 +217,10 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceAsJson(trace);
 
         // Assert
-        result.Should().NotBeNullOrWhiteSpace();
-        result.Should().Contain("requestId");
-        result.Should().Contain("requestType");
-        result.Should().Contain("steps");
+        Assert.False(string.IsNullOrWhiteSpace(result));
+        Assert.Contains("requestId", result);
+        Assert.Contains("requestType", result);
+        Assert.Contains("steps", result);
     }
 
     [Fact]
@@ -234,9 +233,9 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceAsJson(trace);
 
         // Assert
-        result.Should().Contain("exception");
-        result.Should().Contain("InvalidOperationException");
-        result.Should().Contain("Test exception");
+        Assert.Contains("exception", result);
+        Assert.Contains("InvalidOperationException", result);
+        Assert.Contains("Test exception", result);
     }
 
     [Fact]
@@ -249,8 +248,8 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceAsJson(trace, indented: false);
 
         // Assert
-        result.Should().NotContain("\n");
-        result.Should().NotContain("  ");
+        Assert.DoesNotContain("\n", result);
+        Assert.DoesNotContain("  ", result);
     }
 
     [Fact]
@@ -263,7 +262,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceAsJson(trace, indented: true);
 
         // Assert
-        result.Should().Contain("\n");
+        Assert.Contains("\n", result);
     }
 
     [Fact]
@@ -276,7 +275,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceSummary(traces);
 
         // Assert
-        result.Should().Be("No traces available");
+        Assert.Equal("No traces available", result);
     }
 
     [Fact]
@@ -294,9 +293,9 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceSummary(traces);
 
         // Assert
-        result.Should().Contain("Trace Summary (3 traces)");
-        result.Should().Contain("Completed: 2");
-        result.Should().Contain("In Progress: 1");
+        Assert.Contains("Trace Summary (3 traces)", result);
+        Assert.Contains("Completed: 2", result);
+        Assert.Contains("In Progress: 1", result);
     }
 
     [Fact]
@@ -314,8 +313,8 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceSummary(traces);
 
         // Assert
-        result.Should().Contain("Successful: 2");
-        result.Should().Contain("Failed: 1");
+        Assert.Contains("Successful: 2", result);
+        Assert.Contains("Failed: 1", result);
     }
 
     [Fact]
@@ -332,10 +331,10 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceSummary(traces);
 
         // Assert
-        result.Should().Contain("Performance Summary:");
-        result.Should().Contain("Average Duration:");
-        result.Should().Contain("Min Duration:");
-        result.Should().Contain("Max Duration:");
+        Assert.Contains("Performance Summary:", result);
+        Assert.Contains("Average Duration:", result);
+        Assert.Contains("Min Duration:", result);
+        Assert.Contains("Max Duration:", result);
     }
 
     [Fact]
@@ -353,8 +352,8 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceSummary(traces);
 
         // Assert
-        result.Should().Contain("Request Types:");
-        result.Should().Contain("TestRequest: 3");
+        Assert.Contains("Request Types:", result);
+        Assert.Contains("TestRequest: 3", result);
     }
 
     [Fact]
@@ -371,8 +370,8 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceSummary(traces);
 
         // Assert
-        result.Should().Contain("TestRequest:");
-        result.Should().Contain("String:");
+        Assert.Contains("TestRequest:", result);
+        Assert.Contains("String:", result);
     }
 
     [Fact]
@@ -386,7 +385,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace);
 
         // Assert
-        result.Should().NotContain("Execution Steps:");
+        Assert.DoesNotContain("Execution Steps:", result);
     }
 
     [Fact]
@@ -400,7 +399,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTrace(trace, includeMetadata: true);
 
         // Assert
-        result.Should().Contain("Metadata:");
+        Assert.Contains("Metadata:", result);
     }
 
     [Fact]
@@ -414,7 +413,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceAsJson(trace);
 
         // Assert
-        result.Should().Contain("\"metadata\"");
+        Assert.Contains("\"metadata\"", result);
     }
 
     [Fact]
@@ -431,7 +430,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceSummary(traces);
 
         // Assert
-        result.Should().NotContain("Performance Summary:");
+        Assert.DoesNotContain("Performance Summary:", result);
     }
 
     [Fact]
@@ -445,7 +444,7 @@ public class TraceFormatterTests
         var result = TraceFormatter.FormatTraceAsJson(trace);
 
         // Assert
-        result.Should().Contain("ArgumentException");
-        result.Should().Contain("Step error");
+        Assert.Contains("ArgumentException", result);
+        Assert.Contains("Step error", result);
     }
 }

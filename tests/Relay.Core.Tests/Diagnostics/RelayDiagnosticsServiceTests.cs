@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Relay.Core.Contracts.Core;
@@ -67,7 +66,8 @@ public class RelayDiagnosticsServiceTests
         Action act = () => new RelayDiagnosticsService(null!, tracer, options, serviceProvider);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("diagnostics");
+        var exception = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("diagnostics", exception.ParamName);
     }
 
     [Fact]
@@ -82,7 +82,8 @@ public class RelayDiagnosticsServiceTests
         Action act = () => new RelayDiagnosticsService(diagnostics, null!, options, serviceProvider);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("tracer");
+        var exception = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("tracer", exception.ParamName);
     }
 
     [Fact]
@@ -97,7 +98,7 @@ public class RelayDiagnosticsServiceTests
         Action act = () => new RelayDiagnosticsService(diagnostics, tracer, null!, serviceProvider);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>();
+        Assert.Throws<ArgumentNullException>(act);
     }
 
     [Fact]
@@ -112,7 +113,8 @@ public class RelayDiagnosticsServiceTests
         Action act = () => new RelayDiagnosticsService(diagnostics, tracer, options, null!);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("serviceProvider");
+        var exception = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("serviceProvider", exception.ParamName);
     }
 
     [Fact]
@@ -129,9 +131,9 @@ public class RelayDiagnosticsServiceTests
         var response = service.GetHandlers();
 
         // Assert
-        response.Should().NotBeNull();
-        response.StatusCode.Should().Be(404);
-        response.ErrorMessage.Should().Contain("Diagnostic endpoints are disabled");
+        Assert.NotNull(response);
+        Assert.Equal(404, response.StatusCode);
+        Assert.Contains("Diagnostic endpoints are disabled", response.ErrorMessage);
     }
 
     [Fact]
@@ -148,9 +150,9 @@ public class RelayDiagnosticsServiceTests
         var response = service.GetHandlers();
 
         // Assert
-        response.Should().NotBeNull();
-        response.IsSuccess.Should().BeTrue();
-        response.Data.Should().NotBeNull();
+        Assert.NotNull(response);
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
     }
 
     [Fact]
@@ -167,7 +169,7 @@ public class RelayDiagnosticsServiceTests
         var response = service.GetMetrics();
 
         // Assert
-        response.StatusCode.Should().Be(404);
+        Assert.Equal(404, response.StatusCode);
     }
 
     [Fact]
@@ -184,8 +186,8 @@ public class RelayDiagnosticsServiceTests
         var response = service.GetMetrics();
 
         // Assert
-        response.IsSuccess.Should().BeTrue();
-        response.Data.Should().NotBeNull();
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
     }
 
     [Fact]
@@ -202,8 +204,8 @@ public class RelayDiagnosticsServiceTests
         var response = service.GetHandlerMetrics("NonExistentRequest");
 
         // Assert
-        response.StatusCode.Should().Be(404);
-        response.ErrorMessage.Should().Contain("No metrics found");
+        Assert.Equal(404, response.StatusCode);
+        Assert.Contains("No metrics found", response.ErrorMessage);
     }
 
     [Fact]
@@ -226,9 +228,9 @@ public class RelayDiagnosticsServiceTests
         var response = service.GetHealth();
 
         // Assert
-        response.IsSuccess.Should().BeTrue();
-        response.Data.Should().NotBeNull();
-        response.Data.IsValid.Should().BeTrue();
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        Assert.True(response.Data.IsValid);
     }
 
     [Fact]
@@ -245,8 +247,8 @@ public class RelayDiagnosticsServiceTests
         var response = service.ClearDiagnosticData();
 
         // Assert
-        response.IsSuccess.Should().BeTrue();
-        response.Data.Should().NotBeNull();
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
     }
 
     [Fact]
@@ -265,7 +267,7 @@ public class RelayDiagnosticsServiceTests
         var response = await service.RunBenchmark(benchmarkRequest);
 
         // Assert
-        response.StatusCode.Should().Be(400);
+        Assert.Equal(400, response.StatusCode);
     }
 
     [Fact]
@@ -288,8 +290,8 @@ public class RelayDiagnosticsServiceTests
         var response = await service.RunBenchmark(benchmarkRequest);
 
         // Assert
-        response.StatusCode.Should().Be(400);
-        response.ErrorMessage.Should().Contain("Iterations must be greater than 0");
+        Assert.Equal(400, response.StatusCode);
+        Assert.Contains("Iterations must be greater than 0", response.ErrorMessage);
     }
 
     [Fact]
@@ -312,8 +314,8 @@ public class RelayDiagnosticsServiceTests
         var response = await service.RunBenchmark(benchmarkRequest);
 
         // Assert
-        response.StatusCode.Should().Be(404);
-        response.ErrorMessage.Should().Contain("Request type not found");
+        Assert.Equal(404, response.StatusCode);
+        Assert.Contains("Request type not found", response.ErrorMessage);
     }
 
     [Fact]
@@ -330,8 +332,8 @@ public class RelayDiagnosticsServiceTests
         var response = service.GetSummary();
 
         // Assert
-        response.IsSuccess.Should().BeTrue();
-        response.Data.Should().NotBeNull();
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
     }
 
     [Fact]
@@ -352,7 +354,7 @@ public class RelayDiagnosticsServiceTests
         var response = service.GetTraces();
 
         // Assert
-        response.StatusCode.Should().Be(400);
-        response.ErrorMessage.Should().Contain("Request tracing is disabled");
+        Assert.Equal(400, response.StatusCode);
+        Assert.Contains("Request tracing is disabled", response.ErrorMessage);
     }
 }

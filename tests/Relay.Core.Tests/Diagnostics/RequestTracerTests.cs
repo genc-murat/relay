@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics;
 using Relay.Core.Diagnostics.Tracing;
@@ -22,9 +21,9 @@ public class RequestTracerTests
         var tracer = new RequestTracer();
 
         // Assert
-        tracer.IsEnabled.Should().BeTrue();
-        tracer.ActiveTraceCount.Should().Be(0);
-        tracer.CompletedTraceCount.Should().Be(0);
+        Assert.True(tracer.IsEnabled);
+        Assert.Equal(0, tracer.ActiveTraceCount);
+        Assert.Equal(0, tracer.CompletedTraceCount);
     }
 
     [Fact]
@@ -38,11 +37,11 @@ public class RequestTracerTests
         var trace = tracer.StartTrace(request);
 
         // Assert
-        trace.Should().NotBeNull();
-        trace.RequestId.Should().NotBe(Guid.Empty);
-        trace.RequestType.Should().Be(typeof(TestRequest));
-        trace.StartTime.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
-        tracer.ActiveTraceCount.Should().Be(1);
+        Assert.NotNull(trace);
+        Assert.NotEqual(Guid.Empty, trace.RequestId);
+        Assert.Equal(typeof(TestRequest), trace.RequestType);
+        Assert.True((DateTimeOffset.UtcNow - trace.StartTime).Duration() < TimeSpan.FromSeconds(1));
+        Assert.Equal(1, tracer.ActiveTraceCount);
     }
 
     [Fact]
@@ -57,7 +56,7 @@ public class RequestTracerTests
         var trace = tracer.StartTrace(request, correlationId);
 
         // Assert
-        trace.CorrelationId.Should().Be(correlationId);
+        Assert.Equal(correlationId, trace.CorrelationId);
     }
 
     [Fact]
@@ -71,7 +70,7 @@ public class RequestTracerTests
         var trace = tracer.StartTrace(request);
 
         // Assert
-        trace.CorrelationId.Should().NotBeNullOrWhiteSpace();
+        Assert.False(string.IsNullOrWhiteSpace(trace.CorrelationId));
     }
 
     [Fact]
@@ -85,8 +84,8 @@ public class RequestTracerTests
         var trace = tracer.StartTrace(request);
 
         // Assert
-        trace.RequestId.Should().Be(Guid.Empty);
-        tracer.ActiveTraceCount.Should().Be(0);
+        Assert.Equal(Guid.Empty, trace.RequestId);
+        Assert.Equal(0, tracer.ActiveTraceCount);
     }
 
     [Fact]
@@ -101,8 +100,8 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace.Should().NotBeNull();
-        currentTrace!.RequestId.Should().Be(startedTrace.RequestId);
+        Assert.NotNull(currentTrace);
+        Assert.Equal(startedTrace.RequestId, currentTrace!.RequestId);
     }
 
     [Fact]
@@ -115,7 +114,7 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace.Should().BeNull();
+        Assert.Null(currentTrace);
     }
 
     [Fact]
@@ -130,7 +129,7 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace.Should().BeNull();
+        Assert.Null(currentTrace);
     }
 
     [Fact]
@@ -146,10 +145,10 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace!.Steps.Should().HaveCount(1);
-        currentTrace.Steps[0].Name.Should().Be("TestStep");
-        currentTrace.Steps[0].Duration.Should().Be(TimeSpan.FromMilliseconds(100));
-        currentTrace.Steps[0].Category.Should().Be("TestCategory");
+        Assert.Equal(1, currentTrace!.Steps.Count);
+        Assert.Equal("TestStep", currentTrace.Steps[0].Name);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), currentTrace.Steps[0].Duration);
+        Assert.Equal("TestCategory", currentTrace.Steps[0].Category);
     }
 
     [Fact]
@@ -161,8 +160,8 @@ public class RequestTracerTests
         // Act
         tracer.AddStep("TestStep", TimeSpan.FromMilliseconds(100));
 
-        // Assert - should not throw
-        tracer.GetCurrentTrace().Should().BeNull();
+        // Assert
+        Assert.Null(tracer.GetCurrentTrace());
     }
 
     [Fact]
@@ -174,8 +173,8 @@ public class RequestTracerTests
         // Act
         tracer.AddStep("TestStep", TimeSpan.FromMilliseconds(100));
 
-        // Assert - should not throw
-        tracer.GetCurrentTrace().Should().BeNull();
+        // Assert
+        Assert.Null(tracer.GetCurrentTrace());
     }
 
     [Fact]
@@ -191,9 +190,9 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace!.Steps.Should().HaveCount(1);
-        currentTrace.Steps[0].Name.Should().Be("HandlerExecution");
-        currentTrace.Steps[0].HandlerType.Should().Be("TestRequest");
+        Assert.Equal(1, currentTrace!.Steps.Count);
+        Assert.Equal("HandlerExecution", currentTrace.Steps[0].Name);
+        Assert.Equal("TestRequest", currentTrace.Steps[0].HandlerType);
     }
 
     [Fact]
@@ -210,7 +209,7 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace!.Exception.Should().Be(exception);
+        Assert.Same(exception, currentTrace!.Exception);
     }
 
     [Fact]
@@ -227,10 +226,10 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace!.Exception.Should().Be(exception);
-        currentTrace.Steps.Should().ContainSingle(s => s.Category == "Exception");
-        currentTrace.Steps[0].Name.Should().Be("ErrorStep");
-        currentTrace.Steps[0].Exception.Should().Be(exception);
+        Assert.Same(exception, currentTrace!.Exception);
+        Assert.Single(currentTrace.Steps, s => s.Category == "Exception");
+        Assert.Equal("ErrorStep", currentTrace.Steps[0].Name);
+        Assert.Same(exception, currentTrace.Steps[0].Exception);
     }
 
     [Fact]
@@ -245,9 +244,9 @@ public class RequestTracerTests
         tracer.CompleteTrace(success: true);
 
         // Assert
-        tracer.ActiveTraceCount.Should().Be(0);
-        tracer.CompletedTraceCount.Should().Be(1);
-        tracer.GetCurrentTrace().Should().BeNull();
+        Assert.Equal(0, tracer.ActiveTraceCount);
+        Assert.Equal(1, tracer.CompletedTraceCount);
+        Assert.Null(tracer.GetCurrentTrace());
     }
 
     [Fact]
@@ -264,9 +263,9 @@ public class RequestTracerTests
         var completedTraces = tracer.GetCompletedTraces();
 
         // Assert
-        completedTraces.Should().HaveCount(1);
+        Assert.Single(completedTraces);
         var completedTrace = completedTraces.First();
-        completedTrace.EndTime.Should().BeAfter(startTime);
+        Assert.True(completedTrace.EndTime > startTime);
     }
 
     [Fact]
@@ -282,10 +281,10 @@ public class RequestTracerTests
         var completedTraces = tracer.GetCompletedTraces();
 
         // Assert
-        completedTraces.Should().HaveCount(1);
+        Assert.Single(completedTraces);
         var completedTrace = completedTraces.First();
-        completedTrace.Metadata.Should().ContainKey("CompletedSuccessfully");
-        completedTrace.Metadata["CompletedSuccessfully"].Should().Be(false);
+        Assert.Contains("CompletedSuccessfully", completedTrace.Metadata);
+        Assert.Equal(false, completedTrace.Metadata["CompletedSuccessfully"]);
     }
 
     [Fact]
@@ -298,7 +297,7 @@ public class RequestTracerTests
         var traces = tracer.GetCompletedTraces();
 
         // Assert
-        traces.Should().BeEmpty();
+        Assert.Empty(traces);
     }
 
     [Fact]
@@ -318,7 +317,7 @@ public class RequestTracerTests
         var traces = tracer.GetCompletedTraces();
 
         // Assert
-        traces.Should().HaveCount(2);
+        Assert.Equal(2, traces.Count());
     }
 
     [Fact]
@@ -342,7 +341,7 @@ public class RequestTracerTests
         var traces = tracer.GetCompletedTraces(cutoffTime);
 
         // Assert
-        traces.Should().HaveCount(1);
+        Assert.Single(traces);
     }
 
     [Fact]
@@ -355,7 +354,7 @@ public class RequestTracerTests
         var traces = tracer.GetCompletedTraces();
 
         // Assert
-        traces.Should().BeEmpty();
+        Assert.Empty(traces);
     }
 
     [Fact]
@@ -375,7 +374,7 @@ public class RequestTracerTests
         tracer.ClearTraces();
 
         // Assert
-        tracer.GetCompletedTraces().Should().BeEmpty();
+        Assert.Empty(tracer.GetCompletedTraces());
     }
 
     [Fact]
@@ -393,7 +392,7 @@ public class RequestTracerTests
         }
 
         // Assert
-        tracer.GetCompletedTraces().Should().HaveCount(5);
+        Assert.Equal(5, tracer.GetCompletedTraces().Count());
     }
 
     [Fact]
@@ -406,7 +405,7 @@ public class RequestTracerTests
         tracer.MaxCompletedTraces = -1;
 
         // Assert
-        tracer.MaxCompletedTraces.Should().Be(1);
+        Assert.Equal(1, tracer.MaxCompletedTraces);
     }
 
     [Fact]
@@ -423,7 +422,7 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace!.Steps[0].Metadata.Should().Be(metadata);
+        Assert.Same(metadata, currentTrace!.Steps[0].Metadata);
     }
 
     [Fact]
@@ -440,7 +439,7 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        currentTrace!.Steps[0].Metadata.Should().Be(metadata);
+        Assert.Same(metadata, currentTrace!.Steps[0].Metadata);
     }
 
     [Fact]
@@ -454,7 +453,7 @@ public class RequestTracerTests
         var trace = tracer.StartTrace(request);
 
         // Assert
-        trace.Metadata.Should().ContainKey("RequestTypeName");
-        trace.Metadata["RequestTypeName"].Should().Be("TestRequest");
+        Assert.Contains("RequestTypeName", trace.Metadata);
+        Assert.Equal("TestRequest", trace.Metadata["RequestTypeName"]);
     }
 }

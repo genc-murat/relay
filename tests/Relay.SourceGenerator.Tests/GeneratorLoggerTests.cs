@@ -1,6 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Xunit;
-using FluentAssertions;
 using System.Linq;
 
 namespace Relay.SourceGenerator.Tests;
@@ -18,12 +17,12 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogDebug(reporter, message);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var diagnostic = reporter.Diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.Debug.Id);
-        diagnostic.Severity.Should().Be(DiagnosticSeverity.Info);
-        diagnostic.GetMessage().Should().Contain(message);
-        diagnostic.Location.Should().Be(Location.None);
+        Assert.Equal(DiagnosticDescriptors.Debug.Id, diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
+        Assert.Contains(message, diagnostic.GetMessage());
+        Assert.Equal(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -37,12 +36,12 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogInfo(reporter, message);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var diagnostic = reporter.Diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.Info.Id);
-        diagnostic.Severity.Should().Be(DiagnosticSeverity.Info);
-        diagnostic.GetMessage().Should().Contain(message);
-        diagnostic.Location.Should().Be(Location.None);
+        Assert.Equal(DiagnosticDescriptors.Info.Id, diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
+        Assert.Contains(message, diagnostic.GetMessage());
+        Assert.Equal(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -56,11 +55,11 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogWarning(reporter, message);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var diagnostic = reporter.Diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.Info.Id); // Currently uses Info
-        diagnostic.GetMessage().Should().Contain(message);
-        diagnostic.Location.Should().Be(Location.None);
+        Assert.Equal(DiagnosticDescriptors.Info.Id, diagnostic.Id); // Currently uses Info
+        Assert.Contains(message, diagnostic.GetMessage());
+        Assert.Equal(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -74,12 +73,12 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogError(reporter, message);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var diagnostic = reporter.Diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.GeneratorError.Id);
-        diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
-        diagnostic.GetMessage().Should().Contain(message);
-        diagnostic.Location.Should().Be(Location.None);
+        Assert.Equal(DiagnosticDescriptors.GeneratorError.Id, diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains(message, diagnostic.GetMessage());
+        Assert.Equal(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -94,13 +93,13 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogPerformance(reporter, operation, elapsedMs);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var diagnostic = reporter.Diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.Debug.Id);
-        diagnostic.GetMessage().Should().Contain("Generator performance");
-        diagnostic.GetMessage().Should().Contain(operation);
-        diagnostic.GetMessage().Should().Contain($"{elapsedMs}ms");
-        diagnostic.Location.Should().Be(Location.None);
+        Assert.Equal(DiagnosticDescriptors.Debug.Id, diagnostic.Id);
+        Assert.Contains("Generator performance", diagnostic.GetMessage());
+        Assert.Contains(operation, diagnostic.GetMessage());
+        Assert.Contains($"{elapsedMs}ms", diagnostic.GetMessage());
+        Assert.Equal(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -115,12 +114,12 @@ public class GeneratorLoggerTests
         GeneratorLogger.ReportDiagnostic(reporter, descriptor, null, messageArgs);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var diagnostic = reporter.Diagnostics[0];
-        diagnostic.Id.Should().Be(descriptor.Id);
-        diagnostic.GetMessage().Should().Contain("MyRequest");
-        diagnostic.GetMessage().Should().Contain("MyResponse");
-        diagnostic.Location.Should().Be(Location.None);
+        Assert.Equal(descriptor.Id, diagnostic.Id);
+        Assert.Contains("MyRequest", diagnostic.GetMessage());
+        Assert.Contains("MyResponse", diagnostic.GetMessage());
+        Assert.Equal(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -135,10 +134,10 @@ public class GeneratorLoggerTests
         GeneratorLogger.ReportDiagnostic(reporter, descriptor, location, "Test message");
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var diagnostic = reporter.Diagnostics[0];
-        diagnostic.Location.Should().Be(location);
-        diagnostic.Location.Should().NotBe(Location.None);
+        Assert.Equal(location, diagnostic.Location);
+        Assert.NotEqual(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -151,8 +150,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogDebug(reporter, string.Empty);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].GetMessage().Should().NotBeNull();
+        Assert.Single(reporter.Diagnostics);
+        Assert.NotNull(reporter.Diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -165,8 +164,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogInfo(reporter, string.Empty);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].GetMessage().Should().NotBeNull();
+        Assert.Single(reporter.Diagnostics);
+        Assert.NotNull(reporter.Diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -179,8 +178,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogError(reporter, string.Empty);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].GetMessage().Should().NotBeNull();
+        Assert.Single(reporter.Diagnostics);
+        Assert.NotNull(reporter.Diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -193,8 +192,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogPerformance(reporter, "Quick Operation", 0L);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].GetMessage().Should().Contain("0ms");
+        Assert.Single(reporter.Diagnostics);
+        Assert.Contains("0ms", reporter.Diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -208,8 +207,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogPerformance(reporter, "Slow Operation", largeTime);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].GetMessage().Should().Contain($"{largeTime}ms");
+        Assert.Single(reporter.Diagnostics);
+        Assert.Contains($"{largeTime}ms", reporter.Diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -223,8 +222,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.ReportDiagnostic(reporter, descriptor, null);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].Id.Should().Be(descriptor.Id);
+        Assert.Single(reporter.Diagnostics);
+        Assert.Equal(descriptor.Id, reporter.Diagnostics[0].Id);
     }
 
     [Fact]
@@ -239,10 +238,10 @@ public class GeneratorLoggerTests
         GeneratorLogger.ReportDiagnostic(reporter, descriptor, null, args);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var message = reporter.Diagnostics[0].GetMessage();
-        message.Should().Contain("Request1");
-        message.Should().Contain("Response1");
+        Assert.Contains("Request1", message);
+        Assert.Contains("Response1", message);
     }
 
     [Fact]
@@ -257,10 +256,10 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogDebug(reporter, "Message 3");
 
         // Assert
-        reporter.Diagnostics.Should().HaveCount(3);
-        reporter.Diagnostics[0].GetMessage().Should().Contain("Message 1");
-        reporter.Diagnostics[1].GetMessage().Should().Contain("Message 2");
-        reporter.Diagnostics[2].GetMessage().Should().Contain("Message 3");
+        Assert.Equal(3, reporter.Diagnostics.Count);
+        Assert.Contains("Message 1", reporter.Diagnostics[0].GetMessage());
+        Assert.Contains("Message 2", reporter.Diagnostics[1].GetMessage());
+        Assert.Contains("Message 3", reporter.Diagnostics[2].GetMessage());
     }
 
     [Fact]
@@ -277,10 +276,10 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogPerformance(reporter, "Operation", 100L);
 
         // Assert
-        reporter.Diagnostics.Should().HaveCount(5);
-        reporter.Diagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.Debug.Id);
-        reporter.Diagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.Info.Id);
-        reporter.Diagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.GeneratorError.Id);
+        Assert.Equal(5, reporter.Diagnostics.Count);
+        Assert.Contains(reporter.Diagnostics, d => d.Id == DiagnosticDescriptors.Debug.Id);
+        Assert.Contains(reporter.Diagnostics, d => d.Id == DiagnosticDescriptors.Info.Id);
+        Assert.Contains(reporter.Diagnostics, d => d.Id == DiagnosticDescriptors.GeneratorError.Id);
     }
 
     [Fact]
@@ -294,8 +293,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogDebug(reporter, message);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].GetMessage().Should().Contain(message);
+        Assert.Single(reporter.Diagnostics);
+        Assert.Contains(message, reporter.Diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -309,8 +308,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogInfo(reporter, message);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].GetMessage().Should().Contain(message);
+        Assert.Single(reporter.Diagnostics);
+        Assert.Contains(message, reporter.Diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -324,8 +323,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogError(reporter, message);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].GetMessage().Should().Contain(message);
+        Assert.Single(reporter.Diagnostics);
+        Assert.Contains(message, reporter.Diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -340,12 +339,12 @@ public class GeneratorLoggerTests
         GeneratorLogger.LogPerformance(reporter, operation, elapsed);
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
+        Assert.Single(reporter.Diagnostics);
         var message = reporter.Diagnostics[0].GetMessage();
-        message.Should().StartWith("Generator performance:");
-        message.Should().Contain(operation);
-        message.Should().Contain("took");
-        message.Should().EndWith("ms");
+        Assert.StartsWith("Generator performance:", message);
+        Assert.Contains(operation, message);
+        Assert.Contains("took", message);
+        Assert.EndsWith("ms", message);
     }
 
     [Fact]
@@ -359,8 +358,8 @@ public class GeneratorLoggerTests
         GeneratorLogger.ReportDiagnostic(reporter, descriptor, null, "Message");
 
         // Assert
-        reporter.Diagnostics.Should().ContainSingle();
-        reporter.Diagnostics[0].Location.Should().Be(Location.None);
+        Assert.Single(reporter.Diagnostics);
+        Assert.Equal(Location.None, reporter.Diagnostics[0].Location);
     }
 
     private Location CreateTestLocation()

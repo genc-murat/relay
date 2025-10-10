@@ -1,9 +1,9 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
 using Relay.SourceGenerator;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,8 +20,8 @@ namespace Relay.SourceGenerator.Tests
             var generatorType = typeof(RelayIncrementalGenerator);
 
             // Assert
-            generatorType.Should().NotBeNull();
-            generatorType.Should().BeAssignableTo<Microsoft.CodeAnalysis.IIncrementalGenerator>();
+            Assert.NotNull(generatorType);
+            Assert.IsAssignableFrom<Microsoft.CodeAnalysis.IIncrementalGenerator>(Activator.CreateInstance(generatorType));
         }
 
         [Fact]
@@ -31,8 +31,8 @@ namespace Relay.SourceGenerator.Tests
             var receiverType = typeof(RelaySyntaxReceiver);
 
             // Assert
-            receiverType.Should().NotBeNull();
-            receiverType.Should().BeAssignableTo<Microsoft.CodeAnalysis.ISyntaxReceiver>();
+            Assert.NotNull(receiverType);
+            Assert.IsAssignableFrom<Microsoft.CodeAnalysis.ISyntaxReceiver>(Activator.CreateInstance(receiverType));
         }
 
         [Fact]
@@ -101,7 +101,7 @@ namespace TestProject
             var result = await RunGeneratorTestWithoutRelayCoreReference(source);
 
             // Assert
-            result.Diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_004");
+            Assert.Contains(result.Diagnostics, d => d.Id == "RELAY_GEN_004");
         }
 
         [Fact]
@@ -135,9 +135,9 @@ namespace TestProject
             }
 
             // Assert
-            receiver.CandidateMethods.Should().HaveCount(2);
-            receiver.CandidateMethods.Should().Contain(m => m.Identifier.ValueText == "HandleTest");
-            receiver.CandidateMethods.Should().Contain(m => m.Identifier.ValueText == "HandleNotification");
+            Assert.Equal(2, receiver.CandidateMethods.Count());
+            Assert.Contains(receiver.CandidateMethods, m => m.Identifier.ValueText == "HandleTest");
+            Assert.Contains(receiver.CandidateMethods, m => m.Identifier.ValueText == "HandleNotification");
         }
 
         [Fact]
@@ -148,8 +148,8 @@ namespace TestProject
             var context = new RelayCompilationContext(compilation, default);
 
             // Act & Assert
-            context.AssemblyName.Should().Be("TestAssembly");
-            context.Compilation.Should().Be(compilation);
+            Assert.Equal("TestAssembly", context.AssemblyName);
+            Assert.Equal(compilation, context.Compilation);
         }
 
         private static async Task<GeneratorDriverRunResult> RunGeneratorTest(string source, bool expectMarkerFile)
@@ -165,7 +165,7 @@ namespace TestProject
             }
 
             // Verify at least one file was generated
-            result.GeneratedTrees.Should().NotBeEmpty("generator should produce output when Relay.Core is referenced");
+            Assert.NotEmpty(result.GeneratedTrees);
 
             if (expectMarkerFile)
             {
@@ -177,12 +177,12 @@ namespace TestProject
                     return content.Contains("GeneratedRelayExtensions") || content.Contains("AddRelayGenerated");
                 });
 
-                (hasMarkerFile || hasHandlerRegistration).Should().BeTrue(
+                Assert.True(hasMarkerFile || hasHandlerRegistration, 
                     "generator should produce marker file or handler registration when Relay.Core is referenced");
 
                 // Verify the generated code references the test assembly
                 var generatedContent = string.Join("\n", result.GeneratedTrees.Select(t => t.ToString()));
-                generatedContent.Should().Contain("GeneratedRelayExtensions", "should generate Relay extension methods");
+                Assert.Contains("GeneratedRelayExtensions", generatedContent);
             }
             else
             {
@@ -190,11 +190,11 @@ namespace TestProject
                 // This is expected behavior for providing basic DI setup
                 if (result.GeneratedTrees.Length > 0)
                 {
-                    result.GeneratedTrees.Should().ContainSingle();
+                    Assert.Single(result.GeneratedTrees);
                     var generatedFile = result.GeneratedTrees.First();
                     var content = generatedFile.ToString();
-                    content.Should().Contain("GeneratedRelayExtensions");
-                    content.Should().Contain("AddRelayGenerated");
+                    Assert.Contains("GeneratedRelayExtensions", content);
+                    Assert.Contains("AddRelayGenerated", content);
                 }
             }
 

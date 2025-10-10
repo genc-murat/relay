@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
@@ -24,7 +23,7 @@ namespace Relay.SourceGenerator.Tests
                 out var diagnostics);
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
         }
 
         [Fact]
@@ -61,7 +60,7 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            runResult.GeneratedTrees.Should().NotBeEmpty();
+            Assert.NotEmpty(runResult.GeneratedTrees);
         }
 
         [Fact]
@@ -80,7 +79,7 @@ namespace TestProject
 
             // Assert
             // Should not crash with empty project
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
         }
 
         [Fact]
@@ -127,7 +126,7 @@ namespace TestProject
 
             // Assert
             // Should generate something
-            runResult.Results.Should().NotBeEmpty();
+            Assert.NotEmpty(runResult.Results);
         }
 
         [Fact]
@@ -165,7 +164,7 @@ namespace TestProject
 
             // Assert
             // Generator should produce some output
-            runResult.Results.Should().NotBeEmpty();
+            Assert.NotEmpty(runResult.Results);
         }
 
         [Fact]
@@ -207,7 +206,7 @@ namespace TestProject
 
             // Assert
             // Should not crash - results may or may not be empty
-            runResult.Should().NotBeNull();
+            Assert.NotNull(runResult);
         }
 
         private static Compilation CreateTestCompilation(string source)

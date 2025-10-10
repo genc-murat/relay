@@ -2,7 +2,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
-using FluentAssertions;
 using System.Linq;
 
 namespace Relay.SourceGenerator.Tests;
@@ -32,9 +31,9 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().NotBeNull();
-        handlerClassInfo.ClassDeclaration.Should().Be(classDeclaration);
-        handlerClassInfo.ClassDeclaration?.Identifier.Text.Should().Be("TestHandler");
+        Assert.NotNull(handlerClassInfo.ClassDeclaration);
+        Assert.Equal(classDeclaration, handlerClassInfo.ClassDeclaration);
+        Assert.Equal("TestHandler", handlerClassInfo.ClassDeclaration?.Identifier.Text);
     }
 
     [Fact]
@@ -56,9 +55,9 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassSymbol.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol.Should().Be(classSymbol);
-        handlerClassInfo.ClassSymbol?.Name.Should().Be("TestHandler");
+        Assert.NotNull(handlerClassInfo.ClassSymbol);
+        Assert.Equal(classSymbol, handlerClassInfo.ClassSymbol);
+        Assert.Equal("TestHandler", handlerClassInfo.ClassSymbol?.Name);
     }
 
     [Fact]
@@ -68,8 +67,8 @@ namespace TestApp
         var handlerClassInfo = new HandlerClassInfo();
 
         // Assert
-        handlerClassInfo.ImplementedInterfaces.Should().NotBeNull();
-        handlerClassInfo.ImplementedInterfaces.Should().BeEmpty();
+        Assert.NotNull(handlerClassInfo.ImplementedInterfaces);
+        Assert.Empty(handlerClassInfo.ImplementedInterfaces);
     }
 
     [Fact]
@@ -86,8 +85,8 @@ namespace TestApp
         handlerClassInfo.ImplementedInterfaces.Add(interfaceInfo);
 
         // Assert
-        handlerClassInfo.ImplementedInterfaces.Should().ContainSingle();
-        handlerClassInfo.ImplementedInterfaces[0].Should().Be(interfaceInfo);
+        Assert.Single(handlerClassInfo.ImplementedInterfaces);
+        Assert.Equal(interfaceInfo, handlerClassInfo.ImplementedInterfaces[0]);
     }
 
     [Fact]
@@ -105,10 +104,10 @@ namespace TestApp
         handlerClassInfo.ImplementedInterfaces.Add(interface3);
 
         // Assert
-        handlerClassInfo.ImplementedInterfaces.Should().HaveCount(3);
-        handlerClassInfo.ImplementedInterfaces.Should().Contain(interface1);
-        handlerClassInfo.ImplementedInterfaces.Should().Contain(interface2);
-        handlerClassInfo.ImplementedInterfaces.Should().Contain(interface3);
+        Assert.Equal(3, handlerClassInfo.ImplementedInterfaces.Count);
+        Assert.Contains(interface1, handlerClassInfo.ImplementedInterfaces);
+        Assert.Contains(interface2, handlerClassInfo.ImplementedInterfaces);
+        Assert.Contains(interface3, handlerClassInfo.ImplementedInterfaces);
     }
 
     [Fact]
@@ -121,7 +120,7 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().BeNull();
+        Assert.Null(handlerClassInfo.ClassDeclaration);
     }
 
     [Fact]
@@ -134,7 +133,7 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassSymbol.Should().BeNull();
+        Assert.Null(handlerClassInfo.ClassSymbol);
     }
 
     [Fact]
@@ -174,10 +173,10 @@ namespace TestApp
         handlerClassInfo.ImplementedInterfaces.Add(interfaceInfo);
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().Be(classDeclaration);
-        handlerClassInfo.ClassSymbol.Should().Be(classSymbol);
-        handlerClassInfo.ImplementedInterfaces.Should().ContainSingle();
-        handlerClassInfo.ImplementedInterfaces[0].Should().Be(interfaceInfo);
+        Assert.Equal(classDeclaration, handlerClassInfo.ClassDeclaration);
+        Assert.Equal(classSymbol, handlerClassInfo.ClassSymbol);
+        Assert.Single(handlerClassInfo.ImplementedInterfaces);
+        Assert.Equal(interfaceInfo, handlerClassInfo.ImplementedInterfaces[0]);
     }
 
     [Fact]
@@ -211,10 +210,10 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol?.IsGenericType.Should().BeTrue();
-        handlerClassInfo.ClassSymbol?.TypeParameters.Should().HaveCount(1);
+        Assert.NotNull(handlerClassInfo.ClassDeclaration);
+        Assert.NotNull(handlerClassInfo.ClassSymbol);
+        Assert.True(handlerClassInfo.ClassSymbol?.IsGenericType);
+        Assert.Single(handlerClassInfo.ClassSymbol?.TypeParameters);
     }
 
     [Fact]
@@ -251,10 +250,10 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol?.ContainingType.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol?.ContainingType?.Name.Should().Be("OuterClass");
+        Assert.NotNull(handlerClassInfo.ClassDeclaration);
+        Assert.NotNull(handlerClassInfo.ClassSymbol);
+        Assert.NotNull(handlerClassInfo.ClassSymbol?.ContainingType);
+        Assert.Equal("OuterClass", handlerClassInfo.ClassSymbol?.ContainingType?.Name);
     }
 
     [Fact]
@@ -288,9 +287,9 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol?.IsAbstract.Should().BeTrue();
+        Assert.NotNull(handlerClassInfo.ClassDeclaration);
+        Assert.NotNull(handlerClassInfo.ClassSymbol);
+        Assert.True(handlerClassInfo.ClassSymbol?.IsAbstract);
     }
 
     [Fact]
@@ -324,9 +323,9 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol?.IsSealed.Should().BeTrue();
+        Assert.NotNull(handlerClassInfo.ClassDeclaration);
+        Assert.NotNull(handlerClassInfo.ClassSymbol);
+        Assert.True(handlerClassInfo.ClassSymbol?.IsSealed);
     }
 
     [Fact]
@@ -360,9 +359,9 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol?.IsStatic.Should().BeTrue();
+        Assert.NotNull(handlerClassInfo.ClassDeclaration);
+        Assert.NotNull(handlerClassInfo.ClassSymbol);
+        Assert.True(handlerClassInfo.ClassSymbol?.IsStatic);
     }
 
     [Fact]
@@ -397,10 +396,10 @@ namespace TestApp
         };
 
         // Assert
-        handlerClassInfo.ClassDeclaration.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol?.BaseType.Should().NotBeNull();
-        handlerClassInfo.ClassSymbol?.BaseType?.Name.Should().Be("BaseHandler");
+        Assert.NotNull(handlerClassInfo.ClassDeclaration);
+        Assert.NotNull(handlerClassInfo.ClassSymbol);
+        Assert.NotNull(handlerClassInfo.ClassSymbol?.BaseType);
+        Assert.Equal("BaseHandler", handlerClassInfo.ClassSymbol?.BaseType?.Name);
     }
 
     [Fact]
@@ -417,9 +416,9 @@ namespace TestApp
         handlerClassInfo.ImplementedInterfaces.Remove(interface1);
 
         // Assert
-        handlerClassInfo.ImplementedInterfaces.Should().ContainSingle();
-        handlerClassInfo.ImplementedInterfaces.Should().Contain(interface2);
-        handlerClassInfo.ImplementedInterfaces.Should().NotContain(interface1);
+        Assert.Single(handlerClassInfo.ImplementedInterfaces);
+        Assert.Contains(interface2, handlerClassInfo.ImplementedInterfaces);
+        Assert.DoesNotContain(interface1, handlerClassInfo.ImplementedInterfaces);
     }
 
     [Fact]
@@ -434,7 +433,7 @@ namespace TestApp
         handlerClassInfo.ImplementedInterfaces.Clear();
 
         // Assert
-        handlerClassInfo.ImplementedInterfaces.Should().BeEmpty();
+        Assert.Empty(handlerClassInfo.ImplementedInterfaces);
     }
 
     private Compilation CreateTestCompilation(string source)

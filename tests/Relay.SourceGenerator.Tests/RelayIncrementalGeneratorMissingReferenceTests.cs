@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
@@ -60,8 +59,8 @@ namespace TestProject
                 d.Id == "RELAY_GEN_004" && // MissingRelayCoreReference
                 d.Severity == DiagnosticSeverity.Error);
             
-            missingCoreDiagnostic.Should().NotBeNull();
-            missingCoreDiagnostic!.GetMessage().Should().Contain("Relay.Core package must be referenced");
+            Assert.NotNull(missingCoreDiagnostic);
+            Assert.Contains("Relay.Core package must be referenced", missingCoreDiagnostic.GetMessage());
         }
 
         [Fact]
@@ -110,7 +109,7 @@ namespace TestProject
             var missingCoreDiagnostic = diagnostics.FirstOrDefault(d => 
                 d.Id == "RELAY_GEN_004"); // MissingRelayCoreReference
             
-            missingCoreDiagnostic.Should().BeNull();
+            Assert.Null(missingCoreDiagnostic);
         }
 
         [Fact]
@@ -156,12 +155,12 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
             var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
             
             // Should only register the HandlerClass, not SimpleClass
-            generatedCode.Should().Contain("HandlerClass");
-            generatedCode.Should().NotContain("SimpleClass");
+            Assert.Contains("HandlerClass", generatedCode);
+            Assert.DoesNotContain("SimpleClass", generatedCode);
         }
 
         private static Compilation CreateTestCompilation(string source)

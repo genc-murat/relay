@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
@@ -52,8 +51,8 @@ namespace TestProject
                 d.Id == "RELAY_GEN_004" && // MissingRelayCoreReference
                 d.Severity == DiagnosticSeverity.Error);
             
-            missingCoreDiagnostic.Should().NotBeNull();
-            missingCoreDiagnostic!.GetMessage().Should().Contain("Relay.Core package must be referenced");
+            Assert.NotNull(missingCoreDiagnostic);
+            Assert.Contains("Relay.Core package must be referenced", missingCoreDiagnostic.GetMessage());
         }
 
         [Fact]
@@ -92,8 +91,8 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
-            runResult.GeneratedTrees.Should().NotBeEmpty();
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+            Assert.NotEmpty(runResult.GeneratedTrees);
         }
 
         [Fact]
@@ -132,8 +131,8 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
-            runResult.GeneratedTrees.Should().NotBeEmpty();
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+            Assert.NotEmpty(runResult.GeneratedTrees);
         }
 
         [Fact]
@@ -172,8 +171,8 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
-            runResult.GeneratedTrees.Should().NotBeEmpty();
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+            Assert.NotEmpty(runResult.GeneratedTrees);
         }
 
         [Fact]
@@ -231,14 +230,14 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
-            runResult.Results.Should().NotBeEmpty();
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+            Assert.NotEmpty(runResult.Results);
             
             // Should generate both DI registration and optimized dispatcher
             var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
-            generatedCode.Should().Contain("AddRelay");
-            generatedCode.Should().Contain("IRequestHandler");
-            generatedCode.Should().Contain("INotificationHandler");
+            Assert.Contains("AddRelay", generatedCode);
+            Assert.Contains("IRequestHandler", generatedCode);
+            Assert.Contains("INotificationHandler", generatedCode);
         }
 
         [Fact]
@@ -272,7 +271,7 @@ namespace TestProject
                 out var diagnostics);
 
             // Assert - Should not crash, and should not generate with invalid attribute
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error && d.Id == "RELAY_GEN_001"); // GeneratorError
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Id == "RELAY_GEN_001"); // GeneratorError
         }
 
         [Fact]
@@ -311,8 +310,8 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
-            runResult.GeneratedTrees.Should().NotBeEmpty();
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+            Assert.NotEmpty(runResult.GeneratedTrees);
         }
 
         private static Compilation CreateTestCompilation(string source)

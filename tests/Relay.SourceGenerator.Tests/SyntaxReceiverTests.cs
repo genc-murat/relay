@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis.CSharp;
 using Relay.SourceGenerator;
 using System.Linq;
@@ -29,8 +28,8 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().HaveCount(1);
-            receiver.CandidateMethods.First().Identifier.ValueText.Should().Be("HandleTest");
+            Assert.Single(receiver.CandidateMethods);
+            Assert.Equal("HandleTest", receiver.CandidateMethods.First().Identifier.ValueText);
         }
 
         [Fact]
@@ -54,8 +53,8 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().HaveCount(1);
-            receiver.CandidateMethods.First().Identifier.ValueText.Should().Be("HandleTest");
+            Assert.Single(receiver.CandidateMethods);
+            Assert.Equal("HandleTest", receiver.CandidateMethods.First().Identifier.ValueText);
         }
 
         [Fact]
@@ -79,8 +78,8 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().HaveCount(1);
-            receiver.CandidateMethods.First().Identifier.ValueText.Should().Be("HandleNotification");
+            Assert.Single(receiver.CandidateMethods);
+            Assert.Equal("HandleNotification", receiver.CandidateMethods.First().Identifier.ValueText);
         }
 
         [Fact]
@@ -104,8 +103,8 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().HaveCount(1);
-            receiver.CandidateMethods.First().Identifier.ValueText.Should().Be("PipelineMethod");
+            Assert.Single(receiver.CandidateMethods);
+            Assert.Equal("PipelineMethod", receiver.CandidateMethods.First().Identifier.ValueText);
         }
 
         [Fact]
@@ -129,8 +128,8 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().HaveCount(1);
-            receiver.CandidateMethods.First().Identifier.ValueText.Should().Be("HandleEndpoint");
+            Assert.Single(receiver.CandidateMethods);
+            Assert.Equal("HandleEndpoint", receiver.CandidateMethods.First().Identifier.ValueText);
         }
 
         [Fact]
@@ -163,11 +162,11 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().HaveCount(4);
-            receiver.CandidateMethods.Should().Contain(m => m.Identifier.ValueText == "HandleTest");
-            receiver.CandidateMethods.Should().Contain(m => m.Identifier.ValueText == "HandleNotification");
-            receiver.CandidateMethods.Should().Contain(m => m.Identifier.ValueText == "PipelineMethod");
-            receiver.CandidateMethods.Should().Contain(m => m.Identifier.ValueText == "HandleEndpoint");
+            Assert.Equal(4, receiver.CandidateMethods.Count());
+            Assert.Contains(receiver.CandidateMethods, m => m.Identifier.ValueText == "HandleTest");
+            Assert.Contains(receiver.CandidateMethods, m => m.Identifier.ValueText == "HandleNotification");
+            Assert.Contains(receiver.CandidateMethods, m => m.Identifier.ValueText == "PipelineMethod");
+            Assert.Contains(receiver.CandidateMethods, m => m.Identifier.ValueText == "HandleEndpoint");
         }
 
         [Fact]
@@ -196,7 +195,7 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().BeEmpty();
+            Assert.Empty(receiver.CandidateMethods);
         }
 
         [Fact]
@@ -224,7 +223,7 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().BeEmpty();
+            Assert.Empty(receiver.CandidateMethods);
         }
 
         [Fact]
@@ -250,8 +249,8 @@ namespace TestProject
             VisitAllNodes(source, receiver);
 
             // Assert
-            receiver.CandidateMethods.Should().HaveCount(1);
-            receiver.CandidateMethods.First().Identifier.ValueText.Should().Be("HandleTest");
+            Assert.Single(receiver.CandidateMethods);
+            Assert.Equal("HandleTest", receiver.CandidateMethods.First().Identifier.ValueText);
         }
 
         [Fact]
@@ -261,7 +260,7 @@ namespace TestProject
             var receiver = new RelaySyntaxReceiver();
 
             // Assert
-            receiver.CandidateMethods.Should().BeEmpty();
+            Assert.Empty(receiver.CandidateMethods);
         }
 
         private static void VisitAllNodes(string source, RelaySyntaxReceiver receiver)

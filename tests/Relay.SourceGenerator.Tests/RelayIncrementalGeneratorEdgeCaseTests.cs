@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
@@ -54,10 +53,10 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert - Verify both interfaces are registered for the same class
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
             var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
-            generatedCode.Should().Contain("services.AddTransient<Relay.Core.Contracts.Handlers.IRequestHandler<TestProject.TestRequest, string>, TestProject.MultiHandler>");
-            generatedCode.Should().Contain("services.AddTransient<Relay.Core.Contracts.Handlers.INotificationHandler<TestProject.TestNotification>, TestProject.MultiHandler>");
+            Assert.Contains("services.AddTransient<Relay.Core.Contracts.Handlers.IRequestHandler<TestProject.TestRequest, string>, TestProject.MultiHandler>", generatedCode);
+            Assert.Contains("services.AddTransient<Relay.Core.Contracts.Handlers.INotificationHandler<TestProject.TestNotification>, TestProject.MultiHandler>", generatedCode);
         }
 
         [Fact]
@@ -102,9 +101,9 @@ namespace TestProject
 
             // Assert - The source generator currently registers abstract classes too
             // This is the current behavior, though might not be ideal
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
             var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
-            generatedCode.Should().Contain("AbstractHandler"); // Abstract class is registered as it implements the interface directly
+            Assert.Contains("AbstractHandler", generatedCode); // Abstract class is registered as it implements the interface directly
         }
 
         [Fact]
@@ -146,9 +145,9 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
             var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
-            generatedCode.Should().Contain("OuterClass.NestedHandler");
+            Assert.Contains("OuterClass.NestedHandler", generatedCode);
         }
 
         [Fact]
@@ -186,7 +185,7 @@ namespace TestProject
                 out var diagnostics);
 
             // Assert - Should not crash and should have no errors
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error && d.Id == "RELAY_GEN_001"); // GeneratorError
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Id == "RELAY_GEN_001"); // GeneratorError
         }
 
         [Fact]
@@ -221,10 +220,10 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert - Should generate basic AddRelay method since no handlers found
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
             var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
-            generatedCode.Should().Contain("GeneratedRelayExtensions"); // Basic registration class
-            generatedCode.Should().Contain("No handlers found"); // Comment in basic source
+            Assert.Contains("GeneratedRelayExtensions", generatedCode); // Basic registration class
+            Assert.Contains("No handlers found", generatedCode); // Comment in basic source
         }
 
         [Fact]
@@ -263,8 +262,8 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
-            runResult.GeneratedTrees.Should().NotBeEmpty();
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+            Assert.NotEmpty(runResult.GeneratedTrees);
         }
 
         [Fact]
@@ -308,10 +307,10 @@ namespace TestProject
             var runResult = driver.GetRunResult();
 
             // Assert - Only the handler should be registered
-            diagnostics.Should().NotContain(d => d.Severity == DiagnosticSeverity.Error);
+            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
             var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
-            generatedCode.Should().Contain("ValidHandler");
-            generatedCode.Should().NotContain("RegularClass");
+            Assert.Contains("ValidHandler", generatedCode);
+            Assert.DoesNotContain("RegularClass", generatedCode);
         }
 
         private static Compilation CreateTestCompilation(string source)

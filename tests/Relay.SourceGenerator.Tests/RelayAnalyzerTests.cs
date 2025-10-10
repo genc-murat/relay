@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
-using FluentAssertions;
 using Relay.SourceGenerator;
 
 namespace Relay.SourceGenerator.Tests
@@ -351,14 +350,14 @@ namespace Relay.Core
             foreach (var expected in expectedDiagnostics)
             {
                 var matchingDiagnostic = actualErrors.FirstOrDefault(d => d.Id == expected.Id);
-                matchingDiagnostic.Should().NotBeNull($"Expected diagnostic '{expected.Id}' was not found. Actual diagnostics: {string.Join(", ", actualErrors.Select(d => d.Id))}");
+                Assert.NotNull(matchingDiagnostic);
             }
 
             // Check we don't have unexpected diagnostics
             foreach (var actual in actualErrors)
             {
                 var expectedForThisDiagnostic = expectedDiagnostics.Any(e => e.Id == actual.Id);
-                expectedForThisDiagnostic.Should().BeTrue($"Unexpected diagnostic '{actual.Id}': {actual.GetMessage()}");
+                Assert.True(expectedForThisDiagnostic, $"Unexpected diagnostic '{actual.Id}': {actual.GetMessage()}");
             }
         }
 

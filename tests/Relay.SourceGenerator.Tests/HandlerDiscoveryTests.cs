@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -35,11 +34,11 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(1);
+            Assert.Single(result.Handlers);
             var handler = result.Handlers.First();
-            handler.MethodSymbol.Name.Should().Be("HandleTest");
-            handler.Attributes.Should().HaveCount(1);
-            handler.Attributes.First().Type.Should().Be(RelayAttributeType.Handle);
+            Assert.Equal("HandleTest", handler.MethodSymbol.Name);
+            Assert.Single(handler.Attributes);
+            Assert.Equal(RelayAttributeType.Handle, handler.Attributes.First().Type);
         }
 
         [Fact]
@@ -66,11 +65,11 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(1);
+            Assert.Single(result.Handlers);
             var handler = result.Handlers.First();
-            handler.MethodSymbol.Name.Should().Be("HandleNotification");
-            handler.Attributes.Should().HaveCount(1);
-            handler.Attributes.First().Type.Should().Be(RelayAttributeType.Notification);
+            Assert.Equal("HandleNotification", handler.MethodSymbol.Name);
+            Assert.Single(handler.Attributes);
+            Assert.Equal(RelayAttributeType.Notification, handler.Attributes.First().Type);
         }
 
         [Fact]
@@ -98,11 +97,11 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(1);
+            Assert.Single(result.Handlers);
             var handler = result.Handlers.First();
-            handler.MethodSymbol.Name.Should().Be("HandlePipeline");
-            handler.Attributes.Should().HaveCount(1);
-            handler.Attributes.First().Type.Should().Be(RelayAttributeType.Pipeline);
+            Assert.Equal("HandlePipeline", handler.MethodSymbol.Name);
+            Assert.Single(handler.Attributes);
+            Assert.Equal(RelayAttributeType.Pipeline, handler.Attributes.First().Type);
         }
 
         [Fact]
@@ -129,11 +128,11 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(1);
+            Assert.Single(result.Handlers);
             var handler = result.Handlers.First();
-            handler.MethodSymbol.Name.Should().Be("HandleEndpoint");
-            handler.Attributes.Should().HaveCount(1);
-            handler.Attributes.First().Type.Should().Be(RelayAttributeType.ExposeAsEndpoint);
+            Assert.Equal("HandleEndpoint", handler.MethodSymbol.Name);
+            Assert.Single(handler.Attributes);
+            Assert.Equal(RelayAttributeType.ExposeAsEndpoint, handler.Attributes.First().Type);
         }
 
         [Fact]
@@ -159,8 +158,8 @@ namespace TestProject
             var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
 
             // Assert
-            result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("exactly one parameter"));
+            Assert.Empty(result.Handlers);
+            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("exactly one parameter"));
         }
 
         [Fact]
@@ -186,8 +185,8 @@ namespace TestProject
             var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
 
             // Assert
-            result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("exactly one parameter"));
+            Assert.Empty(result.Handlers);
+            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("exactly one parameter"));
         }
 
         [Fact]
@@ -213,8 +212,8 @@ namespace TestProject
             var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
 
             // Assert
-            result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("Task, ValueTask, or void"));
+            Assert.Empty(result.Handlers);
+            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("Task, ValueTask, or void"));
         }
 
         [Fact]
@@ -239,7 +238,7 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(1);
+            Assert.Single(result.Handlers);
         }
 
         [Fact]
@@ -272,7 +271,7 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(2);
+            Assert.Equal(2, result.Handlers.Count());
         }
 
         [Fact]
@@ -304,7 +303,7 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(1);
+            Assert.Single(result.Handlers);
         }
 
         [Fact]
@@ -330,8 +329,8 @@ namespace TestProject
             var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
 
             // Assert
-            result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("public or internal"));
+            Assert.Empty(result.Handlers);
+            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("public or internal"));
         }
 
         [Fact]
@@ -357,7 +356,7 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(1);
+            Assert.Single(result.Handlers);
         }
 
         [Fact]
@@ -383,8 +382,8 @@ namespace TestProject
             var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
 
             // Assert
-            result.Handlers.Should().BeEmpty();
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("at least two parameters"));
+            Assert.Empty(result.Handlers);
+            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("at least two parameters"));
         }
 
         [Fact]
@@ -414,7 +413,7 @@ namespace TestProject
             var result = RunHandlerDiscovery(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(3);
+            Assert.Equal(3, result.Handlers.Count());
         }
 
         [Fact]
@@ -440,8 +439,8 @@ namespace TestProject
             var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
 
             // Assert
-            result.Handlers.Should().HaveCount(2); // Both handlers are discovered but marked as duplicates
-            diagnostics.Should().Contain(d => d.Id == "RELAY_GEN_005" && d.GetMessage(null).Contains("Multiple handlers"));
+            Assert.Equal(2, result.Handlers.Count()); // Both handlers are discovered but marked as duplicates
+            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_005" && d.GetMessage(null).Contains("Multiple handlers"));
         }
 
         private HandlerDiscoveryResult RunHandlerDiscovery(string source)

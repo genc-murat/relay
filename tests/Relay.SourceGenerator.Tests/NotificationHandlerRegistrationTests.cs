@@ -1,7 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
-using FluentAssertions;
 using System.Linq;
 
 namespace Relay.SourceGenerator.Tests;
@@ -22,8 +21,8 @@ public class NotificationHandlerRegistrationTests
         };
 
         // Assert
-        registration.NotificationType.Should().NotBeNull();
-        registration.NotificationType.Should().Be(notificationType);
+        Assert.NotNull(registration.NotificationType);
+        Assert.Equal(notificationType, registration.NotificationType);
     }
 
     [Fact]
@@ -41,8 +40,8 @@ public class NotificationHandlerRegistrationTests
         };
 
         // Assert
-        registration.Method.Should().NotBeNull();
-        registration.Method.Should().Be(method);
+        Assert.NotNull(registration.Method);
+        Assert.Equal(method, registration.Method);
     }
 
     [Fact]
@@ -55,7 +54,7 @@ public class NotificationHandlerRegistrationTests
         };
 
         // Assert
-        registration.Priority.Should().Be(100);
+        Assert.Equal(100, registration.Priority);
     }
 
     [Fact]
@@ -71,7 +70,7 @@ public class NotificationHandlerRegistrationTests
         };
 
         // Assert
-        registration.Location.Should().Be(location);
+        Assert.Equal(location, registration.Location);
     }
 
     [Fact]
@@ -97,7 +96,7 @@ namespace TestApp
         };
 
         // Assert
-        registration.Attribute.Should().Be(attribute);
+        Assert.Equal(attribute, registration.Attribute);
     }
 
     [Fact]
@@ -110,7 +109,7 @@ namespace TestApp
         };
 
         // Assert
-        registration.Attribute.Should().BeNull();
+        Assert.Null(registration.Attribute);
     }
 
     [Fact]
@@ -149,11 +148,11 @@ namespace TestApp
         };
 
         // Assert
-        registration.NotificationType.Should().Be(notificationType);
-        registration.Method.Should().Be(method);
-        registration.Priority.Should().Be(50);
-        registration.Location.Should().Be(location);
-        registration.Attribute.Should().Be(attribute);
+        Assert.Equal(notificationType, registration.NotificationType);
+        Assert.Equal(method, registration.Method);
+        Assert.Equal(50, registration.Priority);
+        Assert.Equal(location, registration.Location);
+        Assert.Equal(attribute, registration.Attribute);
     }
 
     [Fact]
@@ -166,7 +165,7 @@ namespace TestApp
         };
 
         // Assert
-        registration.Priority.Should().Be(-10);
+        Assert.Equal(-10, registration.Priority);
     }
 
     [Fact]
@@ -179,7 +178,7 @@ namespace TestApp
         };
 
         // Assert
-        registration.Priority.Should().Be(0);
+        Assert.Equal(0, registration.Priority);
     }
 
     [Fact]
@@ -192,7 +191,7 @@ namespace TestApp
         };
 
         // Assert
-        registration.Priority.Should().Be(int.MaxValue);
+        Assert.Equal(int.MaxValue, registration.Priority);
     }
 
     [Fact]
@@ -205,7 +204,7 @@ namespace TestApp
         };
 
         // Assert
-        registration.Priority.Should().Be(int.MinValue);
+        Assert.Equal(int.MinValue, registration.Priority);
     }
 
     [Fact]
@@ -230,8 +229,8 @@ namespace TestApp
         };
 
         // Assert
-        registration.NotificationType.Should().NotBeNull();
-        registration.NotificationType.ToDisplayString().Should().Contain("TestNotification<T>");
+        Assert.NotNull(registration.NotificationType);
+        Assert.Contains("TestNotification<T>", registration.NotificationType.ToDisplayString());
     }
 
     [Fact]
@@ -262,8 +261,8 @@ namespace TestApp
         };
 
         // Assert
-        registration.Method.Should().NotBeNull();
-        registration.Method.Parameters.Should().HaveCount(2);
+        Assert.NotNull(registration.Method);
+        Assert.Equal(2, registration.Method.Parameters.Length);
     }
 
     [Fact]
@@ -296,8 +295,8 @@ namespace TestApp
         };
 
         // Assert
-        registration.Location.Should().NotBe(Location.None);
-        registration.Location.SourceTree.Should().NotBeNull();
+        Assert.NotEqual(Location.None, registration.Location);
+        Assert.NotNull(registration.Location.SourceTree);
     }
 
     private Compilation CreateTestCompilation(string? additionalSource = null)

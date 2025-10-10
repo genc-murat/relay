@@ -1,8 +1,8 @@
 extern alias RelayCore;
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Relay.SourceGenerator;
+using System;
 using System.Linq;
 using Xunit;
 
@@ -21,18 +21,17 @@ namespace Relay.SourceGenerator.Tests
             var context = new RelayCompilationContext(compilation, cancellationToken);
 
             // Assert
-            context.Compilation.Should().Be(compilation);
-            context.CancellationToken.Should().Be(cancellationToken);
-            context.AssemblyName.Should().Be("TestAssembly");
+            Assert.Equal(compilation, context.Compilation);
+            Assert.Equal(cancellationToken, context.CancellationToken);
+            Assert.Equal("TestAssembly", context.AssemblyName);
         }
 
         [Fact]
         public void Constructor_Should_Throw_When_Compilation_Is_Null()
         {
             // Act & Assert
-            var act = () => new RelayCompilationContext(null!, default);
-            act.Should().Throw<System.ArgumentNullException>()
-                .WithParameterName("compilation");
+            var exception = Assert.Throws<ArgumentNullException>(() => new RelayCompilationContext(null!, default));
+            Assert.Equal("compilation", exception.ParamName);
         }
 
         [Fact]
@@ -48,8 +47,8 @@ namespace Relay.SourceGenerator.Tests
             var semanticModel = context.GetSemanticModel(syntaxTree);
 
             // Assert
-            semanticModel.Should().NotBeNull();
-            semanticModel.SyntaxTree.Should().Be(syntaxTree);
+            Assert.NotNull(semanticModel);
+            Assert.Equal(syntaxTree, semanticModel.SyntaxTree);
         }
 
         [Fact]
@@ -63,8 +62,8 @@ namespace Relay.SourceGenerator.Tests
             var objectType = context.FindType("System.Object");
 
             // Assert
-            objectType.Should().NotBeNull();
-            objectType!.Name.Should().Be("Object");
+            Assert.NotNull(objectType);
+            Assert.Equal("Object", objectType!.Name);
         }
 
         [Fact]
@@ -78,7 +77,7 @@ namespace Relay.SourceGenerator.Tests
             var nonExistentType = context.FindType("NonExistent.Type");
 
             // Assert
-            nonExistentType.Should().BeNull();
+            Assert.Null(nonExistentType);
         }
 
         [Fact]
@@ -92,7 +91,7 @@ namespace Relay.SourceGenerator.Tests
             var hasReference = context.HasRelayCoreReference();
 
             // Assert
-            hasReference.Should().BeTrue();
+            Assert.True(hasReference);
         }
 
         [Fact]
@@ -106,7 +105,7 @@ namespace Relay.SourceGenerator.Tests
             var hasReference = context.HasRelayCoreReference();
 
             // Assert
-            hasReference.Should().BeFalse();
+            Assert.False(hasReference);
         }
 
         [Fact]
@@ -122,7 +121,7 @@ namespace Relay.SourceGenerator.Tests
             var context = new RelayCompilationContext(compilation, default);
 
             // Assert
-            context.AssemblyName.Should().Be("Unknown");
+            Assert.Equal("Unknown", context.AssemblyName);
         }
 
         private static CSharpCompilation CreateTestCompilation(string assemblyName, SyntaxTree? syntaxTree = null)

@@ -1,7 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Xunit;
-using FluentAssertions;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -21,8 +20,8 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
-        diagnostics[0].Should().Be(diagnostic);
+        Assert.Single(diagnostics);
+        Assert.Equal(diagnostic, diagnostics[0]);
     }
 
     [Fact]
@@ -39,9 +38,9 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().HaveCount(2);
-        diagnostics.Should().Contain(diagnostic1);
-        diagnostics.Should().Contain(diagnostic2);
+        Assert.Equal(2, diagnostics.Count);
+        Assert.Contains(diagnostic1, diagnostics);
+        Assert.Contains(diagnostic2, diagnostics);
     }
 
     [Fact]
@@ -54,8 +53,8 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().NotBeNull();
-        diagnostics.Should().BeAssignableTo<IReadOnlyList<Diagnostic>>();
+        Assert.NotNull(diagnostics);
+        Assert.IsAssignableFrom<IReadOnlyList<Diagnostic>>(diagnostics);
     }
 
     [Fact]
@@ -70,11 +69,11 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.DuplicateHandler.Id);
-        diagnostic.GetMessage().Should().Contain("MyRequest");
-        diagnostic.GetMessage().Should().Contain("MyResponse");
+        Assert.Equal(DiagnosticDescriptors.DuplicateHandler.Id, diagnostic.Id);
+        Assert.Contains("MyRequest", diagnostic.GetMessage());
+        Assert.Contains("MyResponse", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -89,8 +88,8 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
-        diagnostics[0].GetMessage().Should().Contain("void");
+        Assert.Single(diagnostics);
+        Assert.Contains("void", diagnostics[0].GetMessage());
     }
 
     [Fact]
@@ -105,11 +104,11 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.NamedHandlerConflict.Id);
-        diagnostic.GetMessage().Should().Contain("MyHandler");
-        diagnostic.GetMessage().Should().Contain("MyRequest");
+        Assert.Equal(DiagnosticDescriptors.NamedHandlerConflict.Id, diagnostic.Id);
+        Assert.Contains("MyHandler", diagnostic.GetMessage());
+        Assert.Contains("MyRequest", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -124,11 +123,11 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.DuplicatePipelineOrder.Id);
-        diagnostic.GetMessage().Should().Contain("10");
-        diagnostic.GetMessage().Should().Contain("Global");
+        Assert.Equal(DiagnosticDescriptors.DuplicatePipelineOrder.Id, diagnostic.Id);
+        Assert.Contains("10", diagnostic.GetMessage());
+        Assert.Contains("Global", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -143,11 +142,11 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.InvalidHandlerReturnType.Id);
-        diagnostic.GetMessage().Should().Contain("string");
-        diagnostic.GetMessage().Should().Contain("int");
+        Assert.Equal(DiagnosticDescriptors.InvalidHandlerReturnType.Id, diagnostic.Id);
+        Assert.Contains("string", diagnostic.GetMessage());
+        Assert.Contains("int", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -162,9 +161,9 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.InvalidStreamHandlerReturnType.Id);
+        Assert.Equal(DiagnosticDescriptors.InvalidStreamHandlerReturnType.Id, diagnostic.Id);
     }
 
     [Fact]
@@ -179,10 +178,10 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.InvalidNotificationHandlerReturnType.Id);
-        diagnostic.GetMessage().Should().Contain("string");
+        Assert.Equal(DiagnosticDescriptors.InvalidNotificationHandlerReturnType.Id, diagnostic.Id);
+        Assert.Contains("string", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -197,10 +196,10 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.HandlerMissingRequestParameter.Id);
-        diagnostic.GetMessage().Should().Contain("HandleAsync");
+        Assert.Equal(DiagnosticDescriptors.HandlerMissingRequestParameter.Id, diagnostic.Id);
+        Assert.Contains("HandleAsync", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -215,9 +214,9 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.HandlerInvalidRequestParameter.Id);
+        Assert.Equal(DiagnosticDescriptors.HandlerInvalidRequestParameter.Id, diagnostic.Id);
     }
 
     [Fact]
@@ -232,10 +231,10 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.HandlerMissingCancellationToken.Id);
-        diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+        Assert.Equal(DiagnosticDescriptors.HandlerMissingCancellationToken.Id, diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
     }
 
     [Fact]
@@ -250,9 +249,9 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.NotificationHandlerMissingParameter.Id);
+        Assert.Equal(DiagnosticDescriptors.NotificationHandlerMissingParameter.Id, diagnostic.Id);
     }
 
     [Fact]
@@ -267,10 +266,10 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.InvalidPriorityValue.Id);
-        diagnostic.GetMessage().Should().Contain("-1");
+        Assert.Equal(DiagnosticDescriptors.InvalidPriorityValue.Id, diagnostic.Id);
+        Assert.Contains("-1", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -284,10 +283,10 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.NoHandlersFound.Id);
-        diagnostic.Location.Should().Be(Location.None);
+        Assert.Equal(DiagnosticDescriptors.NoHandlersFound.Id, diagnostic.Id);
+        Assert.Equal(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -302,10 +301,10 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.ConfigurationConflict.Id);
-        diagnostic.GetMessage().Should().Contain("Conflicting settings found");
+        Assert.Equal(DiagnosticDescriptors.ConfigurationConflict.Id, diagnostic.Id);
+        Assert.Contains("Conflicting settings found", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -320,12 +319,12 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.InvalidPipelineScope.Id);
-        diagnostic.GetMessage().Should().Contain("Request");
-        diagnostic.GetMessage().Should().Contain("MyMethod");
-        diagnostic.GetMessage().Should().Contain("Global");
+        Assert.Equal(DiagnosticDescriptors.InvalidPipelineScope.Id, diagnostic.Id);
+        Assert.Contains("Request", diagnostic.GetMessage());
+        Assert.Contains("MyMethod", diagnostic.GetMessage());
+        Assert.Contains("Global", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -340,9 +339,9 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.InvalidHandlerSignature.Id);
+        Assert.Equal(DiagnosticDescriptors.InvalidHandlerSignature.Id, diagnostic.Id);
     }
 
     [Fact]
@@ -356,11 +355,11 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.GeneratorError.Id);
-        diagnostic.GetMessage().Should().Contain("Something went wrong");
-        diagnostic.Location.Should().Be(Location.None);
+        Assert.Equal(DiagnosticDescriptors.GeneratorError.Id, diagnostic.Id);
+        Assert.Contains("Something went wrong", diagnostic.GetMessage());
+        Assert.Equal(Location.None, diagnostic.Location);
     }
 
     [Fact]
@@ -375,8 +374,8 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
-        diagnostics[0].Location.Should().Be(location);
+        Assert.Single(diagnostics);
+        Assert.Equal(location, diagnostics[0].Location);
     }
 
     [Fact]
@@ -390,11 +389,11 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.Debug.Id);
-        diagnostic.Severity.Should().Be(DiagnosticSeverity.Info);
-        diagnostic.GetMessage().Should().Contain("Debug information");
+        Assert.Equal(DiagnosticDescriptors.Debug.Id, diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
+        Assert.Contains("Debug information", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -408,11 +407,11 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().ContainSingle();
+        Assert.Single(diagnostics);
         var diagnostic = diagnostics[0];
-        diagnostic.Id.Should().Be(DiagnosticDescriptors.Info.Id);
-        diagnostic.Severity.Should().Be(DiagnosticSeverity.Info);
-        diagnostic.GetMessage().Should().Contain("Informational message");
+        Assert.Equal(DiagnosticDescriptors.Info.Id, diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Info, diagnostic.Severity);
+        Assert.Contains("Informational message", diagnostic.GetMessage());
     }
 
     [Fact]
@@ -430,11 +429,11 @@ public class DiagnosticReporterTests
         var diagnostics = reporter.GetDiagnostics();
 
         // Assert
-        diagnostics.Should().HaveCount(4);
-        diagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.GeneratorError.Id);
-        diagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.DuplicateHandler.Id);
-        diagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.InvalidHandlerReturnType.Id);
-        diagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.Info.Id);
+        Assert.Equal(4, diagnostics.Count);
+        Assert.Contains(diagnostics, d => d.Id == DiagnosticDescriptors.GeneratorError.Id);
+        Assert.Contains(diagnostics, d => d.Id == DiagnosticDescriptors.DuplicateHandler.Id);
+        Assert.Contains(diagnostics, d => d.Id == DiagnosticDescriptors.InvalidHandlerReturnType.Id);
+        Assert.Contains(diagnostics, d => d.Id == DiagnosticDescriptors.Info.Id);
     }
 
     private static Diagnostic CreateTestDiagnostic(DiagnosticDescriptor descriptor, params object[] messageArgs)
@@ -456,18 +455,18 @@ public class DiagnosticReporterTests
         // of SourceOutputDiagnosticReporter for better naming clarity
 
         // Assert
-        typeof(SourceProductionContextDiagnosticReporter)
-            .Should().BeAssignableTo<SourceOutputDiagnosticReporter>();
+        Assert.True(typeof(SourceOutputDiagnosticReporter).IsAssignableFrom(
+            typeof(SourceProductionContextDiagnosticReporter)));
 
-        typeof(SourceProductionContextDiagnosticReporter)
-            .Should().BeAssignableTo<IDiagnosticReporter>();
+        Assert.True(typeof(IDiagnosticReporter).IsAssignableFrom(
+            typeof(SourceProductionContextDiagnosticReporter)));
     }
 
     [Fact]
     public void SourceOutputDiagnosticReporter_ShouldImplementIDiagnosticReporter()
     {
         // Assert - verify type implements the interface
-        typeof(SourceOutputDiagnosticReporter).Should().BeAssignableTo<IDiagnosticReporter>();
+        Assert.True(typeof(IDiagnosticReporter).IsAssignableFrom(typeof(SourceOutputDiagnosticReporter)));
     }
 
     [Fact]
@@ -485,8 +484,8 @@ public class DiagnosticReporterTests
         mockReporter.ReportDiagnostic(diagnostic);
 
         // Assert
-        mockReporter.ReportedDiagnostics.Should().ContainSingle();
-        mockReporter.ReportedDiagnostics[0].Should().Be(diagnostic);
+        Assert.Single(mockReporter.ReportedDiagnostics);
+        Assert.Equal(diagnostic, mockReporter.ReportedDiagnostics[0]);
     }
 
     [Fact]
@@ -502,9 +501,9 @@ public class DiagnosticReporterTests
         mockReporter.ReportDiagnostic(diagnostic2);
 
         // Assert
-        mockReporter.ReportedDiagnostics.Should().HaveCount(2);
-        mockReporter.ReportedDiagnostics.Should().Contain(diagnostic1);
-        mockReporter.ReportedDiagnostics.Should().Contain(diagnostic2);
+        Assert.Equal(2, mockReporter.ReportedDiagnostics.Count);
+        Assert.Contains(diagnostic1, mockReporter.ReportedDiagnostics);
+        Assert.Contains(diagnostic2, mockReporter.ReportedDiagnostics);
     }
 
     [Fact]
@@ -520,9 +519,9 @@ public class DiagnosticReporterTests
         mockReporter.ReportDiagnostic(warningDiagnostic);
 
         // Assert
-        mockReporter.ReportedDiagnostics.Should().HaveCount(2);
-        mockReporter.ReportedDiagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
-        mockReporter.ReportedDiagnostics[1].Severity.Should().Be(DiagnosticSeverity.Warning);
+        Assert.Equal(2, mockReporter.ReportedDiagnostics.Count);
+        Assert.Equal(DiagnosticSeverity.Error, mockReporter.ReportedDiagnostics[0].Severity);
+        Assert.Equal(DiagnosticSeverity.Warning, mockReporter.ReportedDiagnostics[1].Severity);
     }
 
     [Fact]
@@ -536,8 +535,8 @@ public class DiagnosticReporterTests
         mockReporter.ReportDiagnostic(diagnostic);
 
         // Assert
-        mockReporter.ReportedDiagnostics.Should().ContainSingle();
-        mockReporter.ReportedDiagnostics[0].Should().Be(diagnostic);
+        Assert.Single(mockReporter.ReportedDiagnostics);
+        Assert.Equal(diagnostic, mockReporter.ReportedDiagnostics[0]);
     }
 
     [Fact]
@@ -553,16 +552,16 @@ public class DiagnosticReporterTests
         mockReporter.ReportDiagnostic(diagnostic2);
 
         // Assert
-        mockReporter.ReportedDiagnostics.Should().HaveCount(2);
-        mockReporter.ReportedDiagnostics.Should().Contain(diagnostic1);
-        mockReporter.ReportedDiagnostics.Should().Contain(diagnostic2);
+        Assert.Equal(2, mockReporter.ReportedDiagnostics.Count);
+        Assert.Contains(diagnostic1, mockReporter.ReportedDiagnostics);
+        Assert.Contains(diagnostic2, mockReporter.ReportedDiagnostics);
     }
 
     [Fact]
     public void SourceProductionContextDiagnosticReporter_ShouldImplementIDiagnosticReporter()
     {
         // Assert - verify type implements the interface
-        typeof(SourceProductionContextDiagnosticReporter).Should().BeAssignableTo<IDiagnosticReporter>();
+        Assert.True(typeof(IDiagnosticReporter).IsAssignableFrom(typeof(SourceProductionContextDiagnosticReporter)));
     }
 
     [Fact]
@@ -576,9 +575,9 @@ public class DiagnosticReporterTests
         mockReporter.ReportDiagnostic(diagnostic);
 
         // Assert - should behave exactly like SourceOutputDiagnosticReporter
-        mockReporter.ReportedDiagnostics.Should().ContainSingle();
-        mockReporter.ReportedDiagnostics[0].Should().Be(diagnostic);
-        mockReporter.ReportedDiagnostics[0].Id.Should().Be(DiagnosticDescriptors.Info.Id);
+        Assert.Single(mockReporter.ReportedDiagnostics);
+        Assert.Equal(diagnostic, mockReporter.ReportedDiagnostics[0]);
+        Assert.Equal(DiagnosticDescriptors.Info.Id, mockReporter.ReportedDiagnostics[0].Id);
     }
 
     [Fact]
@@ -594,10 +593,10 @@ public class DiagnosticReporterTests
         mockReporter.ReportInfo("Test info");
 
         // Assert
-        mockReporter.ReportedDiagnostics.Should().HaveCount(3);
-        mockReporter.ReportedDiagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.DuplicateHandler.Id);
-        mockReporter.ReportedDiagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.GeneratorError.Id);
-        mockReporter.ReportedDiagnostics.Should().Contain(d => d.Id == DiagnosticDescriptors.Info.Id);
+        Assert.Equal(3, mockReporter.ReportedDiagnostics.Count);
+        Assert.Contains(mockReporter.ReportedDiagnostics, d => d.Id == DiagnosticDescriptors.DuplicateHandler.Id);
+        Assert.Contains(mockReporter.ReportedDiagnostics, d => d.Id == DiagnosticDescriptors.GeneratorError.Id);
+        Assert.Contains(mockReporter.ReportedDiagnostics, d => d.Id == DiagnosticDescriptors.Info.Id);
     }
 
     // Mock reporter for testing SourceOutputDiagnosticReporter behavior

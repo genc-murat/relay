@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Contracts.Core;
@@ -23,7 +22,7 @@ namespace Relay.Core.Tests.HandlerVersioning
             _mockServiceProvider = new Mock<IServiceProvider>();
             _mockBaseRelay = new Mock<IRelay>();
             _mockLogger = new Mock<ILogger<VersionedRelay>>();
-            
+
             _versionedRelay = new VersionedRelay(
                 _mockServiceProvider.Object,
                 _mockBaseRelay.Object,
@@ -36,7 +35,7 @@ namespace Relay.Core.Tests.HandlerVersioning
             // Arrange
             var request = new TestRequest { Value = "test" };
             var expectedResponse = new TestResponse { Result = "result" };
-            
+
             _mockBaseRelay.Setup(x => x.SendAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
@@ -44,8 +43,8 @@ namespace Relay.Core.Tests.HandlerVersioning
             var result = await _versionedRelay.SendAsync(request, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
-            _mockBaseRelay.Verify(x => x.SendAsync(request, It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Equal(expectedResponse, result);
+            _mockBaseRelay.Verify(x => x.SendAsync(request, It.IsAny<CancellationToken>()), Times.Once());
         }
 
         [Fact]
@@ -55,7 +54,7 @@ namespace Relay.Core.Tests.HandlerVersioning
             var request = new TestRequest { Value = "test" };
             var version = new Version(1, 0, 0);
             var expectedResponse = new TestResponse { Result = "result" };
-            
+
             _mockBaseRelay.Setup(x => x.SendAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
@@ -63,7 +62,7 @@ namespace Relay.Core.Tests.HandlerVersioning
             var result = await _versionedRelay.SendAsync(request, version, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
         }
 
         [Fact]
@@ -86,7 +85,7 @@ namespace Relay.Core.Tests.HandlerVersioning
             var minVersion = new Version(1, 0, 0);
             var maxVersion = new Version(2, 0, 0);
             var expectedResponse = new TestResponse { Result = "result" };
-            
+
             _mockBaseRelay.Setup(x => x.SendAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
@@ -94,7 +93,7 @@ namespace Relay.Core.Tests.HandlerVersioning
             var result = await _versionedRelay.SendCompatibleAsync(request, minVersion, maxVersion, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
         }
 
         [Fact]
@@ -104,8 +103,8 @@ namespace Relay.Core.Tests.HandlerVersioning
             var versions = _versionedRelay.GetAvailableVersions<TestRequestIRequest>();
 
             // Assert
-            versions.Should().NotBeNull();
-            versions.Should().NotBeEmpty();
+            Assert.NotNull(versions);
+            Assert.NotEmpty(versions);
         }
 
         [Fact]
@@ -115,8 +114,8 @@ namespace Relay.Core.Tests.HandlerVersioning
             var version = _versionedRelay.GetLatestVersion<TestRequestIRequest>();
 
             // Assert
-            version.Should().NotBeNull();
-            version.Should().Be(new Version(1, 0, 0));
+            Assert.NotNull(version);
+            Assert.Equal(new Version(1, 0, 0), version);
         }
 
         [Fact]
@@ -124,7 +123,7 @@ namespace Relay.Core.Tests.HandlerVersioning
         {
             // Arrange
             var notification = new TestNotification { Message = "test" };
-            
+
             _mockBaseRelay.Setup(x => x.PublishAsync(notification, It.IsAny<CancellationToken>()))
                 .Returns(ValueTask.CompletedTask);
 
@@ -132,7 +131,7 @@ namespace Relay.Core.Tests.HandlerVersioning
             await _versionedRelay.PublishAsync(notification, CancellationToken.None);
 
             // Assert
-            _mockBaseRelay.Verify(x => x.PublishAsync(notification, It.IsAny<CancellationToken>()), Times.Once);
+            _mockBaseRelay.Verify(x => x.PublishAsync(notification, It.IsAny<CancellationToken>()), Times.Once());
         }
 
         [Fact]
@@ -146,8 +145,8 @@ namespace Relay.Core.Tests.HandlerVersioning
             var exception = new HandlerVersionNotFoundException(requestType, version);
 
             // Assert
-            exception.RequestType.Should().Be(requestType);
-            exception.RequestedVersion.Should().Be(version);
+            Assert.Equal(requestType, exception.RequestType);
+            Assert.Equal(version, exception.RequestedVersion);
         }
 
         [Fact]
@@ -162,9 +161,9 @@ namespace Relay.Core.Tests.HandlerVersioning
             var exception = new HandlerVersionNotFoundException(requestType, minVersion, maxVersion);
 
             // Assert
-            exception.RequestType.Should().Be(requestType);
-            exception.MinVersion.Should().Be(minVersion);
-            exception.MaxVersion.Should().Be(maxVersion);
+            Assert.Equal(requestType, exception.RequestType);
+            Assert.Equal(minVersion, exception.MinVersion);
+            Assert.Equal(maxVersion, exception.MaxVersion);
         }
 
         public class TestRequest : IRequest<TestResponse>

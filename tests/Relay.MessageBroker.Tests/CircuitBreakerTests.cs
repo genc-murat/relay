@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.CircuitBreaker;
 using Xunit;
 
@@ -25,10 +24,10 @@ public class CircuitBreakerTests
         });
 
         // Assert
-        result.Should().Be("Success");
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
-        circuitBreaker.Metrics.SuccessfulCalls.Should().Be(1);
-        circuitBreaker.Metrics.FailedCalls.Should().Be(0);
+        Assert.Equal("Success", result);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+        Assert.Equal(1, circuitBreaker.Metrics.SuccessfulCalls);
+        Assert.Equal(0, circuitBreaker.Metrics.FailedCalls);
     }
 
     [Fact]
@@ -50,9 +49,9 @@ public class CircuitBreakerTests
         });
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>();
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
-        circuitBreaker.Metrics.FailedCalls.Should().Be(1);
+        await Assert.ThrowsAsync<InvalidOperationException>(act);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+        Assert.Equal(1, circuitBreaker.Metrics.FailedCalls);
     }
 
     [Fact]
@@ -82,9 +81,9 @@ public class CircuitBreakerTests
         }
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
-        circuitBreaker.Metrics.FailedCalls.Should().Be(3);
-        stateChangeCount.Should().Be(1); // One transition to Open
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+        Assert.Equal(3, circuitBreaker.Metrics.FailedCalls);
+        Assert.Equal(1, stateChangeCount); // One transition to Open
     }
 
     [Fact]
@@ -120,8 +119,8 @@ public class CircuitBreakerTests
         });
 
         // Assert
-        await act.Should().ThrowAsync<CircuitBreakerOpenException>();
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
+        await Assert.ThrowsAsync<CircuitBreakerOpenException>(act);
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
     }
 
     [Fact]
@@ -149,7 +148,7 @@ public class CircuitBreakerTests
             }
         }
 
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
 
         // Wait for timeout
         await Task.Delay(150);
@@ -162,8 +161,8 @@ public class CircuitBreakerTests
         });
 
         // Assert
-        result.Should().Be("Success");
-        circuitBreaker.State.Should().Be(CircuitBreakerState.HalfOpen);
+        Assert.Equal("Success", result);
+        Assert.Equal(CircuitBreakerState.HalfOpen, circuitBreaker.State);
     }
 
     [Fact]
@@ -213,7 +212,7 @@ public class CircuitBreakerTests
         });
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
     }
 
     [Fact]
@@ -255,7 +254,7 @@ public class CircuitBreakerTests
         }
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
     }
 
     [Fact]
@@ -283,7 +282,7 @@ public class CircuitBreakerTests
         }
 
         // Assert - Should still be closed (disabled)
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
 
         // Should still execute operations
         var result = await circuitBreaker.ExecuteAsync(async ct =>
@@ -292,7 +291,7 @@ public class CircuitBreakerTests
             return "Success";
         });
 
-        result.Should().Be("Success");
+        Assert.Equal("Success", result);
     }
 
     [Fact]
@@ -319,15 +318,15 @@ public class CircuitBreakerTests
             }
         }
 
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
 
         // Act
         circuitBreaker.Reset();
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
-        circuitBreaker.Metrics.TotalCalls.Should().Be(0);
-        circuitBreaker.Metrics.FailedCalls.Should().Be(0);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+        Assert.Equal(0, circuitBreaker.Metrics.TotalCalls);
+        Assert.Equal(0, circuitBreaker.Metrics.FailedCalls);
     }
 
     [Fact]
@@ -341,13 +340,13 @@ public class CircuitBreakerTests
         };
         var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
 
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
 
         // Act
         circuitBreaker.Isolate();
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
     }
 
     [Fact]
@@ -370,8 +369,8 @@ public class CircuitBreakerTests
         });
 
         // Assert
-        circuitBreaker.Metrics.SlowCalls.Should().Be(1);
-        circuitBreaker.Metrics.SuccessfulCalls.Should().Be(1);
+        Assert.Equal(1, circuitBreaker.Metrics.SlowCalls);
+        Assert.Equal(1, circuitBreaker.Metrics.SuccessfulCalls);
     }
 
     [Fact]
@@ -407,8 +406,8 @@ public class CircuitBreakerTests
         }
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
-        circuitBreaker.Metrics.TotalCalls.Should().BeGreaterThanOrEqualTo(6);
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+        Assert.True(circuitBreaker.Metrics.TotalCalls >= 6);
     }
 
     [Fact]
@@ -424,7 +423,7 @@ public class CircuitBreakerTests
             OnRejected = e =>
             {
                 rejectedCount++;
-                e.CurrentState.Should().Be(CircuitBreakerState.Open);
+                Assert.Equal(CircuitBreakerState.Open, e.CurrentState);
             }
         };
         var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
@@ -453,7 +452,7 @@ public class CircuitBreakerTests
         }
 
         // Assert
-        rejectedCount.Should().Be(1);
+        Assert.Equal(1, rejectedCount);
     }
 
     [Fact]
@@ -486,10 +485,10 @@ public class CircuitBreakerTests
         }
 
         // Assert
-        stateChanges.Should().HaveCount(1);
-        stateChanges[0].Previous.Should().Be(CircuitBreakerState.Closed);
-        stateChanges[0].New.Should().Be(CircuitBreakerState.Open);
-        stateChanges[0].Reason.Should().Contain("Failure threshold reached");
+        Assert.Single(stateChanges);
+        Assert.Equal(CircuitBreakerState.Closed, stateChanges[0].Previous);
+        Assert.Equal(CircuitBreakerState.Open, stateChanges[0].New);
+        Assert.Contains("Failure threshold reached", stateChanges[0].Reason);
     }
 
     [Fact]
@@ -510,9 +509,9 @@ public class CircuitBreakerTests
         });
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
-        circuitBreaker.Metrics.SuccessfulCalls.Should().Be(1);
-        circuitBreaker.Metrics.FailedCalls.Should().Be(0);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+        Assert.Equal(1, circuitBreaker.Metrics.SuccessfulCalls);
+        Assert.Equal(0, circuitBreaker.Metrics.FailedCalls);
     }
 
     [Fact]
@@ -536,7 +535,7 @@ public class CircuitBreakerTests
         await circuitBreaker.ExecuteAsync(ct => new ValueTask(Task.Delay(100, ct)));
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
     }
 
     [Fact]
@@ -564,7 +563,7 @@ public class CircuitBreakerTests
         }
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
     }
 
     [Fact]
@@ -602,8 +601,8 @@ public class CircuitBreakerTests
         await Task.WhenAll(tasks);
 
         // Assert
-        circuitBreaker.Metrics.SuccessfulCalls.Should().Be(numTasks / 2);
-        circuitBreaker.Metrics.FailedCalls.Should().Be(numTasks / 2);
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+        Assert.Equal(numTasks / 2, circuitBreaker.Metrics.SuccessfulCalls);
+        Assert.Equal(numTasks / 2, circuitBreaker.Metrics.FailedCalls);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
     }
 }

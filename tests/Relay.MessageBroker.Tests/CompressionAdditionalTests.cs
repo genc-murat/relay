@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Compression;
 using Xunit;
 
@@ -13,7 +12,7 @@ public class CompressionAdditionalTests
         var compressor = new GZipMessageCompressor(level: 6);
 
         // Assert
-        compressor.CoreAlgorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip, compressor.CoreAlgorithm);
     }
 
     [Fact]
@@ -27,7 +26,7 @@ public class CompressionAdditionalTests
         var result = await compressor.CompressAsync(data!);
 
         // Assert
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -41,7 +40,7 @@ public class CompressionAdditionalTests
         var result = await compressor.CompressAsync(data);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -55,7 +54,7 @@ public class CompressionAdditionalTests
         var result = await compressor.DecompressAsync(data!);
 
         // Assert
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -69,7 +68,7 @@ public class CompressionAdditionalTests
         var result = await compressor.DecompressAsync(data);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -82,7 +81,7 @@ public class CompressionAdditionalTests
         var result = compressor.IsCompressed(null!);
 
         // Assert
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -96,7 +95,7 @@ public class CompressionAdditionalTests
         var result = compressor.IsCompressed(data);
 
         // Assert
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -110,7 +109,7 @@ public class CompressionAdditionalTests
         var result = compressor.IsCompressed(data);
 
         // Assert
-        result.Should().BeTrue();
+        Assert.True(result);
     }
 
     [Fact]
@@ -124,7 +123,7 @@ public class CompressionAdditionalTests
         var result = compressor.IsCompressed(data);
 
         // Assert
-        result.Should().BeFalse();
+        Assert.False(result);
     }
 
     [Fact]
@@ -139,7 +138,7 @@ public class CompressionAdditionalTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().Equal(originalData);
+        Assert.Equal(originalData, decompressed);
     }
 
     [Fact]
@@ -173,7 +172,7 @@ public class CompressionAdditionalTests
         var compressor = new DeflateMessageCompressor(level: 9);
 
         // Assert
-        compressor.CoreAlgorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate);
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate, compressor.CoreAlgorithm);
     }
 
     [Fact]
@@ -186,7 +185,7 @@ public class CompressionAdditionalTests
         var result = await compressor.CompressAsync(null!);
 
         // Assert
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -200,7 +199,7 @@ public class CompressionAdditionalTests
         var result = await compressor.CompressAsync(data);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -215,7 +214,7 @@ public class CompressionAdditionalTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().Equal(originalData);
+        Assert.Equal(originalData, decompressed);
     }
 
     [Fact]
@@ -225,7 +224,7 @@ public class CompressionAdditionalTests
         var compressor = new BrotliMessageCompressor(level: 9);
 
         // Assert
-        compressor.CoreAlgorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli);
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli, compressor.CoreAlgorithm);
     }
 
     [Fact]
@@ -238,7 +237,7 @@ public class CompressionAdditionalTests
         var result = await compressor.CompressAsync(null!);
 
         // Assert
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -252,7 +251,7 @@ public class CompressionAdditionalTests
         var result = await compressor.CompressAsync(data);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -267,7 +266,7 @@ public class CompressionAdditionalTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().Equal(originalData);
+        Assert.Equal(originalData, decompressed);
     }
 
     [Fact]
@@ -277,11 +276,11 @@ public class CompressionAdditionalTests
         var values = Enum.GetValues<Relay.Core.Caching.Compression.CompressionAlgorithm>();
 
         // Assert
-        values.Should().HaveCountGreaterThanOrEqualTo(4); // At least None, GZip, Deflate, Brotli
-        values.Should().Contain(Relay.Core.Caching.Compression.CompressionAlgorithm.None);
-        values.Should().Contain(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
-        values.Should().Contain(Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate);
-        values.Should().Contain(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli);
+        Assert.True(values.Length >= 4); // At least None, GZip, Deflate, Brotli
+        Assert.Contains(Relay.Core.Caching.Compression.CompressionAlgorithm.None, values);
+        Assert.Contains(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip, values);
+        Assert.Contains(Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate, values);
+        Assert.Contains(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli, values);
     }
 
     [Fact]
@@ -291,12 +290,12 @@ public class CompressionAdditionalTests
         var stats = new CompressionStatistics();
 
         // Assert
-        stats.TotalMessages.Should().Be(0);
-        stats.CompressedMessages.Should().Be(0);
-        stats.SkippedMessages.Should().Be(0);
-        stats.TotalOriginalBytes.Should().Be(0);
-        stats.TotalCompressedBytes.Should().Be(0);
-        stats.TotalCompressionTime.Should().Be(TimeSpan.Zero);
+        Assert.Equal(0, stats.TotalMessages);
+        Assert.Equal(0, stats.CompressedMessages);
+        Assert.Equal(0, stats.SkippedMessages);
+        Assert.Equal(0L, stats.TotalOriginalBytes);
+        Assert.Equal(0L, stats.TotalCompressedBytes);
+        Assert.Equal(TimeSpan.Zero, stats.TotalCompressionTime);
     }
 
     [Fact]
@@ -314,12 +313,12 @@ public class CompressionAdditionalTests
         };
 
         // Assert
-        stats.TotalMessages.Should().Be(1000);
-        stats.CompressedMessages.Should().Be(800);
-        stats.SkippedMessages.Should().Be(200);
-        stats.TotalOriginalBytes.Should().Be(1000000);
-        stats.TotalCompressedBytes.Should().Be(500000);
-        stats.TotalCompressionTime.Should().Be(TimeSpan.FromMilliseconds(100));
+        Assert.Equal(1000, stats.TotalMessages);
+        Assert.Equal(800, stats.CompressedMessages);
+        Assert.Equal(200, stats.SkippedMessages);
+        Assert.Equal(1000000L, stats.TotalOriginalBytes);
+        Assert.Equal(500000L, stats.TotalCompressedBytes);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), stats.TotalCompressionTime);
     }
 
     [Fact]
@@ -329,9 +328,9 @@ public class CompressionAdditionalTests
         var options = new CompressionOptions();
 
         // Assert
-        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
-        options.Level.Should().BeGreaterThan(0);
-        options.MinimumSizeBytes.Should().BeGreaterThan(0);
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip, options.Algorithm);
+        Assert.True(options.Level > 0);
+        Assert.True(options.MinimumSizeBytes > 0);
         // Enabled may be false by default, so don't assert specific value
     }
 
@@ -348,9 +347,9 @@ public class CompressionAdditionalTests
         };
 
         // Assert
-        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli);
-        options.Level.Should().Be(8);
-        options.MinimumSizeBytes.Should().Be(2048);
-        options.Enabled.Should().BeFalse();
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli, options.Algorithm);
+        Assert.Equal(8, options.Level);
+        Assert.Equal(2048, options.MinimumSizeBytes);
+        Assert.False(options.Enabled);
     }
 }

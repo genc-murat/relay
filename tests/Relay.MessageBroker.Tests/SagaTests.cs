@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Saga;
 using Xunit;
 
@@ -21,12 +20,12 @@ public class SagaTests
         var result = await saga.ExecuteAsync(data);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Data.State.Should().Be(SagaState.Completed);
-        result.Data.CurrentStep.Should().Be(3); // All 3 steps completed
-        result.Data.ReserveInventoryExecuted.Should().BeTrue();
-        result.Data.ProcessPaymentExecuted.Should().BeTrue();
-        result.Data.ShipOrderExecuted.Should().BeTrue();
+        Assert.True(result.IsSuccess);
+        Assert.Equal(SagaState.Completed, result.Data.State);
+        Assert.Equal(3, result.Data.CurrentStep); // All 3 steps completed
+        Assert.True(result.Data.ReserveInventoryExecuted);
+        Assert.True(result.Data.ProcessPaymentExecuted);
+        Assert.True(result.Data.ShipOrderExecuted);
     }
 
     [Fact]
@@ -45,21 +44,21 @@ public class SagaTests
         var result = await saga.ExecuteAsync(data);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Data.State.Should().Be(SagaState.Compensated);
-        result.FailedStep.Should().Be("ProcessPayment");
-        result.CompensationSucceeded.Should().BeTrue();
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SagaState.Compensated, result.Data.State);
+        Assert.Equal("ProcessPayment", result.FailedStep);
+        Assert.True(result.CompensationSucceeded);
         
         // First step executed and compensated
-        result.Data.ReserveInventoryExecuted.Should().BeTrue();
-        result.Data.ReserveInventoryCompensated.Should().BeTrue();
+        Assert.True(result.Data.ReserveInventoryExecuted);
+        Assert.True(result.Data.ReserveInventoryCompensated);
         
         // Second step failed, no compensation needed
-        result.Data.ProcessPaymentExecuted.Should().BeFalse();
-        result.Data.ProcessPaymentCompensated.Should().BeFalse();
+        Assert.False(result.Data.ProcessPaymentExecuted);
+        Assert.False(result.Data.ProcessPaymentCompensated);
         
         // Third step never executed
-        result.Data.ShipOrderExecuted.Should().BeFalse();
+        Assert.False(result.Data.ShipOrderExecuted);
     }
 
     [Fact]
@@ -78,13 +77,13 @@ public class SagaTests
         var result = await saga.ExecuteAsync(data);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Data.State.Should().Be(SagaState.Compensated);
-        result.FailedStep.Should().Be("ReserveInventory");
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SagaState.Compensated, result.Data.State);
+        Assert.Equal("ReserveInventory", result.FailedStep);
         
         // No steps succeeded, nothing to compensate
-        result.Data.ReserveInventoryExecuted.Should().BeFalse();
-        result.Data.ReserveInventoryCompensated.Should().BeFalse();
+        Assert.False(result.Data.ReserveInventoryExecuted);
+        Assert.False(result.Data.ReserveInventoryCompensated);
     }
 
     [Fact]
@@ -103,14 +102,14 @@ public class SagaTests
         var result = await saga.ExecuteAsync(data);
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.Data.State.Should().Be(SagaState.Compensated);
-        result.FailedStep.Should().Be("ShipOrder");
-        result.CompensationSucceeded.Should().BeTrue();
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SagaState.Compensated, result.Data.State);
+        Assert.Equal("ShipOrder", result.FailedStep);
+        Assert.True(result.CompensationSucceeded);
         
         // All previous steps compensated
-        result.Data.ReserveInventoryCompensated.Should().BeTrue();
-        result.Data.ProcessPaymentCompensated.Should().BeTrue();
+        Assert.True(result.Data.ReserveInventoryCompensated);
+        Assert.True(result.Data.ProcessPaymentCompensated);
     }
 
     [Fact]
@@ -129,8 +128,8 @@ public class SagaTests
         var result = await saga.ExecuteAsync(data);
 
         // Assert
-        result.Data.CreatedAt.Should().BeCloseTo(startTime, TimeSpan.FromSeconds(1));
-        result.Data.UpdatedAt.Should().BeOnOrAfter(result.Data.CreatedAt);
+        Assert.True((result.Data.CreatedAt - startTime).Duration() <= TimeSpan.FromSeconds(1));
+        Assert.True(result.Data.UpdatedAt >= result.Data.CreatedAt);
     }
 
     [Fact]
@@ -148,11 +147,7 @@ public class SagaTests
         var result = await saga.ExecuteAsync(data);
 
         // Assert
-        result.Data.ExecutionOrder.Should().Equal(
-            "ReserveInventory",
-            "ProcessPayment",
-            "ShipOrder"
-        );
+        Assert.Equal(new[] { "ReserveInventory", "ProcessPayment", "ShipOrder" }, result.Data.ExecutionOrder);
     }
 
     [Fact]
@@ -172,10 +167,7 @@ public class SagaTests
 
         // Assert
         // When ShipOrder fails, only previously executed steps are compensated (in reverse order)
-        result.Data.CompensationOrder.Should().Equal(
-            "ProcessPayment-Compensation",
-            "ReserveInventory-Compensation"
-        );
+        Assert.Equal(new[] { "ProcessPayment-Compensation", "ReserveInventory-Compensation" }, result.Data.CompensationOrder);
     }
 
     [Fact]
@@ -191,11 +183,8 @@ public class SagaTests
         var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        // Act
-        Func<Task> act = async () => await saga.ExecuteAsync(data, cts.Token);
-
-        // Assert
-        await act.Should().ThrowAsync<OperationCanceledException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await saga.ExecuteAsync(data, cts.Token));
     }
 
     [Fact]
@@ -208,7 +197,7 @@ public class SagaTests
         var sagaId = saga.SagaId;
 
         // Assert
-        sagaId.Should().Be("TestOrderSaga");
+        Assert.Equal("TestOrderSaga", sagaId);
     }
 
     [Fact]
@@ -221,10 +210,10 @@ public class SagaTests
         var steps = saga.Steps;
 
         // Assert
-        steps.Should().HaveCount(3);
-        steps[0].Name.Should().Be("ReserveInventory");
-        steps[1].Name.Should().Be("ProcessPayment");
-        steps[2].Name.Should().Be("ShipOrder");
+        Assert.Equal(3, steps.Count);
+        Assert.Equal("ReserveInventory", steps[0].Name);
+        Assert.Equal("ProcessPayment", steps[1].Name);
+        Assert.Equal("ShipOrder", steps[2].Name);
     }
 
     [Fact]
@@ -243,7 +232,7 @@ public class SagaTests
         var result = await saga.ExecuteAsync(data);
 
         // Assert - Failed at step 2, so CurrentStep should be 1 (0-indexed)
-        result.Data.CurrentStep.Should().Be(1);
+        Assert.Equal(1, result.Data.CurrentStep);
     }
 
     [Fact]
@@ -262,10 +251,10 @@ public class SagaTests
         var result = await saga.ExecuteAsync(data);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Data.ReserveInventoryExecuted.Should().BeFalse(); // First step skipped
-        result.Data.ProcessPaymentExecuted.Should().BeTrue(); // Second step executed
-        result.Data.ShipOrderExecuted.Should().BeTrue(); // Third step executed
+        Assert.True(result.IsSuccess);
+        Assert.False(result.Data.ReserveInventoryExecuted); // First step skipped
+        Assert.True(result.Data.ProcessPaymentExecuted); // Second step executed
+        Assert.True(result.Data.ShipOrderExecuted); // Third step executed
     }
 }
 

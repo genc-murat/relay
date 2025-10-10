@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Saga;
 using Xunit;
 
@@ -20,11 +19,11 @@ public class SagaExecutionResultTests
         };
 
         // Assert
-        result.Data.Should().Be(data);
-        result.IsSuccess.Should().BeTrue();
-        result.FailedStep.Should().BeNull();
-        result.Exception.Should().BeNull();
-        result.CompensationSucceeded.Should().BeFalse();
+        Assert.Equal(data, result.Data);
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.FailedStep);
+        Assert.Null(result.Exception);
+        Assert.False(result.CompensationSucceeded);
     }
 
     [Fact]
@@ -45,11 +44,11 @@ public class SagaExecutionResultTests
         };
 
         // Assert
-        result.Data.Should().Be(data);
-        result.IsSuccess.Should().BeFalse();
-        result.FailedStep.Should().Be("ProcessPayment");
-        result.Exception.Should().Be(exception);
-        result.CompensationSucceeded.Should().BeTrue();
+        Assert.Equal(data, result.Data);
+        Assert.False(result.IsSuccess);
+        Assert.Equal("ProcessPayment", result.FailedStep);
+        Assert.Equal(exception, result.Exception);
+        Assert.True(result.CompensationSucceeded);
     }
 
     [Fact]
@@ -67,7 +66,7 @@ public class SagaExecutionResultTests
         };
 
         // Assert
-        result.Exception.Should().BeNull();
+        Assert.Null(result.Exception);
     }
 
     [Fact]
@@ -85,7 +84,7 @@ public class SagaExecutionResultTests
         };
 
         // Assert
-        result.FailedStep.Should().BeNull();
+        Assert.Null(result.FailedStep);
     }
 
     [Fact]
@@ -98,10 +97,10 @@ public class SagaExecutionResultTests
         };
 
         // Assert
-        result.IsSuccess.Should().BeFalse();
-        result.FailedStep.Should().BeNull();
-        result.Exception.Should().BeNull();
-        result.CompensationSucceeded.Should().BeFalse();
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.FailedStep);
+        Assert.Null(result.Exception);
+        Assert.False(result.CompensationSucceeded);
     }
 }
 
@@ -114,23 +113,23 @@ public class SagaOptionsTests
         var options = new SagaOptions();
 
         // Assert
-        options.Enabled.Should().BeTrue();
-        options.DefaultTimeout.Should().Be(TimeSpan.FromMinutes(30));
-        options.AutoPersist.Should().BeTrue();
-        options.PersistenceInterval.Should().Be(TimeSpan.FromSeconds(5));
-        options.AutoRetryFailedSteps.Should().BeFalse();
-        options.MaxRetryAttempts.Should().Be(3);
-        options.RetryDelay.Should().Be(TimeSpan.FromSeconds(5));
-        options.UseExponentialBackoff.Should().BeTrue();
-        options.AutoCompensateOnFailure.Should().BeTrue();
-        options.ContinueCompensationOnError.Should().BeTrue();
-        options.StepTimeout.Should().BeNull();
-        options.CompensationTimeout.Should().BeNull();
-        options.TrackMetrics.Should().BeTrue();
-        options.EnableTelemetry.Should().BeTrue();
-        options.OnSagaCompleted.Should().BeNull();
-        options.OnSagaFailed.Should().BeNull();
-        options.OnSagaCompensated.Should().BeNull();
+        Assert.True(options.Enabled);
+        Assert.Equal(TimeSpan.FromMinutes(30), options.DefaultTimeout);
+        Assert.True(options.AutoPersist);
+        Assert.Equal(TimeSpan.FromSeconds(5), options.PersistenceInterval);
+        Assert.False(options.AutoRetryFailedSteps);
+        Assert.Equal(3, options.MaxRetryAttempts);
+        Assert.Equal(TimeSpan.FromSeconds(5), options.RetryDelay);
+        Assert.True(options.UseExponentialBackoff);
+        Assert.True(options.AutoCompensateOnFailure);
+        Assert.True(options.ContinueCompensationOnError);
+        Assert.Null(options.StepTimeout);
+        Assert.Null(options.CompensationTimeout);
+        Assert.True(options.TrackMetrics);
+        Assert.True(options.EnableTelemetry);
+        Assert.Null(options.OnSagaCompleted);
+        Assert.Null(options.OnSagaFailed);
+        Assert.Null(options.OnSagaCompensated);
     }
 
     [Fact]
@@ -143,7 +142,7 @@ public class SagaOptionsTests
         options.Enabled = false;
 
         // Assert
-        options.Enabled.Should().BeFalse();
+        Assert.False(options.Enabled);
     }
 
     [Fact]
@@ -156,7 +155,7 @@ public class SagaOptionsTests
         options.MaxRetryAttempts = 5;
 
         // Assert
-        options.MaxRetryAttempts.Should().Be(5);
+        Assert.Equal(5, options.MaxRetryAttempts);
     }
 
     [Fact]
@@ -170,7 +169,7 @@ public class SagaOptionsTests
         options.RetryDelay = delay;
 
         // Assert
-        options.RetryDelay.Should().Be(delay);
+        Assert.Equal(delay, options.RetryDelay);
     }
 
     [Fact]
@@ -183,7 +182,7 @@ public class SagaOptionsTests
         options.AutoPersist = false;
 
         // Assert
-        options.AutoPersist.Should().BeFalse();
+        Assert.False(options.AutoPersist);
     }
 
     [Fact]
@@ -197,7 +196,7 @@ public class SagaOptionsTests
         options.CompensationTimeout = timeout;
 
         // Assert
-        options.CompensationTimeout.Should().Be(timeout);
+        Assert.Equal(timeout, options.CompensationTimeout);
     }
 
     [Fact]
@@ -210,7 +209,7 @@ public class SagaOptionsTests
         options.TrackMetrics = false;
 
         // Assert
-        options.TrackMetrics.Should().BeFalse();
+        Assert.False(options.TrackMetrics);
     }
 
     [Fact]
@@ -223,7 +222,7 @@ public class SagaOptionsTests
         options.EnableTelemetry = false;
 
         // Assert
-        options.EnableTelemetry.Should().BeFalse();
+        Assert.False(options.EnableTelemetry);
     }
 
     [Fact]
@@ -238,9 +237,9 @@ public class SagaOptionsTests
         options.OnSagaCompleted = handler;
 
         // Assert
-        options.OnSagaCompleted.Should().NotBeNull();
+        Assert.NotNull(options.OnSagaCompleted);
         options.OnSagaCompleted!(new SagaCompletedEventArgs());
-        called.Should().BeTrue();
+        Assert.True(called);
     }
 
     [Fact]
@@ -255,9 +254,9 @@ public class SagaOptionsTests
         options.OnSagaFailed = handler;
 
         // Assert
-        options.OnSagaFailed.Should().NotBeNull();
+        Assert.NotNull(options.OnSagaFailed);
         options.OnSagaFailed!(new SagaFailedEventArgs());
-        called.Should().BeTrue();
+        Assert.True(called);
     }
 
     [Fact]
@@ -272,9 +271,9 @@ public class SagaOptionsTests
         options.OnSagaCompensated = handler;
 
         // Assert
-        options.OnSagaCompensated.Should().NotBeNull();
+        Assert.NotNull(options.OnSagaCompensated);
         options.OnSagaCompensated!(new SagaCompensatedEventArgs());
-        called.Should().BeTrue();
+        Assert.True(called);
     }
 
     [Fact]
@@ -287,7 +286,7 @@ public class SagaOptionsTests
         options.MaxRetryAttempts = 0;
 
         // Assert
-        options.MaxRetryAttempts.Should().Be(0);
+        Assert.Equal(0, options.MaxRetryAttempts);
     }
 
     [Fact]
@@ -301,7 +300,7 @@ public class SagaOptionsTests
         options.RetryDelay = longDelay;
 
         // Assert
-        options.RetryDelay.Should().Be(longDelay);
+        Assert.Equal(longDelay, options.RetryDelay);
     }
 
     [Fact]
@@ -319,17 +318,17 @@ public class SagaOptionsTests
         options.OnSagaCompensated = args => compensatedCalled = true;
 
         // Assert
-        options.OnSagaCompleted.Should().NotBeNull();
-        options.OnSagaFailed.Should().NotBeNull();
-        options.OnSagaCompensated.Should().NotBeNull();
+        Assert.NotNull(options.OnSagaCompleted);
+        Assert.NotNull(options.OnSagaFailed);
+        Assert.NotNull(options.OnSagaCompensated);
 
         options.OnSagaCompleted!(new SagaCompletedEventArgs());
         options.OnSagaFailed!(new SagaFailedEventArgs());
         options.OnSagaCompensated!(new SagaCompensatedEventArgs());
 
-        completedCalled.Should().BeTrue();
-        failedCalled.Should().BeTrue();
-        compensatedCalled.Should().BeTrue();
+        Assert.True(completedCalled);
+        Assert.True(failedCalled);
+        Assert.True(compensatedCalled);
     }
 
     [Fact]
@@ -342,7 +341,7 @@ public class SagaOptionsTests
         options.AutoRetryFailedSteps = true;
 
         // Assert
-        options.AutoRetryFailedSteps.Should().BeTrue();
+        Assert.True(options.AutoRetryFailedSteps);
     }
 
     [Fact]
@@ -355,7 +354,7 @@ public class SagaOptionsTests
         options.UseExponentialBackoff = false;
 
         // Assert
-        options.UseExponentialBackoff.Should().BeFalse();
+        Assert.False(options.UseExponentialBackoff);
     }
 
     [Fact]
@@ -368,7 +367,7 @@ public class SagaOptionsTests
         options.AutoCompensateOnFailure = false;
 
         // Assert
-        options.AutoCompensateOnFailure.Should().BeFalse();
+        Assert.False(options.AutoCompensateOnFailure);
     }
 
     [Fact]
@@ -382,7 +381,7 @@ public class SagaOptionsTests
         options.StepTimeout = timeout;
 
         // Assert
-        options.StepTimeout.Should().Be(timeout);
+        Assert.Equal(timeout, options.StepTimeout);
     }
 
     [Fact]
@@ -396,6 +395,6 @@ public class SagaOptionsTests
         options.PersistenceInterval = interval;
 
         // Assert
-        options.PersistenceInterval.Should().Be(interval);
+        Assert.Equal(interval, options.PersistenceInterval);
     }
 }

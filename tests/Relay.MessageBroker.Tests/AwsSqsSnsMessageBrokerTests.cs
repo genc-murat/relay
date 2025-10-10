@@ -4,7 +4,6 @@ using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
 using Amazon.SQS;
 using Amazon.SQS.Model;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -55,11 +54,8 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
     [Fact]
     public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
     {
-        // Arrange & Act
-        Action act = () => new AwsSqsSnsMessageBroker(null!, _loggerMock.Object);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new AwsSqsSnsMessageBroker(null!, _loggerMock.Object));
     }
 
     [Fact]
@@ -68,12 +64,9 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         // Arrange
         var options = new MessageBrokerOptions();
 
-        // Act
-        Action act = () => new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("AWS SQS/SNS options are required.");
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object));
+        Assert.Equal("AWS SQS/SNS options are required.", exception.Message);
     }
 
     [Fact]
@@ -92,7 +85,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -135,14 +128,13 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         // Arrange - Create a fresh broker for this test
         var broker = new AwsSqsSnsMessageBroker(Options.Create(_options), _loggerMock.Object);
         await broker.StartAsync();
-        Func<Task> act = async () => { await broker.StartAsync(); };
 
-        // Assert
-        await act.Should().NotThrowAsync();
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.StartAsync());
+        Assert.Null(exception);
 
         // Cleanup - TaskCanceledException is expected when stopping
-        Func<Task> cleanup = async () => await broker.StopAsync();
-        await cleanup.Should().ThrowAsync<TaskCanceledException>();
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await broker.StopAsync());
         
         // Final cleanup
         try
@@ -168,11 +160,9 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         };
         var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.StopAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.StopAsync());
+        Assert.Null(exception);
     }
 
 
@@ -185,11 +175,8 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         await broker.StartAsync();
         
         // Act & Assert - TaskCanceledException is expected when stopping
-        Func<Task> firstStop = async () => await broker.StopAsync();
-        await firstStop.Should().ThrowAsync<TaskCanceledException>();
-
-        Func<Task> secondStop = async () => await broker.StopAsync();
-        await secondStop.Should().ThrowAsync<TaskCanceledException>();
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await broker.StopAsync());
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await broker.StopAsync());
         
         // Cleanup
         try
@@ -210,8 +197,8 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
             (message, context, ct) => ValueTask.CompletedTask;
 
         // Act & Assert
-        Func<Task> act = async () => await _broker.SubscribeAsync(handler);
-        await act.Should().NotThrowAsync();
+        var exception = await Record.ExceptionAsync(async () => await _broker.SubscribeAsync(handler));
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -225,10 +212,10 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
 
         // Act
         await _broker.SubscribeAsync(handler1);
-        Func<Task> act = async () => await _broker.SubscribeAsync(handler2);
+        var exception = await Record.ExceptionAsync(async () => await _broker.SubscribeAsync(handler2));
 
         // Assert
-        await act.Should().NotThrowAsync();
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -242,8 +229,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         await Task.Delay(100);
 
         // Act & Assert - TaskCanceledException is expected when disposing due to polling task cancellation
-        Func<Task> act = async () => await broker.DisposeAsync();
-        await act.Should().ThrowAsync<TaskCanceledException>();
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => await broker.DisposeAsync());
     }
 
     [Fact]
@@ -270,7 +256,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         var broker = new AwsSqsSnsMessageBroker(Options.Create(optionsWithRetry), _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -295,7 +281,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         var broker = new AwsSqsSnsMessageBroker(Options.Create(optionsWithCircuitBreaker), _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -318,7 +304,7 @@ public class AwsSqsSnsMessageBrokerTests : IDisposable
         var broker = new AwsSqsSnsMessageBroker(Options.Create(fifoOptions), _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     public void Dispose()

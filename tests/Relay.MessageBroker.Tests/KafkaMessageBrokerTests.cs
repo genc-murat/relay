@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -39,7 +38,7 @@ public class KafkaMessageBrokerTests
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -50,11 +49,8 @@ public class KafkaMessageBrokerTests
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
         TestMessage? message = null;
 
-        // Act
-        Func<Task> act = async () => await broker.PublishAsync(message!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.PublishAsync(message!));
     }
 
     [Fact]
@@ -65,11 +61,8 @@ public class KafkaMessageBrokerTests
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
         Func<TestMessage, MessageContext, CancellationToken, ValueTask>? handler = null;
 
-        // Act
-        Func<Task> act = async () => await broker.SubscribeAsync(handler!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.SubscribeAsync(handler!));
     }
 
     [Fact]
@@ -79,11 +72,9 @@ public class KafkaMessageBrokerTests
         var options = Options.Create(_options);
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.StopAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.StopAsync());
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -93,11 +84,9 @@ public class KafkaMessageBrokerTests
         var options = Options.Create(_options);
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.DisposeAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.DisposeAsync());
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -107,15 +96,13 @@ public class KafkaMessageBrokerTests
         var options = Options.Create(_options);
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () =>
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () =>
         {
             await broker.DisposeAsync();
             await broker.DisposeAsync(); // Dispose twice
-        };
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        });
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -125,12 +112,10 @@ public class KafkaMessageBrokerTests
         var options = Options.Create(_options);
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask));
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -146,13 +131,11 @@ public class KafkaMessageBrokerTests
             AutoAck = false
         };
 
-        // Act
-        Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
             (msg, ctx, ct) => ValueTask.CompletedTask,
-            subscriptionOptions);
-
-        // Assert
-        await act.Should().NotThrowAsync();
+            subscriptionOptions));
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -162,15 +145,13 @@ public class KafkaMessageBrokerTests
         var options = Options.Create(_options);
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () =>
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () =>
         {
             await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
             await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-        };
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        });
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -180,15 +161,13 @@ public class KafkaMessageBrokerTests
         var options = Options.Create(_options);
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () =>
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () =>
         {
             await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
             await broker.SubscribeAsync<AnotherTestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-        };
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        });
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -212,7 +191,7 @@ public class KafkaMessageBrokerTests
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -229,7 +208,7 @@ public class KafkaMessageBrokerTests
         var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -263,7 +242,7 @@ public class KafkaMessageBrokerTests
             var options = Options.Create(testOptions);
             var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
-            broker.Should().NotBeNull();
+            Assert.NotNull(broker);
         }
     }
 
@@ -284,7 +263,7 @@ public class KafkaMessageBrokerTests
             var options = Options.Create(testOptions);
             var broker = new KafkaMessageBroker(options, _loggerMock.Object);
 
-            broker.Should().NotBeNull();
+            Assert.NotNull(broker);
         }
     }
 

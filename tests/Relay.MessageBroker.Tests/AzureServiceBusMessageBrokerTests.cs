@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -19,11 +18,8 @@ public class AzureServiceBusMessageBrokerTests
     [Fact]
     public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
     {
-        // Arrange & Act
-        Action act = () => new AzureServiceBusMessageBroker(null!, _loggerMock.Object);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new AzureServiceBusMessageBroker(null!, _loggerMock.Object));
     }
 
     [Fact]
@@ -32,12 +28,9 @@ public class AzureServiceBusMessageBrokerTests
         // Arrange
         var options = new MessageBrokerOptions();
 
-        // Act
-        Action act = () => new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Azure Service Bus options are required.");
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object));
+        Assert.Equal("Azure Service Bus options are required.", exception.Message);
     }
 
     [Fact]
@@ -49,12 +42,9 @@ public class AzureServiceBusMessageBrokerTests
             AzureServiceBus = new AzureServiceBusOptions { ConnectionString = "" }
         };
 
-        // Act
-        Action act = () => new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("Azure Service Bus connection string is required.");
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object));
+        Assert.Equal("Azure Service Bus connection string is required.", exception.Message);
     }
 
     [Fact]
@@ -74,7 +64,7 @@ public class AzureServiceBusMessageBrokerTests
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -90,11 +80,9 @@ public class AzureServiceBusMessageBrokerTests
         };
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.StopAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.StopAsync());
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -110,11 +98,8 @@ public class AzureServiceBusMessageBrokerTests
         };
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.PublishAsync<TestMessage>(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.PublishAsync<TestMessage>(null!));
     }
 
     [Fact]
@@ -130,11 +115,8 @@ public class AzureServiceBusMessageBrokerTests
         };
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.PublishBatchAsync<TestMessage>(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.PublishBatchAsync<TestMessage>(null!));
     }
 
     [Fact]
@@ -150,11 +132,8 @@ public class AzureServiceBusMessageBrokerTests
         };
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.ScheduleMessageAsync<TestMessage>(null!, DateTime.UtcNow.AddHours(1));
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.ScheduleMessageAsync<TestMessage>(null!, DateTime.UtcNow.AddHours(1)));
     }
 
     [Fact]
@@ -170,11 +149,8 @@ public class AzureServiceBusMessageBrokerTests
         };
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.SubscribeAsync<TestMessage>(null!));
     }
 
     [Fact]
@@ -190,11 +166,8 @@ public class AzureServiceBusMessageBrokerTests
         };
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.PublishInTransactionAsync<TestMessage>(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.PublishInTransactionAsync<TestMessage>(null!));
     }
 
     [Fact]
@@ -210,11 +183,8 @@ public class AzureServiceBusMessageBrokerTests
         };
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.ProcessDeadLetterMessagesAsync<TestMessage>(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.ProcessDeadLetterMessagesAsync<TestMessage>(null!));
     }
 
     [Fact]
@@ -230,11 +200,8 @@ public class AzureServiceBusMessageBrokerTests
         };
         var broker = new AzureServiceBusMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.ExecuteInTransactionAsync(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.ExecuteInTransactionAsync(null!));
     }
 
     private class TestMessage

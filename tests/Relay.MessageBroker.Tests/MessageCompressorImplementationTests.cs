@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Compression;
 using System.Text;
 using Xunit;
@@ -28,8 +27,8 @@ public class MessageCompressorImplementationTests
         var compressor = new GZipMessageCompressor();
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.GZip);
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.GZip, compressor.Algorithm);
     }
 
     [Theory]
@@ -45,8 +44,8 @@ public class MessageCompressorImplementationTests
         var compressor = new GZipMessageCompressor(level);
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.GZip);
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.GZip, compressor.Algorithm);
     }
 
     [Fact]
@@ -60,7 +59,7 @@ public class MessageCompressorImplementationTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Fact]
@@ -73,7 +72,7 @@ public class MessageCompressorImplementationTests
         var compressed = await compressor.CompressAsync(_testData);
 
         // Assert
-        compressed.Length.Should().BeLessThan(_testData.Length);
+        Assert.True(compressed.Length < _testData.Length);
     }
 
     [Fact]
@@ -86,7 +85,7 @@ public class MessageCompressorImplementationTests
         var compressed = await compressor.CompressAsync(_emptyData);
 
         // Assert
-        compressed.Should().BeEmpty();
+        Assert.Empty(compressed);
     }
 
     [Fact]
@@ -99,7 +98,7 @@ public class MessageCompressorImplementationTests
         var decompressed = await compressor.DecompressAsync(_emptyData);
 
         // Assert
-        decompressed.Should().BeEmpty();
+        Assert.Empty(decompressed);
     }
 
     [Fact]
@@ -112,7 +111,7 @@ public class MessageCompressorImplementationTests
         var compressed = await compressor.CompressAsync(null!);
 
         // Assert
-        compressed.Should().BeNull();
+        Assert.Null(compressed);
     }
 
     [Fact]
@@ -126,7 +125,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(gzipData);
 
         // Assert
-        isCompressed.Should().BeTrue();
+        Assert.True(isCompressed);
     }
 
     [Fact]
@@ -139,7 +138,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(_testData);
 
         // Assert
-        isCompressed.Should().BeFalse();
+        Assert.False(isCompressed);
     }
 
     [Fact]
@@ -152,7 +151,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(null!);
 
         // Assert
-        isCompressed.Should().BeFalse();
+        Assert.False(isCompressed);
     }
 
     [Fact]
@@ -166,7 +165,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(shortData);
 
         // Assert
-        isCompressed.Should().BeFalse();
+        Assert.False(isCompressed);
     }
 
     [Fact]
@@ -176,11 +175,8 @@ public class MessageCompressorImplementationTests
         var compressor = new GZipMessageCompressor();
         var invalidData = Encoding.UTF8.GetBytes("This is not a valid gzip stream.");
 
-        // Act
-        var act = async () => await compressor.DecompressAsync(invalidData);
-
-        // Assert
-        await act.Should().ThrowAsync<System.IO.InvalidDataException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<System.IO.InvalidDataException>(async () => await compressor.DecompressAsync(invalidData));
     }
 
     #endregion
@@ -194,8 +190,8 @@ public class MessageCompressorImplementationTests
         var compressor = new DeflateMessageCompressor();
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Deflate);
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.Deflate, compressor.Algorithm);
     }
 
     [Theory]
@@ -211,8 +207,8 @@ public class MessageCompressorImplementationTests
         var compressor = new DeflateMessageCompressor(level);
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Deflate);
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.Deflate, compressor.Algorithm);
     }
 
     [Fact]
@@ -226,7 +222,7 @@ public class MessageCompressorImplementationTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Fact]
@@ -239,7 +235,7 @@ public class MessageCompressorImplementationTests
         var compressed = await compressor.CompressAsync(_testData);
 
         // Assert
-        compressed.Length.Should().BeLessThan(_testData.Length);
+        Assert.True(compressed.Length < _testData.Length);
     }
 
     [Fact]
@@ -252,7 +248,7 @@ public class MessageCompressorImplementationTests
         var compressed = await compressor.CompressAsync(_emptyData);
 
         // Assert
-        compressed.Should().BeEmpty();
+        Assert.Empty(compressed);
     }
 
     [Fact]
@@ -266,7 +262,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(deflateData);
 
         // Assert
-        isCompressed.Should().BeTrue();
+        Assert.True(isCompressed);
     }
 
     [Fact]
@@ -280,7 +276,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(deflateData);
 
         // Assert
-        isCompressed.Should().BeTrue();
+        Assert.True(isCompressed);
     }
 
     [Fact]
@@ -293,7 +289,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(_testData);
 
         // Assert
-        isCompressed.Should().BeFalse();
+        Assert.False(isCompressed);
     }
 
     [Fact]
@@ -303,11 +299,8 @@ public class MessageCompressorImplementationTests
         var compressor = new DeflateMessageCompressor();
         var invalidData = Encoding.UTF8.GetBytes("This is not a valid deflate stream.");
 
-        // Act
-        var act = async () => await compressor.DecompressAsync(invalidData);
-
-        // Assert
-        await act.Should().ThrowAsync<System.IO.InvalidDataException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<System.IO.InvalidDataException>(async () => await compressor.DecompressAsync(invalidData));
     }
 
     #endregion
@@ -321,8 +314,8 @@ public class MessageCompressorImplementationTests
         var compressor = new BrotliMessageCompressor();
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Brotli);
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.Brotli, compressor.Algorithm);
     }
 
     [Theory]
@@ -338,8 +331,8 @@ public class MessageCompressorImplementationTests
         var compressor = new BrotliMessageCompressor(level);
 
         // Assert
-        compressor.Should().NotBeNull();
-        compressor.Algorithm.Should().Be(CompressionAlgorithm.Brotli);
+        Assert.NotNull(compressor);
+        Assert.Equal(CompressionAlgorithm.Brotli, compressor.Algorithm);
     }
 
     [Fact]
@@ -353,7 +346,7 @@ public class MessageCompressorImplementationTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Fact]
@@ -366,7 +359,7 @@ public class MessageCompressorImplementationTests
         var compressed = await compressor.CompressAsync(_testData);
 
         // Assert
-        compressed.Length.Should().BeLessThan(_testData.Length);
+        Assert.True(compressed.Length < _testData.Length);
     }
 
     [Fact]
@@ -379,7 +372,7 @@ public class MessageCompressorImplementationTests
         var compressed = await compressor.CompressAsync(_emptyData);
 
         // Assert
-        compressed.Should().BeEmpty();
+        Assert.Empty(compressed);
     }
 
     [Fact]
@@ -393,7 +386,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(brotliData);
 
         // Assert
-        isCompressed.Should().BeTrue();
+        Assert.True(isCompressed);
     }
 
     [Fact]
@@ -407,7 +400,7 @@ public class MessageCompressorImplementationTests
         var isCompressed = compressor.IsCompressed(invalidData);
 
         // Assert
-        isCompressed.Should().BeFalse();
+        Assert.False(isCompressed);
     }
 
     [Fact]
@@ -417,11 +410,8 @@ public class MessageCompressorImplementationTests
         var compressor = new BrotliMessageCompressor();
         var invalidData = Encoding.UTF8.GetBytes("This is not a valid brotli stream.");
 
-        // Act
-        var act = async () => await compressor.DecompressAsync(invalidData);
-
-        // Assert
-        await act.Should().ThrowAsync<System.InvalidOperationException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<System.InvalidOperationException>(async () => await compressor.DecompressAsync(invalidData));
     }
 
     #endregion
@@ -435,14 +425,14 @@ public class MessageCompressorImplementationTests
         var stats = new CompressionStatistics();
 
         // Assert
-        stats.TotalMessages.Should().Be(0);
-        stats.CompressedMessages.Should().Be(0);
-        stats.SkippedMessages.Should().Be(0);
-        stats.TotalOriginalBytes.Should().Be(0);
-        stats.TotalCompressedBytes.Should().Be(0);
-        stats.AverageCompressionRatio.Should().Be(0);
-        stats.TotalBytesSaved.Should().Be(0);
-        stats.CompressionRate.Should().Be(0);
+        Assert.Equal(0, stats.TotalMessages);
+        Assert.Equal(0, stats.CompressedMessages);
+        Assert.Equal(0, stats.SkippedMessages);
+        Assert.Equal(0L, stats.TotalOriginalBytes);
+        Assert.Equal(0L, stats.TotalCompressedBytes);
+        Assert.Equal(0, stats.AverageCompressionRatio);
+        Assert.Equal(0L, stats.TotalBytesSaved);
+        Assert.Equal(0, stats.CompressionRate);
     }
 
     [Fact]
@@ -459,7 +449,7 @@ public class MessageCompressorImplementationTests
         var ratio = stats.AverageCompressionRatio;
 
         // Assert
-        ratio.Should().Be(0.5);
+        Assert.Equal(0.5, ratio);
     }
 
     [Fact]
@@ -476,7 +466,7 @@ public class MessageCompressorImplementationTests
         var saved = stats.TotalBytesSaved;
 
         // Assert
-        saved.Should().Be(700);
+        Assert.Equal(700L, saved);
     }
 
     [Fact]
@@ -493,7 +483,7 @@ public class MessageCompressorImplementationTests
         var rate = stats.CompressionRate;
 
         // Assert
-        rate.Should().Be(0.75);
+        Assert.Equal(0.75, rate);
     }
 
     [Fact]
@@ -510,7 +500,7 @@ public class MessageCompressorImplementationTests
         var avgTime = stats.AverageCompressionTime;
 
         // Assert
-        avgTime.Should().Be(TimeSpan.FromMilliseconds(500));
+        Assert.Equal(TimeSpan.FromMilliseconds(500), avgTime);
     }
 
     [Fact]
@@ -527,7 +517,7 @@ public class MessageCompressorImplementationTests
         var avgTime = stats.AverageDecompressionTime;
 
         // Assert
-        avgTime.Should().Be(TimeSpan.FromMilliseconds(200));
+        Assert.Equal(TimeSpan.FromMilliseconds(200), avgTime);
     }
 
     [Fact]
@@ -541,10 +531,10 @@ public class MessageCompressorImplementationTests
         };
 
         // Act & Assert
-        stats.AverageCompressionRatio.Should().Be(0);
-        stats.CompressionRate.Should().Be(0);
-        stats.AverageCompressionTime.Should().Be(TimeSpan.Zero);
-        stats.AverageDecompressionTime.Should().Be(TimeSpan.Zero);
+        Assert.Equal(0, stats.AverageCompressionRatio);
+        Assert.Equal(0, stats.CompressionRate);
+        Assert.Equal(TimeSpan.Zero, stats.AverageCompressionTime);
+        Assert.Equal(TimeSpan.Zero, stats.AverageDecompressionTime);
     }
 
     #endregion
@@ -558,16 +548,16 @@ public class MessageCompressorImplementationTests
         var options = new CompressionOptions();
 
         // Assert
-        options.Enabled.Should().BeFalse();
-        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
-        options.Level.Should().Be(6);
-        options.MinimumSizeBytes.Should().Be(1024);
-        options.AutoDetectCompressed.Should().BeTrue();
-        options.AddMetadataHeaders.Should().BeTrue();
-        options.TrackStatistics.Should().BeTrue();
-        options.ExpectedCompressionRatio.Should().Be(0.7);
-        options.CompressibleContentTypes.Should().BeEmpty();
-        options.NonCompressibleContentTypes.Should().NotBeEmpty();
+        Assert.False(options.Enabled);
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip, options.Algorithm);
+        Assert.Equal(6, options.Level);
+        Assert.Equal(1024, options.MinimumSizeBytes);
+        Assert.True(options.AutoDetectCompressed);
+        Assert.True(options.AddMetadataHeaders);
+        Assert.True(options.TrackStatistics);
+        Assert.Equal(0.7, options.ExpectedCompressionRatio);
+        Assert.Empty(options.CompressibleContentTypes);
+        Assert.NotEmpty(options.NonCompressibleContentTypes);
     }
 
     [Fact]
@@ -577,10 +567,10 @@ public class MessageCompressorImplementationTests
         var options = new CompressionOptions();
 
         // Assert
-        options.NonCompressibleContentTypes.Should().Contain("image/jpeg");
-        options.NonCompressibleContentTypes.Should().Contain("image/png");
-        options.NonCompressibleContentTypes.Should().Contain("video/mp4");
-        options.NonCompressibleContentTypes.Should().Contain("application/zip");
+        Assert.Contains("image/jpeg", options.NonCompressibleContentTypes);
+        Assert.Contains("image/png", options.NonCompressibleContentTypes);
+        Assert.Contains("video/mp4", options.NonCompressibleContentTypes);
+        Assert.Contains("application/zip", options.NonCompressibleContentTypes);
     }
 
     [Fact]
@@ -600,14 +590,14 @@ public class MessageCompressorImplementationTests
         };
 
         // Assert
-        options.Enabled.Should().BeTrue();
-        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli);
-        options.Level.Should().Be(9);
-        options.MinimumSizeBytes.Should().Be(2048);
-        options.AutoDetectCompressed.Should().BeFalse();
-        options.AddMetadataHeaders.Should().BeFalse();
-        options.TrackStatistics.Should().BeFalse();
-        options.ExpectedCompressionRatio.Should().Be(0.5);
+        Assert.True(options.Enabled);
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli, options.Algorithm);
+        Assert.Equal(9, options.Level);
+        Assert.Equal(2048, options.MinimumSizeBytes);
+        Assert.False(options.AutoDetectCompressed);
+        Assert.False(options.AddMetadataHeaders);
+        Assert.False(options.TrackStatistics);
+        Assert.Equal(0.5, options.ExpectedCompressionRatio);
     }
 
     #endregion
@@ -628,9 +618,9 @@ public class MessageCompressorImplementationTests
         var brotliCompressed = await brotliCompressor.CompressAsync(_testData);
 
         // Assert - Each compressor should produce different compressed data
-        gzipCompressed.Should().NotBeEquivalentTo(deflateCompressed);
-        gzipCompressed.Should().NotBeEquivalentTo(brotliCompressed);
-        deflateCompressed.Should().NotBeEquivalentTo(brotliCompressed);
+        Assert.NotEqual(deflateCompressed, gzipCompressed);
+        Assert.NotEqual(brotliCompressed, gzipCompressed);
+        Assert.NotEqual(brotliCompressed, deflateCompressed);
     }
 
     [Fact]
@@ -651,9 +641,9 @@ public class MessageCompressorImplementationTests
         var brotliDecompressed = await brotliCompressor.DecompressAsync(brotliCompressed);
 
         // Assert
-        gzipDecompressed.Should().BeEquivalentTo(_testData);
-        deflateDecompressed.Should().BeEquivalentTo(_testData);
-        brotliDecompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, gzipDecompressed);
+        Assert.Equal(_testData, deflateDecompressed);
+        Assert.Equal(_testData, brotliDecompressed);
     }
 
     [Theory]
@@ -671,7 +661,7 @@ public class MessageCompressorImplementationTests
         var decompressed = await compressor.DecompressAsync(compressed, cts.Token);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Theory]
@@ -685,11 +675,10 @@ public class MessageCompressorImplementationTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        // Act
-        var act = async () => await compressor.CompressAsync(_testData, cts.Token);
-
-        // Assert
-        await act.Should().ThrowAsync<OperationCanceledException>();
+        // Act & Assert
+        // TaskCanceledException derives from OperationCanceledException, so we accept both
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await compressor.CompressAsync(_testData, cts.Token));
+        Assert.True(exception is OperationCanceledException);
     }
 
     #endregion

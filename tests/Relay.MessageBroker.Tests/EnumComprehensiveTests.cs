@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker;
 using Relay.MessageBroker.Compression;
 using Xunit;
@@ -14,13 +13,13 @@ public class EnumComprehensiveTests
     {
         // Assert - Verify all broker types
         var values = Enum.GetValues<MessageBrokerType>();
-        values.Should().Contain(MessageBrokerType.RabbitMQ);
-        values.Should().Contain(MessageBrokerType.Kafka);
-        values.Should().Contain(MessageBrokerType.AzureServiceBus);
-        values.Should().Contain(MessageBrokerType.AwsSqsSns);
-        values.Should().Contain(MessageBrokerType.Nats);
-        values.Should().Contain(MessageBrokerType.RedisStreams);
-        values.Should().Contain(MessageBrokerType.InMemory);
+        Assert.Contains(MessageBrokerType.RabbitMQ, values);
+        Assert.Contains(MessageBrokerType.Kafka, values);
+        Assert.Contains(MessageBrokerType.AzureServiceBus, values);
+        Assert.Contains(MessageBrokerType.AwsSqsSns, values);
+        Assert.Contains(MessageBrokerType.Nats, values);
+        Assert.Contains(MessageBrokerType.RedisStreams, values);
+        Assert.Contains(MessageBrokerType.InMemory, values);
     }
 
     [Theory]
@@ -37,7 +36,7 @@ public class EnumComprehensiveTests
         var stringValue = brokerType.ToString();
 
         // Assert
-        stringValue.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(stringValue));
     }
 
     [Fact]
@@ -47,7 +46,7 @@ public class EnumComprehensiveTests
         var options = new MessageBrokerOptions();
 
         // Assert
-        options.BrokerType.Should().Be(MessageBrokerType.RabbitMQ);
+        Assert.Equal(MessageBrokerType.RabbitMQ, options.BrokerType);
     }
 
     #endregion
@@ -59,10 +58,10 @@ public class EnumComprehensiveTests
     {
         // Assert
         var values = Enum.GetValues<CompressionAlgorithm>();
-        values.Should().Contain(CompressionAlgorithm.None);
-        values.Should().Contain(CompressionAlgorithm.GZip);
-        values.Should().Contain(CompressionAlgorithm.Deflate);
-        values.Should().Contain(CompressionAlgorithm.Brotli);
+        Assert.Contains(CompressionAlgorithm.None, values);
+        Assert.Contains(CompressionAlgorithm.GZip, values);
+        Assert.Contains(CompressionAlgorithm.Deflate, values);
+        Assert.Contains(CompressionAlgorithm.Brotli, values);
     }
 
     [Theory]
@@ -76,7 +75,7 @@ public class EnumComprehensiveTests
         var stringValue = algorithm.ToString();
 
         // Assert
-        stringValue.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(stringValue));
     }
 
     [Fact]
@@ -86,7 +85,7 @@ public class EnumComprehensiveTests
         var options = new CompressionOptions();
 
         // Assert
-        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip, options.Algorithm);
     }
 
     #endregion
@@ -98,10 +97,10 @@ public class EnumComprehensiveTests
     {
         // Assert
         var values = Enum.GetValues<MessageSerializerType>();
-        values.Should().Contain(MessageSerializerType.Json);
-        values.Should().Contain(MessageSerializerType.MessagePack);
-        values.Should().Contain(MessageSerializerType.Protobuf);
-        values.Should().Contain(MessageSerializerType.Avro);
+        Assert.Contains(MessageSerializerType.Json, values);
+        Assert.Contains(MessageSerializerType.MessagePack, values);
+        Assert.Contains(MessageSerializerType.Protobuf, values);
+        Assert.Contains(MessageSerializerType.Avro, values);
     }
 
     [Theory]
@@ -115,7 +114,7 @@ public class EnumComprehensiveTests
         var stringValue = serializerType.ToString();
 
         // Assert
-        stringValue.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(stringValue));
     }
 
     [Fact]
@@ -125,7 +124,7 @@ public class EnumComprehensiveTests
         var options = new MessageBrokerOptions();
 
         // Assert
-        options.SerializerType.Should().Be(MessageSerializerType.Json);
+        Assert.Equal(MessageSerializerType.Json, options.SerializerType);
     }
 
     #endregion
@@ -142,8 +141,7 @@ public class EnumComprehensiveTests
 
         foreach (var name in brokerTypes.Concat(compressionAlgorithms).Concat(serializerTypes))
         {
-            name.Should().MatchRegex("^[A-Z][a-zA-Z0-9]*$", 
-                $"Enum value '{name}' should follow PascalCase convention");
+            Assert.Matches("^[A-Z][a-zA-Z0-9]*$", name);
         }
     }
 
@@ -155,9 +153,9 @@ public class EnumComprehensiveTests
         var compressionValues = Enum.GetValues<CompressionAlgorithm>().Cast<int>().ToList();
         var serializerValues = Enum.GetValues<MessageSerializerType>().Cast<int>().ToList();
 
-        brokerTypeValues.Should().OnlyHaveUniqueItems();
-        compressionValues.Should().OnlyHaveUniqueItems();
-        serializerValues.Should().OnlyHaveUniqueItems();
+        Assert.Equal(brokerTypeValues.Count, brokerTypeValues.Distinct().Count());
+        Assert.Equal(compressionValues.Count, compressionValues.Distinct().Count());
+        Assert.Equal(serializerValues.Count, serializerValues.Distinct().Count());
     }
 
     [Fact]
@@ -170,7 +168,7 @@ public class EnumComprehensiveTests
         var parsed = Enum.Parse<MessageBrokerType>(typeName);
 
         // Assert
-        parsed.Should().Be(MessageBrokerType.RabbitMQ);
+        Assert.Equal(MessageBrokerType.RabbitMQ, parsed);
     }
 
     [Fact]
@@ -183,7 +181,7 @@ public class EnumComprehensiveTests
         var parsed = Enum.Parse<CompressionAlgorithm>(algorithmName);
 
         // Assert
-        parsed.Should().Be(CompressionAlgorithm.GZip);
+        Assert.Equal(CompressionAlgorithm.GZip, parsed);
     }
 
     [Fact]
@@ -196,30 +194,30 @@ public class EnumComprehensiveTests
         var parsed = Enum.Parse<MessageSerializerType>(typeName);
 
         // Assert
-        parsed.Should().Be(MessageSerializerType.Json);
+        Assert.Equal(MessageSerializerType.Json, parsed);
     }
 
     [Fact]
     public void Enums_ShouldSupportTryParse()
     {
         // Act & Assert
-        Enum.TryParse<MessageBrokerType>("Kafka", out var brokerType).Should().BeTrue();
-        brokerType.Should().Be(MessageBrokerType.Kafka);
+        Assert.True(Enum.TryParse<MessageBrokerType>("Kafka", out var brokerType));
+        Assert.Equal(MessageBrokerType.Kafka, brokerType);
 
-        Enum.TryParse<CompressionAlgorithm>("Brotli", out var algorithm).Should().BeTrue();
-        algorithm.Should().Be(CompressionAlgorithm.Brotli);
+        Assert.True(Enum.TryParse<CompressionAlgorithm>("Brotli", out var algorithm));
+        Assert.Equal(CompressionAlgorithm.Brotli, algorithm);
 
-        Enum.TryParse<MessageSerializerType>("MessagePack", out var serializer).Should().BeTrue();
-        serializer.Should().Be(MessageSerializerType.MessagePack);
+        Assert.True(Enum.TryParse<MessageSerializerType>("MessagePack", out var serializer));
+        Assert.Equal(MessageSerializerType.MessagePack, serializer);
     }
 
     [Fact]
     public void Enums_WithInvalidValue_TryParseShouldReturnFalse()
     {
         // Act & Assert
-        Enum.TryParse<MessageBrokerType>("InvalidBroker", out _).Should().BeFalse();
-        Enum.TryParse<CompressionAlgorithm>("InvalidAlgorithm", out _).Should().BeFalse();
-        Enum.TryParse<MessageSerializerType>("InvalidSerializer", out _).Should().BeFalse();
+        Assert.False(Enum.TryParse<MessageBrokerType>("InvalidBroker", out _));
+        Assert.False(Enum.TryParse<CompressionAlgorithm>("InvalidAlgorithm", out _));
+        Assert.False(Enum.TryParse<MessageSerializerType>("InvalidSerializer", out _));
     }
 
     #endregion

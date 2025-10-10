@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Relay.MessageBroker.Saga;
 using Relay.MessageBroker.Saga.Persistence;
@@ -42,9 +41,9 @@ public class EfCoreSagaDbContextTests
 
         // Assert
         var saved = await context.SagaEntities.FindAsync(sagaEntity.SagaId);
-        saved.Should().NotBeNull();
-        saved!.CorrelationId.Should().Be("TEST-001");
-        saved.State.Should().Be(SagaState.Running);
+        Assert.NotNull(saved);
+        Assert.Equal("TEST-001", saved!.CorrelationId);
+        Assert.Equal(SagaState.Running, saved.State);
     }
 
     [Fact]
@@ -76,8 +75,8 @@ public class EfCoreSagaDbContextTests
 
         // Assert
         var updated = await context.SagaEntities.FindAsync(sagaEntity.SagaId);
-        updated!.State.Should().Be(SagaState.Completed);
-        updated.Version.Should().Be(2);
+        Assert.Equal(SagaState.Completed, updated!.State);
+        Assert.Equal(2, updated.Version);
     }
 
     [Fact]
@@ -124,8 +123,8 @@ public class EfCoreSagaDbContextTests
             .FirstOrDefaultAsync();
 
         // Assert
-        result.Should().NotBeNull();
-        result!.SagaId.Should().Be(saga1.SagaId);
+        Assert.NotNull(result);
+        Assert.Equal(saga1.SagaId, result!.SagaId);
     }
 
     [Fact]
@@ -171,7 +170,7 @@ public class EfCoreSagaDbContextTests
             .CountAsync();
 
         // Assert
-        runningCount.Should().Be(1);
+        Assert.Equal(1, runningCount);
     }
 
     [Fact]
@@ -234,9 +233,9 @@ public class EfCoreSagaDbContextTests
             .ToListAsync();
 
         // Assert
-        activeSagas.Should().HaveCount(2);
-        activeSagas[0].CorrelationId.Should().Be("COMPENSATING-001"); // Older
-        activeSagas[1].CorrelationId.Should().Be("RUNNING-001"); // Newer
+        Assert.Equal(2, activeSagas.Count);
+        Assert.Equal("COMPENSATING-001", activeSagas[0].CorrelationId); // Older
+        Assert.Equal("RUNNING-001", activeSagas[1].CorrelationId); // Newer
     }
 
     [Fact]
@@ -267,7 +266,7 @@ public class EfCoreSagaDbContextTests
 
         // Assert
         var deleted = await context.SagaEntities.FindAsync(sagaEntity.SagaId);
-        deleted.Should().BeNull();
+        Assert.Null(deleted);
     }
 
     [Fact]
@@ -297,7 +296,7 @@ public class EfCoreSagaDbContextTests
 
         // Assert
         var saved = await context.SagaEntities.FindAsync(sagaEntity.SagaId);
-        saved.Should().NotBeNull();
+        Assert.NotNull(saved);
     }
 
     [Fact]
@@ -331,7 +330,7 @@ public class EfCoreSagaDbContextTests
 
         // Assert
         var updated = await context.SagaEntities.FindAsync(sagaEntity.SagaId);
-        updated!.State.Should().Be(SagaState.Completed);
+        Assert.Equal(SagaState.Completed, updated!.State);
     }
 
     [Fact]
@@ -364,7 +363,7 @@ public class EfCoreSagaDbContextTests
 
         // Assert
         var deleted = await context.SagaEntities.FindAsync(sagaEntity.SagaId);
-        deleted.Should().BeNull();
+        Assert.Null(deleted);
     }
 
     [Fact]
@@ -409,7 +408,7 @@ public class EfCoreSagaDbContextTests
         var count = await sagaContext.Sagas.CountAsync();
 
         // Assert
-        count.Should().Be(2);
+        Assert.Equal(2, count);
     }
 
     [Fact]
@@ -460,8 +459,7 @@ public class EfCoreSagaDbContextTests
         // Assert
         // EF Core InMemory provider DOES enforce concurrency tokens (in recent versions)
         // This will throw DbUpdateConcurrencyException when trying to save with stale version
-        var action = async () => await loadContext1.SaveChangesAsync();
-        await action.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(async () => await loadContext1.SaveChangesAsync());
     }
 
     [Fact]
@@ -507,8 +505,8 @@ public class EfCoreSagaDbContextTests
             .ToListAsync();
 
         // Assert
-        orderSagas.Should().HaveCount(1);
-        orderSagas[0].CorrelationId.Should().Be("ORDER-001");
+        Assert.Single(orderSagas);
+        Assert.Equal("ORDER-001", orderSagas[0].CorrelationId);
     }
 
     [Fact]
@@ -538,8 +536,8 @@ public class EfCoreSagaDbContextTests
 
         // Assert
         var saved = await context.SagaEntities.FindAsync(sagaEntity.SagaId);
-        saved.Should().NotBeNull();
-        saved!.ErrorMessage.Should().Be("Payment processing failed");
-        saved.ErrorStackTrace.Should().Contain("OrderSaga.cs:line 42");
+        Assert.NotNull(saved);
+        Assert.Equal("Payment processing failed", saved!.ErrorMessage);
+        Assert.Contains("OrderSaga.cs:line 42", saved.ErrorStackTrace);
     }
 }

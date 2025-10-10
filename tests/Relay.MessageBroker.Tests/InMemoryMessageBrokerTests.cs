@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker;
 using Xunit;
 
@@ -18,9 +17,10 @@ public class InMemoryMessageBrokerTests
         await _broker.PublishAsync(message);
 
         // Assert
-        _broker.PublishedMessages.Should().HaveCount(1);
-        _broker.PublishedMessages[0].Message.Should().BeEquivalentTo(message);
-        _broker.PublishedMessages[0].MessageType.Should().Be(typeof(TestMessage));
+        Assert.Single(_broker.PublishedMessages);
+        Assert.Equal(message.Id, ((TestMessage)_broker.PublishedMessages[0].Message).Id);
+        Assert.Equal(message.Content, ((TestMessage)_broker.PublishedMessages[0].Message).Content);
+        Assert.Equal(typeof(TestMessage), _broker.PublishedMessages[0].MessageType);
     }
 
     [Fact]
@@ -38,8 +38,9 @@ public class InMemoryMessageBrokerTests
         await _broker.PublishAsync(message, options);
 
         // Assert
-        _broker.PublishedMessages.Should().HaveCount(1);
-        _broker.PublishedMessages[0].Options.Should().BeEquivalentTo(options);
+        Assert.Single(_broker.PublishedMessages);
+        Assert.Equal(options.RoutingKey, _broker.PublishedMessages[0].Options?.RoutingKey);
+        Assert.Equal(options.Exchange, _broker.PublishedMessages[0].Options?.Exchange);
     }
 
     [Fact]
@@ -62,8 +63,9 @@ public class InMemoryMessageBrokerTests
         await Task.Delay(100); // Give time for async dispatch
 
         // Assert
-        receivedMessages.Should().HaveCount(1);
-        receivedMessages[0].Should().BeEquivalentTo(message);
+        Assert.Single(receivedMessages);
+        Assert.Equal(message.Id, receivedMessages[0].Id);
+        Assert.Equal(message.Content, receivedMessages[0].Content);
     }
 
     [Fact]
@@ -94,8 +96,8 @@ public class InMemoryMessageBrokerTests
         await Task.Delay(100); // Give time for async dispatch
 
         // Assert
-        receivedMessages1.Should().HaveCount(1);
-        receivedMessages2.Should().HaveCount(1);
+        Assert.Single(receivedMessages1);
+        Assert.Single(receivedMessages2);
     }
 
     [Fact]
@@ -116,7 +118,7 @@ public class InMemoryMessageBrokerTests
         await Task.Delay(100);
 
         // Assert
-        receivedMessages.Should().BeEmpty();
+        Assert.Empty(receivedMessages);
     }
 
     [Fact]
@@ -144,7 +146,7 @@ public class InMemoryMessageBrokerTests
         await Task.WhenAny(messageReceived.Task, Task.Delay(500));
 
         // Assert
-        receivedMessages.Should().HaveCount(1);
+        Assert.Single(receivedMessages);
     }
 
     [Fact]
@@ -166,7 +168,7 @@ public class InMemoryMessageBrokerTests
         await Task.Delay(100);
 
         // Assert
-        receivedMessages.Should().BeEmpty();
+        Assert.Empty(receivedMessages);
     }
 
     [Fact]
@@ -179,7 +181,7 @@ public class InMemoryMessageBrokerTests
         _broker.Clear();
 
         // Assert
-        _broker.PublishedMessages.Should().BeEmpty();
+        Assert.Empty(_broker.PublishedMessages);
     }
 
     [Fact]
@@ -188,11 +190,8 @@ public class InMemoryMessageBrokerTests
         // Arrange
         TestMessage? message = null;
 
-        // Act
-        Func<Task> act = async () => await _broker.PublishAsync(message!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await _broker.PublishAsync(message!));
     }
 
     [Fact]
@@ -201,11 +200,8 @@ public class InMemoryMessageBrokerTests
         // Arrange
         Func<TestMessage, MessageContext, CancellationToken, ValueTask>? handler = null;
 
-        // Act
-        Func<Task> act = async () => await _broker.SubscribeAsync(handler!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await _broker.SubscribeAsync(handler!));
     }
 
     [Fact]
@@ -233,12 +229,12 @@ public class InMemoryMessageBrokerTests
         await Task.Delay(500); // Increased delay to ensure message delivery
 
         // Assert
-        receivedContext.Should().NotBeNull();
-        receivedContext!.MessageId.Should().NotBeNullOrEmpty();
-        receivedContext.Timestamp.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(2));
-        receivedContext.RoutingKey.Should().Be("test.routing");
-        receivedContext.Exchange.Should().Be("test-exchange");
-        receivedContext.Headers.Should().ContainKey("key");
+        Assert.NotNull(receivedContext);
+        Assert.False(string.IsNullOrEmpty(receivedContext!.MessageId));
+        Assert.InRange(receivedContext.Timestamp, DateTimeOffset.UtcNow.AddSeconds(-2), DateTimeOffset.UtcNow.AddSeconds(2));
+        Assert.Equal("test.routing", receivedContext.RoutingKey);
+        Assert.Equal("test-exchange", receivedContext.Exchange);
+        Assert.True(receivedContext.Headers.ContainsKey("key"));
     }
 
     [Fact]
@@ -253,9 +249,9 @@ public class InMemoryMessageBrokerTests
         await _broker.PublishAsync(message2);
 
         // Assert
-        _broker.PublishedMessages.Should().HaveCount(2);
-        _broker.PublishedMessages.Select(m => m.MessageType).Should().Contain(typeof(TestMessage));
-        _broker.PublishedMessages.Select(m => m.MessageType).Should().Contain(typeof(AnotherTestMessage));
+        Assert.Equal(2, _broker.PublishedMessages.Count);
+        Assert.Contains(_broker.PublishedMessages, m => m.MessageType == typeof(TestMessage));
+        Assert.Contains(_broker.PublishedMessages, m => m.MessageType == typeof(AnotherTestMessage));
     }
 
     [Fact]
@@ -285,8 +281,8 @@ public class InMemoryMessageBrokerTests
         await Task.Delay(500); // Increased delay to ensure message delivery
 
         // Assert
-        receivedTestMessages.Should().HaveCount(1);
-        receivedAnotherMessages.Should().HaveCount(1);
+        Assert.Single(receivedTestMessages);
+        Assert.Single(receivedAnotherMessages);
     }
 
     private class TestMessage
@@ -324,7 +320,7 @@ public class InMemoryMessageBrokerTests
         await Task.Delay(100); // Give time for async dispatch
 
         // Assert
-        receivedMessages.Should().HaveCount(1);
+        Assert.Single(receivedMessages);
     }
 
     [Fact]
@@ -345,10 +341,8 @@ public class InMemoryMessageBrokerTests
         await Task.Delay(100);
 
         // Assert
-        receivedContext.Should().NotBeNull();
-        var ack = async () => await receivedContext!.Acknowledge();
-        var reject = async () => await receivedContext!.Reject(false);
-        await ack.Should().NotThrowAsync();
-        await reject.Should().NotThrowAsync();
+        Assert.NotNull(receivedContext);
+        await receivedContext!.Acknowledge();
+        await receivedContext!.Reject(false);
     }
 }

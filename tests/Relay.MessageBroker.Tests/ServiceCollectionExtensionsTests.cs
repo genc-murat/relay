@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -31,7 +30,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
+        Assert.NotNull(messageBroker);
     }
 
     [Fact]
@@ -52,8 +51,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<RabbitMQ.RabbitMQMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<RabbitMQ.RabbitMQMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -73,8 +72,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<Kafka.KafkaMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<Kafka.KafkaMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -92,7 +91,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var hostedServices = serviceProvider.GetServices<IHostedService>();
-        hostedServices.Should().Contain(s => s is MessageBrokerHostedService);
+        Assert.Contains(hostedServices, s => s is MessageBrokerHostedService);
     }
 
     [Fact]
@@ -101,11 +100,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         IServiceCollection? services = null;
 
-        // Act
-        Action act = () => services!.AddMessageBroker(_ => { });
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services!.AddMessageBroker(_ => { }));
     }
 
     [Fact]
@@ -114,11 +110,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         var services = new ServiceCollection();
 
-        // Act
-        Action act = () => services.AddMessageBroker(null!);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services.AddMessageBroker(null!));
     }
 
     [Fact]
@@ -127,11 +120,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         IServiceCollection? services = null;
 
-        // Act
-        Action act = () => services!.AddRabbitMQ();
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services!.AddRabbitMQ());
     }
 
     [Fact]
@@ -140,11 +130,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         IServiceCollection? services = null;
 
-        // Act
-        Action act = () => services!.AddKafka();
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services!.AddKafka());
     }
 
     [Fact]
@@ -153,11 +140,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         IServiceCollection? services = null;
 
-        // Act
-        Action act = () => services!.AddMessageBrokerHostedService();
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services!.AddMessageBrokerHostedService());
     }
 
     [Fact]
@@ -173,11 +157,8 @@ public class ServiceCollectionExtensionsTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        // Act
-        Action act = () => serviceProvider.GetRequiredService<IMessageBroker>();
-
-        // Assert
-        act.Should().Throw<NotSupportedException>();
+        // Act & Assert
+        Assert.Throws<NotSupportedException>(() => serviceProvider.GetRequiredService<IMessageBroker>());
     }
 
     [Fact]
@@ -194,8 +175,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<RabbitMQ.RabbitMQMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<RabbitMQ.RabbitMQMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -212,8 +193,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<Kafka.KafkaMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<Kafka.KafkaMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -237,7 +218,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
+        Assert.NotNull(messageBroker);
     }
 
     [Fact]
@@ -258,7 +239,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
+        Assert.NotNull(messageBroker);
     }
 
     [Fact]
@@ -282,7 +263,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
+        Assert.NotNull(messageBroker);
     }
 
     [Fact]
@@ -306,7 +287,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
+        Assert.NotNull(messageBroker);
     }
 
     [Fact]
@@ -324,9 +305,9 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
+        Assert.NotNull(messageBroker);
         // Last registration should win
-        messageBroker.Should().BeOfType<Kafka.KafkaMessageBroker>();
+        Assert.IsType<Kafka.KafkaMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -347,8 +328,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<AzureServiceBus.AzureServiceBusMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<AzureServiceBus.AzureServiceBusMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -369,8 +350,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<AzureServiceBus.AzureServiceBusMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<AzureServiceBus.AzureServiceBusMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -379,11 +360,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         IServiceCollection? services = null;
 
-        // Act
-        Action act = () => services!.AddAzureServiceBus();
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services!.AddAzureServiceBus());
     }
 
     [Fact]
@@ -404,8 +382,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<AwsSqsSns.AwsSqsSnsMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<AwsSqsSns.AwsSqsSnsMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -422,8 +400,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<AwsSqsSns.AwsSqsSnsMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<AwsSqsSns.AwsSqsSnsMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -432,11 +410,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         IServiceCollection? services = null;
 
-        // Act
-        Action act = () => services!.AddAwsSqsSns();
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services!.AddAwsSqsSns());
     }
 
     [Fact]
@@ -457,8 +432,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<Nats.NatsMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<Nats.NatsMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -475,8 +450,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<Nats.NatsMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<Nats.NatsMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -485,11 +460,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         IServiceCollection? services = null;
 
-        // Act
-        Action act = () => services!.AddNats();
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services!.AddNats());
     }
 
     [Fact]
@@ -510,8 +482,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<RedisStreams.RedisStreamsMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<RedisStreams.RedisStreamsMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -528,8 +500,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var messageBroker = serviceProvider.GetService<IMessageBroker>();
-        messageBroker.Should().NotBeNull();
-        messageBroker.Should().BeOfType<RedisStreams.RedisStreamsMessageBroker>();
+        Assert.NotNull(messageBroker);
+        Assert.IsType<RedisStreams.RedisStreamsMessageBroker>(messageBroker);
     }
 
     [Fact]
@@ -538,11 +510,8 @@ public class ServiceCollectionExtensionsTests
         // Arrange
         IServiceCollection? services = null;
 
-        // Act
-        Action act = () => services!.AddRedisStreams();
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => services!.AddRedisStreams());
     }
 
     [Fact]
@@ -556,7 +525,7 @@ public class ServiceCollectionExtensionsTests
         var chainedServices = services.AddRabbitMQ().AddMessageBrokerHostedService();
 
         // Assert
-        chainedServices.Should().BeSameAs(services);
+        Assert.Same(services, chainedServices);
     }
 
     [Fact]
@@ -577,9 +546,9 @@ public class ServiceCollectionExtensionsTests
         var configuredOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MessageBrokerOptions>>();
 
         // Assert
-        configuredOptions.Value.BrokerType.Should().Be(MessageBrokerType.RabbitMQ);
-        configuredOptions.Value.RabbitMQ.Should().NotBeNull();
-        configuredOptions.Value.RabbitMQ.HostName.Should().Be("testhost");
-        configuredOptions.Value.RabbitMQ.Port.Should().Be(1234);
+        Assert.Equal(MessageBrokerType.RabbitMQ, configuredOptions.Value.BrokerType);
+        Assert.NotNull(configuredOptions.Value.RabbitMQ);
+        Assert.Equal("testhost", configuredOptions.Value.RabbitMQ.HostName);
+        Assert.Equal(1234, configuredOptions.Value.RabbitMQ.Port);
     }
 }

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.MessageBroker.Saga;
 using Relay.MessageBroker.Saga.Services;
@@ -42,15 +41,15 @@ public class SagaTimeoutTests
         var result = await handler.CheckAndHandleTimeoutsAsync(defaultTimeout);
 
         // Assert
-        result.CheckedCount.Should().Be(2);
-        result.TimedOutCount.Should().Be(1);
+        Assert.Equal(2, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
 
         // Verify timed out saga was marked for compensation
         var updatedSaga = await persistence.GetByIdAsync(timedOutSaga.SagaId);
-        updatedSaga.Should().NotBeNull();
-        updatedSaga!.State.Should().Be(SagaState.Compensating);
-        updatedSaga.Metadata.Should().ContainKey("TimedOut");
-        updatedSaga.Metadata["TimedOut"].Should().Be(true);
+        Assert.NotNull(updatedSaga);
+        Assert.Equal(SagaState.Compensating, updatedSaga!.State);
+        Assert.True(updatedSaga.Metadata.ContainsKey("TimedOut"));
+        Assert.Equal(true, updatedSaga.Metadata["TimedOut"]);
     }
 
     [Fact]
@@ -76,14 +75,14 @@ public class SagaTimeoutTests
         var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
 
         // Assert
-        result.CheckedCount.Should().Be(1);
-        result.TimedOutCount.Should().Be(1);
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
 
         // Verify saga was marked as failed
         var updatedSaga = await persistence.GetByIdAsync(timedOutSaga.SagaId);
-        updatedSaga.Should().NotBeNull();
-        updatedSaga!.State.Should().Be(SagaState.Failed);
-        updatedSaga.Metadata.Should().ContainKey("CompensationTimedOut");
+        Assert.NotNull(updatedSaga);
+        Assert.Equal(SagaState.Failed, updatedSaga!.State);
+        Assert.True(updatedSaga.Metadata.ContainsKey("CompensationTimedOut"));
     }
 
     [Fact]
@@ -113,11 +112,11 @@ public class SagaTimeoutTests
         var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
 
         // Assert - Should timeout because 3 minutes > 2 minute custom timeout
-        result.CheckedCount.Should().Be(1);
-        result.TimedOutCount.Should().Be(1);
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
 
         var updatedSaga = await persistence.GetByIdAsync(sagaWithCustomTimeout.SagaId);
-        updatedSaga!.State.Should().Be(SagaState.Compensating);
+        Assert.Equal(SagaState.Compensating, updatedSaga!.State);
     }
 
     [Fact]
@@ -136,8 +135,8 @@ public class SagaTimeoutTests
         var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
 
         // Assert
-        result.CheckedCount.Should().Be(0);
-        result.TimedOutCount.Should().Be(0);
+        Assert.Equal(0, result.CheckedCount);
+        Assert.Equal(0, result.TimedOutCount);
     }
 
     [Fact]
@@ -163,8 +162,8 @@ public class SagaTimeoutTests
         var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
 
         // Assert - Should timeout because 2 minutes > 1 minute interface timeout
-        result.CheckedCount.Should().Be(1);
-        result.TimedOutCount.Should().Be(1);
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
     }
 
     [Fact]
@@ -191,8 +190,8 @@ public class SagaTimeoutTests
         var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
 
         // Assert
-        result.CheckedCount.Should().Be(5);
-        result.TimedOutCount.Should().Be(5);
+        Assert.Equal(5, result.CheckedCount);
+        Assert.Equal(5, result.TimedOutCount);
     }
 
     [Fact]
@@ -213,11 +212,11 @@ public class SagaTimeoutTests
         cts.Cancel();
 
         // Act & Assert - Should not throw, just stop processing
-        var action = async () => await handler.CheckAndHandleTimeoutsAsync(
+        var exception = await Record.ExceptionAsync(async () => await handler.CheckAndHandleTimeoutsAsync(
             TimeSpan.FromMinutes(5),
-            cts.Token);
+            cts.Token));
 
-        await action.Should().NotThrowAsync();
+        Assert.Null(exception);
     }
 
     // Test helper class

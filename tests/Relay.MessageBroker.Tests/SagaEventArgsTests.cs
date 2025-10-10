@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Saga;
 using Xunit;
 
@@ -27,11 +26,11 @@ public class SagaEventArgsTests
         };
 
         // Assert
-        eventArgs.SagaId.Should().Be(sagaId);
-        eventArgs.CorrelationId.Should().Be(correlationId);
-        eventArgs.StepsExecuted.Should().Be(stepsExecuted);
-        eventArgs.Duration.Should().Be(duration);
-        eventArgs.CompletedAt.Should().Be(completedAt);
+        Assert.Equal(sagaId, eventArgs.SagaId);
+        Assert.Equal(correlationId, eventArgs.CorrelationId);
+        Assert.Equal(stepsExecuted, eventArgs.StepsExecuted);
+        Assert.Equal(duration, eventArgs.Duration);
+        Assert.Equal(completedAt, eventArgs.CompletedAt);
     }
 
     [Fact]
@@ -57,12 +56,12 @@ public class SagaEventArgsTests
         };
 
         // Assert
-        eventArgs.SagaId.Should().Be(sagaId);
-        eventArgs.CorrelationId.Should().Be(correlationId);
-        eventArgs.FailedStep.Should().Be(failedStep);
-        eventArgs.Exception.Should().Be(exception);
-        eventArgs.FailedAt.Should().Be(failedAt);
-        eventArgs.StepsExecutedBeforeFailure.Should().Be(stepsExecuted);
+        Assert.Equal(sagaId, eventArgs.SagaId);
+        Assert.Equal(correlationId, eventArgs.CorrelationId);
+        Assert.Equal(failedStep, eventArgs.FailedStep);
+        Assert.Equal(exception, eventArgs.Exception);
+        Assert.Equal(failedAt, eventArgs.FailedAt);
+        Assert.Equal(stepsExecuted, eventArgs.StepsExecutedBeforeFailure);
     }
 
     [Fact]
@@ -88,12 +87,12 @@ public class SagaEventArgsTests
         };
 
         // Assert
-        eventArgs.SagaId.Should().Be(sagaId);
-        eventArgs.CorrelationId.Should().Be(correlationId);
-        eventArgs.CompensationSucceeded.Should().BeTrue();
-        eventArgs.StepsCompensated.Should().Be(stepsCompensated);
-        eventArgs.CompensatedAt.Should().Be(compensatedAt);
-        eventArgs.OriginalException.Should().Be(originalException);
+        Assert.Equal(sagaId, eventArgs.SagaId);
+        Assert.Equal(correlationId, eventArgs.CorrelationId);
+        Assert.True(eventArgs.CompensationSucceeded);
+        Assert.Equal(stepsCompensated, eventArgs.StepsCompensated);
+        Assert.Equal(compensatedAt, eventArgs.CompensatedAt);
+        Assert.Equal(originalException, eventArgs.OriginalException);
     }
 
     [Fact]
@@ -103,11 +102,11 @@ public class SagaEventArgsTests
         var eventArgs = new SagaCompletedEventArgs();
 
         // Assert
-        eventArgs.SagaId.Should().Be(Guid.Empty);
-        eventArgs.CorrelationId.Should().BeEmpty();
-        eventArgs.StepsExecuted.Should().Be(0);
-        eventArgs.Duration.Should().Be(TimeSpan.Zero);
-        eventArgs.CompletedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
+        Assert.Equal(Guid.Empty, eventArgs.SagaId);
+        Assert.Empty(eventArgs.CorrelationId);
+        Assert.Equal(0, eventArgs.StepsExecuted);
+        Assert.Equal(TimeSpan.Zero, eventArgs.Duration);
+        Assert.True((eventArgs.CompletedAt - DateTimeOffset.UtcNow).Duration() <= TimeSpan.FromSeconds(5));
     }
 
     [Fact]
@@ -117,12 +116,12 @@ public class SagaEventArgsTests
         var eventArgs = new SagaFailedEventArgs();
 
         // Assert
-        eventArgs.SagaId.Should().Be(Guid.Empty);
-        eventArgs.CorrelationId.Should().BeEmpty();
-        eventArgs.FailedStep.Should().BeEmpty();
-        eventArgs.Exception.Should().BeNull();
-        eventArgs.FailedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
-        eventArgs.StepsExecutedBeforeFailure.Should().Be(0);
+        Assert.Equal(Guid.Empty, eventArgs.SagaId);
+        Assert.Empty(eventArgs.CorrelationId);
+        Assert.Empty(eventArgs.FailedStep);
+        Assert.Null(eventArgs.Exception);
+        Assert.True((eventArgs.FailedAt - DateTimeOffset.UtcNow).Duration() <= TimeSpan.FromSeconds(5));
+        Assert.Equal(0, eventArgs.StepsExecutedBeforeFailure);
     }
 
     [Fact]
@@ -132,12 +131,12 @@ public class SagaEventArgsTests
         var eventArgs = new SagaCompensatedEventArgs();
 
         // Assert
-        eventArgs.SagaId.Should().Be(Guid.Empty);
-        eventArgs.CorrelationId.Should().BeEmpty();
-        eventArgs.CompensationSucceeded.Should().BeFalse();
-        eventArgs.StepsCompensated.Should().Be(0);
-        eventArgs.CompensatedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(5));
-        eventArgs.OriginalException.Should().BeNull();
+        Assert.Equal(Guid.Empty, eventArgs.SagaId);
+        Assert.Empty(eventArgs.CorrelationId);
+        Assert.False(eventArgs.CompensationSucceeded);
+        Assert.Equal(0, eventArgs.StepsCompensated);
+        Assert.True((eventArgs.CompensatedAt - DateTimeOffset.UtcNow).Duration() <= TimeSpan.FromSeconds(5));
+        Assert.Null(eventArgs.OriginalException);
     }
 
     [Fact]
@@ -153,7 +152,7 @@ public class SagaEventArgsTests
         };
 
         // Assert
-        eventArgs.Exception.Should().BeNull();
+        Assert.Null(eventArgs.Exception);
     }
 
     [Fact]
@@ -169,6 +168,6 @@ public class SagaEventArgsTests
         };
 
         // Assert
-        eventArgs.OriginalException.Should().BeNull();
+        Assert.Null(eventArgs.OriginalException);
     }
 }

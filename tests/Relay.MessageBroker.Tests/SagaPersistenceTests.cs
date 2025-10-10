@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Saga;
 using Relay.MessageBroker.Saga.Persistence;
 using Xunit;
@@ -26,12 +25,12 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByIdAsync(data.SagaId);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.SagaId.Should().Be(data.SagaId);
-        retrieved.CorrelationId.Should().Be(data.CorrelationId);
-        retrieved.OrderId.Should().Be(data.OrderId);
-        retrieved.Amount.Should().Be(data.Amount);
-        retrieved.State.Should().Be(data.State);
+        Assert.NotNull(retrieved);
+        Assert.Equal(data.SagaId, retrieved!.SagaId);
+        Assert.Equal(data.CorrelationId, retrieved.CorrelationId);
+        Assert.Equal(data.OrderId, retrieved.OrderId);
+        Assert.Equal(data.Amount, retrieved.Amount);
+        Assert.Equal(data.State, retrieved.State);
     }
 
     [Fact]
@@ -52,9 +51,9 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByCorrelationIdAsync("CORR-002");
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.SagaId.Should().Be(data.SagaId);
-        retrieved.CorrelationId.Should().Be("CORR-002");
+        Assert.NotNull(retrieved);
+        Assert.Equal(data.SagaId, retrieved!.SagaId);
+        Assert.Equal("CORR-002", retrieved.CorrelationId);
     }
 
     [Fact]
@@ -88,9 +87,9 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByIdAsync(sagaId);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Amount.Should().Be(150m);
-        retrieved.State.Should().Be(SagaState.Completed);
+        Assert.NotNull(retrieved);
+        Assert.Equal(150m, retrieved!.Amount);
+        Assert.Equal(SagaState.Completed, retrieved.State);
     }
 
     [Fact]
@@ -112,7 +111,7 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByIdAsync(data.SagaId);
 
         // Assert
-        retrieved.Should().BeNull();
+        Assert.Null(retrieved);
     }
 
     [Fact]
@@ -154,10 +153,10 @@ public class SagaPersistenceTests
         }
 
         // Assert
-        activeSagas.Should().HaveCount(2);
-        activeSagas.Should().Contain(s => s.State == SagaState.Running);
-        activeSagas.Should().Contain(s => s.State == SagaState.Compensating);
-        activeSagas.Should().NotContain(s => s.State == SagaState.Completed);
+        Assert.Equal(2, activeSagas.Count);
+        Assert.Contains(activeSagas, s => s.State == SagaState.Running);
+        Assert.Contains(activeSagas, s => s.State == SagaState.Compensating);
+        Assert.DoesNotContain(activeSagas, s => s.State == SagaState.Completed);
     }
 
     [Fact]
@@ -200,8 +199,8 @@ public class SagaPersistenceTests
         }
 
         // Assert
-        completedSagas.Should().HaveCount(3);
-        failedSagas.Should().HaveCount(2);
+        Assert.Equal(3, completedSagas.Count);
+        Assert.Equal(2, failedSagas.Count);
     }
 
     [Fact]
@@ -225,10 +224,10 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByIdAsync(data.SagaId);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.SagaId.Should().Be(data.SagaId);
-        retrieved.OrderId.Should().Be(data.OrderId);
-        retrieved.Amount.Should().Be(data.Amount);
+        Assert.NotNull(retrieved);
+        Assert.Equal(data.SagaId, retrieved!.SagaId);
+        Assert.Equal(data.OrderId, retrieved.OrderId);
+        Assert.Equal(data.Amount, retrieved.Amount);
     }
 
     [Fact]
@@ -258,9 +257,9 @@ public class SagaPersistenceTests
         var entity = dbContext.Sagas.FirstOrDefault(s => s.SagaId == sagaId);
 
         // Assert
-        entity.Should().NotBeNull();
-        entity!.Version.Should().Be(2);
-        entity.State.Should().Be(SagaState.Completed);
+        Assert.NotNull(entity);
+        Assert.Equal(2, entity!.Version);
+        Assert.Equal(SagaState.Completed, entity.State);
     }
 
     [Fact]
@@ -299,7 +298,7 @@ public class SagaPersistenceTests
         }
 
         // Assert
-        activeSagas.Should().HaveCount(2);
+        Assert.Equal(2, activeSagas.Count);
     }
 
     [Fact]
@@ -322,7 +321,7 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByIdAsync(sagaId);
 
         // Assert
-        retrieved.Should().BeNull();
+        Assert.Null(retrieved);
     }
 
     [Fact]
@@ -349,11 +348,11 @@ public class SagaPersistenceTests
         var restored = await persistence.GetByIdAsync(data.SagaId);
 
         // Assert
-        restored.Should().NotBeNull();
-        restored!.State.Should().Be(SagaState.Compensated);
-        restored.CurrentStep.Should().Be(1);
-        restored.ReserveInventoryExecuted.Should().BeTrue();
-        restored.ReserveInventoryCompensated.Should().BeTrue();
+        Assert.NotNull(restored);
+        Assert.Equal(SagaState.Compensated, restored!.State);
+        Assert.Equal(1, restored.CurrentStep);
+        Assert.True(restored.ReserveInventoryExecuted);
+        Assert.True(restored.ReserveInventoryCompensated);
     }
 
     [Fact]
@@ -381,16 +380,16 @@ public class SagaPersistenceTests
 
         // Act - Resume from step 2
         var restored = await persistence.GetByIdAsync(data.SagaId);
-        restored.Should().NotBeNull();
+        Assert.NotNull(restored);
         
         var result = await saga.ExecuteAsync(restored!);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Data.State.Should().Be(SagaState.Completed);
-        result.Data.ReserveInventoryExecuted.Should().BeTrue(); // Was already done
-        result.Data.ProcessPaymentExecuted.Should().BeTrue(); // Done in this run
-        result.Data.ShipOrderExecuted.Should().BeTrue(); // Done in this run
+        Assert.True(result.IsSuccess);
+        Assert.Equal(SagaState.Completed, result.Data.State);
+        Assert.True(result.Data.ReserveInventoryExecuted); // Was already done
+        Assert.True(result.Data.ProcessPaymentExecuted); // Done in this run
+        Assert.True(result.Data.ShipOrderExecuted); // Done in this run
     }
 
     [Fact]
@@ -415,10 +414,10 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByIdAsync(data.SagaId);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Metadata.Should().ContainKey("userId");
-        retrieved.Metadata.Should().ContainKey("ipAddress");
-        retrieved.Metadata.Should().ContainKey("timestamp");
+        Assert.NotNull(retrieved);
+        Assert.True(retrieved!.Metadata.ContainsKey("userId"));
+        Assert.True(retrieved.Metadata.ContainsKey("ipAddress"));
+        Assert.True(retrieved.Metadata.ContainsKey("timestamp"));
     }
 
     [Fact]
@@ -431,7 +430,7 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByCorrelationIdAsync("NON-EXISTENT-CORR-ID");
 
         // Assert
-        retrieved.Should().BeNull();
+        Assert.Null(retrieved);
     }
 
     [Fact]
@@ -441,11 +440,8 @@ public class SagaPersistenceTests
         var persistence = new InMemorySagaPersistence<OrderSagaData>();
         var sagaId = Guid.NewGuid();
 
-        // Act
-        var action = async () => await persistence.DeleteAsync(sagaId);
-
-        // Assert
-        await action.Should().NotThrowAsync();
+        // Act & Assert
+        await persistence.DeleteAsync(sagaId); // Should not throw
     }
 
     [Fact]
@@ -459,7 +455,7 @@ public class SagaPersistenceTests
         var retrieved = await persistence.GetByCorrelationIdAsync("NON-EXISTENT-CORR-ID");
 
         // Assert
-        retrieved.Should().BeNull();
+        Assert.Null(retrieved);
     }
 
     [Fact]
@@ -470,11 +466,8 @@ public class SagaPersistenceTests
         var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
         var sagaId = Guid.NewGuid();
 
-        // Act
-        var action = async () => await persistence.DeleteAsync(sagaId);
-
-        // Assert
-        await action.Should().NotThrowAsync();
+        // Act & Assert
+        await persistence.DeleteAsync(sagaId); // Should not throw
     }
 
     [Fact]
@@ -493,7 +486,7 @@ public class SagaPersistenceTests
         }
 
         // Assert
-        activeSagas.Should().BeEmpty();
+        Assert.Empty(activeSagas);
     }
 
     [Fact]
@@ -513,6 +506,6 @@ public class SagaPersistenceTests
         }
 
         // Assert
-        activeSagas.Should().BeEmpty();
+        Assert.Empty(activeSagas);
     }
 }

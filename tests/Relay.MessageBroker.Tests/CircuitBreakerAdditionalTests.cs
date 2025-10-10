@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.CircuitBreaker;
 using Xunit;
 
@@ -16,9 +15,9 @@ public class CircuitBreakerExceptionTests
         var exception = new CircuitBreakerOpenException(message);
 
         // Assert
-        exception.Should().NotBeNull();
-        exception.Message.Should().Be(message);
-        exception.InnerException.Should().BeNull();
+        Assert.NotNull(exception);
+        Assert.Equal(message, exception.Message);
+        Assert.Null(exception.InnerException);
     }
 
     [Fact]
@@ -32,9 +31,9 @@ public class CircuitBreakerExceptionTests
         var exception = new CircuitBreakerOpenException(message, innerException);
 
         // Assert
-        exception.Should().NotBeNull();
-        exception.Message.Should().Be(message);
-        exception.InnerException.Should().Be(innerException);
+        Assert.NotNull(exception);
+        Assert.Equal(message, exception.Message);
+        Assert.Equal(innerException, exception.InnerException);
     }
 
     [Fact]
@@ -44,11 +43,11 @@ public class CircuitBreakerExceptionTests
         var message = "Circuit breaker is open";
 
         // Act
-        Action act = () => throw new CircuitBreakerOpenException(message);
+        void ThrowException() => throw new CircuitBreakerOpenException(message);
 
         // Assert
-        act.Should().Throw<CircuitBreakerOpenException>()
-            .WithMessage(message);
+        var exception = Assert.Throws<CircuitBreakerOpenException>(ThrowException);
+        Assert.Equal(message, exception.Message);
     }
 
     [Fact]
@@ -69,9 +68,9 @@ public class CircuitBreakerExceptionTests
         }
 
         // Assert
-        caughtException.Should().NotBeNull();
-        caughtException.Should().BeOfType<CircuitBreakerOpenException>();
-        caughtException!.Message.Should().Be(message);
+        Assert.NotNull(caughtException);
+        Assert.IsType<CircuitBreakerOpenException>(caughtException);
+        Assert.Equal(message, caughtException!.Message);
     }
 
     [Fact]
@@ -85,8 +84,8 @@ public class CircuitBreakerExceptionTests
         var exception = new CircuitBreakerOpenException(message, innerException);
 
         // Assert
-        exception.InnerException.Should().Be(innerException);
-        exception.InnerException.Message.Should().Be("Inner error");
+        Assert.Equal(innerException, exception.InnerException);
+        Assert.Equal("Inner error", exception.InnerException.Message);
     }
 
     [Fact]
@@ -125,8 +124,8 @@ public class CircuitBreakerExceptionTests
             return "Success";
         });
 
-        await act.Should().ThrowAsync<CircuitBreakerOpenException>()
-            .WithMessage("*Circuit breaker is open*");
+        var exception = await Assert.ThrowsAsync<CircuitBreakerOpenException>(act);
+        Assert.Contains("Circuit breaker is open", exception.Message);
     }
 
     [Fact]
@@ -136,7 +135,7 @@ public class CircuitBreakerExceptionTests
         var exception = new CircuitBreakerOpenException(null!);
 
         // Assert
-        exception.Should().NotBeNull();
+        Assert.NotNull(exception);
     }
 
     [Fact]
@@ -146,8 +145,8 @@ public class CircuitBreakerExceptionTests
         var exception = new CircuitBreakerOpenException(string.Empty);
 
         // Assert
-        exception.Should().NotBeNull();
-        exception.Message.Should().Be(string.Empty);
+        Assert.NotNull(exception);
+        Assert.Equal(string.Empty, exception.Message);
     }
 }
 
@@ -160,10 +159,10 @@ public class CircuitBreakerMetricsTests
         var metrics = new CircuitBreakerMetrics();
 
         // Assert
-        metrics.TotalCalls.Should().Be(0);
-        metrics.SuccessfulCalls.Should().Be(0);
-        metrics.FailedCalls.Should().Be(0);
-        metrics.SlowCalls.Should().Be(0);
+        Assert.Equal(0, metrics.TotalCalls);
+        Assert.Equal(0, metrics.SuccessfulCalls);
+        Assert.Equal(0, metrics.FailedCalls);
+        Assert.Equal(0, metrics.SlowCalls);
     }
 
     [Fact]
@@ -179,16 +178,16 @@ public class CircuitBreakerMetricsTests
         };
 
         // Assert
-        metrics.TotalCalls.Should().Be(100);
-        metrics.SuccessfulCalls.Should().Be(80);
-        metrics.FailedCalls.Should().Be(20);
-        metrics.SlowCalls.Should().Be(10);
+        Assert.Equal(100, metrics.TotalCalls);
+        Assert.Equal(80, metrics.SuccessfulCalls);
+        Assert.Equal(20, metrics.FailedCalls);
+        Assert.Equal(10, metrics.SlowCalls);
         
         // Calculate rates manually
         var successRate = metrics.TotalCalls > 0 ? (double)metrics.SuccessfulCalls / metrics.TotalCalls : 0;
         var failureRate = metrics.TotalCalls > 0 ? (double)metrics.FailedCalls / metrics.TotalCalls : 0;
-        successRate.Should().Be(0.8);
-        failureRate.Should().Be(0.2);
+        Assert.Equal(0.8, successRate);
+        Assert.Equal(0.2, failureRate);
     }
 
     [Fact]
@@ -230,9 +229,9 @@ public class CircuitBreakerMetricsTests
 
         // Assert
         var metrics = circuitBreaker.Metrics;
-        metrics.TotalCalls.Should().Be(5);
-        metrics.SuccessfulCalls.Should().Be(3);
-        metrics.FailedCalls.Should().Be(2);
+        Assert.Equal(5, metrics.TotalCalls);
+        Assert.Equal(3, metrics.SuccessfulCalls);
+        Assert.Equal(2, metrics.FailedCalls);
     }
 }
 
@@ -274,7 +273,7 @@ public class CircuitBreakerAdditionalTests
         circuitBreaker.Reset();
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
     }
 
     [Fact]
@@ -291,7 +290,7 @@ public class CircuitBreakerAdditionalTests
         circuitBreaker.Isolate();
 
         // Assert - Isolate should set circuit to Open state
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Open);
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
     }
 
     [Fact]
@@ -322,16 +321,13 @@ public class CircuitBreakerAdditionalTests
         }
 
         // Assert
-        circuitBreaker.State.Should().Be(CircuitBreakerState.Closed);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
     }
 
     [Fact]
     public void CircuitBreakerOptions_Constructor_WithNull_ShouldThrow()
     {
-        // Act
-        Action act = () => new CircuitBreaker.CircuitBreaker(null!);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new CircuitBreaker.CircuitBreaker(null!));
     }
 }

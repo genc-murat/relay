@@ -1,4 +1,3 @@
-using FluentAssertions;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using Relay.Core.Telemetry;
@@ -20,7 +19,7 @@ public class OpenTelemetryIntegrationTests
         var activitySource = new ActivitySource(ActivitySourceName);
 
         // Assert
-        activitySource.Name.Should().Be(ActivitySourceName);
+        Assert.Equal(ActivitySourceName, activitySource.Name);
     }
 
     [Fact]
@@ -36,9 +35,9 @@ public class OpenTelemetryIntegrationTests
         using var activity = activitySource.StartActivity("TestOperation");
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.DisplayName.Should().Be("TestOperation");
-        activity.Source.Name.Should().Be(ActivitySourceName);
+        Assert.NotNull(activity);
+        Assert.Equal("TestOperation", activity!.DisplayName);
+        Assert.Equal(ActivitySourceName, activity.Source.Name);
     }
 
     [Fact]
@@ -56,8 +55,8 @@ public class OpenTelemetryIntegrationTests
             ActivityKind.Producer);
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.Kind.Should().Be(ActivityKind.Producer);
+        Assert.NotNull(activity);
+        Assert.Equal(ActivityKind.Producer, activity!.Kind);
     }
 
     [Fact]
@@ -76,17 +75,17 @@ public class OpenTelemetryIntegrationTests
         // Act & Assert
         using (var activity = activitySource.StartActivity("TestOperation"))
         {
-            activity.Should().NotBeNull();
+            Assert.NotNull(activity);
             activity!.SetTag("message.type", "TestMessage");
             activity.SetTag("message.size", 1024);
             activity.SetTag("broker.name", "RabbitMQ");
             
             // Verify string tags appear in Tags collection
-            activity.Tags.Should().Contain(tag => tag.Key == "message.type" && tag.Value == "TestMessage");
-            activity.Tags.Should().Contain(tag => tag.Key == "broker.name" && tag.Value == "RabbitMQ");
+            Assert.Contains(activity.Tags, tag => tag.Key == "message.type" && tag.Value == "TestMessage");
+            Assert.Contains(activity.Tags, tag => tag.Key == "broker.name" && tag.Value == "RabbitMQ");
             
             // Verify integer tag is accessible via GetTagItem (not in Tags collection)
-            activity.GetTagItem("message.size").Should().Be(1024);
+            Assert.Equal(1024, activity.GetTagItem("message.size"));
         }
     }
 
@@ -105,10 +104,10 @@ public class OpenTelemetryIntegrationTests
         activity?.AddEvent(new ActivityEvent("MessageProcessed"));
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.Events.Should().HaveCount(2);
-        activity.Events.Should().Contain(e => e.Name == "MessageReceived");
-        activity.Events.Should().Contain(e => e.Name == "MessageProcessed");
+        Assert.NotNull(activity);
+        Assert.Equal(2, activity!.Events.Count());
+        Assert.Contains(activity.Events, e => e.Name == "MessageReceived");
+        Assert.Contains(activity.Events, e => e.Name == "MessageProcessed");
     }
 
     [Fact]
@@ -126,9 +125,9 @@ public class OpenTelemetryIntegrationTests
         activity?.SetBaggage("user.id", "user-456");
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.GetBaggageItem("tenant.id").Should().Be("tenant-123");
-        activity.GetBaggageItem("user.id").Should().Be("user-456");
+        Assert.NotNull(activity);
+        Assert.Equal("tenant-123", activity!.GetBaggageItem("tenant.id"));
+        Assert.Equal("user-456", activity.GetBaggageItem("user.id"));
     }
 
     [Fact]
@@ -146,8 +145,8 @@ public class OpenTelemetryIntegrationTests
         activity?.Stop(); // Stop the activity to record duration
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.Duration.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(90));
+        Assert.NotNull(activity);
+        Assert.True(activity!.Duration >= TimeSpan.FromMilliseconds(90));
     }
 
     [Fact]
@@ -167,9 +166,9 @@ public class OpenTelemetryIntegrationTests
         activity?.RecordException(exception);
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.Status.Should().Be(ActivityStatusCode.Error);
-        activity.StatusDescription.Should().Be("Test error");
+        Assert.NotNull(activity);
+        Assert.Equal(ActivityStatusCode.Error, activity!.Status);
+        Assert.Equal("Test error", activity.StatusDescription);
     }
 
     [Fact]
@@ -189,9 +188,9 @@ public class OpenTelemetryIntegrationTests
         var childParentId = childActivity?.ParentId;
 
         // Assert
-        parentActivity.Should().NotBeNull();
-        childActivity.Should().NotBeNull();
-        childParentId.Should().Be(parentId);
+        Assert.NotNull(parentActivity);
+        Assert.NotNull(childActivity);
+        Assert.Equal(parentId, childParentId);
     }
 
     [Fact]
@@ -215,9 +214,9 @@ public class OpenTelemetryIntegrationTests
             links: links);
 
         // Assert
-        activity2.Should().NotBeNull();
-        activity2!.Links.Should().HaveCount(1);
-        activity2.Links.First().Context.Should().Be(activityContext1);
+        Assert.NotNull(activity2);
+        Assert.Single(activity2!.Links);
+        Assert.Equal(activityContext1, activity2.Links.First().Context);
     }
 
     [Fact]
@@ -236,13 +235,13 @@ public class OpenTelemetryIntegrationTests
         };
 
         // Assert
-        options.Enabled.Should().BeTrue();
-        options.ServiceName.Should().Be("TestService");
-        options.ServiceVersion.Should().Be("1.0.0");
-        options.TracePublish.Should().BeTrue();
-        options.TraceConsume.Should().BeTrue();
-        options.RecordMessagePayload.Should().BeFalse();
-        options.MaxPayloadSize.Should().Be(1024);
+        Assert.True(options.Enabled);
+        Assert.Equal("TestService", options.ServiceName);
+        Assert.Equal("1.0.0", options.ServiceVersion);
+        Assert.True(options.TracePublish);
+        Assert.True(options.TraceConsume);
+        Assert.False(options.RecordMessagePayload);
+        Assert.Equal(1024, options.MaxPayloadSize);
     }
 
     [Fact]
@@ -266,9 +265,9 @@ public class OpenTelemetryIntegrationTests
         await Task.Delay(10); // Simulate publish
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.Kind.Should().Be(ActivityKind.Producer);
-        activity.Tags.Should().Contain(t => t.Key == "messaging.system");
+        Assert.NotNull(activity);
+        Assert.Equal(ActivityKind.Producer, activity!.Kind);
+        Assert.Contains(activity.Tags, t => t.Key == "messaging.system");
     }
 
     [Fact]
@@ -292,9 +291,9 @@ public class OpenTelemetryIntegrationTests
         await Task.Delay(10); // Simulate consume
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.Kind.Should().Be(ActivityKind.Consumer);
-        activity.Tags.Should().Contain(t => t.Key == "messaging.system");
+        Assert.NotNull(activity);
+        Assert.Equal(ActivityKind.Consumer, activity!.Kind);
+        Assert.Contains(activity.Tags, t => t.Key == "messaging.system");
     }
 
     [Fact]
@@ -326,10 +325,10 @@ public class OpenTelemetryIntegrationTests
             parentContext);
 
         // Assert
-        publishActivity.Should().NotBeNull();
-        consumeActivity.Should().NotBeNull();
-        consumeActivity!.TraceId.Should().Be(traceId);
-        consumeActivity.ParentSpanId.Should().Be(spanId);
+        Assert.NotNull(publishActivity);
+        Assert.NotNull(consumeActivity);
+        Assert.Equal(traceId, consumeActivity!.TraceId);
+        Assert.Equal(spanId, consumeActivity.ParentSpanId);
     }
 
     [Fact]
@@ -361,7 +360,7 @@ public class OpenTelemetryIntegrationTests
         if (exportedActivities.Any())
         {
             // If sampler allows, recorded flag should be true
-            exportedActivities.Should().AllSatisfy(a => a.Recorded.Should().BeTrue());
+            Assert.All(exportedActivities, a => Assert.True(a.Recorded));
         }
     }
 
@@ -389,7 +388,7 @@ public class OpenTelemetryIntegrationTests
         tracerProvider?.ForceFlush();
 
         // Assert
-        exportedActivities.Should().HaveCount(5);
+        Assert.Equal(5, exportedActivities.Count);
     }
 
     [Theory]
@@ -413,10 +412,10 @@ public class OpenTelemetryIntegrationTests
         activity?.SetTag("messaging.message_id", Guid.NewGuid().ToString());
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.Tags.Should().Contain(t => t.Key == "messaging.system");
-        activity.Tags.Should().Contain(t => t.Key == "messaging.destination");
-        activity.Tags.Should().Contain(t => t.Key == "messaging.protocol");
+        Assert.NotNull(activity);
+        Assert.Contains(activity!.Tags, t => t.Key == "messaging.system");
+        Assert.Contains(activity.Tags, t => t.Key == "messaging.destination");
+        Assert.Contains(activity.Tags, t => t.Key == "messaging.protocol");
     }
 }
 

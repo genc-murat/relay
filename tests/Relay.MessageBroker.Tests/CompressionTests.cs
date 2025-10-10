@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Compression;
 using System.IO.Compression;
 using System.Text;
@@ -38,7 +37,7 @@ public class CompressionTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Theory]
@@ -61,11 +60,11 @@ public class CompressionTests
         var compressed = await compressor.CompressAsync(_testData);
 
         // Assert
-        compressed.Length.Should().BeLessThan(_testData.Length);
+        Assert.True(compressed.Length < _testData.Length);
         
         // Should achieve at least 50% compression for our test data
         var compressionRatio = (double)compressed.Length / _testData.Length;
-        compressionRatio.Should().BeLessThan(0.5);
+        Assert.True(compressionRatio < 0.5);
     }
 
     [Fact]
@@ -79,8 +78,8 @@ public class CompressionTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
-        compressed.Length.Should().BeLessThan(_testData.Length);
+        Assert.Equal(_testData, decompressed);
+        Assert.True(compressed.Length < _testData.Length);
     }
 
     [Fact]
@@ -94,8 +93,8 @@ public class CompressionTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
-        compressed.Length.Should().BeLessThan(_testData.Length);
+        Assert.Equal(_testData, decompressed);
+        Assert.True(compressed.Length < _testData.Length);
     }
 
     [Fact]
@@ -109,8 +108,8 @@ public class CompressionTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
-        compressed.Length.Should().BeLessThan(_testData.Length);
+        Assert.Equal(_testData, decompressed);
+        Assert.True(compressed.Length < _testData.Length);
     }
 
     [Fact]
@@ -127,8 +126,8 @@ public class CompressionTests
         var brotliCompressed = await brotliCompressor.CompressAsync(_testData);
 
         // Assert - Brotli should have the best compression ratio
-        brotliCompressed.Length.Should().BeLessThanOrEqualTo(gzipCompressed.Length);
-        brotliCompressed.Length.Should().BeLessThanOrEqualTo(deflateCompressed.Length);
+        Assert.True(brotliCompressed.Length <= gzipCompressed.Length);
+        Assert.True(brotliCompressed.Length <= deflateCompressed.Length);
     }
 
     [Fact]
@@ -143,7 +142,7 @@ public class CompressionTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEmpty();
+        Assert.Empty(decompressed);
     }
 
     [Fact]
@@ -158,7 +157,7 @@ public class CompressionTests
 
         // Assert - Small data might be larger after compression due to headers
         // This is expected behavior and why we have MinimumSizeForCompression option
-        compressed.Length.Should().BeGreaterThan(0);
+        Assert.True(compressed.Length > 0);
     }
 
     [Fact]
@@ -174,12 +173,12 @@ public class CompressionTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(largeData);
-        compressed.Length.Should().BeLessThan(largeData.Length);
+        Assert.Equal(largeData, decompressed);
+        Assert.True(compressed.Length < largeData.Length);
         
         // Highly repetitive data should compress extremely well
         var compressionRatio = (double)compressed.Length / largeData.Length;
-        compressionRatio.Should().BeLessThan(0.01); // Less than 1%
+        Assert.True(compressionRatio < 0.01); // Less than 1%
     }
 
     [Fact]
@@ -198,7 +197,7 @@ public class CompressionTests
         var shouldCompress = smallData.Length >= options.MinimumSizeBytes;
 
         // Assert
-        shouldCompress.Should().BeFalse();
+        Assert.False(shouldCompress);
     }
 
     [Fact]
@@ -217,7 +216,7 @@ public class CompressionTests
         var shouldCompress = largeData.Length >= options.MinimumSizeBytes;
 
         // Assert
-        shouldCompress.Should().BeTrue();
+        Assert.True(shouldCompress);
     }
 
     [Theory]
@@ -234,7 +233,7 @@ public class CompressionTests
         var decompressed = await compressor.DecompressAsync(compressed);
 
         // Assert
-        decompressed.Should().BeEquivalentTo(_testData);
+        Assert.Equal(_testData, decompressed);
     }
 
     [Fact]
@@ -244,11 +243,9 @@ public class CompressionTests
         var compressor = new GZipCompressor();
         var invalidData = Encoding.UTF8.GetBytes("This is not compressed data");
 
-        // Act
-        Func<Task> act = async () => await compressor.DecompressAsync(invalidData);
-
-        // Assert
-        await act.Should().ThrowAsync<Exception>();
+        // Act & Assert
+        // Accept any exception type since decompression can throw various exceptions
+        await Assert.ThrowsAnyAsync<Exception>(async () => await compressor.DecompressAsync(invalidData));
     }
 
     [Fact]
@@ -257,11 +254,8 @@ public class CompressionTests
         // Arrange
         var compressor = new GZipCompressor();
 
-        // Act
-        Func<Task> act = async () => await compressor.CompressAsync(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await compressor.CompressAsync(null!));
     }
 
     [Fact]
@@ -270,11 +264,8 @@ public class CompressionTests
         // Arrange
         var compressor = new GZipCompressor();
 
-        // Act
-        Func<Task> act = async () => await compressor.DecompressAsync(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await compressor.DecompressAsync(null!));
     }
 
     [Fact]
@@ -284,10 +275,10 @@ public class CompressionTests
         var options = new CompressionOptions();
 
         // Assert
-        options.Enabled.Should().BeFalse();
-        options.Algorithm.Should().Be(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip);
-        options.MinimumSizeBytes.Should().Be(1024);
-        options.Level.Should().Be(6);
+        Assert.False(options.Enabled);
+        Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip, options.Algorithm);
+        Assert.Equal(1024, options.MinimumSizeBytes);
+        Assert.Equal(6, options.Level);
     }
 
     [Fact]
@@ -308,8 +299,8 @@ public class CompressionTests
         sw.Stop();
 
         // Assert - Should compress 100KB in less than 1 second
-        sw.ElapsedMilliseconds.Should().BeLessThan(1000);
-        compressed.Length.Should().BeLessThan(largeData.Length);
+        Assert.True(sw.ElapsedMilliseconds < 1000);
+        Assert.True(compressed.Length < largeData.Length);
     }
 
     private Relay.MessageBroker.Compression.IMessageCompressor CreateCompressor(Relay.Core.Caching.Compression.CompressionAlgorithm algorithm)

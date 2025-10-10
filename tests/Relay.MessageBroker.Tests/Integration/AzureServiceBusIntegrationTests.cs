@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -60,7 +59,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
         await broker.StartAsync(CancellationToken.None);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
 
         // Cleanup
         await broker.StopAsync(CancellationToken.None);
@@ -88,7 +87,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
         await broker.PublishAsync(message, publishOptions, CancellationToken.None);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
 
         // Cleanup
         await broker.StopAsync(CancellationToken.None);
@@ -125,8 +124,8 @@ public class AzureServiceBusIntegrationTests : IDisposable
         stopwatch.Stop();
 
         // Assert
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(5000); // Should complete within 5 seconds
-        broker.Should().NotBeNull();
+        Assert.True(stopwatch.ElapsedMilliseconds < 5000); // Should complete within 5 seconds
+        Assert.NotNull(broker);
 
         // Cleanup
         await broker.StopAsync(CancellationToken.None);
@@ -155,7 +154,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
         await broker.PublishAsync(message, publishOptions, CancellationToken.None);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
 
         // Cleanup
         await broker.StopAsync(CancellationToken.None);
@@ -190,7 +189,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
         var testMessage = new TestMessage { Id = "fail-123", Content = "This will fail" };
         
         // Verify the subscription was set up correctly
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
 
         // Cleanup
         await broker.StopAsync(CancellationToken.None);
@@ -235,7 +234,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
             .ToList();
 
         // Verify the subscription was set up correctly
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
 
         // Cleanup
         await broker.StopAsync(CancellationToken.None);
@@ -263,7 +262,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
         await broker.PublishAsync(message, publishOptions, CancellationToken.None);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
 
         // Cleanup
         await broker.StopAsync(CancellationToken.None);
@@ -303,8 +302,8 @@ public class AzureServiceBusIntegrationTests : IDisposable
         await Task.Delay(1000); // Allow time for processing
 
         // Assert
-        publishedMessages.Should().HaveCount(messageCount);
-        broker.Should().NotBeNull();
+        Assert.Equal(messageCount, publishedMessages.Count);
+        Assert.NotNull(broker);
 
         // Cleanup
         await broker.StopAsync(CancellationToken.None);
@@ -325,7 +324,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
             await broker.StopAsync(CancellationToken.None);
         }
 
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -339,7 +338,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
         await broker.StopAsync(CancellationToken.None);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     // Test message class

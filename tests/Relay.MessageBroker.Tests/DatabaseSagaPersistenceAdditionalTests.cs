@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Saga;
 using Relay.MessageBroker.Saga.Persistence;
 using Xunit;
@@ -10,12 +9,9 @@ public class DatabaseSagaPersistenceAdditionalTests
     [Fact]
     public void DatabaseSagaPersistence_Constructor_WithNullContext_ShouldThrowArgumentNullException()
     {
-        // Act
-        Action act = () => new DatabaseSagaPersistence<TestSagaData>(null!);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>()
-            .WithParameterName("dbContext");
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentNullException>(() => new DatabaseSagaPersistence<TestSagaData>(null!));
+        Assert.Equal("dbContext", exception.ParamName);
     }
 
     [Fact]
@@ -34,10 +30,10 @@ public class DatabaseSagaPersistenceAdditionalTests
         await persistence.SaveAsync(sagaData);
 
         // Assert
-        context.Sagas.Should().HaveCount(1);
+        Assert.Single(context.Sagas);
         var entity = context.Sagas.First();
-        entity.SagaId.Should().Be(sagaData.SagaId);
-        entity.State.Should().Be(SagaState.Running);
+        Assert.Equal(sagaData.SagaId, entity.SagaId);
+        Assert.Equal(SagaState.Running, entity.State);
     }
 
     [Fact]
@@ -60,10 +56,10 @@ public class DatabaseSagaPersistenceAdditionalTests
         await persistence.SaveAsync(sagaData);
 
         // Assert
-        context.Sagas.Should().HaveCount(1);
+        Assert.Single(context.Sagas);
         var entity = context.Sagas.First();
-        entity.State.Should().Be(SagaState.Completed);
-        entity.Version.Should().Be(2);
+        Assert.Equal(SagaState.Completed, entity.State);
+        Assert.Equal(2, entity.Version);
     }
 
     [Fact]
@@ -83,10 +79,10 @@ public class DatabaseSagaPersistenceAdditionalTests
         var result = await persistence.GetByIdAsync(originalData.SagaId);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.SagaId.Should().Be(originalData.SagaId);
-        result.Value.Should().Be(42);
-        result.State.Should().Be(SagaState.Running);
+        Assert.NotNull(result);
+        Assert.Equal(originalData.SagaId, result!.SagaId);
+        Assert.Equal(42, result.Value);
+        Assert.Equal(SagaState.Running, result.State);
     }
 
     [Fact]
@@ -100,7 +96,7 @@ public class DatabaseSagaPersistenceAdditionalTests
         var result = await persistence.GetByIdAsync(Guid.NewGuid());
 
         // Assert
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -121,9 +117,9 @@ public class DatabaseSagaPersistenceAdditionalTests
         var result = await persistence.GetByCorrelationIdAsync(correlationId);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.CorrelationId.Should().Be(correlationId);
-        result.Value.Should().Be(42);
+        Assert.NotNull(result);
+        Assert.Equal(correlationId, result!.CorrelationId);
+        Assert.Equal(42, result.Value);
     }
 
     [Fact]
@@ -139,7 +135,7 @@ public class DatabaseSagaPersistenceAdditionalTests
         await persistence.DeleteAsync(sagaData.SagaId);
 
         // Assert
-        context.Sagas.Should().BeEmpty();
+        Assert.Empty(context.Sagas);
     }
 
     [Fact]
@@ -149,13 +145,13 @@ public class DatabaseSagaPersistenceAdditionalTests
         var entity = new SagaEntityBase();
 
         // Assert - Just check that the entity can be created with default values
-        entity.Should().NotBeNull();
-        entity.CorrelationId.Should().NotBeNull();
-        entity.State.Should().Be(SagaState.NotStarted);
-        entity.CurrentStep.Should().Be(0);
-        entity.SagaType.Should().NotBeNull();
-        entity.DataJson.Should().NotBeNull();
-        entity.Version.Should().Be(0);
+        Assert.NotNull(entity);
+        Assert.NotNull(entity.CorrelationId);
+        Assert.Equal(SagaState.NotStarted, entity.State);
+        Assert.Equal(0, entity.CurrentStep);
+        Assert.NotNull(entity.SagaType);
+        Assert.NotNull(entity.DataJson);
+        Assert.Equal(0, entity.Version);
     }
 
     [Fact]
@@ -183,16 +179,16 @@ public class DatabaseSagaPersistenceAdditionalTests
         };
 
         // Assert
-        entity.SagaId.Should().Be(sagaId);
-        entity.CorrelationId.Should().Be(correlationId);
-        entity.State.Should().Be(SagaState.Completed);
-        entity.CurrentStep.Should().Be(3);
-        entity.SagaType.Should().Be("TestSaga");
-        entity.DataJson.Should().Be("{\"value\":42}");
-        entity.MetadataJson.Should().Be("{\"key\":\"value\"}");
-        entity.Version.Should().Be(5);
-        entity.CreatedAt.Should().Be(createdAt);
-        entity.UpdatedAt.Should().Be(updatedAt);
+        Assert.Equal(sagaId, entity.SagaId);
+        Assert.Equal(correlationId, entity.CorrelationId);
+        Assert.Equal(SagaState.Completed, entity.State);
+        Assert.Equal(3, entity.CurrentStep);
+        Assert.Equal("TestSaga", entity.SagaType);
+        Assert.Equal("{\"value\":42}", entity.DataJson);
+        Assert.Equal("{\"key\":\"value\"}", entity.MetadataJson);
+        Assert.Equal(5, entity.Version);
+        Assert.Equal(createdAt, entity.CreatedAt);
+        Assert.Equal(updatedAt, entity.UpdatedAt);
     }
 
     [Fact]
@@ -202,7 +198,7 @@ public class DatabaseSagaPersistenceAdditionalTests
         var context = new InMemorySagaDbContext();
 
         // Assert
-        context.Sagas.Should().NotBeNull();
+        Assert.NotNull(context.Sagas);
     }
 
     [Fact]
@@ -216,7 +212,7 @@ public class DatabaseSagaPersistenceAdditionalTests
         context.Add(entity);
 
         // Assert
-        context.Sagas.Should().Contain(entity);
+        Assert.Contains(entity, context.Sagas);
     }
 
     [Fact]
@@ -233,8 +229,8 @@ public class DatabaseSagaPersistenceAdditionalTests
 
         // Assert
         var found = context.Sagas.FirstOrDefault(s => s.SagaId == entity.SagaId);
-        found.Should().NotBeNull();
-        found!.State.Should().Be(SagaState.Completed);
+        Assert.NotNull(found);
+        Assert.Equal(SagaState.Completed, found!.State);
     }
 
     [Fact]
@@ -249,7 +245,7 @@ public class DatabaseSagaPersistenceAdditionalTests
         context.Remove(entity);
 
         // Assert
-        context.Sagas.Should().NotContain(entity);
+        Assert.DoesNotContain(entity, context.Sagas);
     }
 
     [Fact]
@@ -264,7 +260,7 @@ public class DatabaseSagaPersistenceAdditionalTests
         var result = await context.SaveChangesAsync();
 
         // Assert
-        result.Should().BeGreaterThanOrEqualTo(0);
+        Assert.True(result >= 0);
     }
 
     [Fact]
@@ -281,8 +277,8 @@ public class DatabaseSagaPersistenceAdditionalTests
         context.Remove(entity1);
 
         // Assert
-        context.Sagas.Should().HaveCount(1);
-        context.Sagas.Should().Contain(entity2);
-        context.Sagas.Should().NotContain(entity1);
+        Assert.Single(context.Sagas);
+        Assert.Contains(entity2, context.Sagas);
+        Assert.DoesNotContain(entity1, context.Sagas);
     }
 }

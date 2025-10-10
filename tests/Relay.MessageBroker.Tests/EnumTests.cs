@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker;
 using Relay.MessageBroker.CircuitBreaker;
 using Relay.MessageBroker.Compression;
@@ -36,7 +35,7 @@ public class MessageBrokerTypeTests
         var stringValue = brokerType.ToString();
         
         // Assert
-        stringValue.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(stringValue));
     }
 
     [Fact]
@@ -48,9 +47,9 @@ public class MessageBrokerTypeTests
         var parsed3 = Enum.Parse<MessageBrokerType>("Kafka");
         
         // Assert
-        parsed1.Should().Be(MessageBrokerType.InMemory);
-        parsed2.Should().Be(MessageBrokerType.RabbitMQ);
-        parsed3.Should().Be(MessageBrokerType.Kafka);
+        Assert.Equal(MessageBrokerType.InMemory, parsed1);
+        Assert.Equal(MessageBrokerType.RabbitMQ, parsed2);
+        Assert.Equal(MessageBrokerType.Kafka, parsed3);
     }
 }
 
@@ -77,7 +76,7 @@ public class CompressionAlgorithmTests
         var stringValue = algorithm.ToString();
         
         // Assert
-        stringValue.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(stringValue));
     }
 }
 
@@ -102,7 +101,7 @@ public class CircuitBreakerStateTests
         var stringValue = state.ToString();
         
         // Assert
-        stringValue.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(stringValue));
     }
 }
 
@@ -135,7 +134,7 @@ public class SagaStateTests
         var stringValue = state.ToString();
         
         // Assert
-        stringValue.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(stringValue));
     }
 
     [Fact]

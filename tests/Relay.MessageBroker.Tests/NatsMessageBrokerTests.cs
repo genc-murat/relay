@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -15,11 +14,8 @@ public class NatsMessageBrokerTests
     [Fact]
     public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
     {
-        // Arrange & Act
-        Action act = () => new NatsMessageBroker(null!, _loggerMock.Object);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new NatsMessageBroker(null!, _loggerMock.Object));
     }
 
     [Fact]
@@ -28,12 +24,9 @@ public class NatsMessageBrokerTests
         // Arrange
         var options = new MessageBrokerOptions();
 
-        // Act
-        Action act = () => new NatsMessageBroker(Options.Create(options), _loggerMock.Object);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("NATS options are required.");
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new NatsMessageBroker(Options.Create(options), _loggerMock.Object));
+        Assert.Equal("NATS options are required.", exception.Message);
     }
 
     [Fact]
@@ -45,12 +38,9 @@ public class NatsMessageBrokerTests
             Nats = new NatsOptions { Servers = Array.Empty<string>() }
         };
 
-        // Act
-        Action act = () => new NatsMessageBroker(Options.Create(options), _loggerMock.Object);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("At least one NATS server URL is required.");
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new NatsMessageBroker(Options.Create(options), _loggerMock.Object));
+        Assert.Equal("At least one NATS server URL is required.", exception.Message);
     }
 
     [Fact]
@@ -70,7 +60,7 @@ public class NatsMessageBrokerTests
         var broker = new NatsMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Assert
-        broker.Should().NotBeNull();
+        Assert.NotNull(broker);
     }
 
     [Fact]
@@ -80,11 +70,8 @@ public class NatsMessageBrokerTests
         var options = CreateValidOptions();
         var broker = new NatsMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.PublishAsync<TestMessage>(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.PublishAsync<TestMessage>(null!));
     }
 
     [Fact]
@@ -94,11 +81,8 @@ public class NatsMessageBrokerTests
         var options = CreateValidOptions();
         var broker = new NatsMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.SubscribeAsync<TestMessage>(null!));
     }
 
     [Fact]
@@ -109,10 +93,8 @@ public class NatsMessageBrokerTests
         var broker = new NatsMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act & Assert
-        Func<Task> act = async () => await broker.StartAsync();
-        
         // Note: This will fail in test environment without NATS server, but should not throw configuration exceptions
-        await act.Should().ThrowAsync<NATS.Client.Core.NatsException>(); // Expected to fail due to no NATS server
+        await Assert.ThrowsAsync<NATS.Client.Core.NatsException>(async () => await broker.StartAsync()); // Expected to fail due to no NATS server
     }
 
     [Fact]
@@ -132,8 +114,7 @@ public class NatsMessageBrokerTests
         }
 
         // Act & Assert
-        Func<Task> act = async () => await broker.StartAsync();
-        await act.Should().ThrowAsync<NATS.Client.Core.NatsException>(); // Still expected to fail
+        await Assert.ThrowsAsync<NATS.Client.Core.NatsException>(async () => await broker.StartAsync()); // Still expected to fail
     }
 
     [Fact]
@@ -144,8 +125,8 @@ public class NatsMessageBrokerTests
         var broker = new NatsMessageBroker(Options.Create(options), _loggerMock.Object);
 
         // Act & Assert
-        Func<Task> act = async () => await broker.DisposeAsync();
-        await act.Should().NotThrowAsync();
+        var exception = await Record.ExceptionAsync(async () => await broker.DisposeAsync());
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -157,10 +138,8 @@ public class NatsMessageBrokerTests
         var message = new TestMessage { Id = 1, Content = "Test" };
 
         // Act & Assert
-        Func<Task> act = async () => await broker.PublishAsync(message);
-        
         // Expected to fail due to no NATS server, but not configuration errors
-        await act.Should().ThrowAsync<Exception>();
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message));
     }
 
     [Fact]
@@ -176,10 +155,8 @@ public class NatsMessageBrokerTests
         }
 
         // Act & Assert
-        Func<Task> act = async () => await broker.SubscribeAsync<TestMessage>(Handler);
-        
         // Note: This will fail in test environment without NATS server, but should not throw configuration exceptions
-        await act.Should().ThrowAsync<NATS.Client.Core.NatsException>(); // Expected to fail due to no NATS server
+        await Assert.ThrowsAsync<NATS.Client.Core.NatsException>(async () => await broker.SubscribeAsync<TestMessage>(Handler)); // Expected to fail due to no NATS server
     }
 
     private MessageBrokerOptions CreateValidOptions()
@@ -207,11 +184,9 @@ public class NatsMessageBrokerTests
         };
         var broker = new NatsMessageBroker(Options.Create(options), _loggerMock.Object);
 
-        // Act
-        Func<Task> act = async () => await broker.StopAsync();
-
-        // Assert
-        await act.Should().NotThrowAsync();
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.StopAsync());
+        Assert.Null(exception);
     }
 
     private class TestMessage

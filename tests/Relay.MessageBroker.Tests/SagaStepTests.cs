@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.MessageBroker.Saga;
 using Xunit;
 
@@ -16,7 +15,7 @@ public class SagaStepTests
         var name = step.Name;
 
         // Assert
-        name.Should().Be("TestSagaStep");
+        Assert.Equal("TestSagaStep", name);
     }
 
     [Fact]
@@ -29,7 +28,7 @@ public class SagaStepTests
         var name = step.Name;
 
         // Assert
-        name.Should().Be("CustomStepName");
+        Assert.Equal("CustomStepName", name);
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public class SagaStepTests
         await step.ExecuteAsync(data);
 
         // Assert
-        step.ExecuteCalled.Should().BeTrue();
+        Assert.True(step.ExecuteCalled);
     }
 
     [Fact]
@@ -57,7 +56,7 @@ public class SagaStepTests
         await step.CompensateAsync(data);
 
         // Assert
-        step.CompensateCalled.Should().BeTrue();
+        Assert.True(step.CompensateCalled);
     }
 
     [Fact]
@@ -72,7 +71,7 @@ public class SagaStepTests
         await step.ExecuteAsync(data, cts.Token);
 
         // Assert
-        step.ReceivedToken.Should().Be(cts.Token);
+        Assert.Equal(cts.Token, step.ReceivedToken);
     }
 
     [Fact]
@@ -87,7 +86,7 @@ public class SagaStepTests
         await step.CompensateAsync(data, cts.Token);
 
         // Assert
-        step.CompensateReceivedToken.Should().Be(cts.Token);
+        Assert.Equal(cts.Token, step.CompensateReceivedToken);
     }
 
     [Fact]
@@ -97,12 +96,9 @@ public class SagaStepTests
         var step = new FailingSagaStep();
         var data = new TestSagaData();
 
-        // Act
-        Func<Task> act = async () => await step.ExecuteAsync(data);
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Execute failed");
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await step.ExecuteAsync(data));
+        Assert.Equal("Execute failed", exception.Message);
     }
 
     [Fact]
@@ -112,12 +108,9 @@ public class SagaStepTests
         var step = new FailingCompensationSagaStep();
         var data = new TestSagaData();
 
-        // Act
-        Func<Task> act = async () => await step.CompensateAsync(data);
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Compensation failed");
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await step.CompensateAsync(data));
+        Assert.Equal("Compensation failed", exception.Message);
     }
 
     [Fact]
@@ -131,7 +124,7 @@ public class SagaStepTests
         await step.ExecuteAsync(data);
 
         // Assert
-        data.Value.Should().Be(20);
+        Assert.Equal(20, data.Value);
     }
 
     [Fact]
@@ -145,7 +138,7 @@ public class SagaStepTests
         await step.CompensateAsync(data);
 
         // Assert
-        data.Value.Should().Be(10);
+        Assert.Equal(10, data.Value);
     }
 }
 

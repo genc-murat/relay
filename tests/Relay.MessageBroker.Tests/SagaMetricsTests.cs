@@ -1,4 +1,4 @@
-using FluentAssertions;
+
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.MessageBroker.Saga;
 using Relay.MessageBroker.Saga.Services;
@@ -21,7 +21,7 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics("OrderSaga");
-        metrics.TotalStarted.Should().Be(2);
+        Assert.Equal(2, metrics.TotalStarted);
     }
 
     [Fact]
@@ -46,10 +46,10 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics(sagaType);
-        metrics.TotalStarted.Should().Be(4);
-        metrics.TotalCompleted.Should().Be(3);
-        metrics.TotalFailed.Should().Be(1);
-        metrics.SuccessRate.Should().BeApproximately(75.0, 0.1); // 3 out of 4 = 75%
+        Assert.Equal(4, metrics.TotalStarted);
+        Assert.Equal(3, metrics.TotalCompleted);
+        Assert.Equal(1, metrics.TotalFailed);
+        Assert.InRange(metrics.SuccessRate, 74.9, 75.1); // 3 out of 4 = 75%
     }
 
     [Fact]
@@ -67,9 +67,9 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics(sagaType);
-        metrics.FailuresByStep.Should().ContainKey("CreateOrder");
-        metrics.FailuresByStep["CreateOrder"].Should().Be(2);
-        metrics.FailuresByStep["ProcessPayment"].Should().Be(1);
+        Assert.True(metrics.FailuresByStep.ContainsKey("CreateOrder"));
+        Assert.Equal(2, metrics.FailuresByStep["CreateOrder"]);
+        Assert.Equal(1, metrics.FailuresByStep["ProcessPayment"]);
     }
 
     [Fact]
@@ -86,9 +86,9 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics(sagaType);
-        metrics.TotalCompensated.Should().Be(2);
-        metrics.AverageCompensationDurationMs.Should().BeApproximately(200.0, 0.1); // (150 + 250) / 2
-        metrics.AverageStepsCompensated.Should().BeApproximately(4.0, 0.1); // (3 + 5) / 2
+        Assert.Equal(2, metrics.TotalCompensated);
+        Assert.InRange(metrics.AverageCompensationDurationMs, 199.9, 200.1); // (150 + 250) / 2
+        Assert.InRange(metrics.AverageStepsCompensated, 3.9, 4.1); // (3 + 5) / 2
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics(sagaType);
-        metrics.TotalTimedOut.Should().Be(2);
+        Assert.Equal(2, metrics.TotalTimedOut);
     }
 
     [Fact]
@@ -127,10 +127,10 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics(sagaType);
-        metrics.P50DurationMs.Should().BeApproximately(300.0, 0.1); // Median
-        metrics.P95DurationMs.Should().BeApproximately(500.0, 0.1); // 95th percentile
-        metrics.P99DurationMs.Should().BeApproximately(500.0, 0.1); // 99th percentile
-        metrics.AverageDurationMs.Should().BeApproximately(300.0, 0.1); // (100+200+300+400+500)/5
+        Assert.InRange(metrics.P50DurationMs, 299.9, 300.1); // Median
+        Assert.InRange(metrics.P95DurationMs, 499.9, 500.1); // 95th percentile
+        Assert.InRange(metrics.P99DurationMs, 499.9, 500.1); // 99th percentile
+        Assert.InRange(metrics.AverageDurationMs, 299.9, 300.1); // (100+200+300+400+500)/5
     }
 
     [Fact]
@@ -150,14 +150,14 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics(sagaType);
-        metrics.StepMetrics.Should().ContainKey(stepName);
+        Assert.True(metrics.StepMetrics.ContainsKey(stepName));
 
         var stepMetrics = metrics.StepMetrics[stepName];
-        stepMetrics.TotalExecutions.Should().Be(4);
-        stepMetrics.Successes.Should().Be(3);
-        stepMetrics.Failures.Should().Be(1);
-        stepMetrics.SuccessRate.Should().BeApproximately(75.0, 0.1); // 3 out of 4 = 75%
-        stepMetrics.AverageDurationMs.Should().BeApproximately(250.0, 0.1); // (100+200+300+400)/4
+        Assert.Equal(4, stepMetrics.TotalExecutions);
+        Assert.Equal(3, stepMetrics.Successes);
+        Assert.Equal(1, stepMetrics.Failures);
+        Assert.InRange(stepMetrics.SuccessRate, 74.9, 75.1); // 3 out of 4 = 75%
+        Assert.InRange(stepMetrics.AverageDurationMs, 249.9, 250.1); // (100+200+300+400)/4
     }
 
     [Fact]
@@ -174,10 +174,10 @@ public class SagaMetricsTests
 
         // Assert
         var allMetrics = collector.GetAllMetrics();
-        allMetrics.Should().HaveCount(3);
-        allMetrics.Should().ContainKey("OrderSaga");
-        allMetrics.Should().ContainKey("PaymentSaga");
-        allMetrics.Should().ContainKey("ShippingSaga");
+        Assert.Equal(3, allMetrics.Count);
+        Assert.True(allMetrics.ContainsKey("OrderSaga"));
+        Assert.True(allMetrics.ContainsKey("PaymentSaga"));
+        Assert.True(allMetrics.ContainsKey("ShippingSaga"));
     }
 
     [Fact]
@@ -197,9 +197,9 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics(sagaType);
-        metrics.TotalStarted.Should().Be(0);
-        metrics.TotalCompleted.Should().Be(0);
-        metrics.TotalFailed.Should().Be(0);
+        Assert.Equal(0, metrics.TotalStarted);
+        Assert.Equal(0, metrics.TotalCompleted);
+        Assert.Equal(0, metrics.TotalFailed);
     }
 
     [Fact]
@@ -213,12 +213,12 @@ public class SagaMetricsTests
         var metrics = collector.GetMetrics("NonExistentSaga");
 
         // Assert
-        metrics.SagaType.Should().Be("NonExistentSaga");
-        metrics.TotalStarted.Should().Be(0);
-        metrics.TotalCompleted.Should().Be(0);
-        metrics.TotalFailed.Should().Be(0);
-        metrics.SuccessRate.Should().Be(0);
-        metrics.AverageDurationMs.Should().Be(0);
+        Assert.Equal("NonExistentSaga", metrics.SagaType);
+        Assert.Equal(0, metrics.TotalStarted);
+        Assert.Equal(0, metrics.TotalCompleted);
+        Assert.Equal(0, metrics.TotalFailed);
+        Assert.Equal(0, metrics.SuccessRate);
+        Assert.Equal(0, metrics.AverageDurationMs);
     }
 
     [Fact]
@@ -249,8 +249,8 @@ public class SagaMetricsTests
 
         // Assert
         var metrics = collector.GetMetrics(sagaType);
-        metrics.TotalStarted.Should().Be(iterations * 10); // 100 * 10 = 1000
-        metrics.TotalCompleted.Should().Be(iterations * 10);
+        Assert.Equal(iterations * 10, metrics.TotalStarted); // 100 * 10 = 1000
+        Assert.Equal(iterations * 10, metrics.TotalCompleted);
     }
 
     [Fact]
@@ -273,14 +273,14 @@ public class SagaMetricsTests
         var result = metrics.ToString();
 
         // Assert
-        result.Should().Contain("OrderSaga");
-        result.Should().Contain("Started=100");
-        result.Should().Contain("Completed=80");
-        result.Should().Contain("Failed=15");
-        result.Should().Contain("Compensated=5");
-        result.Should().Contain("TimedOut=3");
-        result.Should().Contain("SuccessRate=80.0%");
-        result.Should().Contain("AvgDuration=250ms");
+        Assert.Contains("OrderSaga", result);
+        Assert.Contains("Started=100", result);
+        Assert.Contains("Completed=80", result);
+        Assert.Contains("Failed=15", result);
+        Assert.Contains("Compensated=5", result);
+        Assert.Contains("TimedOut=3", result);
+        Assert.Contains("SuccessRate=80.0%", result);
+        Assert.Contains("AvgDuration=250ms", result);
     }
 
     [Fact]
@@ -300,12 +300,12 @@ public class SagaMetricsTests
         var result = stepMetrics.ToString();
 
         // Assert
-        result.Should().Contain("Executions=100");
-        result.Should().Contain("Successes=95");
-        result.Should().Contain("Failures=5");
-        result.Should().Contain("SuccessRate=95.0%");
-        result.Should().Contain("AvgDuration="); // Just check it has this field, rounding may vary
-        result.Should().ContainAny("125ms", "126ms"); // Accept either due to rounding
+        Assert.Contains("Executions=100", result);
+        Assert.Contains("Successes=95", result);
+        Assert.Contains("Failures=5", result);
+        Assert.Contains("SuccessRate=95.0%", result);
+        Assert.Contains("AvgDuration=", result); // Just check it has this field, rounding may vary
+        Assert.True(result.Contains("125ms") || result.Contains("126ms")); // Accept either due to rounding
     }
 
     [Fact]
@@ -351,27 +351,28 @@ public class SagaMetricsTests
         var metrics = collector.GetMetrics(sagaType);
 
         // Saga counts
-        metrics.TotalStarted.Should().Be(9);
-        metrics.TotalCompleted.Should().Be(5);
-        metrics.TotalFailed.Should().Be(2);
-        metrics.TotalCompensated.Should().Be(1);
-        metrics.TotalTimedOut.Should().Be(1);
+        Assert.Equal(9, metrics.TotalStarted);
+        Assert.Equal(5, metrics.TotalCompleted);
+        Assert.Equal(2, metrics.TotalFailed);
+        Assert.Equal(1, metrics.TotalCompensated);
+        Assert.Equal(1, metrics.TotalTimedOut);
 
         // Success rate (5 completed out of 8 finished = 62.5%)
-        metrics.SuccessRate.Should().BeApproximately(62.5, 0.1);
+        Assert.InRange(metrics.SuccessRate, 62.4, 62.6);
 
         // Step metrics
-        metrics.StepMetrics.Should().ContainKey("CreateOrder");
-        metrics.StepMetrics["CreateOrder"].TotalExecutions.Should().Be(7); // 5 + 2
-        metrics.StepMetrics["CreateOrder"].Successes.Should().Be(7);
+        Assert.True(metrics.StepMetrics.ContainsKey("CreateOrder"));
+        Assert.Equal(7, metrics.StepMetrics["CreateOrder"].TotalExecutions); // 5 + 2
+        Assert.Equal(7, metrics.StepMetrics["CreateOrder"].Successes);
 
-        metrics.StepMetrics.Should().ContainKey("ProcessPayment");
-        metrics.StepMetrics["ProcessPayment"].TotalExecutions.Should().Be(7);
-        metrics.StepMetrics["ProcessPayment"].Successes.Should().Be(5);
-        metrics.StepMetrics["ProcessPayment"].Failures.Should().Be(2);
+        Assert.True(metrics.StepMetrics.ContainsKey("ProcessPayment"));
+        Assert.Equal(7, metrics.StepMetrics["ProcessPayment"].TotalExecutions);
+        Assert.Equal(5, metrics.StepMetrics["ProcessPayment"].Successes);
+        Assert.Equal(2, metrics.StepMetrics["ProcessPayment"].Failures);
 
         // Failure tracking
-        metrics.FailuresByStep.Should().ContainKey("ProcessPayment");
-        metrics.FailuresByStep["ProcessPayment"].Should().Be(2);
+        Assert.True(metrics.FailuresByStep.ContainsKey("ProcessPayment"));
+        Assert.Equal(2, metrics.FailuresByStep["ProcessPayment"]);
     }
 }
+

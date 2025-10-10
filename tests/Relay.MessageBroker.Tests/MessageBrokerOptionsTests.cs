@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,12 +16,12 @@ public class MessageBrokerOptionsTests
         var options = new MessageBrokerOptions();
 
         // Assert
-        options.BrokerType.Should().Be(MessageBrokerType.RabbitMQ);
-        options.DefaultExchange.Should().Be("relay.events");
-        options.DefaultRoutingKeyPattern.Should().Be("{MessageType}");
-        options.AutoPublishResults.Should().BeFalse();
-        options.EnableSerialization.Should().BeTrue();
-        options.SerializerType.Should().Be(MessageSerializerType.Json);
+        Assert.Equal(MessageBrokerType.RabbitMQ, options.BrokerType);
+        Assert.Equal("relay.events", options.DefaultExchange);
+        Assert.Equal("{MessageType}", options.DefaultRoutingKeyPattern);
+        Assert.False(options.AutoPublishResults);
+        Assert.True(options.EnableSerialization);
+        Assert.Equal(MessageSerializerType.Json, options.SerializerType);
     }
 
     [Fact]
@@ -32,15 +31,15 @@ public class MessageBrokerOptionsTests
         var options = new RabbitMQOptions();
 
         // Assert
-        options.HostName.Should().Be("localhost");
-        options.Port.Should().Be(5672);
-        options.UserName.Should().Be("guest");
-        options.Password.Should().Be("guest");
-        options.VirtualHost.Should().Be("/");
-        options.ConnectionTimeout.Should().Be(TimeSpan.FromSeconds(30));
-        options.UseSsl.Should().BeFalse();
-        options.PrefetchCount.Should().Be(10);
-        options.ExchangeType.Should().Be("topic");
+        Assert.Equal("localhost", options.HostName);
+        Assert.Equal(5672, options.Port);
+        Assert.Equal("guest", options.UserName);
+        Assert.Equal("guest", options.Password);
+        Assert.Equal("/", options.VirtualHost);
+        Assert.Equal(TimeSpan.FromSeconds(30), options.ConnectionTimeout);
+        Assert.False(options.UseSsl);
+        Assert.Equal(10, options.PrefetchCount);
+        Assert.Equal("topic", options.ExchangeType);
     }
 
     [Fact]
@@ -50,14 +49,14 @@ public class MessageBrokerOptionsTests
         var options = new KafkaOptions();
 
         // Assert
-        options.BootstrapServers.Should().Be("localhost:9092");
-        options.ConsumerGroupId.Should().Be("relay-consumer-group");
-        options.AutoOffsetReset.Should().Be("earliest");
-        options.EnableAutoCommit.Should().BeFalse();
-        options.SessionTimeout.Should().Be(TimeSpan.FromSeconds(10));
-        options.CompressionType.Should().Be("none");
-        options.DefaultPartitions.Should().Be(3);
-        options.ReplicationFactor.Should().Be(1);
+        Assert.Equal("localhost:9092", options.BootstrapServers);
+        Assert.Equal("relay-consumer-group", options.ConsumerGroupId);
+        Assert.Equal("earliest", options.AutoOffsetReset);
+        Assert.False(options.EnableAutoCommit);
+        Assert.Equal(TimeSpan.FromSeconds(10), options.SessionTimeout);
+        Assert.Equal("none", options.CompressionType);
+        Assert.Equal(3, options.DefaultPartitions);
+        Assert.Equal(1, options.ReplicationFactor);
     }
 
     [Fact]
@@ -67,11 +66,11 @@ public class MessageBrokerOptionsTests
         var policy = new RetryPolicy();
 
         // Assert
-        policy.MaxAttempts.Should().Be(3);
-        policy.InitialDelay.Should().Be(TimeSpan.FromSeconds(1));
-        policy.MaxDelay.Should().Be(TimeSpan.FromSeconds(30));
-        policy.BackoffMultiplier.Should().Be(2.0);
-        policy.UseExponentialBackoff.Should().BeTrue();
+        Assert.Equal(3, policy.MaxAttempts);
+        Assert.Equal(TimeSpan.FromSeconds(1), policy.InitialDelay);
+        Assert.Equal(TimeSpan.FromSeconds(30), policy.MaxDelay);
+        Assert.Equal(2.0, policy.BackoffMultiplier);
+        Assert.True(policy.UseExponentialBackoff);
     }
 
     [Fact]
@@ -81,7 +80,7 @@ public class MessageBrokerOptionsTests
         var options = new AzureServiceBusOptions();
 
         // Assert
-        options.Should().NotBeNull();
+        Assert.NotNull(options);
     }
 
     [Fact]
@@ -91,7 +90,7 @@ public class MessageBrokerOptionsTests
         var options = new AwsSqsSnsOptions();
 
         // Assert
-        options.Should().NotBeNull();
+        Assert.NotNull(options);
     }
 
     [Fact]
@@ -101,9 +100,9 @@ public class MessageBrokerOptionsTests
         var options = new NatsOptions();
 
         // Assert
-        options.Should().NotBeNull();
-        options.Servers.Should().NotBeEmpty();
-        options.Servers.Should().Contain("nats://localhost:4222");
+        Assert.NotNull(options);
+        Assert.NotEmpty(options.Servers);
+        Assert.Contains("nats://localhost:4222", options.Servers);
     }
 
     [Fact]
@@ -113,7 +112,7 @@ public class MessageBrokerOptionsTests
         var options = new RedisStreamsOptions();
 
         // Assert
-        options.Should().NotBeNull();
+        Assert.NotNull(options);
     }
 
     [Fact]
@@ -133,14 +132,14 @@ public class MessageBrokerOptionsTests
         };
 
         // Assert
-        options.BrokerType.Should().Be(MessageBrokerType.Kafka);
-        options.ConnectionString.Should().Be("localhost:9092");
-        options.RabbitMQ.Should().NotBeNull();
-        options.Kafka.Should().NotBeNull();
-        options.AzureServiceBus.Should().NotBeNull();
-        options.AwsSqsSns.Should().NotBeNull();
-        options.Nats.Should().NotBeNull();
-        options.RedisStreams.Should().NotBeNull();
+        Assert.Equal(MessageBrokerType.Kafka, options.BrokerType);
+        Assert.Equal("localhost:9092", options.ConnectionString);
+        Assert.NotNull(options.RabbitMQ);
+        Assert.NotNull(options.Kafka);
+        Assert.NotNull(options.AzureServiceBus);
+        Assert.NotNull(options.AwsSqsSns);
+        Assert.NotNull(options.Nats);
+        Assert.NotNull(options.RedisStreams);
     }
 
     [Fact]
@@ -157,11 +156,11 @@ public class MessageBrokerOptionsTests
         };
 
         // Assert
-        options.CircuitBreaker.Should().NotBeNull();
-        options.Compression.Should().NotBeNull();
-        options.Telemetry.Should().NotBeNull();
-        options.Saga.Should().NotBeNull();
-        options.RetryPolicy.Should().NotBeNull();
+        Assert.NotNull(options.CircuitBreaker);
+        Assert.NotNull(options.Compression);
+        Assert.NotNull(options.Telemetry);
+        Assert.NotNull(options.Saga);
+        Assert.NotNull(options.RetryPolicy);
     }
 
     [Fact]
@@ -182,15 +181,15 @@ public class MessageBrokerOptionsTests
         };
 
         // Assert
-        options.HostName.Should().Be("rabbitmq.example.com");
-        options.Port.Should().Be(5673);
-        options.UserName.Should().Be("admin");
-        options.Password.Should().Be("secret");
-        options.VirtualHost.Should().Be("/vhost");
-        options.ConnectionTimeout.Should().Be(TimeSpan.FromSeconds(60));
-        options.UseSsl.Should().BeTrue();
-        options.PrefetchCount.Should().Be(50);
-        options.ExchangeType.Should().Be("direct");
+        Assert.Equal("rabbitmq.example.com", options.HostName);
+        Assert.Equal(5673, options.Port);
+        Assert.Equal("admin", options.UserName);
+        Assert.Equal("secret", options.Password);
+        Assert.Equal("/vhost", options.VirtualHost);
+        Assert.Equal(TimeSpan.FromSeconds(60), options.ConnectionTimeout);
+        Assert.True(options.UseSsl);
+        Assert.Equal(50, options.PrefetchCount);
+        Assert.Equal("direct", options.ExchangeType);
     }
 
     [Fact]
@@ -210,14 +209,14 @@ public class MessageBrokerOptionsTests
         };
 
         // Assert
-        options.BootstrapServers.Should().Be("kafka1:9092,kafka2:9092");
-        options.ConsumerGroupId.Should().Be("custom-group");
-        options.AutoOffsetReset.Should().Be("latest");
-        options.EnableAutoCommit.Should().BeTrue();
-        options.SessionTimeout.Should().Be(TimeSpan.FromSeconds(30));
-        options.CompressionType.Should().Be("gzip");
-        options.DefaultPartitions.Should().Be(10);
-        options.ReplicationFactor.Should().Be(3);
+        Assert.Equal("kafka1:9092,kafka2:9092", options.BootstrapServers);
+        Assert.Equal("custom-group", options.ConsumerGroupId);
+        Assert.Equal("latest", options.AutoOffsetReset);
+        Assert.True(options.EnableAutoCommit);
+        Assert.Equal(TimeSpan.FromSeconds(30), options.SessionTimeout);
+        Assert.Equal("gzip", options.CompressionType);
+        Assert.Equal(10, options.DefaultPartitions);
+        Assert.Equal(3, options.ReplicationFactor);
     }
 
     [Fact]
@@ -234,11 +233,11 @@ public class MessageBrokerOptionsTests
         };
 
         // Assert
-        policy.MaxAttempts.Should().Be(5);
-        policy.InitialDelay.Should().Be(TimeSpan.FromSeconds(2));
-        policy.MaxDelay.Should().Be(TimeSpan.FromMinutes(1));
-        policy.BackoffMultiplier.Should().Be(3.0);
-        policy.UseExponentialBackoff.Should().BeFalse();
+        Assert.Equal(5, policy.MaxAttempts);
+        Assert.Equal(TimeSpan.FromSeconds(2), policy.InitialDelay);
+        Assert.Equal(TimeSpan.FromMinutes(1), policy.MaxDelay);
+        Assert.Equal(3.0, policy.BackoffMultiplier);
+        Assert.False(policy.UseExponentialBackoff);
     }
 }
 
@@ -259,12 +258,12 @@ public class PublishOptionsTests
         };
 
         // Assert
-        options.RoutingKey.Should().Be("test.routing.key");
-        options.Exchange.Should().Be("test-exchange");
-        options.Headers.Should().ContainKey("key1");
-        options.Priority.Should().Be(5);
-        options.Expiration.Should().Be(TimeSpan.FromMinutes(5));
-        options.Persistent.Should().BeFalse();
+        Assert.Equal("test.routing.key", options.RoutingKey);
+        Assert.Equal("test-exchange", options.Exchange);
+        Assert.True(options.Headers.ContainsKey("key1"));
+        Assert.Equal((byte)5, options.Priority);
+        Assert.Equal(TimeSpan.FromMinutes(5), options.Expiration);
+        Assert.False(options.Persistent);
     }
 }
 
@@ -277,10 +276,10 @@ public class SubscriptionOptionsTests
         var options = new SubscriptionOptions();
 
         // Assert
-        options.AutoAck.Should().BeFalse();
-        options.Durable.Should().BeTrue();
-        options.Exclusive.Should().BeFalse();
-        options.AutoDelete.Should().BeFalse();
+        Assert.False(options.AutoAck);
+        Assert.True(options.Durable);
+        Assert.False(options.Exclusive);
+        Assert.False(options.AutoDelete);
     }
 
     [Fact]
@@ -301,15 +300,15 @@ public class SubscriptionOptionsTests
         };
 
         // Assert
-        options.QueueName.Should().Be("test-queue");
-        options.RoutingKey.Should().Be("test.routing.*");
-        options.Exchange.Should().Be("test-exchange");
-        options.ConsumerGroup.Should().Be("test-group");
-        options.PrefetchCount.Should().Be(20);
-        options.AutoAck.Should().BeTrue();
-        options.Durable.Should().BeFalse();
-        options.Exclusive.Should().BeTrue();
-        options.AutoDelete.Should().BeTrue();
+        Assert.Equal("test-queue", options.QueueName);
+        Assert.Equal("test.routing.*", options.RoutingKey);
+        Assert.Equal("test-exchange", options.Exchange);
+        Assert.Equal("test-group", options.ConsumerGroup);
+        Assert.Equal((ushort)20, options.PrefetchCount);
+        Assert.True(options.AutoAck);
+        Assert.False(options.Durable);
+        Assert.True(options.Exclusive);
+        Assert.True(options.AutoDelete);
     }
 }
 
@@ -330,12 +329,12 @@ public class MessageContextTests
         };
 
         // Assert
-        context.MessageId.Should().Be("msg-123");
-        context.CorrelationId.Should().Be("corr-456");
-        context.Timestamp.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(1));
-        context.Headers.Should().ContainKey("key");
-        context.RoutingKey.Should().Be("test.routing");
-        context.Exchange.Should().Be("test-exchange");
+        Assert.Equal("msg-123", context.MessageId);
+        Assert.Equal("corr-456", context.CorrelationId);
+        Assert.InRange(context.Timestamp, DateTimeOffset.UtcNow.AddSeconds(-1), DateTimeOffset.UtcNow.AddSeconds(1));
+        Assert.True(context.Headers.ContainsKey("key"));
+        Assert.Equal("test.routing", context.RoutingKey);
+        Assert.Equal("test-exchange", context.Exchange);
     }
 
     [Fact]
@@ -356,7 +355,7 @@ public class MessageContextTests
         await context.Acknowledge!();
 
         // Assert
-        acknowledged.Should().BeTrue();
+        Assert.True(acknowledged);
     }
 
     [Fact]
@@ -379,7 +378,7 @@ public class MessageContextTests
         await context.Reject!(true);
 
         // Assert
-        rejected.Should().BeTrue();
-        requeued.Should().BeTrue();
+        Assert.True(rejected);
+        Assert.True(requeued);
     }
 }

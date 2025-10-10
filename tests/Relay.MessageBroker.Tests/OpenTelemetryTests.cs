@@ -1,4 +1,3 @@
-using FluentAssertions;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -59,20 +58,20 @@ public class OpenTelemetryTests : IDisposable
         // Act
         using (var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test"))
         {
-            activity.Should().NotBeNull();
+            Assert.NotNull(activity);
         }
 
         tracerProvider.ForceFlush();
 
         // Assert - Take snapshot to avoid enumeration issues
         var activitiesSnapshot = exportedActivities.ToList();
-        activitiesSnapshot.Should().HaveCount(1, "only one activity should be created in this test");
+        Assert.Single(activitiesSnapshot);
 
         var resource = tracerProvider.GetResource();
         var attributes = resource.Attributes.ToList();
-        attributes.Should().Contain(new KeyValuePair<string, object>("service.name", "MyTestService"));
-        attributes.Should().Contain(new KeyValuePair<string, object>("service.version", "2.0.0"));
-        attributes.Should().Contain(new KeyValuePair<string, object>("custom.attribute", "custom.value"));
+        Assert.Contains(new KeyValuePair<string, object>("service.name", "MyTestService"), attributes);
+        Assert.Contains(new KeyValuePair<string, object>("service.version", "2.0.0"), attributes);
+        Assert.Contains(new KeyValuePair<string, object>("custom.attribute", "custom.value"), attributes);
     }
 
     [Fact]
@@ -92,12 +91,12 @@ public class OpenTelemetryTests : IDisposable
         }
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.DisplayName.Should().Be($"{destination} publish");
-        activity.Kind.Should().Be(ActivityKind.Producer);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingSystem).Should().Be(messagingSystem);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingDestination).Should().Be(destination);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingOperation).Should().Be("publish");
+        Assert.NotNull(activity);
+        Assert.Equal($"{destination} publish", activity!.DisplayName);
+        Assert.Equal(ActivityKind.Producer, activity.Kind);
+        Assert.Equal(messagingSystem, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingSystem));
+        Assert.Equal(destination, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingDestination));
+        Assert.Equal("publish", activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingOperation));
     }
 
     [Fact]
@@ -117,12 +116,12 @@ public class OpenTelemetryTests : IDisposable
         }
 
         // Assert
-        activity.Should().NotBeNull();
-        activity!.DisplayName.Should().Be($"{destination} process");
-        activity.Kind.Should().Be(ActivityKind.Consumer);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingSystem).Should().Be(messagingSystem);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingDestination).Should().Be(destination);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingOperation).Should().Be("process");
+        Assert.NotNull(activity);
+        Assert.Equal($"{destination} process", activity!.DisplayName);
+        Assert.Equal(ActivityKind.Consumer, activity.Kind);
+        Assert.Equal(messagingSystem, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingSystem));
+        Assert.Equal(destination, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingDestination));
+        Assert.Equal("process", activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingOperation));
     }
 
     [Fact]
@@ -149,9 +148,9 @@ public class OpenTelemetryTests : IDisposable
         }
 
         // Assert
-        activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageType).Should().Be(messageType);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingMessageId).Should().Be(messageId);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize).Should().Be(payloadSize);
+        Assert.Equal(messageType, activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageType));
+        Assert.Equal(messageId, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingMessageId));
+        Assert.Equal(payloadSize, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize));
     }
 
     [Fact]
@@ -180,14 +179,14 @@ public class OpenTelemetryTests : IDisposable
         }
 
         // Assert
-        activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageCompressed).Should().Be(true);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageCompressionAlgorithm).Should().Be(algorithm);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize).Should().Be(originalSize);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadCompressedSize).Should().Be(compressedSize);
+        Assert.Equal(true, activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageCompressed));
+        Assert.Equal(algorithm, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageCompressionAlgorithm));
+        Assert.Equal(originalSize, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize));
+        Assert.Equal(compressedSize, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadCompressedSize));
         
         var ratio = activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageCompressionRatio);
-        ratio.Should().NotBeNull();
-        ((double)ratio!).Should().BeApproximately(0.3, 0.01);
+        Assert.NotNull(ratio);
+        Assert.InRange((double)ratio!, 0.29, 0.31);
     }
 
     [Fact]
@@ -212,8 +211,8 @@ public class OpenTelemetryTests : IDisposable
         }
 
         // Assert
-        activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.CircuitBreakerName).Should().Be(name);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.CircuitBreakerState).Should().Be(state);
+        Assert.Equal(name, activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.CircuitBreakerName));
+        Assert.Equal(state, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.CircuitBreakerState));
     }
 
     [Fact]
@@ -239,10 +238,10 @@ public class OpenTelemetryTests : IDisposable
         }
 
         // Assert
-        activity!.Status.Should().Be(ActivityStatusCode.Error);
-        activity.StatusDescription.Should().Be(exception.Message);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorType).Should().Be(exception.GetType().FullName);
-        activity.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorMessage).Should().Be(exception.Message);
+        Assert.Equal(ActivityStatusCode.Error, activity!.Status);
+        Assert.Equal(exception.Message, activity.StatusDescription);
+        Assert.Equal(exception.GetType().FullName, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorType));
+        Assert.Equal(exception.Message, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorMessage));
     }
 
     [Fact]
@@ -267,7 +266,7 @@ public class OpenTelemetryTests : IDisposable
         }
 
         // Assert
-        activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorStackTrace).Should().BeNull();
+        Assert.Null(activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorStackTrace));
     }
 
     [Fact]
@@ -297,11 +296,11 @@ public class OpenTelemetryTests : IDisposable
 
         // Assert
         var events = activity!.Events.ToList();
-        events.Should().HaveCount(1);
+        Assert.Single(events);
         var singleEvent = events[0];
-        singleEvent.Name.Should().Be(eventName);
-        singleEvent.Tags.Should().Contain(new KeyValuePair<string, object>("key1", "value1"));
-        singleEvent.Tags.Should().Contain(new KeyValuePair<string, object>("key2", 123));
+        Assert.Equal(eventName, singleEvent.Name);
+        Assert.Contains(new KeyValuePair<string, object>("key1", "value1"), singleEvent.Tags);
+        Assert.Contains(new KeyValuePair<string, object>("key2", 123), singleEvent.Tags);
     }
 
     [Fact]
@@ -317,17 +316,16 @@ public class OpenTelemetryTests : IDisposable
         }
         const string eventName = "TestEvent";
 
-        // Act
-        Action act = () => 
+        // Act & Assert
+        var exception = Record.Exception(() => 
         {
             if (activity != null)
             {
                 activity.AddEvent(new ActivityEvent(eventName));
             }
-        };
+        });
 
-        // Assert
-        act.Should().NotThrow();
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -337,20 +335,20 @@ public class OpenTelemetryTests : IDisposable
         var options = new UnifiedTelemetryOptions();
 
         // Assert
-        options.Enabled.Should().BeTrue();
-        options.EnableTracing.Should().BeTrue();
-        options.EnableMetrics.Should().BeTrue();
-        options.EnableLogging.Should().BeTrue();
-        options.ServiceName.Should().Be("Relay");
-        options.Component.Should().Be(UnifiedTelemetryConstants.Components.Core);
-        options.CaptureMessagePayloads.Should().BeFalse();
-        options.MaxPayloadSizeBytes.Should().Be(1024);
-        options.CaptureMessageHeaders.Should().BeTrue();
-        options.CaptureStackTraces.Should().BeTrue();
-        options.PropagateTraceContext.Should().BeTrue();
-        options.TraceContextFormat.Should().Be(TraceContextFormat.W3C);
-        options.SamplingRate.Should().Be(1.0);
-        options.UseBatchProcessing.Should().BeTrue();
+        Assert.True(options.Enabled);
+        Assert.True(options.EnableTracing);
+        Assert.True(options.EnableMetrics);
+        Assert.True(options.EnableLogging);
+        Assert.Equal("Relay", options.ServiceName);
+        Assert.Equal(UnifiedTelemetryConstants.Components.Core, options.Component);
+        Assert.False(options.CaptureMessagePayloads);
+        Assert.Equal(1024, options.MaxPayloadSizeBytes);
+        Assert.True(options.CaptureMessageHeaders);
+        Assert.True(options.CaptureStackTraces);
+        Assert.True(options.PropagateTraceContext);
+        Assert.Equal(TraceContextFormat.W3C, options.TraceContextFormat);
+        Assert.Equal(1.0, options.SamplingRate);
+        Assert.True(options.UseBatchProcessing);
     }
 
     [Fact]
@@ -360,27 +358,27 @@ public class OpenTelemetryTests : IDisposable
         var options = new TelemetryExportersOptions();
 
         // Assert
-        options.EnableConsole.Should().BeFalse();
-        options.EnableOtlp.Should().BeTrue();
-        options.OtlpEndpoint.Should().Be("http://localhost:4317");
-        options.OtlpProtocol.Should().Be("grpc");
-        options.EnableJaeger.Should().BeFalse();
-        options.JaegerAgentHost.Should().Be("localhost");
-        options.JaegerAgentPort.Should().Be(6831);
-        options.EnableZipkin.Should().BeFalse();
-        options.EnablePrometheus.Should().BeFalse();
-        options.PrometheusEndpoint.Should().Be("/metrics");
-        options.EnableAzureMonitor.Should().BeFalse();
-        options.EnableAwsXRay.Should().BeFalse();
+        Assert.False(options.EnableConsole);
+        Assert.True(options.EnableOtlp);
+        Assert.Equal("http://localhost:4317", options.OtlpEndpoint);
+        Assert.Equal("grpc", options.OtlpProtocol);
+        Assert.False(options.EnableJaeger);
+        Assert.Equal("localhost", options.JaegerAgentHost);
+        Assert.Equal(6831, options.JaegerAgentPort);
+        Assert.False(options.EnableZipkin);
+        Assert.False(options.EnablePrometheus);
+        Assert.Equal("/metrics", options.PrometheusEndpoint);
+        Assert.False(options.EnableAzureMonitor);
+        Assert.False(options.EnableAwsXRay);
     }
 
     [Fact]
     public void ActivitySourceName_ShouldBeRelayMessageBroker()
     {
         // Assert
-        UnifiedTelemetryConstants.ActivitySourceName.Should().Be("Relay");
-        UnifiedTelemetryConstants.Components.MessageBroker.Should().Be("Relay.MessageBroker");
-        UnifiedTelemetryConstants.MeterName.Should().Be("Relay");
+        Assert.Equal("Relay", UnifiedTelemetryConstants.ActivitySourceName);
+        Assert.Equal("Relay.MessageBroker", UnifiedTelemetryConstants.Components.MessageBroker);
+        Assert.Equal("Relay", UnifiedTelemetryConstants.MeterName);
     }
 
     [Fact]
@@ -389,8 +387,8 @@ public class OpenTelemetryTests : IDisposable
         // Arrange
         Activity? activity = null;
 
-        // Act
-        Action act = () => 
+        // Act & Assert
+        var exception = Record.Exception(() => 
         {
             if (activity != null)
             {
@@ -398,10 +396,9 @@ public class OpenTelemetryTests : IDisposable
                 activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingMessageId, "msg-123");
                 activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize, 1024);
             }
-        };
+        });
 
-        // Assert
-        act.Should().NotThrow();
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -410,8 +407,8 @@ public class OpenTelemetryTests : IDisposable
         // Arrange
         Activity? activity = null;
 
-        // Act
-        Action act = () => 
+        // Act & Assert
+        var exception = Record.Exception(() => 
         {
             if (activity != null)
             {
@@ -421,10 +418,9 @@ public class OpenTelemetryTests : IDisposable
                 activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadCompressedSize, 300);
                 activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageCompressionRatio, 0.3);
             }
-        };
+        });
 
-        // Assert
-        act.Should().NotThrow();
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -434,8 +430,8 @@ public class OpenTelemetryTests : IDisposable
         Activity? activity = null;
         var exception = new InvalidOperationException("Test");
 
-        // Act
-        Action act = () => 
+        // Act & Assert
+        var recordedException = Record.Exception(() => 
         {
             if (activity != null)
             {
@@ -443,9 +439,8 @@ public class OpenTelemetryTests : IDisposable
                 activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorType, exception.GetType().FullName);
                 activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorMessage, exception.Message);
             }
-        };
+        });
 
-        // Assert
-        act.Should().NotThrow();
+        Assert.Null(recordedException);
     }
 }

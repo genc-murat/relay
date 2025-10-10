@@ -23,7 +23,7 @@ public class PluginLoaderTests : IDisposable
         var manifestExists = File.Exists(manifestPath);
 
         // Assert
-        manifestExists.Should().BeTrue();
+        Assert.True(manifestExists);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class PluginLoaderTests : IDisposable
         Func<Task> act = async () => await File.ReadAllTextAsync(Path.Combine(_testPluginPath, "plugin.json"));
 
         // Assert
-        await act.Should().NotThrowAsync();
+        await act();
     }
 
     [Fact]
@@ -50,8 +50,8 @@ public class PluginLoaderTests : IDisposable
         var manifest = await File.ReadAllTextAsync(Path.Combine(_testPluginPath, "plugin.json"));
 
         // Assert
-        manifest.Should().Contain("test-plugin");
-        manifest.Should().Contain("1.0.0");
+        Assert.Contains("test-plugin", manifest);
+        Assert.Contains("1.0.0", manifest);
     }
 
     private async Task CreateValidPlugin(string? path = null, string name = "test-plugin", string version = "1.0.0")

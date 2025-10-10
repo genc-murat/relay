@@ -23,9 +23,9 @@ public class PluginValidatorTests
         var manifest = JsonSerializer.Deserialize<Dictionary<string, object>>(manifestJson);
 
         // Assert
-        manifest.Should().NotBeNull();
-        manifest!.Should().ContainKey("name");
-        manifest.Should().ContainKey("version");
+        Assert.NotNull(manifest);
+        Assert.True(manifest!.ContainsKey("name"));
+        Assert.True(manifest!.ContainsKey("version"));
     }
 
     [Fact]
@@ -37,8 +37,8 @@ public class PluginValidatorTests
         // Act & Assert
         foreach (var name in validNames)
         {
-            name.Should().StartWith("relay-plugin-");
-            name.Should().MatchRegex("^[a-z0-9-]+$");
+            Assert.StartsWith("relay-plugin-", name);
+            Assert.Matches("^[a-z0-9-]+$", name);
         }
     }
 
@@ -54,7 +54,7 @@ public class PluginValidatorTests
         var isValid = Version.TryParse(cleanVersion, out _) || version.Contains("-");
 
         // Assert
-        isValid.Should().Be(shouldBeValid);
+        Assert.Equal(shouldBeValid, isValid);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class PluginValidatorTests
         var isCompatible = currentVersion >= minimumVersion;
 
         // Assert
-        isCompatible.Should().BeTrue();
+        Assert.True(isCompatible);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public class PluginValidatorTests
         var isCompatible = currentVersion >= minimumVersion;
 
         // Assert
-        isCompatible.Should().BeFalse();
+        Assert.False(isCompatible);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class PluginValidatorTests
             var hasManifest = File.Exists(Path.Combine(tempPath, "plugin.json"));
 
             // Assert
-            hasManifest.Should().BeTrue();
+            Assert.True(hasManifest);
         }
         finally
         {

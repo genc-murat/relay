@@ -18,6 +18,6 @@ public class PluginManagerTests
         var plugins = await _pluginManager.GetInstalledPluginsAsync();
 
         // Assert
-        plugins.Should().NotBeNull();
+        Assert.NotNull(plugins);
     }
 }

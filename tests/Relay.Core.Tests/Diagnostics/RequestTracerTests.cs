@@ -145,7 +145,7 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        Assert.Equal(1, currentTrace!.Steps.Count);
+        Assert.Single(currentTrace!.Steps);
         Assert.Equal("TestStep", currentTrace.Steps[0].Name);
         Assert.Equal(TimeSpan.FromMilliseconds(100), currentTrace.Steps[0].Duration);
         Assert.Equal("TestCategory", currentTrace.Steps[0].Category);
@@ -190,7 +190,7 @@ public class RequestTracerTests
         var currentTrace = tracer.GetCurrentTrace();
 
         // Assert
-        Assert.Equal(1, currentTrace!.Steps.Count);
+        Assert.Single(currentTrace!.Steps);
         Assert.Equal("HandlerExecution", currentTrace.Steps[0].Name);
         Assert.Equal("TestRequest", currentTrace.Steps[0].HandlerType);
     }

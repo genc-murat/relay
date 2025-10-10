@@ -93,7 +93,7 @@ public class DispatcherInterfaceTests
         Assert.True(dispatcherType.IsInterface);
 
         var methods = dispatcherType.GetMethods();
-        Assert.Equal(1, methods.Length);
+        Assert.Single(methods);    
 
         var method = methods[0];
         Assert.Equal("DispatchAsync", method.Name);

@@ -1563,7 +1563,7 @@ public class BenchmarkCommandTests : IDisposable
         results.RelayResults.Add("Standard", relayResult);
 
         // Assert
-        Assert.Equal(1, results.RelayResults.Count);
+        Assert.Single(results.RelayResults);
         Assert.Equal(relayResult, results.RelayResults["Standard"]);
     }
 
@@ -1582,7 +1582,7 @@ public class BenchmarkCommandTests : IDisposable
         results.ComparisonResults.Add("MediatR", mediatrResult);
 
         // Assert
-        Assert.Equal(1, results.ComparisonResults.Count);
+        Assert.Single(results.ComparisonResults);
         Assert.Equal(mediatrResult, results.ComparisonResults["MediatR"]);
     }
 

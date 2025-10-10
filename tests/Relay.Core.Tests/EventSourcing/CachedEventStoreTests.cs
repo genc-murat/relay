@@ -34,8 +34,8 @@ namespace Relay.Core.Tests.EventSourcing
             var retrievedEvents2 = await cachedStore.GetEventsAsync(aggregateId).ToListAsync();
 
             // Assert
-            Assert.Equal(1, retrievedEvents1.Count);
-            Assert.Equal(1, retrievedEvents2.Count);
+            Assert.Single(retrievedEvents1);
+            Assert.Single(retrievedEvents2);
             Assert.Equal("Event 1", ((TestEvent)retrievedEvents1[0]).Data);
         }
 
@@ -89,7 +89,7 @@ namespace Relay.Core.Tests.EventSourcing
 
             // Assert
             Assert.NotNull(retrievedEvents);
-            Assert.Equal(1, retrievedEvents!.Count);
+            Assert.Single(retrievedEvents!);
         }
 
         [Fact]

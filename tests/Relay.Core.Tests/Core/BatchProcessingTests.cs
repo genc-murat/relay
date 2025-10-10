@@ -302,7 +302,7 @@ public class BatchProcessingTests
             CancellationToken.None);
 
         // Assert
-        Assert.Equal(1, result.Count);
+        Assert.Single(result);
         Assert.Equal("SINGLE", result[0]);
     }
 

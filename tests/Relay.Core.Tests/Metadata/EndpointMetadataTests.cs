@@ -147,7 +147,7 @@ namespace Relay.Core.Tests.Metadata
             var endpoints = EndpointMetadataRegistry.GetEndpointsForRequestType<TestRequest>();
 
             // Assert
-            Assert.Equal(1, endpoints.Count());
+            Assert.Single(endpoints);
             Assert.Equal(metadata, endpoints.First());
         }
 

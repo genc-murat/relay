@@ -120,7 +120,7 @@ public class CoreInterfaceTests
         Assert.Equal(2, handlerType.GetGenericArguments().Length);
 
         var methods = handlerType.GetMethods();
-        Assert.Equal(1, methods.Length);
+        Assert.Single(methods);
 
         var handleMethod = methods[0];
         Assert.Equal("HandleAsync", handleMethod.Name);
@@ -141,7 +141,7 @@ public class CoreInterfaceTests
         Assert.Equal(2, handlerType.GetGenericArguments().Length);
 
         var methods = handlerType.GetMethods();
-        Assert.Equal(1, methods.Length);
+        Assert.Single(methods);
 
         var handleMethod = methods[0];
         Assert.Equal("HandleAsync", handleMethod.Name);
@@ -159,10 +159,10 @@ public class CoreInterfaceTests
         // Assert
         Assert.True(handlerType.IsInterface);
         Assert.True(handlerType.IsGenericTypeDefinition);
-        Assert.Equal(1, handlerType.GetGenericArguments().Length);
+        Assert.Single(handlerType.GetGenericArguments());
 
         var methods = handlerType.GetMethods();
-        Assert.Equal(1, methods.Length);
+        Assert.Single(methods);
 
         var handleMethod = methods[0];
         Assert.Equal("HandleAsync", handleMethod.Name);
@@ -182,7 +182,7 @@ public class CoreInterfaceTests
         Assert.Equal(2, pipelineType.GetGenericArguments().Length);
 
         var methods = pipelineType.GetMethods();
-        Assert.Equal(1, methods.Length);
+        Assert.Single(methods);
 
         var handleMethod = methods[0];
         Assert.Equal("HandleAsync", handleMethod.Name);
@@ -203,7 +203,7 @@ public class CoreInterfaceTests
         Assert.Equal(2, pipelineType.GetGenericArguments().Length);
 
         var methods = pipelineType.GetMethods();
-        Assert.Equal(1, methods.Length);
+        Assert.Single(methods);
 
         var handleMethod = methods[0];
         Assert.Equal("HandleAsync", handleMethod.Name);

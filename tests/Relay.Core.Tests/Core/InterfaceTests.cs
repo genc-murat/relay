@@ -105,7 +105,7 @@ namespace Relay.Core.Tests
 
             // Assert
             Assert.True(requestType.IsGenericType);
-            Assert.Equal(1, requestType.GetGenericArguments().Length);
+            Assert.Single(requestType.GetGenericArguments());
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace Relay.Core.Tests
 
             // Assert
             Assert.True(streamRequestType.IsGenericType);
-            Assert.Equal(1, streamRequestType.GetGenericArguments().Length);
+            Assert.Single(streamRequestType.GetGenericArguments());
         }
 
         [Fact]
@@ -238,7 +238,7 @@ namespace Relay.Core.Tests
             var requestVoidHandlerType = typeof(IRequestHandler<>);
 
             // Assert
-            Assert.Equal(1, requestVoidHandlerType.GetGenericArguments().Length);
+            Assert.Single(requestVoidHandlerType.GetGenericArguments());
         }
 
         [Fact]
@@ -258,7 +258,7 @@ namespace Relay.Core.Tests
             var notificationHandlerType = typeof(INotificationHandler<>);
 
             // Assert
-            Assert.Equal(1, notificationHandlerType.GetGenericArguments().Length);
+            Assert.Single(notificationHandlerType.GetGenericArguments());
         }
 
         [Fact]

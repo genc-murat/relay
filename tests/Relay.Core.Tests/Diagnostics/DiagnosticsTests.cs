@@ -179,7 +179,7 @@ public class DiagnosticsTests
 
         // Assert
         Assert.True(result.IsValid);
-        Assert.Empty(result.Issues.Where(i => i.Severity == ValidationSeverity.Error));
+        Assert.DoesNotContain(result.Issues, i => i.Severity == ValidationSeverity.Error);
     }
 
     [Fact]

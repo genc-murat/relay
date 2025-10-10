@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.CLI.Refactoring;
 using Xunit;
 
@@ -47,11 +46,11 @@ public class TestClass
         var result = await engine.AnalyzeAsync(options);
 
         // Assert
-        result.SuggestionsCount.Should().BeGreaterThan(0);
-        result.FileResults.Should().HaveCount(1);
+        Assert.True(result.SuggestionsCount > 0);
+        Assert.Equal(1, result.FileResults.Count);
 
         var suggestions = result.FileResults.First().Suggestions;
-        suggestions.Should().Contain(s => s.RuleName == "AsyncAwaitRefactoring");
+        Assert.Contains(suggestions, s => s.RuleName == "AsyncAwaitRefactoring");
     }
 
     [Fact]
@@ -82,10 +81,10 @@ public class NullCheckClass
         var result = await engine.AnalyzeAsync(options);
 
         // Assert
-        result.SuggestionsCount.Should().BeGreaterThan(0);
+        Assert.True(result.SuggestionsCount > 0);
 
         var suggestions = result.FileResults.SelectMany(f => f.Suggestions).ToList();
-        suggestions.Should().Contain(s => s.RuleName == "NullCheckRefactoring");
+        Assert.Contains(suggestions, s => s.RuleName == "NullCheckRefactoring");
     }
 
     [Fact]
@@ -125,12 +124,12 @@ public class User
         var result = await engine.AnalyzeAsync(options);
 
         // Assert
-        result.SuggestionsCount.Should().BeGreaterThan(0);
+        Assert.True(result.SuggestionsCount > 0);
 
         var suggestions = result.FileResults.SelectMany(f => f.Suggestions).ToList();
-        suggestions.Should().Contain(s => s.RuleName == "LinqSimplification");
-        suggestions.Should().Contain(s => s.Description.Contains("Where().Any()"));
-        suggestions.Should().Contain(s => s.Description.Contains("Where().First()"));
+        Assert.Contains(suggestions, s => s.RuleName == "LinqSimplification");
+        Assert.Contains(suggestions, s => s.Description.Contains("Where().Any()"));
+        Assert.Contains(suggestions, s => s.Description.Contains("Where().First()"));
     }
 
     [Fact]
@@ -162,10 +161,10 @@ public class StringClass
         var result = await engine.AnalyzeAsync(options);
 
         // Assert
-        result.SuggestionsCount.Should().BeGreaterThan(0);
+        Assert.True(result.SuggestionsCount > 0);
 
         var suggestions = result.FileResults.SelectMany(f => f.Suggestions).ToList();
-        suggestions.Should().Contain(s => s.RuleName == "StringInterpolation");
+        Assert.Contains(suggestions, s => s.RuleName == "StringInterpolation");
     }
 
     [Fact]
@@ -209,7 +208,7 @@ public class MixedClass
 
         // Assert
         var suggestions = result.FileResults.SelectMany(f => f.Suggestions).ToList();
-        suggestions.Should().Contain(s => s.Category == RefactoringCategory.Readability);
+        Assert.Contains(suggestions, s => s.Category == RefactoringCategory.Readability);
     }
 
     [Fact]
@@ -229,8 +228,8 @@ public class MixedClass
         var result = await engine.AnalyzeAsync(options);
 
         // Assert
-        result.FilesAnalyzed.Should().Be(0);
-        result.SuggestionsCount.Should().Be(0);
+        Assert.Equal(0, result.FilesAnalyzed);
+        Assert.Equal(0, result.SuggestionsCount);
 
         // Cleanup
         Directory.Delete(emptyPath, true);
@@ -259,7 +258,7 @@ public class MixedClass
         var result = await engine.AnalyzeAsync(options);
 
         // Assert
-        result.FilesAnalyzed.Should().Be(1); // Only Valid.cs
+        Assert.Equal(1, result.FilesAnalyzed); // Only Valid.cs
     }
 
     [Fact]
@@ -293,8 +292,8 @@ public class ToModify
         var result = await engine.ApplyRefactoringsAsync(options, analysis);
 
         // Assert
-        result.Status.Should().Be(RefactoringStatus.Success);
-        result.FilesModified.Should().BeGreaterThan(0);
+        Assert.Equal(RefactoringStatus.Success, result.Status);
+        Assert.True(result.FilesModified > 0);
     }
 
     [Fact]
@@ -330,8 +329,8 @@ public class NoModify
 
         // Assert
         var afterContent = await File.ReadAllTextAsync(testFile);
-        afterContent.Should().Be(beforeContent);
-        result.FilesModified.Should().Be(0);
+        Assert.Equal(beforeContent, afterContent);
+        Assert.Equal(0, result.FilesModified);
     }
 
     public void Dispose()

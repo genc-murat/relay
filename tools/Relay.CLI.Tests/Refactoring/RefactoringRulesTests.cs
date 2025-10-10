@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis.CSharp;
 using Relay.CLI.Refactoring;
 using Xunit;
@@ -38,8 +37,8 @@ public class Test
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
 
         // Assert
-        suggestions.Should().HaveCountGreaterThan(0);
-        suggestions.Should().Contain(s => s.Description.Contains("Result"));
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains(suggestions, s => s.Description.Contains("Result"));
     }
 
     [Fact]
@@ -69,8 +68,8 @@ public class Test
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
 
         // Assert
-        suggestions.Should().HaveCountGreaterThan(0);
-        suggestions.First().SuggestedCode.Should().Contain("??=");
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("??=", suggestions.First().SuggestedCode);
     }
 
     [Fact]
@@ -99,10 +98,10 @@ public class Test
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
 
         // Assert
-        suggestions.Should().HaveCountGreaterThan(0);
-        suggestions.First().Description.Should().Contain("Where().Any()");
-        suggestions.First().SuggestedCode.Should().Contain("Any(");
-        suggestions.First().SuggestedCode.Should().NotContain("Where");
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("Where().Any()", suggestions.First().Description);
+        Assert.Contains("Any(", suggestions.First().SuggestedCode);
+        Assert.DoesNotContain("Where", suggestions.First().SuggestedCode);
     }
 
     [Fact]
@@ -131,8 +130,8 @@ public class Test
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
 
         // Assert
-        suggestions.Should().HaveCountGreaterThan(0);
-        suggestions.First().Description.Should().Contain("Where().First()");
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("Where().First()", suggestions.First().Description);
     }
 
     [Fact]
@@ -158,9 +157,9 @@ public class Test
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
 
         // Assert
-        suggestions.Should().HaveCountGreaterThan(0);
-        suggestions.First().Description.Should().Contain("String.Format");
-        suggestions.First().SuggestedCode.Should().StartWith("$\"");
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("String.Format", suggestions.First().Description);
+        Assert.StartsWith("$\"", suggestions.First().SuggestedCode);
     }
 
     [Fact]
@@ -186,9 +185,9 @@ public class Test
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
 
         // Assert
-        suggestions.Should().HaveCountGreaterThan(0);
-        suggestions.First().Description.Should().Contain("concatenation");
-        suggestions.First().SuggestedCode.Should().StartWith("$\"");
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("concatenation", suggestions.First().Description);
+        Assert.StartsWith("$\"", suggestions.First().SuggestedCode);
     }
 
     [Fact]
@@ -217,9 +216,9 @@ public class Test
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
 
         // Assert
-        suggestions.Should().HaveCountGreaterThan(0);
-        suggestions.First().Description.Should().Contain("using");
-        suggestions.First().Severity.Should().Be(RefactoringSeverity.Warning);
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("using", suggestions.First().Description);
+        Assert.Equal(RefactoringSeverity.Warning, suggestions.First().Severity);
     }
 
     [Fact]
@@ -248,7 +247,7 @@ public class Test
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
 
         // Assert
-        suggestions.Should().BeEmpty();
+        Assert.Empty(suggestions);
     }
 
     [Fact]
@@ -286,8 +285,8 @@ public class Test
         var newCode = newRoot.ToFullString();
 
         // Assert
-        newCode.Should().Contain("await");
-        newCode.Should().NotContain(".Result");
+        Assert.Contains("await", newCode);
+        Assert.DoesNotContain(".Result", newCode);
     }
 
     [Fact]
@@ -321,6 +320,6 @@ public class Test
         var newCode = newRoot.ToFullString();
 
         // Assert
-        newCode.Should().Contain("??=");
+        Assert.Contains("??=", newCode);
     }
 }

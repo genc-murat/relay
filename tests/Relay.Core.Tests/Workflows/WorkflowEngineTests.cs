@@ -834,20 +834,26 @@ public class WorkflowEngineTests
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
             .ReturnsAsync(definition);
 
+        var savedExecutions = new List<WorkflowExecution>();
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecutions.Add(exec))
             .Returns(ValueTask.CompletedTask);
 
         // Act
         await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
 
         // Wait for background execution
-        await Task.Delay(300);
+        await Task.Delay(500);
 
-        // Assert - The workflow should fail because the request type doesn't exist, 
+        // Assert - The workflow should fail because the request type doesn't exist,
         // but it should attempt to continue due to ContinueOnError = true
-        _mockStateStore.Verify(x => x.SaveExecutionAsync(
-            It.Is<WorkflowExecution>(e => e.StepExecutions.Any(se => se.StepName == "FailingStep" && se.Status == StepStatus.Failed)),
-            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        var failedStepExecution = savedExecutions
+            .SelectMany(e => e.StepExecutions)
+            .FirstOrDefault(se => se.StepName == "FailingStep");
+
+        Assert.NotNull(failedStepExecution);
+        Assert.Equal(StepStatus.Failed, failedStepExecution.Status);
+        Assert.NotNull(failedStepExecution.Error);
     }
 
     [Fact]

@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Moq;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Observability;
@@ -25,10 +24,10 @@ namespace Relay.Core.Tests.Observability
             var result = await healthCheck.CheckHealthAsync();
 
             // Assert
-            result.Should().NotBeNull();
-            result.IsHealthy.Should().BeTrue();
-            result.Description.Should().Contain("operational");
-            result.Exception.Should().BeNull();
+            Assert.NotNull(result);
+            Assert.True(result.IsHealthy);
+            Assert.Contains("operational", result.Description);
+            Assert.Null(result.Exception);
         }
 
         [Fact]
@@ -37,7 +36,7 @@ namespace Relay.Core.Tests.Observability
             // Arrange
             var mockRelay = new Mock<IRelay>();
             var expectedException = new InvalidOperationException("Relay is down");
-            
+
             mockRelay.Setup(x => x.SendAsync(It.IsAny<HealthCheckRequest>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
@@ -47,10 +46,10 @@ namespace Relay.Core.Tests.Observability
             var result = await healthCheck.CheckHealthAsync();
 
             // Assert
-            result.Should().NotBeNull();
-            result.IsHealthy.Should().BeFalse();
-            result.Description.Should().Contain("not operational");
-            result.Exception.Should().Be(expectedException);
+            Assert.NotNull(result);
+            Assert.False(result.IsHealthy);
+            Assert.Contains("not operational", result.Description);
+            Assert.Equal(expectedException, result.Exception);
         }
 
         [Fact]
@@ -67,9 +66,9 @@ namespace Relay.Core.Tests.Observability
             var result = RelayHealthCheckResult.Healthy("All systems operational");
 
             // Assert
-            result.IsHealthy.Should().BeTrue();
-            result.Description.Should().Be("All systems operational");
-            result.Exception.Should().BeNull();
+            Assert.True(result.IsHealthy);
+            Assert.Equal("All systems operational", result.Description);
+            Assert.Null(result.Exception);
         }
 
         [Fact]
@@ -82,9 +81,9 @@ namespace Relay.Core.Tests.Observability
             var result = RelayHealthCheckResult.Unhealthy("System failure", exception);
 
             // Assert
-            result.IsHealthy.Should().BeFalse();
-            result.Description.Should().Be("System failure");
-            result.Exception.Should().Be(exception);
+            Assert.False(result.IsHealthy);
+            Assert.Equal("System failure", result.Description);
+            Assert.Equal(exception, result.Exception);
         }
 
         [Fact]
@@ -94,9 +93,9 @@ namespace Relay.Core.Tests.Observability
             var result = RelayHealthCheckResult.Unhealthy("System degraded");
 
             // Assert
-            result.IsHealthy.Should().BeFalse();
-            result.Description.Should().Be("System degraded");
-            result.Exception.Should().BeNull();
+            Assert.False(result.IsHealthy);
+            Assert.Equal("System degraded", result.Description);
+            Assert.Null(result.Exception);
         }
 
         [Fact]
@@ -107,9 +106,9 @@ namespace Relay.Core.Tests.Observability
             var request2 = new HealthCheckRequest();
 
             // Assert
-            request1.Should().NotBeNull();
-            request2.Should().NotBeNull();
-            request1.Should().Be(request2); // Records have value equality
+            Assert.NotNull(request1);
+            Assert.NotNull(request2);
+            Assert.Equal(request2, request1); // Records have value equality
         }
 
         [Fact]
@@ -119,9 +118,9 @@ namespace Relay.Core.Tests.Observability
             var response = HealthCheckResponse.Healthy();
 
             // Assert
-            response.Should().NotBeNull();
-            response.IsHealthy.Should().BeTrue();
-            response.Timestamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+            Assert.NotNull(response);
+            Assert.True(response.IsHealthy);
+            Assert.True(DateTime.UtcNow.Subtract(response.Timestamp).Duration() < TimeSpan.FromSeconds(1));
         }
 
         [Fact]
@@ -135,9 +134,9 @@ namespace Relay.Core.Tests.Observability
             var response = await handler.HandleAsync(request, CancellationToken.None);
 
             // Assert
-            response.Should().NotBeNull();
-            response.IsHealthy.Should().BeTrue();
-            response.Timestamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+            Assert.NotNull(response);
+            Assert.True(response.IsHealthy);
+            Assert.True(DateTime.UtcNow.Subtract(response.Timestamp).Duration() < TimeSpan.FromSeconds(1));
         }
 
         [Fact]
@@ -153,8 +152,8 @@ namespace Relay.Core.Tests.Observability
             var response = await handler.HandleAsync(request, cts.Token);
 
             // Assert - Should complete even with cancelled token since it's synchronous
-            response.Should().NotBeNull();
-            response.IsHealthy.Should().BeTrue();
+            Assert.NotNull(response);
+            Assert.True(response.IsHealthy);
         }
     }
 }

@@ -2,7 +2,6 @@ using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Moq;
 using Relay.Core.MessageQueue;
 using Xunit;
@@ -23,7 +22,7 @@ namespace Relay.Core.Tests.MessageQueue
             await publisher.PublishAsync(queueName, message);
 
             // Assert - We can verify the message was published (implementation detail test)
-            message.Should().NotBeNull();
+            Assert.NotNull(message);
         }
 
         [Fact]
@@ -39,7 +38,7 @@ namespace Relay.Core.Tests.MessageQueue
             await publisher.PublishAsync(exchangeName, routingKey, message);
 
             // Assert
-            message.Should().NotBeNull();
+            Assert.NotNull(message);
         }
 
         [Fact]
@@ -71,7 +70,7 @@ namespace Relay.Core.Tests.MessageQueue
             await consumer.StartConsumingAsync(queueName, (message, ct) =>
             {
                 messagesReceived++;
-                message.Should().NotBeNull();
+                Assert.NotNull(message);
                 return ValueTask.CompletedTask;
             });
 
@@ -108,7 +107,7 @@ namespace Relay.Core.Tests.MessageQueue
             var attribute = new MessageQueueAttribute("test-queue");
 
             // Assert
-            attribute.QueueName.Should().Be("test-queue");
+            Assert.Equal("test-queue", attribute.QueueName);
         }
 
         [Fact]
@@ -122,8 +121,8 @@ namespace Relay.Core.Tests.MessageQueue
             };
 
             // Assert
-            attribute.ExchangeName.Should().Be("test-exchange");
-            attribute.RoutingKey.Should().Be("test-key");
+            Assert.Equal("test-exchange", attribute.ExchangeName);
+            Assert.Equal("test-key", attribute.RoutingKey);
         }
 
         [Fact]
@@ -142,10 +141,10 @@ namespace Relay.Core.Tests.MessageQueue
             var deserialized = JsonSerializer.Deserialize<MessageWrapper>(json);
 
             // Assert
-            deserialized.Should().NotBeNull();
-            deserialized!.MessageType.Should().Be("TestMessage");
-            deserialized.Content.Should().Be("{\"Value\":\"test\"}");
-            deserialized.CorrelationId.Should().Be("test-correlation-id");
+            Assert.NotNull(deserialized);
+            Assert.Equal("TestMessage", deserialized.MessageType);
+            Assert.Equal("{\"Value\":\"test\"}", deserialized.Content);
+            Assert.Equal("test-correlation-id", deserialized.CorrelationId);
         }
 
         public class TestMessage

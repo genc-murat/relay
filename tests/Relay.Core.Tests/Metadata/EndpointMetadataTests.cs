@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using FluentAssertions;
 using Relay.Core;
 using Relay.Core.Contracts.Requests;
 using Xunit;
@@ -16,12 +15,12 @@ namespace Relay.Core.Tests.Metadata
             var metadata = new EndpointMetadata();
 
             // Assert
-            metadata.Route.Should().BeEmpty();
-            metadata.HttpMethod.Should().Be("POST");
-            metadata.Version.Should().BeNull();
-            metadata.HandlerMethodName.Should().BeEmpty();
-            metadata.Properties.Should().NotBeNull();
-            metadata.Properties.Should().BeEmpty();
+            Assert.Empty(metadata.Route);
+            Assert.Equal("POST", metadata.HttpMethod);
+            Assert.Null(metadata.Version);
+            Assert.Empty(metadata.HandlerMethodName);
+            Assert.NotNull(metadata.Properties);
+            Assert.Empty(metadata.Properties);
         }
 
         [Fact]
@@ -40,13 +39,13 @@ namespace Relay.Core.Tests.Metadata
             };
 
             // Assert
-            metadata.Route.Should().Be("/api/test");
-            metadata.HttpMethod.Should().Be("GET");
-            metadata.Version.Should().Be("v1");
-            metadata.RequestType.Should().Be(typeof(TestRequest));
-            metadata.ResponseType.Should().Be(typeof(TestResponse));
-            metadata.HandlerType.Should().Be(typeof(TestHandler));
-            metadata.HandlerMethodName.Should().Be("HandleAsync");
+            Assert.Equal("/api/test", metadata.Route);
+            Assert.Equal("GET", metadata.HttpMethod);
+            Assert.Equal("v1", metadata.Version);
+            Assert.Equal(typeof(TestRequest), metadata.RequestType);
+            Assert.Equal(typeof(TestResponse), metadata.ResponseType);
+            Assert.Equal(typeof(TestHandler), metadata.HandlerType);
+            Assert.Equal("HandleAsync", metadata.HandlerMethodName);
         }
 
         [Fact]
@@ -56,11 +55,11 @@ namespace Relay.Core.Tests.Metadata
             var contract = new JsonSchemaContract();
 
             // Assert
-            contract.Schema.Should().BeEmpty();
-            contract.ContentType.Should().Be("application/json");
-            contract.SchemaVersion.Should().Be("http://json-schema.org/draft-07/schema#");
-            contract.Properties.Should().NotBeNull();
-            contract.Properties.Should().BeEmpty();
+            Assert.Empty(contract.Schema);
+            Assert.Equal("application/json", contract.ContentType);
+            Assert.Equal("http://json-schema.org/draft-07/schema#", contract.SchemaVersion);
+            Assert.NotNull(contract.Properties);
+            Assert.Empty(contract.Properties);
         }
 
         [Fact]
@@ -75,9 +74,9 @@ namespace Relay.Core.Tests.Metadata
             };
 
             // Assert
-            contract.Schema.Should().Be("{ \"type\": \"object\" }");
-            contract.ContentType.Should().Be("application/xml");
-            contract.SchemaVersion.Should().Be("v2.0");
+            Assert.Equal("{ \"type\": \"object\" }", contract.Schema);
+            Assert.Equal("application/xml", contract.ContentType);
+            Assert.Equal("v2.0", contract.SchemaVersion);
         }
 
         [Fact]
@@ -97,7 +96,7 @@ namespace Relay.Core.Tests.Metadata
 
             // Assert
             var allEndpoints = EndpointMetadataRegistry.AllEndpoints;
-            allEndpoints.Should().Contain(metadata);
+            Assert.Contains(metadata, allEndpoints);
         }
 
         [Fact]
@@ -125,9 +124,9 @@ namespace Relay.Core.Tests.Metadata
             var endpoints = EndpointMetadataRegistry.GetEndpointsForRequestType(typeof(TestRequest));
 
             // Assert
-            endpoints.Should().HaveCount(2);
-            endpoints.Should().Contain(metadata1);
-            endpoints.Should().Contain(metadata2);
+            Assert.Equal(2, endpoints.Count());
+            Assert.Contains(metadata1, endpoints);
+            Assert.Contains(metadata2, endpoints);
         }
 
         [Fact]
@@ -148,8 +147,8 @@ namespace Relay.Core.Tests.Metadata
             var endpoints = EndpointMetadataRegistry.GetEndpointsForRequestType<TestRequest>();
 
             // Assert
-            endpoints.Should().HaveCount(1);
-            endpoints.First().Should().Be(metadata);
+            Assert.Equal(1, endpoints.Count());
+            Assert.Equal(metadata, endpoints.First());
         }
 
         [Fact]
@@ -170,7 +169,7 @@ namespace Relay.Core.Tests.Metadata
 
             // Assert
             var allEndpoints = EndpointMetadataRegistry.AllEndpoints;
-            allEndpoints.Should().BeEmpty();
+            Assert.Empty(allEndpoints);
         }
 
         [Fact]
@@ -190,10 +189,10 @@ namespace Relay.Core.Tests.Metadata
             var allEndpoints = EndpointMetadataRegistry.AllEndpoints;
 
             // Assert
-            allEndpoints.Should().HaveCount(3);
-            allEndpoints.Should().Contain(metadata1);
-            allEndpoints.Should().Contain(metadata2);
-            allEndpoints.Should().Contain(metadata3);
+            Assert.Equal(3, allEndpoints.Count());
+            Assert.Contains(metadata1, allEndpoints);
+            Assert.Contains(metadata2, allEndpoints);
+            Assert.Contains(metadata3, allEndpoints);
         }
 
         [Fact]
@@ -208,9 +207,9 @@ namespace Relay.Core.Tests.Metadata
             metadata.Properties["Custom3"] = true;
 
             // Assert
-            metadata.Properties["Custom1"].Should().Be("Value1");
-            metadata.Properties["Custom2"].Should().Be(42);
-            metadata.Properties["Custom3"].Should().Be(true);
+            Assert.Equal("Value1", metadata.Properties["Custom1"]);
+            Assert.Equal(42, metadata.Properties["Custom2"]);
+            Assert.Equal(true, metadata.Properties["Custom3"]);
         }
 
         [Fact]
@@ -224,8 +223,8 @@ namespace Relay.Core.Tests.Metadata
             contract.Properties["additionalProperties"] = false;
 
             // Assert
-            contract.Properties["required"].Should().BeEquivalentTo(new[] { "name", "age" });
-            contract.Properties["additionalProperties"].Should().Be(false);
+            Assert.Equal(new[] { "name", "age" }, contract.Properties["required"]);
+            Assert.Equal(false, contract.Properties["additionalProperties"]);
         }
 
         private class TestRequest : IRequest<TestResponse> { }

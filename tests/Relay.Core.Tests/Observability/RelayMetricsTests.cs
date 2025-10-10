@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using FluentAssertions;
 using Relay.Core.Observability;
 using Xunit;
 
@@ -12,72 +11,72 @@ namespace Relay.Core.Tests.Observability
         public void RelayMetrics_ShouldHaveMeterInitialized()
         {
             // Assert
-            RelayMetrics.Meter.Should().NotBeNull();
-            RelayMetrics.Meter.Name.Should().Be("Relay.Core");
+            Assert.NotNull(RelayMetrics.Meter);
+            Assert.Equal("Relay.Core", RelayMetrics.Meter.Name);
         }
 
         [Fact]
         public void RelayMetrics_ShouldHaveRequestsTotalCounter()
         {
             // Assert
-            RelayMetrics.RequestsTotal.Should().NotBeNull();
-            RelayMetrics.RequestsTotal.Name.Should().Be("relay_requests_total");
+            Assert.NotNull(RelayMetrics.RequestsTotal);
+            Assert.Equal("relay_requests_total", RelayMetrics.RequestsTotal.Name);
         }
 
         [Fact]
         public void RelayMetrics_ShouldHaveRequestDurationHistogram()
         {
             // Assert
-            RelayMetrics.RequestDuration.Should().NotBeNull();
-            RelayMetrics.RequestDuration.Name.Should().Be("relay_request_duration_ms");
+            Assert.NotNull(RelayMetrics.RequestDuration);
+            Assert.Equal("relay_request_duration_ms", RelayMetrics.RequestDuration.Name);
         }
 
         [Fact]
         public void RelayMetrics_ShouldHaveRequestErrorsCounter()
         {
             // Assert
-            RelayMetrics.RequestErrors.Should().NotBeNull();
-            RelayMetrics.RequestErrors.Name.Should().Be("relay_request_errors_total");
+            Assert.NotNull(RelayMetrics.RequestErrors);
+            Assert.Equal("relay_request_errors_total", RelayMetrics.RequestErrors.Name);
         }
 
         [Fact]
         public void RelayMetrics_ShouldHaveHandlersExecutedCounter()
         {
             // Assert
-            RelayMetrics.HandlersExecuted.Should().NotBeNull();
-            RelayMetrics.HandlersExecuted.Name.Should().Be("relay_handlers_executed_total");
+            Assert.NotNull(RelayMetrics.HandlersExecuted);
+            Assert.Equal("relay_handlers_executed_total", RelayMetrics.HandlersExecuted.Name);
         }
 
         [Fact]
         public void RelayMetrics_ShouldHaveHandlerExecutionTimeHistogram()
         {
             // Assert
-            RelayMetrics.HandlerExecutionTime.Should().NotBeNull();
-            RelayMetrics.HandlerExecutionTime.Name.Should().Be("relay_handler_execution_duration_ms");
+            Assert.NotNull(RelayMetrics.HandlerExecutionTime);
+            Assert.Equal("relay_handler_execution_duration_ms", RelayMetrics.HandlerExecutionTime.Name);
         }
 
         [Fact]
         public void RelayMetrics_ShouldHaveCacheHitsCounter()
         {
             // Assert
-            RelayMetrics.CacheHits.Should().NotBeNull();
-            RelayMetrics.CacheHits.Name.Should().Be("relay_cache_hits_total");
+            Assert.NotNull(RelayMetrics.CacheHits);
+            Assert.Equal("relay_cache_hits_total", RelayMetrics.CacheHits.Name);
         }
 
         [Fact]
         public void RelayMetrics_ShouldHaveCacheMissesCounter()
         {
             // Assert
-            RelayMetrics.CacheMisses.Should().NotBeNull();
-            RelayMetrics.CacheMisses.Name.Should().Be("relay_cache_misses_total");
+            Assert.NotNull(RelayMetrics.CacheMisses);
+            Assert.Equal("relay_cache_misses_total", RelayMetrics.CacheMisses.Name);
         }
 
         [Fact]
         public void RelayMetrics_ShouldHaveActiveRequestsUpDownCounter()
         {
             // Assert
-            RelayMetrics.ActiveRequests.Should().NotBeNull();
-            RelayMetrics.ActiveRequests.Name.Should().Be("relay_active_requests");
+            Assert.NotNull(RelayMetrics.ActiveRequests);
+            Assert.Equal("relay_active_requests", RelayMetrics.ActiveRequests.Name);
         }
 
         [Fact]
@@ -87,8 +86,8 @@ namespace Relay.Core.Tests.Observability
             var tracker = RelayMetrics.TrackRequest("TestRequest", "TestHandler");
 
             // Assert
-            tracker.Should().NotBeNull();
-            tracker.Should().BeAssignableTo<IDisposable>();
+            Assert.NotNull(tracker);
+            Assert.IsAssignableFrom<IDisposable>(tracker);
         }
 
         [Fact]

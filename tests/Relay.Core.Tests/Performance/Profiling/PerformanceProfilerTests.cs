@@ -1,12 +1,11 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Infrastructure;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Performance.Profiling;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.Performance.Profiling;
@@ -37,14 +36,14 @@ public class PerformanceProfilerTests
         var result = await profiler.ProfileAsync(request, next, CancellationToken.None);
 
         // Assert
-        result.Should().Be("result");
-        nextCalled.Should().BeTrue();
+        Assert.Equal("result", result);
+        Assert.True(nextCalled);
 
         var stats = collector.GetStatistics("TestRequest");
-        stats.TotalRequests.Should().Be(1);
-        stats.SuccessfulRequests.Should().Be(1);
-        stats.FailedRequests.Should().Be(0);
-        stats.AverageExecutionTime.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
+        Assert.Equal(1, stats.TotalRequests);
+        Assert.Equal(1, stats.SuccessfulRequests);
+        Assert.Equal(0, stats.FailedRequests);
+        Assert.True(stats.AverageExecutionTime >= TimeSpan.Zero);
     }
 
     [Fact]
@@ -66,7 +65,7 @@ public class PerformanceProfilerTests
 
         // Assert
         var stats = collector.GetStatistics("TestRequest");
-        stats.TotalRequests.Should().Be(0); // Nothing recorded when disabled
+        Assert.Equal(0, stats.TotalRequests); // Nothing recorded when disabled
     }
 
     [Fact]
@@ -88,9 +87,9 @@ public class PerformanceProfilerTests
             profiler.ProfileAsync(request, next, CancellationToken.None).AsTask());
 
         var stats = collector.GetStatistics("TestRequest");
-        stats.TotalRequests.Should().Be(1);
-        stats.FailedRequests.Should().Be(1);
-        stats.SuccessfulRequests.Should().Be(0);
+        Assert.Equal(1, stats.TotalRequests);
+        Assert.Equal(1, stats.FailedRequests);
+        Assert.Equal(0, stats.SuccessfulRequests);
     }
 
     [Fact]
@@ -114,11 +113,11 @@ public class PerformanceProfilerTests
 
         // Assert
         var stats = collector.GetStatistics("TestRequest");
-        stats.TotalRequests.Should().Be(10);
-        stats.SuccessfulRequests.Should().Be(10);
-        stats.AverageExecutionTime.TotalMilliseconds.Should().BeApproximately(104.5, 1.0);
-        stats.MinExecutionTime.Should().Be(TimeSpan.FromMilliseconds(100));
-        stats.MaxExecutionTime.Should().Be(TimeSpan.FromMilliseconds(109));
+        Assert.Equal(10, stats.TotalRequests);
+        Assert.Equal(10, stats.SuccessfulRequests);
+        Assert.True(Math.Abs(stats.AverageExecutionTime.TotalMilliseconds - 104.5) <= 1.0);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), stats.MinExecutionTime);
+        Assert.Equal(TimeSpan.FromMilliseconds(109), stats.MaxExecutionTime);
     }
 
     [Fact]
@@ -141,10 +140,10 @@ public class PerformanceProfilerTests
 
         // Assert
         var stats = collector.GetStatistics("TestRequest");
-        stats.TotalRequests.Should().Be(100);
-        stats.P50ExecutionTime.TotalMilliseconds.Should().BeApproximately(50, 2);
-        stats.P95ExecutionTime.TotalMilliseconds.Should().BeApproximately(95, 5);
-        stats.P99ExecutionTime.TotalMilliseconds.Should().BeApproximately(99, 2);
+        Assert.Equal(100, stats.TotalRequests);
+        Assert.True(Math.Abs(stats.P50ExecutionTime.TotalMilliseconds - 50) <= 2);
+        Assert.True(Math.Abs(stats.P95ExecutionTime.TotalMilliseconds - 95) <= 5);
+        Assert.True(Math.Abs(stats.P99ExecutionTime.TotalMilliseconds - 99) <= 2);
     }
 
     [Fact]
@@ -167,7 +166,7 @@ public class PerformanceProfilerTests
 
         // Assert - Total should still be tracked, but recent limited
         var stats = collector.GetStatistics("TestRequest");
-        stats.TotalRequests.Should().Be(20);
+        Assert.Equal(20, stats.TotalRequests);
     }
 
     [Fact]
@@ -190,8 +189,8 @@ public class PerformanceProfilerTests
         var afterReset = collector.GetStatistics("TestRequest");
 
         // Assert
-        beforeReset.TotalRequests.Should().Be(1);
-        afterReset.TotalRequests.Should().Be(0);
+        Assert.Equal(1, beforeReset.TotalRequests);
+        Assert.Equal(0, afterReset.TotalRequests);
     }
 
     [Fact]
@@ -221,11 +220,11 @@ public class PerformanceProfilerTests
         var statsA = collector.GetStatistics("TypeA");
         var statsB = collector.GetStatistics("TypeB");
 
-        statsA.TotalRequests.Should().Be(1);
-        statsA.AverageExecutionTime.Should().Be(TimeSpan.FromMilliseconds(100));
+        Assert.Equal(1, statsA.TotalRequests);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), statsA.AverageExecutionTime);
 
-        statsB.TotalRequests.Should().Be(1);
-        statsB.AverageExecutionTime.Should().Be(TimeSpan.FromMilliseconds(200));
+        Assert.Equal(1, statsB.TotalRequests);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), statsB.AverageExecutionTime);
     }
 
     [Fact]
@@ -248,7 +247,7 @@ public class PerformanceProfilerTests
 
         // Assert
         var stats = collector.GetStatistics("TestRequest");
-        stats.SuccessRate.Should().BeApproximately(70.0, 0.1);
+        Assert.True(Math.Abs(stats.SuccessRate - 70.0) <= 0.1);
     }
 
     [Fact]
@@ -277,8 +276,8 @@ public class PerformanceProfilerTests
         // Assert - Memory tracking may be 0 in Release mode due to optimizations
         // Just verify the metrics were recorded
         var stats = collector.GetStatistics("TestRequest");
-        stats.TotalRequests.Should().Be(1);
-        stats.SuccessfulRequests.Should().Be(1);
+        Assert.Equal(1, stats.TotalRequests);
+        Assert.Equal(1, stats.SuccessfulRequests);
     }
 
     private class TestRequest : IRequest<string>

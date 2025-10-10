@@ -1,11 +1,10 @@
+using Relay.Core.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Extensions;
 using Xunit;
 
 namespace Relay.Core.Tests.Extensions
@@ -23,7 +22,7 @@ namespace Relay.Core.Tests.Extensions
             var result = await asyncEnumerable.ToListAsync();
 
             // Assert
-            result.Should().Equal(items);
+            Assert.Equal(items, result);
         }
 
         [Fact]
@@ -47,10 +46,10 @@ namespace Relay.Core.Tests.Extensions
             var result = await asyncEnumerable.ToListAsync();
 
             // Assert
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
 
-        [Fact()]
+        [Fact]
         public async Task ToListAsync_ShouldRespectCancellationToken()
         {
             // Arrange
@@ -74,7 +73,7 @@ namespace Relay.Core.Tests.Extensions
             var result = await asyncEnumerable.FirstAsync();
 
             // Assert
-            result.Should().Be(1);
+            Assert.Equal(1, result);
         }
 
         [Fact]
@@ -110,7 +109,7 @@ namespace Relay.Core.Tests.Extensions
             var result = await asyncEnumerable.FirstOrDefaultAsync();
 
             // Assert
-            result.Should().Be(1);
+            Assert.Equal(1, result);
         }
 
         [Fact]
@@ -123,7 +122,7 @@ namespace Relay.Core.Tests.Extensions
             var result = await asyncEnumerable.FirstOrDefaultAsync();
 
             // Assert
-            result.Should().Be(0);
+            Assert.Equal(0, result);
         }
 
         [Fact]
@@ -148,11 +147,11 @@ namespace Relay.Core.Tests.Extensions
             var batches = await asyncEnumerable.BufferAsync(3).ToListAsync();
 
             // Assert
-            batches.Should().HaveCount(4);
-            batches[0].Should().Equal(1, 2, 3);
-            batches[1].Should().Equal(4, 5, 6);
-            batches[2].Should().Equal(7, 8, 9);
-            batches[3].Should().Equal(10);
+            Assert.Equal(4, batches.Count);
+            Assert.Equal(new[] { 1, 2, 3 }, batches[0]);
+            Assert.Equal(new[] { 4, 5, 6 }, batches[1]);
+            Assert.Equal(new[] { 7, 8, 9 }, batches[2]);
+            Assert.Equal(new[] { 10 }, batches[3]);
         }
 
         [Fact]
@@ -166,9 +165,9 @@ namespace Relay.Core.Tests.Extensions
             var batches = await asyncEnumerable.BufferAsync(3).ToListAsync();
 
             // Assert
-            batches.Should().HaveCount(2);
-            batches[0].Should().Equal(1, 2, 3);
-            batches[1].Should().Equal(4, 5, 6);
+            Assert.Equal(2, batches.Count);
+            Assert.Equal(new[] { 1, 2, 3 }, batches[0]);
+            Assert.Equal(new[] { 4, 5, 6 }, batches[1]);
         }
 
         [Fact]
@@ -201,7 +200,7 @@ namespace Relay.Core.Tests.Extensions
             });
         }
 
-        [Fact()]
+        [Fact]
         public async Task BufferAsync_ShouldRespectCancellationToken()
         {
             // Arrange

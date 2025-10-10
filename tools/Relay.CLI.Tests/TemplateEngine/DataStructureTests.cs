@@ -1,5 +1,4 @@
 using Xunit;
-using FluentAssertions;
 using Relay.CLI.TemplateEngine;
 
 namespace Relay.CLI.Tests.TemplateEngine;
@@ -13,12 +12,12 @@ public class DataStructureTests
         var options = new GenerationOptions();
 
         // Assert
-        options.EnableSwagger.Should().BeTrue();
-        options.EnableDocker.Should().BeTrue();
-        options.EnableHealthChecks.Should().BeTrue();
-        options.EnableAuth.Should().BeFalse();
-        options.EnableCaching.Should().BeFalse();
-        options.EnableTelemetry.Should().BeFalse();
+        Assert.True(options.EnableSwagger);
+        Assert.True(options.EnableDocker);
+        Assert.True(options.EnableHealthChecks);
+        Assert.False(options.EnableAuth);
+        Assert.False(options.EnableCaching);
+        Assert.False(options.EnableTelemetry);
     }
 
     [Fact]
@@ -40,18 +39,18 @@ public class DataStructureTests
         };
 
         // Assert
-        options.Author.Should().Be("Test Author");
-        options.TargetFramework.Should().Be("net8.0");
-        options.DatabaseProvider.Should().Be("postgres");
-        options.EnableAuth.Should().BeTrue();
-        options.EnableSwagger.Should().BeFalse();
-        options.EnableDocker.Should().BeFalse();
-        options.EnableHealthChecks.Should().BeFalse();
-        options.EnableCaching.Should().BeTrue();
-        options.EnableTelemetry.Should().BeTrue();
-        options.Modules.Should().HaveCount(2);
-        options.Modules.Should().Contain("Module1");
-        options.Modules.Should().Contain("Module2");
+        Assert.Equal("Test Author", options.Author);
+        Assert.Equal("net8.0", options.TargetFramework);
+        Assert.Equal("postgres", options.DatabaseProvider);
+        Assert.True(options.EnableAuth);
+        Assert.False(options.EnableSwagger);
+        Assert.False(options.EnableDocker);
+        Assert.False(options.EnableHealthChecks);
+        Assert.True(options.EnableCaching);
+        Assert.True(options.EnableTelemetry);
+        Assert.Equal(2, options.Modules.Count());
+        Assert.Contains("Module1", options.Modules);
+        Assert.Contains("Module2", options.Modules);
     }
 
     [Fact]
@@ -67,10 +66,10 @@ public class DataStructureTests
         };
 
         // Assert
-        options.Author.Should().BeNull();
-        options.TargetFramework.Should().BeNull();
-        options.DatabaseProvider.Should().BeNull();
-        options.Modules.Should().BeNull();
+        Assert.Null(options.Author);
+        Assert.Null(options.TargetFramework);
+        Assert.Null(options.DatabaseProvider);
+        Assert.Null(options.Modules);
     }
 
     [Fact]
@@ -80,13 +79,16 @@ public class DataStructureTests
         var result = new GenerationResult();
 
         // Assert
-        result.Success.Should().BeFalse();
-        result.Message.Should().BeEmpty();
-        result.TemplateName.Should().BeEmpty();
-        result.CreatedDirectories.Should().NotBeNull().And.BeEmpty();
-        result.CreatedFiles.Should().NotBeNull().And.BeEmpty();
-        result.Errors.Should().NotBeNull().And.BeEmpty();
-        result.Duration.Should().Be(TimeSpan.Zero);
+        Assert.False(result.Success);
+        Assert.Empty(result.Message);
+        Assert.Empty(result.TemplateName);
+        Assert.NotNull(result.CreatedDirectories);
+        Assert.Empty(result.CreatedDirectories);
+        Assert.NotNull(result.CreatedFiles);
+        Assert.Empty(result.CreatedFiles);
+        Assert.NotNull(result.Errors);
+        Assert.Empty(result.Errors);
+        Assert.Equal(TimeSpan.Zero, result.Duration);
     }
 
     [Fact]
@@ -100,9 +102,9 @@ public class DataStructureTests
         result.CreatedDirectories.Add("tests");
 
         // Assert
-        result.CreatedDirectories.Should().HaveCount(2);
-        result.CreatedDirectories.Should().Contain("src");
-        result.CreatedDirectories.Should().Contain("tests");
+        Assert.Equal(2, result.CreatedDirectories.Count);
+        Assert.Contains("src", result.CreatedDirectories);
+        Assert.Contains("tests", result.CreatedDirectories);
     }
 
     [Fact]
@@ -116,8 +118,8 @@ public class DataStructureTests
         result.CreatedFiles.Add("Startup.cs");
 
         // Assert
-        result.CreatedFiles.Should().HaveCount(2);
-        result.CreatedFiles.Should().Contain("Program.cs");
+        Assert.Equal(2, result.CreatedFiles.Count);
+        Assert.Contains("Program.cs", result.CreatedFiles);
     }
 
     [Fact]
@@ -131,8 +133,8 @@ public class DataStructureTests
         result.Errors.Add("Error 2");
 
         // Assert
-        result.Errors.Should().HaveCount(2);
-        result.Errors.Should().Contain("Error 1");
+        Assert.Equal(2, result.Errors.Count);
+        Assert.Contains("Error 1", result.Errors);
     }
 
     [Fact]
@@ -150,12 +152,12 @@ public class DataStructureTests
         result.CreatedFiles.Add("Program.cs");
 
         // Assert
-        result.Success.Should().BeTrue();
-        result.Message.Should().Be("Test message");
-        result.TemplateName.Should().Be("relay-webapi");
-        result.Duration.Should().Be(TimeSpan.FromSeconds(5));
-        result.CreatedDirectories.Should().Contain("src");
-        result.CreatedFiles.Should().Contain("Program.cs");
+        Assert.True(result.Success);
+        Assert.Equal("Test message", result.Message);
+        Assert.Equal("relay-webapi", result.TemplateName);
+        Assert.Equal(TimeSpan.FromSeconds(5), result.Duration);
+        Assert.Contains("src", result.CreatedDirectories);
+        Assert.Contains("Program.cs", result.CreatedFiles);
     }
 
     [Fact]
@@ -165,10 +167,12 @@ public class DataStructureTests
         var result = new ValidationResult();
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Message.Should().BeEmpty();
-        result.Errors.Should().NotBeNull().And.BeEmpty();
-        result.Warnings.Should().NotBeNull().And.BeEmpty();
+        Assert.False(result.IsValid);
+        Assert.Empty(result.Message);
+        Assert.NotNull(result.Errors);
+        Assert.Empty(result.Errors);
+        Assert.NotNull(result.Warnings);
+        Assert.Empty(result.Warnings);
     }
 
     [Fact]
@@ -182,10 +186,10 @@ public class DataStructureTests
         result.Warnings.Add("Minor warning");
 
         // Assert
-        result.Errors.Should().HaveCount(1);
-        result.Warnings.Should().HaveCount(1);
-        result.Errors.Should().Contain("Critical error");
-        result.Warnings.Should().Contain("Minor warning");
+        Assert.Equal(1, result.Errors.Count);
+        Assert.Equal(1, result.Warnings.Count);
+        Assert.Contains("Critical error", result.Errors);
+        Assert.Contains("Minor warning", result.Warnings);
     }
 
     [Fact]
@@ -198,7 +202,7 @@ public class DataStructureTests
         result.Errors.Add("Error");
 
         // Assert
-        result.Errors.Should().NotBeEmpty();
+        Assert.NotEmpty(result.Errors);
     }
 
     [Fact]
@@ -212,8 +216,7 @@ public class DataStructureTests
         };
 
         // Act & Assert
-        var act = () => result.DisplayResults();
-        act.Should().NotThrow();
+        result.DisplayResults();
     }
 
     [Fact]
@@ -229,8 +232,7 @@ public class DataStructureTests
         result.Warnings.Add("Warning 1");
 
         // Act & Assert
-        var act = () => result.DisplayResults();
-        act.Should().NotThrow();
+        result.DisplayResults();
     }
 
     [Fact]
@@ -240,10 +242,11 @@ public class DataStructureTests
         var result = new PublishResult();
 
         // Assert
-        result.Success.Should().BeFalse();
-        result.Message.Should().BeEmpty();
-        result.PackagePath.Should().BeEmpty();
-        result.Errors.Should().NotBeNull().And.BeEmpty();
+        Assert.False(result.Success);
+        Assert.Empty(result.Message);
+        Assert.Empty(result.PackagePath);
+        Assert.NotNull(result.Errors);
+        Assert.Empty(result.Errors);
     }
 
     [Fact]
@@ -259,10 +262,10 @@ public class DataStructureTests
         result.Errors.Add("Warning message");
 
         // Assert
-        result.Success.Should().BeTrue();
-        result.Message.Should().Be("Published successfully");
-        result.PackagePath.Should().Be("/path/to/package.nupkg");
-        result.Errors.Should().HaveCount(1);
+        Assert.True(result.Success);
+        Assert.Equal("Published successfully", result.Message);
+        Assert.Equal("/path/to/package.nupkg", result.PackagePath);
+        Assert.Equal(1, result.Errors.Count);
     }
 
     [Fact]
@@ -272,12 +275,12 @@ public class DataStructureTests
         var info = new TemplateInfo();
 
         // Assert
-        info.Id.Should().BeEmpty();
-        info.Name.Should().BeEmpty();
-        info.Description.Should().BeEmpty();
-        info.Author.Should().BeEmpty();
-        info.Path.Should().BeEmpty();
-        info.Version.Should().Be("1.0.0");
+        Assert.Empty(info.Id);
+        Assert.Empty(info.Name);
+        Assert.Empty(info.Description);
+        Assert.Empty(info.Author);
+        Assert.Empty(info.Path);
+        Assert.Equal("1.0.0", info.Version);
     }
 
     [Fact]
@@ -295,11 +298,11 @@ public class DataStructureTests
         };
 
         // Assert
-        info.Id.Should().Be("relay-webapi");
-        info.Name.Should().Be("Relay Web API");
-        info.Description.Should().Be("A web API template");
-        info.Author.Should().Be("Relay Team");
-        info.Path.Should().Be("/templates/relay-webapi");
-        info.Version.Should().Be("2.0.0");
+        Assert.Equal("relay-webapi", info.Id);
+        Assert.Equal("Relay Web API", info.Name);
+        Assert.Equal("A web API template", info.Description);
+        Assert.Equal("Relay Team", info.Author);
+        Assert.Equal("/templates/relay-webapi", info.Path);
+        Assert.Equal("2.0.0", info.Version);
     }
 }

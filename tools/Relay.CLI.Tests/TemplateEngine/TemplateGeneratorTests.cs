@@ -1,5 +1,4 @@
 using Xunit;
-using FluentAssertions;
 using Relay.CLI.TemplateEngine;
 
 namespace Relay.CLI.Tests.TemplateEngine;
@@ -49,11 +48,11 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", projectName, _testOutputPath, options);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeTrue();
-        result.TemplateName.Should().Be("relay-webapi");
-        result.CreatedDirectories.Should().NotBeEmpty();
-        result.Message.Should().Contain("created successfully");
+        Assert.NotNull(result);
+        Assert.True(result.Success);
+        Assert.Equal("relay-webapi", result.TemplateName);
+        Assert.NotEmpty(result.CreatedDirectories);
+        Assert.Contains("created successfully", result.Message);
     }
 
     [Fact]
@@ -67,8 +66,8 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync("invalid-template", projectName, _testOutputPath, options);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
+        Assert.NotNull(result);
+        Assert.False(result.Success);
     }
 
     [Fact]
@@ -84,7 +83,7 @@ public class TemplateGeneratorTests : IDisposable
         // Assert - Variables are private, so we test indirectly
         var options = new GenerationOptions();
         var result = _generator.GenerateAsync("relay-webapi", "Test", _testOutputPath, options);
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -108,8 +107,8 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", projectName, _testOutputPath, options);
 
         // Assert
-        result.Success.Should().BeTrue();
-        result.CreatedDirectories.Should().Contain(d => d.Contains(projectName));
+        Assert.True(result.Success);
+        Assert.Contains(result.CreatedDirectories, d => d.Contains(projectName));
     }
 
     [Fact]
@@ -123,8 +122,8 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", projectName, _testOutputPath, options);
 
         // Assert
-        result.Duration.Should().BeGreaterThan(TimeSpan.Zero);
-        result.Duration.Should().BeLessThan(TimeSpan.FromSeconds(30));
+        Assert.True(result.Duration > TimeSpan.Zero);
+        Assert.True(result.Duration < TimeSpan.FromSeconds(30));
     }
 
     [Theory]
@@ -142,8 +141,8 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync(templateId, projectName, _testOutputPath, options);
 
         // Assert
-        result.Should().NotBeNull();
-        result.TemplateName.Should().Be(templateId);
+        Assert.NotNull(result);
+        Assert.Equal(templateId, result.TemplateName);
     }
 
     [Fact]
@@ -160,8 +159,8 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync("relay-modular", projectName, _testOutputPath, options);
 
         // Assert
-        result.Success.Should().BeTrue();
-        result.CreatedDirectories.Should().Contain(d => d.Contains("Modules"));
+        Assert.True(result.Success);
+        Assert.Contains(result.CreatedDirectories, d => d.Contains("Modules"));
     }
 
     [Fact]
@@ -175,9 +174,9 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", projectName, _testOutputPath, options);
 
         // Assert
-        result.CreatedDirectories.Should().NotBeEmpty();
-        result.CreatedFiles.Should().NotBeEmpty();
-        result.CreatedDirectories.Count.Should().BeGreaterThan(5);
+        Assert.NotEmpty(result.CreatedDirectories);
+        Assert.NotEmpty(result.CreatedFiles);
+        Assert.True(result.CreatedDirectories.Count > 5);
     }
 
     [Fact]
@@ -190,9 +189,9 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", null!, _testOutputPath, options);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.Errors.Should().NotBeEmpty();
+        Assert.NotNull(result);
+        Assert.False(result.Success);
+        Assert.NotEmpty(result.Errors);
     }
 
     [Fact]
@@ -205,8 +204,8 @@ public class TemplateGeneratorTests : IDisposable
         var result = await _generator.GenerateAsync("relay-webapi", "", _testOutputPath, options);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.Errors.Should().NotBeEmpty();
+        Assert.NotNull(result);
+        Assert.False(result.Success);
+        Assert.NotEmpty(result.Errors);
     }
 }

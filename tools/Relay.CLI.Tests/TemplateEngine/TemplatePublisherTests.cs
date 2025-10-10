@@ -1,5 +1,4 @@
 using Xunit;
-using FluentAssertions;
 using Relay.CLI.TemplateEngine;
 
 namespace Relay.CLI.Tests.TemplateEngine;
@@ -58,10 +57,10 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeTrue();
-        result.PackagePath.Should().NotBeEmpty();
-        result.Message.Should().Contain("successfully");
+        Assert.NotNull(result);
+        Assert.True(result.Success);
+        Assert.NotEmpty(result.PackagePath);
+        Assert.Contains("successfully", result.Message);
     }
 
     [Fact]
@@ -77,8 +76,8 @@ public class TemplatePublisherTests : IDisposable
             var result = await _publisher.PackTemplateAsync(invalidTemplatePath, _outputPath);
 
             // Assert
-            result.Success.Should().BeFalse();
-            result.Message.Should().Contain("validation failed");
+            Assert.False(result.Success);
+            Assert.Contains("validation failed", result.Message);
         }
         finally
         {
@@ -97,8 +96,8 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
 
         // Assert - Should create .nupkg file (which is a renamed zip)
-        File.Exists(result.PackagePath).Should().BeTrue();
-        result.PackagePath.Should().EndWith(".nupkg");
+        Assert.True(File.Exists(result.PackagePath));
+        Assert.EndsWith(".nupkg", result.PackagePath);
     }
 
     [Fact]
@@ -111,7 +110,7 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PackTemplateAsync(nonExistentPath, _outputPath);
 
         // Assert
-        result.Success.Should().BeFalse();
+        Assert.False(result.Success);
     }
 
     [Fact]
@@ -126,9 +125,9 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PublishTemplateAsync(packagePath, registryUrl);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeTrue();
-        result.Message.Should().Contain("published successfully");
+        Assert.NotNull(result);
+        Assert.True(result.Success);
+        Assert.Contains("published successfully", result.Message);
     }
 
     [Fact]
@@ -142,8 +141,8 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PublishTemplateAsync(nonExistentPackage, registryUrl);
 
         // Assert
-        result.Success.Should().BeFalse();
-        result.Message.Should().Contain("not found");
+        Assert.False(result.Success);
+        Assert.Contains("not found", result.Message);
     }
 
     [Fact]
@@ -160,7 +159,7 @@ public class TemplatePublisherTests : IDisposable
             var templates = await publisher.ListAvailableTemplatesAsync();
 
             // Assert
-            templates.Should().BeEmpty();
+            Assert.Empty(templates);
         }
         finally
         {
@@ -180,8 +179,8 @@ public class TemplatePublisherTests : IDisposable
         var templates = await _publisher.ListAvailableTemplatesAsync();
 
         // Assert
-        templates.Should().NotBeEmpty();
-        templates.Count.Should().BeGreaterThanOrEqualTo(2);
+        Assert.NotEmpty(templates);
+        Assert.True(templates.Count >= 2);
     }
 
     [Fact]
@@ -194,12 +193,12 @@ public class TemplatePublisherTests : IDisposable
         var templates = await _publisher.ListAvailableTemplatesAsync();
 
         // Assert
-        templates.Should().NotBeEmpty();
+        Assert.NotEmpty(templates);
         var template = templates.First();
-        template.Id.Should().NotBeEmpty();
-        template.Name.Should().NotBeEmpty();
-        template.Description.Should().NotBeEmpty();
-        template.Path.Should().NotBeEmpty();
+        Assert.NotEmpty(template.Id);
+        Assert.NotEmpty(template.Name);
+        Assert.NotEmpty(template.Description);
+        Assert.NotEmpty(template.Path);
     }
 
     [Fact]
@@ -215,7 +214,7 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
 
         // Assert
-        result.Success.Should().BeTrue();
+        Assert.True(result.Success);
     }
 
     [Fact]
@@ -230,7 +229,7 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PublishTemplateAsync(packagePath, registryUrl);
 
         // Assert
-        result.PackagePath.Should().Be(packagePath);
+        Assert.Equal(packagePath, result.PackagePath);
     }
 
     [Fact]
@@ -243,19 +242,19 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
 
         // Assert
-        result.Success.Should().BeTrue();
-        File.Exists(result.PackagePath).Should().BeTrue();
+        Assert.True(result.Success);
+        Assert.True(File.Exists(result.PackagePath));
 
         // Verify it's a valid zip file
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
-        zipArchive.Entries.Should().NotBeEmpty();
+        Assert.NotEmpty(zipArchive.Entries);
 
         // Verify NuGet package structure
         var entryNames = zipArchive.Entries.Select(e => e.FullName).ToList();
-        entryNames.Should().Contain(e => e == "[Content_Types].xml", "package should contain Content_Types.xml");
-        entryNames.Should().Contain(e => e.EndsWith(".nuspec"), "package should contain .nuspec file");
-        entryNames.Should().Contain(e => e.StartsWith("_rels/"), "package should contain _rels directory");
-        entryNames.Should().Contain(e => e.StartsWith("content/"), "package should contain content directory");
+        Assert.Contains("[Content_Types].xml", entryNames);
+        Assert.Contains(entryNames, e => e.EndsWith(".nuspec"));
+        Assert.Contains(entryNames, e => e.StartsWith("_rels/"));
+        Assert.Contains(entryNames, e => e.StartsWith("content/"));
     }
 
     [Fact]
@@ -268,19 +267,19 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
 
         // Assert
-        result.Success.Should().BeTrue();
+        Assert.True(result.Success);
 
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
         var nuspecEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".nuspec"));
-        nuspecEntry.Should().NotBeNull("package should contain .nuspec file");
+        Assert.NotNull(nuspecEntry);
 
         using var reader = new StreamReader(nuspecEntry!.Open());
         var nuspecContent = await reader.ReadToEndAsync();
 
-        nuspecContent.Should().Contain("<version>1.2.3</version>");
-        nuspecContent.Should().Contain("<authors>Test Author</authors>");
-        nuspecContent.Should().Contain("<description>Test Description</description>");
-        nuspecContent.Should().Contain("<packageType name=\"Template\" />");
+        Assert.Contains("<version>1.2.3</version>", nuspecContent);
+        Assert.Contains("<authors>Test Author</authors>", nuspecContent);
+        Assert.Contains("<description>Test Description</description>", nuspecContent);
+        Assert.Contains("<packageType name=\"Template\" />", nuspecContent);
     }
 
     [Fact]
@@ -295,16 +294,16 @@ public class TemplatePublisherTests : IDisposable
         // Assert
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
         var contentTypesEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName == "[Content_Types].xml");
-        contentTypesEntry.Should().NotBeNull();
+        Assert.NotNull(contentTypesEntry);
 
         using var reader = new StreamReader(contentTypesEntry!.Open());
         var contentTypesXml = await reader.ReadToEndAsync();
 
-        contentTypesXml.Should().Contain("<?xml version=\"1.0\"");
-        contentTypesXml.Should().Contain("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
-        contentTypesXml.Should().Contain("Extension=\"rels\"");
-        contentTypesXml.Should().Contain("Extension=\"psmdcp\"");
-        contentTypesXml.Should().Contain("Extension=\"nuspec\"");
+        Assert.Contains("<?xml version=\"1.0\"", contentTypesXml);
+        Assert.Contains("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">", contentTypesXml);
+        Assert.Contains("Extension=\"rels\"", contentTypesXml);
+        Assert.Contains("Extension=\"psmdcp\"", contentTypesXml);
+        Assert.Contains("Extension=\"nuspec\"", contentTypesXml);
     }
 
     [Fact]
@@ -319,15 +318,15 @@ public class TemplatePublisherTests : IDisposable
         // Assert
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
         var relsEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName == "_rels/.rels");
-        relsEntry.Should().NotBeNull();
+        Assert.NotNull(relsEntry);
 
         using var reader = new StreamReader(relsEntry!.Open());
         var relsContent = await reader.ReadToEndAsync();
 
-        relsContent.Should().Contain("<?xml version=\"1.0\"");
-        relsContent.Should().Contain("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
-        relsContent.Should().Contain("Type=\"http://schemas.microsoft.com/packaging/2010/07/manifest\"");
-        relsContent.Should().Contain("Target=\"/package.nuspec\"");
+        Assert.Contains("<?xml version=\"1.0\"", relsContent);
+        Assert.Contains("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">", relsContent);
+        Assert.Contains("Type=\"http://schemas.microsoft.com/packaging/2010/07/manifest\"", relsContent);
+        Assert.Contains("Target=\"/package.nuspec\"", relsContent);
     }
 
     [Fact]
@@ -344,16 +343,16 @@ public class TemplatePublisherTests : IDisposable
         var corePropsEntry = zipArchive.Entries.FirstOrDefault(e =>
             e.FullName.StartsWith("package/services/metadata/core-properties/") &&
             e.FullName.EndsWith(".psmdcp"));
-        corePropsEntry.Should().NotBeNull();
+        Assert.NotNull(corePropsEntry);
 
         using var reader = new StreamReader(corePropsEntry!.Open());
         var corePropsContent = await reader.ReadToEndAsync();
 
-        corePropsContent.Should().Contain("<dc:creator>Core Author</dc:creator>");
-        corePropsContent.Should().Contain("<dc:description>Core Description</dc:description>");
-        corePropsContent.Should().Contain("<version>2.0.0</version>");
-        corePropsContent.Should().Contain("dcterms:created");
-        corePropsContent.Should().Contain("dcterms:modified");
+        Assert.Contains("<dc:creator>Core Author</dc:creator>", corePropsContent);
+        Assert.Contains("<dc:description>Core Description</dc:description>", corePropsContent);
+        Assert.Contains("<version>2.0.0</version>", corePropsContent);
+        Assert.Contains("dcterms:created", corePropsContent);
+        Assert.Contains("dcterms:modified", corePropsContent);
     }
 
     [Fact]
@@ -369,10 +368,10 @@ public class TemplatePublisherTests : IDisposable
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
         var contentEntries = zipArchive.Entries.Where(e => e.FullName.StartsWith("content/")).ToList();
 
-        contentEntries.Should().NotBeEmpty("template files should be copied to content directory");
-        contentEntries.Should().Contain(e => e.FullName.Contains("template.json"), "template.json should be in content");
-        contentEntries.Should().Contain(e => e.FullName.Contains("README.md"), "README.md should be in content");
-        contentEntries.Should().Contain(e => e.FullName.Contains(".csproj"), "project file should be in content");
+        Assert.NotEmpty(contentEntries);
+        Assert.Contains(contentEntries, e => e.FullName.Contains("template.json"));
+        Assert.Contains(contentEntries, e => e.FullName.Contains("README.md"));
+        Assert.Contains(contentEntries, e => e.FullName.Contains(".csproj"));
     }
 
     [Fact]
@@ -385,7 +384,7 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
 
         // Assert
-        result.Success.Should().BeTrue();
+        Assert.True(result.Success);
 
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
         var nuspecEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".nuspec"));
@@ -393,7 +392,7 @@ public class TemplatePublisherTests : IDisposable
         using var reader = new StreamReader(nuspecEntry!.Open());
         var nuspecContent = await reader.ReadToEndAsync();
 
-        nuspecContent.Should().Contain("<version>1.0.0</version>", "default version should be 1.0.0");
+        Assert.Contains("<version>1.0.0</version>", nuspecContent);
     }
 
     [Fact]
@@ -409,7 +408,7 @@ public class TemplatePublisherTests : IDisposable
         var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
 
         // Assert
-        result.Success.Should().BeTrue();
+        Assert.True(result.Success);
 
         using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
         var nuspecEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".nuspec"));
@@ -418,11 +417,11 @@ public class TemplatePublisherTests : IDisposable
         var nuspecContent = await reader.ReadToEndAsync();
 
         // Should not contain unescaped special characters
-        nuspecContent.Should().NotContain("<authors>Author & Co. <test@example.com></authors>");
+        Assert.DoesNotContain("<authors>Author & Co. <test@example.com></authors>", nuspecContent);
         // Should contain escaped versions
-        nuspecContent.Should().Contain("&amp;", "& should be escaped");
-        nuspecContent.Should().Contain("&lt;", "< should be escaped");
-        nuspecContent.Should().Contain("&gt;", "> should be escaped");
+        Assert.Contains("&amp;", nuspecContent);
+        Assert.Contains("&lt;", nuspecContent);
+        Assert.Contains("&gt;", nuspecContent);
     }
 
     private string CreateValidTemplate(string? suffix = null)

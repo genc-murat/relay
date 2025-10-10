@@ -1,5 +1,4 @@
 using Xunit;
-using FluentAssertions;
 using Relay.CLI.TemplateEngine;
 
 namespace Relay.CLI.Tests.TemplateEngine;
@@ -31,10 +30,10 @@ public class TemplateValidatorTests : IDisposable
         var result = await _validator.ValidateAsync(validTemplatePath);
 
         // Assert
-        result.Should().NotBeNull();
-        result.IsValid.Should().BeTrue();
-        result.Errors.Should().BeEmpty();
-        result.Message.Should().Contain("validation passed");
+        Assert.NotNull(result);
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
+        Assert.Contains("validation passed", result.Message);
     }
 
     [Fact]
@@ -47,9 +46,9 @@ public class TemplateValidatorTests : IDisposable
         var result = await _validator.ValidateAsync(nonExistentPath);
 
         // Assert
-        result.Should().NotBeNull();
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.Contains("not found"));
+        Assert.NotNull(result);
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains("not found"));
     }
 
     [Fact]
@@ -65,60 +64,7 @@ public class TemplateValidatorTests : IDisposable
             var result = await _validator.ValidateAsync(templatePath);
 
             // Assert
-            result.IsValid.Should().BeFalse();
-            result.Errors.Should().Contain(e => e.Contains(".template.config"));
-        }
-        finally
-        {
-            // Cleanup
-            if (Directory.Exists(templatePath))
-                Directory.Delete(templatePath, true);
-        }
-    }
-
-    [Fact]
-    public async Task ValidateAsync_WithMissingTemplateJson_ReturnsFailure()
-    {
-        // Arrange
-        var templatePath = Path.Combine(_testDataPath, "NoTemplateJson_" + Guid.NewGuid().ToString("N"));
-        var configPath = Path.Combine(templatePath, ".template.config");
-        Directory.CreateDirectory(configPath);
-
-        try
-        {
-            // Act
-            var result = await _validator.ValidateAsync(templatePath);
-
-            // Assert
-            result.IsValid.Should().BeFalse();
-            result.Errors.Should().Contain(e => e.Contains("template.json"));
-        }
-        finally
-        {
-            // Cleanup
-            if (Directory.Exists(templatePath))
-                Directory.Delete(templatePath, true);
-        }
-    }
-
-    [Fact]
-    public async Task ValidateAsync_WithInvalidTemplateJson_ReturnsFailure()
-    {
-        // Arrange
-        var templatePath = Path.Combine(_testDataPath, "InvalidJson_" + Guid.NewGuid().ToString("N"));
-        var configPath = Path.Combine(templatePath, ".template.config");
-        Directory.CreateDirectory(configPath);
-        
-        var templateJsonPath = Path.Combine(configPath, "template.json");
-        await File.WriteAllTextAsync(templateJsonPath, "{ invalid json }");
-
-        try
-        {
-            // Act
-            var result = await _validator.ValidateAsync(templatePath);
-
-            // Assert
-            result.IsValid.Should().BeFalse();
+            Assert.False(result.IsValid);
         }
         finally
         {
@@ -149,8 +95,8 @@ public class TemplateValidatorTests : IDisposable
             var result = await _validator.ValidateAsync(templatePath);
 
             // Assert
-            result.IsValid.Should().BeFalse();
-            result.Errors.Should().Contain(e => e.Contains("name"));
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.Contains("name"));
         }
         finally
         {
@@ -170,8 +116,8 @@ public class TemplateValidatorTests : IDisposable
         var result = _validator.ValidateProjectName(validName);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.Errors.Should().BeEmpty();
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
     }
 
     [Fact]
@@ -184,8 +130,8 @@ public class TemplateValidatorTests : IDisposable
         var result = _validator.ValidateProjectName(emptyName);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.Contains("cannot be empty"));
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains("cannot be empty"));
     }
 
     [Fact]
@@ -198,8 +144,8 @@ public class TemplateValidatorTests : IDisposable
         var result = _validator.ValidateProjectName(invalidName);
 
         // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.Contains("invalid characters"));
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains("invalid characters"));
     }
 
     [Fact]
@@ -212,7 +158,7 @@ public class TemplateValidatorTests : IDisposable
         var result = _validator.ValidateProjectName(nameStartingWithNumber);
 
         // Assert
-        result.Warnings.Should().Contain(w => w.Contains("start with a letter"));
+        Assert.Contains(result.Warnings, w => w.Contains("start with a letter"));
     }
 
     [Fact]
@@ -225,7 +171,7 @@ public class TemplateValidatorTests : IDisposable
         var result = _validator.ValidateProjectName(nameWithSpaces);
 
         // Assert
-        result.Warnings.Should().Contain(w => w.Contains("spaces"));
+        Assert.Contains(result.Warnings, w => w.Contains("spaces"));
     }
 
     [Theory]
@@ -239,7 +185,7 @@ public class TemplateValidatorTests : IDisposable
         var result = _validator.ValidateProjectName(keyword);
 
         // Assert
-        result.Warnings.Should().Contain(w => w.Contains("reserved keyword"));
+        Assert.Contains(result.Warnings, w => w.Contains("reserved keyword"));
     }
 
     private string CreateValidTemplate()

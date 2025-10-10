@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
 using Relay.Core.Contracts.Handlers;
@@ -116,9 +115,9 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            response.Result.Should().Be("Handled: test");
-            TestExceptionHandler.ExecutionLog.Should().ContainSingle();
-            TestExceptionHandler.ExecutionLog[0].Should().Contain("Handler failed: test");
+            Assert.Equal("Handled: test", response.Result);
+            Assert.Single(TestExceptionHandler.ExecutionLog);
+            Assert.Contains("Handler failed: test", TestExceptionHandler.ExecutionLog[0]);
         }
 
         [Fact]
@@ -148,7 +147,7 @@ namespace Relay.Core.Tests.Pipeline
                     default);
             });
 
-            TestExceptionHandler.ExecutionLog.Should().ContainSingle();
+            Assert.Single(TestExceptionHandler.ExecutionLog);
         }
 
         [Fact]
@@ -177,8 +176,8 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            response.Result.Should().Be("Handled by AnotherHandler: test");
-            TestExceptionHandler.ExecutionLog.Should().HaveCount(2);
+            Assert.Equal("Handled by AnotherHandler: test", response.Result);
+            Assert.Equal(2, TestExceptionHandler.ExecutionLog.Count);
         }
 
         [Fact]
@@ -206,8 +205,8 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            response.Result.Should().Be("Handled: test");
-            TestExceptionHandler.ExecutionLog.Should().ContainSingle();
+            Assert.Equal("Handled: test", response.Result);
+            Assert.Single(TestExceptionHandler.ExecutionLog);
         }
 
         #endregion
@@ -260,8 +259,8 @@ namespace Relay.Core.Tests.Pipeline
                     default);
             });
 
-            TestExceptionAction.ExecutionLog.Should().ContainSingle();
-            TestExceptionAction.ExecutionLog[0].Should().Contain("Handler failed: test");
+            Assert.Single(TestExceptionAction.ExecutionLog);
+            Assert.Contains("Handler failed: test", TestExceptionAction.ExecutionLog[0]);
         }
 
         [Fact]
@@ -291,9 +290,9 @@ namespace Relay.Core.Tests.Pipeline
                     default);
             });
 
-            TestExceptionAction.ExecutionLog.Should().HaveCount(2);
-            TestExceptionAction.ExecutionLog[0].Should().Contain("Action: Handler failed");
-            TestExceptionAction.ExecutionLog[1].Should().Contain("AnotherAction: Handler failed");
+            Assert.Equal(2, TestExceptionAction.ExecutionLog.Count);
+            Assert.Contains("Action: Handler failed", TestExceptionAction.ExecutionLog[0]);
+            Assert.Contains("AnotherAction: Handler failed", TestExceptionAction.ExecutionLog[1]);
         }
 
         [Fact]
@@ -324,7 +323,7 @@ namespace Relay.Core.Tests.Pipeline
             });
 
             // Second action should still execute
-            TestExceptionAction.ExecutionLog.Should().ContainSingle();
+            Assert.Single(TestExceptionAction.ExecutionLog);
         }
 
         public class ThrowingExceptionAction : IRequestExceptionAction<TestRequest, TestException>
@@ -370,10 +369,10 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            response.Result.Should().Be("Handled: integration");
-            TestExceptionHandler.ExecutionLog.Should().ContainSingle();
+            Assert.Equal("Handled: integration", response.Result);
+            Assert.Single(TestExceptionHandler.ExecutionLog);
             // Action executes BEFORE handler (inner pipeline first), so it DOES run
-            TestExceptionAction.ExecutionLog.Should().ContainSingle();
+            Assert.Single(TestExceptionAction.ExecutionLog);
         }
 
         [Fact]
@@ -410,8 +409,8 @@ namespace Relay.Core.Tests.Pipeline
             });
 
             // Both should have executed
-            TestExceptionHandler.ExecutionLog.Should().ContainSingle();
-            TestExceptionAction.ExecutionLog.Should().ContainSingle();
+            Assert.Single(TestExceptionHandler.ExecutionLog);
+            Assert.Single(TestExceptionAction.ExecutionLog);
         }
 
         #endregion

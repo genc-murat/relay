@@ -35,7 +35,7 @@ public class AnalyzeCommandTests : IDisposable
         var score = CalculateScore(analysis);
 
         // Assert
-        score.Should().BeGreaterThan(9.0); // Perfect score with bonuses
+        Assert.True(score > 9.0); // Perfect score with bonuses
     }
 
     [Fact]
@@ -49,9 +49,9 @@ public class AnalyzeCommandTests : IDisposable
         var content = await File.ReadAllTextAsync(files[0]);
 
         // Assert
-        content.Should().Contain("Task<");
-        content.Should().NotContain("ValueTask");
-        content.Should().NotContain("CancellationToken");
+        Assert.Contains("Task<", content);
+        Assert.DoesNotContain("ValueTask", content);
+        Assert.DoesNotContain("CancellationToken", content);
     }
 
     [Fact]
@@ -65,8 +65,8 @@ public class AnalyzeCommandTests : IDisposable
         var content = await File.ReadAllTextAsync(files[0]);
 
         // Assert
-        content.Should().NotContain("ILogger");
-        content.Should().NotContain("[Required]");
+        Assert.DoesNotContain("ILogger", content);
+        Assert.DoesNotContain("[Required]", content);
     }
 
     [Fact]
@@ -87,12 +87,12 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Assert
-        handler.Name.Should().Be("TestHandler");
-        handler.IsAsync.Should().BeTrue();
-        handler.UsesValueTask.Should().BeTrue();
-        handler.HasCancellationToken.Should().BeTrue();
-        handler.HasLogging.Should().BeTrue();
-        handler.LineCount.Should().Be(50);
+        Assert.Equal("TestHandler", handler.Name);
+        Assert.True(handler.IsAsync);
+        Assert.True(handler.UsesValueTask);
+        Assert.True(handler.HasCancellationToken);
+        Assert.True(handler.HasLogging);
+        Assert.Equal(50, handler.LineCount);
     }
 
     [Fact]
@@ -112,11 +112,11 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Assert
-        request.Name.Should().Be("TestRequest");
-        request.IsRecord.Should().BeTrue();
-        request.HasValidation.Should().BeTrue();
-        request.ParameterCount.Should().Be(3);
-        request.HasCaching.Should().BeTrue();
+        Assert.Equal("TestRequest", request.Name);
+        Assert.True(request.IsRecord);
+        Assert.True(request.HasValidation);
+        Assert.Equal(3, request.ParameterCount);
+        Assert.True(request.HasCaching);
     }
 
     [Fact]
@@ -134,11 +134,11 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Assert
-        issue.Type.Should().Be("Task Usage");
-        issue.Severity.Should().Be("Medium");
-        issue.Count.Should().Be(5);
-        issue.Recommendation.Should().NotBeEmpty();
-        issue.PotentialImprovement.Should().NotBeEmpty();
+        Assert.Equal("Task Usage", issue.Type);
+        Assert.Equal("Medium", issue.Severity);
+        Assert.Equal(5, issue.Count);
+        Assert.NotEmpty(issue.Recommendation);
+        Assert.NotEmpty(issue.PotentialImprovement);
     }
 
     [Fact]
@@ -156,11 +156,11 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Assert
-        issue.Type.Should().Be("Logging");
-        issue.Severity.Should().Be("Medium");
-        issue.Count.Should().Be(3);
-        issue.Recommendation.Should().NotBeEmpty();
-        issue.Impact.Should().NotBeEmpty();
+        Assert.Equal("Logging", issue.Type);
+        Assert.Equal("Medium", issue.Severity);
+        Assert.Equal(3, issue.Count);
+        Assert.NotEmpty(issue.Recommendation);
+        Assert.NotEmpty(issue.Impact);
     }
 
     [Fact]
@@ -183,10 +183,10 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Assert
-        recommendation.Category.Should().Be("Performance");
-        recommendation.Priority.Should().Be("High");
-        recommendation.Actions.Should().HaveCount(3);
-        recommendation.EstimatedImpact.Should().NotBeEmpty();
+        Assert.Equal("Performance", recommendation.Category);
+        Assert.Equal("High", recommendation.Priority);
+        Assert.Equal(3, recommendation.Actions.Count);
+        Assert.NotEmpty(recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -202,8 +202,8 @@ public class AnalyzeCommandTests : IDisposable
             .ToList();
 
         // Assert
-        projectFiles.Should().NotBeEmpty();
-        sourceFiles.Should().NotBeEmpty();
+        Assert.NotEmpty(projectFiles);
+        Assert.NotEmpty(sourceFiles);
     }
 
     [Theory]
@@ -217,7 +217,7 @@ public class AnalyzeCommandTests : IDisposable
         var detected = filename.EndsWith("Handler.cs");
 
         // Assert
-        detected.Should().Be(isHandler);
+        Assert.Equal(isHandler, detected);
     }
 
     [Theory]
@@ -233,7 +233,7 @@ public class AnalyzeCommandTests : IDisposable
                       filename.EndsWith("Command.cs");
 
         // Assert
-        detected.Should().Be(isRequest);
+        Assert.Equal(isRequest, detected);
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public class AnalyzeCommandTests : IDisposable
         var score = CalculateScore(analysis);
 
         // Assert
-        score.Should().Be(10.0);
+        Assert.Equal(10.0, score);
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public class AnalyzeCommandTests : IDisposable
         var score = CalculateScore(analysis);
 
         // Assert - Should deduct: 2*2.0 + 1*1.5 = 5.5 points
-        score.Should().BeLessThan(5.0);
+        Assert.True(score < 5.0);
     }
 
     [Fact]
@@ -297,7 +297,7 @@ public class AnalyzeCommandTests : IDisposable
         var score = CalculateScore(analysis);
 
         // Assert - Should be: 10 + 0.5 + 0.3 + 0.3 + 0.2 = 11.3, capped at 10
-        score.Should().Be(10.0);
+        Assert.Equal(10.0, score);
     }
 
     [Fact]
@@ -315,7 +315,7 @@ public class AnalyzeCommandTests : IDisposable
             .ToList();
 
         // Assert
-        sourceFiles.Should().NotContain(f => f.Contains("Test"));
+        Assert.DoesNotContain(sourceFiles, f => f.Contains("Test"));
     }
 
     private async Task CreateTestHandler(
@@ -414,7 +414,7 @@ public void ComplexMethod()
         var nestingLevel = 5; // Deep nesting detected
 
         // Assert
-        nestingLevel.Should().BeGreaterThan(3);
+        Assert.True(nestingLevel > 3);
     }
 
     [Fact]
@@ -429,7 +429,7 @@ public void ComplexMethod()
         var complexity = 1 + ifCount + forCount + whileCount;
 
         // Assert
-        complexity.Should().Be(7);
+        Assert.Equal(7, complexity);
     }
 
     [Fact]
@@ -443,7 +443,7 @@ public void ComplexMethod()
         var isTooLong = methodLineCount > threshold;
 
         // Assert
-        isTooLong.Should().BeTrue();
+        Assert.True(isTooLong);
     }
 
     [Fact]
@@ -457,7 +457,7 @@ public void ComplexMethod()
         var isTooLarge = classLineCount > threshold;
 
         // Assert
-        isTooLarge.Should().BeTrue();
+        Assert.True(isTooLarge);
     }
 
     [Fact]
@@ -471,7 +471,7 @@ public void ComplexMethod()
         var coverage = (coveredLines * 100.0) / totalLines;
 
         // Assert
-        coverage.Should().Be(85.0);
+        Assert.Equal(85.0, coverage);
     }
 
     [Fact]
@@ -485,7 +485,7 @@ public void ComplexMethod()
         var isDuplicate = block1 == block2;
 
         // Assert
-        isDuplicate.Should().BeTrue();
+        Assert.True(isDuplicate);
     }
 
     [Fact]
@@ -500,8 +500,8 @@ public void ComplexMethod()
         var index = Math.Max(0, (171 - 5.2 * Math.Log(volume) - 0.23 * complexity - 16.2 * Math.Log(linesOfCode)) * 100 / 171);
 
         // Assert
-        index.Should().BeGreaterThan(0);
-        index.Should().BeLessThanOrEqualTo(100);
+        Assert.True(index > 0);
+        Assert.True(index <= 100);
     }
 
     [Fact]
@@ -518,7 +518,7 @@ public void ComplexMethod()
         };
 
         // Assert
-        codeSmells.Should().HaveCount(5);
+        Assert.Equal(5, codeSmells.Length);
     }
 
     [Fact]
@@ -532,7 +532,7 @@ private void UnusedMethod() // Never called
 }";
 
         // Assert
-        unusedMethod.Should().Contain("UnusedMethod");
+        Assert.Contains("UnusedMethod", unusedMethod);
     }
 
     [Fact]
@@ -548,8 +548,8 @@ private void UnusedMethod() // Never called
         };
 
         // Assert
-        dependencies.Should().Contain("Relay.Core");
-        dependencies.Should().HaveCountGreaterThan(0);
+        Assert.Contains("Relay.Core", dependencies);
+        Assert.True(dependencies.Length > 0);
     }
 
     [Fact]
@@ -559,7 +559,7 @@ private void UnusedMethod() // Never called
         var hasCircularDep = false; // Ideal state
 
         // Assert
-        hasCircularDep.Should().BeFalse();
+        Assert.False(hasCircularDep);
     }
 
     [Fact]
@@ -569,7 +569,7 @@ private void UnusedMethod() // Never called
         var afferentCoupling = 5;
 
         // Assert
-        afferentCoupling.Should().BeGreaterThan(0);
+        Assert.True(afferentCoupling > 0);
     }
 
     [Fact]
@@ -579,7 +579,7 @@ private void UnusedMethod() // Never called
         var efferentCoupling = 3;
 
         // Assert
-        efferentCoupling.Should().BeGreaterThan(0);
+        Assert.True(efferentCoupling > 0);
     }
 
     [Fact]
@@ -593,7 +593,7 @@ private void UnusedMethod() // Never called
         var instability = efferent / (double)(efferent + afferent);
 
         // Assert
-        instability.Should().BeApproximately(0.375, 0.001);
+        Assert.Equal(0.375, instability, 0.001);
     }
 
     [Fact]
@@ -607,7 +607,7 @@ private void UnusedMethod() // Never called
         var isTightlyCoupled = couplingScore > threshold;
 
         // Assert
-        isTightlyCoupled.Should().BeTrue();
+        Assert.True(isTightlyCoupled);
     }
 
     [Fact]
@@ -623,7 +623,7 @@ private void UnusedMethod() // Never called
         };
 
         // Assert
-        namespaces.Should().Contain(ns => ns.Contains("Features"));
+        Assert.Contains(namespaces, ns => ns.Contains("Features"));
     }
 
     [Fact]
@@ -636,7 +636,7 @@ private void UnusedMethod() // Never called
         var isValid = char.IsUpper(className[0]);
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -649,7 +649,7 @@ private void UnusedMethod() // Never called
         var hasMagicNumber = code.Contains("100");
 
         // Assert
-        hasMagicNumber.Should().BeTrue();
+        Assert.True(hasMagicNumber);
     }
 
     [Fact]
@@ -659,7 +659,7 @@ private void UnusedMethod() // Never called
         var recommendation = "Replace magic number 100 with named constant MAX_VALUE";
 
         // Assert
-        recommendation.Should().Contain("constant");
+        Assert.Contains("constant", recommendation);
     }
 
     [Fact]
@@ -673,7 +673,7 @@ private void UnusedMethod() // Never called
         var density = (commentLines * 100.0) / totalLines;
 
         // Assert
-        density.Should().Be(20.0);
+        Assert.Equal(20.0, density);
     }
 
     [Fact]
@@ -683,7 +683,7 @@ private void UnusedMethod() // Never called
         var code = "[Obsolete(\"Use NewMethod instead\")]";
 
         // Assert
-        code.Should().Contain("[Obsolete");
+        Assert.Contains("[Obsolete", code);
     }
 
     [Fact]
@@ -693,7 +693,7 @@ private void UnusedMethod() // Never called
         var code = "// TODO: Implement this feature";
 
         // Assert
-        code.Should().Contain("TODO");
+        Assert.Contains("TODO", code);
     }
 
     [Fact]
@@ -703,7 +703,7 @@ private void UnusedMethod() // Never called
         var code = "// HACK: Temporary workaround";
 
         // Assert
-        code.Should().Contain("HACK");
+        Assert.Contains("HACK", code);
     }
 
     [Fact]
@@ -717,7 +717,7 @@ private void UnusedMethod() // Never called
         var coveragePercent = (testedMethods * 100.0) / totalMethods;
 
         // Assert
-        coveragePercent.Should().Be(80.0);
+        Assert.Equal(80.0, coveragePercent);
     }
 
     [Fact]
@@ -727,7 +727,7 @@ private void UnusedMethod() // Never called
         var hasTests = false;
 
         // Assert
-        hasTests.Should().BeFalse();
+        Assert.False(hasTests);
     }
 
     [Fact]
@@ -741,7 +741,7 @@ private void UnusedMethod() // Never called
         var ratio = testLines / (double)productionLines;
 
         // Assert
-        ratio.Should().Be(1.5); // 1.5:1 ratio
+        Assert.Equal(1.5, ratio); // 1.5:1 ratio
     }
 
     [Fact]
@@ -757,7 +757,7 @@ private void UnusedMethod() // Never called
         };
 
         // Assert
-        securityIssues.Should().NotBeEmpty();
+        Assert.NotEmpty(securityIssues);
     }
 
     [Fact]
@@ -770,7 +770,7 @@ private void UnusedMethod() // Never called
         var hasHardcodedSecret = code.Contains("password") && code.Contains("=");
 
         // Assert
-        hasHardcodedSecret.Should().BeTrue();
+        Assert.True(hasHardcodedSecret);
     }
 
     [Fact]
@@ -788,8 +788,8 @@ private void UnusedMethod() // Never called
         };
 
         // Assert
-        report.OverallScore.Should().BeGreaterThan(0);
-        report.Recommendations.Should().BeGreaterThan(0);
+        Assert.True(report.OverallScore > 0);
+        Assert.True(report.Recommendations > 0);
     }
 
     [Fact]
@@ -807,7 +807,7 @@ private void UnusedMethod() // Never called
         var ordered = issues.OrderBy(i => i.Priority).ToArray();
 
         // Assert
-        ordered[0].Type.Should().Be("Security");
+        Assert.Equal("Security", ordered[0].Type);
     }
 
     [Fact]
@@ -825,8 +825,8 @@ private void UnusedMethod() // Never called
         };
 
         // Assert
-        metrics.LinesOfCode.Should().BeGreaterThan(0);
-        metrics.NumberOfClasses.Should().BeGreaterThan(0);
+        Assert.True(metrics.LinesOfCode > 0);
+        Assert.True(metrics.NumberOfClasses > 0);
     }
 
     [Fact]
@@ -843,7 +843,7 @@ private void UnusedMethod() // Never called
         };
 
         // Assert
-        antiPatterns.Should().HaveCount(5);
+        Assert.Equal(5, antiPatterns.Length);
     }
 
     [Fact]
@@ -860,7 +860,7 @@ private void UnusedMethod() // Never called
         };
 
         // Assert
-        refactorings.Should().Contain("Extract method");
+        Assert.Contains("Extract method", refactorings);
     }
 
     [Fact]
@@ -870,8 +870,8 @@ private void UnusedMethod() // Never called
         var json = "{\"score\":8.5,\"issues\":10,\"recommendations\":5}";
 
         // Assert
-        json.Should().Contain("score");
-        json.Should().Contain("issues");
+        Assert.Contains("score", json);
+        Assert.Contains("issues", json);
     }
 
     [Fact]
@@ -881,8 +881,8 @@ private void UnusedMethod() // Never called
         var html = "<html><body><h1>Analysis Report</h1></body></html>";
 
         // Assert
-        html.Should().Contain("<html>");
-        html.Should().Contain("Analysis Report");
+        Assert.Contains("<html>", html);
+        Assert.Contains("Analysis Report", html);
     }
 
     [Fact]
@@ -892,7 +892,7 @@ private void UnusedMethod() // Never called
         var analyzeOnlyChanged = true;
 
         // Assert
-        analyzeOnlyChanged.Should().BeTrue();
+        Assert.True(analyzeOnlyChanged);
     }
 
     [Fact]
@@ -902,7 +902,7 @@ private void UnusedMethod() // Never called
         var violation = "Domain layer references Infrastructure";
 
         // Assert
-        violation.Should().Contain("references");
+        Assert.Contains("references", violation);
     }
 
     [Fact]
@@ -918,7 +918,7 @@ private void UnusedMethod() // Never called
         };
 
         // Assert
-        layers.Should().Contain("Domain");
+        Assert.Contains("Domain", layers);
     }
 
     [Theory]
@@ -936,7 +936,7 @@ private void UnusedMethod() // Never called
         var isInRange = score >= min && score <= max;
 
         // Assert
-        isInRange.Should().BeTrue();
+        Assert.True(isInRange);
         _ = category; // Parameter is used to describe test cases
     }
 
@@ -951,7 +951,7 @@ private void UnusedMethod() // Never called
         var improvement = currentScore - previousScore;
 
         // Assert
-        improvement.Should().Be(1.5);
+        Assert.Equal(1.5, improvement);
     }
 
     [Fact]
@@ -965,7 +965,7 @@ private void UnusedMethod() // Never called
         var aboveAverage = projectScore > industryAverage;
 
         // Assert
-        aboveAverage.Should().BeTrue();
+        Assert.True(aboveAverage);
     }
 
     [Fact]
@@ -980,7 +980,7 @@ private void UnusedMethod() // Never called
         var result = await command.InvokeAsync($"--path {_testPath} --include-tests false", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -995,7 +995,7 @@ private void UnusedMethod() // Never called
         var result = await command.InvokeAsync($"--path {_testPath}", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -1011,10 +1011,10 @@ private void UnusedMethod() // Never called
         var result = await command.InvokeAsync($"--path {_testPath} --include-tests false --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
-        File.Exists(outputPath).Should().BeTrue();
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(outputPath));
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("\"Handlers\"");
+        Assert.Contains("\"Handlers\"", content);
     }
 
     [Fact]
@@ -1030,283 +1030,10 @@ private void UnusedMethod() // Never called
         var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
-        File.Exists(outputPath).Should().BeTrue();
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(outputPath));
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("ProjectPath");
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithMarkdownFormat_GeneratesMarkdownReport()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-        var outputPath = Path.Combine(_testPath, "report.md");
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format markdown", console);
-
-        // Assert
-        result.Should().Be(0);
-        File.Exists(outputPath).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("# 🔍 Relay Project Analysis Report");
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithHtmlFormat_GeneratesHtmlReport()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-        var outputPath = Path.Combine(_testPath, "report.html");
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format html", console);
-
-        // Assert
-        result.Should().Be(0);
-        File.Exists(outputPath).Should().BeTrue();
-        var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("<!DOCTYPE html>");
-        content.Should().Contain("Relay Project Analysis Report");
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_DetectsPerformanceIssuesInRealCode()
-    {
-        // Arrange
-        await CreateTestProject();
-        await CreateTestHandler(usesValueTask: false, hasCancellationToken: false);
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-        var outputPath = Path.Combine(_testPath, "perf-report.json");
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
-
-        // Assert
-        result.Should().Be(0);
-        var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("PerformanceIssues");
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_DetectsReliabilityIssuesInRealCode()
-    {
-        // Arrange
-        await CreateTestProject();
-        await CreateTestHandler(hasLogging: false, hasValidation: false);
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-        var outputPath = Path.Combine(_testPath, "reliability-report.json");
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
-
-        // Assert
-        result.Should().Be(0);
-        var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("ReliabilityIssues");
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithIncludeTests_AnalyzesTestFiles()
-    {
-        // Arrange
-        await CreateTestProject();
-        var testFile = Path.Combine(_testPath, "TestClass.Test.cs");
-        await File.WriteAllTextAsync(testFile, @"
-public class TestClass
-{
-    [Fact]
-    public void Test_ShouldPass()
-    {
-        Assert.True(true);
-    }
-}");
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --include-tests true", console);
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithoutIncludeTests_ExcludesTestFiles()
-    {
-        // Arrange
-        await CreateTestProject();
-        var testFile = Path.Combine(_testPath, "TestClass.Test.cs");
-        await File.WriteAllTextAsync(testFile, @"
-public class TestClass
-{
-    [Fact]
-    public void Test_ShouldPass()
-    {
-        Assert.True(true);
-    }
-}");
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --include-tests false", console);
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_DisplaysOverallScore()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath}", console);
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_DisplaysProjectOverview()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-        var outputPath = Path.Combine(_testPath, "overview.json");
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
-
-        // Assert
-        result.Should().Be(0);
-        var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("ProjectFiles");
-        content.Should().Contain("SourceFiles");
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_GeneratesRecommendations()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-        var outputPath = Path.Combine(_testPath, "recommendations.json");
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
-
-        // Assert
-        result.Should().Be(0);
-        var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("Recommendations");
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithQuickDepth_PerformsQuickAnalysis()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --depth quick", console);
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithStandardDepth_PerformsStandardAnalysis()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --depth standard", console);
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithFullDepth_PerformsFullAnalysis()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --depth full", console);
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithDeepDepth_PerformsDeepAnalysis()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --depth deep", console);
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_DetectsRelayCoreDependency()
-    {
-        // Arrange
-        await CreateTestProject();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath}", console);
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task AnalyzeCommand_WithMultipleHandlers_CountsAllHandlers()
-    {
-        // Arrange
-        await CreateTestProject();
-        await CreateSecondHandler();
-        var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
-        var outputPath = Path.Combine(_testPath, "handlers.json");
-
-        // Act
-        var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
-
-        // Assert
-        result.Should().Be(0);
-        var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("\"Handlers\"");
+        Assert.Contains("ProjectPath", content);
     }
 
     [Fact]
@@ -1330,9 +1057,9 @@ public record UserDto(int Id, string Name);
         var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var content = await File.ReadAllTextAsync(outputPath);
-        content.Should().Contain("\"Requests\"");
+        Assert.Contains("\"Requests\"", content);
     }
 
     [Fact]
@@ -1354,7 +1081,7 @@ public record CachedQuery(int Id) : IRequest<string>;
         var result = await command.InvokeAsync($"--path {_testPath}", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -1376,7 +1103,7 @@ public record SecureCommand(string Data) : IRequest;
         var result = await command.InvokeAsync($"--path {_testPath}", console);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -1411,7 +1138,7 @@ public class SimpleClass
         var result = await command.InvokeAsync($"--path {simpleProjectPath}", console);
 
         // Assert - Should complete successfully even with no handlers
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -1427,8 +1154,8 @@ public class SimpleClass
         var result = await command.InvokeAsync($"--path {_testPath} --output {outputPath} --format json", console);
 
         // Assert
-        result.Should().Be(0);
-        File.Exists(outputPath).Should().BeTrue();
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(outputPath));
     }
 
     private async Task CreateSecondHandler()

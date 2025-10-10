@@ -36,8 +36,8 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         };
 
         // Assert
-        suggestions.Should().HaveCountGreaterThan(0);
-        suggestions.Should().Contain(s => s.Contains("ValueTask"));
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains(suggestions, s => s.Contains("ValueTask"));
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         var handlerCount = Directory.GetFiles(_testPath, "*Handler*.cs").Length;
 
         // Assert
-        handlerCount.Should().Be(3);
+        Assert.Equal(3, handlerCount);
     }
 
     [Fact]
@@ -77,8 +77,8 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         }).ToList();
 
         // Assert
-        recommendations.Should().HaveCount(3);
-        recommendations.Should().AllSatisfy(r => r.Severity.Should().Be("Warning"));
+        Assert.Equal(3, recommendations.Count);
+        Assert.All(recommendations, r => Assert.Equal("Warning", r.Severity));
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public async ValueTask<Result> HandleAsync(Request request, CancellationToken ct
             System.Text.RegularExpressions.Regex.Matches(method, $@"\b{indicator}\b").Count);
 
         // Assert
-        complexity.Should().BeGreaterThan(1);
+        Assert.True(complexity > 1);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public async ValueTask<Result> HandleAsync(Request request, CancellationToken ct
             .ToList();
 
         // Assert
-        suggestions.Should().HaveCount(2);
+        Assert.Equal(2, suggestions.Count);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class BadHandler
         }
 
         // Assert
-        antiPatterns.Should().HaveCount(2);
+        Assert.Equal(2, antiPatterns.Count);
     }
 
     [Fact]
@@ -179,8 +179,8 @@ public class BadHandler
         var ranked = handlers.OrderByDescending(h => h.Complexity).ToList();
 
         // Assert
-        ranked[0].Name.Should().Be("ComplexHandler");
-        ranked[2].Name.Should().Be("SimpleHandler");
+        Assert.Equal("ComplexHandler", ranked[0].Name);
+        Assert.Equal("SimpleHandler", ranked[2].Name);
     }
 
     [Fact]
@@ -203,9 +203,9 @@ public class BadHandler
 
         // Assert
         var content = await File.ReadAllTextAsync(Path.Combine(_testPath, "docs.txt"));
-        content.Should().Contain("<summary>");
-        content.Should().Contain(requestType);
-        content.Should().Contain(responseType);
+        Assert.Contains("<summary>", content);
+        Assert.Contains(requestType, content);
+        Assert.Contains(responseType, content);
     }
 
     [Fact]
@@ -227,7 +227,7 @@ for (int i = 0; i < 1000000; i++)
         }
 
         // Assert
-        suggestions.Should().Contain(s => s.Contains("capacity"));
+        Assert.Contains(suggestions, s => s.Contains("capacity"));
     }
 
     [Fact]
@@ -241,8 +241,8 @@ for (int i = 0; i < 1000000; i++)
         var unused = unusedMethods.Except(usedMethods).ToList();
 
         // Assert
-        unused.Should().HaveCount(3);
-        unused.Should().NotContain("Handle");
+        Assert.Equal(3, unused.Count);
+        Assert.DoesNotContain("Handle", unused);
     }
 
     [Fact]
@@ -268,7 +268,7 @@ public class OrderService
         };
 
         // Assert
-        suggestions.Should().HaveCount(4);
+        Assert.Equal(4, suggestions.Count);
     }
 
     [Fact]
@@ -282,7 +282,7 @@ public class OrderService
         var isDuplicate = block1 == block2;
 
         // Assert
-        isDuplicate.Should().BeTrue();
+        Assert.True(isDuplicate);
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public class OrderService
         };
 
         // Assert
-        violations.Should().HaveCount(5);
+        Assert.Equal(5, violations.Length);
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public class OrderService
         var coverage = (testedMethods * 100.0) / totalMethods;
 
         // Assert
-        coverage.Should().Be(75.0);
+        Assert.Equal(75.0, coverage);
     }
 
     [Fact]
@@ -326,7 +326,7 @@ public class OrderService
         var shouldRefactor = longMethod.Length > 100;
 
         // Assert
-        shouldRefactor.Should().BeTrue();
+        Assert.True(shouldRefactor);
     }
 
     [Fact]
@@ -339,7 +339,7 @@ public class OrderService
         var hasNullRisk = !code.Contains("?.");
 
         // Assert
-        hasNullRisk.Should().BeTrue();
+        Assert.True(hasNullRisk);
     }
 
     [Fact]
@@ -353,7 +353,7 @@ public class OrderService
         var suggestion = $"Replace '{unsafeCode}' with '{safeCode}'";
 
         // Assert
-        suggestion.Should().Contain("?.");
+        Assert.Contains("?.", suggestion);
     }
 
     [Fact]
@@ -369,8 +369,8 @@ var stream = File.OpenRead(""file.txt"");
         var hasDispose = code.Contains(".Dispose()");
 
         // Assert
-        hasUsing.Should().BeFalse();
-        hasDispose.Should().BeFalse();
+        Assert.False(hasUsing);
+        Assert.False(hasDispose);
     }
 
     [Fact]
@@ -387,7 +387,7 @@ var stream = File.OpenRead(""file.txt"");
         };
 
         // Assert
-        suggestions.Should().HaveCount(5);
+        Assert.Equal(5, suggestions.Length);
     }
 
     [Fact]
@@ -405,7 +405,7 @@ var stream = File.OpenRead(""file.txt"");
         var totalDependencies = dependencies.Values.SelectMany(d => d).Distinct().Count();
 
         // Assert
-        totalDependencies.Should().Be(4);
+        Assert.Equal(4, totalDependencies);
     }
 
     [Fact]
@@ -423,7 +423,7 @@ var stream = File.OpenRead(""file.txt"");
         var hasCircular = dependencies.Any(d => d.Item2 == "A") && dependencies.Any(d => d.Item1 == "A");
 
         // Assert
-        hasCircular.Should().BeTrue();
+        Assert.True(hasCircular);
     }
 
     [Fact]
@@ -441,7 +441,7 @@ public async ValueTask<User> GetUserAsync(int id)
         var shouldCache = !code.Contains("cache");
 
         // Assert
-        shouldCache.Should().BeTrue();
+        Assert.True(shouldCache);
     }
 
     [Fact]
@@ -458,7 +458,7 @@ foreach (var order in orders)
         var hasN1 = code.Contains("foreach") && code.Contains("FindAsync");
 
         // Assert
-        hasN1.Should().BeTrue();
+        Assert.True(hasN1);
     }
 
     [Fact]
@@ -468,7 +468,7 @@ foreach (var order in orders)
         var suggestion = "Use .Include() to load related entities";
 
         // Assert
-        suggestion.Should().Contain("Include");
+        Assert.Contains("Include", suggestion);
     }
 
     [Fact]
@@ -489,7 +489,7 @@ catch (Exception ex)
         var hasEmptyCatch = code.Contains("catch") && code.Contains("// Empty");
 
         // Assert
-        hasEmptyCatch.Should().BeTrue();
+        Assert.True(hasEmptyCatch);
     }
 
     [Fact]
@@ -506,7 +506,7 @@ public async ValueTask HandleAsync()
         var hasLogging = code.Contains("_logger");
 
         // Assert
-        hasLogging.Should().BeFalse();
+        Assert.False(hasLogging);
     }
 
     [Fact]
@@ -519,7 +519,7 @@ public async ValueTask HandleAsync()
         var hasMagicString = code.Contains("\"Active\"");
 
         // Assert
-        hasMagicString.Should().BeTrue();
+        Assert.True(hasMagicString);
     }
 
     [Fact]
@@ -529,7 +529,7 @@ public async ValueTask HandleAsync()
         var suggestion = "Replace magic string 'Active' with constant";
 
         // Assert
-        suggestion.Should().Contain("constant");
+        Assert.Contains("constant", suggestion);
     }
 
     [Fact]
@@ -544,7 +544,7 @@ public async ValueTask HandleAsync()
         var complexity = 1 + ifCount + forCount + switchCount;
 
         // Assert
-        complexity.Should().Be(11);
+        Assert.Equal(11, complexity);
     }
 
     [Fact]
@@ -558,7 +558,7 @@ public async ValueTask HandleAsync()
         var shouldDecompose = methodLines > threshold;
 
         // Assert
-        shouldDecompose.Should().BeTrue();
+        Assert.True(shouldDecompose);
     }
 
     [Fact]
@@ -571,7 +571,7 @@ public async ValueTask HandleAsync()
         var isDTO = code.Contains("Dto") || code.Contains("DTO");
 
         // Assert
-        isDTO.Should().BeTrue();
+        Assert.True(isDTO);
     }
 
     [Fact]
@@ -588,7 +588,7 @@ public async ValueTask<Result> HandleAsync(CreateUserCommand request)
         var hasValidation = code.Contains("Validate");
 
         // Assert
-        hasValidation.Should().BeFalse();
+        Assert.False(hasValidation);
     }
 
     [Fact]
@@ -605,7 +605,7 @@ public async ValueTask<Result> HandleAsync(CreateUserCommand request)
         };
 
         // Assert
-        issues.Should().HaveCount(5);
+        Assert.Equal(5, issues.Length);
     }
 
     [Fact]
@@ -618,7 +618,7 @@ public async ValueTask<Result> HandleAsync(CreateUserCommand request)
         var hasSqlInjectionRisk = code.Contains("$\"SELECT") && code.Contains("'{");
 
         // Assert
-        hasSqlInjectionRisk.Should().BeTrue();
+        Assert.True(hasSqlInjectionRisk);
     }
 
     [Fact]
@@ -635,8 +635,8 @@ public async ValueTask<Result> HandleAsync(CreateUserCommand request)
         };
 
         // Assert
-        metrics.LinesOfCode.Should().BeGreaterThan(0);
-        metrics.MaintainabilityIndex.Should().BeGreaterThan(50);
+        Assert.True(metrics.LinesOfCode > 0);
+        Assert.True(metrics.MaintainabilityIndex > 50);
     }
 
     [Fact]
@@ -655,7 +655,7 @@ public async ValueTask<Result> HandleAsync(CreateUserCommand request)
         };
 
         // Assert
-        testCases.Should().HaveCount(4);
+        Assert.Equal(4, testCases.Length);
     }
 
     [Fact]
@@ -672,7 +672,7 @@ public void ProcessOrder(Order order)
         var hasNullCheck = code.Contains("if (order == null)");
 
         // Assert
-        hasNullCheck.Should().BeFalse();
+        Assert.False(hasNullCheck);
     }
 
     [Fact]
@@ -692,7 +692,7 @@ public void ProcessOrder(Order order)
         };
 
         // Assert
-        smells.Should().HaveCountGreaterThan(5);
+        Assert.True(smells.Length > 5);
     }
 
     [Fact]
@@ -706,7 +706,7 @@ public void ProcessOrder(Order order)
         var isMutable = mutable.Contains("{ get; set; }");
 
         // Assert
-        isMutable.Should().BeTrue();
+        Assert.True(isMutable);
     }
 
     [Fact]
@@ -725,7 +725,7 @@ public void ProcessOrder(Order order)
         var optimized = methods.Where(m => m.Item2).ToArray();
 
         // Assert
-        optimized.Should().HaveCount(2);
+        Assert.Equal(2, optimized.Length);
     }
 
     [Fact]
@@ -741,8 +741,8 @@ public void ProcessOrder(Order order)
         };
 
         // Assert
-        report.HotSpots.Should().HaveCount(2);
-        report.Suggestions.Should().BeGreaterThan(0);
+        Assert.Equal(2, report.HotSpots.Length);
+        Assert.True(report.Suggestions > 0);
     }
 
     [Fact]
@@ -760,7 +760,7 @@ public void ProcessOrder(Order order)
         var ordered = suggestions.OrderBy(s => s.Priority).ToArray();
 
         // Assert
-        ordered[0].Message.Should().Contain("security");
+        Assert.Contains("security", ordered[0].Message);
     }
 
     [Fact]
@@ -779,7 +779,7 @@ public void ProcessOrder(Order order)
         };
 
         // Assert
-        diff.Changes.Should().HaveCount(2);
+        Assert.Equal(2, diff.Changes.Length);
     }
 
     [Fact]
@@ -798,8 +798,8 @@ public void ProcessOrder(Order order)
         var rejectedCount = history.Count(h => h.Contains("rejected"));
 
         // Assert
-        acceptedCount.Should().Be(2);
-        rejectedCount.Should().Be(1);
+        Assert.Equal(2, acceptedCount);
+        Assert.Equal(1, rejectedCount);
     }
 
     [Fact]
@@ -815,7 +815,7 @@ public void ProcessOrder(Order order)
         };
 
         // Assert
-        components.Should().HaveCount(4);
+        Assert.Equal(4, components.Length);
     }
 
     public void Dispose()

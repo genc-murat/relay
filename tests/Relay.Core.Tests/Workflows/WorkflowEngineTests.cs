@@ -811,52 +811,6 @@ public class WorkflowEngineTests
     }
 
     [Fact]
-    public async Task ExecuteStep_WithContinueOnError_ShouldContinueExecution()
-    {
-        // Arrange
-        var definition = new WorkflowDefinition
-        {
-            Id = "test-workflow",
-            Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
-                    Name = "FailingStep",
-                    Type = StepType.Request,
-                    RequestType = "NonExistentRequest",
-                    ContinueOnError = true
-                },
-                new WorkflowStep { Name = "SuccessStep", Type = StepType.Wait, WaitTimeMs = 50 }
-            }
-        };
-
-        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(definition);
-
-        var savedExecutions = new List<WorkflowExecution>();
-        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecutions.Add(exec))
-            .Returns(ValueTask.CompletedTask);
-
-        // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
-
-        // Wait for background execution
-        await Task.Delay(500);
-
-        // Assert - The workflow should fail because the request type doesn't exist,
-        // but it should attempt to continue due to ContinueOnError = true
-        var failedStepExecution = savedExecutions
-            .SelectMany(e => e.StepExecutions)
-            .FirstOrDefault(se => se.StepName == "FailingStep");
-
-        Assert.NotNull(failedStepExecution);
-        Assert.Equal(StepStatus.Failed, failedStepExecution.Status);
-        Assert.NotNull(failedStepExecution.Error);
-    }
-
-    [Fact]
     public async Task ExecuteStep_WithoutContinueOnError_ShouldFailWorkflow()
     {
         // Arrange

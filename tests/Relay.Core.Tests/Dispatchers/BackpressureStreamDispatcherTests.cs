@@ -1,10 +1,8 @@
-
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Relay.Core.Contracts.Handlers;
@@ -76,7 +74,7 @@ namespace Relay.Core.Tests.Dispatchers
                 {
                 }
             });
-            ex.ParamName.Should().Be("request");
+            Assert.Equal("request", ex.ParamName);
         }
 
         [Fact]
@@ -99,7 +97,7 @@ namespace Relay.Core.Tests.Dispatchers
                 {
                 }
             });
-            ex.RequestType.Should().Be(request.GetType().Name);
+            Assert.Equal(request.GetType().Name, ex.RequestType);
         }
 
         [Fact]
@@ -119,8 +117,8 @@ namespace Relay.Core.Tests.Dispatchers
                 {
                 }
             });
-            ex.RequestType.Should().Be(request.GetType().Name);
-            ex.HandlerName.Should().Be("MyHandler");
+            Assert.Equal(request.GetType().Name, ex.RequestType);
+            Assert.Equal("MyHandler", ex.HandlerName);
         }
     }
 }

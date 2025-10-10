@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -45,7 +44,7 @@ namespace Relay.Core.Tests.DistributedTracing
             // Arrange
             var activity = new Activity("test-operation");
             activity.Start();
-            
+
             _mockTracingProvider.Setup(x => x.StartActivity(
                 It.IsAny<string>(),
                 It.IsAny<Type>(),
@@ -66,13 +65,13 @@ namespace Relay.Core.Tests.DistributedTracing
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _mockTracingProvider.Verify(x => x.StartActivity(
                 It.IsAny<string>(),
                 It.IsAny<Type>(),
                 It.IsAny<string?>(),
-                It.IsAny<Dictionary<string, object?>>()), Times.Once);
-            
+                It.IsAny<Dictionary<string, object?>>()), Times.Once());
+
             activity.Stop();
         }
 
@@ -102,12 +101,12 @@ namespace Relay.Core.Tests.DistributedTracing
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _mockTracingProvider.Verify(x => x.StartActivity(
                 It.IsAny<string>(),
                 It.IsAny<Type>(),
                 It.IsAny<string?>(),
-                It.IsAny<Dictionary<string, object?>>()), Times.Never);
+                It.IsAny<Dictionary<string, object?>>()), Times.Never());
         }
 
         [Fact]
@@ -134,7 +133,7 @@ namespace Relay.Core.Tests.DistributedTracing
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
         }
 
         [Fact]
@@ -143,7 +142,7 @@ namespace Relay.Core.Tests.DistributedTracing
             // Arrange
             var activity = new Activity("test-operation");
             activity.Start();
-            
+
             _mockTracingProvider.Setup(x => x.StartActivity(
                 It.IsAny<string>(),
                 It.IsAny<Type>(),
@@ -162,7 +161,7 @@ namespace Relay.Core.Tests.DistributedTracing
             // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await behavior.HandleAsync(request, next, CancellationToken.None));
-            
+
             activity.Stop();
         }
 
@@ -173,7 +172,7 @@ namespace Relay.Core.Tests.DistributedTracing
             var attribute = new TraceAttribute();
 
             // Assert
-            attribute.Should().NotBeNull();
+            Assert.NotNull(attribute);
         }
 
         [Fact]
@@ -188,9 +187,9 @@ namespace Relay.Core.Tests.DistributedTracing
             };
 
             // Assert
-            attribute.OperationName.Should().Be("CustomOperation");
-            attribute.TraceRequest.Should().BeFalse();
-            attribute.TraceResponse.Should().BeFalse();
+            Assert.Equal("CustomOperation", attribute.OperationName);
+            Assert.False(attribute.TraceRequest);
+            Assert.False(attribute.TraceResponse);
         }
 
         public class TestRequest : IRequest<TestResponse>

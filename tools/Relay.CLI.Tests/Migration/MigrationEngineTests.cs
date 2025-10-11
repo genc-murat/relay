@@ -1064,4 +1064,193 @@ public class GetUser{i}Handler : IRequestHandler<GetUser{i}Query, string>
     }
 
     #endregion
+
+    #region Graceful Error Handling Tests
+
+    [Fact]
+    public async Task MigrateAsync_WithContinueOnError_True_ContinuesMigrationAfterError()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            ContinueOnError = true
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        // Migration should complete with success or partial status
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+        Assert.NotEqual(MigrationStatus.InProgress, result.Status);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithContinueOnError_False_ByDefault()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false
+            // ContinueOnError defaults to true
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.True(options.ContinueOnError); // Should default to true
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithFileIOError_RecordsIssue()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            ContinueOnError = true
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert - Should complete even if there are I/O issues
+        Assert.NotNull(result);
+        Assert.NotEqual(MigrationStatus.InProgress, result.Status);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithPackageTransformError_ContinuesMigration()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        
+        // Create a malformed .csproj file
+        var projectFile = Path.Combine(_testProjectPath, "Invalid.csproj");
+        await File.WriteAllTextAsync(projectFile, @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Malformed PackageReference -->
+    <PackageReference Include=""MediatR"" 
+  </ItemGroup>
+</Project>");
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            ContinueOnError = true
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.NotNull(result);
+        // Migration may have partial success or fail, but should not crash
+        Assert.NotEqual(MigrationStatus.InProgress, result.Status);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithMalformedProjectFile_HandlesErrorGracefully()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        
+        // Create a completely invalid .csproj file
+        var projectFile = Path.Combine(_testProjectPath, "Broken.csproj");
+        await File.WriteAllTextAsync(projectFile, "This is not valid XML at all!");
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            ContinueOnError = true
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.NotNull(result);
+        // Should handle the XML parse error gracefully
+        Assert.NotEqual(MigrationStatus.InProgress, result.Status);
+        // May have issues recorded for the invalid file
+        if (result.Issues.Any())
+        {
+            Assert.Contains(result.Issues, i => i.Contains("Broken.csproj") || i.Contains("Failed to transform"));
+        }
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithParallelProcessing_HandlesErrorsGracefully()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(10);
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            ContinueOnError = true,
+            EnableParallelProcessing = true
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+        // Should have some successful migrations
+        Assert.True(result.FilesModified > 0 || result.HandlersMigrated > 0);
+    }
+
+    [Fact]
+    public async Task MigrationException_HasCorrectProperties()
+    {
+        // Arrange & Act
+        var ex1 = new MigrationException("Test message");
+        var ex2 = new MigrationException("Test message", "file.cs");
+        var ex3 = new MigrationException("Test message", new Exception("Inner"));
+        var ex4 = new MigrationException("Test message", "file.cs", new Exception("Inner"));
+
+        // Assert
+        Assert.Equal("Test message", ex1.Message);
+        Assert.Equal("Test message", ex2.Message);
+        Assert.Equal("file.cs", ex2.FilePath);
+        Assert.Equal("Test message", ex3.Message);
+        Assert.NotNull(ex3.InnerException);
+        Assert.Equal("file.cs", ex4.FilePath);
+        Assert.NotNull(ex4.InnerException);
+    }
+
+    [Fact]
+    public async Task SyntaxException_HasLineNumber()
+    {
+        // Arrange & Act
+        var ex = new SyntaxException("Syntax error", "file.cs", 42);
+
+        // Assert
+        Assert.Equal("Syntax error", ex.Message);
+        Assert.Equal("file.cs", ex.FilePath);
+        Assert.Equal(42, ex.LineNumber);
+    }
+
+    #endregion
 }

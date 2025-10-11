@@ -79,4 +79,9 @@ public class MigrationOptions
     /// Report progress at specified intervals (in milliseconds, default: 500ms)
     /// </summary>
     public int ProgressReportInterval { get; set; } = 500;
+
+    /// <summary>
+    /// Continue migration even if errors occur (default: true)
+    /// </summary>
+    public bool ContinueOnError { get; set; } = true;
 }

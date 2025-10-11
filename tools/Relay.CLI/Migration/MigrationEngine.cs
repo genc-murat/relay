@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Relay.CLI.Migration;
 
@@ -13,14 +15,16 @@ public class MigrationEngine
     private readonly MediatRAnalyzer _analyzer;
     private readonly CodeTransformer _transformer;
     private readonly BackupManager _backupManager;
+    private readonly MigrationLogger? _logger;
     private Stopwatch? _operationStopwatch;
     private DateTime _operationStartTime;
 
-    public MigrationEngine()
+    public MigrationEngine(ILogger<MigrationLogger>? logger = null)
     {
         _analyzer = new MediatRAnalyzer();
         _transformer = new CodeTransformer();
         _backupManager = new BackupManager();
+        _logger = logger != null ? new MigrationLogger(logger) : null;
     }
 
     public async Task<AnalysisResult> AnalyzeAsync(MigrationOptions options)
@@ -52,6 +56,9 @@ public class MigrationEngine
 
         try
         {
+            // Log migration start
+            _logger?.LogMigrationStarted(options);
+
             // Initialize
             ReportProgress(options, new MigrationProgress
             {
@@ -69,6 +76,11 @@ public class MigrationEngine
             });
 
             var analysis = await _analyzer.AnalyzeProjectAsync(options.ProjectPath);
+            _logger?.LogAnalysisCompleted(
+                analysis.HandlersFound,
+                analysis.Issues.Count,
+                analysis.CanMigrate
+            );
 
             if (!analysis.CanMigrate)
             {
@@ -99,6 +111,7 @@ public class MigrationEngine
 
                 result.BackupPath = await CreateBackupAsync(options);
                 result.CreatedBackup = true;
+                _logger?.LogBackupCreated(result.BackupPath);
             }
 
             // Transform package references
@@ -191,6 +204,9 @@ public class MigrationEngine
 
             result.Status = result.Issues.Count == 0 ? MigrationStatus.Success : MigrationStatus.Partial;
 
+            // Log migration completion
+            _logger?.LogMigrationCompleted(result);
+
             // Report completion
             ReportProgress(options, new MigrationProgress
             {
@@ -200,6 +216,20 @@ public class MigrationEngine
                 HandlersMigrated = result.HandlersMigrated,
                 ProcessedFiles = result.FilesModified,
                 TotalFiles = result.FilesModified,
+                ElapsedTime = stopwatch.Elapsed
+            });
+        }
+        catch (MigrationException ex)
+        {
+            result.Status = MigrationStatus.Failed;
+            result.Issues.Add($"Migration failed: {ex.Message}");
+            _logger?.LogMigrationFailed(ex);
+
+            // Report failure
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.Completed,
+                Message = $"Migration failed: {ex.Message}",
                 ElapsedTime = stopwatch.Elapsed
             });
         }
@@ -238,54 +268,112 @@ public class MigrationEngine
 
         foreach (var file in codeFiles)
         {
-            var content = await File.ReadAllTextAsync(file);
-
-            // Check if file needs transformation
-            if (!NeedsTransformation(content))
+            try
             {
+                var content = await File.ReadAllTextAsync(file);
+
+                // Check if file needs transformation
+                if (!NeedsTransformation(content))
+                {
+                    processedCount++;
+                    continue;
+                }
+
+                var transformed = await _transformer.TransformFileAsync(file, content, options);
+
+                // Check if transformation had an error
+                if (!string.IsNullOrEmpty(transformed.Error))
+                {
+                    var errorMessage = $"Failed to transform {file}: {transformed.Error}";
+                    result.Issues.Add(errorMessage);
+                    _logger?.LogTransformationError(new Exception(transformed.Error), file);
+
+                    if (!options.ContinueOnError)
+                    {
+                        throw new MigrationException(errorMessage, file);
+                    }
+
+                    processedCount++;
+                    continue;
+                }
+
+                if (transformed.WasModified)
+                {
+                    if (!options.DryRun)
+                    {
+                        await File.WriteAllTextAsync(file, transformed.NewContent);
+                    }
+
+                    result.FilesModified++;
+                    result.LinesChanged += transformed.LinesChanged;
+                    result.Changes.AddRange(transformed.Changes);
+
+                    if (transformed.IsHandler)
+                    {
+                        result.HandlersMigrated++;
+                    }
+
+                    _logger?.LogFileTransformed(file, transformed.Changes.Count);
+                }
+
                 processedCount++;
-                continue;
-            }
 
-            var transformed = await _transformer.TransformFileAsync(file, content, options);
-
-            if (transformed.WasModified)
-            {
-                if (!options.DryRun)
+                // Report progress at intervals
+                var now = DateTime.UtcNow;
+                if ((now - lastReportTime).TotalMilliseconds >= options.ProgressReportInterval)
                 {
-                    await File.WriteAllTextAsync(file, transformed.NewContent);
+                    ReportProgress(options, new MigrationProgress
+                    {
+                        Stage = MigrationStage.TransformingCode,
+                        CurrentFile = Path.GetFileName(file),
+                        TotalFiles = codeFiles.Count,
+                        ProcessedFiles = processedCount,
+                        FilesModified = result.FilesModified,
+                        HandlersMigrated = result.HandlersMigrated,
+                        Message = $"Processing {Path.GetFileName(file)}...",
+                        ElapsedTime = _operationStopwatch?.Elapsed ?? TimeSpan.Zero,
+                        IsParallel = false
+                    });
+
+                    lastReportTime = now;
                 }
+            }
+            catch (SyntaxException ex)
+            {
+                var errorMessage = $"Syntax error in {file}: {ex.Message}";
+                result.Issues.Add(errorMessage);
+                _logger?.LogSyntaxError(ex, file);
 
-                result.FilesModified++;
-                result.LinesChanged += transformed.LinesChanged;
-                result.Changes.AddRange(transformed.Changes);
-
-                if (transformed.IsHandler)
+                // Continue to next file, allowing other files to be migrated
+                processedCount++;
+                if (!options.ContinueOnError)
                 {
-                    result.HandlersMigrated++;
+                    throw new MigrationException(errorMessage, file, ex);
                 }
             }
-
-            processedCount++;
-
-            // Report progress at intervals
-            var now = DateTime.UtcNow;
-            if ((now - lastReportTime).TotalMilliseconds >= options.ProgressReportInterval)
+            catch (IOException ex)
             {
-                ReportProgress(options, new MigrationProgress
-                {
-                    Stage = MigrationStage.TransformingCode,
-                    CurrentFile = Path.GetFileName(file),
-                    TotalFiles = codeFiles.Count,
-                    ProcessedFiles = processedCount,
-                    FilesModified = result.FilesModified,
-                    HandlersMigrated = result.HandlersMigrated,
-                    Message = $"Processing {Path.GetFileName(file)}...",
-                    ElapsedTime = _operationStopwatch?.Elapsed ?? TimeSpan.Zero,
-                    IsParallel = false
-                });
+                var errorMessage = $"File I/O error in {file}: {ex.Message}";
+                result.Issues.Add(errorMessage);
+                _logger?.LogTransformationError(ex, file);
 
-                lastReportTime = now;
+                processedCount++;
+                if (!options.ContinueOnError)
+                {
+                    throw new MigrationException(errorMessage, file, ex);
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Unexpected error in {file}: {ex.Message}";
+                result.Issues.Add(errorMessage);
+                _logger?.LogTransformationError(ex, file);
+
+                processedCount++;
+                if (!options.ContinueOnError)
+                {
+                    throw new MigrationException(errorMessage, file, ex);
+                }
             }
         }
     }
@@ -325,6 +413,25 @@ public class MigrationEngine
                     }
 
                     var transformed = await _transformer.TransformFileAsync(file, content, options);
+
+                    // Check if transformation had an error
+                    if (!string.IsNullOrEmpty(transformed.Error))
+                    {
+                        var errorMessage = $"Failed to transform {file}: {transformed.Error}";
+                        lock (resultLock)
+                        {
+                            result.Issues.Add(errorMessage);
+                            processedCount++;
+                        }
+                        _logger?.LogTransformationError(new Exception(transformed.Error), file);
+
+                        if (!options.ContinueOnError)
+                        {
+                            throw new MigrationException(errorMessage, file);
+                        }
+
+                        return null;
+                    }
 
                     if (transformed.WasModified)
                     {
@@ -368,12 +475,65 @@ public class MigrationEngine
                             }
                         }
 
+                        _logger?.LogFileTransformed(file, transformed.Changes.Count);
+
                         return transformed;
                     }
 
                     lock (resultLock)
                     {
                         processedCount++;
+                    }
+
+                    return null;
+                }
+                catch (SyntaxException ex)
+                {
+                    var errorMessage = $"Syntax error in {file}: {ex.Message}";
+                    lock (resultLock)
+                    {
+                        result.Issues.Add(errorMessage);
+                        processedCount++;
+                    }
+                    _logger?.LogSyntaxError(ex, file);
+
+                    if (!options.ContinueOnError)
+                    {
+                        throw new MigrationException(errorMessage, file, ex);
+                    }
+
+                    return null;
+                }
+                catch (IOException ex)
+                {
+                    var errorMessage = $"File I/O error in {file}: {ex.Message}";
+                    lock (resultLock)
+                    {
+                        result.Issues.Add(errorMessage);
+                        processedCount++;
+                    }
+                    _logger?.LogTransformationError(ex, file);
+
+                    if (!options.ContinueOnError)
+                    {
+                        throw new MigrationException(errorMessage, file, ex);
+                    }
+
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    var errorMessage = $"Unexpected error in {file}: {ex.Message}";
+                    lock (resultLock)
+                    {
+                        result.Issues.Add(errorMessage);
+                        processedCount++;
+                    }
+                    _logger?.LogTransformationError(ex, file);
+
+                    if (!options.ContinueOnError)
+                    {
+                        throw new MigrationException(errorMessage, file, ex);
                     }
 
                     return null;
@@ -406,74 +566,90 @@ public class MigrationEngine
 
         foreach (var projFile in projectFiles)
         {
-            var content = await File.ReadAllTextAsync(projFile);
-            var doc = XDocument.Parse(content);
-            var modified = false;
-
-            // Remove MediatR packages
-            var mediatrPackages = new[] { "MediatR", "MediatR.Extensions.Microsoft.DependencyInjection", "MediatR.Contracts" };
-            
-            foreach (var package in mediatrPackages)
+            try
             {
-                var packageRefs = doc.Descendants("PackageReference")
-                    .Where(e => e.Attribute("Include")?.Value == package)
-                    .ToList();
+                var content = await File.ReadAllTextAsync(projFile);
+                var doc = XDocument.Parse(content);
+                var modified = false;
 
-                foreach (var packageRef in packageRefs)
+                // Remove MediatR packages
+                var mediatrPackages = new[] { "MediatR", "MediatR.Extensions.Microsoft.DependencyInjection", "MediatR.Contracts" };
+                
+                foreach (var package in mediatrPackages)
                 {
-                    packageRef.Remove();
-                    modified = true;
+                    var packageRefs = doc.Descendants("PackageReference")
+                        .Where(e => e.Attribute("Include")?.Value == package)
+                        .ToList();
 
-                    result.Changes.Add(new MigrationChange
+                    foreach (var packageRef in packageRefs)
                     {
-                        Category = "Package References",
-                        Type = ChangeType.Remove,
-                        Description = $"Removed package: {package}",
-                        FilePath = projFile
-                    });
-                }
-            }
+                        packageRef.Remove();
+                        modified = true;
 
-            // Add Relay.Core if not present
-            var hasRelayCore = doc.Descendants("PackageReference")
-                .Any(e => e.Attribute("Include")?.Value == "Relay.Core");
+                        result.Changes.Add(new MigrationChange
+                        {
+                            Category = "Package References",
+                            Type = ChangeType.Remove,
+                            Description = $"Removed package: {package}",
+                            FilePath = projFile
+                        });
 
-            if (!hasRelayCore && modified)
-            {
-                // Find an ItemGroup or create one
-                var itemGroup = doc.Descendants("ItemGroup").FirstOrDefault();
-
-                if (itemGroup == null)
-                {
-                    // Create new ItemGroup if none exists
-                    var root = doc.Root;
-                    if (root != null)
-                    {
-                        itemGroup = new XElement("ItemGroup");
-                        root.Add(itemGroup);
+                        _logger?.LogPackageTransformed(package, "Removed", projFile);
                     }
                 }
 
-                if (itemGroup != null)
-                {
-                    var relayReference = new XElement("PackageReference");
-                    relayReference.SetAttributeValue("Include", "Relay.Core");
-                    relayReference.SetAttributeValue("Version", "2.1.0");
-                    itemGroup.Add(relayReference);
+                // Add Relay.Core if not present
+                var hasRelayCore = doc.Descendants("PackageReference")
+                    .Any(e => e.Attribute("Include")?.Value == "Relay.Core");
 
-                    result.Changes.Add(new MigrationChange
+                if (!hasRelayCore && modified)
+                {
+                    // Find an ItemGroup or create one
+                    var itemGroup = doc.Descendants("ItemGroup").FirstOrDefault();
+
+                    if (itemGroup == null)
                     {
-                        Category = "Package References",
-                        Type = ChangeType.Add,
-                        Description = "Added package: Relay.Core 2.1.0",
-                        FilePath = projFile
-                    });
+                        // Create new ItemGroup if none exists
+                        var root = doc.Root;
+                        if (root != null)
+                        {
+                            itemGroup = new XElement("ItemGroup");
+                            root.Add(itemGroup);
+                        }
+                    }
+
+                    if (itemGroup != null)
+                    {
+                        var relayReference = new XElement("PackageReference");
+                        relayReference.SetAttributeValue("Include", "Relay.Core");
+                        relayReference.SetAttributeValue("Version", "2.1.0");
+                        itemGroup.Add(relayReference);
+
+                        result.Changes.Add(new MigrationChange
+                        {
+                            Category = "Package References",
+                            Type = ChangeType.Add,
+                            Description = "Added package: Relay.Core 2.1.0",
+                            FilePath = projFile
+                        });
+
+                        _logger?.LogPackageTransformed("Relay.Core", "Added", projFile);
+                    }
+                }
+
+                if (modified)
+                {
+                    await File.WriteAllTextAsync(projFile, doc.ToString());
                 }
             }
-
-            if (modified)
+            catch (Exception ex)
             {
-                await File.WriteAllTextAsync(projFile, doc.ToString());
+                var errorMessage = $"Failed to transform package references in {projFile}: {ex.Message}";
+                result.Issues.Add(errorMessage);
+                _logger?.LogTransformationError(ex, projFile);
+                
+                // Package transformation failures shouldn't stop the migration
+                // since code transformation can still work
             }
         }
     }

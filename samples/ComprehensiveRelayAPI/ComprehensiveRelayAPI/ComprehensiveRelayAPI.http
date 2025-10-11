@@ -1,6 +1,0 @@
-@ComprehensiveRelayAPI_HostAddress = http://localhost:5268
-
-GET {{ComprehensiveRelayAPI_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

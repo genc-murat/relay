@@ -56,9 +56,6 @@
   </PropertyGroup>
 
   <!-- Package Files -->
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="" />
-  </ItemGroup>
 
   <!-- Dependencies -->
   <ItemGroup>

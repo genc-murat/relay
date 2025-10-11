@@ -115,14 +115,20 @@ relay migrate --analyze-only
 # Preview changes (dry run)
 relay migrate --dry-run --preview
 
+# Preview with side-by-side diff
+relay migrate --dry-run --preview --side-by-side
+
+# Interactive migration - review each file
+relay migrate --interactive
+
+# Interactive with side-by-side diff
+relay migrate --interactive --side-by-side
+
 # Full migration with backup
 relay migrate --backup --output migration-report.md
 
 # Aggressive optimizations during migration
 relay migrate --aggressive
-
-# Interactive mode
-relay migrate --interactive
 
 # Rollback migration
 relay migrate rollback --backup .backup/backup_20250110
@@ -132,6 +138,9 @@ relay migrate rollback --backup .backup/backup_20250110
 - 🔍 Automatic MediatR detection
 - 💾 Backup creation before changes
 - 🔄 Code transformation (Task→ValueTask, using statements, etc.)
+- 👁️ **NEW: Inline and side-by-side diff preview**
+- 🎯 **NEW: Interactive mode with per-file approval**
+- 📊 **NEW: Change summary (lines added/removed/modified)**
 - ✅ Post-migration validation
 - 📊 Comprehensive reports (MD, JSON, HTML)
 - ⏮️ Rollback support

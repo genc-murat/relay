@@ -53,6 +53,12 @@ public class CodeTransformer
         return result;
     }
 
+    public async Task<TransformationResult> PreviewTransformAsync(string filePath)
+    {
+        var content = await File.ReadAllTextAsync(filePath);
+        return await TransformFileAsync(filePath, content, new MigrationOptions());
+    }
+
     private SyntaxNode TransformUsingDirectives(SyntaxNode root, TransformationResult result)
     {
         var usingDirectives = root.DescendantNodes().OfType<UsingDirectiveSyntax>().ToList();

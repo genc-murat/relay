@@ -4,6 +4,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Relay.CLI.Migration;
+using Spectre.Console;
 
 namespace Relay.CLI.Migration;
 
@@ -259,6 +261,231 @@ public class MigrationEngine
     public async Task<bool> RollbackAsync(string backupPath)
     {
         return await _backupManager.RestoreBackupAsync(backupPath);
+    }
+
+    public async Task<MigrationResult> MigrateInteractiveAsync(MigrationOptions options)
+    {
+        var result = new MigrationResult
+        {
+            Status = MigrationStatus.InProgress,
+            StartTime = DateTime.UtcNow
+        };
+
+        try
+        {
+            // Analyze project first
+            var analysis = await _analyzer.AnalyzeProjectAsync(options.ProjectPath);
+            _logger?.LogAnalysisCompleted(
+                analysis.HandlersFound,
+                analysis.Issues.Count,
+                analysis.CanMigrate
+            );
+
+            if (!analysis.CanMigrate)
+            {
+                result.Status = MigrationStatus.Failed;
+                result.Issues.AddRange(analysis.Issues.Where(i => i.Severity == IssueSeverity.Error)
+                    .Select(i => i.Message));
+                return result;
+            }
+
+            // Create backup if requested
+            if (options.CreateBackup && !options.DryRun)
+            {
+                result.BackupPath = await CreateBackupAsync(options);
+                result.CreatedBackup = true;
+                _logger?.LogBackupCreated(result.BackupPath);
+            }
+
+            // Get all code files to process
+            var codeFiles = Directory.GetFiles(options.ProjectPath, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("\\bin\\") && !f.Contains("\\obj\\") && !f.Contains("\\Migrations\\"))
+                .ToList();
+
+            foreach (var file in codeFiles)
+            {
+                var content = await File.ReadAllTextAsync(file);
+
+                // Check if file needs transformation
+                if (!NeedsTransformation(content))
+                    continue;
+
+                // Get preview of transformation
+                var preview = await _transformer.PreviewTransformAsync(file);
+
+                // Display file name and change summary
+                AnsiConsole.MarkupLine($"[cyan]File: {Path.GetFileName(file)}[/]");
+                var (added, removed, modified) = DiffDisplayUtility.GetChangeSummary(preview.OriginalContent, preview.NewContent);
+                AnsiConsole.MarkupLine($"[dim]  Changes: [green]+{added}[/] [red]-{removed}[/] [yellow]~{modified}[/][/]");
+                
+                DiffDisplayUtility.PreviewFileTransformation(file, preview.OriginalContent, preview.NewContent, options.UseSideBySideDiff);
+
+                var choices = new[] { "Yes", "No", "Yes to All", "Cancel" };
+                var choice = AnsiConsole.Prompt(
+                    new SelectionPrompt<string>()
+                        .Title("Apply this change?")
+                        .AddChoices(choices)
+                );
+
+                if (choice == "Yes" || choice == "Yes to All")
+                {
+                    // Apply the transformation
+                    if (!options.DryRun)
+                    {
+                        await File.WriteAllTextAsync(file, preview.NewContent);
+                    }
+
+                    result.FilesModified++;
+                    result.Changes.AddRange(preview.Changes);
+
+                    if (preview.IsHandler)
+                    {
+                        result.HandlersMigrated++;
+                    }
+                }
+
+                if (choice == "Yes to All")
+                {
+                    // Apply remaining files without asking
+                    for (int i = codeFiles.IndexOf(file) + 1; i < codeFiles.Count; i++)
+                    {
+                        var remainingFile = codeFiles[i];
+                        var remainingContent = await File.ReadAllTextAsync(remainingFile);
+
+                        if (!NeedsTransformation(remainingContent))
+                            continue;
+
+                        var remainingPreview = await _transformer.PreviewTransformAsync(remainingFile);
+                        
+                        if (!options.DryRun)
+                        {
+                            await File.WriteAllTextAsync(remainingFile, remainingPreview.NewContent);
+                        }
+
+                        result.FilesModified++;
+                        result.Changes.AddRange(remainingPreview.Changes);
+
+                        if (remainingPreview.IsHandler)
+                        {
+                            result.HandlersMigrated++;
+                        }
+                    }
+                    break; // Exit the main loop since we've processed all remaining files
+                }
+
+                if (choice == "Cancel")
+                {
+                    result.Status = MigrationStatus.Cancelled;
+                    return result;
+                }
+            }
+
+            result.Status = MigrationStatus.Success;
+        }
+        catch (Exception ex)
+        {
+            result.Status = MigrationStatus.Failed;
+            result.Issues.Add($"Migration failed: {ex.Message}");
+            _logger?.LogMigrationFailed(new MigrationException("Interactive migration failed", ex));
+        }
+        finally
+        {
+            result.EndTime = DateTime.UtcNow;
+            result.Duration = DateTime.UtcNow - result.StartTime;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Show preview of changes without applying them
+    /// </summary>
+    public async Task<MigrationResult> PreviewAsync(MigrationOptions options)
+    {
+        var result = new MigrationResult
+        {
+            Status = MigrationStatus.Preview,
+            StartTime = DateTime.UtcNow
+        };
+
+        try
+        {
+            // Analyze project first
+            var analysis = await _analyzer.AnalyzeProjectAsync(options.ProjectPath);
+            _logger?.LogAnalysisCompleted(
+                analysis.HandlersFound,
+                analysis.Issues.Count,
+                analysis.CanMigrate
+            );
+
+            if (!analysis.CanMigrate)
+            {
+                result.Status = MigrationStatus.Failed;
+                result.Issues.AddRange(analysis.Issues.Where(i => i.Severity == IssueSeverity.Error)
+                    .Select(i => i.Message));
+                return result;
+            }
+
+            // Get all code files to process
+            var codeFiles = Directory.GetFiles(options.ProjectPath, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("\\bin\\") && !f.Contains("\\obj\\") && !f.Contains("\\Migrations\\"))
+                .ToList();
+
+            foreach (var file in codeFiles)
+            {
+                var content = await File.ReadAllTextAsync(file);
+
+                // Check if file needs transformation
+                if (!NeedsTransformation(content))
+                    continue;
+
+                // Get preview of transformation (dry run)
+                var preview = await _transformer.PreviewTransformAsync(file);
+
+                if (preview.WasModified)
+                {
+                    // Display file name and diff preview if --preview flag is set
+                    if (options.ShowPreview)
+                    {
+                        AnsiConsole.MarkupLine($"[cyan]File: {Path.GetFileName(file)}[/]");
+                        
+                        // Show change summary
+                        var (added, removed, modified) = DiffDisplayUtility.GetChangeSummary(preview.OriginalContent, preview.NewContent);
+                        AnsiConsole.MarkupLine($"[dim]  Lines: [green]+{added}[/] [red]-{removed}[/] [yellow]~{modified}[/][/]");
+                        
+                        DiffDisplayUtility.PreviewFileTransformation(file, preview.OriginalContent, preview.NewContent, options.UseSideBySideDiff);
+                    }
+                    else
+                    {
+                        // Just show file name without full diff
+                        AnsiConsole.MarkupLine($"[green]✓[/] [cyan]{Path.GetFileName(file)}[/]");
+                    }
+
+                    result.FilesModified++;
+                    result.Changes.AddRange(preview.Changes);
+
+                    if (preview.IsHandler)
+                    {
+                        result.HandlersMigrated++;
+                    }
+                }
+            }
+
+            result.Status = MigrationStatus.Preview;
+        }
+        catch (Exception ex)
+        {
+            result.Status = MigrationStatus.Failed;
+            result.Issues.Add($"Preview failed: {ex.Message}");
+            _logger?.LogMigrationFailed(new MigrationException("Preview failed", ex));
+        }
+        finally
+        {
+            result.EndTime = DateTime.UtcNow;
+            result.Duration = DateTime.UtcNow - result.StartTime;
+        }
+
+        return result;
     }
 
     private async Task ProcessFilesSequentiallyAsync(List<string> codeFiles, MigrationOptions options, MigrationResult result)

@@ -56,6 +56,11 @@ public class MigrationOptions
     public bool Aggressive { get; set; }
 
     /// <summary>
+    /// Use side-by-side diff display instead of inline
+    /// </summary>
+    public bool UseSideBySideDiff { get; set; }
+
+    /// <summary>
     /// Enable parallel file processing for better performance
     /// </summary>
     public bool EnableParallelProcessing { get; set; } = true;

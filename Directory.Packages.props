@@ -114,6 +114,7 @@
     <!-- CLI and Console packages -->
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="Spectre.Console" Version="0.49.1" />
+    <PackageVersion Include="DiffPlex" Version="1.7.2" />
     
     <!-- Source Link -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />

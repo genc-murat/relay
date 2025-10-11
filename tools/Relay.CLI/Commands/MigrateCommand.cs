@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Text;
+using DiffPlex.DiffBuilder;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Spectre.Console;
@@ -22,6 +23,7 @@ public static class MigrateCommand
         var analyzeOnlyOption = new Option<bool>("--analyze-only", () => false, "Only analyze without migrating");
         var dryRunOption = new Option<bool>("--dry-run", () => false, "Show changes without applying them");
         var previewOption = new Option<bool>("--preview", () => false, "Show detailed diff preview");
+        var sideBySideOption = new Option<bool>("--side-by-side", () => false, "Use side-by-side diff display");
         var backupOption = new Option<bool>("--backup", () => true, "Create backup before migration");
         var backupPathOption = new Option<string>("--backup-path", () => ".backup", "Backup directory path");
         var outputOption = new Option<string?>("--output", "Migration report output path");
@@ -35,6 +37,7 @@ public static class MigrateCommand
         command.AddOption(analyzeOnlyOption);
         command.AddOption(dryRunOption);
         command.AddOption(previewOption);
+        command.AddOption(sideBySideOption);
         command.AddOption(backupOption);
         command.AddOption(backupPathOption);
         command.AddOption(outputOption);
@@ -50,6 +53,7 @@ public static class MigrateCommand
             var analyzeOnly = context.ParseResult.GetValueForOption(analyzeOnlyOption);
             var dryRun = context.ParseResult.GetValueForOption(dryRunOption);
             var preview = context.ParseResult.GetValueForOption(previewOption);
+            var sideBySide = context.ParseResult.GetValueForOption(sideBySideOption);
             var backup = context.ParseResult.GetValueForOption(backupOption);
             var backupPath = context.ParseResult.GetValueForOption(backupPathOption)!;
             var output = context.ParseResult.GetValueForOption(outputOption);
@@ -57,7 +61,7 @@ public static class MigrateCommand
             var aggressive = context.ParseResult.GetValueForOption(aggressiveOption);
             var interactive = context.ParseResult.GetValueForOption(interactiveOption);
 
-            await ExecuteMigrate(from, to, path, analyzeOnly, dryRun, preview, backup, backupPath, output, format, aggressive, interactive);
+            await ExecuteMigrate(from, to, path, analyzeOnly, dryRun, preview, sideBySide, backup, backupPath, output, format, aggressive, interactive);
         });
 
         return command;
@@ -70,6 +74,7 @@ public static class MigrateCommand
         bool analyzeOnly,
         bool dryRun,
         bool preview,
+        bool sideBySide,
         bool createBackup,
         string backupPath,
         string? outputFile,
@@ -103,6 +108,7 @@ public static class MigrateCommand
             AnalyzeOnly = analyzeOnly,
             DryRun = dryRun || analyzeOnly,
             ShowPreview = preview,
+            UseSideBySideDiff = sideBySide,
             CreateBackup = createBackup && !dryRun && !analyzeOnly,
             BackupPath = backupPath,
             Interactive = interactive,
@@ -152,9 +158,23 @@ public static class MigrateCommand
                         AnsiConsole.MarkupLine("[green]✅ Backup created[/]");
                     }
 
-                    // Phase 3: Migration
-                    ctx.Status("🔄 Applying migration...");
-                    result = await engine.MigrateAsync(options);
+                    // Phase 3: Migration or Preview
+                    if (options.Interactive)
+                    {
+                        ctx.Status("🔄 Interactive migration...");
+                        result = await engine.MigrateInteractiveAsync(options);
+                    }
+                    else if (options.ShowPreview && options.DryRun)
+                    {
+                        ctx.Status("🔍 Showing preview...");
+                        result = await engine.PreviewAsync(options);
+                    }
+                    else
+                    {
+                        ctx.Status("🔄 Applying migration...");
+                        result = await engine.MigrateAsync(options);
+                    }
+                    
                     await Task.Delay(500);
                 });
 

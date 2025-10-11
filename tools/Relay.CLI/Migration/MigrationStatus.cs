@@ -28,5 +28,15 @@ public enum MigrationStatus
     /// <summary>
     /// Migration failed with critical errors
     /// </summary>
-    Failed
+    Failed,
+    
+    /// <summary>
+    /// Preview mode showing expected changes
+    /// </summary>
+    Preview,
+    
+    /// <summary>
+    /// Migration was cancelled by user
+    /// </summary>
+    Cancelled
 }

@@ -69,6 +69,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Spectre.Console" />
+    <PackageReference Include="DiffPlex" />
   </ItemGroup>
 
   <!-- Project References -->

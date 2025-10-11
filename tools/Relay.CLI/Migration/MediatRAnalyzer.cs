@@ -184,6 +184,9 @@ public class MediatRAnalyzer
             {
                 AnalyzeRecord(recordDecl, filePath, result);
             }
+
+            // Analyze advanced patterns
+            AnalyzeAdvancedPatterns(root, filePath, result);
         }
         catch (Exception ex)
         {
@@ -289,6 +292,235 @@ public class MediatRAnalyzer
         {
             result.NotificationsFound++;
             // Notifications are compatible - no migration needed
+        }
+    }
+
+    /// <summary>
+    /// Analyzes advanced MediatR patterns that may need special attention
+    /// </summary>
+    private void AnalyzeAdvancedPatterns(SyntaxNode root, string filePath, AnalysisResult result)
+    {
+        // 1. Detect streaming requests (IStreamRequest)
+        DetectStreamingRequests(root, filePath, result);
+
+        // 2. Detect custom pipeline behaviors with complex logic
+        DetectCustomPipelineBehaviors(root, filePath, result);
+
+        // 3. Detect service factory usage
+        DetectServiceFactoryUsage(root, filePath, result);
+
+        // 4. Detect generic constraints on handlers
+        DetectGenericConstraints(root, filePath, result);
+
+        // 5. Detect async enumerable patterns
+        DetectAsyncEnumerablePatterns(root, filePath, result);
+
+        // 6. Detect polymorphic request/response patterns
+        DetectPolymorphicPatterns(root, filePath, result);
+
+        // 7. Detect validation patterns (FluentValidation)
+        DetectValidationPatterns(root, filePath, result);
+    }
+
+    private void DetectStreamingRequests(SyntaxNode root, string filePath, AnalysisResult result)
+    {
+        var streamRequests = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(c => c.BaseList?.Types.Any(t =>
+                t.ToString().Contains("IStreamRequest")) ?? false)
+            .ToList();
+
+        foreach (var streamRequest in streamRequests)
+        {
+            result.Issues.Add(new MigrationIssue
+            {
+                Severity = IssueSeverity.Warning,
+                Message = $"Streaming request '{streamRequest.Identifier.Text}' detected - manual migration required",
+                Code = "STREAM_REQUEST",
+                FilePath = filePath,
+                LineNumber = streamRequest.GetLocation().GetLineSpan().StartLinePosition.Line + 1
+            });
+        }
+    }
+
+    private void DetectCustomPipelineBehaviors(SyntaxNode root, string filePath, AnalysisResult result)
+    {
+        var customBehaviors = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(c => c.BaseList?.Types.Any(t =>
+                t.ToString().Contains("IPipelineBehavior")) ?? false)
+            .ToList();
+
+        foreach (var behavior in customBehaviors)
+        {
+            var behaviorName = behavior.Identifier.Text;
+
+            // Check if it's a standard behavior or custom
+            var isStandardBehavior = behaviorName.Contains("Logging") ||
+                                   behaviorName.Contains("Validation") ||
+                                   behaviorName.Contains("Transaction") ||
+                                   behaviorName.Contains("Performance");
+
+            if (!isStandardBehavior)
+            {
+                // Analyze complexity
+                var methods = behavior.Members.OfType<MethodDeclarationSyntax>().ToList();
+                var totalLines = methods.Sum(m => m.GetText().Lines.Count);
+
+                if (totalLines > 50)
+                {
+                    result.Issues.Add(new MigrationIssue
+                    {
+                        Severity = IssueSeverity.Warning,
+                        Message = $"Complex custom pipeline behavior '{behaviorName}' ({totalLines} lines) - review migration carefully",
+                        Code = "COMPLEX_BEHAVIOR",
+                        FilePath = filePath,
+                        LineNumber = behavior.GetLocation().GetLineSpan().StartLinePosition.Line + 1
+                    });
+                }
+                else
+                {
+                    result.Issues.Add(new MigrationIssue
+                    {
+                        Severity = IssueSeverity.Info,
+                        Message = $"Custom pipeline behavior '{behaviorName}' will be migrated to Relay [Pipeline] attribute",
+                        Code = "CUSTOM_BEHAVIOR",
+                        FilePath = filePath,
+                        LineNumber = behavior.GetLocation().GetLineSpan().StartLinePosition.Line + 1
+                    });
+                }
+            }
+        }
+    }
+
+    private void DetectServiceFactoryUsage(SyntaxNode root, string filePath, AnalysisResult result)
+    {
+        var serviceFactoryUsages = root.DescendantNodes()
+            .OfType<IdentifierNameSyntax>()
+            .Where(i => i.Identifier.Text == "ServiceFactory")
+            .ToList();
+
+        if (serviceFactoryUsages.Any())
+        {
+            result.Issues.Add(new MigrationIssue
+            {
+                Severity = IssueSeverity.Warning,
+                Message = $"ServiceFactory usage detected ({serviceFactoryUsages.Count} occurrence(s)) - replace with IServiceProvider",
+                Code = "SERVICE_FACTORY",
+                FilePath = filePath,
+                LineNumber = serviceFactoryUsages.First().GetLocation().GetLineSpan().StartLinePosition.Line + 1
+            });
+        }
+    }
+
+    private void DetectGenericConstraints(SyntaxNode root, string filePath, AnalysisResult result)
+    {
+        var constrainedClasses = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(c => c.TypeParameterList != null &&
+                       c.ConstraintClauses.Any() &&
+                       c.BaseList?.Types.Any(t => t.ToString().Contains("IRequestHandler")) == true)
+            .ToList();
+
+        foreach (var constrainedClass in constrainedClasses)
+        {
+            var constraints = string.Join(", ", constrainedClass.ConstraintClauses
+                .SelectMany(cc => cc.Constraints.Select(c => c.ToString())));
+
+            result.Issues.Add(new MigrationIssue
+            {
+                Severity = IssueSeverity.Info,
+                Message = $"Handler '{constrainedClass.Identifier.Text}' has generic constraints: {constraints} - verify after migration",
+                Code = "GENERIC_CONSTRAINTS",
+                FilePath = filePath,
+                LineNumber = constrainedClass.GetLocation().GetLineSpan().StartLinePosition.Line + 1
+            });
+        }
+    }
+
+    private void DetectAsyncEnumerablePatterns(SyntaxNode root, string filePath, AnalysisResult result)
+    {
+        var asyncEnumerableMethods = root.DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .Where(m => m.ReturnType.ToString().Contains("IAsyncEnumerable"))
+            .ToList();
+
+        foreach (var method in asyncEnumerableMethods)
+        {
+            var className = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()?.Identifier.Text;
+
+            result.Issues.Add(new MigrationIssue
+            {
+                Severity = IssueSeverity.Info,
+                Message = $"IAsyncEnumerable pattern in '{className}.{method.Identifier.Text}' - ensure compatibility with Relay",
+                Code = "ASYNC_ENUMERABLE",
+                FilePath = filePath,
+                LineNumber = method.GetLocation().GetLineSpan().StartLinePosition.Line + 1
+            });
+        }
+    }
+
+    private void DetectPolymorphicPatterns(SyntaxNode root, string filePath, AnalysisResult result)
+    {
+        // Detect abstract or interface request types
+        var abstractRequests = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(c => (c.Modifiers.Any(m => m.IsKind(SyntaxKind.AbstractKeyword)) ||
+                        c.Modifiers.Any(m => m.IsKind(SyntaxKind.InterfaceKeyword))) &&
+                       c.BaseList?.Types.Any(t => t.ToString().Contains("IRequest")) == true)
+            .ToList();
+
+        foreach (var abstractRequest in abstractRequests)
+        {
+            result.Issues.Add(new MigrationIssue
+            {
+                Severity = IssueSeverity.Warning,
+                Message = $"Polymorphic request pattern '{abstractRequest.Identifier.Text}' - verify handler resolution in Relay",
+                Code = "POLYMORPHIC_REQUEST",
+                FilePath = filePath,
+                LineNumber = abstractRequest.GetLocation().GetLineSpan().StartLinePosition.Line + 1
+            });
+        }
+    }
+
+    private void DetectValidationPatterns(SyntaxNode root, string filePath, AnalysisResult result)
+    {
+        // Detect FluentValidation usage
+        var validatorClasses = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(c => c.BaseList?.Types.Any(t =>
+                t.ToString().Contains("AbstractValidator")) ?? false)
+            .ToList();
+
+        if (validatorClasses.Any())
+        {
+            result.Issues.Add(new MigrationIssue
+            {
+                Severity = IssueSeverity.Info,
+                Message = $"Found {validatorClasses.Count} FluentValidation validator(s) - compatible with Relay validation pipeline",
+                Code = "FLUENT_VALIDATION",
+                FilePath = filePath,
+                LineNumber = validatorClasses.First().GetLocation().GetLineSpan().StartLinePosition.Line + 1
+            });
+        }
+
+        // Detect validation pipeline behaviors
+        var validationBehaviors = root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(c => c.Identifier.Text.Contains("Validation") &&
+                       c.BaseList?.Types.Any(t => t.ToString().Contains("IPipelineBehavior")) == true)
+            .ToList();
+
+        foreach (var validationBehavior in validationBehaviors)
+        {
+            result.Issues.Add(new MigrationIssue
+            {
+                Severity = IssueSeverity.Info,
+                Message = $"Validation pipeline behavior '{validationBehavior.Identifier.Text}' - can use Relay built-in validation",
+                Code = "VALIDATION_BEHAVIOR",
+                FilePath = filePath,
+                LineNumber = validationBehavior.GetLocation().GetLineSpan().StartLinePosition.Line + 1
+            });
         }
     }
 }

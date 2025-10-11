@@ -132,6 +132,242 @@ public class BackupManagerTests : IDisposable
         Assert.False(valid);
     }
 
+    [Fact]
+    public async Task ListBackupsAsync_ReturnsAllBackups()
+    {
+        // Arrange
+        var backupRoot = Path.Combine(Path.GetTempPath(), $"relay-backups-{Guid.NewGuid()}");
+        Directory.CreateDirectory(backupRoot);
+
+        await CreateTestFiles();
+
+        // Create multiple backups
+        var backup1 = Path.Combine(backupRoot, "backup_20250101_120000");
+        var backup2 = Path.Combine(backupRoot, "backup_20250102_120000");
+
+        await _backupManager.CreateBackupAsync(_testSourcePath, backup1);
+        await Task.Delay(100); // Ensure different timestamps
+        await _backupManager.CreateBackupAsync(_testSourcePath, backup2);
+
+        // Act
+        var backups = await _backupManager.ListBackupsAsync(backupRoot);
+
+        // Assert
+        Assert.Equal(2, backups.Count);
+        Assert.True(backups[0].CreatedAt >= backups[1].CreatedAt); // Ordered by date descending
+
+        // Cleanup
+        Directory.Delete(backupRoot, true);
+    }
+
+    [Fact]
+    public async Task DeleteBackupAsync_RemovesBackupAndZip()
+    {
+        // Arrange
+        await CreateTestFiles();
+        await _backupManager.CreateBackupAsync(_testSourcePath, _testBackupPath);
+
+        // Act
+        var deleted = await _backupManager.DeleteBackupAsync(_testBackupPath);
+
+        // Assert
+        Assert.True(deleted);
+        Assert.False(Directory.Exists(_testBackupPath));
+        Assert.False(File.Exists(_testBackupPath + ".zip"));
+    }
+
+    [Fact]
+    public async Task CleanupOldBackupsAsync_KeepsOnlyRecentBackups()
+    {
+        // Arrange
+        var backupRoot = Path.Combine(Path.GetTempPath(), $"relay-backups-{Guid.NewGuid()}");
+        Directory.CreateDirectory(backupRoot);
+
+        await CreateTestFiles();
+
+        // Create 7 backups
+        for (int i = 0; i < 7; i++)
+        {
+            var backupPath = Path.Combine(backupRoot, $"backup_2025010{i}_120000");
+            await _backupManager.CreateBackupAsync(_testSourcePath, backupPath);
+            await Task.Delay(50);
+        }
+
+        // Act
+        var deletedCount = await _backupManager.CleanupOldBackupsAsync(backupRoot, keepCount: 3);
+
+        // Assert
+        Assert.Equal(4, deletedCount); // 7 - 3 = 4 deleted
+        var remaining = await _backupManager.ListBackupsAsync(backupRoot);
+        Assert.Equal(3, remaining.Count);
+
+        // Cleanup
+        Directory.Delete(backupRoot, true);
+    }
+
+    [Fact]
+    public async Task VerifyBackupIntegrityAsync_WithValidBackup_ReturnsValidResult()
+    {
+        // Arrange
+        await CreateTestFiles();
+        await _backupManager.CreateBackupAsync(_testSourcePath, _testBackupPath);
+
+        // Act
+        var result = await _backupManager.VerifyBackupIntegrityAsync(_testBackupPath);
+
+        // Assert
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
+        Assert.NotNull(result.Metadata);
+        Assert.True(result.FilesFound > 0);
+        Assert.True(result.TotalSize > 0);
+        Assert.True(result.HasCompressedArchive);
+    }
+
+    [Fact]
+    public async Task VerifyBackupIntegrityAsync_WithMissingMetadata_ReturnsInvalid()
+    {
+        // Arrange
+        Directory.CreateDirectory(_testBackupPath);
+
+        // Act
+        var result = await _backupManager.VerifyBackupIntegrityAsync(_testBackupPath);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains("metadata"));
+    }
+
+    [Fact]
+    public async Task VerifyBackupIntegrityAsync_WithFileCountMismatch_AddsWarning()
+    {
+        // Arrange
+        await CreateTestFiles();
+        await _backupManager.CreateBackupAsync(_testSourcePath, _testBackupPath);
+
+        // Delete a file from backup to cause mismatch
+        var files = Directory.GetFiles(_testBackupPath, "*.cs");
+        if (files.Length > 0)
+        {
+            File.Delete(files[0]);
+        }
+
+        // Act
+        var result = await _backupManager.VerifyBackupIntegrityAsync(_testBackupPath);
+
+        // Assert
+        Assert.NotEmpty(result.Warnings);
+        Assert.Contains(result.Warnings, w => w.Contains("File count mismatch"));
+    }
+
+    [Fact]
+    public async Task EstimateBackupSizeAsync_ReturnsAccurateEstimate()
+    {
+        // Arrange
+        await CreateTestFiles();
+
+        // Act
+        var estimate = await _backupManager.EstimateBackupSizeAsync(_testSourcePath);
+
+        // Assert
+        Assert.True(estimate.FileCount > 0);
+        Assert.True(estimate.TotalSize > 0);
+        Assert.True(estimate.EstimatedCompressedSize > 0);
+        Assert.True(estimate.EstimatedCompressedSize < estimate.TotalSize);
+        Assert.Null(estimate.Error);
+        Assert.NotNull(estimate.TotalSizeFormatted);
+        Assert.NotNull(estimate.CompressedSizeFormatted);
+    }
+
+    [Fact]
+    public async Task EstimateBackupSizeAsync_WithNonExistentPath_ReturnsZeroFiles()
+    {
+        // Arrange
+        var nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        // Act
+        var estimate = await _backupManager.EstimateBackupSizeAsync(nonExistentPath);
+
+        // Assert
+        Assert.Equal(0, estimate.FileCount);
+        Assert.Equal(0, estimate.TotalSize);
+    }
+
+    [Fact]
+    public async Task CreateBackupAsync_ExcludesBinaryFiles()
+    {
+        // Arrange
+        await CreateTestFiles();
+
+        var dllFile = Path.Combine(_testSourcePath, "test.dll");
+        var exeFile = Path.Combine(_testSourcePath, "test.exe");
+        await File.WriteAllTextAsync(dllFile, "binary content");
+        await File.WriteAllTextAsync(exeFile, "exe content");
+
+        // Act
+        await _backupManager.CreateBackupAsync(_testSourcePath, _testBackupPath);
+
+        // Assert
+        Assert.False(File.Exists(Path.Combine(_testBackupPath, "test.dll")));
+        Assert.False(File.Exists(Path.Combine(_testBackupPath, "test.exe")));
+        Assert.True(File.Exists(Path.Combine(_testBackupPath, "test.cs"))); // Source files should be backed up
+    }
+
+    [Fact]
+    public async Task CreateBackupAsync_CreatesCompressedArchive()
+    {
+        // Arrange
+        await CreateTestFiles();
+
+        // Act
+        await _backupManager.CreateBackupAsync(_testSourcePath, _testBackupPath);
+
+        // Assert
+        var zipPath = _testBackupPath + ".zip";
+        Assert.True(File.Exists(zipPath));
+        Assert.True(new FileInfo(zipPath).Length > 0);
+    }
+
+    [Fact]
+    public async Task BackupVerificationResult_PropertiesWorkCorrectly()
+    {
+        // Arrange
+        var result = new BackupVerificationResult
+        {
+            BackupPath = "/test/path",
+            IsValid = true,
+            FilesFound = 10,
+            TotalSize = 1024,
+            HasCompressedArchive = true,
+            CompressedSize = 512
+        };
+
+        // Act & Assert
+        Assert.Equal("/test/path", result.BackupPath);
+        Assert.True(result.IsValid);
+        Assert.Equal(10, result.FilesFound);
+        Assert.Equal(1024, result.TotalSize);
+        Assert.True(result.HasCompressedArchive);
+        Assert.Equal(512, result.CompressedSize);
+        Assert.Empty(result.Errors);
+        Assert.Empty(result.Warnings);
+    }
+
+    [Fact]
+    public void BackupSizeEstimate_FormatsSizeCorrectly()
+    {
+        // Arrange
+        var estimate = new BackupSizeEstimate
+        {
+            TotalSize = 1024 * 1024 * 2, // 2 MB
+            EstimatedCompressedSize = 1024 * 512 // 512 KB
+        };
+
+        // Act & Assert
+        Assert.Contains("MB", estimate.TotalSizeFormatted);
+        Assert.Contains("KB", estimate.CompressedSizeFormatted);
+    }
+
     private async Task CreateTestFiles()
     {
         await File.WriteAllTextAsync(

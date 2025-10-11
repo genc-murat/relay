@@ -7,5 +7,6 @@ public class PackageReference
 {
     public string Name { get; set; } = "";
     public string CurrentVersion { get; set; } = "";
+    public string TargetVersion { get; set; } = "";
     public string ProjectFile { get; set; } = "";
 }

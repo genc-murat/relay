@@ -9,4 +9,5 @@ public class MigrationIssue
     public string Message { get; set; } = "";
     public string Code { get; set; } = "";
     public string FilePath { get; set; } = "";
+    public int LineNumber { get; set; }
 }

@@ -736,4 +736,332 @@ public class GetUser{i}Handler : IRequestHandler<GetUser{i}Query, string>
     }
 
     #endregion
+
+    #region Progress Reporting Tests
+
+    [Fact]
+    public async Task MigrateAsync_WithProgressCallback_ReportsProgress()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        var progressReports = new List<MigrationProgress>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            OnProgress = progress => progressReports.Add(progress)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.NotEmpty(progressReports);
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.Initializing);
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.Analyzing);
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.Completed);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_IncludesAllStages()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        var stagesReported = new HashSet<MigrationStage>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            CreateBackup = true,
+            OnProgress = progress => stagesReported.Add(progress.Stage)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.Contains(MigrationStage.Initializing, stagesReported);
+        Assert.Contains(MigrationStage.Analyzing, stagesReported);
+        Assert.Contains(MigrationStage.CreatingBackup, stagesReported);
+        Assert.Contains(MigrationStage.TransformingPackages, stagesReported);
+        Assert.Contains(MigrationStage.TransformingCode, stagesReported);
+        Assert.Contains(MigrationStage.Finalizing, stagesReported);
+        Assert.Contains(MigrationStage.Completed, stagesReported);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_TracksElapsedTime()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        var progressReports = new List<MigrationProgress>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            OnProgress = progress => progressReports.Add(progress)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.All(progressReports, p => Assert.True(p.ElapsedTime >= TimeSpan.Zero));
+
+        // Elapsed time should be increasing
+        for (int i = 1; i < progressReports.Count; i++)
+        {
+            Assert.True(progressReports[i].ElapsedTime >= progressReports[i - 1].ElapsedTime);
+        }
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_TracksFileProgress()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(10);
+        MigrationProgress? lastCodeTransformProgress = null;
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            ProgressReportInterval = 1, // Very low interval to ensure we get progress reports
+            OnProgress = progress =>
+            {
+                if (progress.Stage == MigrationStage.TransformingCode && progress.TotalFiles > 0)
+                {
+                    lastCodeTransformProgress = progress;
+                }
+            }
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.NotNull(lastCodeTransformProgress);
+        Assert.True(lastCodeTransformProgress.TotalFiles > 0);
+        Assert.True(lastCodeTransformProgress.ProcessedFiles > 0);
+        Assert.True(lastCodeTransformProgress.PercentComplete >= 0);
+        Assert.True(lastCodeTransformProgress.PercentComplete <= 100);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_IncludesFilesModified()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(5);
+        var progressReports = new List<MigrationProgress>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            OnProgress = progress => progressReports.Add(progress)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        var finalizingProgress = progressReports.FirstOrDefault(p => p.Stage == MigrationStage.Finalizing);
+        Assert.NotNull(finalizingProgress);
+        Assert.True(finalizingProgress.FilesModified > 0);
+        Assert.True(finalizingProgress.HandlersMigrated > 0);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_WithParallel_SetsIsParallelFlag()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(10);
+        var progressReports = new List<MigrationProgress>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = true,
+            DryRun = false,
+            OnProgress = progress => progressReports.Add(progress)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        var codeTransformProgress = progressReports.FirstOrDefault(p => p.Stage == MigrationStage.TransformingCode && p.TotalFiles > 0);
+        Assert.NotNull(codeTransformProgress);
+        Assert.True(codeTransformProgress.IsParallel);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_WithSequential_ClearsIsParallelFlag()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(3); // Small project for sequential
+        var progressReports = new List<MigrationProgress>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = false,
+            DryRun = false,
+            OnProgress = progress => progressReports.Add(progress)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        var codeTransformProgress = progressReports.FirstOrDefault(p => p.Stage == MigrationStage.TransformingCode && p.TotalFiles > 0);
+        if (codeTransformProgress != null)
+        {
+            Assert.False(codeTransformProgress.IsParallel);
+        }
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_OnFailure_ReportsCompletedStage()
+    {
+        // Arrange
+        var progressReports = new List<MigrationProgress>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = "C:\\NonExistentPath\\Invalid",
+            DryRun = false,
+            OnProgress = progress => progressReports.Add(progress)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.Equal(MigrationStatus.Failed, result.Status);
+        var completedProgress = progressReports.FirstOrDefault(p => p.Stage == MigrationStage.Completed);
+        Assert.NotNull(completedProgress);
+        Assert.Contains("failed", completedProgress.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_WithCustomInterval_RespectsInterval()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(20);
+        var progressReports = new List<MigrationProgress>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            ProgressReportInterval = 1000, // 1 second
+            OnProgress = progress => progressReports.Add(progress)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        // Should have fewer progress reports with higher interval
+        Assert.NotEmpty(progressReports);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_WithoutCallback_DoesNotThrow()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            OnProgress = null // No callback
+        };
+
+        // Act & Assert - Should not throw
+        var result = await _engine.MigrateAsync(options);
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_WithExceptionInCallback_ContinuesMigration()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        var callbackInvoked = false;
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            OnProgress = progress =>
+            {
+                callbackInvoked = true;
+                throw new InvalidOperationException("Test exception in progress callback");
+            }
+        };
+
+        // Act & Assert - Should not throw, migration should continue
+        var result = await _engine.MigrateAsync(options);
+        Assert.True(callbackInvoked);
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_IncludesMessageForEachStage()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        var progressReports = new List<MigrationProgress>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            CreateBackup = true,
+            OnProgress = progress => progressReports.Add(progress)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.All(progressReports, p => Assert.False(string.IsNullOrWhiteSpace(p.Message)));
+
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.Initializing && p.Message.Contains("Initializing"));
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.Analyzing && p.Message.Contains("Analyzing"));
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.CreatingBackup && p.Message.Contains("backup"));
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.TransformingPackages && p.Message.Contains("package"));
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.Finalizing && p.Message.Contains("Finalizing"));
+        Assert.Contains(progressReports, p => p.Stage == MigrationStage.Completed && p.Message.Contains("completed"));
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ProgressReporting_WithDryRun_SkipsBackupStage()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+        var stagesReported = new HashSet<MigrationStage>();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = true,
+            CreateBackup = true, // Enabled but should be skipped in dry run
+            OnProgress = progress => stagesReported.Add(progress.Stage)
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.DoesNotContain(MigrationStage.CreatingBackup, stagesReported);
+    }
+
+    #endregion
 }

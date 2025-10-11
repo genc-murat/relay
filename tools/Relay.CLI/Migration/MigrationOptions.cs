@@ -69,4 +69,14 @@ public class MigrationOptions
     /// Batch size for parallel processing (default: 10)
     /// </summary>
     public int ParallelBatchSize { get; set; } = 10;
+
+    /// <summary>
+    /// Callback for progress reporting (optional)
+    /// </summary>
+    public Action<MigrationProgress>? OnProgress { get; set; }
+
+    /// <summary>
+    /// Report progress at specified intervals (in milliseconds, default: 500ms)
+    /// </summary>
+    public int ProgressReportInterval { get; set; } = 500;
 }

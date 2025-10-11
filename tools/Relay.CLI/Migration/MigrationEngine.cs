@@ -13,6 +13,8 @@ public class MigrationEngine
     private readonly MediatRAnalyzer _analyzer;
     private readonly CodeTransformer _transformer;
     private readonly BackupManager _backupManager;
+    private Stopwatch? _operationStopwatch;
+    private DateTime _operationStartTime;
 
     public MigrationEngine()
     {
@@ -39,6 +41,9 @@ public class MigrationEngine
     public async Task<MigrationResult> MigrateAsync(MigrationOptions options)
     {
         var stopwatch = Stopwatch.StartNew();
+        _operationStopwatch = stopwatch;
+        _operationStartTime = DateTime.UtcNow;
+
         var result = new MigrationResult
         {
             Status = MigrationStatus.InProgress,
@@ -47,25 +52,63 @@ public class MigrationEngine
 
         try
         {
+            // Initialize
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.Initializing,
+                Message = "Initializing migration...",
+                ElapsedTime = stopwatch.Elapsed
+            });
+
             // Analyze first
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.Analyzing,
+                Message = "Analyzing project...",
+                ElapsedTime = stopwatch.Elapsed
+            });
+
             var analysis = await _analyzer.AnalyzeProjectAsync(options.ProjectPath);
-            
+
             if (!analysis.CanMigrate)
             {
                 result.Status = MigrationStatus.Failed;
                 result.Issues.AddRange(analysis.Issues.Where(i => i.Severity == IssueSeverity.Error)
                     .Select(i => i.Message));
+
+                // Report completion before early return
+                ReportProgress(options, new MigrationProgress
+                {
+                    Stage = MigrationStage.Completed,
+                    Message = "Migration failed: Project cannot be migrated",
+                    ElapsedTime = stopwatch.Elapsed
+                });
+
                 return result;
             }
 
             // Create backup if requested
             if (options.CreateBackup && !options.DryRun)
             {
+                ReportProgress(options, new MigrationProgress
+                {
+                    Stage = MigrationStage.CreatingBackup,
+                    Message = "Creating backup...",
+                    ElapsedTime = stopwatch.Elapsed
+                });
+
                 result.BackupPath = await CreateBackupAsync(options);
                 result.CreatedBackup = true;
             }
 
             // Transform package references
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.TransformingPackages,
+                Message = "Transforming package references...",
+                ElapsedTime = stopwatch.Elapsed
+            });
+
             if (!options.DryRun)
             {
                 await TransformPackageReferences(options.ProjectPath, result);
@@ -93,9 +136,26 @@ public class MigrationEngine
             }
 
             // Transform code files
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.TransformingCode,
+                Message = "Discovering code files...",
+                ElapsedTime = stopwatch.Elapsed
+            });
+
             var codeFiles = Directory.GetFiles(options.ProjectPath, "*.cs", SearchOption.AllDirectories)
                 .Where(f => !f.Contains("\\bin\\") && !f.Contains("\\obj\\") && !f.Contains("\\Migrations\\"))
                 .ToList();
+
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.TransformingCode,
+                Message = $"Transforming {codeFiles.Count} code files...",
+                TotalFiles = codeFiles.Count,
+                ProcessedFiles = 0,
+                IsParallel = options.EnableParallelProcessing && codeFiles.Count > 5,
+                ElapsedTime = stopwatch.Elapsed
+            });
 
             if (options.EnableParallelProcessing && codeFiles.Count > 5)
             {
@@ -107,6 +167,16 @@ public class MigrationEngine
                 // Use sequential processing for small projects or when disabled
                 await ProcessFilesSequentiallyAsync(codeFiles, options, result);
             }
+
+            // Finalize
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.Finalizing,
+                Message = "Finalizing migration...",
+                FilesModified = result.FilesModified,
+                HandlersMigrated = result.HandlersMigrated,
+                ElapsedTime = stopwatch.Elapsed
+            });
 
             // Add manual steps if needed
             if (analysis.HasCustomMediator)
@@ -120,11 +190,31 @@ public class MigrationEngine
             }
 
             result.Status = result.Issues.Count == 0 ? MigrationStatus.Success : MigrationStatus.Partial;
+
+            // Report completion
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.Completed,
+                Message = "Migration completed successfully",
+                FilesModified = result.FilesModified,
+                HandlersMigrated = result.HandlersMigrated,
+                ProcessedFiles = result.FilesModified,
+                TotalFiles = result.FilesModified,
+                ElapsedTime = stopwatch.Elapsed
+            });
         }
         catch (Exception ex)
         {
             result.Status = MigrationStatus.Failed;
             result.Issues.Add($"Migration failed: {ex.Message}");
+
+            // Report failure
+            ReportProgress(options, new MigrationProgress
+            {
+                Stage = MigrationStage.Completed,
+                Message = $"Migration failed: {ex.Message}",
+                ElapsedTime = stopwatch.Elapsed
+            });
         }
         finally
         {
@@ -143,13 +233,19 @@ public class MigrationEngine
 
     private async Task ProcessFilesSequentiallyAsync(List<string> codeFiles, MigrationOptions options, MigrationResult result)
     {
+        var processedCount = 0;
+        var lastReportTime = DateTime.UtcNow;
+
         foreach (var file in codeFiles)
         {
             var content = await File.ReadAllTextAsync(file);
 
             // Check if file needs transformation
             if (!NeedsTransformation(content))
+            {
+                processedCount++;
                 continue;
+            }
 
             var transformed = await _transformer.TransformFileAsync(file, content, options);
 
@@ -169,6 +265,28 @@ public class MigrationEngine
                     result.HandlersMigrated++;
                 }
             }
+
+            processedCount++;
+
+            // Report progress at intervals
+            var now = DateTime.UtcNow;
+            if ((now - lastReportTime).TotalMilliseconds >= options.ProgressReportInterval)
+            {
+                ReportProgress(options, new MigrationProgress
+                {
+                    Stage = MigrationStage.TransformingCode,
+                    CurrentFile = Path.GetFileName(file),
+                    TotalFiles = codeFiles.Count,
+                    ProcessedFiles = processedCount,
+                    FilesModified = result.FilesModified,
+                    HandlersMigrated = result.HandlersMigrated,
+                    Message = $"Processing {Path.GetFileName(file)}...",
+                    ElapsedTime = _operationStopwatch?.Elapsed ?? TimeSpan.Zero,
+                    IsParallel = false
+                });
+
+                lastReportTime = now;
+            }
         }
     }
 
@@ -177,6 +295,8 @@ public class MigrationEngine
         // Use a semaphore to limit concurrency and protect shared resources
         var semaphore = new SemaphoreSlim(options.MaxDegreeOfParallelism);
         var resultLock = new object();
+        var processedCount = 0;
+        var lastReportTime = DateTime.UtcNow;
 
         // Process files in batches to avoid overwhelming the system
         var batches = codeFiles
@@ -196,7 +316,13 @@ public class MigrationEngine
 
                     // Check if file needs transformation
                     if (!NeedsTransformation(content))
+                    {
+                        lock (resultLock)
+                        {
+                            processedCount++;
+                        }
                         return null;
+                    }
 
                     var transformed = await _transformer.TransformFileAsync(file, content, options);
 
@@ -218,9 +344,36 @@ public class MigrationEngine
                             {
                                 result.HandlersMigrated++;
                             }
+
+                            processedCount++;
+
+                            // Report progress at intervals
+                            var now = DateTime.UtcNow;
+                            if ((now - lastReportTime).TotalMilliseconds >= options.ProgressReportInterval)
+                            {
+                                ReportProgress(options, new MigrationProgress
+                                {
+                                    Stage = MigrationStage.TransformingCode,
+                                    CurrentFile = Path.GetFileName(file),
+                                    TotalFiles = codeFiles.Count,
+                                    ProcessedFiles = processedCount,
+                                    FilesModified = result.FilesModified,
+                                    HandlersMigrated = result.HandlersMigrated,
+                                    Message = $"Processing {processedCount}/{codeFiles.Count} files...",
+                                    ElapsedTime = _operationStopwatch?.Elapsed ?? TimeSpan.Zero,
+                                    IsParallel = true
+                                });
+
+                                lastReportTime = now;
+                            }
                         }
 
                         return transformed;
+                    }
+
+                    lock (resultLock)
+                    {
+                        processedCount++;
                     }
 
                     return null;
@@ -322,6 +475,21 @@ public class MigrationEngine
             {
                 await File.WriteAllTextAsync(projFile, doc.ToString());
             }
+        }
+    }
+
+    private void ReportProgress(MigrationOptions options, MigrationProgress progress)
+    {
+        if (options.OnProgress == null)
+            return;
+
+        try
+        {
+            options.OnProgress(progress);
+        }
+        catch
+        {
+            // Ignore progress reporting errors
         }
     }
 }

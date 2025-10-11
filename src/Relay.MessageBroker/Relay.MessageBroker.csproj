@@ -7,34 +7,34 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="2.12.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.9" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.9" />
-    <PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+    <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="RabbitMQ.Client" />
     
     <!-- Azure Service Bus -->
-    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" />
     
     <!-- AWS SQS/SNS -->
-    <PackageReference Include="AWSSDK.SQS" Version="4.0.1.9" />
-    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="4.0.1.7" />
+    <PackageReference Include="AWSSDK.SQS" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" />
     
     <!-- NATS -->
-    <PackageReference Include="NATS.Client.Core" Version="2.6.10" />
+    <PackageReference Include="NATS.Client.Core" />
     
     <!-- Redis Streams -->
-    <PackageReference Include="StackExchange.Redis" Version="2.9.25" />
-
+    <PackageReference Include="StackExchange.Redis" />
+    
     <!-- Polly for resilience -->
-    <PackageReference Include="Polly" Version="8.6.4" />
+    <PackageReference Include="Polly" />
     
     <!-- OpenTelemetry -->
-    <PackageReference Include="OpenTelemetry" Version="1.13.1" />
-    <PackageReference Include="OpenTelemetry.Api" Version="1.13.1" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.1" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Api" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,7 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <PackageReference Update="Microsoft.SourceLink.GitHub" />
   </ItemGroup>
 
 </Project>

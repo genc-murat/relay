@@ -152,7 +152,8 @@ public static class PluginCommand
         AnsiConsole.MarkupLine("[cyan]📦 Installed Plugins[/]");
         AnsiConsole.WriteLine();
 
-        var pluginManager = new Plugins.PluginManager();
+        var logger = new Plugins.PluginLogger("PluginManager");
+        var pluginManager = new Plugins.PluginManager(logger);
         var plugins = await pluginManager.GetInstalledPluginsAsync(includeAll);
 
         if (plugins.Count == 0)

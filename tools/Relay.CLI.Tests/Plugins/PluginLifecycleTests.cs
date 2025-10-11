@@ -63,7 +63,7 @@ public class PluginLifecycleTests
     {
         // Arrange
         var logger = new PluginLogger("test-plugin");
-        var fileSystem = new PluginFileSystem();
+        var fileSystem = new PluginFileSystem(logger);
         var configuration = new PluginConfiguration();
         var services = new TestServiceProvider();
 
@@ -280,7 +280,8 @@ public class PluginLifecycleTests
     public async Task PluginFileSystem_ShouldCheckFileExists()
     {
         // Arrange
-        var fileSystem = new PluginFileSystem();
+        var logger = new PluginLogger("test-plugin");
+        var fileSystem = new PluginFileSystem(logger);
         var testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.txt");
 
         try

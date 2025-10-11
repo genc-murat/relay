@@ -6,7 +6,7 @@ namespace Relay.CLI.Plugins;
 public class PluginContext : IPluginContext
 {
     public IPluginLogger Logger { get; }
-    public IFileSystem FileSystem { get; }
+    public IFileSystem FileSystem { get; private set; }
     public IConfiguration Configuration { get; }
     public IServiceProvider Services { get; }
     public string CliVersion { get; }
@@ -18,10 +18,12 @@ public class PluginContext : IPluginContext
         IConfiguration configuration,
         IServiceProvider services,
         string cliVersion,
-        string workingDirectory)
+        string workingDirectory,
+        PluginSandbox? sandbox = null)
     {
         Logger = logger;
-        FileSystem = fileSystem;
+        // If no specific filesystem is passed, create one with security validation
+        FileSystem = fileSystem ?? new PluginFileSystem(logger, sandbox);
         Configuration = configuration;
         Services = services;
         CliVersion = cliVersion;

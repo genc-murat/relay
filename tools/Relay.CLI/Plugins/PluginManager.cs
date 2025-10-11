@@ -7,17 +7,26 @@ namespace Relay.CLI.Plugins;
 /// <summary>
 /// Manages plugin discovery, loading, and lifecycle
 /// </summary>
-public class PluginManager
+public class PluginManager : IDisposable
 {
     private readonly Dictionary<string, LoadedPlugin> _loadedPlugins = new();
     private readonly string _pluginsDirectory;
     private readonly string _globalPluginsDirectory;
+    private readonly PluginSecurityValidator _securityValidator;
+    private readonly PluginHealthMonitor _healthMonitor;
+    private readonly IPluginLogger _logger;
+    private bool _disposed = false;
 
-    public PluginManager()
+    public PluginManager(IPluginLogger logger)
     {
+        _logger = logger;
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         _globalPluginsDirectory = Path.Combine(appData, "RelayCLI", "plugins");
         _pluginsDirectory = Path.Combine(Directory.GetCurrentDirectory(), ".relay", "plugins");
+
+        // Initialize security and health monitoring components
+        _securityValidator = new PluginSecurityValidator(logger);
+        _healthMonitor = new PluginHealthMonitor(logger);
 
         EnsureDirectoriesExist();
     }
@@ -89,10 +98,22 @@ public class PluginManager
 
     public async Task<IRelayPlugin?> LoadPluginAsync(string pluginName, IPluginContext context)
     {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(PluginManager));
+
         // Check if already loaded
         if (_loadedPlugins.ContainsKey(pluginName))
         {
-            return _loadedPlugins[pluginName].Instance;
+            // Check if the plugin is healthy before returning
+            if (_healthMonitor.IsHealthy(pluginName))
+            {
+                return _loadedPlugins[pluginName].Instance;
+            }
+            else
+            {
+                _logger.LogWarning($"Plugin {pluginName} is not healthy, attempting reload");
+                await UnloadPluginAsync(pluginName);
+            }
         }
 
         // Find plugin
@@ -100,14 +121,39 @@ public class PluginManager
             .FirstOrDefault(p => p.Name == pluginName);
 
         if (pluginInfo == null)
+        {
+            _logger.LogError($"Plugin {pluginName} not found");
             return null;
+        }
+
+        // Check health before attempting to load
+        if (!_healthMonitor.IsHealthy(pluginName))
+        {
+            _logger.LogError($"Plugin {pluginName} is not healthy and cannot be loaded");
+            return null;
+        }
 
         try
         {
             // Load assembly
             var assemblyPath = FindPluginAssembly(pluginInfo.Path);
             if (assemblyPath == null)
+            {
+                _logger.LogError($"Could not find plugin assembly for {pluginName}");
                 return null;
+            }
+
+            // Validate plugin security before loading
+            var validationResult = await _securityValidator.ValidatePluginAsync(assemblyPath, pluginInfo);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogError($"Plugin {pluginName} failed security validation");
+                foreach (var error in validationResult.Errors)
+                {
+                    _logger.LogError(error);
+                }
+                return null;
+            }
 
             var loadContext = new PluginLoadContext(assemblyPath);
             var assembly = loadContext.LoadFromAssemblyPath(assemblyPath);
@@ -115,17 +161,28 @@ public class PluginManager
             // Find plugin type
             var pluginType = FindPluginType(assembly);
             if (pluginType == null)
+            {
+                _logger.LogError($"Could not find plugin type in assembly for {pluginName}");
                 return null;
+            }
 
             // Create instance
             var instance = Activator.CreateInstance(pluginType) as IRelayPlugin;
             if (instance == null)
+            {
+                _logger.LogError($"Could not create plugin instance for {pluginName}");
                 return null;
+            }
 
-            // Initialize
-            var initialized = await instance.InitializeAsync(context);
+            // Initialize with timeout
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)); // 2 minute timeout for initialization
+            var initialized = await instance.InitializeAsync(context, cts.Token);
+            
             if (!initialized)
+            {
+                _logger.LogError($"Plugin {pluginName} failed to initialize");
                 return null;
+            }
 
             // Store loaded plugin
             _loadedPlugins[pluginName] = new LoadedPlugin
@@ -133,33 +190,45 @@ public class PluginManager
                 Name = pluginName,
                 Instance = instance,
                 LoadContext = loadContext,
-                Assembly = assembly
+                Assembly = assembly,
+                LastLoadTime = DateTime.UtcNow
             };
 
+            // Record successful load in health monitor
+            _healthMonitor.RecordSuccess(pluginName);
+
+            _logger.LogInformation($"Successfully loaded plugin: {pluginName}");
             return instance;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError($"Error loading plugin {pluginName}: {ex.Message}", ex);
+            _healthMonitor.RecordFailure(pluginName, ex);
             return null;
         }
     }
 
     public async Task<bool> UnloadPluginAsync(string pluginName)
     {
-        if (!_loadedPlugins.ContainsKey(pluginName))
+        if (_disposed || !_loadedPlugins.ContainsKey(pluginName))
             return false;
 
         var plugin = _loadedPlugins[pluginName];
 
         try
         {
-            await plugin.Instance.CleanupAsync();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30 second timeout for cleanup
+            await plugin.Instance.CleanupAsync(cts.Token);
             plugin.LoadContext.Unload();
             _loadedPlugins.Remove(pluginName);
+            
+            _logger.LogInformation($"Successfully unloaded plugin: {pluginName}");
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError($"Error during plugin {pluginName} cleanup: {ex.Message}", ex);
+            _healthMonitor.RecordFailure(pluginName, ex);
             return false;
         }
     }
@@ -205,6 +274,90 @@ public class PluginManager
         catch
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Executes a plugin with safety measures including timeout and error handling
+    /// </summary>
+    /// <param name="pluginName">Name of the plugin to execute</param>
+    /// <param name="args">Arguments to pass to the plugin</param>
+    /// <param name="context">Plugin context</param>
+    /// <param name="timeout">Execution timeout (default 5 minutes)</param>
+    /// <returns>Exit code from the plugin</returns>
+    public async Task<int> ExecutePluginAsync(string pluginName, string[] args, IPluginContext context, TimeSpan? timeout = null)
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(PluginManager));
+
+        timeout ??= TimeSpan.FromMinutes(5); // Default 5-minute timeout
+
+        // Check if the plugin is healthy before executing
+        if (!_healthMonitor.IsHealthy(pluginName))
+        {
+            _logger.LogError($"Cannot execute plugin {pluginName} - it is not in a healthy state");
+            return -1; // Error code for unhealthy plugin
+        }
+
+        // Load the plugin if not already loaded
+        var plugin = await LoadPluginAsync(pluginName, context);
+        if (plugin == null)
+        {
+            _logger.LogError($"Could not load plugin {pluginName} for execution");
+            _healthMonitor.RecordFailure(pluginName);
+            return -1;
+        }
+
+        try
+        {
+            // Create a plugin sandbox for execution
+            var permissions = _securityValidator.GetPluginPermissions(pluginName);
+            using var sandbox = new PluginSandbox(_logger, permissions);
+
+            // Execute with timeout and resource limits
+            using var cts = new CancellationTokenSource(timeout.Value);
+            int? result = await sandbox.ExecuteWithResourceLimitsAsync<int>(async () =>
+            {
+                return await sandbox.ExecuteInSandboxAsync<int>(async () =>
+                {
+                    return await plugin.ExecuteAsync(args, cts.Token);
+                }, cts.Token);
+            }, cts.Token);
+
+            // Record success if execution completed
+            _healthMonitor.RecordSuccess(pluginName);
+            return result ?? -1;
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogError($"Plugin {pluginName} execution timed out: {ex.Message}", ex);
+            _healthMonitor.RecordFailure(pluginName, ex);
+            return -1;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error executing plugin {pluginName}: {ex.Message}", ex);
+            _healthMonitor.RecordFailure(pluginName, ex);
+            return -1;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            // Unload all loaded plugins
+            var pluginNames = _loadedPlugins.Keys.ToList();
+            foreach (var pluginName in pluginNames)
+            {
+                _ = UnloadPluginAsync(pluginName); // Fire and forget
+            }
+
+            // Dispose of security validator and health monitor
+            (_securityValidator as IDisposable)?.Dispose();
+            _healthMonitor.Dispose();
+
+            _disposed = true;
         }
     }
 
@@ -481,4 +634,5 @@ internal class LoadedPlugin
     public IRelayPlugin Instance { get; set; } = null!;
     public PluginLoadContext LoadContext { get; set; } = null!;
     public Assembly Assembly { get; set; } = null!;
+    public DateTime LastLoadTime { get; set; } = DateTime.UtcNow;
 }

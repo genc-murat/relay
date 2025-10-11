@@ -1,3 +1,4 @@
+using Moq;
 using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
@@ -8,7 +9,8 @@ public class PluginManagerTests
 
     public PluginManagerTests()
     {
-        _pluginManager = new PluginManager();
+        var mockLogger = new Mock<IPluginLogger>();
+        _pluginManager = new PluginManager(mockLogger.Object);
     }
 
     [Fact]

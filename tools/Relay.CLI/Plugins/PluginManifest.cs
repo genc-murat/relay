@@ -14,4 +14,5 @@ public class PluginManifest
     public Dictionary<string, string> Dependencies { get; set; } = new();
     public string? Repository { get; set; }
     public string? License { get; set; }
+    public PluginPermissions? Permissions { get; set; }
 }

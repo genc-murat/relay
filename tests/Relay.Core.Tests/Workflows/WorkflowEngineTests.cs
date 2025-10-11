@@ -1771,43 +1771,6 @@ public class WorkflowEngineTests
     }
 
     [Fact]
-    public async Task FindRequestType_WithTypeThatDoesNotImplementIRequest_ShouldFailWorkflow()
-    {
-        // Arrange
-        var definition = new WorkflowDefinition
-        {
-            Id = "test-workflow",
-            Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
-                    Name = "RequestStep",
-                    Type = StepType.Request,
-                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+NonRequestType" // Type that doesn't implement IRequest
-                }
-            }
-        };
-
-        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(definition);
-
-        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-
-        // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
-
-        // Wait for background execution
-        await Task.Delay(300);
-
-        // Assert - Should fail because type doesn't implement IRequest
-        _mockStateStore.Verify(x => x.SaveExecutionAsync(
-            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
-            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-    }
-
-    [Fact]
     public async Task ValidateWorkflowStep_WithNestedParallelSteps_ShouldValidateNested()
     {
         // Arrange

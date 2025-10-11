@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -257,7 +258,28 @@ namespace Relay.Core.Workflows
 
         private Type? FindRequestType(string requestTypeName)
         {
-            // Try to find the type in all loaded assemblies
+            // First, try to get the type using Type.GetType which can resolve well-known types
+            var requestType = Type.GetType(requestTypeName);
+            
+            if (requestType != null)
+            {
+                // Verify it implements IRequest or IRequest<T>
+                var isRequest = requestType.GetInterfaces().Any(i =>
+                    i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>) ||
+                    i == typeof(IRequest));
+
+                if (isRequest)
+                {
+                    return requestType;
+                }
+                else
+                {
+                    // Type found but doesn't implement IRequest
+                    throw new InvalidOperationException($"Type '{requestTypeName}' does not implement IRequest or IRequest<T>");
+                }
+            }
+            
+            // If Type.GetType didn't work, try searching in loaded assemblies
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
             foreach (var assembly in assemblies)
@@ -265,20 +287,20 @@ namespace Relay.Core.Workflows
                 try
                 {
                     var types = assembly.GetTypes();
-                    var requestType = types.FirstOrDefault(t =>
+                    var foundType = types.FirstOrDefault(t =>
                         t.Name.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) ||
                         t.FullName?.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) == true);
 
-                    if (requestType != null)
+                    if (foundType != null)
                     {
                         // Verify it implements IRequest or IRequest<T>
-                        var isRequest = requestType.GetInterfaces().Any(i =>
+                        var isRequest = foundType.GetInterfaces().Any(i =>
                             i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>) ||
                             i == typeof(IRequest));
 
                         if (isRequest)
                         {
-                            return requestType;
+                            return foundType;
                         }
                         else
                         {
@@ -287,14 +309,14 @@ namespace Relay.Core.Workflows
                         }
                     }
                 }
-                catch (InvalidOperationException)
+                catch (ReflectionTypeLoadException)
                 {
-                    // Re-throw our validation exception
-                    throw;
+                    // Skip assemblies that can't be loaded properly
+                    continue;
                 }
                 catch
                 {
-                    // Skip assemblies that can't be loaded
+                    // Skip assemblies that cause other errors
                     continue;
                 }
             }

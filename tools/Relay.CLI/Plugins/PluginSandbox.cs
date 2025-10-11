@@ -89,15 +89,42 @@ public class PluginSandbox : IDisposable
 
         _logger.LogDebug("Executing plugin operation with resource limits");
 
-        // In a real implementation, we would set up resource limits here
-        // For now, we'll just execute the operation with monitoring
-        
         var startTime = DateTime.UtcNow;
         var startMemory = GC.GetTotalMemory(false);
+        var maxExecutionTime = TimeSpan.FromMinutes(5); // Default 5 minute limit
+        var maxMemoryUsage = 100 * 1024 * 1024L; // Default 100MB limit
+
+        // Override limits based on permissions if available
+        if (_permissions != null)
+        {
+            if (_permissions.MaxExecutionTimeMs > 0)
+            {
+                maxExecutionTime = TimeSpan.FromMilliseconds(_permissions.MaxExecutionTimeMs);
+            }
+            if (_permissions.MaxMemoryBytes > 0)
+            {
+                maxMemoryUsage = _permissions.MaxMemoryBytes;
+            }
+        }
 
         try
         {
-            var result = await operation();
+            // Create a timeout cancellation token
+            using var timeoutCts = new CancellationTokenSource(maxExecutionTime);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+            var resultTask = operation();
+            var delayTask = Task.Delay(Timeout.Infinite, linkedCts.Token);
+
+            var completedTask = await Task.WhenAny(resultTask, delayTask);
+
+            if (completedTask == delayTask)
+            {
+                _logger.LogError("Plugin operation exceeded execution time limit");
+                throw new TimeoutException($"Plugin operation exceeded time limit of {maxExecutionTime.TotalSeconds} seconds");
+            }
+
+            var result = await resultTask;
 
             var endTime = DateTime.UtcNow;
             var endMemory = GC.GetTotalMemory(false);
@@ -107,18 +134,28 @@ public class PluginSandbox : IDisposable
 
             _logger.LogDebug($"Plugin execution completed in {executionTime.TotalMilliseconds}ms, memory change: {memoryUsed} bytes");
 
-            // Check for resource limits
-            if (executionTime.TotalSeconds > 30) // 30 second limit
+            // Additional checks after execution
+            if (executionTime > maxExecutionTime)
             {
-                _logger.LogWarning($"Plugin execution time exceeded recommended limit: {executionTime.TotalSeconds}s");
+                _logger.LogWarning($"Plugin execution time exceeded configured limit: {executionTime.TotalSeconds}s > {maxExecutionTime.TotalSeconds}s");
             }
 
-            if (memoryUsed > 50 * 1024 * 1024) // 50MB limit
+            if (Math.Abs(memoryUsed) > maxMemoryUsage)
             {
-                _logger.LogWarning($"Plugin memory usage exceeded recommended limit: {memoryUsed / (1024 * 1024)}MB");
+                _logger.LogWarning($"Plugin memory usage exceeded configured limit: {Math.Abs(memoryUsed) / (1024 * 1024)}MB > {maxMemoryUsage / (1024 * 1024)}MB");
             }
 
             return result;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Plugin operation was cancelled");
+            throw;
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogError("Plugin operation timed out due to resource limits");
+            throw;
         }
         catch (Exception ex)
         {

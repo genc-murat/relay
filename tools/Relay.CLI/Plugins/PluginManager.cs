@@ -14,6 +14,7 @@ public class PluginManager : IDisposable
     private readonly string _globalPluginsDirectory;
     private readonly PluginSecurityValidator _securityValidator;
     private readonly PluginHealthMonitor _healthMonitor;
+    private readonly LazyPluginLoader _lazyPluginLoader;
     private readonly IPluginLogger _logger;
     private bool _disposed = false;
 
@@ -27,6 +28,7 @@ public class PluginManager : IDisposable
         // Initialize security and health monitoring components
         _securityValidator = new PluginSecurityValidator(logger);
         _healthMonitor = new PluginHealthMonitor(logger);
+        _lazyPluginLoader = new LazyPluginLoader(this, logger);
 
         EnsureDirectoriesExist();
     }
@@ -112,7 +114,19 @@ public class PluginManager : IDisposable
             else
             {
                 _logger.LogWarning($"Plugin {pluginName} is not healthy, attempting reload");
-                await UnloadPluginAsync(pluginName);
+                
+                // Try to restart the plugin automatically if it's disabled
+                if (_healthMonitor.AttemptRestart(pluginName))
+                {
+                    _logger.LogInformation($"Successfully initiated restart for plugin: {pluginName}");
+                    await UnloadPluginAsync(pluginName);
+                }
+                else
+                {
+                    _logger.LogWarning($"Could not initiate restart for plugin: {pluginName}");
+                    await UnloadPluginAsync(pluginName);
+                    return null;
+                }
             }
         }
 
@@ -196,6 +210,7 @@ public class PluginManager : IDisposable
 
             // Record successful load in health monitor
             _healthMonitor.RecordSuccess(pluginName);
+            _healthMonitor.ResetRestartCount(pluginName); // Reset restart count after successful load
 
             _logger.LogInformation($"Successfully loaded plugin: {pluginName}");
             return instance;
@@ -326,6 +341,7 @@ public class PluginManager : IDisposable
 
             // Record success if execution completed
             _healthMonitor.RecordSuccess(pluginName);
+            _healthMonitor.ResetRestartCount(pluginName); // Reset restart count after successful execution
             return result ?? -1;
         }
         catch (TimeoutException ex)
@@ -356,6 +372,7 @@ public class PluginManager : IDisposable
             // Dispose of security validator and health monitor
             (_securityValidator as IDisposable)?.Dispose();
             _healthMonitor.Dispose();
+            _lazyPluginLoader.ClearCache(); // Clear the lazy loading cache
 
             _disposed = true;
         }
@@ -596,7 +613,7 @@ public class PluginManager : IDisposable
 /// <summary>
 /// Custom AssemblyLoadContext for plugin isolation
 /// </summary>
-internal class PluginLoadContext : AssemblyLoadContext
+public class PluginLoadContext : AssemblyLoadContext
 {
     private readonly AssemblyDependencyResolver _resolver;
 

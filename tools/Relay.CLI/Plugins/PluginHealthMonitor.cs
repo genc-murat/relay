@@ -11,12 +11,17 @@ public class PluginHealthMonitor : IDisposable
     private readonly ConcurrentDictionary<string, PluginHealthInfo> _pluginHealth;
     private readonly Timer? _healthCheckTimer;
     private readonly TimeSpan _healthCheckInterval = TimeSpan.FromMinutes(1);
+    private readonly Dictionary<string, int> _restartCount;
+    private readonly Dictionary<string, DateTime> _restartCooldown;
+    private readonly TimeSpan _maxRestartAttempts = TimeSpan.FromMinutes(5);
     private bool _disposed = false;
 
     public PluginHealthMonitor(IPluginLogger logger)
     {
         _logger = logger;
         _pluginHealth = new ConcurrentDictionary<string, PluginHealthInfo>();
+        _restartCount = new Dictionary<string, int>();
+        _restartCooldown = new Dictionary<string, DateTime>();
         
         // Start health check timer
         _healthCheckTimer = new Timer(CheckHealth, null, _healthCheckInterval, _healthCheckInterval);
@@ -51,10 +56,78 @@ public class PluginHealthMonitor : IDisposable
         _logger.LogWarning($"Recorded failure for plugin: {pluginName}");
         
         // Check if plugin should be disabled
-        if (healthInfo.FailureCount > 3 && DateTime.UtcNow - healthInfo.LastFailureTime < TimeSpan.FromMinutes(5))
+        // Disable if there are more than 3 failures and the first failure happened less than 5 minutes ago
+        if (healthInfo.FailureCount > 3)
         {
             _logger.LogError($"Plugin {pluginName} has failed multiple times and will be temporarily disabled");
             healthInfo.Status = PluginHealthStatus.Disabled;
+            
+            // Track restart attempts to prevent infinite restart loops
+            if (!_restartCount.ContainsKey(pluginName))
+            {
+                _restartCount[pluginName] = 0;
+            }
+            _restartCount[pluginName]++;
+            
+            // Check if we should stop trying to restart
+            if (_restartCount[pluginName] > 5) // Max 5 restart attempts
+            {
+                _logger.LogError($"Plugin {pluginName} has exceeded maximum restart attempts and will remain disabled");
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Attempts to restart a failed plugin
+    /// </summary>
+    /// <param name="pluginName">Name of the plugin to restart</param>
+    /// <returns>True if restart was initiated, false otherwise</returns>
+    public bool AttemptRestart(string pluginName)
+    {
+        if (_disposed) return false;
+
+        if (_pluginHealth.TryGetValue(pluginName, out var healthInfo))
+        {
+            // Check if we're in a restart cooldown period
+            if (_restartCooldown.ContainsKey(pluginName) && 
+                DateTime.UtcNow - _restartCooldown[pluginName] < TimeSpan.FromMinutes(1))
+            {
+                _logger.LogWarning($"Plugin {pluginName} is still in restart cooldown period");
+                return false;
+            }
+
+            // Reset the plugin's health status to allow restart
+            if (healthInfo.Status == PluginHealthStatus.Disabled)
+            {
+                healthInfo.Status = PluginHealthStatus.Unknown;
+                healthInfo.LastFailureTime = DateTime.MinValue; // Reset failure time
+                
+                // Update restart cooldown to prevent rapid restarts
+                _restartCooldown[pluginName] = DateTime.UtcNow;
+                
+                _logger.LogInformation($"Initiating restart for plugin: {pluginName}");
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Resets restart count for a plugin after successful operation
+    /// </summary>
+    /// <param name="pluginName">Name of the plugin</param>
+    public void ResetRestartCount(string pluginName)
+    {
+        if (_restartCount.ContainsKey(pluginName))
+        {
+            _restartCount[pluginName] = 0;
+        }
+        
+        if (_restartCooldown.ContainsKey(pluginName))
+        {
+            _restartCooldown.Remove(pluginName);
         }
     }
 
@@ -199,9 +272,9 @@ public class PluginHealthInfo
     public PluginHealthStatus Status { get; set; } = PluginHealthStatus.Unknown;
     public int SuccessCount { get; private set; } = 0;
     public int FailureCount { get; set; } = 0; // Changed to public set to allow modification
-    public DateTime LastActivityTime { get; private set; } = DateTime.UtcNow;
-    public DateTime LastSuccessTime { get; private set; } = DateTime.MinValue;
-    public DateTime LastFailureTime { get; private set; } = DateTime.MinValue;
+    public DateTime LastActivityTime { get; set; } = DateTime.UtcNow;
+    public DateTime LastSuccessTime { get; set; } = DateTime.MinValue;
+    public DateTime LastFailureTime { get; set; } = DateTime.MinValue;
     public string? LastErrorMessage { get; private set; }
 
     public PluginHealthInfo(string pluginName)

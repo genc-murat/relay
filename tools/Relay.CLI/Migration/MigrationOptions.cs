@@ -54,4 +54,19 @@ public class MigrationOptions
     /// Apply aggressive optimizations during migration
     /// </summary>
     public bool Aggressive { get; set; }
+
+    /// <summary>
+    /// Enable parallel file processing for better performance
+    /// </summary>
+    public bool EnableParallelProcessing { get; set; } = true;
+
+    /// <summary>
+    /// Maximum degree of parallelism (default: processor count)
+    /// </summary>
+    public int MaxDegreeOfParallelism { get; set; } = Environment.ProcessorCount;
+
+    /// <summary>
+    /// Batch size for parallel processing (default: 10)
+    /// </summary>
+    public int ParallelBatchSize { get; set; } = 10;
 }

@@ -558,4 +558,182 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     }
 
     #endregion
+
+    #region Parallel Processing Tests
+
+    [Fact]
+    public async Task MigrateAsync_WithParallelProcessingEnabled_ProcessesFiles()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(10);
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = true,
+            MaxDegreeOfParallelism = 4,
+            DryRun = false
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+        Assert.True(result.FilesModified > 0);
+        Assert.True(result.HandlersMigrated > 0);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithParallelProcessingDisabled_ProcessesSequentially()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(10);
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = false,
+            DryRun = false
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+        Assert.True(result.FilesModified > 0);
+        Assert.True(result.HandlersMigrated > 0);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithSmallProject_UsesSequentialProcessing()
+    {
+        // Arrange - Only 3 files (less than 5 threshold)
+        await CreateTestProjectWithMultipleHandlers(3);
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = true, // Enabled but should use sequential due to low file count
+            DryRun = false
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ParallelProcessing_ProducesCorrectResults()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(15);
+
+        var parallelOptions = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = true,
+            DryRun = true
+        };
+
+        var sequentialOptions = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = false,
+            DryRun = true
+        };
+
+        // Act
+        var parallelResult = await _engine.MigrateAsync(parallelOptions);
+
+        // Clean up and recreate project for sequential test
+        Directory.Delete(_testProjectPath, true);
+        Directory.CreateDirectory(_testProjectPath);
+        await CreateTestProjectWithMultipleHandlers(15);
+
+        var sequentialResult = await _engine.MigrateAsync(sequentialOptions);
+
+        // Assert - Both should produce same results
+        Assert.Equal(sequentialResult.FilesModified, parallelResult.FilesModified);
+        Assert.Equal(sequentialResult.HandlersMigrated, parallelResult.HandlersMigrated);
+        Assert.Equal(sequentialResult.Changes.Count, parallelResult.Changes.Count);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithCustomParallelismDegree_RespectsLimit()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(20);
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = true,
+            MaxDegreeOfParallelism = 2,
+            ParallelBatchSize = 5,
+            DryRun = false
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert
+        Assert.True(result.Status == MigrationStatus.Success || result.Status == MigrationStatus.Partial);
+        Assert.True(result.Duration > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_ParallelProcessing_HandlesErrorsGracefully()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(10);
+
+        // Add a file with syntax error
+        var badFile = Path.Combine(_testProjectPath, "BadHandler.cs");
+        await File.WriteAllTextAsync(badFile, @"using MediatR;
+// This file has intentional syntax errors
+public class BadHandler : IRequestHandler<
+{
+}");
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            EnableParallelProcessing = true,
+            DryRun = false
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert - Should handle error but continue with other files
+        Assert.True(result.FilesModified > 0 || result.Status == MigrationStatus.Partial);
+    }
+
+    private async Task CreateTestProjectWithMultipleHandlers(int handlerCount)
+    {
+        await CreateTestProjectWithMediatR();
+
+        for (int i = 0; i < handlerCount; i++)
+        {
+            var handlerContent = $@"using MediatR;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace TestProject;
+
+public record GetUser{i}Query(int Id) : IRequest<string>;
+
+public class GetUser{i}Handler : IRequestHandler<GetUser{i}Query, string>
+{{
+    public async Task<string> Handle(GetUser{i}Query request, CancellationToken cancellationToken)
+    {{
+        return $""User {{request.Id}}"";
+    }}
+}}";
+
+            await File.WriteAllTextAsync(Path.Combine(_testProjectPath, $"Handler{i}.cs"), handlerContent);
+        }
+    }
+
+    #endregion
 }

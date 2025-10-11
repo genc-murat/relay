@@ -97,32 +97,15 @@ public class MigrationEngine
                 .Where(f => !f.Contains("\\bin\\") && !f.Contains("\\obj\\") && !f.Contains("\\Migrations\\"))
                 .ToList();
 
-            foreach (var file in codeFiles)
+            if (options.EnableParallelProcessing && codeFiles.Count > 5)
             {
-                var content = await File.ReadAllTextAsync(file);
-                
-                // Check if file needs transformation
-                if (!NeedsTransformation(content))
-                    continue;
-
-                var transformed = await _transformer.TransformFileAsync(file, content, options);
-                
-                if (transformed.WasModified)
-                {
-                    if (!options.DryRun)
-                    {
-                        await File.WriteAllTextAsync(file, transformed.NewContent);
-                    }
-
-                    result.FilesModified++;
-                    result.LinesChanged += transformed.LinesChanged;
-                    result.Changes.AddRange(transformed.Changes);
-
-                    if (transformed.IsHandler)
-                    {
-                        result.HandlersMigrated++;
-                    }
-                }
+                // Use parallel processing for better performance
+                await ProcessFilesInParallelAsync(codeFiles, options, result);
+            }
+            else
+            {
+                // Use sequential processing for small projects or when disabled
+                await ProcessFilesSequentiallyAsync(codeFiles, options, result);
             }
 
             // Add manual steps if needed
@@ -156,6 +139,100 @@ public class MigrationEngine
     public async Task<bool> RollbackAsync(string backupPath)
     {
         return await _backupManager.RestoreBackupAsync(backupPath);
+    }
+
+    private async Task ProcessFilesSequentiallyAsync(List<string> codeFiles, MigrationOptions options, MigrationResult result)
+    {
+        foreach (var file in codeFiles)
+        {
+            var content = await File.ReadAllTextAsync(file);
+
+            // Check if file needs transformation
+            if (!NeedsTransformation(content))
+                continue;
+
+            var transformed = await _transformer.TransformFileAsync(file, content, options);
+
+            if (transformed.WasModified)
+            {
+                if (!options.DryRun)
+                {
+                    await File.WriteAllTextAsync(file, transformed.NewContent);
+                }
+
+                result.FilesModified++;
+                result.LinesChanged += transformed.LinesChanged;
+                result.Changes.AddRange(transformed.Changes);
+
+                if (transformed.IsHandler)
+                {
+                    result.HandlersMigrated++;
+                }
+            }
+        }
+    }
+
+    private async Task ProcessFilesInParallelAsync(List<string> codeFiles, MigrationOptions options, MigrationResult result)
+    {
+        // Use a semaphore to limit concurrency and protect shared resources
+        var semaphore = new SemaphoreSlim(options.MaxDegreeOfParallelism);
+        var resultLock = new object();
+
+        // Process files in batches to avoid overwhelming the system
+        var batches = codeFiles
+            .Select((file, index) => new { file, index })
+            .GroupBy(x => x.index / options.ParallelBatchSize)
+            .Select(g => g.Select(x => x.file).ToList())
+            .ToList();
+
+        foreach (var batch in batches)
+        {
+            var tasks = batch.Select(async file =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var content = await File.ReadAllTextAsync(file);
+
+                    // Check if file needs transformation
+                    if (!NeedsTransformation(content))
+                        return null;
+
+                    var transformed = await _transformer.TransformFileAsync(file, content, options);
+
+                    if (transformed.WasModified)
+                    {
+                        if (!options.DryRun)
+                        {
+                            await File.WriteAllTextAsync(file, transformed.NewContent);
+                        }
+
+                        // Thread-safe update of result
+                        lock (resultLock)
+                        {
+                            result.FilesModified++;
+                            result.LinesChanged += transformed.LinesChanged;
+                            result.Changes.AddRange(transformed.Changes);
+
+                            if (transformed.IsHandler)
+                            {
+                                result.HandlersMigrated++;
+                            }
+                        }
+
+                        return transformed;
+                    }
+
+                    return null;
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+        }
     }
 
     private bool NeedsTransformation(string content)

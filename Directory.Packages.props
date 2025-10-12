@@ -125,5 +125,8 @@
     <!-- NuGet packages -->
     <PackageVersion Include="NuGet.Packaging" Version="6.14.0" />
     <PackageVersion Include="NuGet.Protocol" Version="6.14.0" />
+
+    <!-- Relay packages (for inter-project dependencies) -->
+    <PackageVersion Include="Relay.Core" Version="1.1.0" />
   </ItemGroup>
 </Project>

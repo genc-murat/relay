@@ -15,9 +15,14 @@ Roslyn source generator for the Relay mediator framework. This package provides 
 Simply install this package alongside Relay.Core and the source generator will automatically run during compilation.
 
 ```xml
-<PackageReference Include="Relay.Core" Version="1.0.0" />
-<PackageReference Include="Relay.SourceGenerator" Version="1.0.0" />
+<PackageReference Include="Relay.Core" Version="1.1.0" />
+<PackageReference Include="Relay.SourceGenerator" Version="1.1.0">
+  <PrivateAssets>all</PrivateAssets>
+  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+</PackageReference>
 ```
+
+**Important**: Relay.SourceGenerator 1.1.0+ requires Relay.Core 1.1.0 or higher, which includes the `BaseRequestDispatcher` class needed for generated dispatchers.
 
 The generator will automatically discover your handlers and generate the necessary registration code.
 

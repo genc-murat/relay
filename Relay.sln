@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11109.219 d18.0-oob
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Relay", "src\Relay\Relay.csproj", "{A0B1C2D3-E4F5-6789-ABCD-EF0123456789}"
 EndProject
@@ -28,6 +28,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Relay.CLI", "tools\Relay.CLI\Relay.CLI.csproj", "{3D7BC5F4-96BB-4FC9-9446-816FE93A65FD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Relay.CLI.Tests", "tools\Relay.CLI.Tests\Relay.CLI.Tests.csproj", "{C5282263-1C5C-4248-B014-BC26E8723532}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{1A6CD0E7-E21C-40BC-8551-7A9F01A8ADDE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Relay.MinimalApiSample", "samples\Relay.MinimalApiSample\Relay.MinimalApiSample.csproj", "{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -159,6 +163,18 @@ Global
 		{C5282263-1C5C-4248-B014-BC26E8723532}.Release|x64.Build.0 = Release|Any CPU
 		{C5282263-1C5C-4248-B014-BC26E8723532}.Release|x86.ActiveCfg = Release|Any CPU
 		{C5282263-1C5C-4248-B014-BC26E8723532}.Release|x86.Build.0 = Release|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Debug|x64.Build.0 = Debug|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Debug|x86.Build.0 = Debug|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Release|x64.ActiveCfg = Release|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Release|x64.Build.0 = Release|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Release|x86.ActiveCfg = Release|Any CPU
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -174,5 +190,6 @@ Global
 		{738E1C1F-48BA-4A69-AC71-AEBD00B11E90} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{3D7BC5F4-96BB-4FC9-9446-816FE93A65FD} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{C5282263-1C5C-4248-B014-BC26E8723532} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{40DF54A6-E64B-AAC1-FE73-BA3D7BE739BC} = {1A6CD0E7-E21C-40BC-8551-7A9F01A8ADDE}
 	EndGlobalSection
 EndGlobal

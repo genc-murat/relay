@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+
 using Relay.Core.Retry;
 using Xunit;
 
@@ -25,9 +25,9 @@ namespace Relay.Core.Tests.Retry
                 baseDelay: TimeSpan.FromMilliseconds(100),
                 maxDelay: TimeSpan.FromSeconds(30),
                 maxAttempts: 5);
-
+ 
             // Assert
-            strategy.Should().NotBeNull();
+            Assert.NotNull(strategy);
         }
 
         [Fact]
@@ -38,9 +38,9 @@ namespace Relay.Core.Tests.Retry
                 baseDelay: TimeSpan.FromMilliseconds(100),
                 maxDelay: TimeSpan.FromSeconds(30),
                 maxAttempts: null);
-
+ 
             // Assert
-            strategy.Should().NotBeNull();
+            Assert.NotNull(strategy);
         }
 
         [Fact]
@@ -51,9 +51,9 @@ namespace Relay.Core.Tests.Retry
             var strategy = new DecorrelatedJitterRetryStrategy(
                 baseDelay: delay,
                 maxDelay: delay);
-
+ 
             // Assert
-            strategy.Should().NotBeNull();
+            Assert.NotNull(strategy);
         }
 
         [Fact]
@@ -65,9 +65,9 @@ namespace Relay.Core.Tests.Retry
                 maxDelay: TimeSpan.FromSeconds(30));
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("baseDelay")
-                .WithMessage("*must be non-negative*");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("baseDelay", ex.ParamName);
+            Assert.Contains("must be non-negative", ex.Message);
         }
 
         [Fact]
@@ -79,9 +79,9 @@ namespace Relay.Core.Tests.Retry
                 maxDelay: TimeSpan.FromMilliseconds(100));
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("maxDelay")
-                .WithMessage("*must be greater than or equal to base delay*");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("maxDelay", ex.ParamName);
+            Assert.Contains("must be greater than or equal to base delay", ex.Message);
         }
 
         [Fact]
@@ -92,11 +92,11 @@ namespace Relay.Core.Tests.Retry
                 baseDelay: TimeSpan.FromMilliseconds(100),
                 maxDelay: TimeSpan.FromSeconds(30),
                 maxAttempts: 0);
-
+ 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("maxAttempts")
-                .WithMessage("*must be at least 1*");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("maxAttempts", ex.ParamName);
+            Assert.Contains("must be at least 1", ex.Message);
         }
 
         [Fact]
@@ -107,11 +107,11 @@ namespace Relay.Core.Tests.Retry
                 baseDelay: TimeSpan.FromMilliseconds(100),
                 maxDelay: TimeSpan.FromSeconds(30),
                 maxAttempts: -1);
-
+ 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("maxAttempts")
-                .WithMessage("*must be at least 1*");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("maxAttempts", ex.ParamName);
+            Assert.Contains("must be at least 1", ex.Message);
         }
 
         #endregion
@@ -131,7 +131,7 @@ namespace Relay.Core.Tests.Retry
             var result = await strategy.ShouldRetryAsync(0, exception);
 
             // Assert
-            result.Should().BeFalse("attempt 0 is the initial execution, not a retry");
+            Assert.False(result, "attempt 0 is the initial execution, not a retry");
         }
 
         [Fact]
@@ -147,7 +147,7 @@ namespace Relay.Core.Tests.Retry
             var result = await strategy.ShouldRetryAsync(-1, exception);
 
             // Assert
-            result.Should().BeFalse("negative attempts are invalid");
+            Assert.False(result, "negative attempts are invalid");
         }
 
         [Fact]
@@ -165,9 +165,9 @@ namespace Relay.Core.Tests.Retry
             var result5 = await strategy.ShouldRetryAsync(5, exception);
 
             // Assert
-            result1.Should().BeTrue();
-            result2.Should().BeTrue();
-            result5.Should().BeTrue();
+            Assert.True(result1);
+            Assert.True(result2);
+            Assert.True(result5);
         }
 
         [Fact]
@@ -185,8 +185,8 @@ namespace Relay.Core.Tests.Retry
             var result100 = await strategy.ShouldRetryAsync(100, exception);
 
             // Assert
-            result1.Should().BeTrue();
-            result100.Should().BeTrue("no max attempts limit should allow unlimited retries");
+            Assert.True(result1);
+            Assert.True(result100, "no max attempts limit should allow unlimited retries");
         }
 
         [Fact]
@@ -206,10 +206,10 @@ namespace Relay.Core.Tests.Retry
             var result4 = await strategy.ShouldRetryAsync(4, exception);
 
             // Assert
-            result1.Should().BeTrue();
-            result2.Should().BeTrue();
-            result3.Should().BeTrue();
-            result4.Should().BeFalse("attempt 4 exceeds maxAttempts of 3");
+            Assert.True(result1);
+            Assert.True(result2);
+            Assert.True(result3);
+            Assert.False(result4, "attempt 4 exceeds maxAttempts of 3");
         }
 
         [Fact]
@@ -226,8 +226,8 @@ namespace Relay.Core.Tests.Retry
             var result = await strategy.ShouldRetryAsync(1, exception, cts.Token);
 
             // Assert
-            result.Should().BeTrue();
-            cts.Token.IsCancellationRequested.Should().BeFalse();
+            Assert.True(result);
+            Assert.False(cts.Token.IsCancellationRequested);
         }
 
         #endregion
@@ -245,9 +245,9 @@ namespace Relay.Core.Tests.Retry
 
             // Act
             var delay = await strategy.GetRetryDelayAsync(0, exception);
-
+ 
             // Assert
-            delay.Should().Be(TimeSpan.Zero);
+            Assert.Equal(TimeSpan.Zero, delay);
         }
 
         [Fact]
@@ -261,9 +261,9 @@ namespace Relay.Core.Tests.Retry
 
             // Act
             var delay = await strategy.GetRetryDelayAsync(-1, exception);
-
+ 
             // Assert
-            delay.Should().Be(TimeSpan.Zero);
+            Assert.Equal(TimeSpan.Zero, delay);
         }
 
         [Fact]
@@ -280,8 +280,7 @@ namespace Relay.Core.Tests.Retry
 
             // Assert
             // First attempt: delay should be between baseDelay (100ms) and baseDelay * 3 (300ms)
-            delay.Should().BeGreaterThanOrEqualTo(baseDelay);
-            delay.Should().BeLessThanOrEqualTo(TimeSpan.FromMilliseconds(300));
+            Assert.InRange(delay, baseDelay, TimeSpan.FromMilliseconds(300));
         }
 
         [Fact]
@@ -304,8 +303,7 @@ namespace Relay.Core.Tests.Retry
             // Assert
             foreach (var delay in delays)
             {
-                delay.Should().BeGreaterThanOrEqualTo(baseDelay);
-                delay.Should().BeLessThanOrEqualTo(maxDelay);
+                Assert.InRange(delay, baseDelay, maxDelay);
             }
         }
 
@@ -323,9 +321,9 @@ namespace Relay.Core.Tests.Retry
             var result5 = await strategy.GetRetryDelayAsync(5, exception);
 
             // Assert
-            result1.Should().Be(delay);
-            result2.Should().Be(delay);
-            result5.Should().Be(delay);
+            Assert.Equal(delay, result1);
+            Assert.Equal(delay, result2);
+            Assert.Equal(delay, result5);
         }
 
         [Fact]
@@ -347,13 +345,12 @@ namespace Relay.Core.Tests.Retry
 
             // Assert - Delays should have variance (not all the same)
             var distinctDelays = delays.Distinct().Count();
-            distinctDelays.Should().BeGreaterThan(10, "decorrelated jitter should produce varied delays");
+            Assert.True(distinctDelays > 10, "decorrelated jitter should produce varied delays");
 
             // All delays should be within valid range
             foreach (var delay in delays)
             {
-                delay.Should().BeGreaterThanOrEqualTo(baseDelay);
-                delay.Should().BeLessThanOrEqualTo(maxDelay);
+                Assert.InRange(delay, baseDelay, maxDelay);
             }
         }
 
@@ -373,8 +370,8 @@ namespace Relay.Core.Tests.Retry
             var averageDelay5 = await GetAverageDelay(strategy, exception, 5, samplesPerAttempt);
 
             // Assert - Average delays should generally increase (with some tolerance for randomness)
-            averageDelay3.Should().BeGreaterThan(averageDelay1);
-            averageDelay5.Should().BeGreaterThan(averageDelay3);
+            Assert.True(averageDelay3 > averageDelay1);
+            Assert.True(averageDelay5 > averageDelay3);
         }
 
         [Fact]
@@ -391,8 +388,8 @@ namespace Relay.Core.Tests.Retry
             var delay = await strategy.GetRetryDelayAsync(1, exception, cts.Token);
 
             // Assert
-            delay.Should().BeGreaterThan(TimeSpan.Zero);
-            cts.Token.IsCancellationRequested.Should().BeFalse();
+            Assert.True(delay > TimeSpan.Zero);
+            Assert.False(cts.Token.IsCancellationRequested);
         }
 
         #endregion
@@ -419,14 +416,14 @@ namespace Relay.Core.Tests.Retry
                     var delay = await strategy.GetRetryDelayAsync(attempt, exception);
 
                     // Basic validation
-                    shouldRetry.Should().BeTrue();
-                    delay.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
+                    Assert.True(shouldRetry);
+                    Assert.True(delay >= TimeSpan.Zero);
                 }));
             }
 
             // Assert - All tasks should complete without exceptions
             Func<Task> act = async () => await Task.WhenAll(tasks);
-            await act.Should().NotThrowAsync("strategy should be thread-safe");
+            await act();
         }
 
         [Fact]
@@ -450,7 +447,7 @@ namespace Relay.Core.Tests.Retry
 
             // Assert - Should have good variance due to different Random instances per thread
             var distinctDelays = delays.Distinct().Count();
-            distinctDelays.Should().BeGreaterThan(10, "different threads should produce varied delays");
+            Assert.True(distinctDelays > 10, "different threads should produce varied delays");
         }
 
         #endregion
@@ -471,10 +468,8 @@ namespace Relay.Core.Tests.Retry
             var delay2 = await strategy.GetRetryDelayAsync(2, exception);
 
             // Assert
-            delay1.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(1));
-            delay1.Should().BeLessThanOrEqualTo(TimeSpan.FromMilliseconds(10));
-            delay2.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(1));
-            delay2.Should().BeLessThanOrEqualTo(TimeSpan.FromMilliseconds(10));
+            Assert.InRange(delay1, TimeSpan.FromMilliseconds(1), TimeSpan.FromMilliseconds(10));
+            Assert.InRange(delay2, TimeSpan.FromMilliseconds(1), TimeSpan.FromMilliseconds(10));
         }
 
         [Fact]
@@ -491,10 +486,8 @@ namespace Relay.Core.Tests.Retry
             var delay2 = await strategy.GetRetryDelayAsync(2, exception);
 
             // Assert
-            delay1.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMinutes(1));
-            delay1.Should().BeLessThanOrEqualTo(TimeSpan.FromHours(1));
-            delay2.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMinutes(1));
-            delay2.Should().BeLessThanOrEqualTo(TimeSpan.FromHours(1));
+            Assert.InRange(delay1, TimeSpan.FromMinutes(1), TimeSpan.FromHours(1));
+            Assert.InRange(delay2, TimeSpan.FromMinutes(1), TimeSpan.FromHours(1));
         }
 
         [Fact]
@@ -511,10 +504,8 @@ namespace Relay.Core.Tests.Retry
             var delay2 = await strategy.GetRetryDelayAsync(2, exception);
 
             // Assert
-            delay1.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
-            delay1.Should().BeLessThanOrEqualTo(TimeSpan.FromSeconds(10));
-            delay2.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
-            delay2.Should().BeLessThanOrEqualTo(TimeSpan.FromSeconds(10));
+            Assert.InRange(delay1, TimeSpan.Zero, TimeSpan.FromSeconds(10));
+            Assert.InRange(delay2, TimeSpan.Zero, TimeSpan.FromSeconds(10));
         }
 
         [Fact]
@@ -531,10 +522,8 @@ namespace Relay.Core.Tests.Retry
             var delay1000 = await strategy.GetRetryDelayAsync(1000, exception);
 
             // Assert - Should still respect bounds
-            delay100.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(100));
-            delay100.Should().BeLessThanOrEqualTo(TimeSpan.FromSeconds(30));
-            delay1000.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(100));
-            delay1000.Should().BeLessThanOrEqualTo(TimeSpan.FromSeconds(30));
+            Assert.InRange(delay100, TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+            Assert.InRange(delay1000, TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
         }
 
         [Theory]
@@ -555,11 +544,11 @@ namespace Relay.Core.Tests.Retry
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
                 var shouldRetry = await strategy.ShouldRetryAsync(attempt, exception);
-                shouldRetry.Should().BeTrue($"attempt {attempt} is within maxAttempts {maxAttempts}");
+                Assert.True(shouldRetry, $"attempt {attempt} is within maxAttempts {maxAttempts}");
             }
-
+ 
             var shouldNotRetry = await strategy.ShouldRetryAsync(maxAttempts + 1, exception);
-            shouldNotRetry.Should().BeFalse($"attempt {maxAttempts + 1} exceeds maxAttempts {maxAttempts}");
+            Assert.False(shouldNotRetry, $"attempt {maxAttempts + 1} exceeds maxAttempts {maxAttempts}");
         }
 
         #endregion

@@ -216,7 +216,7 @@ namespace Relay.Core.Tests.Authorization
         public void AuthorizationException_InsufficientPermissions_ShouldHaveDescriptiveMessage()
         {
             // Arrange
-            var userName = "JohnDoe";
+            var userName = "MuratDoe";
             var requiredPermission = "admin.write";
             var message = $"User '{userName}' lacks required permission '{requiredPermission}'.";
 

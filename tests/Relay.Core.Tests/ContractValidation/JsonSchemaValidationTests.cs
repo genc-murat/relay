@@ -19,7 +19,7 @@ public class JsonSchemaValidationTests
     public async Task ValidateRequestAsync_WithValidDataAgainstSchema_ShouldReturnNoErrors()
     {
         // Arrange
-        var request = new { name = "John Doe", age = 30, email = "john@example.com" };
+        var request = new { name = "Murat Doe", age = 30, email = "murat@example.com" };
         var schema = new JsonSchemaContract
         {
             Schema = @"{
@@ -44,7 +44,7 @@ public class JsonSchemaValidationTests
     public async Task ValidateRequestAsync_WithInvalidDataAgainstSchema_ShouldReturnErrors()
     {
         // Arrange
-        var request = new { name = "John Doe", age = "not a number" }; // age should be integer
+        var request = new { name = "Murat Doe", age = "not a number" }; // age should be integer
         var schema = new JsonSchemaContract
         {
             Schema = @"{
@@ -69,7 +69,7 @@ public class JsonSchemaValidationTests
     public async Task ValidateRequestAsync_WithMissingRequiredField_ShouldReturnErrors()
     {
         // Arrange
-        var request = new { name = "John Doe" }; // Missing required 'age' field
+        var request = new { name = "Murat Doe" }; // Missing required 'age' field
         var schema = new JsonSchemaContract
         {
             Schema = @"{
@@ -97,7 +97,7 @@ public class JsonSchemaValidationTests
         {
             user = new
             {
-                name = "John Doe",
+                name = "Murat Doe",
                 address = new
                 {
                     street = "123 Main St",
@@ -202,7 +202,7 @@ public class JsonSchemaValidationTests
     public async Task ValidateRequestAsync_WithEmptySchema_ShouldReturnNoErrors()
     {
         // Arrange
-        var request = new { name = "John Doe" };
+        var request = new { name = "Murat Doe" };
         var schema = new JsonSchemaContract { Schema = "" };
 
         // Act
@@ -216,7 +216,7 @@ public class JsonSchemaValidationTests
     public async Task ValidateRequestAsync_WithInvalidSchemaFormat_ShouldReturnError()
     {
         // Arrange
-        var request = new { name = "John Doe" };
+        var request = new { name = "Murat Doe" };
         var schema = new JsonSchemaContract { Schema = "not valid json" };
 
         // Act
@@ -280,7 +280,7 @@ public class JsonSchemaValidationTests
     public async Task SchemaCaching_ShouldReuseParseSchema()
     {
         // Arrange
-        var request1 = new { name = "John" };
+        var request1 = new { name = "Murat" };
         var request2 = new { name = "Jane" };
         var schema = new JsonSchemaContract
         {

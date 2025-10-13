@@ -1,7 +1,7 @@
-using Relay.MinimalApiSample.Models;
+using Relay.ControllerApiSample.Models;
 using System.Collections.Concurrent;
 
-namespace Relay.MinimalApiSample.Infrastructure;
+namespace Relay.ControllerApiSample.Infrastructure;
 
 /// <summary>
 /// Simple in-memory database for demo purposes

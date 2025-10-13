@@ -658,7 +658,7 @@ namespace Relay.Core.Tests.Authorization
         }
 
         [Theory]
-        [InlineData(ClaimTypes.Name, "JohnDoe")]
+        [InlineData(ClaimTypes.Name, "MuratDoe")]
         [InlineData(ClaimTypes.NameIdentifier, "user123")]
         [InlineData("name", "JaneDoe")]
         [InlineData("preferred_username", "preferred_user")]

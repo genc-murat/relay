@@ -148,7 +148,7 @@ namespace Relay.Core.Tests.Validation
             var validator = new ComplexRequestValidator();
             var behavior = new ValidationPipelineBehavior<ComplexRequest, string>(validator);
 
-            var request = new ComplexRequest { Name = "John", Age = 30 };
+            var request = new ComplexRequest { Name = "Murat", Age = 30 };
             var next = new RequestHandlerDelegate<string>(() => new ValueTask<string>("Success"));
 
             // Act

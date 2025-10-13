@@ -309,7 +309,7 @@ public static class PluginCommand
   Generate Swagger/OpenAPI documentation for Relay handlers
 
 [yellow]Authors:[/]
-  • John Doe
+  • Murat Doe
   • Jane Smith
 
 [yellow]Tags:[/]

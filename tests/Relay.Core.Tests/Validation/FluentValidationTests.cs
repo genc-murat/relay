@@ -136,8 +136,8 @@ public class FluentValidationTests
         var validator = new TestRequestValidator();
         var request = new TestRequest
         {
-            Name = "John Doe",
-            Email = "john@example.com",
+            Name = "Murat Doe",
+            Email = "murat@example.com",
             Age = 30,
             Status = "active"
         };
@@ -156,8 +156,8 @@ public class FluentValidationTests
         var validator = new TestRequestValidator();
         var request = new TestRequest
         {
-            Name = "John",
-            Email = "john@example.com",
+            Name = "Murat",
+            Email = "murat@example.com",
             Age = 25,
             Status = "active"
         };

@@ -1,13 +1,13 @@
-# Relay Minimal API Sample
+# Relay Controller API Sample
 
-A comprehensive example demonstrating how to use the Relay framework with ASP.NET Core Minimal APIs.
+A comprehensive example demonstrating how to use the Relay framework with ASP.NET Core Controllers.
 
 ## Features Demonstrated
 
-- **Scenario-Based Configuration**: Uses `AddRelayForScenario(RelayScenario.WebApi)`
+- **Controller-Based Architecture**: Traditional MVC controller pattern with Relay integration
 - **Request/Response Pattern**: Clean separation of requests, responses, and handlers
 - **Validation**: Automatic validation using `IValidationRule<T>`
-- **Logging**: Integrated logging in handlers
+- **Logging**: Integrated logging in both controllers and handlers
 - **Swagger/OpenAPI**: Full API documentation
 - **In-Memory Database**: Simple data storage for demo purposes
 - **Clean Architecture**: Feature-based folder structure
@@ -15,7 +15,10 @@ A comprehensive example demonstrating how to use the Relay framework with ASP.NE
 ## Project Structure
 
 ```
-Relay.MinimalApiSample/
+Relay.ControllerApiSample/
+├── Controllers/
+│   ├── UsersController.cs          # Users API endpoints
+│   └── ProductsController.cs       # Products API endpoints
 ├── Features/
 │   ├── Users/
 │   │   ├── CreateUser.cs              # Request & Response DTOs
@@ -40,7 +43,7 @@ Relay.MinimalApiSample/
 │   └── Product.cs
 ├── Program.cs                         # Application entry point
 ├── appsettings.json                   # Configuration
-└── Relay.MinimalApiSample.csproj      # Project file
+└── Relay.ControllerApiSample.csproj   # Project file
 ```
 
 ## Getting Started
@@ -54,7 +57,7 @@ Relay.MinimalApiSample/
 
 1. **Navigate to the project directory:**
    ```bash
-   cd samples/Relay.MinimalApiSample
+   cd samples/Relay.ControllerApiSample
    ```
 
 2. **Restore dependencies:**
@@ -196,8 +199,7 @@ Content-Type: application/json
 ```
 
 **Validation Rules:**
-- Name: Required, minimum 3 characters
-- Description: Required
+- Name: Required, 2-200 characters
 - Price: Must be greater than zero
 - Stock: Cannot be negative
 
@@ -216,9 +218,12 @@ Content-Type: application/json
 This sample uses **automatic handler registration** via the **Relay Source Generator**:
 
 ```csharp
-// Register Relay with common features
-// The source generator automatically discovers and registers all handlers at compile-time
-builder.Services.AddRelayWithFeatures();
+// Register Relay services with all features
+builder.Services.AddRelay();
+builder.Services
+    .AddRelayValidation()
+    .AddRelayPrePostProcessors()
+    .AddRelayExceptionHandlers();
 ```
 
 ### How Source Generator Works
@@ -246,27 +251,42 @@ This reference tells MSBuild to run the source generator during compilation, whi
 
 ## Key Relay Concepts Demonstrated
 
-### 1. Automatic Handler Registration
+### 1. Controller Integration with IRelay
+
+Controllers inject `IRelay` to dispatch requests to handlers:
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    private readonly IRelay _relay;
+    private readonly ILogger<UsersController> _logger;
+
+    public UsersController(IRelay relay, ILogger<UsersController> logger)
+    {
+        _relay = relay;
+        _logger = logger;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<CreateUserResponse>> CreateUser(
+        [FromBody] CreateUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _relay.SendAsync(request, cancellationToken);
+        return CreatedAtAction(nameof(GetUser), new { id = response.Id }, response);
+    }
+}
+```
+
+### 2. Automatic Handler Registration
 
 Handlers are automatically discovered and registered by the source generator:
 - Each handler implements `IRequestHandler<TRequest, TResponse>`
 - Source generator discovers all handlers at compile-time
 - Registered as `Transient` services automatically
 - No manual registration required
-
-### 2. Feature-Based Configuration
-
-```csharp
-// Register Relay with common features
-builder.Services.AddRelayWithFeatures();
-```
-
-This automatically configures:
-- ✅ Core Relay services
-- ✅ Validation pipeline
-- ✅ Exception handlers
-- ✅ Pre/post processors
-- ✅ Telemetry and logging
 
 ### 3. Request/Response Pattern
 
@@ -296,7 +316,7 @@ public class CreateUserHandler : IRequestHandler<CreateUserRequest, CreateUserRe
 ```csharp
 public class CreateUserValidator : IValidationRule<CreateUserRequest>
 {
-    public ValueTask<ValidationResult> ValidateAsync(
+    public ValueTask<IEnumerable<string>> ValidateAsync(
         CreateUserRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -305,34 +325,34 @@ public class CreateUserValidator : IValidationRule<CreateUserRequest>
         if (string.IsNullOrWhiteSpace(request.Name))
             errors.Add("Name is required");
 
-        return ValueTask.FromResult(
-            errors.Count == 0
-                ? ValidationResult.Success()
-                : ValidationResult.Failure(errors));
+        return ValueTask.FromResult<IEnumerable<string>>(errors);
     }
 }
 ```
 
-### 5. Using IRelay in Minimal APIs
+### 5. Separation of Concerns
 
-```csharp
-app.MapPost("/api/users", async (CreateUserRequest request, IRelay relay) =>
-{
-    var response = await relay.SendAsync(request);
-    return Results.Created($"/api/users/{response.Id}", response);
-});
-```
+This sample demonstrates clean separation:
+- **Controllers**: Handle HTTP concerns (routing, status codes, content negotiation)
+- **Handlers**: Contain business logic
+- **Validators**: Enforce validation rules
+- **Models**: Define domain entities
+- **DTOs**: Define request/response contracts
 
-Or get IRelay once:
-```csharp
-var relay = app.Services.GetRequiredService<IRelay>();
+## Comparison with Minimal API Sample
 
-app.MapPost("/api/users", async (CreateUserRequest request) =>
-{
-    var response = await relay.SendAsync(request);
-    return Results.Created($"/api/users/{response.Id}", response);
-});
-```
+| Feature | Controller Sample | Minimal API Sample |
+|---------|------------------|-------------------|
+| **Architecture** | Controller-based (MVC pattern) | Endpoint-based (Functional) |
+| **Routing** | Attribute-based `[HttpGet]`, `[HttpPost]` | Fluent `app.MapGet()`, `app.MapPost()` |
+| **Organization** | Controllers folder + Features | All in Program.cs + Features |
+| **Testability** | Controller classes can be unit tested | Endpoints harder to unit test |
+| **Familiarity** | Traditional ASP.NET Core pattern | Modern minimal approach |
+| **Use IRelay** | ✅ Injected into controllers | ✅ Injected into endpoints |
+| **Validation** | ✅ Same validation pipeline | ✅ Same validation pipeline |
+| **Handlers** | ✅ Same handlers and features | ✅ Same handlers and features |
+
+**Both approaches use the same Relay features** - only the HTTP layer differs!
 
 ## Testing with cURL
 
@@ -372,11 +392,11 @@ All requests implementing `IRequest<T>` with corresponding `IValidationRule<T>` 
 
 ### Exception Handling
 
-Exceptions in handlers are automatically caught and transformed into appropriate HTTP responses when using the WebApi scenario.
+Exceptions in handlers are automatically caught and transformed into appropriate HTTP responses via the exception handling pipeline.
 
 ### Telemetry & Logging
 
-All requests are automatically logged with timing information when using the WebApi scenario:
+All requests are automatically logged with timing information:
 - Request started
 - Validation time
 - Handler execution time
@@ -387,16 +407,16 @@ All requests are automatically logged with timing information when using the Web
 To extend this sample:
 
 1. **Add Authentication**: Implement JWT or other auth mechanisms
-2. **Add Persistence**: Replace InMemoryDatabase with EF Core or Dapper
-3. **Add Caching**: Use IMemoryCache or Redis
-4. **Add Message Broker**: Integrate Relay.MessageBroker for async messaging
-5. **Add AI Optimization**: Use `AddRelayWithAdvancedFeatures` for AI-powered optimization
+2. **Add Authorization**: Use `[Authorize]` attributes on controllers
+3. **Add Persistence**: Replace InMemoryDatabase with EF Core or Dapper
+4. **Add Caching**: Use IMemoryCache or Redis
+5. **Add Message Broker**: Integrate Relay.MessageBroker for async messaging
+6. **Add API Versioning**: Implement versioned controllers
 
 ## Learn More
 
 - [Relay Framework Documentation](../../README.md)
-- [Centralized Service Registration](../../CENTRALIZED_SERVICE_REGISTRATION.md)
-- [Source Generator Integration](../../SOURCE_GENERATOR_INTEGRATION.md)
+- [Minimal API Sample](../Relay.MinimalApiSample/README.md) - Compare with minimal API approach
 
 ## License
 

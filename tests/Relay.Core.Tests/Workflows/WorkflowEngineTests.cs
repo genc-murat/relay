@@ -913,7 +913,7 @@ public class WorkflowEngineTests
                 {
                     Name = "ConditionalStep",
                     Type = StepType.Conditional,
-                    Condition = "Name startswith John"
+                    Condition = "Name startswith Murat"
                 }
             }
         };
@@ -925,7 +925,7 @@ public class WorkflowEngineTests
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Name = "John Doe" });
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Name = "Murat Doe" });
 
         // Wait for background execution
         await Task.Delay(300);
@@ -1221,7 +1221,7 @@ public class WorkflowEngineTests
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { UserName = "John" });
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { UserName = "Murat" });
 
         // Wait for background execution
         await Task.Delay(300);

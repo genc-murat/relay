@@ -1,4 +1,5 @@
 using Relay.CLI.Commands;
+using System.CommandLine;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -10,6 +11,129 @@ public class AICommandTests : IDisposable
     {
         _testPath = Path.Combine(Path.GetTempPath(), $"relay-ai-{Guid.NewGuid()}");
         Directory.CreateDirectory(_testPath);
+    }
+
+    [Fact]
+    public void CreateCommand_ReturnsCommandWithCorrectName()
+    {
+        // Act
+        var command = AICommand.CreateCommand();
+
+        // Assert
+        Assert.Equal("ai", command.Name);
+        Assert.Equal("AI-powered analysis and optimization for Relay projects", command.Description);
+    }
+
+    [Fact]
+    public void CreateCommand_IncludesAllSubcommands()
+    {
+        // Act
+        var command = AICommand.CreateCommand();
+
+        // Assert
+        var subcommandNames = command.Subcommands.Select(c => c.Name).ToArray();
+        Assert.Contains("analyze", subcommandNames);
+        Assert.Contains("optimize", subcommandNames);
+        Assert.Contains("predict", subcommandNames);
+        Assert.Contains("learn", subcommandNames);
+        Assert.Contains("insights", subcommandNames);
+    }
+
+    [Fact]
+    public void AnalyzeSubcommand_HasCorrectOptions()
+    {
+        // Act
+        var command = AICommand.CreateCommand();
+        var analyzeCommand = command.Subcommands.First(c => c.Name == "analyze");
+
+        // Assert
+        Assert.Equal("analyze", analyzeCommand.Name);
+        Assert.Equal("Analyze code for AI optimization opportunities", analyzeCommand.Description);
+
+        var optionNames = analyzeCommand.Options.Select(o => o.Name).ToArray();
+        Assert.Contains("path", optionNames);
+        Assert.Contains("depth", optionNames);
+        Assert.Contains("format", optionNames);
+        Assert.Contains("output", optionNames);
+        Assert.Contains("include-metrics", optionNames);
+        Assert.Contains("suggest-optimizations", optionNames);
+    }
+
+    [Fact]
+    public void OptimizeSubcommand_HasCorrectOptions()
+    {
+        // Act
+        var command = AICommand.CreateCommand();
+        var optimizeCommand = command.Subcommands.First(c => c.Name == "optimize");
+
+        // Assert
+        Assert.Equal("optimize", optimizeCommand.Name);
+        Assert.Equal("Apply AI-recommended optimizations", optimizeCommand.Description);
+
+        var optionNames = optimizeCommand.Options.Select(o => o.Name).ToArray();
+        Assert.Contains("path", optionNames);
+        Assert.Contains("strategy", optionNames);
+        Assert.Contains("risk-level", optionNames);
+        Assert.Contains("backup", optionNames);
+        Assert.Contains("dry-run", optionNames);
+        Assert.Contains("confidence-threshold", optionNames);
+    }
+
+    [Fact]
+    public void PredictSubcommand_HasCorrectOptions()
+    {
+        // Act
+        var command = AICommand.CreateCommand();
+        var predictCommand = command.Subcommands.First(c => c.Name == "predict");
+
+        // Assert
+        Assert.Equal("predict", predictCommand.Name);
+        Assert.Equal("Predict performance and generate recommendations", predictCommand.Description);
+
+        var optionNames = predictCommand.Options.Select(o => o.Name).ToArray();
+        Assert.Contains("path", optionNames);
+        Assert.Contains("scenario", optionNames);
+        Assert.Contains("expected-load", optionNames);
+        Assert.Contains("time-horizon", optionNames);
+        Assert.Contains("format", optionNames);
+    }
+
+    [Fact]
+    public void LearnSubcommand_HasCorrectOptions()
+    {
+        // Act
+        var command = AICommand.CreateCommand();
+        var learnCommand = command.Subcommands.First(c => c.Name == "learn");
+
+        // Assert
+        Assert.Equal("learn", learnCommand.Name);
+        Assert.Equal("Learn from performance data to improve AI recommendations", learnCommand.Description);
+
+        var optionNames = learnCommand.Options.Select(o => o.Name).ToArray();
+        Assert.Contains("path", optionNames);
+        Assert.Contains("metrics-path", optionNames);
+        Assert.Contains("update-model", optionNames);
+        Assert.Contains("validate", optionNames);
+    }
+
+    [Fact]
+    public void InsightsSubcommand_HasCorrectOptions()
+    {
+        // Act
+        var command = AICommand.CreateCommand();
+        var insightsCommand = command.Subcommands.First(c => c.Name == "insights");
+
+        // Assert
+        Assert.Equal("insights", insightsCommand.Name);
+        Assert.Equal("Generate comprehensive AI-powered system insights", insightsCommand.Description);
+
+        var optionNames = insightsCommand.Options.Select(o => o.Name).ToArray();
+        Assert.Contains("path", optionNames);
+        Assert.Contains("time-window", optionNames);
+        Assert.Contains("format", optionNames);
+        Assert.Contains("output", optionNames);
+        Assert.Contains("include-health", optionNames);
+        Assert.Contains("include-predictions", optionNames);
     }
 
     [Fact]

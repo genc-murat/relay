@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Relay.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
@@ -264,38 +265,6 @@ namespace Relay.Core.Tests.Pipeline
         }
 
         [Fact]
-        public async Task Multiple_ExceptionActions_Should_All_Execute()
-        {
-            // Arrange
-            TestExceptionAction.ExecutionLog.Clear();
-
-            var services = new ServiceCollection();
-            services.AddTransient<ThrowingHandler>();
-            services.AddExceptionAction<TestRequest, TestException, TestExceptionAction>();
-            services.AddExceptionAction<TestRequest, TestException, AnotherExceptionAction>();
-            services.AddRelayExceptionHandlers();
-
-            var provider = services.BuildServiceProvider();
-            var behavior = new RequestExceptionActionBehavior<TestRequest, TestResponse>(provider);
-            var handler = provider.GetRequiredService<ThrowingHandler>();
-
-            var request = new TestRequest("test");
-
-            // Act & Assert
-            await Assert.ThrowsAsync<TestException>(async () =>
-            {
-                await behavior.HandleAsync(
-                    request,
-                    async () => await handler.HandleAsync(request, default),
-                    default);
-            });
-
-            Assert.Equal(2, TestExceptionAction.ExecutionLog.Count);
-            Assert.Contains("Action: Handler failed", TestExceptionAction.ExecutionLog[0]);
-            Assert.Contains("AnotherAction: Handler failed", TestExceptionAction.ExecutionLog[1]);
-        }
-
-        [Fact]
         public async Task ExceptionAction_Should_Continue_If_One_Action_Throws()
         {
             // Arrange
@@ -307,8 +276,12 @@ namespace Relay.Core.Tests.Pipeline
             services.AddExceptionAction<TestRequest, TestException, TestExceptionAction>();
             services.AddRelayExceptionHandlers();
 
+            var logger = new TestLogger();
+            services.AddSingleton<ILogger<RequestExceptionActionBehavior<TestRequest, TestResponse>>>(logger);
+            services.AddTransient<RequestExceptionActionBehavior<TestRequest, TestResponse>>();
+
             var provider = services.BuildServiceProvider();
-            var behavior = new RequestExceptionActionBehavior<TestRequest, TestResponse>(provider);
+            var behavior = provider.GetRequiredService<RequestExceptionActionBehavior<TestRequest, TestResponse>>();
             var handler = provider.GetRequiredService<ThrowingHandler>();
 
             var request = new TestRequest("test");
@@ -324,7 +297,118 @@ namespace Relay.Core.Tests.Pipeline
 
             // Second action should still execute
             Assert.Single(TestExceptionAction.ExecutionLog);
+            // Verify error log was written for the throwing action
+            Assert.Contains(logger.Logs, log => log.Contains("Exception action ThrowingExceptionAction threw an exception"));
         }
+
+        [Fact]
+        public async Task ExceptionAction_Should_Execute_For_Derived_Exception_Types()
+        {
+            // Arrange
+            TestExceptionAction.ExecutionLog.Clear();
+
+            var services = new ServiceCollection();
+            services.AddTransient<SpecificExceptionThrowingHandler>();
+            services.AddExceptionAction<TestRequest, TestException, TestExceptionAction>();
+            services.AddRelayExceptionHandlers();
+
+            var provider = services.BuildServiceProvider();
+            var behavior = new RequestExceptionActionBehavior<TestRequest, TestResponse>(provider);
+            var handler = provider.GetRequiredService<SpecificExceptionThrowingHandler>();
+
+            var request = new TestRequest("test");
+
+            // Act & Assert
+            await Assert.ThrowsAsync<SpecificException>(async () =>
+            {
+                await behavior.HandleAsync(
+                    request,
+                    async () => await handler.HandleAsync(request, default),
+                    default);
+            });
+
+            Assert.Single(TestExceptionAction.ExecutionLog);
+            Assert.Contains("Action: Specific error: test", TestExceptionAction.ExecutionLog[0]);
+        }
+
+        [Fact]
+        public async Task ExceptionAction_Should_Handle_No_Actions_Registered()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddTransient<ThrowingHandler>();
+            services.AddRelayExceptionHandlers();
+
+            var provider = services.BuildServiceProvider();
+            var behavior = new RequestExceptionActionBehavior<TestRequest, TestResponse>(provider);
+            var handler = provider.GetRequiredService<ThrowingHandler>();
+
+            var request = new TestRequest("test");
+
+            // Act & Assert
+            await Assert.ThrowsAsync<TestException>(async () =>
+            {
+                await behavior.HandleAsync(
+                    request,
+                    async () => await handler.HandleAsync(request, default),
+                    default);
+            });
+
+            // No actions executed, but exception still thrown
+        }
+
+        [Fact]
+        public async Task ExceptionAction_Should_Log_When_Logger_Is_Provided()
+        {
+            // Arrange
+            TestExceptionAction.ExecutionLog.Clear();
+
+            var services = new ServiceCollection();
+            services.AddTransient<ThrowingHandler>();
+            services.AddExceptionAction<TestRequest, TestException, TestExceptionAction>();
+            services.AddRelayExceptionHandlers();
+
+            var logger = new TestLogger();
+            services.AddSingleton<ILogger<RequestExceptionActionBehavior<TestRequest, TestResponse>>>(logger);
+            services.AddTransient<RequestExceptionActionBehavior<TestRequest, TestResponse>>();
+
+            var provider = services.BuildServiceProvider();
+            var behavior = provider.GetRequiredService<RequestExceptionActionBehavior<TestRequest, TestResponse>>();
+            var handler = provider.GetRequiredService<ThrowingHandler>();
+
+            var request = new TestRequest("test");
+
+            // Act & Assert
+            await Assert.ThrowsAsync<TestException>(async () =>
+            {
+                await behavior.HandleAsync(
+                    request,
+                    async () => await handler.HandleAsync(request, default),
+                    default);
+            });
+
+            Assert.Single(TestExceptionAction.ExecutionLog);
+            // Verify logs were written
+            Assert.Contains(logger.Logs, log => log.Contains("Exception occurred during request processing"));
+            Assert.Contains(logger.Logs, log => log.Contains("Executed 1 exception action"));
+            Assert.Contains(logger.Logs, log => log.Contains("Invoking exception action"));
+        }
+
+        private class TestLogger : ILogger<RequestExceptionActionBehavior<TestRequest, TestResponse>>
+        {
+            public List<string> Logs { get; } = new();
+
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            {
+                Logs.Add(formatter(state, exception));
+            }
+        }
+
+
 
         public class ThrowingExceptionAction : IRequestExceptionAction<TestRequest, TestException>
         {

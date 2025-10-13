@@ -61,13 +61,13 @@ public class MessageBrokerValidationAdapter
             if (validator != null)
             {
                 var errors = await validator.ValidateAsync(message, cancellationToken);
-                if (errors != null)
+                if (errors != null && errors.Any())
                 {
                     foreach (var error in errors)
                     {
                         _logger.LogWarning("Message validation error: {Error}", error);
                     }
-                    return !errors.GetEnumerator().MoveNext(); // Return false if there are errors
+                    return false; // Return false if there are errors
                 }
             }
 
@@ -113,13 +113,13 @@ public class MessageBrokerValidationAdapter
         try
         {
             var errors = await _contractValidator.ValidateRequestAsync(message, schema, cancellationToken);
-            if (errors != null)
+            if (errors != null && errors.Any())
             {
                 foreach (var error in errors)
                 {
                     _logger.LogWarning("Schema validation error: {Error}", error);
                 }
-                return !errors.GetEnumerator().MoveNext(); // Return false if there are errors
+                return false; // Return false if there are errors
             }
 
             return true;

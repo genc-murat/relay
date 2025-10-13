@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -49,8 +48,8 @@ namespace Relay.Core.Tests.Authorization
                 _options);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("authorizationService");
+            var ex = Assert.Throws<ArgumentNullException>(() => act());
+            Assert.Equal("authorizationService", ex.ParamName);
         }
 
         [Fact]
@@ -64,8 +63,8 @@ namespace Relay.Core.Tests.Authorization
                 _options);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("authorizationContext");
+            var ex = Assert.Throws<ArgumentNullException>(() => act());
+            Assert.Equal("authorizationContext", ex.ParamName);
         }
 
         [Fact]
@@ -79,8 +78,8 @@ namespace Relay.Core.Tests.Authorization
                 _options);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("logger");
+            var ex = Assert.Throws<ArgumentNullException>(() => act());
+            Assert.Equal("logger", ex.ParamName);
         }
 
         [Fact]
@@ -94,8 +93,8 @@ namespace Relay.Core.Tests.Authorization
                 null!);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("options");
+            var ex = Assert.Throws<ArgumentNullException>(() => act());
+            Assert.Equal("options", ex.ParamName);
         }
 
         [Fact]
@@ -115,8 +114,8 @@ namespace Relay.Core.Tests.Authorization
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            nextCalled.Should().BeTrue();
-            result.Should().Be("Success");
+            Assert.True(nextCalled);
+            Assert.Equal("Success", result);
             _authorizationServiceMock.Verify(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
@@ -135,7 +134,7 @@ namespace Relay.Core.Tests.Authorization
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Should().Be("Success");
+            Assert.Equal("Success", result);
             _authorizationServiceMock.Verify(x => x.AuthorizeAsync(_authorizationContextMock.Object, It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -170,8 +169,8 @@ namespace Relay.Core.Tests.Authorization
             Func<Task> act = async () => await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<AuthorizationException>()
-                .WithMessage("*Authorization failed for request*");
+            var ex = await Assert.ThrowsAsync<AuthorizationException>(act);
+            Assert.Contains("Authorization failed for request", ex.Message);
         }
 
         [Fact]
@@ -210,8 +209,8 @@ namespace Relay.Core.Tests.Authorization
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            nextCalled.Should().BeFalse();
-            result.Should().BeNull();
+            Assert.False(nextCalled);
+            Assert.Null(result);
         }
 
         [Fact]
@@ -232,8 +231,8 @@ namespace Relay.Core.Tests.Authorization
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            contextProperties.Should().ContainKey("RequestType");
-            contextProperties["RequestType"].Should().Be("Relay.Core.Tests.Authorization.AuthorizationPipelineBehaviorTests+TestAuthorizedRequest");
+            Assert.Contains("RequestType", contextProperties.Keys);
+            Assert.Equal("Relay.Core.Tests.Authorization.AuthorizationPipelineBehaviorTests+TestAuthorizedRequest", contextProperties["RequestType"]);
         }
 
         [Fact]
@@ -374,8 +373,8 @@ namespace Relay.Core.Tests.Authorization
             Func<Task> act = async () => await behavior.HandleAsync(null!, () => new ValueTask<string>("Success"), CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<ArgumentNullException>()
-                .WithParameterName("request");
+            var ex = await Assert.ThrowsAsync<ArgumentNullException>(act);
+            Assert.Equal("request", ex.ParamName);
         }
 
         [Fact]
@@ -414,8 +413,8 @@ namespace Relay.Core.Tests.Authorization
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            nextCalled.Should().BeFalse();
-            result.Should().BeNull();
+            Assert.False(nextCalled);
+            Assert.Null(result);
         }
 
         [Fact]
@@ -553,8 +552,8 @@ namespace Relay.Core.Tests.Authorization
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            activity.Tags.Should().Contain(tag => tag.Key == "authorization.result" && tag.Value == "granted");
-            activity.Tags.Should().Contain(tag => tag.Key == "authorization.user");
+            Assert.Contains(activity.Tags, tag => tag.Key == "authorization.result" && tag.Value == "granted");
+            Assert.Contains(activity.Tags, tag => tag.Key == "authorization.user");
             activity.Stop();
         }
 
@@ -596,8 +595,8 @@ namespace Relay.Core.Tests.Authorization
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            activity.Tags.Should().Contain(tag => tag.Key == "authorization.result" && tag.Value == "denied");
-            activity.Tags.Should().Contain(tag => tag.Key == "authorization.user");
+            Assert.Contains(activity.Tags, tag => tag.Key == "authorization.result" && tag.Value == "denied");
+            Assert.Contains(activity.Tags, tag => tag.Key == "authorization.user");
             activity.Stop();
         }
 
@@ -633,8 +632,8 @@ namespace Relay.Core.Tests.Authorization
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            contextProperties.Should().ContainKey("CorrelationId");
-            contextProperties["CorrelationId"].Should().Be("test-correlation-id");
+            Assert.Contains("CorrelationId", contextProperties.Keys);
+            Assert.Equal("test-correlation-id", contextProperties["CorrelationId"]);
         }
 
         [Fact]

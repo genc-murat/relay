@@ -1,6 +1,5 @@
-using System;
-using FluentAssertions;
 using Relay.Core.Authorization;
+using System;
 using Xunit;
 
 namespace Relay.Core.Tests.Authorization
@@ -16,8 +15,8 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException();
 
             // Assert
-            exception.Message.Should().Be("Authorization failed.");
-            exception.InnerException.Should().BeNull();
+            Assert.Equal("Authorization failed.", exception.Message);
+            Assert.Null(exception.InnerException);
         }
 
         [Fact]
@@ -30,8 +29,8 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message);
 
             // Assert
-            exception.Message.Should().Be(message);
-            exception.InnerException.Should().BeNull();
+            Assert.Equal(message, exception.Message);
+            Assert.Null(exception.InnerException);
         }
 
         [Fact]
@@ -41,7 +40,7 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(null!);
 
             // Assert
-            exception.Message.Should().NotBeNullOrEmpty();
+            Assert.False(string.IsNullOrEmpty(exception.Message));
         }
 
         [Fact]
@@ -51,7 +50,7 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(string.Empty);
 
             // Assert
-            exception.Message.Should().Be(string.Empty);
+            Assert.Equal(string.Empty, exception.Message);
         }
 
         [Fact]
@@ -65,8 +64,8 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message, innerException);
 
             // Assert
-            exception.Message.Should().Be(message);
-            exception.InnerException.Should().BeSameAs(innerException);
+            Assert.Equal(message, exception.Message);
+            Assert.Same(innerException, exception.InnerException);
         }
 
         [Fact]
@@ -79,8 +78,8 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message, null!);
 
             // Assert
-            exception.Message.Should().Be(message);
-            exception.InnerException.Should().BeNull();
+            Assert.Equal(message, exception.Message);
+            Assert.Null(exception.InnerException);
         }
 
         #endregion
@@ -94,7 +93,7 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException();
 
             // Assert
-            exception.Should().BeAssignableTo<Exception>();
+            Assert.IsAssignableFrom<Exception>(exception);
         }
 
         [Fact]
@@ -104,8 +103,8 @@ namespace Relay.Core.Tests.Authorization
             Action act = () => throw new AuthorizationException("Test exception");
 
             // Act & Assert
-            act.Should().Throw<AuthorizationException>()
-                .WithMessage("Test exception");
+            var exception = Assert.Throws<AuthorizationException>(act);
+            Assert.Equal("Test exception", exception.Message);
         }
 
         [Fact]
@@ -125,8 +124,8 @@ namespace Relay.Core.Tests.Authorization
             }
 
             // Assert
-            caughtException.Should().NotBeNull();
-            caughtException.Should().BeOfType<AuthorizationException>();
+            Assert.NotNull(caughtException);
+            Assert.IsType<AuthorizationException>(caughtException);
         }
 
         [Fact]
@@ -140,9 +139,9 @@ namespace Relay.Core.Tests.Authorization
             Action act = () => throw authException;
 
             // Assert
-            act.Should().Throw<AuthorizationException>()
-                .WithInnerException<InvalidOperationException>()
-                .WithMessage("Inner error");
+            var exception = Assert.Throws<AuthorizationException>(act);
+            Assert.IsType<InvalidOperationException>(exception.InnerException);
+            Assert.Equal("Inner error", exception.InnerException?.Message);
         }
 
         #endregion
@@ -161,7 +160,7 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message);
 
             // Assert
-            exception.Message.Should().Be("User 'user123' is not authorized to access 'AdminPanel'.");
+            Assert.Equal("User 'user123' is not authorized to access 'AdminPanel'.", exception.Message);
         }
 
         [Fact]
@@ -174,9 +173,9 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message);
 
             // Assert
-            exception.Message.Should().Contain("Authorization failed.")
-                .And.Contain("Reason: Insufficient permissions.")
-                .And.Contain("Required role: Admin");
+            Assert.Contains("Authorization failed.", exception.Message);
+            Assert.Contains("Reason: Insufficient permissions.", exception.Message);
+            Assert.Contains("Required role: Admin", exception.Message);
         }
 
         #endregion
@@ -192,8 +191,8 @@ namespace Relay.Core.Tests.Authorization
             var authException = new AuthorizationException("Authorization layer", middleException);
 
             // Act & Assert
-            authException.InnerException.Should().BeSameAs(middleException);
-            authException.InnerException?.InnerException.Should().BeSameAs(rootException);
+            Assert.Same(middleException, authException.InnerException);
+            Assert.Same(rootException, authException.InnerException?.InnerException);
         }
 
         [Fact]
@@ -204,8 +203,8 @@ namespace Relay.Core.Tests.Authorization
             var outerAuthException = new AuthorizationException("Outer auth failure", innerAuthException);
 
             // Act & Assert
-            outerAuthException.InnerException.Should().BeOfType<AuthorizationException>();
-            outerAuthException.InnerException?.Message.Should().Be("Inner auth failure");
+            Assert.IsType<AuthorizationException>(outerAuthException.InnerException);
+            Assert.Equal("Inner auth failure", outerAuthException.InnerException?.Message);
         }
 
         #endregion
@@ -217,15 +216,15 @@ namespace Relay.Core.Tests.Authorization
         {
             // Arrange
             var userName = "MuratDoe";
-            var requiredPermission = "admin.write";
+            var requiredPermission = "admin.edit";
             var message = $"User '{userName}' lacks required permission '{requiredPermission}'.";
 
             // Act
             var exception = new AuthorizationException(message);
 
             // Assert
-            exception.Message.Should().Contain(userName)
-                .And.Contain(requiredPermission);
+            Assert.Contains(userName, exception.Message);
+            Assert.Contains(requiredPermission, exception.Message);
         }
 
         [Fact]
@@ -239,8 +238,8 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message, tokenException);
 
             // Assert
-            exception.Message.Should().Be(message);
-            exception.InnerException.Should().BeOfType<SecurityException>();
+            Assert.Equal(message, exception.Message);
+            Assert.IsType<SecurityException>(exception.InnerException);
         }
 
         [Fact]
@@ -255,8 +254,8 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message);
 
             // Assert
-            exception.Message.Should().Contain(userRole)
-                .And.Contain(requiredRole);
+            Assert.Contains(userRole, exception.Message);
+            Assert.Contains(requiredRole, exception.Message);
         }
 
         [Fact]
@@ -271,8 +270,8 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message);
 
             // Assert
-            exception.Message.Should().Contain(resourceId)
-                .And.Contain(action);
+            Assert.Contains(resourceId, exception.Message);
+            Assert.Contains(action, exception.Message);
         }
 
         #endregion
@@ -296,7 +295,7 @@ namespace Relay.Core.Tests.Authorization
             }
 
             // Assert
-            wasCaught.Should().BeTrue();
+            Assert.True(wasCaught);
         }
 
         [Fact]
@@ -317,8 +316,8 @@ namespace Relay.Core.Tests.Authorization
             };
 
             // Act & Assert
-            act.Should().Throw<AuthorizationException>()
-                .WithMessage("Original");
+            var exception = Assert.Throws<AuthorizationException>(act);
+            Assert.Equal("Original", exception.Message);
         }
 
         [Fact]
@@ -338,10 +337,10 @@ namespace Relay.Core.Tests.Authorization
             };
 
             // Act & Assert
-            act.Should().Throw<AuthorizationException>()
-                .WithMessage("Outer failure")
-                .WithInnerException<AuthorizationException>()
-                .WithMessage("Inner failure");
+            var exception = Assert.Throws<AuthorizationException>(act);
+            Assert.Equal("Outer failure", exception.Message);
+            Assert.IsType<AuthorizationException>(exception.InnerException);
+            Assert.Equal("Inner failure", exception.InnerException?.Message);
         }
 
         #endregion

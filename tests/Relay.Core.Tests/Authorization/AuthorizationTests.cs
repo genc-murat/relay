@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.Core.Authorization;
 using Relay.Core.Configuration.Options;
 using Relay.Core.Contracts.Handlers;
@@ -23,9 +22,12 @@ namespace Relay.Core.Tests.Authorization
             var context = new DefaultAuthorizationContext();
 
             // Assert
-            context.UserClaims.Should().NotBeNull().And.BeEmpty();
-            context.UserRoles.Should().NotBeNull().And.BeEmpty();
-            context.Properties.Should().NotBeNull().And.BeEmpty();
+            Assert.NotNull(context.UserClaims);
+            Assert.Empty(context.UserClaims);
+            Assert.NotNull(context.UserRoles);
+            Assert.Empty(context.UserRoles);
+            Assert.NotNull(context.Properties);
+            Assert.Empty(context.Properties);
         }
 
         [Fact]
@@ -43,7 +45,7 @@ namespace Relay.Core.Tests.Authorization
             context.UserClaims = claims;
 
             // Assert
-            context.UserClaims.Should().BeEquivalentTo(claims);
+            Assert.Equal(claims, context.UserClaims);
         }
 
         [Fact]
@@ -57,7 +59,7 @@ namespace Relay.Core.Tests.Authorization
             context.UserRoles = roles;
 
             // Assert
-            context.UserRoles.Should().BeEquivalentTo(roles);
+            Assert.Equal(roles, context.UserRoles);
         }
 
         [Fact]
@@ -71,9 +73,9 @@ namespace Relay.Core.Tests.Authorization
             context.Properties["UserId"] = 123;
 
             // Assert
-            context.Properties.Should().HaveCount(2);
-            context.Properties["RequestType"].Should().Be("TestRequest");
-            context.Properties["UserId"].Should().Be(123);
+            Assert.Equal(2, context.Properties.Count);
+            Assert.Equal("TestRequest", context.Properties["RequestType"]);
+            Assert.Equal(123, context.Properties["UserId"]);
         }
 
         #endregion
@@ -91,7 +93,7 @@ namespace Relay.Core.Tests.Authorization
             var result = await service.AuthorizeAsync(context);
 
             // Assert
-            result.Should().BeTrue();
+            Assert.True(result);
         }
 
         [Fact]
@@ -106,7 +108,7 @@ namespace Relay.Core.Tests.Authorization
             var result = await service.AuthorizeAsync(context, cts.Token);
 
             // Assert
-            result.Should().BeTrue();
+            Assert.True(result);
         }
 
         #endregion
@@ -120,7 +122,7 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException();
 
             // Assert
-            exception.Message.Should().Be("Authorization failed.");
+            Assert.Equal("Authorization failed.", exception.Message);
         }
 
         [Fact]
@@ -133,7 +135,7 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message);
 
             // Assert
-            exception.Message.Should().Be(message);
+            Assert.Equal(message, exception.Message);
         }
 
         [Fact]
@@ -147,8 +149,8 @@ namespace Relay.Core.Tests.Authorization
             var exception = new AuthorizationException(message, inner);
 
             // Assert
-            exception.Message.Should().Be(message);
-            exception.InnerException.Should().BeSameAs(inner);
+            Assert.Equal(message, exception.Message);
+            Assert.Same(inner, exception.InnerException);
         }
 
         #endregion
@@ -162,9 +164,9 @@ namespace Relay.Core.Tests.Authorization
             var attribute = new AuthorizeAttribute("Admin", "User");
 
             // Assert
-            attribute.Roles.Should().BeEquivalentTo(new[] { "Admin", "User" });
-            attribute.Policies.Should().BeEmpty();
-            attribute.AuthenticationSchemes.Should().BeEmpty();
+            Assert.Equal(new[] { "Admin", "User" }, attribute.Roles);
+            Assert.Empty(attribute.Policies);
+            Assert.Empty(attribute.AuthenticationSchemes);
         }
 
         [Fact]
@@ -174,9 +176,9 @@ namespace Relay.Core.Tests.Authorization
             var attribute = new AuthorizeAttribute(usePolicies: true, "Policy1", "Policy2");
 
             // Assert
-            attribute.Policies.Should().BeEquivalentTo(new[] { "Policy1", "Policy2" });
-            attribute.Roles.Should().BeEmpty();
-            attribute.AuthenticationSchemes.Should().BeEmpty();
+            Assert.Equal(new[] { "Policy1", "Policy2" }, attribute.Policies);
+            Assert.Empty(attribute.Roles);
+            Assert.Empty(attribute.AuthenticationSchemes);
         }
 
         [Fact]
@@ -186,7 +188,7 @@ namespace Relay.Core.Tests.Authorization
             var attribute = new AuthorizeAttribute(null!);
 
             // Assert
-            attribute.Roles.Should().BeEmpty();
+            Assert.Empty(attribute.Roles);
         }
 
         [Fact]
@@ -196,7 +198,7 @@ namespace Relay.Core.Tests.Authorization
             var attribute = new AuthorizeAttribute(usePolicies: true, null!);
 
             // Assert
-            attribute.Policies.Should().BeEmpty();
+            Assert.Empty(attribute.Policies);
         }
 
         [Fact]
@@ -206,7 +208,7 @@ namespace Relay.Core.Tests.Authorization
             var attributes = typeof(TestRequestWithMultipleAuthorize).GetCustomAttributes(typeof(AuthorizeAttribute), true);
             
             // Assert
-            attributes.Should().HaveCount(2);
+            Assert.Equal(2, attributes.Length);
         }
 
         #endregion
@@ -220,9 +222,9 @@ namespace Relay.Core.Tests.Authorization
             var options = new AuthorizationOptions();
 
             // Assert
-            options.EnableAutomaticAuthorization.Should().BeFalse();
-            options.ThrowOnAuthorizationFailure.Should().BeTrue();
-            options.DefaultOrder.Should().Be(-3000);
+            Assert.False(options.EnableAutomaticAuthorization);
+            Assert.True(options.ThrowOnAuthorizationFailure);
+            Assert.Equal(-3000, options.DefaultOrder);
         }
 
         [Fact]
@@ -237,9 +239,9 @@ namespace Relay.Core.Tests.Authorization
             };
 
             // Assert
-            options.EnableAutomaticAuthorization.Should().BeTrue();
-            options.ThrowOnAuthorizationFailure.Should().BeFalse();
-            options.DefaultOrder.Should().Be(-5000);
+            Assert.True(options.EnableAutomaticAuthorization);
+            Assert.False(options.ThrowOnAuthorizationFailure);
+            Assert.Equal(-5000, options.DefaultOrder);
         }
 
         #endregion

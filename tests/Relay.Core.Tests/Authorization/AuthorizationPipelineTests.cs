@@ -4,7 +4,6 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Authorization;
 using Relay.Core.Configuration;
@@ -105,7 +104,7 @@ public class AuthorizationPipelineTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Be("Handled: test");
+        Assert.Equal("Handled: test", result);
     }
 
     public class AlwaysDenyAuthorizationService : IAuthorizationService
@@ -180,7 +179,7 @@ public class AuthorizationPipelineTests
             CancellationToken.None);
 
         // Assert - Should not throw, attribute is missing
-        result.Should().Be("Handled: test");
+        Assert.Equal("Handled: test", result);
     }
 
     [Authorize("Role1", "Role2")]
@@ -224,6 +223,6 @@ public class AuthorizationPipelineTests
             CancellationToken.None);
 
         // Assert
-        result.Should().Be("Success");
+        Assert.Equal("Success", result);
     }
 }

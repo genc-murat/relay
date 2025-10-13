@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -42,9 +42,9 @@ namespace Relay.Core.Tests.Resilience
 
             // Act
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
+ 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
         }
 
         [Fact]
@@ -97,14 +97,14 @@ namespace Relay.Core.Tests.Resilience
 
             // Wait for timeout
             await Task.Delay(150);
-
+ 
             // Act - Should transition to half-open and allow request
             var expectedResponse = new TestResponse { Result = "result" };
             var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
+ 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
         }
 
         [Fact]
@@ -137,13 +137,13 @@ namespace Relay.Core.Tests.Resilience
             {
                 var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
                 var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-                result.Should().Be(expectedResponse);
+                Assert.Equal(expectedResponse, result);
             }
 
             // Assert - Circuit should be closed, request should succeed
             var finalNext = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
             var finalResult = await behavior.HandleAsync(request, finalNext, CancellationToken.None);
-            finalResult.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, finalResult);
         }
 
         [Fact]
@@ -154,9 +154,9 @@ namespace Relay.Core.Tests.Resilience
 
             // Act
             var state = new CircuitBreakerState(options);
-
+ 
             // Assert
-            state.State.Should().Be(CircuitState.Closed);
+            Assert.Equal(CircuitState.Closed, state.State);
         }
 
         [Fact]
@@ -168,9 +168,9 @@ namespace Relay.Core.Tests.Resilience
 
             // Act
             state.RecordSuccess();
-
+ 
             // Assert
-            state.ShouldOpenCircuit().Should().BeFalse();
+            Assert.False(state.ShouldOpenCircuit());
         }
 
         [Fact]
@@ -185,7 +185,7 @@ namespace Relay.Core.Tests.Resilience
             state.RecordFailure();
 
             // Assert
-            state.ShouldOpenCircuit().Should().BeTrue();
+            Assert.True(state.ShouldOpenCircuit());
         }
 
         [Fact]
@@ -198,9 +198,9 @@ namespace Relay.Core.Tests.Resilience
             // Act
             state.RecordFailure();
             state.RecordFailure();
-
+ 
             // Assert
-            state.ShouldOpenCircuit().Should().BeFalse();
+            Assert.False(state.ShouldOpenCircuit());
         }
 
         [Fact]
@@ -212,9 +212,9 @@ namespace Relay.Core.Tests.Resilience
 
             // Act
             state.TransitionToOpen();
-
+ 
             // Assert
-            state.State.Should().Be(CircuitState.Open);
+            Assert.Equal(CircuitState.Open, state.State);
         }
 
         [Fact]
@@ -226,9 +226,9 @@ namespace Relay.Core.Tests.Resilience
 
             // Act
             state.TransitionToHalfOpen();
-
+ 
             // Assert
-            state.State.Should().Be(CircuitState.HalfOpen);
+            Assert.Equal(CircuitState.HalfOpen, state.State);
         }
 
         [Fact]
@@ -241,9 +241,9 @@ namespace Relay.Core.Tests.Resilience
 
             // Act
             state.TransitionToClosed();
-
+ 
             // Assert
-            state.State.Should().Be(CircuitState.Closed);
+            Assert.Equal(CircuitState.Closed, state.State);
         }
 
         [Fact]
@@ -256,8 +256,8 @@ namespace Relay.Core.Tests.Resilience
             var exception = new CircuitBreakerOpenException(requestType);
 
             // Assert
-            exception.RequestType.Should().Be(requestType);
-            exception.Message.Should().Contain(requestType);
+            Assert.Equal(requestType, exception.RequestType);
+            Assert.Contains(requestType, exception.Message);
         }
 
         public class TestRequest : IRequest<TestResponse>

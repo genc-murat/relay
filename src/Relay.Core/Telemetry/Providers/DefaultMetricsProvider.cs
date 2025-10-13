@@ -15,6 +15,7 @@ public class DefaultMetricsProvider : IMetricsProvider
     private readonly ConcurrentDictionary<string, List<NotificationPublishMetrics>> _notificationPublishes = new();
     private readonly ConcurrentDictionary<string, List<StreamingOperationMetrics>> _streamingOperations = new();
     private readonly ConcurrentDictionary<string, TimingBreakdown> _timingBreakdowns = new();
+    private readonly ConcurrentQueue<string> _timingBreakdownOrder = new();
 
     private readonly ILogger<DefaultMetricsProvider>? _logger;
 
@@ -302,15 +303,14 @@ public class DefaultMetricsProvider : IMetricsProvider
     public void RecordTimingBreakdown(TimingBreakdown breakdown)
     {
         _timingBreakdowns.TryAdd(breakdown.OperationId, breakdown);
+        _timingBreakdownOrder.Enqueue(breakdown.OperationId);
 
         // Clean up old breakdowns to prevent memory growth
-        if (_timingBreakdowns.Count > MaxTimingBreakdowns)
+        while (_timingBreakdownOrder.Count > MaxTimingBreakdowns)
         {
-            var toRemove = _timingBreakdowns.Count - MaxTimingBreakdowns;
-            var oldestKeys = _timingBreakdowns.Keys.Take(toRemove);
-            foreach (var key in oldestKeys)
+            if (_timingBreakdownOrder.TryDequeue(out var oldestKey))
             {
-                _timingBreakdowns.TryRemove(key, out _);
+                _timingBreakdowns.TryRemove(oldestKey, out _);
             }
         }
     }

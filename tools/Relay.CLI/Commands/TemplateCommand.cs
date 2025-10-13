@@ -133,7 +133,7 @@ public class TemplateCommand : Command
         return createCommand;
     }
 
-    private static async Task ValidateTemplateAsync(string templatePath)
+    internal static async Task ValidateTemplateAsync(string templatePath)
     {
         Console.WriteLine();
         Console.WriteLine($"🔍 Validating template: {templatePath}");
@@ -145,7 +145,7 @@ public class TemplateCommand : Command
         result.DisplayResults();
     }
 
-    private static async Task PackTemplateAsync(string templatePath, string outputPath)
+    internal static async Task PackTemplateAsync(string templatePath, string outputPath)
     {
         Console.WriteLine();
         Console.WriteLine("📦 Packaging Template");
@@ -188,7 +188,7 @@ public class TemplateCommand : Command
         Console.WriteLine();
     }
 
-    private static async Task PublishTemplateAsync(string packagePath, string registryUrl)
+    internal static async Task PublishTemplateAsync(string packagePath, string registryUrl)
     {
         Console.WriteLine();
         Console.WriteLine("📤 Publishing Template");
@@ -224,7 +224,7 @@ public class TemplateCommand : Command
         Console.WriteLine();
     }
 
-    private static async Task ListTemplatesAsync()
+    internal static async Task ListTemplatesAsync()
     {
         Console.WriteLine();
         Console.WriteLine("📋 Available Relay Templates");
@@ -263,7 +263,7 @@ public class TemplateCommand : Command
         Console.WriteLine();
     }
 
-    private static async Task CreateCustomTemplateAsync(string name, string sourcePath, string outputPath)
+    internal static async Task CreateCustomTemplateAsync(string name, string sourcePath, string outputPath)
     {
         Console.WriteLine();
         Console.WriteLine($"🎨 Creating Custom Template: {name}");

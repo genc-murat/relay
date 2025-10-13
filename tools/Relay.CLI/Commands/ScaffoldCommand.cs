@@ -36,7 +36,7 @@ public static class ScaffoldCommand
         return command;
     }
 
-    private static async Task ExecuteScaffold(
+    internal static async Task ExecuteScaffold(
         string handlerName, 
         string requestName, 
         string? responseName, 

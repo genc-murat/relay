@@ -67,7 +67,7 @@ public static class MigrateCommand
         return command;
     }
 
-    private static async Task ExecuteMigrate(
+    internal static async Task ExecuteMigrate(
         string from,
         string to,
         string projectPath,

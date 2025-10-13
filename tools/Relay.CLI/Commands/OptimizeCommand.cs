@@ -32,7 +32,7 @@ public static class OptimizeCommand
         return command;
     }
 
-    private static async Task ExecuteOptimize(string projectPath, bool dryRun, string target, bool aggressive, bool backup)
+    internal static async Task ExecuteOptimize(string projectPath, bool dryRun, string target, bool aggressive, bool backup)
     {
         var title = dryRun ? "🔍 DRY RUN: Analyzing potential optimizations..." : "🔧 Optimizing Relay project...";
         AnsiConsole.MarkupLine($"[cyan]{title}[/]");

@@ -55,7 +55,7 @@ public static class RefactorCommand
         return command;
     }
 
-    private static async Task ExecuteRefactor(
+    internal static async Task ExecuteRefactor(
         string projectPath,
         bool analyzeOnly,
         bool dryRun,

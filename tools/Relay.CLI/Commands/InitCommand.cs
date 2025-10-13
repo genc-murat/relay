@@ -37,7 +37,7 @@ public static class InitCommand
         return command;
     }
 
-    private static async Task ExecuteInit(
+    internal static async Task ExecuteInit(
         string projectName,
         string template,
         string outputPath,

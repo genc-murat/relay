@@ -51,7 +51,7 @@ public static class PipelineCommand
         return command;
     }
 
-    private static async Task ExecutePipeline(
+    internal static async Task ExecutePipeline(
         string path,
         string? projectName,
         string template,

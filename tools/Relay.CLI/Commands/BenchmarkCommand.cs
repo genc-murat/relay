@@ -36,7 +36,7 @@ public static class BenchmarkCommand
         return command;
     }
 
-    private static async Task ExecuteBenchmark(int iterations, string? outputPath, string format, string[] tests, int warmup, int threads)
+    internal static async Task ExecuteBenchmark(int iterations, string? outputPath, string format, string[] tests, int warmup, int threads)
     {
         AnsiConsole.MarkupLine("[cyan]🚀 Starting Relay Performance Benchmark Suite[/]");
         AnsiConsole.WriteLine();

@@ -34,7 +34,7 @@ public static class ValidateCommand
         return command;
     }
 
-    private static async Task ExecuteValidate(string projectPath, bool strict, string? outputFile, string format)
+    internal static async Task ExecuteValidate(string projectPath, bool strict, string? outputFile, string format)
     {
         AnsiConsole.MarkupLine("[cyan]🔍 Validating Relay project structure...[/]");
         AnsiConsole.WriteLine();

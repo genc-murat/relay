@@ -789,6 +789,43 @@ public class WorkflowEngineTests
     }
 
     [Fact]
+    public async Task FindRequestType_WithTypeThatDoesNotImplementIRequest_ShouldFailWorkflow()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "Step1",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+NonRequestType" // Type exists but doesn't implement IRequest
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should fail because type doesn't implement IRequest
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
     public async Task EvaluateCondition_WithEqualsOperator_ShouldEvaluateCorrectly()
     {
         // Arrange
@@ -1838,6 +1875,80 @@ public class WorkflowEngineTests
         await Task.Delay(300);
 
         // Assert - Should fail nested validation
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteRequestStep_WithNullRequestType_ShouldFailWorkflow()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "RequestStep",
+                    Type = StepType.Request,
+                    RequestType = null // Null RequestType should cause ArgumentException
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should fail due to ArgumentException in CreateRequestFromStep
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteRequestStep_WithEmptyRequestType_ShouldFailWorkflow()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "RequestStep",
+                    Type = StepType.Request,
+                    RequestType = "" // Empty RequestType should cause ArgumentException
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should fail due to ArgumentException in CreateRequestFromStep
         _mockStateStore.Verify(x => x.SaveExecutionAsync(
             It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
             It.IsAny<CancellationToken>()), Times.AtLeastOnce);

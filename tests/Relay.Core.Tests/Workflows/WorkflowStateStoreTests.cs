@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Relay.Core.Workflows;
 using Relay.Core.Workflows.Infrastructure;
@@ -24,11 +23,11 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync(execution.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Id.Should().Be(execution.Id);
-        retrieved.WorkflowDefinitionId.Should().Be(execution.WorkflowDefinitionId);
-        retrieved.Status.Should().Be(execution.Status);
-        retrieved.CurrentStepIndex.Should().Be(execution.CurrentStepIndex);
+        Assert.NotNull(retrieved);
+        Assert.Equal(execution.Id, retrieved!.Id);
+        Assert.Equal(execution.WorkflowDefinitionId, retrieved.WorkflowDefinitionId);
+        Assert.Equal(execution.Status, retrieved.Status);
+        Assert.Equal(execution.CurrentStepIndex, retrieved.CurrentStepIndex);
     }
 
     [Fact]
@@ -48,10 +47,10 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync(execution.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Status.Should().Be(WorkflowStatus.Completed);
-        retrieved.CompletedAt.Should().NotBeNull();
-        retrieved.CurrentStepIndex.Should().Be(5);
+        Assert.NotNull(retrieved);
+        Assert.Equal(WorkflowStatus.Completed, retrieved!.Status);
+        Assert.NotNull(retrieved.CompletedAt);
+        Assert.Equal(5, retrieved.CurrentStepIndex);
     }
 
     [Fact]
@@ -64,7 +63,7 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync("non-existent-id");
 
         // Assert
-        retrieved.Should().BeNull();
+        Assert.Null(retrieved);
     }
 
     [Fact]
@@ -81,9 +80,9 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync(execution.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Context.Should().ContainKey("key1");
-        retrieved.Context.Should().ContainKey("key2");
+        Assert.NotNull(retrieved);
+        Assert.True(retrieved!.Context.ContainsKey("key1"));
+        Assert.True(retrieved.Context.ContainsKey("key2"));
     }
 
     [Fact]
@@ -105,10 +104,10 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync(execution.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.StepExecutions.Should().HaveCount(1);
-        retrieved.StepExecutions[0].StepName.Should().Be("Step1");
-        retrieved.StepExecutions[0].Status.Should().Be(StepStatus.Completed);
+        Assert.NotNull(retrieved);
+        Assert.Single(retrieved!.StepExecutions);
+        Assert.Equal("Step1", retrieved.StepExecutions[0].StepName);
+        Assert.Equal(StepStatus.Completed, retrieved.StepExecutions[0].Status);
     }
 
     [Fact]
@@ -128,10 +127,10 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync(execution.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Id.Should().Be(execution.Id);
-        retrieved.WorkflowDefinitionId.Should().Be(execution.WorkflowDefinitionId);
-        retrieved.Status.Should().Be(execution.Status);
+        Assert.NotNull(retrieved);
+        Assert.Equal(execution.Id, retrieved!.Id);
+        Assert.Equal(execution.WorkflowDefinitionId, retrieved.WorkflowDefinitionId);
+        Assert.Equal(execution.Status, retrieved.Status);
     }
 
     [Fact]
@@ -158,7 +157,7 @@ public class WorkflowStateStoreTests
         var version2 = entity2.Version;
 
         // Assert
-        version2.Should().BeGreaterThan(version1);
+        Assert.True(version2 > version1);
     }
 
     [Fact]
@@ -179,8 +178,8 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync(execution.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Context.Should().ContainKey("data");
+        Assert.NotNull(retrieved);
+        Assert.True(retrieved!.Context.ContainsKey("data"));
     }
 
     [Fact]
@@ -215,11 +214,11 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync(execution.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.StepExecutions.Should().HaveCount(2);
-        retrieved.StepExecutions[0].StepName.Should().Be("InitialStep");
-        retrieved.StepExecutions[1].StepName.Should().Be("SecondStep");
-        retrieved.StepExecutions[1].Status.Should().Be(StepStatus.Running);
+        Assert.NotNull(retrieved);
+        Assert.Equal(2, retrieved!.StepExecutions.Count);
+        Assert.Equal("InitialStep", retrieved.StepExecutions[0].StepName);
+        Assert.Equal("SecondStep", retrieved.StepExecutions[1].StepName);
+        Assert.Equal(StepStatus.Running, retrieved.StepExecutions[1].Status);
     }
 
     [Fact]
@@ -238,9 +237,123 @@ public class WorkflowStateStoreTests
         var retrieved = await store.GetExecutionAsync(execution.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Status.Should().Be(WorkflowStatus.Running); // Original status
-        retrieved.Error.Should().BeNull(); // No error
+        Assert.NotNull(retrieved);
+        Assert.Equal(WorkflowStatus.Running, retrieved!.Status); // Original status
+        Assert.Null(retrieved.Error); // No error
+    }
+
+    [Fact]
+    public void EfCoreWorkflowStateStore_Constructor_ShouldThrowArgumentNullException_WhenContextIsNull()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new EfCoreWorkflowStateStore(null!));
+    }
+
+    [Fact]
+    public async Task EfCoreWorkflowStateStore_SaveExecutionAsync_ShouldThrowArgumentNullException_WhenExecutionIsNull()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<WorkflowDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new WorkflowDbContext(options);
+        var store = new EfCoreWorkflowStateStore(context);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SaveExecutionAsync(null!));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task EfCoreWorkflowStateStore_SaveExecutionAsync_ShouldThrowArgumentException_WhenExecutionIdIsEmpty(string executionId)
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<WorkflowDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new WorkflowDbContext(options);
+        var store = new EfCoreWorkflowStateStore(context);
+        var execution = CreateTestExecution();
+        execution.Id = executionId!;
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(async () => await store.SaveExecutionAsync(execution));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task EfCoreWorkflowStateStore_GetExecutionAsync_ShouldReturnNull_WhenExecutionIdIsEmpty(string executionId)
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<WorkflowDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new WorkflowDbContext(options);
+        var store = new EfCoreWorkflowStateStore(context);
+
+        // Act
+        var result = await store.GetExecutionAsync(executionId!);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    // Note: Concurrency test skipped for in-memory database as it doesn't support EF Core concurrency control
+    // In a real database, this would test DbUpdateConcurrencyException handling
+
+    [Fact]
+    public async Task EfCoreWorkflowStateStore_GetExecutionAsync_ShouldHandleCorruptedJsonDataGracefully()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<WorkflowDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new WorkflowDbContext(options);
+        var store = new EfCoreWorkflowStateStore(context);
+
+        // Create entity with corrupted JSON data
+        var entity = new WorkflowExecutionEntity
+        {
+            Id = Guid.NewGuid().ToString(),
+            WorkflowDefinitionId = "test-workflow",
+            Status = "Running",
+            StartedAt = DateTime.UtcNow,
+            CurrentStepIndex = 0,
+            Version = 1,
+            UpdatedAt = DateTime.UtcNow,
+            // Corrupted JSON data
+            InputData = "{invalid json",
+            OutputData = "also invalid",
+            ContextData = "not a dictionary",
+            StepExecutionsData = "not a list"
+        };
+
+        context.WorkflowExecutions.Add(entity);
+        await context.SaveChangesAsync();
+
+        // Act
+        var result = await store.GetExecutionAsync(entity.Id);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(entity.Id, result!.Id);
+        Assert.Equal("test-workflow", result.WorkflowDefinitionId);
+        Assert.Equal(WorkflowStatus.Running, result.Status);
+        Assert.Equal(0, result.CurrentStepIndex);
+
+        // Corrupted data should be null/default
+        Assert.Null(result.Input);
+        Assert.Null(result.Output);
+        Assert.Empty(result.Context);
+        Assert.Empty(result.StepExecutions);
     }
 
     private static WorkflowExecution CreateTestExecution()

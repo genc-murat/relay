@@ -11,7 +11,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Health check for AI Optimization Engine.
     /// </summary>
-    internal class AIOptimizationHealthCheck
+    public class AIOptimizationHealthCheck
     {
         private readonly IAIOptimizationEngine _engine;
         private readonly ILogger<AIOptimizationHealthCheck> _logger;
@@ -27,7 +27,7 @@ namespace Relay.Core.AI
             _options = options?.Value ?? new AIHealthCheckOptions();
         }
 
-        public async Task<ComponentHealthResult> CheckHealthAsync(CancellationToken cancellationToken = default)
+        public virtual async Task<ComponentHealthResult> CheckHealthAsync(CancellationToken cancellationToken = default)
         {
             var stopwatch = Stopwatch.StartNew();
             var result = new ComponentHealthResult

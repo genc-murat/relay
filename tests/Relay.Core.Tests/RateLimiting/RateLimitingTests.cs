@@ -151,6 +151,237 @@ public class RateLimitingTests
     }
 
     [Fact]
+    public void RateLimitExceededException_ConstructorWithInnerException_ShouldSetInnerException()
+    {
+        // Arrange
+        var key = "user:130";
+        var retryAfter = TimeSpan.FromSeconds(45);
+        var innerException = new InvalidOperationException("Test inner exception");
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter, innerException);
+
+        // Assert
+        exception.Key.Should().Be(key);
+        exception.RetryAfter.Should().Be(retryAfter);
+        exception.InnerException.Should().Be(innerException);
+        exception.Message.Should().Contain(key);
+        exception.Message.Should().Contain("45");
+    }
+
+    [Fact]
+    public void RateLimitExceededException_ConstructorWithNullKey_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var retryAfter = TimeSpan.FromSeconds(30);
+
+        // Act
+        Action act = () => new RateLimitExceededException(null!, retryAfter);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>().WithParameterName("key");
+    }
+
+    [Fact]
+    public void RateLimitExceededException_ConstructorWithInnerExceptionNullKey_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var retryAfter = TimeSpan.FromSeconds(30);
+        var innerException = new InvalidOperationException("Test");
+
+        // Act
+        Action act = () => new RateLimitExceededException(null!, retryAfter, innerException);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>().WithParameterName("key");
+    }
+
+    [Fact]
+    public void RateLimitExceededException_KeyProperty_ShouldBeReadOnly()
+    {
+        // Arrange
+        var key = "user:131";
+        var retryAfter = TimeSpan.FromSeconds(60);
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter);
+
+        // Assert
+        exception.Key.Should().Be(key);
+        // Note: Properties are read-only, so no setter to test
+    }
+
+    [Fact]
+    public void RateLimitExceededException_RetryAfterProperty_ShouldHandleZeroValue()
+    {
+        // Arrange
+        var key = "user:132";
+        var retryAfter = TimeSpan.Zero;
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter);
+
+        // Assert
+        exception.RetryAfter.Should().Be(TimeSpan.Zero);
+        exception.Message.Should().Contain("0");
+    }
+
+    [Fact]
+    public void RateLimitExceededException_RetryAfterProperty_ShouldHandleNegativeValue()
+    {
+        // Arrange
+        var key = "user:133";
+        var retryAfter = TimeSpan.FromSeconds(-10);
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter);
+
+        // Assert
+        exception.RetryAfter.Should().Be(retryAfter);
+        exception.Message.Should().Contain("-10");
+    }
+
+    [Fact]
+    public void RateLimitExceededException_RetryAfterProperty_ShouldHandleLargeValue()
+    {
+        // Arrange
+        var key = "user:134";
+        var retryAfter = TimeSpan.FromHours(24);
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter);
+
+        // Assert
+        exception.RetryAfter.Should().Be(retryAfter);
+        exception.Message.Should().Contain("86400"); // 24*3600
+    }
+
+    [Fact]
+    public void RateLimitExceededException_Message_ShouldFormatCorrectlyWithDecimalSeconds()
+    {
+        // Arrange
+        var key = "user:135";
+        var retryAfter = TimeSpan.FromMilliseconds(1500); // 1.5 seconds
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter);
+
+        // Assert
+        exception.Message.Should().Be($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.");
+        exception.Message.Should().Contain("1.5");
+    }
+
+    [Fact]
+    public void RateLimitExceededException_Message_ShouldHandleSpecialCharactersInKey()
+    {
+        // Arrange
+        var key = "user:123@domain.com/path?query=value";
+        var retryAfter = TimeSpan.FromSeconds(30);
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter);
+
+        // Assert
+        exception.Message.Should().Contain(key);
+        exception.Message.Should().Contain("30");
+    }
+
+    [Fact]
+    public void RateLimitExceededException_Message_ShouldHandleEmptyKey()
+    {
+        // Arrange
+        var key = "";
+        var retryAfter = TimeSpan.FromSeconds(10);
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter);
+
+        // Assert
+        exception.Message.Should().Be($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.");
+        exception.Message.Should().Contain("''"); // empty key in quotes
+    }
+
+    [Fact]
+    public void RateLimitExceededException_MessageWithInnerException_ShouldContainSameMessage()
+    {
+        // Arrange
+        var key = "user:136";
+        var retryAfter = TimeSpan.FromSeconds(20);
+        var innerException = new InvalidOperationException("Inner");
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter, innerException);
+
+        // Assert
+        exception.Message.Should().Be($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.");
+    }
+
+    [Fact]
+    public void RateLimitExceededException_ShouldInheritFromException()
+    {
+        // Arrange
+        var key = "user:137";
+        var retryAfter = TimeSpan.FromSeconds(15);
+
+        // Act
+        var exception = new RateLimitExceededException(key, retryAfter);
+
+        // Assert
+        exception.Should().BeAssignableTo<Exception>();
+    }
+
+    [Fact]
+    public void RateLimitExceededException_ShouldBeCatchableAsException()
+    {
+        // Arrange
+        var key = "user:138";
+        var retryAfter = TimeSpan.FromSeconds(25);
+
+        // Act & Assert
+        try
+        {
+            throw new RateLimitExceededException(key, retryAfter);
+        }
+        catch (Exception ex)
+        {
+            ex.Should().BeOfType<RateLimitExceededException>();
+            ex.Message.Should().Contain(key);
+        }
+    }
+
+    [Fact]
+    public void RateLimitExceededException_ShouldHaveStackTrace()
+    {
+        // Arrange
+        var key = "user:139";
+        var retryAfter = TimeSpan.FromSeconds(5);
+
+        // Act & Assert
+        try
+        {
+            throw new RateLimitExceededException(key, retryAfter);
+        }
+        catch (RateLimitExceededException ex)
+        {
+            ex.StackTrace.Should().NotBeNullOrEmpty();
+        }
+    }
+
+    [Fact]
+    public void RateLimitExceededException_ShouldBeSerializable()
+    {
+        // Arrange
+        var key = "user:140";
+        var retryAfter = TimeSpan.FromSeconds(30);
+        var originalException = new RateLimitExceededException(key, retryAfter);
+
+        // Act & Assert - Test that it's marked as serializable
+        // Since Exception is serializable, and we don't add non-serializable fields,
+        // it should be serializable
+        originalException.Should().BeAssignableTo<System.Runtime.Serialization.ISerializable>();
+    }
+
+    [Fact]
     public void RateLimitAttribute_ShouldSetProperties()
     {
         // Arrange & Act

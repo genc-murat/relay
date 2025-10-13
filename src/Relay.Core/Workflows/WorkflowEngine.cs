@@ -67,6 +67,36 @@ namespace Relay.Core.Workflows
         {
             try
             {
+                // Populate context from input object properties
+                if (execution.Input != null)
+                {
+                    // Handle Dictionary<string, object> input specially
+                    if (execution.Input is Dictionary<string, object> dict)
+                    {
+                        foreach (var kvp in dict)
+                        {
+                            // Include null values in context - they may be needed for condition evaluation
+                            execution.Context[kvp.Key] = kvp.Value!;
+                        }
+                    }
+                    else
+                    {
+                        // For regular objects, use reflection to get properties
+                        var inputType = execution.Input.GetType();
+                        var properties = inputType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+                        foreach (var property in properties)
+                        {
+                            if (property.CanRead)
+                            {
+                                var value = property.GetValue(execution.Input);
+                                // Include null values in context - they may be needed for condition evaluation
+                                execution.Context[property.Name] = value!;
+                            }
+                        }
+                    }
+                }
+
                 var definition = await GetWorkflowDefinition(execution.WorkflowDefinitionId);
                 if (definition == null)
                 {
@@ -358,11 +388,15 @@ namespace Relay.Core.Workflows
                 {
                     if (value is bool boolValue)
                         return boolValue;
-                    
+
                     if (value is string stringValue)
                         return !string.IsNullOrWhiteSpace(stringValue);
-                    
-                    return value != null;
+
+                    // If value is null, default to true (graceful handling)
+                    if (value == null)
+                        return true;
+
+                    return true;
                 }
 
                 // Default to true if condition cannot be evaluated

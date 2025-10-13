@@ -1666,14 +1666,6 @@ public class WorkflowEngineTests
             .ReturnsAsync(definition);
 
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Callback<WorkflowExecution, CancellationToken>((exec, ct) =>
-            {
-                // Pre-populate context with string value for the request
-                if (!exec.Context.ContainsKey("NumberProperty"))
-                {
-                    exec.Context["NumberProperty"] = "123"; // String that should be converted to int
-                }
-            })
             .Returns(ValueTask.CompletedTask);
 
         TestWorkflowRequestWithProperties? capturedRequest = null;
@@ -1681,8 +1673,8 @@ public class WorkflowEngineTests
             .Callback<object, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
             .Returns(new ValueTask<string>("Success"));
 
-        // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+        // Act - Pass NumberProperty as string in the input, which should be converted to int
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { NumberProperty = "123" });
 
         // Wait for background execution
         await Task.Delay(300);

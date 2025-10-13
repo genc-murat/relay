@@ -3,6 +3,13 @@ using Relay.Core.Validation.Extensions;
 using Relay.Core.Pipeline.Extensions;
 using Relay.MinimalApiSample.Features.Products;
 using Relay.MinimalApiSample.Features.Users;
+using Relay.MinimalApiSample.Features.Examples.Validation;
+using Relay.MinimalApiSample.Features.Examples.PrePostProcessors;
+using Relay.MinimalApiSample.Features.Examples.ExceptionHandling;
+using Relay.MinimalApiSample.Features.Examples.Caching;
+using Relay.MinimalApiSample.Features.Examples.Notifications;
+using Relay.MinimalApiSample.Features.Examples.Streaming;
+using Relay.MinimalApiSample.Features.Examples.Transactions;
 using Relay.MinimalApiSample.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -119,5 +126,124 @@ app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Timestamp = Dat
     .WithTags("Health")
     .WithSummary("Health check endpoint")
     .ExcludeFromDescription();
+
+// ============================================================================
+// FEATURE EXAMPLES - Demonstrates Relay Framework Capabilities
+// ============================================================================
+
+var examples = app.MapGroup("/api/examples")
+    .WithTags("Feature Examples")
+    .WithOpenApi();
+
+// 01 - Validation Example
+examples.MapPost("/register", async (RegisterUserRequest request) =>
+{
+    var response = await relay.SendAsync(request);
+    return Results.Created($"/api/users/{response.UserId}", response);
+})
+.WithName("RegisterUser")
+.WithSummary("Example: User registration with comprehensive validation")
+.WithDescription(@"Demonstrates:
+- Automatic request validation
+- Username validation (3-50 chars, alphanumeric)
+- Email validation (valid format)
+- Password validation (8+ chars, uppercase, lowercase, number, special char)
+- Age validation (18-120)")
+.Produces<RegisterUserResponse>(StatusCodes.Status201Created)
+.ProducesProblem(StatusCodes.Status400BadRequest);
+
+// 02 - Pre/Post Processors Example
+examples.MapPost("/orders", async (CreateOrderRequest request) =>
+{
+    var response = await relay.SendAsync(request);
+    return Results.Created($"/api/orders/{response.OrderId}", response);
+})
+.WithName("CreateOrder")
+.WithSummary("Example: Order creation with pre/post processors")
+.WithDescription(@"Demonstrates:
+- Pre-processor: Stock validation, price calculation (runs BEFORE handler)
+- Handler: Order creation logic
+- Post-processor: Audit log, email notification (runs AFTER handler)")
+.Produces<CreateOrderResponse>(StatusCodes.Status201Created);
+
+// 03 - Exception Handling Example
+examples.MapPost("/payment", async (ProcessPaymentRequest request) =>
+{
+    var response = await relay.SendAsync(request);
+    return Results.Ok(response);
+})
+.WithName("ProcessPayment")
+.WithSummary("Example: Payment processing with exception handling")
+.WithDescription(@"Demonstrates:
+- Graceful exception handling
+- InsufficientFundsException handler
+- Fallback response instead of throwing
+Try with amount > 100 to trigger exception")
+.Produces<PaymentResult>(StatusCodes.Status200OK);
+
+// 04 - Pipeline Behaviors (automatically applied to all requests)
+// No specific endpoint needed - LoggingBehavior runs for ALL requests
+
+// 05 - Caching Example
+examples.MapGet("/products", async () =>
+{
+    var response = await relay.SendAsync(new GetCachedProductsRequest());
+    return Results.Ok(response);
+})
+.WithName("GetCachedProducts")
+.WithSummary("Example: Cached product list")
+.WithDescription(@"Demonstrates:
+- Response caching
+- First request: Slow (1s delay)
+- Subsequent requests: Fast (from cache)
+- Cache duration: 5 minutes")
+.Produces<List<CachedProduct>>(StatusCodes.Status200OK);
+
+// 06 - Notifications/Events Example
+examples.MapPost("/user-created", async (UserCreatedNotification notification) =>
+{
+    await relay.PublishAsync(notification);
+    return Results.Ok(new { Message = "Notification published to multiple handlers" });
+})
+.WithName("PublishUserCreated")
+.WithSummary("Example: Event-driven notifications")
+.WithDescription(@"Demonstrates:
+- Multiple handlers for same event
+- Handler 1: Send welcome email
+- Handler 2: Track analytics
+All handlers run in parallel")
+.Produces(StatusCodes.Status200OK);
+
+// 07 - Streaming Example
+examples.MapGet("/logs/stream", async (DateTime? startDate) =>
+{
+    var request = new StreamLogsRequest(startDate ?? DateTime.UtcNow.AddHours(-1));
+    var stream = await relay.SendAsync(request);
+
+    return Results.Ok(stream);
+})
+.WithName("StreamLogs")
+.WithSummary("Example: Real-time log streaming")
+.WithDescription(@"Demonstrates:
+- IAsyncEnumerable streaming
+- Real-time data flow
+- Backpressure handling
+- Memory-efficient for large datasets")
+.Produces<IAsyncEnumerable<LogEntry>>(StatusCodes.Status200OK);
+
+// 08 - Transactions Example
+examples.MapPost("/order-transaction", async (CreateOrderTransactionRequest request) =>
+{
+    var response = await relay.SendAsync(request);
+    return Results.Created($"/api/orders/{response.OrderId}", response);
+})
+.WithName("CreateOrderWithTransaction")
+.WithSummary("Example: Multi-step transaction with ACID guarantees")
+.WithDescription(@"Demonstrates:
+- Automatic transaction management
+- Multiple database operations
+- All succeed together or rollback together
+- ACID guarantees")
+.Produces<OrderTransactionResult>(StatusCodes.Status201Created);
 
 app.Run();

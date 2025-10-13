@@ -426,6 +426,142 @@ public class OptimizedPooledBufferManagerTests
         _output.WriteLine($"Performance metrics: {metrics}");
     }
 
+    [Theory]
+    [InlineData(0)]       // Zero size
+    [InlineData(1)]       // Very small
+    public void RentBuffer_EdgeCases_ShouldHandleExtremeSizes(int size)
+    {
+        // Arrange
+        var manager = new OptimizedPooledBufferManager();
+
+        // Act
+        var buffer = manager.RentBuffer(size);
+
+        // Assert
+        Assert.NotNull(buffer);
+        Assert.True(buffer.Length >= size);
+
+        manager.ReturnBuffer(buffer);
+    }
+
+    [Fact]
+    public void RentBuffer_MaxIntSize_ShouldHandleGracefully()
+    {
+        // Arrange
+        var manager = new OptimizedPooledBufferManager();
+
+        // Act & Assert - int.MaxValue may cause OutOfMemoryException, which is acceptable
+        try
+        {
+            var buffer = manager.RentBuffer(int.MaxValue);
+            Assert.NotNull(buffer);
+            manager.ReturnBuffer(buffer);
+        }
+        catch (OutOfMemoryException)
+        {
+            // This is acceptable behavior for extreme sizes
+            _output.WriteLine("int.MaxValue caused OutOfMemoryException - acceptable");
+        }
+    }
+
+    [Fact]
+    public void RentBuffer_NegativeSize_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var manager = new OptimizedPooledBufferManager();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => manager.RentBuffer(-1));
+    }
+
+
+
+
+
+    [Fact]
+    public void GetMetrics_ZeroRequests_ShouldHandleDivisionByZero()
+    {
+        // Arrange
+        var manager = new OptimizedPooledBufferManager();
+
+        // Act
+        var metrics = manager.GetMetrics();
+
+        // Assert
+        Assert.Equal(0, metrics.TotalRequests);
+        Assert.Equal(0, metrics.SmallPoolHits);
+        Assert.Equal(0, metrics.MediumPoolHits);
+        Assert.Equal(0, metrics.LargePoolHits);
+        Assert.Equal(0.0, metrics.SmallPoolEfficiency);
+        Assert.Equal(0.0, metrics.MediumPoolEfficiency);
+        Assert.Equal(0.0, metrics.LargePoolEfficiency);
+    }
+
+    [Fact]
+    public void BufferMetrics_InternalTracking_ShouldUpdateCorrectly()
+    {
+        // Arrange
+        var manager = new OptimizedPooledBufferManager();
+
+        // Act - Perform operations to trigger internal metrics updates
+        var buffer1 = manager.RentBuffer(512);    // Small pool
+        var buffer2 = manager.RentBuffer(2048);   // Medium pool
+        var buffer3 = manager.RentBuffer(131072); // Large pool
+
+        var metrics = manager.GetMetrics();
+
+        // Assert
+        Assert.Equal(3, metrics.TotalRequests);
+        Assert.Equal(1, metrics.SmallPoolHits);
+        Assert.Equal(1, metrics.MediumPoolHits);
+        Assert.Equal(1, metrics.LargePoolHits);
+
+        // Test efficiency calculations
+        Assert.Equal(1.0, metrics.SmallPoolEfficiency);
+        Assert.Equal(1.0, metrics.MediumPoolEfficiency);
+        Assert.Equal(1.0, metrics.LargePoolEfficiency);
+
+        // Clean up
+        manager.ReturnBuffer(buffer1);
+        manager.ReturnBuffer(buffer2);
+        manager.ReturnBuffer(buffer3);
+    }
+
+    [Fact]
+    public void RentSpan_ZeroLength_ShouldReturnEmptySpan()
+    {
+        // Arrange
+        var manager = new OptimizedPooledBufferManager();
+
+        // Act
+        var span = manager.RentSpan(0);
+
+        // Assert
+        Assert.Equal(0, span.Length);
+    }
+
+    [Fact]
+    public void RentSpan_LargeLength_ShouldWork()
+    {
+        // Arrange
+        var manager = new OptimizedPooledBufferManager();
+        const int largeSize = 100 * 1024; // 100KB
+
+        // Act
+        var span = manager.RentSpan(largeSize);
+
+        // Assert
+        Assert.Equal(largeSize, span.Length);
+
+        // Test that we can access the span
+        span[0] = 42;
+        span[largeSize - 1] = 24;
+        Assert.Equal(42, span[0]);
+        Assert.Equal(24, span[largeSize - 1]);
+    }
+
+
+
     // Test request classes for size estimation testing
     private class SmallTestRequest : IRequest
     {

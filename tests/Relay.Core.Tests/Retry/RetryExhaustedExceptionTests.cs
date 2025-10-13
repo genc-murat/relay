@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using FluentAssertions;
+
 using Relay.Core.Retry;
 using Xunit;
 
@@ -23,8 +23,8 @@ namespace Relay.Core.Tests.Retry
             var retryException = new RetryExhaustedException(exceptions);
 
             // Assert
-            retryException.Exceptions.Should().BeEquivalentTo(exceptions);
-            retryException.Message.Should().Contain("3 attempts");
+            Assert.Equal(exceptions, retryException.Exceptions);
+            Assert.Contains("3 attempts", retryException.Message);
         }
 
         [Fact]
@@ -32,9 +32,9 @@ namespace Relay.Core.Tests.Retry
         {
             // Act - ArgumentNullException is thrown in constructor before base() is called
             Action act = () => new RetryExhaustedException(null!);
-
+ 
             // Assert - It throws NullReferenceException because base() is called before null check
-            act.Should().Throw<Exception>(); // Can be either ArgumentNullException or NullReferenceException
+            Assert.ThrowsAny<Exception>(act); // Can be either ArgumentNullException or NullReferenceException
         }
 
         [Fact]
@@ -51,8 +51,8 @@ namespace Relay.Core.Tests.Retry
             var retryException = new RetryExhaustedException(exceptions, innerException);
 
             // Assert
-            retryException.InnerException.Should().BeSameAs(innerException);
-            retryException.Exceptions.Should().BeEquivalentTo(exceptions);
+            Assert.Same(innerException, retryException.InnerException);
+            Assert.Equal(exceptions, retryException.Exceptions);
         }
 
         [Fact]
@@ -63,9 +63,9 @@ namespace Relay.Core.Tests.Retry
 
             // Act - ArgumentNullException is thrown in constructor before base() is called
             Action act = () => new RetryExhaustedException(null!, innerException);
-
+ 
             // Assert - It throws NullReferenceException because base() is called before null check
-            act.Should().Throw<Exception>(); // Can be either ArgumentNullException or NullReferenceException
+            Assert.ThrowsAny<Exception>(act); // Can be either ArgumentNullException or NullReferenceException
         }
 
         [Fact]
@@ -85,7 +85,7 @@ namespace Relay.Core.Tests.Retry
             var retryException = new RetryExhaustedException(exceptions);
 
             // Assert
-            retryException.Message.Should().Contain("5 attempts were made");
+            Assert.Contains("5 attempts were made", retryException.Message);
         }
 
         [Fact]
@@ -100,7 +100,7 @@ namespace Relay.Core.Tests.Retry
             var retryException = new RetryExhaustedException(exceptions);
 
             // Act & Assert
-            retryException.Exceptions.Should().BeAssignableTo<IReadOnlyList<Exception>>();
+            Assert.IsAssignableFrom<IReadOnlyList<Exception>>(retryException.Exceptions);
         }
 
         [Fact]
@@ -113,8 +113,8 @@ namespace Relay.Core.Tests.Retry
             var retryException = new RetryExhaustedException(exceptions);
 
             // Assert
-            retryException.Exceptions.Should().BeEmpty();
-            retryException.Message.Should().Contain("0 attempts");
+            Assert.Empty(retryException.Exceptions);
+            Assert.Contains("0 attempts", retryException.Message);
         }
     }
 }

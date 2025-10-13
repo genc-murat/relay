@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Contracts.Requests;
@@ -21,8 +20,8 @@ namespace Relay.Core.Tests.Security
             var attribute = new EncryptedAttribute();
 
             // Assert
-            attribute.Algorithm.Should().Be("AES256");
-            attribute.KeyId.Should().Be("default");
+            Assert.Equal("AES256", attribute.Algorithm);
+            Assert.Equal("default", attribute.KeyId);
         }
 
         [Fact]
@@ -36,8 +35,8 @@ namespace Relay.Core.Tests.Security
             };
 
             // Assert
-            attribute.Algorithm.Should().Be("RSA");
-            attribute.KeyId.Should().Be("key123");
+            Assert.Equal("RSA", attribute.Algorithm);
+            Assert.Equal("key123", attribute.KeyId);
         }
 
         [Fact]
@@ -82,7 +81,7 @@ namespace Relay.Core.Tests.Security
             var encryptor = new AesDataEncryptor(logger, validKey);
 
             // Assert
-            encryptor.Should().NotBeNull();
+            Assert.NotNull(encryptor);
         }
 
         [Fact]
@@ -98,9 +97,9 @@ namespace Relay.Core.Tests.Security
             var encrypted = encryptor.Encrypt(plainText);
 
             // Assert
-            encrypted.Should().NotBeNull();
-            encrypted.Should().NotBe(plainText);
-            encrypted.Length.Should().BeGreaterThan(plainText.Length);
+            Assert.NotNull(encrypted);
+            Assert.NotEqual(plainText, encrypted);
+            Assert.True(encrypted.Length > plainText.Length);
         }
 
         [Fact]
@@ -117,7 +116,7 @@ namespace Relay.Core.Tests.Security
             var decrypted = encryptor.Decrypt(encrypted);
 
             // Assert
-            decrypted.Should().Be(plainText);
+            Assert.Equal(plainText, decrypted);
         }
 
         [Fact]
@@ -134,7 +133,7 @@ namespace Relay.Core.Tests.Security
             var encrypted2 = encryptor.Encrypt(plainText);
 
             // Assert - Should be different due to random IV
-            encrypted1.Should().NotBe(encrypted2);
+            Assert.NotEqual(encrypted2, encrypted1);
         }
 
         [Fact]
@@ -146,9 +145,9 @@ namespace Relay.Core.Tests.Security
             var encryptor = new AesDataEncryptor(logger, key);
 
             // Act & Assert
-            encryptor.Encrypt(null!).Should().BeNull();
-            encryptor.Encrypt("").Should().Be("");
-            encryptor.Encrypt(" ").Should().Be(" ");
+            Assert.Null(encryptor.Encrypt(null!));
+            Assert.Equal("", encryptor.Encrypt(""));
+            Assert.Equal(" ", encryptor.Encrypt(" "));
         }
 
         [Fact]
@@ -160,9 +159,9 @@ namespace Relay.Core.Tests.Security
             var encryptor = new AesDataEncryptor(logger, key);
 
             // Act & Assert
-            encryptor.Decrypt(null!).Should().BeNull();
-            encryptor.Decrypt("").Should().Be("");
-            encryptor.Decrypt(" ").Should().Be(" ");
+            Assert.Null(encryptor.Decrypt(null!));
+            Assert.Equal("", encryptor.Decrypt(""));
+            Assert.Equal(" ", encryptor.Decrypt(" "));
         }
 
         [Fact]
@@ -179,7 +178,7 @@ namespace Relay.Core.Tests.Security
             var decrypted = encryptor.Decrypt(encrypted);
 
             // Assert
-            decrypted.Should().Be(plainText);
+            Assert.Equal(plainText, decrypted);
         }
 
         [Fact]
@@ -196,7 +195,7 @@ namespace Relay.Core.Tests.Security
             var decrypted = encryptor.Decrypt(encrypted);
 
             // Assert
-            decrypted.Should().Be(plainText);
+            Assert.Equal(plainText, decrypted);
         }
 
         [Fact]
@@ -210,9 +209,9 @@ namespace Relay.Core.Tests.Security
             var exception = new DataEncryptionException(propertyName, innerException);
 
             // Assert
-            exception.PropertyName.Should().Be(propertyName);
-            exception.InnerException.Should().Be(innerException);
-            exception.Message.Should().Contain(propertyName);
+            Assert.Equal(propertyName, exception.PropertyName);
+            Assert.Equal(innerException, exception.InnerException);
+            Assert.Contains(propertyName, exception.Message);
         }
 
         [Fact]
@@ -226,9 +225,9 @@ namespace Relay.Core.Tests.Security
             var exception = new DataDecryptionException(propertyName, innerException);
 
             // Assert
-            exception.PropertyName.Should().Be(propertyName);
-            exception.InnerException.Should().Be(innerException);
-            exception.Message.Should().Contain(propertyName);
+            Assert.Equal(propertyName, exception.PropertyName);
+            Assert.Equal(innerException, exception.InnerException);
+            Assert.Contains(propertyName, exception.Message);
         }
 
         [Fact]
@@ -242,7 +241,7 @@ namespace Relay.Core.Tests.Security
             var attribute = property?.GetCustomAttribute<EncryptedAttribute>();
 
             // Assert
-            attribute.Should().NotBeNull();
+            Assert.NotNull(attribute);
         }
 
         [Fact]
@@ -256,7 +255,7 @@ namespace Relay.Core.Tests.Security
             var attribute = property?.GetCustomAttribute<EncryptedAttribute>();
 
             // Assert
-            attribute.Should().NotBeNull();
+            Assert.NotNull(attribute);
         }
 
         public class TestRequest : IRequest<TestResponse>

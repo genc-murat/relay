@@ -159,6 +159,77 @@ public class DefaultMetricsProviderTests
     }
 
     [Fact]
+    public void DetectAnomalies_WithHighFailureRate_ShouldDetectHighFailureRateAnomaly()
+    {
+        // Arrange - Create executions with 15% failure rate (above 10% threshold)
+        for (int i = 0; i < 100; i++)
+        {
+            _metricsProvider.RecordHandlerExecution(new HandlerExecutionMetrics
+            {
+                RequestType = typeof(TestRequest<string>),
+                HandlerName = "FailingHandler",
+                Duration = TimeSpan.FromMilliseconds(100),
+                Success = i < 85, // 85 successful, 15 failed = 15% failure rate
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-i)
+            });
+        }
+
+        // Act
+        var anomalies = _metricsProvider.DetectAnomalies(TimeSpan.FromHours(1)).ToList();
+
+        // Assert - Should detect high failure rate anomaly
+        var failureAnomalies = anomalies.Where(a => a.Type == AnomalyType.HighFailureRate).ToList();
+        Assert.Single(failureAnomalies);
+        var anomaly = failureAnomalies[0];
+        Assert.Equal(typeof(TestRequest<string>), anomaly.RequestType);
+        Assert.Equal("FailingHandler", anomaly.HandlerName);
+        Assert.Contains("failure rate of 15.0%", anomaly.Description);
+        Assert.True(Math.Abs(anomaly.Severity - 0.15) < 0.001); // Allow small floating-point precision differences
+    }
+
+    [Fact]
+    public void DetectAnomalies_WithSlowExecution_ShouldDetectSlowExecutionAnomaly()
+    {
+        // Arrange - Create baseline executions with normal duration
+        for (int i = 0; i < 20; i++)
+        {
+            _metricsProvider.RecordHandlerExecution(new HandlerExecutionMetrics
+            {
+                RequestType = typeof(TestRequest<string>),
+                HandlerName = "SlowHandler",
+                Duration = TimeSpan.FromMilliseconds(100),
+                Success = true,
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-i - 10) // Older executions
+            });
+        }
+
+        // Add a very slow recent execution (more than 2x the average)
+        _metricsProvider.RecordHandlerExecution(new HandlerExecutionMetrics
+        {
+            OperationId = "slow-operation",
+            RequestType = typeof(TestRequest<string>),
+            HandlerName = "SlowHandler",
+            Duration = TimeSpan.FromMilliseconds(250), // 2.5x slower than 100ms average
+            Success = true,
+            Timestamp = DateTimeOffset.UtcNow
+        });
+
+        // Act
+        var anomalies = _metricsProvider.DetectAnomalies(TimeSpan.FromHours(1)).ToList();
+
+        // Assert - Should detect slow execution anomaly
+        var slowAnomalies = anomalies.Where(a => a.Type == AnomalyType.SlowExecution).ToList();
+        Assert.Single(slowAnomalies);
+        var anomaly = slowAnomalies[0];
+        Assert.Equal("SlowHandler", anomaly.HandlerName);
+        Assert.Contains("took 250.00ms", anomaly.Description);
+        Assert.Contains("x the average", anomaly.Description);
+        Assert.Equal(TimeSpan.FromMilliseconds(250), anomaly.ActualDuration);
+        Assert.True(Math.Abs((anomaly.ExpectedDuration - TimeSpan.FromMilliseconds(107.1428)).TotalMilliseconds) < 0.001); // Average of 21 executions: (20*100 + 250) / 21 ≈ 107.1428 due to tick precision
+        Assert.True(Math.Abs(anomaly.Severity - 2.3328) < 0.01); // 250 / 107.1428 ≈ 2.3328
+    }
+
+    [Fact]
     public void RecordTimingBreakdown_ShouldCleanupOldBreakdowns_WhenLimitExceeded()
     {
         // Arrange - Record more than the limit (10000) to test cleanup
@@ -520,6 +591,119 @@ public class DefaultMetricsProviderTests
 
         // Assert
         Assert.Equal(0, stats.ItemsPerSecond);
+    }
+
+    [Fact]
+    public void GetHandlerExecutionStats_WithMultipleExecutions_ShouldCalculateCorrectStats()
+    {
+        // Arrange
+        var executions = new[]
+        {
+            new HandlerExecutionMetrics
+            {
+                RequestType = typeof(TestRequest<string>),
+                ResponseType = typeof(string),
+                HandlerName = "TestHandler",
+                Duration = TimeSpan.FromMilliseconds(100),
+                Success = true,
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-5)
+            },
+            new HandlerExecutionMetrics
+            {
+                RequestType = typeof(TestRequest<string>),
+                ResponseType = typeof(string),
+                HandlerName = "TestHandler",
+                Duration = TimeSpan.FromMilliseconds(200),
+                Success = true,
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-4)
+            },
+            new HandlerExecutionMetrics
+            {
+                RequestType = typeof(TestRequest<string>),
+                ResponseType = typeof(string),
+                HandlerName = "TestHandler",
+                Duration = TimeSpan.FromMilliseconds(150),
+                Success = false,
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-3)
+            },
+            new HandlerExecutionMetrics
+            {
+                RequestType = typeof(TestRequest<string>),
+                ResponseType = typeof(string),
+                HandlerName = "TestHandler",
+                Duration = TimeSpan.FromMilliseconds(300),
+                Success = true,
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2)
+            },
+            new HandlerExecutionMetrics
+            {
+                RequestType = typeof(TestRequest<string>),
+                ResponseType = typeof(string),
+                HandlerName = "TestHandler",
+                Duration = TimeSpan.FromMilliseconds(250),
+                Success = true,
+                Timestamp = DateTimeOffset.UtcNow.AddMinutes(-1)
+            }
+        };
+
+        // Act
+        foreach (var execution in executions)
+        {
+            _metricsProvider.RecordHandlerExecution(execution);
+        }
+
+        // Assert
+        var stats = _metricsProvider.GetHandlerExecutionStats(typeof(TestRequest<string>), "TestHandler");
+        Assert.Equal(5, stats.TotalExecutions);
+        Assert.Equal(4, stats.SuccessfulExecutions);
+        Assert.Equal(1, stats.FailedExecutions);
+        Assert.Equal(4.0 / 5.0, stats.SuccessRate, 3);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), stats.AverageExecutionTime); // (100+200+150+300+250)/5 = 200
+        Assert.Equal(TimeSpan.FromMilliseconds(100), stats.MinExecutionTime);
+        Assert.Equal(TimeSpan.FromMilliseconds(300), stats.MaxExecutionTime);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), stats.P50ExecutionTime); // Median of sorted: 100,150,200,250,300 -> 200
+        Assert.Equal(TimeSpan.FromMilliseconds(300), stats.P95ExecutionTime); // 95th percentile
+        Assert.Equal(TimeSpan.FromMilliseconds(300), stats.P99ExecutionTime); // 99th percentile
+    }
+
+    [Fact]
+    public void GetTimingBreakdown_WithExistingBreakdown_ShouldReturnBreakdown()
+    {
+        // Arrange
+        var breakdown = new TimingBreakdown
+        {
+            OperationId = "test-operation",
+            TotalDuration = TimeSpan.FromMilliseconds(500),
+            PhaseTimings = new Dictionary<string, TimeSpan>
+            {
+                ["Handler"] = TimeSpan.FromMilliseconds(300),
+                ["Validation"] = TimeSpan.FromMilliseconds(100),
+                ["Pipeline"] = TimeSpan.FromMilliseconds(100)
+            }
+        };
+        _metricsProvider.RecordTimingBreakdown(breakdown);
+
+        // Act
+        var retrieved = _metricsProvider.GetTimingBreakdown("test-operation");
+
+        // Assert
+        Assert.Equal("test-operation", retrieved.OperationId);
+        Assert.Equal(TimeSpan.FromMilliseconds(500), retrieved.TotalDuration);
+        Assert.Equal(TimeSpan.FromMilliseconds(300), retrieved.PhaseTimings["Handler"]);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), retrieved.PhaseTimings["Validation"]);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), retrieved.PhaseTimings["Pipeline"]);
+    }
+
+    [Fact]
+    public void GetTimingBreakdown_WithNonExistingBreakdown_ShouldReturnEmptyBreakdown()
+    {
+        // Act
+        var retrieved = _metricsProvider.GetTimingBreakdown("non-existing-operation");
+
+        // Assert
+        Assert.Equal("non-existing-operation", retrieved.OperationId);
+        Assert.Equal(TimeSpan.Zero, retrieved.TotalDuration);
+        Assert.Empty(retrieved.PhaseTimings);
     }
 
     [Fact]

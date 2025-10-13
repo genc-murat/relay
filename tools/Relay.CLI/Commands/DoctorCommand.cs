@@ -35,7 +35,7 @@ public static class DoctorCommand
         return command;
     }
 
-    private static async Task ExecuteDoctor(string projectPath, bool verbose, bool autoFix)
+    internal static async Task ExecuteDoctor(string projectPath, bool verbose, bool autoFix)
     {
         var rule = new Rule("[cyan]🏥 Relay Doctor - Health Check[/]");
         AnsiConsole.Write(rule);
@@ -89,7 +89,7 @@ public static class DoctorCommand
         Environment.ExitCode = diagnostics.GetExitCode();
     }
 
-    private static async Task CheckProjectStructure(string path, DiagnosticResults results, bool verbose)
+    internal static async Task CheckProjectStructure(string path, DiagnosticResults results, bool verbose)
     {
         var check = new DiagnosticCheck { Category = "Project Structure" };
 
@@ -145,7 +145,7 @@ public static class DoctorCommand
         results.AddCheck(check);
     }
 
-    private static async Task CheckDependencies(string path, DiagnosticResults results, bool verbose)
+    internal static async Task CheckDependencies(string path, DiagnosticResults results, bool verbose)
     {
         var check = new DiagnosticCheck { Category = "Dependencies" };
 
@@ -200,7 +200,7 @@ public static class DoctorCommand
         results.AddCheck(check);
     }
 
-    private static async Task CheckHandlers(string path, DiagnosticResults results, bool verbose)
+    internal static async Task CheckHandlers(string path, DiagnosticResults results, bool verbose)
     {
         var check = new DiagnosticCheck { Category = "Handlers" };
 
@@ -277,7 +277,7 @@ public static class DoctorCommand
         results.AddCheck(check);
     }
 
-    private static async Task CheckPerformanceSettings(string path, DiagnosticResults results, bool verbose)
+    internal static async Task CheckPerformanceSettings(string path, DiagnosticResults results, bool verbose)
     {
         var check = new DiagnosticCheck { Category = "Performance" };
 
@@ -325,7 +325,7 @@ public static class DoctorCommand
         results.AddCheck(check);
     }
 
-    private static async Task CheckBestPractices(string path, DiagnosticResults results, bool verbose)
+    internal static async Task CheckBestPractices(string path, DiagnosticResults results, bool verbose)
     {
         var check = new DiagnosticCheck { Category = "Best Practices" };
 

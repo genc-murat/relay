@@ -18,6 +18,11 @@
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
   </PropertyGroup>
 
+  <!-- Test Assembly Visibility -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Relay.CLI.Tests" />
+  </ItemGroup>
+
   <!-- Release-specific PGO Configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <OptimizationPreference>Speed</OptimizationPreference>

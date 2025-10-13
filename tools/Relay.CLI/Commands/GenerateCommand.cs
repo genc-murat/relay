@@ -23,7 +23,7 @@ public static class GenerateCommand
         return command;
     }
 
-    private static async Task ExecuteGenerate(string type, string outputPath)
+    internal static async Task ExecuteGenerate(string type, string outputPath)
     {
         AnsiConsole.MarkupLine($"[cyan]📝 Generating {type}...[/]");
         
@@ -44,7 +44,7 @@ public static class GenerateCommand
         }
     }
 
-    private static async Task GenerateDocs(string outputPath)
+    internal static async Task GenerateDocs(string outputPath)
     {
         var docsContent = @"# Project Documentation
 
@@ -65,7 +65,7 @@ This implementation achieves 80%+ better performance than traditional mediator p
         AnsiConsole.MarkupLine($"[green]✅ Documentation generated: {docsPath}[/]");
     }
 
-    private static async Task GenerateConfig(string outputPath)
+    internal static async Task GenerateConfig(string outputPath)
     {
         var configContent = @"{
   ""Relay"": {
@@ -84,7 +84,7 @@ This implementation achieves 80%+ better performance than traditional mediator p
         AnsiConsole.MarkupLine($"[green]✅ Configuration generated: {configPath}[/]");
     }
 
-    private static async Task GenerateBenchmark(string outputPath)
+    internal static async Task GenerateBenchmark(string outputPath)
     {
         var benchmarkContent = @"using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;

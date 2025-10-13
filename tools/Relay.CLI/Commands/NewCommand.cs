@@ -111,7 +111,7 @@ public class NewCommand : Command
         });
     }
 
-    private static async Task ListTemplatesAsync()
+    internal static async Task ListTemplatesAsync()
     {
         Console.WriteLine();
         Console.WriteLine("📋 Available Relay Templates");
@@ -145,7 +145,7 @@ public class NewCommand : Command
         Console.WriteLine();
     }
 
-    private static async Task CreateProjectAsync(
+    internal static async Task CreateProjectAsync(
         string name,
         string template,
         string[] features,
@@ -218,7 +218,7 @@ public class NewCommand : Command
         }
     }
 
-    private static async Task CreateProjectStructure(
+    internal static async Task CreateProjectStructure(
         string projectPath,
         string name,
         TemplateInfo template,
@@ -261,7 +261,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateProjectFiles(
+    internal static async Task GenerateProjectFiles(
         string projectPath,
         string name,
         TemplateInfo template,
@@ -309,7 +309,7 @@ public class NewCommand : Command
         await GenerateCommonFiles(projectPath, name, template, features);
     }
 
-    private static async Task GenerateWebApiProject(
+    internal static async Task GenerateWebApiProject(
         string projectPath,
         string name,
         string[] features,
@@ -321,7 +321,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateMicroserviceProject(
+    internal static async Task GenerateMicroserviceProject(
         string projectPath,
         string name,
         string[] features,
@@ -332,7 +332,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateDddProject(
+    internal static async Task GenerateDddProject(
         string projectPath,
         string name,
         string[] features,
@@ -342,7 +342,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateCqrsEsProject(
+    internal static async Task GenerateCqrsEsProject(
         string projectPath,
         string name,
         string[] features)
@@ -351,7 +351,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateModularProject(
+    internal static async Task GenerateModularProject(
         string projectPath,
         string name,
         string[] features,
@@ -361,7 +361,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateGraphQLProject(
+    internal static async Task GenerateGraphQLProject(
         string projectPath,
         string name,
         string[] features,
@@ -371,7 +371,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateGrpcProject(
+    internal static async Task GenerateGrpcProject(
         string projectPath,
         string name,
         string[] features)
@@ -380,7 +380,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateServerlessProject(
+    internal static async Task GenerateServerlessProject(
         string projectPath,
         string name,
         string[] features)
@@ -389,7 +389,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateBlazorProject(
+    internal static async Task GenerateBlazorProject(
         string projectPath,
         string name,
         string[] features)
@@ -398,7 +398,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateMauiProject(
+    internal static async Task GenerateMauiProject(
         string projectPath,
         string name,
         string[] features)
@@ -407,7 +407,7 @@ public class NewCommand : Command
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateCommonFiles(
+    internal static async Task GenerateCommonFiles(
         string projectPath,
         string name,
         TemplateInfo template,
@@ -437,7 +437,7 @@ public class NewCommand : Command
         }
     }
 
-    private static string GenerateReadme(string name, TemplateInfo template, string[] features)
+    internal static string GenerateReadme(string name, TemplateInfo template, string[] features)
     {
         return $@"# {name}
 
@@ -475,7 +475,7 @@ MIT
 ";
     }
 
-    private static async Task GenerateGitignore(string projectPath)
+    internal static async Task GenerateGitignore(string projectPath)
     {
         var gitignoreContent = @"
 # Build results
@@ -526,19 +526,19 @@ docker-compose.override.yml
         await File.WriteAllTextAsync(Path.Combine(projectPath, ".gitignore"), gitignoreContent.Trim());
     }
 
-    private static async Task GenerateDockerFiles(string projectPath, string name)
+    internal static async Task GenerateDockerFiles(string projectPath, string name)
     {
         // Will be implemented with actual Dockerfile generation
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateCICDFiles(string projectPath, string name)
+    internal static async Task GenerateCICDFiles(string projectPath, string name)
     {
         // Will be implemented with actual CI/CD file generation
         await Task.CompletedTask;
     }
 
-    private static async Task RestorePackages(string projectPath)
+    internal static async Task RestorePackages(string projectPath)
     {
         var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
@@ -560,7 +560,7 @@ docker-compose.override.yml
         }
     }
 
-    private static async Task BuildProject(string projectPath)
+    internal static async Task BuildProject(string projectPath)
     {
         var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
@@ -582,7 +582,7 @@ docker-compose.override.yml
         }
     }
 
-    private static List<TemplateInfo> GetTemplates()
+    internal static List<TemplateInfo> GetTemplates()
     {
         return new List<TemplateInfo>
         {

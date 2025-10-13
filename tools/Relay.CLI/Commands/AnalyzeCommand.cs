@@ -35,8 +35,15 @@ public static class AnalyzeCommand
 
     [RequiresUnreferencedCode("Calls Relay.CLI.Commands.AnalyzeCommand.SaveAnalysisResults(ProjectAnalysis, String, String)")]
     [RequiresDynamicCode("Calls Relay.CLI.Commands.AnalyzeCommand.SaveAnalysisResults(ProjectAnalysis, String, String)")]
-    private static async Task<int> ExecuteAnalyze(string projectPath, string? outputPath, string format, string depth, bool includeTests)
+    internal static async Task<int> ExecuteAnalyze(string projectPath, string? outputPath, string format, string depth, bool includeTests)
     {
+        // Check if project directory exists
+        if (!Directory.Exists(projectPath))
+        {
+            AnsiConsole.MarkupLine("[red]❌ Error: Project directory does not exist[/]");
+            return 1; // Return error exit code
+        }
+
         AnsiConsole.MarkupLine($"[cyan]🔍 Analyzing project at: {projectPath}[/]");
         AnsiConsole.WriteLine();
 
@@ -86,12 +93,12 @@ public static class AnalyzeCommand
                     if (overallTask != null) overallTask.Value = overallTask.MaxValue;
                 });
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DirectoryNotFoundException)
         {
             // Log the progress error but continue execution
             // This can happen in test environments where console features are not available
             Console.WriteLine($"Warning: Could not show progress in console: {ex.Message}");
-            
+
             // Run analysis without progress UI in test environments
             await DiscoverProjectFiles(analysis, null!, null!);
             await AnalyzeHandlers(analysis, null!, null!);
@@ -100,6 +107,12 @@ public static class AnalyzeCommand
             await CheckReliabilityPatterns(analysis, null!, null!);
             await AnalyzeDependencies(analysis, null!, null!);
             await GenerateRecommendations(analysis, null!, null!);
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Handle invalid project path
+            AnsiConsole.MarkupLine("[red]❌ Error: Project directory does not exist[/]");
+            return 1; // Return error exit code
         }
 
         try
@@ -122,7 +135,7 @@ public static class AnalyzeCommand
         return 0;
     }
 
-    private static async Task DiscoverProjectFiles(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
+    internal static async Task DiscoverProjectFiles(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
         var discoveryTask = ctx?.AddTask("[green]Discovering project files[/]");
 
@@ -163,7 +176,7 @@ public static class AnalyzeCommand
         await Task.CompletedTask;
     }
 
-    private static async Task AnalyzeHandlers(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
+    internal static async Task AnalyzeHandlers(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
         var handlerTask = ctx?.AddTask("[green]Analyzing handlers[/]");
         var handlerCount = 0;
@@ -221,7 +234,7 @@ public static class AnalyzeCommand
         AnsiConsole.MarkupLine($"[dim]Analyzed {handlerCount} handler(s)[/]");
     }
 
-    private static async Task AnalyzeRequests(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
+    internal static async Task AnalyzeRequests(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
         var requestTask = ctx?.AddTask("[green]Analyzing requests[/]");
         var requestCount = 0;
@@ -279,7 +292,7 @@ public static class AnalyzeCommand
         AnsiConsole.MarkupLine($"[dim]Analyzed {requestCount} request(s)[/]");
     }
 
-    private static async Task CheckPerformanceOpportunities(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
+    internal static async Task CheckPerformanceOpportunities(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
         var perfTask = ctx?.AddTask("[yellow]Checking performance opportunities[/]");
 
@@ -350,7 +363,7 @@ public static class AnalyzeCommand
         await Task.CompletedTask;
     }
 
-    private static async Task CheckReliabilityPatterns(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
+    internal static async Task CheckReliabilityPatterns(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
         var reliabilityTask = ctx?.AddTask("[yellow]Checking reliability patterns[/]");
 
@@ -405,7 +418,7 @@ public static class AnalyzeCommand
         await Task.CompletedTask;
     }
 
-    private static async Task AnalyzeDependencies(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
+    internal static async Task AnalyzeDependencies(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
         var depTask = ctx?.AddTask("[yellow]Analyzing dependencies[/]");
 
@@ -438,7 +451,7 @@ public static class AnalyzeCommand
                     analysis.HasValidation = true;
                 }
 
-                if (content.Contains("StackExchangeRedis") || content.Contains("Microsoft.Extensions.Caching"))
+                if (content.Contains("StackExchange.Redis") || content.Contains("Microsoft.Extensions.Caching"))
                 {
                     analysis.HasCaching = true;
                 }
@@ -464,7 +477,7 @@ public static class AnalyzeCommand
         AnsiConsole.MarkupLine($"[dim]Analyzed project dependencies[/]");
     }
 
-    private static async Task GenerateRecommendations(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
+    internal static async Task GenerateRecommendations(ProjectAnalysis analysis, ProgressContext? ctx, ProgressTask? overallTask)
     {
         var recTask = ctx?.AddTask("[green]Generating recommendations[/]");
 
@@ -542,7 +555,7 @@ public static class AnalyzeCommand
         await Task.CompletedTask;
     }
 
-    private static void DisplayAnalysisResults(ProjectAnalysis analysis, string format)
+    internal static void DisplayAnalysisResults(ProjectAnalysis analysis, string format)
     {
         // Project overview
         var overviewTable = new Table()
@@ -663,7 +676,7 @@ public static class AnalyzeCommand
 
     [RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
     [RequiresDynamicCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
-    private static async Task SaveAnalysisResults(ProjectAnalysis analysis, string outputPath, string format)
+    internal static async Task SaveAnalysisResults(ProjectAnalysis analysis, string outputPath, string format)
     {
         var content = format.ToLower() switch
         {
@@ -696,59 +709,59 @@ public static class AnalyzeCommand
     }
 
     // Helper methods for analysis
-    private static bool IsHandler(ClassDeclarationSyntax classDecl, string content) =>
+    internal static bool IsHandler(ClassDeclarationSyntax classDecl, string content) =>
         classDecl.Identifier.ValueText.EndsWith("Handler") ||
         content.Contains("[Handle]") ||
         classDecl.BaseList?.Types.Any(t => t.ToString().Contains("IRequestHandler")) == true;
 
-    private static bool IsRequest(TypeDeclarationSyntax typeDecl, string content) =>
+    internal static bool IsRequest(TypeDeclarationSyntax typeDecl, string content) =>
         typeDecl.Identifier.ValueText.EndsWith("Request") ||
         typeDecl.Identifier.ValueText.EndsWith("Query") ||
         typeDecl.Identifier.ValueText.EndsWith("Command") ||
         typeDecl.BaseList?.Types.Any(t => t.ToString().Contains("IRequest")) == true;
 
-    private static bool HasAsyncMethods(ClassDeclarationSyntax classDecl) =>
+    internal static bool HasAsyncMethods(ClassDeclarationSyntax classDecl) =>
         classDecl.Members.OfType<MethodDeclarationSyntax>()
             .Any(m => m.Modifiers.Any(mod => mod.IsKind(SyntaxKind.AsyncKeyword)));
 
-    private static bool HasConstructorDependencies(ClassDeclarationSyntax classDecl) =>
+    internal static bool HasConstructorDependencies(ClassDeclarationSyntax classDecl) =>
         classDecl.Members.OfType<ConstructorDeclarationSyntax>()
             .Any(c => c.ParameterList.Parameters.Count > 0);
 
-    private static bool UsesValueTask(ClassDeclarationSyntax classDecl, string content) =>
+    internal static bool UsesValueTask(ClassDeclarationSyntax classDecl, string content) =>
         content.Contains("ValueTask");
 
-    private static bool UsesCancellationToken(ClassDeclarationSyntax classDecl, string content) =>
+    internal static bool UsesCancellationToken(ClassDeclarationSyntax classDecl, string content) =>
         content.Contains("CancellationToken");
 
-    private static bool HasLogging(ClassDeclarationSyntax classDecl, string content) =>
+    internal static bool HasLogging(ClassDeclarationSyntax classDecl, string content) =>
         content.Contains("ILogger") || content.Contains("_logger");
 
-    private static bool HasValidation(ClassDeclarationSyntax classDecl, string content) =>
+    internal static bool HasValidation(ClassDeclarationSyntax classDecl, string content) =>
         content.Contains("ValidationAttribute") || content.Contains("[Required]");
 
-    private static int GetMethodLineCount(ClassDeclarationSyntax classDecl) =>
+    internal static int GetMethodLineCount(ClassDeclarationSyntax classDecl) =>
         classDecl.Members.OfType<MethodDeclarationSyntax>()
             .Sum(m => m.GetText().Lines.Count);
 
-    private static bool HasResponseType(TypeDeclarationSyntax typeDecl, string content) =>
+    internal static bool HasResponseType(TypeDeclarationSyntax typeDecl, string content) =>
         typeDecl.BaseList?.Types.Any(t => t.ToString().Contains("IRequest<")) == true;
 
-    private static bool HasValidationAttributes(TypeDeclarationSyntax typeDecl, string content) =>
+    internal static bool HasValidationAttributes(TypeDeclarationSyntax typeDecl, string content) =>
         content.Contains("[Required]") || content.Contains("[StringLength]") || content.Contains("ValidationAttribute");
 
-    private static int GetParameterCount(TypeDeclarationSyntax typeDecl) =>
+    internal static int GetParameterCount(TypeDeclarationSyntax typeDecl) =>
         typeDecl is RecordDeclarationSyntax record ?
             record.ParameterList?.Parameters.Count ?? 0 :
             typeDecl.Members.OfType<PropertyDeclarationSyntax>().Count();
 
-    private static bool HasCachingAttributes(TypeDeclarationSyntax typeDecl, string content) =>
+    internal static bool HasCachingAttributes(TypeDeclarationSyntax typeDecl, string content) =>
         content.Contains("[Cacheable]") || content.Contains("CacheAttribute");
 
-    private static bool HasAuthorizationAttributes(TypeDeclarationSyntax typeDecl, string content) =>
+    internal static bool HasAuthorizationAttributes(TypeDeclarationSyntax typeDecl, string content) =>
         content.Contains("[Authorize]") || content.Contains("AuthorizeAttribute");
 
-    private static double CalculateOverallScore(ProjectAnalysis analysis)
+    internal static double CalculateOverallScore(ProjectAnalysis analysis)
     {
         try
         {
@@ -779,7 +792,7 @@ public static class AnalyzeCommand
         }
     }
 
-    private static string GenerateHtmlAnalysisReport(ProjectAnalysis analysis)
+    internal static string GenerateHtmlAnalysisReport(ProjectAnalysis analysis)
     {
         try
         {
@@ -856,7 +869,7 @@ public static class AnalyzeCommand
         }
     }
 
-    private static string GenerateMarkdownReport(ProjectAnalysis analysis)
+    internal static string GenerateMarkdownReport(ProjectAnalysis analysis)
     {
         try
         {

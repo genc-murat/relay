@@ -120,7 +120,7 @@ public class TemplateGenerator
             "relay-modular" => GetModularDirectoryStructure(projectName, options),
             "relay-graphql" => GetGraphQLDirectoryStructure(projectName),
             "relay-grpc" => GetGrpcDirectoryStructure(projectName),
-            _ => null // Return null for invalid templates
+            _ => GetBasicDirectoryStructure(projectName) // Return basic structure for unknown templates
         };
     }
 
@@ -226,6 +226,18 @@ public class TemplateGenerator
             $"src/{projectName}/Protos",
             $"src/{projectName}/Services",
             "tests",
+            "docs"
+        };
+    }
+
+    private string[] GetBasicDirectoryStructure(string projectName)
+    {
+        return new[]
+        {
+            "src",
+            $"src/{projectName}",
+            "tests",
+            $"tests/{projectName}.Tests",
             "docs"
         };
     }

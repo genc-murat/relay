@@ -166,8 +166,8 @@ namespace Relay.Core.Tests
         }
 
         // Test request types
-        private class TestRequest : IRequest<string> { }
-        private class TestStreamRequest : IStreamRequest<string> { }
+        public class TestRequest : IRequest<string> { }
+        public class TestStreamRequest : IStreamRequest<string> { }
     }
 
     // Test implementations for pipeline behaviors

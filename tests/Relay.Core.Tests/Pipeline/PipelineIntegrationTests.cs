@@ -154,12 +154,12 @@ namespace Relay.Core.Tests
         }
 
         // Test request types
-        private class TestRequest : IRequest<string>
+        public class TestRequest : IRequest<string>
         {
             public string Value { get; set; } = string.Empty;
         }
 
-        private class TestStreamRequest : IStreamRequest<string>
+        public class TestStreamRequest : IStreamRequest<string>
         {
             public int Count { get; set; }
         }

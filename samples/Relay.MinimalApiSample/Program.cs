@@ -10,6 +10,7 @@ using Relay.MinimalApiSample.Features.Examples.Caching;
 using Relay.MinimalApiSample.Features.Examples.Notifications;
 using Relay.MinimalApiSample.Features.Examples.Streaming;
 using Relay.MinimalApiSample.Features.Examples.Transactions;
+using Relay.MinimalApiSample.Features.Examples.AIOptimization;
 using Relay.MinimalApiSample.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -245,5 +246,22 @@ examples.MapPost("/order-transaction", async (CreateOrderTransactionRequest requ
 - All succeed together or rollback together
 - ACID guarantees")
 .Produces<OrderTransactionResult>(StatusCodes.Status201Created);
+
+// 09 - AI Optimization Example
+examples.MapPost("/recommendations", async (GetProductRecommendationsRequest request) =>
+{
+    var response = await relay.SendAsync(request);
+    return Results.Ok(response);
+})
+.WithName("GetProductRecommendations")
+.WithSummary("Example: AI-powered product recommendations")
+.WithDescription(@"Demonstrates:
+- AI-powered performance optimization
+- Smart Batching: Automatically batches high-frequency requests
+- Intelligent Caching: AI predicts which results should be cached
+- Performance Tracking: Metrics for ML model training
+- Auto-Optimization: AI can automatically apply optimizations
+Try calling this endpoint multiple times to see batching and caching in action!")
+.Produces<ProductRecommendationsResponse>(StatusCodes.Status200OK);
 
 app.Run();

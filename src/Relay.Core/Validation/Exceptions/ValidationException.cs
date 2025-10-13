@@ -25,10 +25,8 @@ namespace Relay.Core.Validation.Exceptions
         /// <param name="requestType">The type of the request that failed validation.</param>
         /// <param name="errors">The validation errors.</param>
         public ValidationException(Type requestType, IEnumerable<string> errors)
-            : base($"Validation failed for {requestType.Name}. Errors: {string.Join(", ", errors)}")
+            : this(requestType, errors, null)
         {
-            RequestType = requestType ?? throw new ArgumentNullException(nameof(requestType));
-            Errors = errors ?? throw new ArgumentNullException(nameof(errors));
         }
 
         /// <summary>
@@ -38,10 +36,17 @@ namespace Relay.Core.Validation.Exceptions
         /// <param name="errors">The validation errors.</param>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
         public ValidationException(Type requestType, IEnumerable<string> errors, Exception innerException)
-            : base($"Validation failed for {requestType.Name}. Errors: {string.Join(", ", errors)}", innerException)
+            : base(FormatMessage(requestType, errors), innerException)
         {
             RequestType = requestType ?? throw new ArgumentNullException(nameof(requestType));
             Errors = errors ?? throw new ArgumentNullException(nameof(errors));
+        }
+
+        private static string FormatMessage(Type requestType, IEnumerable<string> errors)
+        {
+            if (requestType == null) throw new ArgumentNullException(nameof(requestType));
+            if (errors == null) throw new ArgumentNullException(nameof(errors));
+            return $"Validation failed for {requestType.Name}. Errors: {string.Join(", ", errors)}";
         }
     }
 }

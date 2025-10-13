@@ -563,5 +563,25 @@ namespace Relay.Core.Tests.Validation
             await Assert.ThrowsAsync<ValidationException>(async () =>
                 await behavior.HandleAsync(request, next, default).ToListAsync());
         }
+
+        // Test validation rule for testing purposes
+        internal class TestValidationRule : IValidationRule<string>
+        {
+            public ValueTask<IEnumerable<string>> ValidateAsync(string request, CancellationToken cancellationToken = default)
+            {
+                var errors = new List<string>();
+
+                if (string.IsNullOrEmpty(request))
+                {
+                    errors.Add("Request cannot be null or empty");
+                }
+                else if (request.Length < 3)
+                {
+                    errors.Add("Request must be at least 3 characters long");
+                }
+
+                return new ValueTask<IEnumerable<string>>(errors);
+            }
+        }
     }
 }

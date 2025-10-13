@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -138,6 +140,15 @@ public class BulkheadPipelineBehaviorTests
         // Assert
         await Assert.ThrowsAsync<BulkheadRejectedException>(() => secondTask.AsTask());
 
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Bulkhead rejection for RejectionTestRequest: max concurrency (1) exceeded")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
         // Complete the first request
         tcs.SetResult(response);
         var firstResult = await firstTask;
@@ -255,6 +266,53 @@ public class BulkheadPipelineBehaviorTests
     }
 
     [Fact]
+    public async Task HandleAsync_Should_Use_Specific_Request_Type_Concurrency_Limit()
+    {
+        // Arrange
+        var options = new BulkheadOptions { DefaultMaxConcurrency = 5, MaxWaitTime = TimeSpan.FromMilliseconds(100) };
+        options.SetMaxConcurrency<SpecificConcurrencyTestRequest>(2);
+        _mockOptions.Setup(x => x.Value).Returns(options);
+
+        var mockLogger = new Mock<ILogger<BulkheadPipelineBehavior<SpecificConcurrencyTestRequest, TestResponse>>>();
+        var behavior = new BulkheadPipelineBehavior<SpecificConcurrencyTestRequest, TestResponse>(mockLogger.Object, _mockOptions.Object);
+        var request = new SpecificConcurrencyTestRequest { Value = "test" };
+        var response = new TestResponse { Result = "result" };
+
+        // Create a delegate that takes time to complete
+        var tcs = new TaskCompletionSource<TestResponse>();
+        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(tcs.Task));
+
+        // Act - Start first two requests (should acquire semaphore)
+        var firstTask = behavior.HandleAsync(request, next, CancellationToken.None);
+        var secondTask = behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Wait a bit to ensure semaphores are acquired
+        await Task.Delay(50);
+
+        // Try third request (should be rejected)
+        var thirdTask = behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert - third request should be rejected
+        await Assert.ThrowsAsync<BulkheadRejectedException>(() => thirdTask.AsTask());
+
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Bulkhead rejection for SpecificConcurrencyTestRequest: max concurrency (2) exceeded")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        // Complete the first two requests
+        tcs.SetResult(response);
+        var firstResult = await firstTask;
+        var secondResult = await secondTask;
+        Assert.Equal(response, firstResult);
+        Assert.Equal(response, secondResult);
+    }
+
+    [Fact]
     public async Task HandleAsync_Should_Respect_Cancellation_Token()
     {
         // Arrange
@@ -316,6 +374,15 @@ public class BulkheadPipelineBehaviorTests
 
         // Assert
         await Assert.ThrowsAsync<BulkheadRejectedException>(() => secondTask.AsTask());
+
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Bulkhead rejection for TimeoutTestRequest: max concurrency (1) exceeded")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
 
         // Complete first request
         tcs.SetResult(response);
@@ -454,6 +521,11 @@ public class BulkheadPipelineBehaviorTests
     }
 
     public class TimeoutTestRequest : IRequest<TestResponse>
+    {
+        public string? Value { get; set; }
+    }
+
+    public class SpecificConcurrencyTestRequest : IRequest<TestResponse>
     {
         public string? Value { get; set; }
     }

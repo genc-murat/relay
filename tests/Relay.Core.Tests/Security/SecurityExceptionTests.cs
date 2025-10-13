@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using FluentAssertions;
 using Relay.Core.Security;
 using Xunit;
 
@@ -21,12 +20,12 @@ namespace Relay.Core.Tests.Security
                 var exception = new InsufficientPermissionsException(requestType, requiredPermissions);
 
                 // Assert
-                exception.RequestType.Should().Be(requestType);
-                exception.RequiredPermissions.Should().BeEquivalentTo(requiredPermissions);
-                exception.Message.Should().Contain(requestType);
-                exception.Message.Should().Contain("admin");
-                exception.Message.Should().Contain("read");
-                exception.Message.Should().Contain("write");
+                Assert.Equal(requestType, exception.RequestType);
+                Assert.Equal(requiredPermissions, exception.RequiredPermissions);
+                Assert.Contains(requestType, exception.Message);
+                Assert.Contains("admin", exception.Message);
+                Assert.Contains("read", exception.Message);
+                Assert.Contains("write", exception.Message);
             }
 
             [Fact]
@@ -40,9 +39,9 @@ namespace Relay.Core.Tests.Security
                 var exception = new InsufficientPermissionsException(requestType, requiredPermissions);
 
                 // Assert
-                exception.RequestType.Should().Be(requestType);
-                exception.RequiredPermissions.Should().BeEmpty();
-                exception.Message.Should().Contain(requestType);
+                Assert.Equal(requestType, exception.RequestType);
+                Assert.Empty(exception.RequiredPermissions);
+                Assert.Contains(requestType, exception.Message);
             }
 
             [Fact]
@@ -68,9 +67,10 @@ namespace Relay.Core.Tests.Security
                 var exception = new InsufficientPermissionsException(requestType, requiredPermissions);
 
                 // Assert
-                exception.RequestType.Should().Be(requestType);
-                exception.RequiredPermissions.Should().ContainSingle().Which.Should().Be("admin");
-                exception.Message.Should().Contain("admin");
+                Assert.Equal(requestType, exception.RequestType);
+                 Assert.Single(exception.RequiredPermissions);
+                 Assert.Equal("admin", exception.RequiredPermissions.First());
+                Assert.Contains("admin", exception.Message);
             }
 
             [Fact]
@@ -84,8 +84,8 @@ namespace Relay.Core.Tests.Security
                 var exception = new InsufficientPermissionsException(requestType, requiredPermissions);
 
                 // Assert
-                exception.RequestType.Should().Be(requestType);
-                exception.RequiredPermissions.Should().BeEquivalentTo(requiredPermissions);
+                Assert.Equal(requestType, exception.RequestType);
+                Assert.Equal(requiredPermissions, exception.RequiredPermissions);
             }
 
             [Fact]
@@ -99,8 +99,8 @@ namespace Relay.Core.Tests.Security
                 var exception = new InsufficientPermissionsException(requestType, requiredPermissions);
 
                 // Assert
-                exception.RequestType.Should().Be(requestType);
-                exception.RequiredPermissions.Should().BeEquivalentTo(requiredPermissions);
+                Assert.Equal(requestType, exception.RequestType);
+                Assert.Equal(requiredPermissions, exception.RequiredPermissions);
             }
 
             [Fact]
@@ -116,11 +116,11 @@ namespace Relay.Core.Tests.Security
                 var exception = new InsufficientPermissionsException(requestType, requiredPermissions);
 
                 // Assert
-                exception.RequestType.Should().Be(requestType);
-                exception.RequiredPermissions.Should().HaveCount(100);
-                exception.Message.Should().Contain(requestType);
-                exception.Message.Should().Contain("permission_1");
-                exception.Message.Should().Contain("permission_100");
+                Assert.Equal(requestType, exception.RequestType);
+                Assert.Equal(100, exception.RequiredPermissions.Count());
+                Assert.Contains(requestType, exception.Message);
+                Assert.Contains("permission_1", exception.Message);
+                Assert.Contains("permission_100", exception.Message);
             }
 
             [Fact]
@@ -132,157 +132,157 @@ namespace Relay.Core.Tests.Security
                 var exception = new InsufficientPermissionsException(requestType, requiredPermissions);
 
                 // Act & Assert
-                exception.Should().BeAssignableTo<Exception>();
-                exception.InnerException.Should().BeNull();
+                Assert.IsAssignableFrom<Exception>(exception);
+                Assert.Null(exception.InnerException);
             }
         }
 
         public class RateLimitExceededExceptionTests
         {
-            [Fact]
-            public void Constructor_ShouldSetProperties_WhenCalled()
-            {
-                // Arrange
-                var userId = "user123";
-                var requestType = "TestRequest";
+             [Fact]
+             public void Constructor_ShouldSetProperties_WhenCalled()
+             {
+                 // Arrange
+                 var userId = "user123";
+                 var requestType = "TestRequest";
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-                exception.Message.Should().Contain(userId);
-                exception.Message.Should().Contain(requestType);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+                 Assert.Contains(userId, exception.Message);
+                 Assert.Contains(requestType, exception.Message);
+             }
 
-            [Fact]
-            public void Constructor_ShouldHandleEmptyUserId()
-            {
-                // Arrange
-                var userId = "";
-                var requestType = "TestRequest";
+             [Fact]
+             public void Constructor_ShouldHandleEmptyUserId()
+             {
+                 // Arrange
+                 var userId = "";
+                 var requestType = "TestRequest";
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-                exception.Message.Should().Contain(requestType);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+                 Assert.Contains(requestType, exception.Message);
+             }
 
-            [Fact]
-            public void Constructor_ShouldHandleEmptyRequestType()
-            {
-                // Arrange
-                var userId = "user123";
-                var requestType = "";
+             [Fact]
+             public void Constructor_ShouldHandleEmptyRequestType()
+             {
+                 // Arrange
+                 var userId = "user123";
+                 var requestType = "";
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-                exception.Message.Should().Contain(userId);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+                 Assert.Contains(userId, exception.Message);
+             }
 
-            [Fact]
-            public void Constructor_ShouldHandleNullUserId()
-            {
-                // Arrange
-                string userId = null!;
-                var requestType = "TestRequest";
+             [Fact]
+             public void Constructor_ShouldHandleNullUserId()
+             {
+                 // Arrange
+                 string userId = null!;
+                 var requestType = "TestRequest";
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-                exception.Message.Should().Contain(requestType);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+                 Assert.Contains(requestType, exception.Message);
+             }
 
-            [Fact]
-            public void Constructor_ShouldHandleNullRequestType()
-            {
-                // Arrange
-                var userId = "user123";
-                string requestType = null!;
+             [Fact]
+             public void Constructor_ShouldHandleNullRequestType()
+             {
+                 // Arrange
+                 var userId = "user123";
+                 string requestType = null!;
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-                exception.Message.Should().Contain(userId);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+                 Assert.Contains(userId, exception.Message);
+             }
 
-            [Fact]
-            public void Constructor_ShouldHandleWhitespaceValues()
-            {
-                // Arrange
-                var userId = "   ";
-                var requestType = "   ";
+             [Fact]
+             public void Constructor_ShouldHandleWhitespaceValues()
+             {
+                 // Arrange
+                 var userId = "   ";
+                 var requestType = "   ";
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+             }
 
-            [Fact]
-            public void Constructor_ShouldHandleLongUserId()
-            {
-                // Arrange
-                var userId = new string('a', 1000);
-                var requestType = "TestRequest";
+             [Fact]
+             public void Constructor_ShouldHandleLongUserId()
+             {
+                 // Arrange
+                 var userId = new string('a', 1000);
+                 var requestType = "TestRequest";
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-                exception.Message.Should().Contain(userId);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+                 Assert.Contains(userId, exception.Message);
+             }
 
-            [Fact]
-            public void Constructor_ShouldHandleLongRequestType()
-            {
-                // Arrange
-                var userId = "user123";
-                var requestType = new string('b', 1000);
+             [Fact]
+             public void Constructor_ShouldHandleLongRequestType()
+             {
+                 // Arrange
+                 var userId = "user123";
+                 var requestType = new string('b', 1000);
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-                exception.Message.Should().Contain(requestType);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+                 Assert.Contains(requestType, exception.Message);
+             }
 
-            [Fact]
-            public void Constructor_ShouldHandleSpecialCharacters()
-            {
-                // Arrange
-                var userId = "user@domain.com";
-                var requestType = "Request-Type_123";
+             [Fact]
+             public void Constructor_ShouldHandleSpecialCharacters()
+             {
+                 // Arrange
+                 var userId = "user@domain.com";
+                 var requestType = "Request-Type_123";
 
-                // Act
-                var exception = new RateLimitExceededException(userId, requestType);
+                 // Act
+                 var exception = new RateLimitExceededException(userId, requestType);
 
-                // Assert
-                exception.UserId.Should().Be(userId);
-                exception.RequestType.Should().Be(requestType);
-                exception.Message.Should().Contain(userId);
-                exception.Message.Should().Contain(requestType);
-            }
+                 // Assert
+                 Assert.Equal(userId, exception.UserId);
+                 Assert.Equal(requestType, exception.RequestType);
+                 Assert.Contains(userId, exception.Message);
+                 Assert.Contains(requestType, exception.Message);
+             }
 
             [Fact]
             public void Exception_ShouldBeSerializable()
@@ -293,8 +293,8 @@ namespace Relay.Core.Tests.Security
                 var exception = new RateLimitExceededException(userId, requestType);
 
                 // Act & Assert
-                exception.Should().BeAssignableTo<Exception>();
-                exception.InnerException.Should().BeNull();
+                Assert.IsAssignableFrom<Exception>(exception);
+                Assert.Null(exception.InnerException);
             }
 
             [Fact]
@@ -308,7 +308,7 @@ namespace Relay.Core.Tests.Security
                 var exception = new RateLimitExceededException(userId, requestType);
 
                 // Assert
-                exception.HResult.Should().BeNegative();
+                Assert.True(exception.HResult < 0);
             }
         }
     }

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 using System;
@@ -7,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace Relay.Core.Tests.Testing;
 
@@ -24,7 +24,7 @@ public static class TestUtilities
         await action();
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeLessThanOrEqualTo(maxDuration, message ?? "Execution should complete within expected time");
+        Assert.True(stopwatch.Elapsed <= maxDuration, message ?? "Execution should complete within expected time");
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public static class TestUtilities
         await action();
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeLessThanOrEqualTo(maxDuration, message ?? "Execution should complete within expected time");
+        Assert.True(stopwatch.Elapsed <= maxDuration, message ?? "Execution should complete within expected time");
     }
 
     /// <summary>
@@ -96,13 +96,13 @@ public static class TestUtilities
     {
         if (shouldHaveActivity)
         {
-            telemetryProvider.Activities.Should().NotBeEmpty("Activities should be recorded");
-            telemetryProvider.Activities.Should().Contain(a => a.Tags.ContainsValue(requestType.FullName ?? requestType.Name));
+            Assert.NotEmpty(telemetryProvider.Activities);
+            Assert.Contains(telemetryProvider.Activities, a => a.Tags.ContainsValue(requestType.FullName ?? requestType.Name));
         }
 
         if (telemetryProvider.HandlerExecutions.Any())
         {
-            telemetryProvider.HandlerExecutions.Should().Contain(h => h.RequestType == requestType);
+            Assert.Contains(telemetryProvider.HandlerExecutions, h => h.RequestType == requestType);
         }
     }
 
@@ -111,8 +111,8 @@ public static class TestUtilities
     /// </summary>
     public static void AssertMetricsRecorded(TestMetricsProvider metricsProvider, Type requestType)
     {
-        metricsProvider.HandlerExecutionMetrics.Should().NotBeEmpty("Handler execution metrics should be recorded");
-        metricsProvider.HandlerExecutionMetrics.Should().Contain(m => m.RequestType == requestType);
+        Assert.NotEmpty(metricsProvider.HandlerExecutionMetrics);
+        Assert.Contains(metricsProvider.HandlerExecutionMetrics, m => m.RequestType == requestType);
     }
 
     /// <summary>
@@ -158,7 +158,7 @@ public static class TestUtilities
     public static async Task AssertStreamItems<T>(IAsyncEnumerable<T> stream, IEnumerable<T> expectedItems, CancellationToken cancellationToken = default)
     {
         var actualItems = await CollectStreamItems(stream, cancellationToken);
-        actualItems.Should().BeEquivalentTo(expectedItems, options => options.WithStrictOrdering());
+        Assert.Equal(expectedItems, actualItems);
     }
 
     /// <summary>

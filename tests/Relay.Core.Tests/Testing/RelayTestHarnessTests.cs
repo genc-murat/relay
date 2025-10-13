@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Moq;
 using Relay.Core;
 using Relay.Core.Contracts.Core;
@@ -25,8 +24,8 @@ public class RelayTestHarnessTests
         var relay = RelayTestHarness.CreateTestRelay(handler);
 
         // Assert
-        relay.Should().NotBeNull();
-        relay.Should().BeAssignableTo<IRelay>();
+        Assert.NotNull(relay);
+        Assert.IsAssignableFrom<IRelay>(relay);
     }
 
     [Fact]
@@ -36,8 +35,8 @@ public class RelayTestHarnessTests
         var mockRelay = RelayTestHarness.CreateMockRelay();
 
         // Assert
-        mockRelay.Should().NotBeNull();
-        mockRelay.Object.Should().BeAssignableTo<IRelay>();
+        Assert.NotNull(mockRelay);
+        Assert.IsAssignableFrom<IRelay>(mockRelay.Object);
     }
 
     [Fact]
@@ -72,7 +71,7 @@ public class RelayTestHarnessTests
         var result = harness.AddHandler(handler);
 
         // Assert
-        result.Should().BeSameAs(harness);
+        Assert.Same(harness, result);
     }
 
     [Fact]
@@ -95,7 +94,7 @@ public class RelayTestHarnessTests
         var result = harness.AddHandler<TestStringHandler>();
 
         // Assert
-        result.Should().BeSameAs(harness);
+        Assert.Same(harness, result);
     }
 
     [Fact]
@@ -108,7 +107,7 @@ public class RelayTestHarnessTests
         var result = harness.AddPipeline<TestPipelineBehavior>();
 
         // Assert
-        result.Should().BeSameAs(harness);
+        Assert.Same(harness, result);
     }
 
     [Fact]
@@ -121,7 +120,7 @@ public class RelayTestHarnessTests
         var result = harness.AddService<ITestService, TestService>();
 
         // Assert
-        result.Should().BeSameAs(harness);
+        Assert.Same(harness, result);
     }
 
     [Fact]
@@ -134,7 +133,7 @@ public class RelayTestHarnessTests
         var result = harness.AddSingleton<ITestService, TestService>();
 
         // Assert
-        result.Should().BeSameAs(harness);
+        Assert.Same(harness, result);
     }
 
     [Fact]
@@ -148,7 +147,7 @@ public class RelayTestHarnessTests
         var result = harness.AddSingleton(service);
 
         // Assert
-        result.Should().BeSameAs(harness);
+        Assert.Same(harness, result);
     }
 
     [Fact]
@@ -161,7 +160,7 @@ public class RelayTestHarnessTests
         var result = harness.WithTelemetry<TestTelemetryProvider>();
 
         // Assert
-        result.Should().BeSameAs(harness);
+        Assert.Same(harness, result);
     }
 
     [Fact]
@@ -174,7 +173,7 @@ public class RelayTestHarnessTests
         var result = harness.WithoutTelemetry();
 
         // Assert
-        result.Should().BeSameAs(harness);
+        Assert.Same(harness, result);
     }
 
     [Fact]
@@ -187,8 +186,8 @@ public class RelayTestHarnessTests
         var relay = harness.Build();
 
         // Assert
-        relay.Should().NotBeNull();
-        relay.Should().BeAssignableTo<IRelay>();
+        Assert.NotNull(relay);
+        Assert.IsAssignableFrom<IRelay>(relay);
     }
 
     [Fact]
@@ -202,7 +201,7 @@ public class RelayTestHarnessTests
         var relay2 = harness.Build();
 
         // Assert
-        relay1.Should().BeSameAs(relay2);
+        Assert.Same(relay2, relay1);
     }
 
     [Fact]
@@ -215,7 +214,7 @@ public class RelayTestHarnessTests
         var serviceProvider = harness.GetServiceProvider();
 
         // Assert
-        serviceProvider.Should().NotBeNull();
+        Assert.NotNull(serviceProvider);
     }
 
     [Fact]
@@ -229,8 +228,8 @@ public class RelayTestHarnessTests
         var service = harness.GetService<ITestService>();
 
         // Assert
-        service.Should().NotBeNull();
-        service.Should().BeOfType<TestService>();
+        Assert.NotNull(service);
+        Assert.IsType<TestService>(service);
     }
 
     [Fact]
@@ -243,8 +242,8 @@ public class RelayTestHarnessTests
         var telemetryProvider = harness.GetTestTelemetryProvider();
 
         // Assert
-        telemetryProvider.Should().NotBeNull();
-        telemetryProvider.Should().BeOfType<TestTelemetryProvider>();
+        Assert.NotNull(telemetryProvider);
+        Assert.IsType<TestTelemetryProvider>(telemetryProvider);
     }
 
     [Fact]
@@ -258,7 +257,7 @@ public class RelayTestHarnessTests
         var telemetryProvider = harness.GetTestTelemetryProvider();
 
         // Assert
-        telemetryProvider.Should().BeNull();
+        Assert.Null(telemetryProvider);
     }
 
     [Fact]
@@ -277,9 +276,9 @@ public class RelayTestHarnessTests
         var response = await relay.SendAsync(request);
 
         // Assert
-        response.Should().Be(expectedResponse);
-        handler.WasCalled.Should().BeTrue();
-        handler.LastRequest.Should().BeSameAs(request);
+        Assert.Equal(expectedResponse, response);
+        Assert.True(handler.WasCalled);
+        Assert.Same(request, handler.LastRequest);
     }
 
     [Fact]
@@ -297,8 +296,8 @@ public class RelayTestHarnessTests
         await relay.PublishAsync(notification);
 
         // Assert
-        handler.WasCalled.Should().BeTrue();
-        handler.LastNotification.Should().BeSameAs(notification);
+        Assert.True(handler.WasCalled);
+        Assert.Same(notification, handler.LastNotification);
     }
 
     // Test helper classes

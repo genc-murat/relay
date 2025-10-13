@@ -1,6 +1,5 @@
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Builder;
 using Xunit;
@@ -20,8 +19,8 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().NotBeEmpty();
-        errors.Should().Contain(e => e.Contains("Name"));
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Name"));
     }
 
     [Fact]
@@ -35,8 +34,8 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().NotBeEmpty();
-        errors.Should().Contain(e => e.Contains("Name") && e.Contains("empty"));
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Name") && e.Contains("empty"));
     }
 
     [Fact]
@@ -50,8 +49,8 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().NotBeEmpty();
-        errors.Should().Contain(e => e.Contains("Name") && e.Contains("3 characters"));
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Name") && e.Contains("3 characters"));
     }
 
     [Fact]
@@ -65,8 +64,8 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().NotBeEmpty();
-        errors.Should().Contain(e => e.Contains("Name") && e.Contains("20 characters"));
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Name") && e.Contains("20 characters"));
     }
 
     [Fact]
@@ -80,8 +79,8 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().NotBeEmpty();
-        errors.Should().Contain(e => e.Contains("Email"));
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Email"));
     }
 
     [Fact]
@@ -95,8 +94,8 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().NotBeEmpty();
-        errors.Should().Contain(e => e.Contains("Age") && e.Contains("greater than"));
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Age") && e.Contains("greater than"));
     }
 
     [Fact]
@@ -110,8 +109,8 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().NotBeEmpty();
-        errors.Should().Contain(e => e.Contains("Age") && e.Contains("less than"));
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Age") && e.Contains("less than"));
     }
 
     [Fact]
@@ -125,8 +124,8 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().NotBeEmpty();
-        errors.Should().Contain(e => e.Contains("Status"));
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Status"));
     }
 
     [Fact]
@@ -146,7 +145,7 @@ public class FluentValidationTests
         var errors = (await validator.ValidateAsync(request)).ToList();
 
         // Assert
-        errors.Should().BeEmpty();
+        Assert.Empty(errors);
     }
 
     [Fact]
@@ -166,7 +165,7 @@ public class FluentValidationTests
         var isValid = await validator.IsValidAsync(request);
 
         // Assert
-        isValid.Should().BeTrue();
+        Assert.True(isValid);
     }
 
     [Fact]
@@ -180,7 +179,7 @@ public class FluentValidationTests
         var isValid = await validator.IsValidAsync(request);
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -206,8 +205,8 @@ public class FluentValidationTests
         }
 
         // Assert
-        allErrors.Should().NotBeEmpty();
-        allErrors.Should().Contain(e => e.Contains("3 characters"));
+        Assert.NotEmpty(allErrors);
+        Assert.Contains(allErrors, e => e.Contains("3 characters"));
     }
 
     // Test classes

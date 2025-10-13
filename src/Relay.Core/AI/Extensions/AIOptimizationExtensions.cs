@@ -7,7 +7,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Extension methods for AI optimization engine.
     /// </summary>
-    internal static class AIOptimizationExtensions
+    public static class AIOptimizationExtensions
     {
         /// <summary>
         /// Adds a range of key-value pairs to a dictionary.
@@ -324,7 +324,12 @@ namespace Relay.Core.AI
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (batchSize < 1)
                 throw new ArgumentOutOfRangeException(nameof(batchSize), "Batch size must be at least 1");
-            
+
+            return BatchImpl(source, batchSize);
+        }
+
+        private static IEnumerable<IEnumerable<T>> BatchImpl<T>(IEnumerable<T> source, int batchSize)
+        {
             var batch = new List<T>(batchSize);
             foreach (var item in source)
             {

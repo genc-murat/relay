@@ -31,7 +31,28 @@ public class OpenTelemetryTracingProvider : IDistributedTracingProvider
         var activity = Activity.Current?.Source.StartActivity(activityName, ActivityKind.Server)
                       ?? new ActivitySource(_serviceName).StartActivity(activityName, ActivityKind.Server);
 
-        if (activity != null)
+        // If OpenTelemetry doesn't provide an activity, create one manually for basic tracing support
+        if (activity == null)
+        {
+            activity = new Activity(activityName);
+            activity.SetTag("request.type", requestType.FullName ?? requestType.Name);
+
+            if (!string.IsNullOrWhiteSpace(correlationId))
+            {
+                activity.SetTag("correlation.id", correlationId);
+            }
+
+            if (tags != null)
+            {
+                foreach (var tag in tags)
+                {
+                    activity.SetTag(tag.Key, tag.Value);
+                }
+            }
+
+            activity.Start();
+        }
+        else
         {
             activity.SetTag("request.type", requestType.FullName ?? requestType.Name);
 

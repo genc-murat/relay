@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Performance.BufferManagement;
@@ -206,43 +205,5 @@ public sealed class OptimizedPooledBufferManager : IPooledBufferManager, IDispos
     {
         // ArrayPools are typically shared and don't need disposal
         // This is here for interface compliance
-    }
-}
-
-/// <summary>
-/// Performance metrics for buffer pool analysis
-/// </summary>
-public readonly record struct BufferPoolMetrics
-{
-    public long TotalRequests { get; init; }
-    public long SmallPoolHits { get; init; }
-    public long MediumPoolHits { get; init; }
-    public long LargePoolHits { get; init; }
-    public double SmallPoolEfficiency { get; init; }
-    public double MediumPoolEfficiency { get; init; }
-    public double LargePoolEfficiency { get; init; }
-
-    public override string ToString()
-    {
-        return $"Total: {TotalRequests:N0}, " +
-               $"Small: {SmallPoolHits:N0} ({SmallPoolEfficiency:P1}), " +
-               $"Medium: {MediumPoolHits:N0} ({MediumPoolEfficiency:P1}), " +
-               $"Large: {LargePoolHits:N0} ({LargePoolEfficiency:P1})";
-    }
-}
-
-/// <summary>
-/// Service collection extensions for optimized buffer management
-/// </summary>
-public static class OptimizedBufferManagerExtensions
-{
-    /// <summary>
-    /// Gets optimized service for better performance
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T? GetOptimizedServiceFromPool<T>(this IServiceProvider serviceProvider) where T : class
-    {
-        // Use faster service resolution when possible
-        return serviceProvider.GetService<T>();
     }
 }

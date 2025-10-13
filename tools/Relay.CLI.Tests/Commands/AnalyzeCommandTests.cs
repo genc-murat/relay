@@ -3,6 +3,7 @@ using Relay.CLI.Commands.Models;
 using Relay.CLI.Commands.Models.Performance;
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -1174,6 +1175,458 @@ public class SecondHandler : IRequestHandler<SecondRequest, string>
 public record SecondRequest(string Value) : IRequest<string>;";
 
         await File.WriteAllTextAsync(Path.Combine(_testPath, "SecondHandler.cs"), handler);
+    }
+
+    [Fact]
+    public async Task AnalyzeProjectStructure_WithValidProject_ShouldDetectRelay()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-analyze-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new ProjectAnalysis();
+
+        try
+        {
+            var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TieredPGO>true</TieredPGO>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+  </ItemGroup>
+</Project>";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.csproj"), csproj);
+
+            // Act
+            await AnalyzeCommand.DiscoverProjectFiles(analysis, null, null);
+
+            // Assert
+            analysis.ProjectFiles.Should().HaveCount(1);
+            analysis.HasRelayCore.Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeHandlers_WithHandlerClasses_ShouldCountCorrectly()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-analyze-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new ProjectAnalysis();
+
+        try
+        {
+            var csFile = @"using Relay.Core;
+
+[Handle]
+public class OptimizedHandler : IRequestHandler<TestRequest, string>
+{
+    public async ValueTask<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""result"";
+    }
+}
+
+public class RegularHandler : INotificationHandler<TestNotification>
+{
+    public async ValueTask HandleAsync(TestNotification notification, CancellationToken ct)
+    {
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Handlers.cs"), csFile);
+            analysis.SourceFiles.Add(Path.Combine(testPath, "Handlers.cs"));
+
+            // Act
+            await AnalyzeCommand.AnalyzeHandlers(analysis, null, null);
+
+            // Assert
+            analysis.Handlers.Should().HaveCount(2);
+            analysis.Handlers.Count(h => h.Name.Contains("Optimized")).Should().Be(1);
+            analysis.Handlers.Count(h => h.UsesValueTask).Should().Be(1);
+            analysis.Handlers.Count(h => h.HasCancellationToken).Should().Be(2);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeRequests_WithRequestRecords_ShouldCountCorrectly()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-analyze-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new ProjectAnalysis();
+
+        try
+        {
+            var csFile = @"using Relay.Core;
+
+[Authorize]
+public record CreateUserCommand(string Name, string Email) : IRequest<int>;
+
+[Cacheable(Duration = 300)]
+public record GetUserQuery(int Id) : IRequest<UserDto>;
+
+public record UserDto(int Id, string Name, string Email);";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Requests.cs"), csFile);
+            analysis.SourceFiles.Add(Path.Combine(testPath, "Requests.cs"));
+
+            // Act
+            await AnalyzeCommand.AnalyzeRequests(analysis, null, null);
+
+            // Assert
+            analysis.Requests.Should().HaveCount(2);
+            analysis.Requests.Count(r => r.IsRecord).Should().Be(2);
+            analysis.Requests.Count(r => r.HasAuthorization).Should().Be(1);
+            analysis.Requests.Count(r => r.HasCaching).Should().Be(1);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task CheckPerformanceOpportunities_WithIssues_ShouldDetectProblems()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = new List<HandlerInfo>
+            {
+                new() { UsesValueTask = false, HasCancellationToken = false, LineCount = 150 },
+                new() { UsesValueTask = true, HasCancellationToken = true, LineCount = 20 }
+            },
+            Requests = new List<RequestInfo>
+            {
+                new() { HasCaching = false }
+            }
+        };
+
+        // Act
+        await AnalyzeCommand.CheckPerformanceOpportunities(analysis, null, null);
+
+        // Assert
+        analysis.PerformanceIssues.Should().NotBeEmpty();
+        analysis.PerformanceIssues.Should().Contain(i => i.Type.Contains("Task Usage"));
+        analysis.PerformanceIssues.Should().Contain(i => i.Type.Contains("Cancellation Support"));
+        analysis.PerformanceIssues.Should().Contain(i => i.Type.Contains("Handler Complexity"));
+        analysis.PerformanceIssues.Should().Contain(i => i.Type.Contains("Caching Opportunity"));
+    }
+
+    [Fact]
+    public async Task CheckReliabilityPatterns_WithIssues_ShouldDetectProblems()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = new List<HandlerInfo>
+            {
+                new() { HasLogging = false },
+                new() { HasValidation = false }
+            },
+            Requests = new List<RequestInfo>
+            {
+                new() { HasValidation = false },
+                new() { HasAuthorization = false }
+            }
+        };
+
+        // Act
+        await AnalyzeCommand.CheckReliabilityPatterns(analysis, null, null);
+
+        // Assert
+        analysis.ReliabilityIssues.Should().NotBeEmpty();
+        analysis.ReliabilityIssues.Should().Contain(i => i.Type.Contains("Logging"));
+        analysis.ReliabilityIssues.Should().Contain(i => i.Type.Contains("Validation"));
+        analysis.ReliabilityIssues.Should().Contain(i => i.Type.Contains("Authorization"));
+    }
+
+    [Fact]
+    public async Task AnalyzeDependencies_WithProjectReferences_ShouldDetectPackages()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-analyze-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new ProjectAnalysis();
+
+        try
+        {
+            var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+    <PackageReference Include=""Microsoft.Extensions.Logging"" Version=""9.0.0"" />
+    <PackageReference Include=""FluentValidation"" Version=""11.0.0"" />
+    <PackageReference Include=""StackExchange.Redis"" Version=""2.6.0"" />
+  </ItemGroup>
+</Project>";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.csproj"), csproj);
+            analysis.ProjectFiles.Add(Path.Combine(testPath, "Test.csproj"));
+
+            // Act
+            await AnalyzeCommand.AnalyzeDependencies(analysis, null, null);
+
+            // Assert
+            analysis.HasRelayCore.Should().BeTrue();
+            analysis.HasLogging.Should().BeTrue();
+            analysis.HasValidation.Should().BeTrue();
+            analysis.HasCaching.Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithAnalysisData_ShouldCreateRecommendations()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = new List<HandlerInfo>(new HandlerInfo[25]), // 25 handlers
+            PerformanceIssues = new List<PerformanceIssue>
+            {
+                new() { Severity = "High" }
+            },
+            ReliabilityIssues = new List<ReliabilityIssue>
+            {
+                new() { Severity = "High" }
+            },
+            HasRelayCore = false
+        };
+
+        // Act
+        await AnalyzeCommand.GenerateRecommendations(analysis, null, null);
+
+        // Assert
+        analysis.Recommendations.Should().NotBeEmpty();
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("Performance"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("Reliability"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("Framework"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("Architecture"));
+    }
+
+    [Fact]
+    public void DisplayAnalysisResults_WithData_ShouldNotThrow()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            ProjectFiles = new List<string> { "Test.csproj" },
+            SourceFiles = new List<string> { "Test.cs" },
+            Handlers = new List<HandlerInfo>
+            {
+                new() { Name = "TestHandler", UsesValueTask = true, HasCancellationToken = true }
+            },
+            Requests = new List<RequestInfo>
+            {
+                new() { Name = "TestRequest", IsRecord = true, HasValidation = true }
+            },
+            PerformanceIssues = new List<PerformanceIssue>
+            {
+                new() { Type = "Test", Severity = "Medium", Description = "Test issue" }
+            },
+            ReliabilityIssues = new List<ReliabilityIssue>
+            {
+                new() { Type = "Test", Severity = "Low", Description = "Test reliability issue" }
+            },
+            Recommendations = new List<Recommendation>
+            {
+                new() { Title = "Test Rec", Priority = "High", Category = "Test", Actions = new List<string> { "Test action" } }
+            }
+        };
+
+        // Act & Assert - Should not throw
+        AnalyzeCommand.DisplayAnalysisResults(analysis, "console");
+    }
+
+    [Fact]
+    public async Task SaveAnalysisResults_WithJsonFormat_ShouldCreateFile()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-report-{Guid.NewGuid()}.json");
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = "/test/path",
+            AnalysisDepth = "full",
+            Handlers = new List<HandlerInfo>
+            {
+                new() { Name = "TestHandler" }
+            }
+        };
+
+        try
+        {
+            // Act
+            await AnalyzeCommand.SaveAnalysisResults(analysis, testPath, "json");
+
+            // Assert
+            File.Exists(testPath).Should().BeTrue();
+            var content = await File.ReadAllTextAsync(testPath);
+            content.Should().Contain("ProjectPath");
+            content.Should().Contain("TestHandler");
+        }
+        finally
+        {
+            if (File.Exists(testPath))
+                File.Delete(testPath);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAnalysisResults_WithMarkdownFormat_ShouldCreateFile()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-report-{Guid.NewGuid()}.md");
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = "/test/path",
+            Handlers = new List<HandlerInfo>
+            {
+                new() { Name = "TestHandler" }
+            }
+        };
+
+        try
+        {
+            // Act
+            await AnalyzeCommand.SaveAnalysisResults(analysis, testPath, "markdown");
+
+            // Assert
+            File.Exists(testPath).Should().BeTrue();
+            var content = await File.ReadAllTextAsync(testPath);
+            content.Should().Contain("# 🔍 Relay Project Analysis Report");
+        }
+        finally
+        {
+            if (File.Exists(testPath))
+                File.Delete(testPath);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAnalysisResults_WithHtmlFormat_ShouldCreateFile()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-report-{Guid.NewGuid()}.html");
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = "/test/path",
+            Handlers = new List<HandlerInfo>
+            {
+                new() { Name = "TestHandler" }
+            }
+        };
+
+        try
+        {
+            // Act
+            await AnalyzeCommand.SaveAnalysisResults(analysis, testPath, "html");
+
+            // Assert
+            File.Exists(testPath).Should().BeTrue();
+            var content = await File.ReadAllTextAsync(testPath);
+            content.Should().Contain("<html>");
+            content.Should().Contain("Relay Project Analysis Report");
+        }
+        finally
+        {
+            if (File.Exists(testPath))
+                File.Delete(testPath);
+        }
+    }
+
+    [Theory]
+    [InlineData("TestHandler.cs", true)]
+    [InlineData("TestRequest.cs", false)]
+    [InlineData("SomeHandler.cs", true)]
+    [InlineData("Handler.cs", true)]
+    public void IsHandler_ShouldDetectHandlersCorrectly(string className, bool expected)
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration(className.Replace(".cs", ""));
+        var content = className.Contains("Handler") ? "[Handle]" : "";
+
+        // Act
+        var result = AnalyzeCommand.IsHandler(classDecl, content);
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("TestRequest.cs", true)]
+    [InlineData("TestQuery.cs", true)]
+    [InlineData("TestCommand.cs", true)]
+    [InlineData("TestHandler.cs", false)]
+    public void IsRequest_ShouldDetectRequestsCorrectly(string className, bool expected)
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration(className.Replace(".cs", ""));
+        var content = "";
+
+        // Act
+        var result = AnalyzeCommand.IsRequest(classDecl, content);
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void CalculateOverallScore_WithPerfectProject_ShouldReturn10()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            PerformanceIssues = new List<PerformanceIssue>(),
+            ReliabilityIssues = new List<ReliabilityIssue>(),
+            HasRelayCore = true,
+            HasLogging = true,
+            HasValidation = true,
+            HasCaching = true
+        };
+
+        // Act
+        var score = AnalyzeCommand.CalculateOverallScore(analysis);
+
+        // Assert
+        score.Should().Be(10.0);
+    }
+
+    [Fact]
+    public void CalculateOverallScore_WithIssues_ShouldDeductPoints()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            PerformanceIssues = new List<PerformanceIssue>
+            {
+                new() { Severity = "High" },
+                new() { Severity = "Medium" }
+            },
+            ReliabilityIssues = new List<ReliabilityIssue>
+            {
+                new() { Severity = "High" }
+            }
+        };
+
+        // Act
+        var score = AnalyzeCommand.CalculateOverallScore(analysis);
+
+        // Assert - Should deduct: 2.0 + 1.0 + 1.5 = 4.5 points
+        score.Should().BeLessThan(6.0);
     }
 
     public void Dispose()

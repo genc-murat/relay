@@ -197,7 +197,8 @@ public static class PerformanceCommand
             }
 
             // Check for string concatenation in loops (bad practice)
-            if (System.Text.RegularExpressions.Regex.IsMatch(content, @"for\s*\([^)]*\)\s*\{[^}]*\+\s*=\s*[^;]*;"))
+            if (System.Text.RegularExpressions.Regex.IsMatch(content, @"for\s*\([^)]*\)\s*\{[^}]*\+\s*=\s*[^;]*;") ||
+                System.Text.RegularExpressions.Regex.IsMatch(content, @"for\s*\([^)]*\)\s*\{[^}]*=\s*[^+]*\+[^;]*;"))
             {
                 analysis.StringConcatInLoopCount++;
             }
@@ -247,7 +248,7 @@ public static class PerformanceCommand
 
                         // Check for caching
                         var classBody = classDecl.ToString();
-                        if (classBody.Contains("ICache") || classBody.Contains("IMemoryCache"))
+                        if (classBody.Contains("ICache") || classBody.Contains("IMemoryCache") || classBody.Contains("ICachable"))
                         {
                             analysis.CachedHandlerCount++;
                         }
@@ -319,7 +320,7 @@ public static class PerformanceCommand
             {
                 Category = "Handler Optimization",
                 Priority = "Medium",
-                Title = "Add [Handle] attribute to handlers",
+                Title = "Add [[Handle]] attribute to handlers",
                 Description = "Enable source generator optimizations for handlers",
                 Impact = "Zero-overhead handler invocation"
             });

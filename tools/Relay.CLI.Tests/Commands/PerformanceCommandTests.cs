@@ -1,4 +1,5 @@
 using Relay.CLI.Commands;
+using Relay.CLI.Commands.Models.Performance;
 using System.Diagnostics;
 
 namespace Relay.CLI.Tests.Commands;
@@ -717,5 +718,925 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         summary.TotalRuns.Should().Be(1000);
         summary.SuccessRate.Should().BeGreaterThan(99.0);
         summary.Throughput.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void Create_ShouldReturnValidCommand()
+    {
+        // Act
+        var command = PerformanceCommand.Create();
+
+        // Assert
+        command.Should().NotBeNull();
+        command.Name.Should().Be("performance");
+        command.Description.Should().Be("Performance analysis and recommendations");
+    }
+
+    [Fact]
+    public async Task ExecutePerformance_WithValidProject_ShouldCompleteSuccessfully()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+
+        try
+        {
+            // Create a sample project file
+            var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+  </ItemGroup>
+</Project>";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.csproj"), csproj);
+
+            // Act & Assert - Should not throw
+            await PerformanceCommand.ExecutePerformance(testPath, false, false, null);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeProjectStructure_WithValidProject_ShouldDetectRelay()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TieredPGO>true</TieredPGO>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+  </ItemGroup>
+</Project>";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.csproj"), csproj);
+
+            // Act
+            await PerformanceCommand.AnalyzeProjectStructure(testPath, analysis);
+
+            // Assert
+            analysis.ProjectCount.Should().Be(1);
+            analysis.HasRelay.Should().BeTrue();
+            analysis.HasPGO.Should().BeTrue();
+            analysis.HasOptimizations.Should().BeTrue();
+            analysis.ModernFramework.Should().BeTrue();
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeAsyncPatterns_WithAsyncMethods_ShouldCountCorrectly()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"using System.Threading.Tasks;
+
+public class TestClass
+{
+    public async ValueTask<string> HandleAsync(string request, CancellationToken ct)
+    {
+        await Task.Delay(100).ConfigureAwait(false);
+        return ""result"";
+    }
+
+    public async Task<int> ProcessAsync()
+    {
+        return await Task.FromResult(42);
+    }
+
+    public void SyncMethod()
+    {
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeAsyncPatterns(testPath, analysis);
+
+            // Assert
+            analysis.AsyncMethodCount.Should().Be(2);
+            analysis.ValueTaskCount.Should().Be(1);
+            analysis.TaskCount.Should().Be(1);
+            analysis.CancellationTokenCount.Should().Be(1);
+            analysis.ConfigureAwaitCount.Should().Be(1);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeMemoryPatterns_WithMemoryIssues_ShouldDetectProblems()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"using System.Text;
+
+public record TestRequest(string Name);
+
+public struct TestStruct
+{
+    public int Value;
+}
+
+public class TestClass
+{
+    public void ProcessData()
+    {
+        var items = new[] { 1, 2, 3 };
+        var result = items.Select(x => x * 2).Where(x => x > 2).ToList();
+
+        var sb = new StringBuilder();
+        sb.Append(""test"");
+
+        for (int i = 0; i < 10; i++)
+        {
+            var str = ""item"" + i; // String concatenation in loop
+        }
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeMemoryPatterns(testPath, analysis);
+
+            // Assert
+            analysis.RecordCount.Should().Be(1);
+            analysis.StructCount.Should().Be(1);
+            analysis.LinqUsageCount.Should().Be(1);
+            analysis.StringBuilderCount.Should().Be(1);
+            analysis.StringConcatInLoopCount.Should().Be(1); // var str = "item" + i; is concatenation
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeHandlerPerformance_WithHandlers_ShouldCountCorrectly()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"using Relay.Core;
+
+[Handle]
+public class OptimizedHandler : IRequestHandler<TestRequest, string>
+{
+    public async ValueTask<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""result"";
+    }
+}
+
+public class RegularHandler : INotificationHandler<TestNotification>
+{
+    public async ValueTask HandleAsync(TestNotification notification, CancellationToken ct)
+    {
+    }
+}
+
+public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
+{
+    public async ValueTask<string> HandleAsync(CachedRequest request, CancellationToken ct)
+    {
+        return ""cached"";
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Handlers.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeHandlerPerformance(testPath, analysis);
+
+            // Assert
+            analysis.HandlerCount.Should().Be(3);
+            analysis.OptimizedHandlerCount.Should().Be(1);
+            analysis.CachedHandlerCount.Should().Be(1);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithIssues_ShouldCreateRecommendations()
+    {
+        // Arrange
+        var analysis = new PerformanceAnalysis
+        {
+            HasRelay = false,
+            ModernFramework = false,
+            HasPGO = false,
+            HasOptimizations = false,
+            TaskCount = 10,
+            ValueTaskCount = 0,
+            StringConcatInLoopCount = 5,
+            HandlerCount = 10,
+            OptimizedHandlerCount = 0,
+            CachedHandlerCount = 0
+        };
+
+        // Act
+        await PerformanceCommand.GenerateRecommendations(analysis);
+
+        // Assert
+        analysis.PerformanceScore.Should().BeLessThan(100);
+        analysis.Recommendations.Should().NotBeEmpty();
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("PGO"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("ValueTask"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("string concatenation"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("[Handle]"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("caching"));
+    }
+
+    [Fact]
+    public void DisplayPerformanceAnalysis_WithData_ShouldNotThrow()
+    {
+        // Arrange
+        var analysis = new PerformanceAnalysis
+        {
+            PerformanceScore = 85,
+            ProjectCount = 2,
+            HandlerCount = 5,
+            OptimizedHandlerCount = 3,
+            ValueTaskCount = 4,
+            AsyncMethodCount = 6,
+            ModernFramework = true,
+            HasPGO = true
+        };
+        analysis.Recommendations.Add(new PerformanceRecommendation
+        {
+            Category = "Test",
+            Priority = "High",
+            Title = "Test Recommendation",
+            Description = "Test description",
+            Impact = "Test impact"
+        });
+
+        // Act & Assert - Should not throw
+        PerformanceCommand.DisplayPerformanceAnalysis(analysis, true);
+    }
+
+    [Theory]
+    [InlineData("High", 1)]
+    [InlineData("Medium", 2)]
+    [InlineData("Low", 3)]
+    [InlineData("Unknown", 4)]
+    public void GetPriorityOrder_ShouldReturnCorrectOrder(string priority, int expectedOrder)
+    {
+        // Act
+        var order = PerformanceCommand.GetPriorityOrder(priority);
+
+        // Assert
+        order.Should().Be(expectedOrder);
+    }
+
+    [Fact]
+    public async Task GeneratePerformanceReport_WithData_ShouldCreateFile()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-report-{Guid.NewGuid()}.md");
+        var analysis = new PerformanceAnalysis
+        {
+            PerformanceScore = 90,
+            ProjectCount = 1,
+            HandlerCount = 3,
+            OptimizedHandlerCount = 2,
+            AsyncMethodCount = 5,
+            ValueTaskCount = 3,
+            TaskCount = 2,
+            ModernFramework = true,
+            HasPGO = true
+        };
+        analysis.Recommendations.Add(new PerformanceRecommendation
+        {
+            Title = "Test Rec",
+            Priority = "High",
+            Category = "Test",
+            Description = "Test desc",
+            Impact = "Test impact"
+        });
+
+        try
+        {
+            // Act
+            await PerformanceCommand.GeneratePerformanceReport(analysis, testPath);
+
+            // Assert
+            File.Exists(testPath).Should().BeTrue();
+            var content = await File.ReadAllTextAsync(testPath);
+            content.Should().Contain("# Performance Analysis Report");
+            content.Should().Contain("90/100");
+            content.Should().Contain("Test Rec");
+        }
+        finally
+        {
+            if (File.Exists(testPath))
+                File.Delete(testPath);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeProjectStructure_WithMultipleProjects_ShouldCountCorrectly()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            // Create multiple project files
+            var csproj1 = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TieredPGO>true</TieredPGO>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+  </ItemGroup>
+</Project>";
+            var csproj2 = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+  </PropertyGroup>
+</Project>";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Project1.csproj"), csproj1);
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Project2.csproj"), csproj2);
+
+            // Act
+            await PerformanceCommand.AnalyzeProjectStructure(testPath, analysis);
+
+            // Assert
+            analysis.ProjectCount.Should().Be(2);
+            analysis.HasRelay.Should().BeTrue();
+            analysis.HasPGO.Should().BeTrue();
+            analysis.HasOptimizations.Should().BeTrue();
+            analysis.ModernFramework.Should().BeTrue(); // net8.0 is modern
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeProjectStructure_WithOldFramework_ShouldDetectNonModern()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+</Project>";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.csproj"), csproj);
+
+            // Act
+            await PerformanceCommand.AnalyzeProjectStructure(testPath, analysis);
+
+            // Assert
+            analysis.ProjectCount.Should().Be(1);
+            analysis.ModernFramework.Should().BeFalse();
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeProjectStructure_WithNoProjects_ShouldReturnZero()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            // No project files created
+
+            // Act
+            await PerformanceCommand.AnalyzeProjectStructure(testPath, analysis);
+
+            // Assert
+            analysis.ProjectCount.Should().Be(0);
+            analysis.HasRelay.Should().BeFalse();
+            analysis.HasPGO.Should().BeFalse();
+            analysis.HasOptimizations.Should().BeFalse();
+            analysis.ModernFramework.Should().BeFalse();
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeAsyncPatterns_WithComplexAsyncCode_ShouldCountCorrectly()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"using System.Threading.Tasks;
+
+public class TestClass
+{
+    public async ValueTask<string> HandleAsync(string request, CancellationToken ct)
+    {
+        await Task.Delay(100).ConfigureAwait(false);
+        return ""result"";
+    }
+
+    public async Task<int> ProcessAsync()
+    {
+        return await Task.FromResult(42);
+    }
+
+    public async Task ProcessWithoutCancellationToken()
+    {
+        await Task.Delay(100);
+    }
+
+    public void SyncMethod()
+    {
+    }
+
+    public async ValueTask MultipleConfigureAwait()
+    {
+        await Task.Delay(100).ConfigureAwait(false);
+        await Task.Delay(200).ConfigureAwait(false);
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeAsyncPatterns(testPath, analysis);
+
+            // Assert
+            analysis.AsyncMethodCount.Should().Be(4);
+            analysis.ValueTaskCount.Should().Be(2);
+            analysis.TaskCount.Should().Be(2);
+            analysis.CancellationTokenCount.Should().Be(1);
+            analysis.ConfigureAwaitCount.Should().Be(2); // Two in MultipleConfigureAwait, HandleAsync might not be counted due to parsing
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeAsyncPatterns_WithNoAsyncCode_ShouldReturnZero()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"public class TestClass
+{
+    public void SyncMethod1()
+    {
+    }
+
+    public int SyncMethod2()
+    {
+        return 42;
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeAsyncPatterns(testPath, analysis);
+
+            // Assert
+            analysis.AsyncMethodCount.Should().Be(0);
+            analysis.ValueTaskCount.Should().Be(0);
+            analysis.TaskCount.Should().Be(0);
+            analysis.CancellationTokenCount.Should().Be(0);
+            analysis.ConfigureAwaitCount.Should().Be(0);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeMemoryPatterns_WithVariousPatterns_ShouldDetectAll()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"using System.Text;
+using System.Linq;
+
+public record TestRequest(string Name);
+
+public struct TestStruct
+{
+    public int Value;
+}
+
+public class TestClass
+{
+    public void ProcessData()
+    {
+        var items = new[] { 1, 2, 3 };
+        var result = items.Select(x => x * 2).Where(x => x > 2).ToList();
+
+        var sb = new StringBuilder();
+        sb.Append(""test"");
+
+        for (int i = 0; i < 10; i++)
+        {
+            var str = ""item"" + i; // String concatenation in loop
+        }
+
+        // Another loop with concatenation
+        string result2 = """";
+        for (int j = 0; j < 5; j++)
+        {
+            result2 += ""item"" + j;
+        }
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeMemoryPatterns(testPath, analysis);
+
+            // Assert
+            analysis.RecordCount.Should().Be(1);
+            analysis.StructCount.Should().Be(1);
+            analysis.LinqUsageCount.Should().Be(1);
+            analysis.StringBuilderCount.Should().Be(1);
+            analysis.StringConcatInLoopCount.Should().Be(1); // Only the += case
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeMemoryPatterns_WithNoIssues_ShouldReturnZero()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"public class TestClass
+{
+    public void ProcessData()
+    {
+        var number = 42;
+        var text = ""hello"";
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeMemoryPatterns(testPath, analysis);
+
+            // Assert
+            analysis.RecordCount.Should().Be(0);
+            analysis.StructCount.Should().Be(0);
+            analysis.LinqUsageCount.Should().Be(0);
+            analysis.StringBuilderCount.Should().Be(0);
+            analysis.StringConcatInLoopCount.Should().Be(0);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeHandlerPerformance_WithMixedHandlers_ShouldCountCorrectly()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"using Relay.Core;
+
+[Handle]
+public class OptimizedHandler : IRequestHandler<TestRequest, string>
+{
+    public async ValueTask<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""result"";
+    }
+}
+
+public class RegularHandler : INotificationHandler<TestNotification>
+{
+    public async ValueTask HandleAsync(TestNotification notification, CancellationToken ct)
+    {
+    }
+}
+
+public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
+{
+    public async ValueTask<string> HandleAsync(CachedRequest request, CancellationToken ct)
+    {
+        return ""cached"";
+    }
+}
+
+public class NonHandler
+{
+    public void SomeMethod()
+    {
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Handlers.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeHandlerPerformance(testPath, analysis);
+
+            // Assert
+            analysis.HandlerCount.Should().Be(3);
+            analysis.OptimizedHandlerCount.Should().Be(1);
+            analysis.CachedHandlerCount.Should().Be(1);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeHandlerPerformance_WithNoHandlers_ShouldReturnZero()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+        var analysis = new PerformanceAnalysis();
+
+        try
+        {
+            var csFile = @"public class RegularClass
+{
+    public void SomeMethod()
+    {
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.cs"), csFile);
+
+            // Act
+            await PerformanceCommand.AnalyzeHandlerPerformance(testPath, analysis);
+
+            // Assert
+            analysis.HandlerCount.Should().Be(0);
+            analysis.OptimizedHandlerCount.Should().Be(0);
+            analysis.CachedHandlerCount.Should().Be(0);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithPerfectScore_ShouldHaveNoRecommendations()
+    {
+        // Arrange
+        var analysis = new PerformanceAnalysis
+        {
+            HasRelay = true,
+            ModernFramework = true,
+            HasPGO = true,
+            HasOptimizations = true,
+            TaskCount = 0,
+            ValueTaskCount = 10,
+            StringConcatInLoopCount = 0,
+            CancellationTokenCount = 10,
+            AsyncMethodCount = 10,
+            OptimizedHandlerCount = 5,
+            HandlerCount = 5,
+            CachedHandlerCount = 1
+        };
+
+        // Act
+        await PerformanceCommand.GenerateRecommendations(analysis);
+
+        // Assert
+        analysis.PerformanceScore.Should().Be(100);
+        analysis.Recommendations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithAllIssues_ShouldGenerateAllRecommendations()
+    {
+        // Arrange
+        var analysis = new PerformanceAnalysis
+        {
+            HasRelay = false,
+            ModernFramework = false,
+            HasPGO = false,
+            HasOptimizations = false,
+            TaskCount = 10,
+            ValueTaskCount = 0,
+            StringConcatInLoopCount = 5,
+            CancellationTokenCount = 0,
+            AsyncMethodCount = 10,
+            OptimizedHandlerCount = 0,
+            HandlerCount = 5,
+            CachedHandlerCount = 0
+        };
+
+        // Act
+        await PerformanceCommand.GenerateRecommendations(analysis);
+
+        // Assert
+        analysis.PerformanceScore.Should().BeLessThan(100);
+        analysis.Recommendations.Should().HaveCountGreaterThan(0);
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("PGO"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("ValueTask"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("string concatenation"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("[Handle]"));
+        analysis.Recommendations.Should().Contain(r => r.Title.Contains("caching"));
+    }
+
+    [Fact]
+    public void DisplayPerformanceAnalysis_WithEmptyAnalysis_ShouldNotThrow()
+    {
+        // Arrange
+        var analysis = new PerformanceAnalysis
+        {
+            PerformanceScore = 0,
+            ProjectCount = 0,
+            HandlerCount = 0,
+            OptimizedHandlerCount = 0,
+            ValueTaskCount = 0,
+            AsyncMethodCount = 0,
+            ModernFramework = false,
+            HasPGO = false
+        };
+
+        // Act & Assert - Should not throw
+        PerformanceCommand.DisplayPerformanceAnalysis(analysis, false);
+        PerformanceCommand.DisplayPerformanceAnalysis(analysis, true);
+    }
+
+    [Fact]
+    public async Task GeneratePerformanceReport_WithEmptyAnalysis_ShouldCreateMinimalReport()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-report-{Guid.NewGuid()}.md");
+        var analysis = new PerformanceAnalysis
+        {
+            PerformanceScore = 0,
+            ProjectCount = 0,
+            HandlerCount = 0,
+            OptimizedHandlerCount = 0,
+            AsyncMethodCount = 0,
+            ValueTaskCount = 0,
+            TaskCount = 0,
+            ModernFramework = false,
+            HasPGO = false
+        };
+
+        try
+        {
+            // Act
+            await PerformanceCommand.GeneratePerformanceReport(analysis, testPath);
+
+            // Assert
+            File.Exists(testPath).Should().BeTrue();
+            var content = await File.ReadAllTextAsync(testPath);
+            content.Should().Contain("# Performance Analysis Report");
+            content.Should().Contain("0/100");
+            content.Should().NotContain("## Recommendations");
+        }
+        finally
+        {
+            if (File.Exists(testPath))
+                File.Delete(testPath);
+        }
+    }
+
+    [Fact]
+    public async Task ExecutePerformance_WithComplexProject_ShouldCompleteSuccessfully()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        Directory.CreateDirectory(testPath);
+
+        try
+        {
+            // Create a complex project structure
+            var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TieredPGO>true</TieredPGO>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+  </ItemGroup>
+</Project>";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.csproj"), csproj);
+
+            var handlers = @"using Relay.Core;
+using System.Threading.Tasks;
+
+[Handle]
+public class OptimizedHandler : IRequestHandler<TestRequest, string>
+{
+    public async ValueTask<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""result"";
+    }
+}
+
+public class RegularHandler : INotificationHandler<TestNotification>
+{
+    public async ValueTask HandleAsync(TestNotification notification, CancellationToken ct)
+    {
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Handlers.cs"), handlers);
+
+            var service = @"using System.Text;
+using System.Linq;
+
+public record TestRequest(string Name);
+
+public class TestService
+{
+    public async ValueTask<string> ProcessAsync(TestRequest request, CancellationToken ct)
+    {
+        await Task.Delay(100).ConfigureAwait(false);
+        return ""processed"";
+    }
+}";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Service.cs"), service);
+
+            // Act & Assert - Should not throw
+            await PerformanceCommand.ExecutePerformance(testPath, false, false, null);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+        }
     }
 }

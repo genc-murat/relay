@@ -1,7 +1,5 @@
 using System;
 using System.Linq;
-using FluentAssertions;
-using Relay.Core;
 using Xunit;
 
 namespace Relay.Core.Tests
@@ -33,7 +31,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute);
 
                 // Assert
-                errors.Should().BeEmpty();
+                Assert.Empty(errors);
             }
 
             [Fact]
@@ -46,7 +44,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute);
 
                 // Assert
-                errors.Should().BeEmpty();
+                Assert.Empty(errors);
             }
 
             [Theory]
@@ -68,7 +66,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute);
 
                 // Assert
-                errors.Should().BeEmpty();
+                Assert.Empty(errors);
             }
 
             [Theory]
@@ -85,8 +83,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("HttpMethod cannot be null or empty");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("HttpMethod cannot be null or empty", errors[0]);
             }
 
             [Theory]
@@ -102,8 +100,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain($"HttpMethod '{httpMethod}' is not valid");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains($"HttpMethod '{httpMethod}' is not valid", errors[0]);
             }
 
             [Theory]
@@ -121,7 +119,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute);
 
                 // Assert
-                errors.Should().BeEmpty();
+                Assert.Empty(errors);
             }
 
             [Theory]
@@ -136,7 +134,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().Contain(e => e.Contains("Route cannot contain consecutive forward slashes"));
+                Assert.Contains(errors, e => e.Contains("Route cannot contain consecutive forward slashes"));
             }
 
             [Fact]
@@ -149,9 +147,9 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().HaveCount(2);
-                errors.Should().Contain(e => e.Contains("Route cannot contain consecutive forward slashes"));
-                errors.Should().Contain(e => e.Contains("Route should not end with a trailing slash"));
+                Assert.Equal(2, errors.Count);
+                Assert.Contains(errors, e => e.Contains("Route cannot contain consecutive forward slashes"));
+                Assert.Contains(errors, e => e.Contains("Route should not end with a trailing slash"));
             }
 
             [Theory]
@@ -166,8 +164,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Route should not end with a trailing slash");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Route should not end with a trailing slash", errors[0]);
             }
 
             [Theory]
@@ -184,8 +182,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Route cannot contain whitespace characters");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Route cannot contain whitespace characters", errors[0]);
             }
 
             [Theory]
@@ -202,7 +200,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute);
 
                 // Assert
-                errors.Should().BeEmpty();
+                Assert.Empty(errors);
             }
 
             [Theory]
@@ -217,8 +215,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Version cannot be whitespace only");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Version cannot be whitespace only", errors[0]);
             }
 
             [Fact]
@@ -231,9 +229,9 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().HaveCount(2);
-                errors.Should().Contain(e => e.Contains("Version cannot be whitespace only"));
-                errors.Should().Contain(e => e.Contains("Version cannot contain control characters"));
+                Assert.Equal(2, errors.Count);
+                Assert.Contains(errors, e => e.Contains("Version cannot be whitespace only"));
+                Assert.Contains(errors, e => e.Contains("Version cannot contain control characters"));
             }
 
             [Fact]
@@ -246,8 +244,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Version cannot contain control characters");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Version cannot contain control characters", errors[0]);
             }
         }
 
@@ -265,7 +263,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidatePriority(priority);
 
                 // Assert
-                errors.Should().BeEmpty();
+                Assert.Empty(errors);
             }
 
             [Theory]
@@ -279,8 +277,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidatePriority(priority).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Priority must be between -10000 and 10000");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Priority must be between -10000 and 10000", errors[0]);
             }
 
             [Fact]
@@ -290,8 +288,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidatePriority(20000, "CustomPriority").ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("CustomPriority must be between -10000 and 10000");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("CustomPriority must be between -10000 and 10000", errors[0]);
             }
         }
 
@@ -309,7 +307,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidatePipelineOrder(order);
 
                 // Assert
-                errors.Should().BeEmpty();
+                Assert.Empty(errors);
             }
 
             [Theory]
@@ -323,8 +321,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidatePipelineOrder(order).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Pipeline order must be between -100000 and 100000");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Pipeline order must be between -100000 and 100000", errors[0]);
             }
         }
 
@@ -342,7 +340,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateHandlerName(name);
 
                 // Assert
-                errors.Should().BeEmpty();
+                Assert.Empty(errors);
             }
 
             [Theory]
@@ -354,8 +352,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateHandlerName(name).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Handler name cannot be whitespace only");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Handler name cannot be whitespace only", errors[0]);
             }
 
             [Fact]
@@ -365,9 +363,9 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateHandlerName("\t").ToList();
 
                 // Assert
-                errors.Should().HaveCount(2);
-                errors.Should().Contain(e => e.Contains("Handler name cannot be whitespace only"));
-                errors.Should().Contain(e => e.Contains("Handler name cannot contain control characters"));
+                Assert.Equal(2, errors.Count);
+                Assert.Contains(errors, e => e.Contains("Handler name cannot be whitespace only"));
+                Assert.Contains(errors, e => e.Contains("Handler name cannot contain control characters"));
             }
 
             [Fact]
@@ -380,8 +378,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateHandlerName(longName).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Handler name cannot exceed 200 characters");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Handler name cannot exceed 200 characters", errors[0]);
             }
 
             [Fact]
@@ -394,8 +392,8 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateHandlerName(nameWithControlChar).ToList();
 
                 // Assert
-                errors.Should().HaveCount(1);
-                errors[0].Should().Contain("Handler name cannot contain control characters");
+                Assert.Equal(1, errors.Count);
+                Assert.Contains("Handler name cannot contain control characters", errors[0]);
             }
         }
 
@@ -404,21 +402,24 @@ namespace Relay.Core.Tests
             [Fact]
             public void ValidHttpMethods_ShouldContainExpectedMethods()
             {
+                // Arrange
+                var expectedMethods = new[] { "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS" };
+
                 // Assert
-                AttributeValidation.ValidHttpMethods.Should().Contain(new[]
+                foreach (var method in expectedMethods)
                 {
-                    "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"
-                });
+                    Assert.Contains(method, AttributeValidation.ValidHttpMethods);
+                }
             }
 
             [Fact]
             public void ValidHttpMethods_ShouldBeCaseInsensitive()
             {
                 // Assert
-                AttributeValidation.ValidHttpMethods.Contains("get").Should().BeTrue();
-                AttributeValidation.ValidHttpMethods.Contains("GET").Should().BeTrue();
-                AttributeValidation.ValidHttpMethods.Contains("Post").Should().BeTrue();
-                AttributeValidation.ValidHttpMethods.Contains("POST").Should().BeTrue();
+                Assert.True(AttributeValidation.ValidHttpMethods.Contains("get"));
+                Assert.True(AttributeValidation.ValidHttpMethods.Contains("GET"));
+                Assert.True(AttributeValidation.ValidHttpMethods.Contains("Post"));
+                Assert.True(AttributeValidation.ValidHttpMethods.Contains("POST"));
             }
         }
     }

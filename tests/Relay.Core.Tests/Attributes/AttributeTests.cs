@@ -1,7 +1,5 @@
 using System;
 using System.Reflection;
-using FluentAssertions;
-using Relay.Core;
 using Xunit;
 
 namespace Relay.Core.Tests
@@ -17,8 +15,8 @@ namespace Relay.Core.Tests
                 var attribute = new HandleAttribute();
 
                 // Assert
-                attribute.Name.Should().BeNull();
-                attribute.Priority.Should().Be(0);
+                Assert.Null(attribute.Name);
+                Assert.Equal(0, attribute.Priority);
             }
 
             [Fact]
@@ -31,7 +29,7 @@ namespace Relay.Core.Tests
                 var attribute = new HandleAttribute { Name = expectedName };
 
                 // Assert
-                attribute.Name.Should().Be(expectedName);
+                Assert.Equal(expectedName, attribute.Name);
             }
 
             [Fact]
@@ -44,7 +42,7 @@ namespace Relay.Core.Tests
                 var attribute = new HandleAttribute { Priority = expectedPriority };
 
                 // Assert
-                attribute.Priority.Should().Be(expectedPriority);
+                Assert.Equal(expectedPriority, attribute.Priority);
             }
 
             [Fact]
@@ -57,8 +55,8 @@ namespace Relay.Core.Tests
                 var usage = attributeType.GetCustomAttribute<AttributeUsageAttribute>();
 
                 // Assert
-                usage.Should().NotBeNull();
-                usage!.ValidOn.Should().Be(AttributeTargets.Method);
+                Assert.NotNull(usage);
+                Assert.Equal(AttributeTargets.Method, usage.ValidOn);
             }
 
             [Fact]
@@ -71,8 +69,8 @@ namespace Relay.Core.Tests
                 var usage = attributeType.GetCustomAttribute<AttributeUsageAttribute>();
 
                 // Assert
-                usage.Should().NotBeNull();
-                usage!.AllowMultiple.Should().BeFalse(); // Default behavior
+                Assert.NotNull(usage);
+                Assert.False(usage.AllowMultiple); // Default behavior
             }
         }
 
@@ -85,8 +83,8 @@ namespace Relay.Core.Tests
                 var attribute = new NotificationAttribute();
 
                 // Assert
-                attribute.DispatchMode.Should().Be(NotificationDispatchMode.Parallel);
-                attribute.Priority.Should().Be(0);
+                Assert.Equal(NotificationDispatchMode.Parallel, attribute.DispatchMode);
+                Assert.Equal(0, attribute.Priority);
             }
 
             [Fact]
@@ -99,7 +97,7 @@ namespace Relay.Core.Tests
                 var attribute = new NotificationAttribute { DispatchMode = expectedMode };
 
                 // Assert
-                attribute.DispatchMode.Should().Be(expectedMode);
+                Assert.Equal(expectedMode, attribute.DispatchMode);
             }
 
             [Fact]
@@ -112,7 +110,7 @@ namespace Relay.Core.Tests
                 var attribute = new NotificationAttribute { Priority = expectedPriority };
 
                 // Assert
-                attribute.Priority.Should().Be(expectedPriority);
+                Assert.Equal(expectedPriority, attribute.Priority);
             }
 
             [Fact]
@@ -125,8 +123,8 @@ namespace Relay.Core.Tests
                 var usage = attributeType.GetCustomAttribute<AttributeUsageAttribute>();
 
                 // Assert
-                usage.Should().NotBeNull();
-                usage!.ValidOn.Should().Be(AttributeTargets.Method);
+                Assert.NotNull(usage);
+                Assert.Equal(AttributeTargets.Method, usage.ValidOn);
             }
         }
 
@@ -139,8 +137,8 @@ namespace Relay.Core.Tests
                 var attribute = new PipelineAttribute();
 
                 // Assert
-                attribute.Order.Should().Be(0);
-                attribute.Scope.Should().Be(PipelineScope.All);
+                Assert.Equal(0, attribute.Order);
+                Assert.Equal(PipelineScope.All, attribute.Scope);
             }
 
             [Fact]
@@ -153,7 +151,7 @@ namespace Relay.Core.Tests
                 var attribute = new PipelineAttribute { Order = expectedOrder };
 
                 // Assert
-                attribute.Order.Should().Be(expectedOrder);
+                Assert.Equal(expectedOrder, attribute.Order);
             }
 
             [Fact]
@@ -166,7 +164,7 @@ namespace Relay.Core.Tests
                 var attribute = new PipelineAttribute { Scope = expectedScope };
 
                 // Assert
-                attribute.Scope.Should().Be(expectedScope);
+                Assert.Equal(expectedScope, attribute.Scope);
             }
 
             [Fact]
@@ -179,8 +177,8 @@ namespace Relay.Core.Tests
                 var usage = attributeType.GetCustomAttribute<AttributeUsageAttribute>();
 
                 // Assert
-                usage.Should().NotBeNull();
-                usage!.ValidOn.Should().Be(AttributeTargets.Method);
+                Assert.NotNull(usage);
+                Assert.Equal(AttributeTargets.Method, usage.ValidOn);
             }
         }
 
@@ -190,25 +188,26 @@ namespace Relay.Core.Tests
             public void NotificationDispatchMode_ShouldHaveExpectedValues()
             {
                 // Assert
-                Enum.GetValues<NotificationDispatchMode>().Should().Contain(new[]
+                var expectedValues = new[] { NotificationDispatchMode.Parallel, NotificationDispatchMode.Sequential };
+                var actualValues = Enum.GetValues<NotificationDispatchMode>();
+                foreach (var value in expectedValues)
                 {
-                    NotificationDispatchMode.Parallel,
-                    NotificationDispatchMode.Sequential
-                });
+                    Assert.Contains(value, actualValues);
+                }
             }
 
             [Fact]
             public void NotificationDispatchMode_ParallelShouldHaveCorrectValue()
             {
                 // Assert
-                ((int)NotificationDispatchMode.Parallel).Should().Be(0);
+                Assert.Equal(0, (int)NotificationDispatchMode.Parallel);
             }
 
             [Fact]
             public void NotificationDispatchMode_SequentialShouldHaveCorrectValue()
             {
                 // Assert
-                ((int)NotificationDispatchMode.Sequential).Should().Be(1);
+                Assert.Equal(1, (int)NotificationDispatchMode.Sequential);
             }
         }
 
@@ -218,41 +217,40 @@ namespace Relay.Core.Tests
             public void PipelineScope_ShouldHaveExpectedValues()
             {
                 // Assert
-                Enum.GetValues<PipelineScope>().Should().Contain(new[]
+                var expectedValues = new[] { PipelineScope.All, PipelineScope.Requests, PipelineScope.Streams, PipelineScope.Notifications };
+                var actualValues = Enum.GetValues<PipelineScope>();
+                foreach (var value in expectedValues)
                 {
-                    PipelineScope.All,
-                    PipelineScope.Requests,
-                    PipelineScope.Streams,
-                    PipelineScope.Notifications
-                });
+                    Assert.Contains(value, actualValues);
+                }
             }
 
             [Fact]
             public void PipelineScope_AllShouldHaveCorrectValue()
             {
                 // Assert
-                ((int)PipelineScope.All).Should().Be(0);
+                Assert.Equal(0, (int)PipelineScope.All);
             }
 
             [Fact]
             public void PipelineScope_RequestsShouldHaveCorrectValue()
             {
                 // Assert
-                ((int)PipelineScope.Requests).Should().Be(1);
+                Assert.Equal(1, (int)PipelineScope.Requests);
             }
 
             [Fact]
             public void PipelineScope_StreamsShouldHaveCorrectValue()
             {
                 // Assert
-                ((int)PipelineScope.Streams).Should().Be(2);
+                Assert.Equal(2, (int)PipelineScope.Streams);
             }
 
             [Fact]
             public void PipelineScope_NotificationsShouldHaveCorrectValue()
             {
                 // Assert
-                ((int)PipelineScope.Notifications).Should().Be(3);
+                Assert.Equal(3, (int)PipelineScope.Notifications);
             }
         }
 
@@ -265,9 +263,9 @@ namespace Relay.Core.Tests
                 var attribute = new ExposeAsEndpointAttribute();
 
                 // Assert
-                attribute.Route.Should().BeNull();
-                attribute.HttpMethod.Should().Be("POST");
-                attribute.Version.Should().BeNull();
+                Assert.Null(attribute.Route);
+                Assert.Equal("POST", attribute.HttpMethod);
+                Assert.Null(attribute.Version);
             }
 
             [Fact]
@@ -280,7 +278,7 @@ namespace Relay.Core.Tests
                 var attribute = new ExposeAsEndpointAttribute { Route = expectedRoute };
 
                 // Assert
-                attribute.Route.Should().Be(expectedRoute);
+                Assert.Equal(expectedRoute, attribute.Route);
             }
 
             [Fact]
@@ -293,7 +291,7 @@ namespace Relay.Core.Tests
                 var attribute = new ExposeAsEndpointAttribute { HttpMethod = expectedMethod };
 
                 // Assert
-                attribute.HttpMethod.Should().Be(expectedMethod);
+                Assert.Equal(expectedMethod, attribute.HttpMethod);
             }
 
             [Fact]
@@ -306,7 +304,7 @@ namespace Relay.Core.Tests
                 var attribute = new ExposeAsEndpointAttribute { Version = expectedVersion };
 
                 // Assert
-                attribute.Version.Should().Be(expectedVersion);
+                Assert.Equal(expectedVersion, attribute.Version);
             }
 
             [Fact]
@@ -319,8 +317,8 @@ namespace Relay.Core.Tests
                 var usage = attributeType.GetCustomAttribute<AttributeUsageAttribute>();
 
                 // Assert
-                usage.Should().NotBeNull();
-                usage!.ValidOn.Should().Be(AttributeTargets.Method);
+                Assert.NotNull(usage);
+                Assert.Equal(AttributeTargets.Method, usage.ValidOn);
             }
         }
     }
@@ -353,9 +351,9 @@ namespace Relay.Core.Tests
             var attribute = method!.GetCustomAttribute<HandleAttribute>();
 
             // Assert
-            attribute.Should().NotBeNull();
-            attribute!.Name.Should().Be("TestHandler");
-            attribute.Priority.Should().Be(10);
+            Assert.NotNull(attribute);
+            Assert.Equal("TestHandler", attribute.Name);
+            Assert.Equal(10, attribute.Priority);
         }
 
         [Fact]
@@ -368,9 +366,9 @@ namespace Relay.Core.Tests
             var attribute = method!.GetCustomAttribute<NotificationAttribute>();
 
             // Assert
-            attribute.Should().NotBeNull();
-            attribute!.DispatchMode.Should().Be(NotificationDispatchMode.Sequential);
-            attribute.Priority.Should().Be(5);
+            Assert.NotNull(attribute);
+            Assert.Equal(NotificationDispatchMode.Sequential, attribute.DispatchMode);
+            Assert.Equal(5, attribute.Priority);
         }
 
         [Fact]
@@ -383,9 +381,9 @@ namespace Relay.Core.Tests
             var attribute = method!.GetCustomAttribute<PipelineAttribute>();
 
             // Assert
-            attribute.Should().NotBeNull();
-            attribute!.Order.Should().Be(-100);
-            attribute.Scope.Should().Be(PipelineScope.Requests);
+            Assert.NotNull(attribute);
+            Assert.Equal(-100, attribute.Order);
+            Assert.Equal(PipelineScope.Requests, attribute.Scope);
         }
 
         [Fact]
@@ -398,10 +396,10 @@ namespace Relay.Core.Tests
             var attribute = method!.GetCustomAttribute<ExposeAsEndpointAttribute>();
 
             // Assert
-            attribute.Should().NotBeNull();
-            attribute!.Route.Should().Be("/api/test");
-            attribute.HttpMethod.Should().Be("GET");
-            attribute.Version.Should().Be("v1");
+            Assert.NotNull(attribute);
+            Assert.Equal("/api/test", attribute.Route);
+            Assert.Equal("GET", attribute.HttpMethod);
+            Assert.Equal("v1", attribute.Version);
         }
     }
 }

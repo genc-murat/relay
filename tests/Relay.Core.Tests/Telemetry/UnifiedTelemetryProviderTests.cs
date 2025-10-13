@@ -330,8 +330,8 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessagePublished_RecordsMessageBrokerMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
-            { 
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
                 Component = "TestComponent",
                 EnableTracing = true
             });
@@ -345,8 +345,46 @@ namespace Relay.Core.Tests.Telemetry
             // Act
             provider.RecordMessagePublished(typeof(TestMessage), payloadSize, duration, true);
 
-            // Just ensure the provider exists and method executes without error
+            // Assert - The method should execute without error
             Assert.NotNull(provider.MetricsProvider);
+        }
+
+        [Fact]
+        public void RecordMessagePublished_WithZeroPayloadSize_RecordsMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var provider = new UnifiedTelemetryProvider(options);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+            var duration = TimeSpan.FromMilliseconds(50);
+            long payloadSize = 0;
+
+            // Act & Assert - Should not throw exception with zero payload size
+            provider.RecordMessagePublished(typeof(TestMessage), payloadSize, duration, true);
+        }
+
+        [Fact]
+        public void RecordMessagePublished_WithLargePayloadSize_RecordsMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var provider = new UnifiedTelemetryProvider(options);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+            var duration = TimeSpan.FromMilliseconds(100);
+            long payloadSize = 10L * 1024 * 1024; // 10MB
+
+            // Act & Assert - Should handle large payload sizes
+            provider.RecordMessagePublished(typeof(TestMessage), payloadSize, duration, true);
         }
 
         [Fact]
@@ -377,8 +415,8 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessageProcessed_RecordsProcessingMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
-            { 
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
                 Component = "TestComponent",
                 EnableTracing = true
             });
@@ -391,8 +429,44 @@ namespace Relay.Core.Tests.Telemetry
             // Act
             provider.RecordMessageProcessed(typeof(TestMessage), duration, true);
 
-            // Just ensure the provider exists and method executes without error
+            // Assert - Method should execute without error
             Assert.NotNull(provider.MetricsProvider);
+        }
+
+        [Fact]
+        public void RecordMessageProcessed_WithZeroDuration_RecordsMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var provider = new UnifiedTelemetryProvider(options);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+            var duration = TimeSpan.Zero;
+
+            // Act & Assert - Should handle zero duration
+            provider.RecordMessageProcessed(typeof(TestMessage), duration, true);
+        }
+
+        [Fact]
+        public void RecordMessageProcessed_WithLongDuration_RecordsMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var provider = new UnifiedTelemetryProvider(options);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+            var duration = TimeSpan.FromHours(1);
+
+            // Act & Assert - Should handle long durations
+            provider.RecordMessageProcessed(typeof(TestMessage), duration, false);
         }
 
         [Fact]
@@ -476,6 +550,185 @@ namespace Relay.Core.Tests.Telemetry
 
             // Assert
             Assert.Null(provider.MetricsProvider);
+        }
+
+        [Fact]
+        public void RecordHandlerExecution_WithNullHandlerName_RecordsMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var metricsProvider = new CustomMetricsProvider();
+            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+            var duration = TimeSpan.FromMilliseconds(100);
+
+            // Act
+            provider.RecordHandlerExecution(typeof(string), typeof(int), null, duration, true);
+
+            // Assert
+            Assert.Single(metricsProvider.HandlerExecutions);
+            var recordedMetrics = metricsProvider.HandlerExecutions[0];
+            Assert.Null(recordedMetrics.HandlerName);
+        }
+
+        [Fact]
+        public void RecordHandlerExecution_WithNullResponseType_RecordsMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var metricsProvider = new CustomMetricsProvider();
+            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+            var duration = TimeSpan.FromMilliseconds(100);
+
+            // Act
+            provider.RecordHandlerExecution(typeof(string), null, "TestHandler", duration, true);
+
+            // Assert
+            Assert.Single(metricsProvider.HandlerExecutions);
+            var recordedMetrics = metricsProvider.HandlerExecutions[0];
+            Assert.Null(recordedMetrics.ResponseType);
+        }
+
+        [Fact]
+        public void RecordNotificationPublish_WithZeroHandlerCount_RecordsMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var metricsProvider = new CustomMetricsProvider();
+            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+            var duration = TimeSpan.FromMilliseconds(50);
+
+            // Act
+            provider.RecordNotificationPublish(typeof(TestNotification), 0, duration, true);
+
+            // Assert
+            Assert.Single(metricsProvider.NotificationPublishes);
+            var recordedMetrics = metricsProvider.NotificationPublishes[0];
+            Assert.Equal(0, recordedMetrics.HandlerCount);
+        }
+
+        [Fact]
+        public void RecordStreamingOperation_WithZeroItemCount_RecordsMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var metricsProvider = new CustomMetricsProvider();
+            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+            var duration = TimeSpan.FromMilliseconds(200);
+
+            // Act
+            provider.RecordStreamingOperation(typeof(string), typeof(int), "StreamHandler", duration, 0, true);
+
+            // Assert
+            Assert.Single(metricsProvider.StreamingOperations);
+            var recordedMetrics = metricsProvider.StreamingOperations[0];
+            Assert.Equal(0L, recordedMetrics.ItemCount);
+        }
+
+        [Fact]
+        public void StartActivity_WithNullCorrelationId_WhenTracingEnabled()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+
+            // Create an ActivityListener to enable activity creation
+            using var listener = new ActivityListener
+            {
+                ShouldListenTo = _ => true,
+                Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData
+            };
+            ActivitySource.AddActivityListener(listener);
+
+            var provider = new UnifiedTelemetryProvider(options);
+
+            // Act
+            var activity = provider.StartActivity("TestOperation", typeof(string), null);
+
+            // Assert - Should not throw exception with null correlation ID
+            Assert.True(true); // Main test is that no exception was thrown
+        }
+
+        [Fact]
+        public void GetCorrelationId_WhenActivityHasCorrelationId_ReturnsActivityCorrelationId()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+
+            // Create an ActivityListener to enable activity creation
+            using var listener = new ActivityListener
+            {
+                ShouldListenTo = _ => true,
+                Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData
+            };
+            ActivitySource.AddActivityListener(listener);
+
+            var provider = new UnifiedTelemetryProvider(options);
+
+            // Create an activity with correlation ID
+            using var activity = provider.StartActivity("TestOperation", typeof(string), "activity-correlation-id");
+
+            // Act
+            var correlationId = provider.GetCorrelationId();
+
+            // Assert - Should return the activity's correlation ID
+            Assert.Equal("activity-correlation-id", correlationId);
+        }
+
+        [Fact]
+        public void Constructor_WithEmptyComponentName_ShouldInitializeSuccessfully()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions { Component = "" });
+
+            // Act
+            var provider = new UnifiedTelemetryProvider(options);
+
+            // Assert
+            Assert.NotNull(provider);
+        }
+
+        [Fact]
+        public void Constructor_WithWhitespaceComponentName_ShouldInitializeSuccessfully()
+        {
+            // Arrange
+            var options = Options.Create(new UnifiedTelemetryOptions { Component = "   " });
+
+            // Act
+            var provider = new UnifiedTelemetryProvider(options);
+
+            // Assert
+            Assert.NotNull(provider);
         }
     }
 

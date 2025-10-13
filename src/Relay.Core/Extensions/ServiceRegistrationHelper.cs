@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Relay.Core.Extensions
 {
@@ -286,6 +287,25 @@ namespace Relay.Core.Extensions
         {
             ValidateServices(services);
             services.Decorate<TService, TDecorator>();
+            return services;
+        }
+
+        /// <summary>
+        /// Conditionally decorates a service if it is already registered.
+        /// </summary>
+        /// <typeparam name="TService">The service type to decorate.</typeparam>
+        /// <typeparam name="TDecorator">The decorator type.</typeparam>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection TryDecorateService<TService, TDecorator>(IServiceCollection services)
+            where TService : class
+            where TDecorator : class, TService
+        {
+            ValidateServices(services);
+            if (services.Any(descriptor => descriptor.ServiceType == typeof(TService)))
+            {
+                services.Decorate<TService, TDecorator>();
+            }
             return services;
         }
 

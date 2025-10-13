@@ -160,7 +160,7 @@ namespace Relay.CLI.Commands
             return insightsCommand;
         }
 
-        private static async Task ExecuteAnalyzeCommand(string path, string depth, string format, string? output, bool includeMetrics, bool suggestOptimizations)
+        internal static async Task ExecuteAnalyzeCommand(string path, string depth, string format, string? output, bool includeMetrics, bool suggestOptimizations)
         {
             Console.WriteLine("🤖 AI-Powered Code Analysis");
             Console.WriteLine("============================");
@@ -180,7 +180,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static async Task ExecuteOptimizeCommand(string path, string[] strategies, string riskLevel, bool backup, bool dryRun, double confidenceThreshold)
+        internal static async Task ExecuteOptimizeCommand(string path, string[] strategies, string riskLevel, bool backup, bool dryRun, double confidenceThreshold)
         {
             Console.WriteLine("🚀 AI-Powered Code Optimization");
             Console.WriteLine("===============================");
@@ -206,7 +206,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static async Task ExecutePredictCommand(string path, string scenario, string load, string timeHorizon, string format)
+        internal static async Task ExecutePredictCommand(string path, string scenario, string load, string timeHorizon, string format)
         {
             Console.WriteLine("🔮 AI Performance Prediction");
             Console.WriteLine("============================");
@@ -226,7 +226,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static async Task ExecuteLearnCommand(string path, string? metricsPath, bool updateModel, bool validate)
+        internal static async Task ExecuteLearnCommand(string path, string? metricsPath, bool updateModel, bool validate)
         {
             Console.WriteLine("🧠 AI Model Learning");
             Console.WriteLine("===================");
@@ -246,7 +246,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static async Task ExecuteInsightsCommand(string path, string timeWindow, string format, string? output, bool includeHealth, bool includePredictions)
+        internal static async Task ExecuteInsightsCommand(string path, string timeWindow, string format, string? output, bool includeHealth, bool includePredictions)
         {
             Console.WriteLine("📊 AI System Insights");
             Console.WriteLine("=====================");
@@ -266,7 +266,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static async Task OutputResults(AIAnalysisResults results, string format, string? output)
+        internal static async Task OutputResults(AIAnalysisResults results, string format, string? output)
         {
             switch (format.ToLowerInvariant())
             {
@@ -292,7 +292,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static void DisplayAnalysisResults(AIAnalysisResults results)
+        internal static void DisplayAnalysisResults(AIAnalysisResults results)
         {
             Console.WriteLine($"📂 Analyzed: {results.ProjectPath}");
             Console.WriteLine($"📊 Files Analyzed: {results.FilesAnalyzed}");
@@ -328,7 +328,7 @@ namespace Relay.CLI.Commands
             Console.WriteLine($"🎯 AI Confidence: {results.AIConfidence:P}");
         }
 
-        private static void DisplayOptimizationResults(AIOptimizationResults results, bool dryRun)
+        internal static void DisplayOptimizationResults(AIOptimizationResults results, bool dryRun)
         {
             if (dryRun)
             {
@@ -362,7 +362,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static async Task OutputPredictions(AIPredictionResults predictions, string format)
+        internal static async Task OutputPredictions(AIPredictionResults predictions, string format)
         {
             switch (format.ToLowerInvariant())
             {
@@ -380,7 +380,7 @@ namespace Relay.CLI.Commands
             await Task.CompletedTask;
         }
 
-        private static void DisplayPredictions(AIPredictionResults predictions)
+        internal static void DisplayPredictions(AIPredictionResults predictions)
         {
             Console.WriteLine("🔮 Performance Predictions:");
             Console.WriteLine($"   • Expected Throughput: {predictions.ExpectedThroughput:N0} requests/sec");
@@ -411,7 +411,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static void DisplayLearningResults(AILearningResults results)
+        internal static void DisplayLearningResults(AILearningResults results)
         {
             Console.WriteLine("🧠 Learning Completed:");
             Console.WriteLine($"   • Training Samples: {results.TrainingSamples:N0}");
@@ -429,7 +429,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static async Task OutputInsights(AIInsightsResults insights, string format, string? output)
+        internal static async Task OutputInsights(AIInsightsResults insights, string format, string? output)
         {
             switch (format.ToLowerInvariant())
             {
@@ -456,7 +456,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static void DisplayInsights(AIInsightsResults insights)
+        internal static void DisplayInsights(AIInsightsResults insights)
         {
             Console.WriteLine("📊 System Insights:");
             Console.WriteLine($"   • Overall Health Score: {insights.HealthScore:F1}/10");
@@ -494,7 +494,7 @@ namespace Relay.CLI.Commands
             }
         }
 
-        private static string GenerateHtmlReport(AIAnalysisResults results)
+        internal static string GenerateHtmlReport(AIAnalysisResults results)
         {
             return $@"<!DOCTYPE html>
 <html>
@@ -543,7 +543,7 @@ namespace Relay.CLI.Commands
 </html>";
         }
 
-        private static string GenerateInsightsHtmlReport(AIInsightsResults insights)
+        internal static string GenerateInsightsHtmlReport(AIInsightsResults insights)
         {
             return $@"<!DOCTYPE html>
 <html>

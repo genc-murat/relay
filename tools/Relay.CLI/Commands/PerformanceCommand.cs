@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -32,7 +33,7 @@ public static class PerformanceCommand
         return command;
     }
 
-    private static async Task ExecutePerformance(string projectPath, bool generateReport, bool detailed, string? outputFile)
+    internal static async Task ExecutePerformance(string projectPath, bool generateReport, bool detailed, string? outputFile)
     {
         var rule = new Rule("[cyan]⚡ Performance Analysis[/]");
         AnsiConsole.Write(rule);
@@ -76,7 +77,7 @@ public static class PerformanceCommand
         }
     }
 
-    private static async Task AnalyzeProjectStructure(string path, PerformanceAnalysis analysis)
+    internal static async Task AnalyzeProjectStructure(string path, PerformanceAnalysis analysis)
     {
         var projectFiles = Directory.GetFiles(path, "*.csproj", SearchOption.AllDirectories)
             .Where(f => !f.Contains("bin") && !f.Contains("obj"))
@@ -112,7 +113,7 @@ public static class PerformanceCommand
         }
     }
 
-    private static async Task AnalyzeAsyncPatterns(string path, PerformanceAnalysis analysis)
+    internal static async Task AnalyzeAsyncPatterns(string path, PerformanceAnalysis analysis)
     {
         var csFiles = Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains("bin") && !f.Contains("obj"))
@@ -164,7 +165,7 @@ public static class PerformanceCommand
         }
     }
 
-    private static async Task AnalyzeMemoryPatterns(string path, PerformanceAnalysis analysis)
+    internal static async Task AnalyzeMemoryPatterns(string path, PerformanceAnalysis analysis)
     {
         var csFiles = Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains("bin") && !f.Contains("obj"))
@@ -196,14 +197,14 @@ public static class PerformanceCommand
             }
 
             // Check for string concatenation in loops (bad practice)
-            if (System.Text.RegularExpressions.Regex.IsMatch(content, @"for\s*\([^)]*\)\s*\{[^}]*\+=\s*[""']"))
+            if (System.Text.RegularExpressions.Regex.IsMatch(content, @"for\s*\([^)]*\)\s*\{[^}]*\+\s*=\s*[^;]*;"))
             {
                 analysis.StringConcatInLoopCount++;
             }
         }
     }
 
-    private static async Task AnalyzeHandlerPerformance(string path, PerformanceAnalysis analysis)
+    internal static async Task AnalyzeHandlerPerformance(string path, PerformanceAnalysis analysis)
     {
         var csFiles = Directory.GetFiles(path, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains("bin") && !f.Contains("obj"))
@@ -212,21 +213,45 @@ public static class PerformanceCommand
         foreach (var file in csFiles)
         {
             var content = await File.ReadAllTextAsync(file);
-            
-            if (content.Contains("IRequestHandler") || content.Contains("INotificationHandler"))
+            var tree = CSharpSyntaxTree.ParseText(content);
+            var root = await tree.GetRootAsync();
+
+            var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+
+            foreach (var classDecl in classDeclarations)
             {
-                analysis.HandlerCount++;
-
-                // Check for [Handle] attribute
-                if (content.Contains("[Handle]"))
+                var baseTypes = classDecl.BaseList?.Types;
+                if (baseTypes != null)
                 {
-                    analysis.OptimizedHandlerCount++;
-                }
+                    bool isHandler = false;
+                    foreach (var baseType in baseTypes)
+                    {
+                        var typeName = baseType.Type.ToString();
+                        if (typeName.Contains("IRequestHandler") || typeName.Contains("INotificationHandler"))
+                        {
+                            isHandler = true;
+                            break;
+                        }
+                    }
 
-                // Check for caching
-                if (content.Contains("ICache") || content.Contains("IMemoryCache"))
-                {
-                    analysis.CachedHandlerCount++;
+                    if (isHandler)
+                    {
+                        analysis.HandlerCount++;
+
+                        // Check for [Handle] attribute
+                        var attributes = classDecl.AttributeLists.SelectMany(al => al.Attributes);
+                        if (attributes.Any(a => a.Name.ToString() == "Handle"))
+                        {
+                            analysis.OptimizedHandlerCount++;
+                        }
+
+                        // Check for caching
+                        var classBody = classDecl.ToString();
+                        if (classBody.Contains("ICache") || classBody.Contains("IMemoryCache"))
+                        {
+                            analysis.CachedHandlerCount++;
+                        }
+                    }
                 }
             }
         }
@@ -234,7 +259,7 @@ public static class PerformanceCommand
         await Task.CompletedTask;
     }
 
-    private static async Task GenerateRecommendations(PerformanceAnalysis analysis)
+    internal static async Task GenerateRecommendations(PerformanceAnalysis analysis)
     {
         // Generate performance score
         int score = 100;
@@ -315,7 +340,7 @@ public static class PerformanceCommand
         await Task.CompletedTask;
     }
 
-    private static void DisplayPerformanceAnalysis(PerformanceAnalysis analysis, bool detailed)
+    internal static void DisplayPerformanceAnalysis(PerformanceAnalysis analysis, bool detailed)
     {
         // Performance Score
         var scoreColor = analysis.PerformanceScore >= 80 ? "green" :
@@ -395,7 +420,7 @@ public static class PerformanceCommand
         }
     }
 
-    private static int GetPriorityOrder(string priority) => priority switch
+    internal static int GetPriorityOrder(string priority) => priority switch
     {
         "High" => 1,
         "Medium" => 2,
@@ -403,7 +428,7 @@ public static class PerformanceCommand
         _ => 4
     };
 
-    private static async Task GeneratePerformanceReport(PerformanceAnalysis analysis, string outputPath)
+    internal static async Task GeneratePerformanceReport(PerformanceAnalysis analysis, string outputPath)
     {
         var report = new StringBuilder();
         

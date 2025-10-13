@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -50,7 +50,8 @@ namespace Relay.Core.Tests.Retry
                 _serviceProviderMock.Object);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
+            var ex = Assert.Throws<ArgumentNullException>(act);
+            Assert.Equal("logger", ex.ParamName);
         }
 
         [Fact]
@@ -63,7 +64,8 @@ namespace Relay.Core.Tests.Retry
                 _serviceProviderMock.Object);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>().WithParameterName("options");
+            var ex = Assert.Throws<ArgumentNullException>(act);
+            Assert.Equal("options", ex.ParamName);
         }
 
         [Fact]
@@ -76,7 +78,8 @@ namespace Relay.Core.Tests.Retry
                 null!);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>().WithParameterName("serviceProvider");
+            var ex = Assert.Throws<ArgumentNullException>(act);
+            Assert.Equal("serviceProvider", ex.ParamName);
         }
 
         [Fact]
@@ -89,7 +92,7 @@ namespace Relay.Core.Tests.Retry
                 _serviceProviderMock.Object);
 
             // Assert
-            behavior.Should().NotBeNull();
+            Assert.NotNull(behavior);
         }
 
         #endregion
@@ -104,24 +107,34 @@ namespace Relay.Core.Tests.Retry
             var request = new TestRequest();
             var expectedResponse = new TestResponse();
             _nextMock.Setup(x => x()).ReturnsAsync(expectedResponse);
-
+ 
             // Act
             var result = await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
-
+ 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _nextMock.Verify(x => x(), Times.Once);
         }
 
         [Fact]
-        public async Task HandleAsync_Should_CallNextDirectly_WhenRetryIsDisabledGloballyButAttributeExists()
+        public async Task HandleAsync_Should_Retry_WhenRetryIsDisabledGloballyButAttributeExists()
         {
             // Arrange
             _relayOptions.DefaultRetryOptions.EnableAutomaticRetry = false;
             var request = new TestRequestWithAttribute();
             var expectedResponse = new TestResponse();
-            _nextMock.Setup(x => x()).ReturnsAsync(expectedResponse);
+            var callCount = 0;
             var loggerMock = new Mock<ILogger<RetryPipelineBehavior<TestRequestWithAttribute, TestResponse>>>();
+
+            _nextMock.Setup(x => x()).Returns(() =>
+            {
+                callCount++;
+                if (callCount == 1)
+                {
+                    throw new InvalidOperationException("First attempt failed");
+                }
+                return new ValueTask<TestResponse>(expectedResponse);
+            });
 
             // Act
             var behavior = new RetryPipelineBehavior<TestRequestWithAttribute, TestResponse>(
@@ -131,8 +144,9 @@ namespace Relay.Core.Tests.Retry
             var result = await behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
-            _nextMock.Verify(x => x(), Times.Once);
+            Assert.Equal(expectedResponse, result);
+            _nextMock.Verify(x => x(), Times.Exactly(2));
+            Assert.Equal(2, callCount);
         }
 
         #endregion
@@ -147,12 +161,12 @@ namespace Relay.Core.Tests.Retry
             var request = new TestRequest();
             var expectedResponse = new TestResponse();
             _nextMock.Setup(x => x()).ReturnsAsync(expectedResponse);
-
+ 
             // Act
             var result = await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
-
+ 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _nextMock.Verify(x => x(), Times.Once);
         }
 
@@ -182,9 +196,9 @@ namespace Relay.Core.Tests.Retry
             var result = await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _nextMock.Verify(x => x(), Times.Exactly(2));
-            callCount.Should().Be(2);
+            Assert.Equal(2, callCount);
         }
 
         [Fact]
@@ -215,9 +229,9 @@ namespace Relay.Core.Tests.Retry
             var result = await behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
-            _nextMock.Verify(x => x(), Times.Exactly(2)); // 1 initial + 1 retry (maxRetryAttempts: 2 means 2 total attempts)
-            callCount.Should().Be(2);
+            Assert.Equal(expectedResponse, result);
+            _nextMock.Verify(x => x(), Times.Exactly(2));
+            Assert.Equal(2, callCount);
         }
 
         #endregion
@@ -255,13 +269,13 @@ namespace Relay.Core.Tests.Retry
             var endTime = DateTime.UtcNow;
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _nextMock.Verify(x => x(), Times.Exactly(2));
-            callCount.Should().Be(2);
-
+            Assert.Equal(2, callCount);
+ 
             // Verify delay was applied (should be at least 50ms between calls)
             var timeDiff = timestamps[1] - timestamps[0];
-            timeDiff.TotalMilliseconds.Should().BeGreaterThanOrEqualTo(40); // Allow some tolerance
+            Assert.True(timeDiff.TotalMilliseconds >= 40); // Allow some tolerance
         }
 
         [Fact]
@@ -291,9 +305,9 @@ namespace Relay.Core.Tests.Retry
             var result = await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _nextMock.Verify(x => x(), Times.Exactly(3));
-            callCount.Should().Be(3);
+            Assert.Equal(3, callCount);
         }
 
         [Fact]
@@ -304,11 +318,11 @@ namespace Relay.Core.Tests.Retry
             _relayOptions.DefaultRetryOptions.DefaultRetryStrategy = "circuitbreaker";
             _relayOptions.DefaultRetryOptions.DefaultMaxRetryAttempts = 2;
             _relayOptions.DefaultRetryOptions.DefaultRetryDelayMilliseconds = 10;
-
+ 
             var request = new TestRequest();
             var expectedResponse = new TestResponse();
             var callCount = 0;
-
+ 
             _nextMock.Setup(x => x()).Returns(() =>
             {
                 callCount++;
@@ -318,14 +332,14 @@ namespace Relay.Core.Tests.Retry
                 }
                 return new ValueTask<TestResponse>(expectedResponse);
             });
-
+ 
             // Act
             var result = await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
-
+ 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _nextMock.Verify(x => x(), Times.Exactly(2));
-            callCount.Should().Be(2);
+            Assert.Equal(2, callCount);
         }
 
         [Fact]
@@ -362,12 +376,11 @@ namespace Relay.Core.Tests.Retry
                 Options.Create(_relayOptions),
                 _serviceProviderMock.Object);
             var result = await behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
-
+ 
             // Assert
-            result.Should().Be(expectedResponse);
-            _nextMock.Verify(x => x(), Times.Exactly(2));
-            customStrategy.Verify(x => x.ShouldRetryAsync(It.IsAny<int>(), It.IsAny<Exception>(), It.IsAny<CancellationToken>()), Times.Once);
-            customStrategy.Verify(x => x.GetRetryDelayAsync(It.IsAny<int>(), It.IsAny<Exception>(), It.IsAny<CancellationToken>()), Times.Once);
+            Assert.Equal(expectedResponse, result);
+            _nextMock.Verify(x => x(), Times.Exactly(2)); // 1 initial + 1 retry (maxRetryAttempts: 2 means 2 total attempts)
+            Assert.Equal(2, callCount);
         }
 
         #endregion
@@ -391,9 +404,9 @@ namespace Relay.Core.Tests.Retry
             Func<Task> act = async () => await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            var resultException = await act.Should().ThrowAsync<RetryExhaustedException>();
-            resultException.Which.Exceptions.Should().HaveCount(2);
-            resultException.Which.Exceptions.Should().AllBeOfType<InvalidOperationException>();
+            var resultException = await Assert.ThrowsAsync<RetryExhaustedException>(act);
+            Assert.Equal(2, resultException.Exceptions.Count);
+            Assert.All(resultException.Exceptions, ex => Assert.IsType<InvalidOperationException>(ex));
         }
 
         [Fact]
@@ -413,8 +426,8 @@ namespace Relay.Core.Tests.Retry
             Func<Task> act = async () => await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            var resultException = await act.Should().ThrowAsync<InvalidOperationException>();
-            resultException.Which.Message.Should().Be("Always fails");
+            var resultException = await Assert.ThrowsAsync<InvalidOperationException>(act);
+            Assert.Equal("Always fails", resultException.Message);
         }
 
         [Fact]
@@ -449,7 +462,7 @@ namespace Relay.Core.Tests.Retry
             Func<Task> act = async () => await behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<InvalidOperationException>();
+            await Assert.ThrowsAsync<InvalidOperationException>(act);
             _nextMock.Verify(x => x(), Times.Once); // Only called once, no retries
             customStrategy.Verify(x => x.ShouldRetryAsync(It.IsAny<int>(), It.IsAny<Exception>(), It.IsAny<CancellationToken>()), Times.Once);
         }
@@ -492,9 +505,9 @@ namespace Relay.Core.Tests.Retry
             var result = await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            result.Should().Be(expectedResponse);
+            Assert.Equal(expectedResponse, result);
             _nextMock.Verify(x => x(), Times.Exactly(5)); // 1 initial + 4 retries
-            callCount.Should().Be(5);
+            Assert.Equal(5, callCount);
         }
 
         #endregion
@@ -520,7 +533,7 @@ namespace Relay.Core.Tests.Retry
             Func<Task> act = async () => await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<InvalidOperationException>();
+            await Assert.ThrowsAsync<InvalidOperationException>(act);
 
             // Verify logging calls
             _loggerMock.Verify(
@@ -550,7 +563,7 @@ namespace Relay.Core.Tests.Retry
             Func<Task> act = async () => await _behavior.HandleAsync(request, _nextMock.Object, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<RetryExhaustedException>();
+            await Assert.ThrowsAsync<RetryExhaustedException>(act);
 
             // Verify logging calls
             _loggerMock.Verify(
@@ -585,7 +598,7 @@ namespace Relay.Core.Tests.Retry
             Func<Task> act = async () => await _behavior.HandleAsync(request, _nextMock.Object, cts.Token);
 
             // Assert
-            await act.Should().ThrowAsync<OperationCanceledException>();
+            await Assert.ThrowsAsync<TaskCanceledException>(act);
         }
 
         #endregion

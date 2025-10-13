@@ -327,6 +327,196 @@ namespace Relay.Core.Tests
             Assert.Contains("id", responseSchema.Properties.Keys);
             Assert.Contains("success", responseSchema.Properties.Keys);
         }
+
+        [Fact]
+        public void GenerateDocument_WithAllHttpMethods_CoversAllMethodBranches()
+        {
+            // Arrange
+            var endpoints = new[]
+            {
+                new EndpointMetadata { Route = "/api/test", HttpMethod = "GET", RequestType = typeof(string), HandlerType = typeof(OpenApiIntegrationTests), HandlerMethodName = "GetMethod" },
+                new EndpointMetadata { Route = "/api/test", HttpMethod = "POST", RequestType = typeof(string), HandlerType = typeof(OpenApiIntegrationTests), HandlerMethodName = "PostMethod" },
+                new EndpointMetadata { Route = "/api/test", HttpMethod = "PUT", RequestType = typeof(string), HandlerType = typeof(OpenApiIntegrationTests), HandlerMethodName = "PutMethod" },
+                new EndpointMetadata { Route = "/api/test", HttpMethod = "DELETE", RequestType = typeof(string), HandlerType = typeof(OpenApiIntegrationTests), HandlerMethodName = "DeleteMethod" },
+                new EndpointMetadata { Route = "/api/test", HttpMethod = "PATCH", RequestType = typeof(string), HandlerType = typeof(OpenApiIntegrationTests), HandlerMethodName = "PatchMethod" },
+                new EndpointMetadata { Route = "/api/test", HttpMethod = "HEAD", RequestType = typeof(string), HandlerType = typeof(OpenApiIntegrationTests), HandlerMethodName = "HeadMethod" },
+                new EndpointMetadata { Route = "/api/test", HttpMethod = "OPTIONS", RequestType = typeof(string), HandlerType = typeof(OpenApiIntegrationTests), HandlerMethodName = "OptionsMethod" },
+                new EndpointMetadata { Route = "/api/test", HttpMethod = "TRACE", RequestType = typeof(string), HandlerType = typeof(OpenApiIntegrationTests), HandlerMethodName = "TraceMethod" }
+            };
+
+            foreach (var endpoint in endpoints)
+            {
+                EndpointMetadataRegistry.RegisterEndpoint(endpoint);
+            }
+
+            // Act
+            var document = OpenApiDocumentGenerator.GenerateDocument();
+
+            // Assert
+            Assert.Single(document.Paths);
+            var pathItem = document.Paths["/api/test"];
+
+            Assert.NotNull(pathItem.Get);
+            Assert.NotNull(pathItem.Post);
+            Assert.NotNull(pathItem.Put);
+            Assert.NotNull(pathItem.Delete);
+            Assert.NotNull(pathItem.Patch);
+            Assert.NotNull(pathItem.Head);
+            Assert.NotNull(pathItem.Options);
+            Assert.NotNull(pathItem.Trace);
+        }
+
+        [Fact]
+        public void GenerateOperationId_WithCommandAndQuerySuffixes_RemovesSuffixes()
+        {
+            // Arrange
+            var commandMetadata = new EndpointMetadata
+            {
+                Route = "/api/command",
+                HttpMethod = "POST",
+                RequestType = typeof(OpenApiTestCommand),
+                HandlerType = typeof(OpenApiIntegrationTests),
+                HandlerMethodName = "HandleCommand"
+            };
+
+            var queryMetadata = new EndpointMetadata
+            {
+                Route = "/api/query",
+                HttpMethod = "GET",
+                RequestType = typeof(OpenApiTestQuery),
+                HandlerType = typeof(OpenApiIntegrationTests),
+                HandlerMethodName = "HandleQuery"
+            };
+
+            EndpointMetadataRegistry.RegisterEndpoint(commandMetadata);
+            EndpointMetadataRegistry.RegisterEndpoint(queryMetadata);
+
+            // Act
+            var document = OpenApiDocumentGenerator.GenerateDocument();
+
+            // Assert
+            Assert.Equal(2, document.Paths.Count);
+            var commandPath = document.Paths["/api/command"];
+            var queryPath = document.Paths["/api/query"];
+
+            Assert.Equal("postOpenApiTest", commandPath.Post.OperationId);
+            Assert.Equal("getOpenApiTest", queryPath.Get.OperationId);
+        }
+
+        [Fact]
+        public void ConvertJsonSchemaToOpenApiSchema_WithInvalidJson_ReturnsDefaultSchema()
+        {
+            // Arrange
+            var invalidJson = "{ invalid json }";
+
+            // Act
+            var schema = typeof(OpenApiDocumentGenerator)
+                .GetMethod("ConvertJsonSchemaToOpenApiSchema", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                ?.Invoke(null, new object[] { invalidJson }) as OpenApiSchema;
+
+            // Assert
+            Assert.NotNull(schema);
+            Assert.Equal("object", schema.Type);
+        }
+
+        [Fact]
+        public void GenerateDocument_WithNullOptions_UsesDefaultOptions()
+        {
+            // Arrange
+            var metadata = new EndpointMetadata
+            {
+                Route = "/api/test",
+                HttpMethod = "GET",
+                RequestType = typeof(string),
+                HandlerType = typeof(OpenApiIntegrationTests),
+                HandlerMethodName = "TestMethod"
+            };
+
+            EndpointMetadataRegistry.RegisterEndpoint(metadata);
+
+            // Act
+            var document = OpenApiDocumentGenerator.GenerateDocument((OpenApiGenerationOptions)null!);
+
+            // Assert
+            Assert.Equal("3.0.1", document.OpenApi);
+            Assert.Equal("Relay API", document.Info.Title);
+            Assert.Equal("1.0.0", document.Info.Version);
+            Assert.Single(document.Servers);
+        }
+
+        [Fact]
+        public void GenerateDocument_WithComplexJsonSchema_IncludesAllSchemaProperties()
+        {
+            // Arrange
+            var metadata = new EndpointMetadata
+            {
+                Route = "/api/complex-schema",
+                HttpMethod = "POST",
+                RequestType = typeof(ComplexSchemaRequest),
+                HandlerType = typeof(OpenApiIntegrationTests),
+                HandlerMethodName = "HandleComplexSchema",
+                RequestSchema = new JsonSchemaContract
+                {
+                    Schema = @"{
+                        ""type"": ""object"",
+                        ""title"": ""ComplexSchemaRequest"",
+                        ""description"": ""A complex request with various schema properties"",
+                        ""properties"": {
+                            ""name"": {
+                                ""type"": ""string"",
+                                ""format"": ""email"",
+                                ""description"": ""User email address""
+                            },
+                            ""status"": {
+                                ""type"": ""string"",
+                                ""enum"": [""active"", ""inactive"", ""pending""],
+                                ""description"": ""User status""
+                            },
+                            ""count"": {
+                                ""type"": ""integer"",
+                                ""format"": ""int32"",
+                                ""description"": ""Item count""
+                            }
+                        }
+                    }"
+                }
+            };
+
+            EndpointMetadataRegistry.RegisterEndpoint(metadata);
+
+            // Act
+            var document = OpenApiDocumentGenerator.GenerateDocument();
+
+            // Assert
+            Assert.Single(document.Components.Schemas);
+            var schema = document.Components.Schemas["ComplexSchemaRequest"];
+
+            Assert.Equal("object", schema.Type);
+            Assert.Equal("ComplexSchemaRequest", schema.Title);
+            Assert.Equal("A complex request with various schema properties", schema.Description);
+
+            Assert.Contains("name", schema.Properties.Keys);
+            Assert.Contains("status", schema.Properties.Keys);
+            Assert.Contains("count", schema.Properties.Keys);
+
+            var nameProperty = schema.Properties["name"];
+            Assert.Equal("string", nameProperty.Type);
+            Assert.Equal("email", nameProperty.Format);
+            Assert.Equal("User email address", nameProperty.Description);
+
+            var statusProperty = schema.Properties["status"];
+            Assert.Equal("string", statusProperty.Type);
+            Assert.Equal(3, statusProperty.Enum.Count);
+            Assert.Contains("active", statusProperty.Enum);
+            Assert.Contains("inactive", statusProperty.Enum);
+            Assert.Contains("pending", statusProperty.Enum);
+            Assert.Equal("User status", statusProperty.Description);
+
+            var countProperty = schema.Properties["count"];
+            Assert.Equal("integer", countProperty.Type);
+            Assert.Equal("int32", countProperty.Format);
+            Assert.Equal("Item count", countProperty.Description);
+        }
     }
 
     // Test types for OpenAPI integration tests
@@ -379,5 +569,22 @@ namespace Relay.Core.Tests
         [Handle]
         [ExposeAsEndpoint]
         public void DeleteUser(DeleteUserRequest request) { }
+    }
+
+    public class OpenApiTestCommand : IRequest
+    {
+        public string Data { get; set; } = string.Empty;
+    }
+
+    public class OpenApiTestQuery : IRequest<string>
+    {
+        public int Id { get; set; }
+    }
+
+    public class ComplexSchemaRequest : IRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public int Count { get; set; }
     }
 }

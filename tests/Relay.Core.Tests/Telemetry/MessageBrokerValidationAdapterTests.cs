@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -173,7 +174,7 @@ public class MessageBrokerValidationAdapterTests
         var message = "test message";
         var validatorMock = new Mock<IValidator<string>>();
         validatorMock.Setup(v => v.ValidateAsync(message, It.IsAny<CancellationToken>()))
-                    .ThrowsAsync(new Exception("Validation error"));
+                     .ThrowsAsync(new Exception("Validation error"));
 
         // Act
         var result = await adapter.ValidateMessageAsync(message, validatorMock.Object);
@@ -188,6 +189,45 @@ public class MessageBrokerValidationAdapterTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateMessageAsync_Should_Return_True_When_Validator_Returns_Empty_Errors()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerValidationAdapter(_contractValidatorMock.Object, _loggerMock.Object, options);
+        var message = "test message";
+        var validatorMock = new Mock<IValidator<string>>();
+        validatorMock.Setup(v => v.ValidateAsync(message, It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(Enumerable.Empty<string>());
+
+        // Act
+        var result = await adapter.ValidateMessageAsync(message, validatorMock.Object);
+
+        // Assert
+        Assert.True(result);
+        validatorMock.Verify(v => v.ValidateAsync(message, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateMessageAsync_Should_Pass_CancellationToken_To_Validator()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerValidationAdapter(_contractValidatorMock.Object, _loggerMock.Object, options);
+        var message = "test message";
+        var cancellationToken = new CancellationToken(true);
+        var validatorMock = new Mock<IValidator<string>>();
+        validatorMock.Setup(v => v.ValidateAsync(message, cancellationToken))
+                     .ReturnsAsync((IEnumerable<string>?)null);
+
+        // Act
+        var result = await adapter.ValidateMessageAsync(message, validatorMock.Object, cancellationToken);
+
+        // Assert
+        Assert.True(result);
+        validatorMock.Verify(v => v.ValidateAsync(message, cancellationToken), Times.Once);
     }
 
     [Fact]
@@ -324,7 +364,7 @@ public class MessageBrokerValidationAdapterTests
         var message = new { data = "test" };
         var schema = new JsonSchemaContract { Schema = "test", SchemaVersion = "1.0", Properties = new Dictionary<string, object>() };
         _contractValidatorMock.Setup(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()))
-                             .ThrowsAsync(new Exception("Contract validation error"));
+                              .ThrowsAsync(new Exception("Contract validation error"));
 
         // Act
         var result = await adapter.ValidateMessageAgainstSchemaAsync(message, schema);
@@ -339,6 +379,45 @@ public class MessageBrokerValidationAdapterTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateMessageAgainstSchemaAsync_Should_Return_True_When_ContractValidator_Returns_Empty_Errors()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerValidationAdapter(_contractValidatorMock.Object, _loggerMock.Object, options);
+        var message = new { data = "test" };
+        var schema = new JsonSchemaContract { Schema = "test", SchemaVersion = "1.0", Properties = new Dictionary<string, object>() };
+        _contractValidatorMock.Setup(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()))
+                              .ReturnsAsync(Enumerable.Empty<string>());
+
+        // Act
+        var result = await adapter.ValidateMessageAgainstSchemaAsync(message, schema);
+
+        // Assert
+        Assert.True(result);
+        _contractValidatorMock.Verify(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateMessageAgainstSchemaAsync_Should_Pass_CancellationToken_To_ContractValidator()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerValidationAdapter(_contractValidatorMock.Object, _loggerMock.Object, options);
+        var message = new { data = "test" };
+        var schema = new JsonSchemaContract { Schema = "test", SchemaVersion = "1.0", Properties = new Dictionary<string, object>() };
+        var cancellationToken = new CancellationToken(true);
+        _contractValidatorMock.Setup(v => v.ValidateRequestAsync(message, schema, cancellationToken))
+                              .ReturnsAsync((IEnumerable<string>?)null);
+
+        // Act
+        var result = await adapter.ValidateMessageAgainstSchemaAsync(message, schema, cancellationToken);
+
+        // Assert
+        Assert.True(result);
+        _contractValidatorMock.Verify(v => v.ValidateRequestAsync(message, schema, cancellationToken), Times.Once);
     }
 
     [Fact]
@@ -457,7 +536,7 @@ public class MessageBrokerValidationAdapterTests
         var schema = new JsonSchemaContract { Schema = "test", SchemaVersion = "1.0", Properties = new Dictionary<string, object>() };
         var exception = new Exception("Contract validation error");
         _contractValidatorMock.Setup(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()))
-                             .ThrowsAsync(exception);
+                              .ThrowsAsync(exception);
 
         // Act
         var errors = await adapter.ValidateMessageSchemaAsync(message, schema);
@@ -472,6 +551,45 @@ public class MessageBrokerValidationAdapterTests
                 exception,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateMessageSchemaAsync_Should_Return_Empty_Errors_When_ContractValidator_Returns_Empty_Errors()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerValidationAdapter(_contractValidatorMock.Object, _loggerMock.Object, options);
+        var message = new { data = "test" };
+        var schema = new JsonSchemaContract { Schema = "test", SchemaVersion = "1.0", Properties = new Dictionary<string, object>() };
+        _contractValidatorMock.Setup(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()))
+                              .ReturnsAsync(Enumerable.Empty<string>());
+
+        // Act
+        var errors = await adapter.ValidateMessageSchemaAsync(message, schema);
+
+        // Assert
+        Assert.Empty(errors);
+        _contractValidatorMock.Verify(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateMessageSchemaAsync_Should_Pass_CancellationToken_To_ContractValidator()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerValidationAdapter(_contractValidatorMock.Object, _loggerMock.Object, options);
+        var message = new { data = "test" };
+        var schema = new JsonSchemaContract { Schema = "test", SchemaVersion = "1.0", Properties = new Dictionary<string, object>() };
+        var cancellationToken = new CancellationToken(true);
+        _contractValidatorMock.Setup(v => v.ValidateRequestAsync(message, schema, cancellationToken))
+                              .ReturnsAsync(Enumerable.Empty<string>());
+
+        // Act
+        var errors = await adapter.ValidateMessageSchemaAsync(message, schema, cancellationToken);
+
+        // Assert
+        Assert.Empty(errors);
+        _contractValidatorMock.Verify(v => v.ValidateRequestAsync(message, schema, cancellationToken), Times.Once);
     }
 
     [Fact]

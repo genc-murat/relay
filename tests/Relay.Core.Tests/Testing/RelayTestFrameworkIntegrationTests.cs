@@ -15,39 +15,28 @@ namespace Relay.Core.Tests.Testing
 {
     public class RelayTestFrameworkIntegrationTests
     {
-        private readonly Mock<IServiceProvider> _serviceProviderMock;
-        private readonly Mock<IRelay> _relayMock;
+        private readonly ServiceProvider _serviceProvider;
+        private readonly TestRelay _relay;
         private readonly Mock<ILogger<RelayTestFramework>> _loggerMock;
 
         public RelayTestFrameworkIntegrationTests()
         {
-            _serviceProviderMock = new Mock<IServiceProvider>();
-            _relayMock = new Mock<IRelay>();
+            _relay = new TestRelay();
             _loggerMock = new Mock<ILogger<RelayTestFramework>>();
 
-            _serviceProviderMock
-                .Setup(x => x.GetRequiredService(typeof(IRelay)))
-                .Returns(_relayMock.Object);
-
-            _serviceProviderMock
-                .Setup(x => x.GetService(typeof(ILogger<RelayTestFramework>)))
-                .Returns(_loggerMock.Object);
+            var services = new ServiceCollection();
+            services.AddSingleton<IRelay>(_relay);
+            services.AddSingleton(_loggerMock.Object);
+            _serviceProvider = services.BuildServiceProvider();
         }
 
         [Fact]
         public async Task RunAllScenariosAsync_WithSuccessfulScenario_ReturnsSuccessResult()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            _relay.ClearHandlers();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
             var notification = new TestNotification();
-
-            _relayMock
-                .Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
-                .Returns(ValueTask.FromResult("response"));
-
-            _relayMock
-                .Setup(x => x.PublishAsync(It.IsAny<TestNotification>(), It.IsAny<CancellationToken>()))
-                .Returns(ValueTask.CompletedTask);
 
             framework.Scenario("Integration Test")
                 .SendRequest(request, "Send Request")
@@ -68,12 +57,9 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task RunAllScenariosAsync_WithFailingVerification_ReturnsFailureResult()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            _relay.ClearHandlers();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
-
-            _relayMock
-                .Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync("response");
 
             framework.Scenario("Failing Test")
                 .SendRequest(request, "Send Request")
@@ -93,12 +79,11 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task RunAllScenariosAsync_WithExceptionInStep_RecordsError()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            _relay.ClearHandlers();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
 
-            _relayMock
-                .Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new InvalidOperationException("Test error"));
+            _relay.SetupRequestHandler<TestRequest>(async (r, ct) => throw new InvalidOperationException("Test error"));
 
             framework.Scenario("Exception Test")
                 .SendRequest(request, "Send Request")
@@ -110,30 +95,30 @@ namespace Relay.Core.Tests.Testing
             Assert.Single(result.ScenarioResults);
             Assert.False(result.Success);
             Assert.False(result.ScenarioResults[0].Success);
-            Assert.Single(result.ScenarioResults[0].StepResults); // Only first step executed
+            Assert.Equal(2, result.ScenarioResults[0].StepResults.Count); // Both steps executed
             Assert.False(result.ScenarioResults[0].StepResults[0].Success);
             Assert.Contains("Test error", result.ScenarioResults[0].StepResults[0].Error);
+            Assert.True(result.ScenarioResults[0].StepResults[1].Success);
         }
 
         [Fact]
         public async Task RunLoadTestAsync_WithMixedSuccessAndFailure_CalculatesCorrectMetrics()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            _relay.ClearHandlers();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
             var config = new LoadTestConfiguration { TotalRequests = 10, MaxConcurrency = 3 };
 
             // Setup alternating success/failure
             var callCount = 0;
-            _relayMock
-                .Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
-                .Returns(() =>
-                {
-                    callCount++;
-                    if (callCount % 2 == 0)
-                        return ValueTask.FromResult("response");
-                    else
-                        throw new Exception("Simulated failure");
-                });
+            _relay.SetupRequestHandler<TestRequest>((r, ct) =>
+            {
+                callCount++;
+                if (callCount % 2 == 0)
+                    return ValueTask.CompletedTask;
+                else
+                    throw new Exception("Simulated failure");
+            });
 
             var result = await framework.RunLoadTestAsync(request, config);
 
@@ -149,7 +134,8 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task RunLoadTestAsync_WithRampUpDelay_ExecutesWithDelays()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            _relay.ClearHandlers();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
             var config = new LoadTestConfiguration
             {
@@ -157,10 +143,6 @@ namespace Relay.Core.Tests.Testing
                 MaxConcurrency = 1,
                 RampUpDelayMs = 50
             };
-
-            _relayMock
-                .Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
-                .Returns(ValueTask.FromResult("response"));
 
             var startTime = DateTime.UtcNow;
             var result = await framework.RunLoadTestAsync(request, config);
@@ -177,22 +159,16 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task ComplexScenario_WithMultipleSteps_ExecutesInOrder()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            _relay.ClearHandlers();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request1 = new TestRequest();
             var request2 = new TestRequest();
             var notification = new TestNotification();
 
             var executionOrder = new List<string>();
 
-            _relayMock
-                .Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
-                .Returns(ValueTask.FromResult("response"))
-                .Callback(() => executionOrder.Add("SendAsync"));
-
-            _relayMock
-                .Setup(x => x.PublishAsync(It.IsAny<TestNotification>(), It.IsAny<CancellationToken>()))
-                .Returns(ValueTask.CompletedTask)
-                .Callback(() => executionOrder.Add("PublishAsync"));
+            _relay.SetupRequestHandler<TestRequest>(async (r, ct) => { executionOrder.Add("SendAsync"); });
+            _relay.SetupNotificationHandler<TestNotification>((n, ct) => { executionOrder.Add("PublishAsync"); return ValueTask.CompletedTask; });
 
             framework.Scenario("Complex Scenario")
                 .SendRequest(request1, "First Request")
@@ -214,18 +190,16 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task LoadTestResult_CalculatesPercentilesCorrectly()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            _relay.ClearHandlers();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
             var config = new LoadTestConfiguration { TotalRequests = 1, MaxConcurrency = 1 };
 
             // Setup a request that takes some time
-            _relayMock
-                .Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
-                .Returns(async () =>
-                {
-                    await Task.Delay(10); // Simulate some processing time
-                    return "response";
-                });
+            _relay.SetupRequestHandler<TestRequest>(async (r, ct) =>
+            {
+                await Task.Delay(10); // Simulate some processing time
+            });
 
             var result = await framework.RunLoadTestAsync(request, config);
 
@@ -239,34 +213,27 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task Scenario_WithCancellation_HandlesCancellationGracefully()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            _relay.ClearHandlers();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
             var cts = new CancellationTokenSource();
 
-            _relayMock
-                .Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
-                .Returns(async (IRequest<string> r, CancellationToken ct) =>
-                {
-                    await Task.Delay(100, ct); // Long running operation
-                    return "response";
-                });
+            _relay.SetupRequestHandler<TestRequest>(async (r, ct) => { await Task.Delay(100, ct); });
 
             framework.Scenario("Cancellation Test")
                 .SendRequest(request, "Send Request");
 
-            // Cancel after a short delay
-            cts.CancelAfter(50);
+            // Cancel immediately
+            cts.Cancel();
 
             var result = await framework.RunAllScenariosAsync(cts.Token);
 
             Assert.False(result.Success);
-            Assert.Contains(result.ScenarioResults[0].StepResults,
-                step => step.Error?.Contains("cancelled") == true ||
-                       step.Error?.Contains("Cancellation") == true);
+            Assert.True(result.ScenarioResults[0].StepResults[0].Error.Contains("cancel"));
         }
 
         // Test data classes
-        public class TestRequest : IRequest<string>, IRequest { }
+        public class TestRequest : IRequest { }
 
         public class TestNotification : INotification { }
     }

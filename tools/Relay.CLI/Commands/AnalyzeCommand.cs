@@ -756,10 +756,10 @@ public static class AnalyzeCommand
             typeDecl.Members.OfType<PropertyDeclarationSyntax>().Count();
 
     internal static bool HasCachingAttributes(TypeDeclarationSyntax typeDecl, string content) =>
-        content.Contains("[Cacheable]") || content.Contains("CacheAttribute");
+        typeDecl.AttributeLists.Any(al => al.Attributes.Any(a => a.Name.ToString().Contains("Cacheable") || a.Name.ToString().Contains("Cache")));
 
     internal static bool HasAuthorizationAttributes(TypeDeclarationSyntax typeDecl, string content) =>
-        content.Contains("[Authorize]") || content.Contains("AuthorizeAttribute");
+        typeDecl.AttributeLists.Any(al => al.Attributes.Any(a => a.Name.ToString().Contains("Authorize") || a.Name.ToString().Contains("Authorize")));
 
     internal static double CalculateOverallScore(ProjectAnalysis analysis)
     {

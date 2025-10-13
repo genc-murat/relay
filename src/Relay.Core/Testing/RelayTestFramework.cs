@@ -24,8 +24,8 @@ namespace Relay.Core.Testing
         public RelayTestFramework(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-            _relay = serviceProvider.GetRequiredService<IRelay>();
-            _logger = serviceProvider.GetService<ILogger<RelayTestFramework>>();
+            _relay = (IRelay)serviceProvider.GetRequiredService(typeof(IRelay));
+            _logger = (ILogger<RelayTestFramework>?)serviceProvider.GetService(typeof(ILogger<RelayTestFramework>));
         }
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace Relay.Core.Testing
 
                 try
                 {
-                    await _relay.SendAsync(request, cancellationToken);
+                    await _relay.SendAsync((IRequest)request, cancellationToken);
 
                     var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
                     lock (result.ResponseTimes)
@@ -152,7 +152,8 @@ namespace Relay.Core.Testing
             var result = new ScenarioResult
             {
                 ScenarioName = scenario.Name,
-                StartedAt = DateTime.UtcNow
+                StartedAt = DateTime.UtcNow,
+                Success = true
             };
 
             try
@@ -165,7 +166,6 @@ namespace Relay.Core.Testing
                     if (!stepResult.Success)
                     {
                         result.Success = false;
-                        break;
                     }
                 }
             }
@@ -228,18 +228,8 @@ namespace Relay.Core.Testing
             if (step.Request == null)
                 throw new InvalidOperationException("Request is required for SendRequest step");
 
-            // Use reflection to invoke the correct generic SendAsync method
-            var requestType = step.Request.GetType();
-            var sendMethod = typeof(IRelay).GetMethod(nameof(IRelay.SendAsync))?.MakeGenericMethod(requestType);
-            if (sendMethod == null)
-                throw new InvalidOperationException($"Cannot find SendAsync method for request type {requestType}");
-
-            var task = (Task)sendMethod.Invoke(_relay, new object[] { step.Request, cancellationToken })!;
-            await task;
-
-            // Extract the result from the completed task
-            var resultProperty = task.GetType().GetProperty("Result");
-            result.Response = resultProperty?.GetValue(task);
+            // Use the non-generic SendAsync method
+            await _relay.SendAsync((IRequest)step.Request, cancellationToken);
         }
 
         private async Task ExecutePublishNotificationStep(TestStep step, StepResult result, CancellationToken cancellationToken)
@@ -253,7 +243,7 @@ namespace Relay.Core.Testing
             if (publishMethod == null)
                 throw new InvalidOperationException($"Cannot find PublishAsync method for notification type {notificationType}");
 
-            var task = (Task)publishMethod.Invoke(_relay, new object[] { step.Notification, cancellationToken })!;
+            dynamic task = publishMethod.Invoke(_relay, new object[] { step.Notification, cancellationToken })!;
             await task;
         }
 

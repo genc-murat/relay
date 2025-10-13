@@ -43,34 +43,55 @@ public static class DoctorCommand
 
         var diagnostics = new DiagnosticResults();
 
-        await AnsiConsole.Status()
-            .StartAsync("Running diagnostics...", async ctx =>
-            {
-                // Check 1: Project Structure
-                ctx.Status("Checking project structure...");
-                await CheckProjectStructure(projectPath, diagnostics, verbose);
-                await Task.Delay(300);
+        try
+        {
+            await AnsiConsole.Status()
+                .StartAsync("Running diagnostics...", async ctx =>
+                {
+                    // Check 1: Project Structure
+                    ctx.Status("Checking project structure...");
+                    await CheckProjectStructure(projectPath, diagnostics, verbose);
+                    await Task.Delay(300);
 
-                // Check 2: Dependencies
-                ctx.Status("Checking dependencies...");
-                await CheckDependencies(projectPath, diagnostics, verbose);
-                await Task.Delay(300);
+                    // Check 2: Dependencies
+                    ctx.Status("Checking dependencies...");
+                    await CheckDependencies(projectPath, diagnostics, verbose);
+                    await Task.Delay(300);
 
-                // Check 3: Handler Configuration
-                ctx.Status("Checking handlers...");
-                await CheckHandlers(projectPath, diagnostics, verbose);
-                await Task.Delay(300);
+                    // Check 3: Handler Configuration
+                    ctx.Status("Checking handlers...");
+                    await CheckHandlers(projectPath, diagnostics, verbose);
+                    await Task.Delay(300);
 
-                // Check 4: Performance Settings
-                ctx.Status("Checking performance settings...");
-                await CheckPerformanceSettings(projectPath, diagnostics, verbose);
-                await Task.Delay(300);
+                    // Check 4: Performance Settings
+                    ctx.Status("Checking performance settings...");
+                    await CheckPerformanceSettings(projectPath, diagnostics, verbose);
+                    await Task.Delay(300);
 
-                // Check 5: Best Practices
-                ctx.Status("Checking best practices...");
-                await CheckBestPractices(projectPath, diagnostics, verbose);
-                await Task.Delay(300);
-            });
+                    // Check 5: Best Practices
+                    ctx.Status("Checking best practices...");
+                    await CheckBestPractices(projectPath, diagnostics, verbose);
+                    await Task.Delay(300);
+                });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("interactive functions concurrently"))
+        {
+            // Fallback for test environments where interactive features are disabled
+            AnsiConsole.MarkupLine("[dim]Checking project structure...[/]");
+            await CheckProjectStructure(projectPath, diagnostics, verbose);
+
+            AnsiConsole.MarkupLine("[dim]Checking dependencies...[/]");
+            await CheckDependencies(projectPath, diagnostics, verbose);
+
+            AnsiConsole.MarkupLine("[dim]Checking handlers...[/]");
+            await CheckHandlers(projectPath, diagnostics, verbose);
+
+            AnsiConsole.MarkupLine("[dim]Checking performance settings...[/]");
+            await CheckPerformanceSettings(projectPath, diagnostics, verbose);
+
+            AnsiConsole.MarkupLine("[dim]Checking best practices...[/]");
+            await CheckBestPractices(projectPath, diagnostics, verbose);
+        }
 
         // Display Results
         DisplayDiagnosticResults(diagnostics);

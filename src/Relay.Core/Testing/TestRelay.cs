@@ -174,6 +174,16 @@ namespace Relay.Core.Testing
         }
 
         /// <summary>
+        /// Clears all registered handlers.
+        /// </summary>
+        public void ClearHandlers()
+        {
+            _requestHandlers.Clear();
+            _streamHandlers.Clear();
+            _notificationHandlers.Clear();
+        }
+
+        /// <summary>
         /// Gets published notifications of a specific type.
         /// </summary>
         /// <typeparam name="T">The notification type.</typeparam>

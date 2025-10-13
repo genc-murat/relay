@@ -41,29 +41,50 @@ public static class ValidateCommand
         
         var validationResults = new List<ValidationResult>();
         
-        await AnsiConsole.Status()
-            .StartAsync("Running validation checks...", async ctx =>
-            {
-                // Check 1: Project files
-                ctx.Status("Checking project files...");
-                await ValidateProjectFiles(projectPath, validationResults, strict);
-                
-                // Check 2: Handlers
-                ctx.Status("Validating handlers...");
-                await ValidateHandlers(projectPath, validationResults, strict);
-                
-                // Check 3: Requests/Responses
-                ctx.Status("Validating requests and responses...");
-                await ValidateRequestsAndResponses(projectPath, validationResults, strict);
-                
-                // Check 4: Configuration
-                ctx.Status("Checking configuration...");
-                await ValidateConfiguration(projectPath, validationResults, strict);
-                
-                // Check 5: DI Registration
-                ctx.Status("Validating DI registration...");
-                await ValidateDIRegistration(projectPath, validationResults, strict);
-            });
+        try
+        {
+            await AnsiConsole.Status()
+                .StartAsync("Running validation checks...", async ctx =>
+                {
+                    // Check 1: Project files
+                    ctx.Status("Checking project files...");
+                    await ValidateProjectFiles(projectPath, validationResults, strict);
+
+                    // Check 2: Handlers
+                    ctx.Status("Validating handlers...");
+                    await ValidateHandlers(projectPath, validationResults, strict);
+
+                    // Check 3: Requests/Responses
+                    ctx.Status("Validating requests and responses...");
+                    await ValidateRequestsAndResponses(projectPath, validationResults, strict);
+
+                    // Check 4: Configuration
+                    ctx.Status("Checking configuration...");
+                    await ValidateConfiguration(projectPath, validationResults, strict);
+
+                    // Check 5: DI Registration
+                    ctx.Status("Validating DI registration...");
+                    await ValidateDIRegistration(projectPath, validationResults, strict);
+                });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("interactive functions concurrently"))
+        {
+            // Fallback for test environments where interactive features are disabled
+            AnsiConsole.MarkupLine("[dim]Checking project files...[/]");
+            await ValidateProjectFiles(projectPath, validationResults, strict);
+
+            AnsiConsole.MarkupLine("[dim]Validating handlers...[/]");
+            await ValidateHandlers(projectPath, validationResults, strict);
+
+            AnsiConsole.MarkupLine("[dim]Validating requests and responses...[/]");
+            await ValidateRequestsAndResponses(projectPath, validationResults, strict);
+
+            AnsiConsole.MarkupLine("[dim]Checking configuration...[/]");
+            await ValidateConfiguration(projectPath, validationResults, strict);
+
+            AnsiConsole.MarkupLine("[dim]Validating DI registration...[/]");
+            await ValidateDIRegistration(projectPath, validationResults, strict);
+        }
 
         // Display results
         DisplayValidationResults(validationResults, format);

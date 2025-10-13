@@ -39,7 +39,7 @@ public class PerformanceProfiler<TRequest, TResponse>
 
         var requestType = typeof(TRequest).Name;
         var stopwatch = Stopwatch.StartNew();
-        var initialMemory = GC.GetTotalMemory(false);
+        var initialMemory = GC.GetAllocatedBytesForCurrentThread();
         var initialGen0 = GC.CollectionCount(0);
         var initialGen1 = GC.CollectionCount(1);
         var initialGen2 = GC.CollectionCount(2);
@@ -64,7 +64,7 @@ public class PerformanceProfiler<TRequest, TResponse>
             {
                 RequestType = requestType,
                 ExecutionTime = stopwatch.Elapsed,
-                MemoryAllocated = GC.GetTotalMemory(false) - initialMemory,
+                MemoryAllocated = GC.GetAllocatedBytesForCurrentThread() - initialMemory,
                 Gen0Collections = GC.CollectionCount(0) - initialGen0,
                 Gen1Collections = GC.CollectionCount(1) - initialGen1,
                 Gen2Collections = GC.CollectionCount(2) - initialGen2,

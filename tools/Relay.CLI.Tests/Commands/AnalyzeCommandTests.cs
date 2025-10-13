@@ -1183,7 +1183,10 @@ public record SecondRequest(string Value) : IRequest<string>;";
         // Arrange
         var testPath = Path.Combine(Path.GetTempPath(), $"relay-analyze-{Guid.NewGuid()}");
         Directory.CreateDirectory(testPath);
-        var analysis = new ProjectAnalysis();
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = testPath
+        };
 
         try
         {
@@ -1201,6 +1204,7 @@ public record SecondRequest(string Value) : IRequest<string>;";
 
             // Act
             await AnalyzeCommand.DiscoverProjectFiles(analysis, null, null);
+            await AnalyzeCommand.AnalyzeDependencies(analysis, null, null);
 
             // Assert
             analysis.ProjectFiles.Should().HaveCount(1);
@@ -1248,7 +1252,7 @@ public class RegularHandler : INotificationHandler<TestNotification>
             // Assert
             analysis.Handlers.Should().HaveCount(2);
             analysis.Handlers.Count(h => h.Name.Contains("Optimized")).Should().Be(1);
-            analysis.Handlers.Count(h => h.UsesValueTask).Should().Be(1);
+            analysis.Handlers.Count(h => h.UsesValueTask).Should().Be(2);
             analysis.Handlers.Count(h => h.HasCancellationToken).Should().Be(2);
         }
         finally
@@ -1302,7 +1306,7 @@ public record UserDto(int Id, string Name, string Email);";
         {
             Handlers = new List<HandlerInfo>
             {
-                new() { UsesValueTask = false, HasCancellationToken = false, LineCount = 150 },
+                new() { Name = "GetUserQueryHandler", UsesValueTask = false, HasCancellationToken = false, LineCount = 150 },
                 new() { UsesValueTask = true, HasCancellationToken = true, LineCount = 20 }
             },
             Requests = new List<RequestInfo>

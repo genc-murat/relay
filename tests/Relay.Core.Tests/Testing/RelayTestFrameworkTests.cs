@@ -16,23 +16,24 @@ namespace Relay.Core.Tests.Testing
 {
     public class RelayTestFrameworkTests
     {
-        private readonly Mock<IServiceProvider> _serviceProviderMock;
-        private readonly Mock<IRelay> _relayMock;
-        private readonly Mock<ILogger<RelayTestFramework>> _loggerMock;
+        private ServiceProvider _serviceProvider;
+        private Mock<IRelay> _relayMock;
+        private Mock<ILogger<RelayTestFramework>> _loggerMock;
 
         public RelayTestFrameworkTests()
         {
-            _serviceProviderMock = new Mock<IServiceProvider>();
+            SetupMocks();
+        }
+
+        private void SetupMocks()
+        {
             _relayMock = new Mock<IRelay>();
             _loggerMock = new Mock<ILogger<RelayTestFramework>>();
 
-            _serviceProviderMock
-                .Setup(x => x.GetRequiredService(typeof(IRelay)))
-                .Returns(_relayMock.Object);
-
-            _serviceProviderMock
-                .Setup(x => x.GetService(typeof(ILogger<RelayTestFramework>)))
-                .Returns(_loggerMock.Object);
+            var services = new ServiceCollection();
+            services.AddSingleton(_relayMock.Object);
+            services.AddSingleton(_loggerMock.Object);
+            _serviceProvider = services.BuildServiceProvider();
         }
 
         [Fact]
@@ -44,7 +45,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public void Constructor_WithValidServiceProvider_InitializesCorrectly()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
 
             Assert.NotNull(framework);
         }
@@ -52,7 +53,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task RunLoadTestAsync_WithNullRequest_ThrowsArgumentNullException()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
             var config = new LoadTestConfiguration();
 
             await Assert.ThrowsAsync<ArgumentNullException>(() =>
@@ -62,7 +63,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task RunLoadTestAsync_WithNullConfig_ThrowsArgumentNullException()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
 
             await Assert.ThrowsAsync<ArgumentNullException>(() =>
@@ -70,26 +71,22 @@ namespace Relay.Core.Tests.Testing
         }
 
         [Fact]
-        public async Task RunLoadTestAsync_WithInvalidConfig_ThrowsArgumentException()
+        public void LoadTestConfiguration_WithZeroTotalRequests_ThrowsArgumentException()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
-            var request = new TestRequest();
-            var config = new LoadTestConfiguration { TotalRequests = 0 };
-
-            await Assert.ThrowsAsync<ArgumentException>(() =>
-                framework.RunLoadTestAsync(request, config));
+            Assert.Throws<ArgumentException>(() => new LoadTestConfiguration { TotalRequests = 0 });
         }
 
         [Fact]
         public async Task RunLoadTestAsync_WithValidRequest_ExecutesSuccessfully()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
             var config = new LoadTestConfiguration { TotalRequests = 5, MaxConcurrency = 2 };
 
             _relayMock
-                .Setup(x => x.SendAsync((IRequest<string>)request, It.IsAny<CancellationToken>()))
-                .Returns(ValueTask.FromResult("response"));
+                .Setup(x => x.SendAsync(It.IsAny<IRequest>(), It.IsAny<CancellationToken>()))
+                .Returns(ValueTask.CompletedTask);
 
             var result = await framework.RunLoadTestAsync(request, config);
 
@@ -103,12 +100,13 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task RunLoadTestAsync_WithFailingRequests_RecordsFailures()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
             var config = new LoadTestConfiguration { TotalRequests = 3, MaxConcurrency = 1 };
 
             _relayMock
-                .Setup(x => x.SendAsync((IRequest<string>)request, It.IsAny<CancellationToken>()))
+                .Setup(x => x.SendAsync(It.IsAny<IRequest>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("Test error"));
 
             var result = await framework.RunLoadTestAsync(request, config);
@@ -121,7 +119,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public async Task RunAllScenariosAsync_WithNoScenarios_ReturnsEmptyResult()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
 
             var result = await framework.RunAllScenariosAsync();
 
@@ -133,7 +131,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public void Scenario_WithValidSteps_BuildsCorrectly()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
             var notification = new TestNotification();
 
@@ -155,7 +153,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public void SendRequest_WithNullRequest_ThrowsArgumentNullException()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
             var builder = framework.Scenario("Test");
 
             Assert.Throws<ArgumentNullException>(() => builder.SendRequest((TestRequest)null!));
@@ -164,7 +162,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public void SendRequest_WithEmptyStepName_ThrowsArgumentException()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
             var builder = framework.Scenario("Test");
             var request = new TestRequest();
 
@@ -174,7 +172,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public void PublishNotification_WithNullNotification_ThrowsArgumentNullException()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
             var builder = framework.Scenario("Test");
 
             Assert.Throws<ArgumentNullException>(() => builder.PublishNotification((TestNotification)null!));
@@ -183,7 +181,7 @@ namespace Relay.Core.Tests.Testing
         [Fact]
         public void PublishNotification_WithEmptyStepName_ThrowsArgumentException()
         {
-            var framework = new RelayTestFramework(_serviceProviderMock.Object);
+            var framework = new RelayTestFramework(_serviceProvider);
             var builder = framework.Scenario("Test");
             var notification = new TestNotification();
 
@@ -290,11 +288,12 @@ namespace Relay.Core.Tests.Testing
             {
                 SuccessfulRequests = 8,
                 FailedRequests = 2,
-                ResponseTimes = new List<double> { 100, 200, 150, 300, 250, 175, 125, 225 }
+                ResponseTimes = new List<double> { 100, 200, 150, 300, 250, 175, 125, 225 },
+                TotalDuration = TimeSpan.FromSeconds(1.25)
             };
 
             Assert.Equal(0.8, result.SuccessRate, 0.01);
-            Assert.Equal(8, result.RequestsPerSecond); // Mock duration would be needed for accurate calculation
+            Assert.Equal(8, result.RequestsPerSecond, 0.01);
         }
 
         // Test data classes

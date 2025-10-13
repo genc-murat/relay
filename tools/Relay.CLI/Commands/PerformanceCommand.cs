@@ -41,29 +41,50 @@ public static class PerformanceCommand
 
         var analysis = new PerformanceAnalysis();
 
-        await AnsiConsole.Status()
-            .StartAsync("Analyzing performance characteristics...", async ctx =>
-            {
-                ctx.Status("Scanning project files...");
-                await AnalyzeProjectStructure(projectPath, analysis);
-                await Task.Delay(200);
+        try
+        {
+            await AnsiConsole.Status()
+                .StartAsync("Analyzing performance characteristics...", async ctx =>
+                {
+                    ctx.Status("Scanning project files...");
+                    await AnalyzeProjectStructure(projectPath, analysis);
+                    await Task.Delay(200);
 
-                ctx.Status("Analyzing async patterns...");
-                await AnalyzeAsyncPatterns(projectPath, analysis);
-                await Task.Delay(200);
+                    ctx.Status("Analyzing async patterns...");
+                    await AnalyzeAsyncPatterns(projectPath, analysis);
+                    await Task.Delay(200);
 
-                ctx.Status("Checking memory patterns...");
-                await AnalyzeMemoryPatterns(projectPath, analysis);
-                await Task.Delay(200);
+                    ctx.Status("Checking memory patterns...");
+                    await AnalyzeMemoryPatterns(projectPath, analysis);
+                    await Task.Delay(200);
 
-                ctx.Status("Evaluating handler performance...");
-                await AnalyzeHandlerPerformance(projectPath, analysis);
-                await Task.Delay(200);
+                    ctx.Status("Evaluating handler performance...");
+                    await AnalyzeHandlerPerformance(projectPath, analysis);
+                    await Task.Delay(200);
 
-                ctx.Status("Generating recommendations...");
-                await GenerateRecommendations(analysis);
-                await Task.Delay(200);
-            });
+                    ctx.Status("Generating recommendations...");
+                    await GenerateRecommendations(analysis);
+                    await Task.Delay(200);
+                });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("interactive functions concurrently"))
+        {
+            // Fallback for test environments where interactive features are disabled
+            AnsiConsole.MarkupLine("[dim]Scanning project files...[/]");
+            await AnalyzeProjectStructure(projectPath, analysis);
+
+            AnsiConsole.MarkupLine("[dim]Analyzing async patterns...[/]");
+            await AnalyzeAsyncPatterns(projectPath, analysis);
+
+            AnsiConsole.MarkupLine("[dim]Checking memory patterns...[/]");
+            await AnalyzeMemoryPatterns(projectPath, analysis);
+
+            AnsiConsole.MarkupLine("[dim]Evaluating handler performance...[/]");
+            await AnalyzeHandlerPerformance(projectPath, analysis);
+
+            AnsiConsole.MarkupLine("[dim]Generating recommendations...[/]");
+            await GenerateRecommendations(analysis);
+        }
 
         // Display results
         DisplayPerformanceAnalysis(analysis, detailed);

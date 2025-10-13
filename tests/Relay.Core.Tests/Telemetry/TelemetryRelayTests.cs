@@ -50,7 +50,7 @@ public class TelemetryRelayTests
 
         _innerRelayMock
             .Setup(x => x.SendAsync<string>(request, cancellationToken))
-            .ReturnsAsync(expectedResponse);
+            .Returns(ValueTask.FromResult(expectedResponse));
 
         // Act
         var result = await _relay.SendAsync<string>(request, cancellationToken);
@@ -237,7 +237,7 @@ public class TelemetryRelayTests
 
         _innerRelayMock
             .Setup(x => x.SendAsync<string>(request, cancellationToken))
-            .ReturnsAsync("response");
+            .Returns(ValueTask.FromResult("response"));
 
         // Act
         await _relay.SendAsync<string>(request, cancellationToken);

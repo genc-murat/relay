@@ -18,12 +18,14 @@ namespace Relay.Core.Testing
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IRelay _relay;
+        private readonly ILogger<RelayTestFramework>? _logger;
         private readonly List<TestScenario> _scenarios = new();
 
         public RelayTestFramework(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _relay = serviceProvider.GetRequiredService<IRelay>();
+            _logger = serviceProvider.GetService<ILogger<RelayTestFramework>>();
         }
 
         /// <summary>
@@ -64,6 +66,10 @@ namespace Relay.Core.Testing
             CancellationToken cancellationToken = default)
             where TRequest : IRequest
         {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            ValidateLoadTestConfiguration(config);
+
             var result = new LoadTestResult
             {
                 RequestType = typeof(TRequest).Name,
@@ -71,13 +77,16 @@ namespace Relay.Core.Testing
                 Configuration = config
             };
 
+            _logger?.LogInformation("Starting load test for {RequestType} with {TotalRequests} requests, max concurrency {MaxConcurrency}",
+                typeof(TRequest).Name, config.TotalRequests, config.MaxConcurrency);
+
             var semaphore = new SemaphoreSlim(config.MaxConcurrency, config.MaxConcurrency);
             var tasks = new List<Task>();
 
             for (int i = 0; i < config.TotalRequests; i++)
             {
-                tasks.Add(ExecuteLoadTestRequest(request, semaphore, result, cancellationToken));
-                
+                tasks.Add(ExecuteLoadTestRequestAsync(request, semaphore, result, cancellationToken));
+
                 if (config.RampUpDelayMs > 0)
                 {
                     await Task.Delay(config.RampUpDelayMs, cancellationToken);
@@ -93,10 +102,13 @@ namespace Relay.Core.Testing
             result.P95ResponseTime = CalculatePercentile(result.ResponseTimes, 0.95);
             result.P99ResponseTime = CalculatePercentile(result.ResponseTimes, 0.99);
 
+            _logger?.LogInformation("Load test completed for {RequestType}. Success rate: {SuccessRate:P2}, Avg response time: {AvgResponseTime:F2}ms",
+                typeof(TRequest).Name, result.SuccessRate, result.AverageResponseTime);
+
             return result;
         }
 
-        private async Task ExecuteLoadTestRequest<TRequest>(
+        private async Task ExecuteLoadTestRequestAsync<TRequest>(
             TRequest request,
             SemaphoreSlim semaphore,
             LoadTestResult result,
@@ -104,15 +116,15 @@ namespace Relay.Core.Testing
             where TRequest : IRequest
         {
             await semaphore.WaitAsync(cancellationToken);
-            
+
             try
             {
                 var startTime = DateTime.UtcNow;
-                
+
                 try
                 {
                     await _relay.SendAsync(request, cancellationToken);
-                    
+
                     var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
                     lock (result.ResponseTimes)
                     {
@@ -120,8 +132,9 @@ namespace Relay.Core.Testing
                         result.SuccessfulRequests++;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    _logger?.LogWarning(ex, "Load test request failed for {RequestType}", typeof(TRequest).Name);
                     lock (result.ResponseTimes)
                     {
                         result.FailedRequests++;
@@ -168,6 +181,8 @@ namespace Relay.Core.Testing
 
         private async Task<StepResult> ExecuteStepAsync(TestStep step, CancellationToken cancellationToken)
         {
+            step.Validate();
+
             var result = new StepResult
             {
                 StepName = step.Name,
@@ -176,6 +191,8 @@ namespace Relay.Core.Testing
 
             try
             {
+                _logger?.LogDebug("Executing step: {StepName} ({StepType})", step.Name, step.Type);
+
                 switch (step.Type)
                 {
                     case StepType.SendRequest:
@@ -193,11 +210,13 @@ namespace Relay.Core.Testing
                 }
 
                 result.Success = true;
+                _logger?.LogDebug("Step completed successfully: {StepName}", step.Name);
             }
             catch (Exception ex)
             {
                 result.Success = false;
                 result.Error = ex.Message;
+                _logger?.LogError(ex, "Step failed: {StepName}", step.Name);
             }
 
             result.CompletedAt = DateTime.UtcNow;
@@ -209,7 +228,18 @@ namespace Relay.Core.Testing
             if (step.Request == null)
                 throw new InvalidOperationException("Request is required for SendRequest step");
 
-            result.Response = await _relay.SendAsync((dynamic)step.Request, cancellationToken);
+            // Use reflection to invoke the correct generic SendAsync method
+            var requestType = step.Request.GetType();
+            var sendMethod = typeof(IRelay).GetMethod(nameof(IRelay.SendAsync))?.MakeGenericMethod(requestType);
+            if (sendMethod == null)
+                throw new InvalidOperationException($"Cannot find SendAsync method for request type {requestType}");
+
+            var task = (Task)sendMethod.Invoke(_relay, new object[] { step.Request, cancellationToken })!;
+            await task;
+
+            // Extract the result from the completed task
+            var resultProperty = task.GetType().GetProperty("Result");
+            result.Response = resultProperty?.GetValue(task);
         }
 
         private async Task ExecutePublishNotificationStep(TestStep step, StepResult result, CancellationToken cancellationToken)
@@ -217,7 +247,14 @@ namespace Relay.Core.Testing
             if (step.Notification == null)
                 throw new InvalidOperationException("Notification is required for PublishNotification step");
 
-            await _relay.PublishAsync((dynamic)step.Notification, cancellationToken);
+            // Use reflection to invoke the correct generic PublishAsync method
+            var notificationType = step.Notification.GetType();
+            var publishMethod = typeof(IRelay).GetMethod(nameof(IRelay.PublishAsync))?.MakeGenericMethod(notificationType);
+            if (publishMethod == null)
+                throw new InvalidOperationException($"Cannot find PublishAsync method for notification type {notificationType}");
+
+            var task = (Task)publishMethod.Invoke(_relay, new object[] { step.Notification, cancellationToken })!;
+            await task;
         }
 
         private async Task ExecuteVerifyStep(TestStep step, StepResult result, CancellationToken cancellationToken)
@@ -232,13 +269,23 @@ namespace Relay.Core.Testing
             }
         }
 
+        private void ValidateLoadTestConfiguration(LoadTestConfiguration config)
+        {
+            if (config.TotalRequests <= 0)
+                throw new ArgumentException("TotalRequests must be greater than 0", nameof(config.TotalRequests));
+            if (config.MaxConcurrency <= 0)
+                throw new ArgumentException("MaxConcurrency must be greater than 0", nameof(config.MaxConcurrency));
+            if (config.RampUpDelayMs < 0)
+                throw new ArgumentException("RampUpDelayMs cannot be negative", nameof(config.RampUpDelayMs));
+        }
+
         private double CalculateMedian(List<double> values)
         {
             if (!values.Any()) return 0;
-            
+
             var sorted = values.OrderBy(x => x).ToList();
             var count = sorted.Count;
-            
+
             if (count % 2 == 0)
             {
                 return (sorted[count / 2 - 1] + sorted[count / 2]) / 2.0;
@@ -252,11 +299,13 @@ namespace Relay.Core.Testing
         private double CalculatePercentile(List<double> values, double percentile)
         {
             if (!values.Any()) return 0;
-            
+            if (percentile < 0 || percentile > 1)
+                throw new ArgumentOutOfRangeException(nameof(percentile), "Percentile must be between 0 and 1");
+
             var sorted = values.OrderBy(x => x).ToList();
             var index = (int)Math.Ceiling(percentile * sorted.Count) - 1;
             index = Math.Max(0, Math.Min(index, sorted.Count - 1));
-            
+
             return sorted[index];
         }
     }
@@ -276,8 +325,11 @@ namespace Relay.Core.Testing
         }
 
         public TestScenarioBuilder SendRequest<TRequest>(TRequest request, string stepName = "Send Request")
-            where TRequest : IRequest
+            where TRequest : class
         {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (string.IsNullOrWhiteSpace(stepName)) throw new ArgumentException("Step name cannot be empty", nameof(stepName));
+
             _scenario.Steps.Add(new TestStep
             {
                 Name = stepName,
@@ -290,6 +342,9 @@ namespace Relay.Core.Testing
         public TestScenarioBuilder PublishNotification<TNotification>(TNotification notification, string stepName = "Publish Notification")
             where TNotification : INotification
         {
+            if (notification == null) throw new ArgumentNullException(nameof(notification));
+            if (string.IsNullOrWhiteSpace(stepName)) throw new ArgumentException("Step name cannot be empty", nameof(stepName));
+
             _scenario.Steps.Add(new TestStep
             {
                 Name = stepName,
@@ -337,6 +392,32 @@ namespace Relay.Core.Testing
         public object? Notification { get; set; }
         public Func<Task<bool>>? VerificationFunc { get; set; }
         public TimeSpan? WaitTime { get; set; }
+
+        public void Validate()
+        {
+            if (string.IsNullOrWhiteSpace(Name))
+                throw new InvalidOperationException("Step name cannot be empty");
+
+            switch (Type)
+            {
+                case StepType.SendRequest:
+                    if (Request == null)
+                        throw new InvalidOperationException($"Request is required for {Type} step: {Name}");
+                    break;
+                case StepType.PublishNotification:
+                    if (Notification == null)
+                        throw new InvalidOperationException($"Notification is required for {Type} step: {Name}");
+                    break;
+                case StepType.Verify:
+                    if (VerificationFunc == null)
+                        throw new InvalidOperationException($"VerificationFunc is required for {Type} step: {Name}");
+                    break;
+                case StepType.Wait:
+                    if (WaitTime == null || WaitTime.Value <= TimeSpan.Zero)
+                        throw new InvalidOperationException($"Valid WaitTime is required for {Type} step: {Name}");
+                    break;
+            }
+        }
     }
 
     public enum StepType
@@ -378,10 +459,38 @@ namespace Relay.Core.Testing
 
     public class LoadTestConfiguration
     {
-        public int TotalRequests { get; set; } = 100;
-        public int MaxConcurrency { get; set; } = 10;
-        public int RampUpDelayMs { get; set; } = 0;
+        private int _totalRequests = 100;
+        private int _maxConcurrency = 10;
+        private int _rampUpDelayMs = 0;
+
+        public int TotalRequests
+        {
+            get => _totalRequests;
+            set => _totalRequests = value > 0 ? value : throw new ArgumentException("TotalRequests must be greater than 0");
+        }
+
+        public int MaxConcurrency
+        {
+            get => _maxConcurrency;
+            set => _maxConcurrency = value > 0 ? value : throw new ArgumentException("MaxConcurrency must be greater than 0");
+        }
+
+        public int RampUpDelayMs
+        {
+            get => _rampUpDelayMs;
+            set => _rampUpDelayMs = value >= 0 ? value : throw new ArgumentException("RampUpDelayMs cannot be negative");
+        }
+
         public TimeSpan Duration { get; set; } = TimeSpan.FromMinutes(1);
+
+        public LoadTestConfiguration() { }
+
+        public LoadTestConfiguration(int totalRequests, int maxConcurrency, int rampUpDelayMs = 0)
+        {
+            TotalRequests = totalRequests;
+            MaxConcurrency = maxConcurrency;
+            RampUpDelayMs = rampUpDelayMs;
+        }
     }
 
     public class LoadTestResult

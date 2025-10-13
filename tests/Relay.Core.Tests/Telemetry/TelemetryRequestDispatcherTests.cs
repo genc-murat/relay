@@ -48,7 +48,7 @@ public class TelemetryRequestDispatcherTests
 
         _innerDispatcherMock
             .Setup(x => x.DispatchAsync<string>(request, cancellationToken))
-            .ReturnsAsync(expectedResponse);
+            .Returns(ValueTask.FromResult(expectedResponse));
 
         // Act
         var result = await _dispatcher.DispatchAsync<string>(request, cancellationToken);
@@ -166,7 +166,7 @@ public class TelemetryRequestDispatcherTests
 
         _innerDispatcherMock
             .Setup(x => x.DispatchAsync<string>(request, handlerName, cancellationToken))
-            .ReturnsAsync(expectedResponse);
+            .Returns(ValueTask.FromResult(expectedResponse));
 
         // Act
         var result = await _dispatcher.DispatchAsync<string>(request, handlerName, cancellationToken);
@@ -281,7 +281,7 @@ public class TelemetryRequestDispatcherTests
         _telemetryProvider.SetCorrelationId(correlationId);
         _innerDispatcherMock
             .Setup(x => x.DispatchAsync<string>(request, cancellationToken))
-            .ReturnsAsync(expectedResponse);
+            .Returns(ValueTask.FromResult(expectedResponse));
 
         // Act
         await _dispatcher.DispatchAsync<string>(request, cancellationToken);

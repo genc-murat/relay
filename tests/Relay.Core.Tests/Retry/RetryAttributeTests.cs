@@ -1,5 +1,5 @@
 using System;
-using FluentAssertions;
+
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Retry;
 using Xunit;
@@ -15,9 +15,9 @@ namespace Relay.Core.Tests.Retry
             var attribute = new RetryAttribute(maxRetryAttempts: 3, retryDelayMilliseconds: 1000);
 
             // Assert
-            attribute.MaxRetryAttempts.Should().Be(3);
-            attribute.RetryDelayMilliseconds.Should().Be(1000);
-            attribute.RetryStrategyType.Should().BeNull();
+            Assert.Equal(3, attribute.MaxRetryAttempts);
+            Assert.Equal(1000, attribute.RetryDelayMilliseconds);
+            Assert.Null(attribute.RetryStrategyType);
         }
 
         [Fact]
@@ -27,8 +27,8 @@ namespace Relay.Core.Tests.Retry
             var attribute = new RetryAttribute(maxRetryAttempts: 5);
 
             // Assert
-            attribute.MaxRetryAttempts.Should().Be(5);
-            attribute.RetryDelayMilliseconds.Should().Be(1000); // Default value
+            Assert.Equal(5, attribute.MaxRetryAttempts);
+            Assert.Equal(1000, attribute.RetryDelayMilliseconds); // Default value
         }
 
         [Fact]
@@ -36,10 +36,10 @@ namespace Relay.Core.Tests.Retry
         {
             // Act
             Action act = () => new RetryAttribute(maxRetryAttempts: 0);
-
+ 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("maxRetryAttempts");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("maxRetryAttempts", ex.ParamName);
         }
 
         [Fact]
@@ -47,10 +47,10 @@ namespace Relay.Core.Tests.Retry
         {
             // Act
             Action act = () => new RetryAttribute(maxRetryAttempts: -1);
-
+ 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("maxRetryAttempts");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("maxRetryAttempts", ex.ParamName);
         }
 
         [Fact]
@@ -58,10 +58,10 @@ namespace Relay.Core.Tests.Retry
         {
             // Act
             Action act = () => new RetryAttribute(maxRetryAttempts: 3, retryDelayMilliseconds: -1);
-
+ 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("retryDelayMilliseconds");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("retryDelayMilliseconds", ex.ParamName);
         }
 
         [Fact]
@@ -69,9 +69,9 @@ namespace Relay.Core.Tests.Retry
         {
             // Arrange & Act
             var attribute = new RetryAttribute(maxRetryAttempts: 3, retryDelayMilliseconds: 0);
-
+ 
             // Assert
-            attribute.RetryDelayMilliseconds.Should().Be(0);
+            Assert.Equal(0, attribute.RetryDelayMilliseconds);
         }
 
         [Fact]
@@ -81,9 +81,9 @@ namespace Relay.Core.Tests.Retry
             var attribute = new RetryAttribute(typeof(LinearRetryStrategy), maxRetryAttempts: 3);
 
             // Assert
-            attribute.RetryStrategyType.Should().Be(typeof(LinearRetryStrategy));
-            attribute.MaxRetryAttempts.Should().Be(3);
-            attribute.RetryDelayMilliseconds.Should().Be(0);
+            Assert.Equal(typeof(LinearRetryStrategy), attribute.RetryStrategyType);
+            Assert.Equal(3, attribute.MaxRetryAttempts);
+            Assert.Equal(0, attribute.RetryDelayMilliseconds);
         }
 
         [Fact]
@@ -93,8 +93,9 @@ namespace Relay.Core.Tests.Retry
             Action act = () => new RetryAttribute(null!, maxRetryAttempts: 3);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("retryStrategyType");
+            var ex = Assert.Throws<ArgumentNullException>(act);
+
+            Assert.Equal("retryStrategyType", ex.ParamName);
         }
 
         [Fact]
@@ -104,9 +105,11 @@ namespace Relay.Core.Tests.Retry
             Action act = () => new RetryAttribute(typeof(string), maxRetryAttempts: 3);
 
             // Assert
-            act.Should().Throw<ArgumentException>()
-                .WithParameterName("retryStrategyType")
-                .WithMessage("*IRetryStrategy*");
+            var ex = Assert.Throws<ArgumentException>(act);
+
+            Assert.Equal("retryStrategyType", ex.ParamName);
+
+            Assert.Contains("IRetryStrategy", ex.Message);
         }
 
         [Fact]
@@ -116,8 +119,9 @@ namespace Relay.Core.Tests.Retry
             Action act = () => new RetryAttribute(typeof(LinearRetryStrategy), maxRetryAttempts: 0);
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("maxRetryAttempts");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+
+            Assert.Equal("maxRetryAttempts", ex.ParamName);
         }
 
         [Fact]
@@ -127,7 +131,7 @@ namespace Relay.Core.Tests.Retry
             var attribute = new RetryAttribute(typeof(ExponentialBackoffRetryStrategy));
 
             // Assert
-            attribute.MaxRetryAttempts.Should().Be(3); // Default value
+            Assert.Equal(3, attribute.MaxRetryAttempts); // Default value
         }
 
         [Fact]
@@ -137,7 +141,7 @@ namespace Relay.Core.Tests.Retry
             var attributes = typeof(TestRequestWithRetry).GetCustomAttributes(typeof(RetryAttribute), true);
             
             // Assert
-            attributes.Should().HaveCount(1);
+            Assert.Single(attributes);
         }
 
         [Fact]
@@ -146,7 +150,7 @@ namespace Relay.Core.Tests.Retry
             // This is enforced by AllowMultiple = false in the attribute definition
             // We verify it doesn't throw during compilation
             var type = typeof(TestRequestWithRetry);
-            type.Should().NotBeNull();
+            Assert.NotNull(type);
         }
 
         #region Test Helper Classes

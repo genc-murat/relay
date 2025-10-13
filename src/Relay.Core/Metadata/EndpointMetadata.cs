@@ -121,6 +121,11 @@ namespace Relay.Core
         /// <param name="metadata">The endpoint metadata to register.</param>
         public static void RegisterEndpoint(EndpointMetadata metadata)
         {
+            if (metadata == null)
+            {
+                throw new ArgumentNullException(nameof(metadata));
+            }
+
             lock (_lock)
             {
                 var scope = EnsureScopeInitialized_NoLock();

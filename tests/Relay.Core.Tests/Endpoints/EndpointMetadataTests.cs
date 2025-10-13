@@ -245,5 +245,108 @@ namespace Relay.Core.Tests
             Assert.Empty(EndpointMetadataRegistry.GetEndpointsForRequestType(typeof(string)));
             Assert.Empty(EndpointMetadataRegistry.GetEndpointsForRequestType(typeof(int)));
         }
+
+        [Fact]
+        public void AllEndpoints_ReturnsEmpty_WhenNoScopeInitialized()
+        {
+            // Arrange - No setup, registry should be uninitialized
+
+            // Act
+            var endpoints = EndpointMetadataRegistry.AllEndpoints;
+
+            // Assert
+            Assert.Empty(endpoints);
+        }
+
+        [Fact]
+        public void GetEndpointsForRequestType_ReturnsEmpty_WhenNoScopeInitialized()
+        {
+            // Arrange - No setup, registry should be uninitialized
+
+            // Act
+            var endpoints = EndpointMetadataRegistry.GetEndpointsForRequestType(typeof(string));
+
+            // Assert
+            Assert.Empty(endpoints);
+        }
+
+        [Fact]
+        public void GetEndpointsForRequestType_Generic_ReturnsEmpty_WhenNoScopeInitialized()
+        {
+            // Arrange - No setup, registry should be uninitialized
+
+            // Act
+            var endpoints = EndpointMetadataRegistry.GetEndpointsForRequestType<string>();
+
+            // Assert
+            Assert.Empty(endpoints);
+        }
+
+        [Fact]
+        public void RegisterEndpoint_ThrowsArgumentNullException_WhenMetadataIsNull()
+        {
+            // Arrange & Act & Assert
+            Assert.Throws<ArgumentNullException>(() => EndpointMetadataRegistry.RegisterEndpoint(null!));
+        }
+    }
+
+    public class EndpointMetadataRegistryUninitializedTests
+    {
+        [Fact]
+        public void AllEndpoints_ReturnsEmpty_WhenNoScopeInitialized()
+        {
+            // Arrange - No setup, registry should be uninitialized
+
+            // Act
+            var endpoints = EndpointMetadataRegistry.AllEndpoints;
+
+            // Assert
+            Assert.Empty(endpoints);
+        }
+
+        [Fact]
+        public void GetEndpointsForRequestType_ReturnsEmpty_WhenNoScopeInitialized()
+        {
+            // Arrange - No setup, registry should be uninitialized
+
+            // Act
+            var endpoints = EndpointMetadataRegistry.GetEndpointsForRequestType(typeof(string));
+
+            // Assert
+            Assert.Empty(endpoints);
+        }
+
+        [Fact]
+        public void GetEndpointsForRequestType_Generic_ReturnsEmpty_WhenNoScopeInitialized()
+        {
+            // Arrange - No setup, registry should be uninitialized
+
+            // Act
+            var endpoints = EndpointMetadataRegistry.GetEndpointsForRequestType<string>();
+
+            // Assert
+            Assert.Empty(endpoints);
+        }
+
+        [Fact]
+        public void RegisterEndpoint_InitializesScope_WhenNoScopeExists()
+        {
+            // Arrange - Ensure registry is cleared first
+            EndpointMetadataRegistry.Clear();
+            var metadata = new EndpointMetadata
+            {
+                Route = "/api/test",
+                RequestType = typeof(string),
+                HandlerType = typeof(EndpointMetadataRegistryUninitializedTests)
+            };
+
+            // Act
+            EndpointMetadataRegistry.RegisterEndpoint(metadata);
+
+            // Assert
+            var allEndpoints = EndpointMetadataRegistry.AllEndpoints;
+            Assert.Single(allEndpoints);
+            Assert.Equal(metadata, allEndpoints.First());
+        }
     }
 }

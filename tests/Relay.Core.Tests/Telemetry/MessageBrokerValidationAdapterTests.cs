@@ -573,6 +573,25 @@ public class MessageBrokerValidationAdapterTests
     }
 
     [Fact]
+    public async Task ValidateMessageSchemaAsync_Should_Return_Empty_Errors_When_ContractValidator_Returns_Null_Errors()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerValidationAdapter(_contractValidatorMock.Object, _loggerMock.Object, options);
+        var message = new { data = "test" };
+        var schema = new JsonSchemaContract { Schema = "test", SchemaVersion = "1.0", Properties = new Dictionary<string, object>() };
+        _contractValidatorMock.Setup(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()))
+                              .ReturnsAsync((IEnumerable<string>?)null);
+
+        // Act
+        var errors = await adapter.ValidateMessageSchemaAsync(message, schema);
+
+        // Assert
+        Assert.Empty(errors);
+        _contractValidatorMock.Verify(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ValidateMessageSchemaAsync_Should_Pass_CancellationToken_To_ContractValidator()
     {
         // Arrange

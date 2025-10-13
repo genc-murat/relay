@@ -1,7 +1,8 @@
 using Moq;
+using Relay.CLI.Plugins;
 using System.Reflection;
 
-namespace Relay.CLI.Plugins.Tests;
+namespace Relay.CLI.Tests.Plugins;
 
 public class PluginSecurityValidatorTests
 {

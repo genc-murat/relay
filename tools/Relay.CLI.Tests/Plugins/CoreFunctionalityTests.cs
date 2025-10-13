@@ -1,9 +1,10 @@
 using Moq;
+using Relay.CLI.Plugins;
 using Xunit;
 
-namespace Relay.CLI.Plugins.Tests;
+namespace Relay.CLI.Tests.Plugins;
 
-public class CoreFunctionalityTests
+public class CoreFunctionalityTests : IDisposable
 {
     private Mock<IPluginLogger> _mockLogger = null!;
     private PluginManager _pluginManager = null!;
@@ -20,7 +21,7 @@ public class CoreFunctionalityTests
     }
 
     [Fact]
-    public async Task DependencyResolver_InitializesCorrectly()
+    public void DependencyResolver_InitializesCorrectly()
     {
         // Arrange & Act
         var dependencyResolver = new DependencyResolver(_mockLogger.Object);
@@ -30,7 +31,7 @@ public class CoreFunctionalityTests
     }
 
     [Fact]
-    public async Task PluginHealthMonitor_AutoRestartFunctionality()
+    public void PluginHealthMonitor_AutoRestartFunctionality()
     {
         // Arrange
         var healthMonitor = new PluginHealthMonitor(_mockLogger.Object);
@@ -62,7 +63,7 @@ public class CoreFunctionalityTests
     }
 
     [Fact]
-    public async Task LazyPluginLoader_InitializesCorrectly()
+    public void LazyPluginLoader_InitializesCorrectly()
     {
         // Arrange & Act
         var lazyLoader = new LazyPluginLoader(_pluginManager, _mockLogger.Object);
@@ -72,7 +73,7 @@ public class CoreFunctionalityTests
     }
 
     [Fact]
-    public async Task PluginSandbox_ResourceLimits()
+    public void PluginSandbox_ResourceLimits()
     {
         // Arrange
         var permissions = new PluginPermissions
@@ -80,7 +81,7 @@ public class CoreFunctionalityTests
             MaxMemoryBytes = 50 * 1024 * 1024, // 50MB
             MaxExecutionTimeMs = 10000 // 10 seconds
         };
-        
+
         var sandbox = new PluginSandbox(_mockLogger.Object, permissions);
 
         // Act & Assert - this test mainly verifies the sandbox can be created with resource limits
@@ -88,7 +89,7 @@ public class CoreFunctionalityTests
     }
 
     [Fact]
-    public async Task PluginManager_UsesNewFunctionality()
+    public void PluginManager_UsesNewFunctionality()
     {
         // Arrange - The plugin manager should have been initialized with all new components
         var pluginManager = new PluginManager(_mockLogger.Object);

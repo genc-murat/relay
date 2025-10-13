@@ -6,7 +6,7 @@ namespace Relay.CLI.Tests.Plugins;
 public class PluginLifecycleTests
 {
     [Fact]
-    public async Task PluginLifecycle_ShouldFollowCompleteFlow()
+    public void PluginLifecycle_ShouldFollowCompleteFlow()
     {
         // Arrange
         var lifecycle = new List<string>();
@@ -59,7 +59,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_Load_ShouldInitializeContext()
+    public void Plugin_Load_ShouldInitializeContext()
     {
         // Arrange
         var logger = new PluginLogger("test-plugin");
@@ -115,7 +115,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task PluginManager_ShouldTrackLoadedPlugins()
+    public void PluginManager_ShouldTrackLoadedPlugins()
     {
         // Arrange
         var loadedPlugins = new Dictionary<string, bool>();
@@ -130,7 +130,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_ShouldValidateManifest()
+    public void Plugin_ShouldValidateManifest()
     {
         // Arrange
         var manifest = new PluginManifest
@@ -153,7 +153,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_ShouldSupportVersionChecking()
+    public void Plugin_ShouldSupportVersionChecking()
     {
         // Arrange
         var pluginVersion = new Version("1.0.0");
@@ -168,7 +168,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_Install_ShouldCreatePluginDirectory()
+    public void Plugin_Install_ShouldCreatePluginDirectory()
     {
         // Arrange
         var pluginsPath = Path.Combine(Path.GetTempPath(), "relay-plugins-test");
@@ -191,7 +191,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_ShouldIsolateLoadContext()
+    public void Plugin_ShouldIsolateLoadContext()
     {
         // Arrange
         var plugin1Context = "context1";
@@ -218,7 +218,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_ShouldProvideHelpText()
+    public void Plugin_ShouldProvideHelpText()
     {
         // Arrange
         var plugin = new MockPlugin();
@@ -232,7 +232,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_ShouldSupportTags()
+    public void Plugin_ShouldSupportTags()
     {
         // Arrange
         var plugin = new MockPlugin();
@@ -246,7 +246,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_ShouldTrackAuthors()
+    public void Plugin_ShouldTrackAuthors()
     {
         // Arrange
         var manifest = new PluginManifest
@@ -262,7 +262,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task PluginLogger_ShouldLogMessages()
+    public void PluginLogger_ShouldLogMessages()
     {
         // Arrange
         var logger = new PluginLogger("test-plugin");
@@ -315,7 +315,7 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public async Task Plugin_ShouldSupportDependencies()
+    public void Plugin_ShouldSupportDependencies()
     {
         // Arrange
         var manifest = new PluginManifest

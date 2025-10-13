@@ -6,7 +6,7 @@ namespace Relay.CLI.Tests.Plugins;
 public class PluginValidatorTests
 {
     [Fact]
-    public async Task ValidatePluginManifest_WithValidJson_Succeeds()
+    public void ValidatePluginManifest_WithValidJson_Succeeds()
     {
         // Arrange
         var manifestJson = """

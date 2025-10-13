@@ -1,6 +1,7 @@
 using Moq;
+using Relay.CLI.Plugins;
 
-namespace Relay.CLI.Plugins.Tests;
+namespace Relay.CLI.Tests.Plugins;
 
 public class PluginHealthMonitorTests
 {

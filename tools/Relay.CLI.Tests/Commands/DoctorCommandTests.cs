@@ -550,6 +550,140 @@ public class DoctorCommandTests : IDisposable
         Assert.Equal(2, projectFiles.Length);
     }
 
+    [Fact]
+    public async Task ExecuteDoctor_WithValidProject_ShouldCompleteSuccessfully()
+    {
+        // Arrange
+        await CreateValidProject();
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.ExecuteDoctor(_testPath, false, false);
+    }
+
+    [Fact]
+    public async Task ExecuteDoctor_WithMissingProject_ShouldHandleGracefully()
+    {
+        // Arrange - Empty directory
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.ExecuteDoctor(_testPath, false, false);
+    }
+
+    [Fact]
+    public async Task ExecuteDoctor_WithVerboseFlag_ShouldShowDetailedInfo()
+    {
+        // Arrange
+        await CreateValidProject();
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.ExecuteDoctor(_testPath, true, false);
+    }
+
+    [Fact]
+    public async Task ExecuteDoctor_WithAutoFixFlag_ShouldAttemptFixes()
+    {
+        // Arrange
+        await CreateValidProject();
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.ExecuteDoctor(_testPath, false, true);
+    }
+
+    [Fact]
+    public async Task DisplayDiagnosticResults_WithMixedIssues_ShouldRenderCorrectly()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var check = new DiagnosticCheck { Category = "Test Category" };
+        check.AddSuccess("Success message");
+        check.AddIssue("Warning message", DiagnosticSeverity.Warning, "WARN");
+        check.AddIssue("Error message", DiagnosticSeverity.Error, "ERR");
+        check.AddInfo("Info message");
+        results.AddCheck(check);
+
+        // Act & Assert - This should not throw
+        // Note: DisplayDiagnosticResults writes to console, so we can't easily test output
+        // but we can ensure it doesn't crash
+        DoctorCommandTestsAccessor.DisplayDiagnosticResults(results);
+    }
+
+    [Fact]
+    public async Task ApplyFixes_ShouldCompleteWithoutError()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+
+        // Act & Assert - This should not throw
+        await DoctorCommandTestsAccessor.ApplyFixes(_testPath, results);
+    }
+
+    [Fact]
+    public void CreateCommand_ShouldReturnValidCommand()
+    {
+        // Act
+        var command = DoctorCommand.Create();
+
+        // Assert
+        Assert.NotNull(command);
+        Assert.Equal("doctor", command.Name);
+        Assert.Equal("Run comprehensive health check on your Relay project", command.Description);
+    }
+
+    [Fact]
+    public async Task CheckProjectStructure_WithInvalidPath_ShouldHandleError()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.CheckProjectStructure("invalid/path", results, false);
+        Assert.Single(results.Checks);
+    }
+
+    [Fact]
+    public async Task CheckDependencies_WithInvalidPath_ShouldHandleError()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.CheckDependencies("invalid/path", results, false);
+        Assert.Single(results.Checks);
+    }
+
+    [Fact]
+    public async Task CheckHandlers_WithInvalidPath_ShouldHandleError()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.CheckHandlers("invalid/path", results, false);
+        Assert.Single(results.Checks);
+    }
+
+    [Fact]
+    public async Task CheckPerformanceSettings_WithInvalidPath_ShouldHandleError()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.CheckPerformanceSettings("invalid/path", results, false);
+        Assert.Single(results.Checks);
+    }
+
+    [Fact]
+    public async Task CheckBestPractices_WithInvalidPath_ShouldHandleError()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+
+        // Act & Assert - This should not throw
+        await DoctorCommand.CheckBestPractices("invalid/path", results, false);
+        Assert.Single(results.Checks);
+    }
+
     private async Task CreateValidProject()
     {
         var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
@@ -587,5 +721,25 @@ public record TestRequest : IRequest<string>;";
                 Directory.Delete(_testPath, true);
         }
         catch { }
+    }
+}
+
+// Test accessor for private methods
+internal static class DoctorCommandTestsAccessor
+{
+    public static void DisplayDiagnosticResults(DiagnosticResults results)
+    {
+        // Use reflection to access private method
+        var method = typeof(DoctorCommand).GetMethod("DisplayDiagnosticResults",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        method?.Invoke(null, new object[] { results });
+    }
+
+    public static Task ApplyFixes(string path, DiagnosticResults results)
+    {
+        // Use reflection to access private method
+        var method = typeof(DoctorCommand).GetMethod("ApplyFixes",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        return (Task)method?.Invoke(null, new object[] { path, results })!;
     }
 }

@@ -147,7 +147,7 @@ public static class PluginCommand
         return command;
     }
 
-    private static async Task ExecuteList(bool includeAll)
+    internal static async Task ExecuteList(bool includeAll)
     {
         AnsiConsole.MarkupLine("[cyan]📦 Installed Plugins[/]");
         AnsiConsole.WriteLine();
@@ -186,7 +186,7 @@ public static class PluginCommand
         AnsiConsole.MarkupLine($"[dim]Total: {plugins.Count} plugin(s)[/]");
     }
 
-    private static async Task ExecuteSearch(string query, string? tag, string? author)
+    internal static async Task ExecuteSearch(string query, string? tag, string? author)
     {
         AnsiConsole.MarkupLine($"[cyan]🔍 Searching for: {query}[/]");
         AnsiConsole.WriteLine();
@@ -228,7 +228,7 @@ public static class PluginCommand
         AnsiConsole.MarkupLine("[dim]To install: relay plugin install <name>[/]");
     }
 
-    private static async Task ExecuteInstall(string name, string? version, bool global)
+    internal static async Task ExecuteInstall(string name, string? version, bool global)
     {
         var versionText = version != null ? $" ({version})" : "";
         AnsiConsole.MarkupLine($"[cyan]📥 Installing plugin: {name}{versionText}[/]");
@@ -269,9 +269,9 @@ public static class PluginCommand
         AnsiConsole.MarkupLine($"[dim]Run with: relay plugin run {name}[/]");
     }
 
-    private static async Task ExecuteUninstall(string name, bool global)
+    internal static async Task ExecuteUninstall(string name, bool global, bool confirmed = true)
     {
-        if (!AnsiConsole.Confirm($"[yellow]Are you sure you want to uninstall '{name}'?[/]"))
+        if (!confirmed && !AnsiConsole.Confirm($"[yellow]Are you sure you want to uninstall '{name}'?[/]"))
         {
             AnsiConsole.MarkupLine("[yellow]Cancelled[/]");
             return;
@@ -284,7 +284,7 @@ public static class PluginCommand
         AnsiConsole.MarkupLine($"[green]✅ Plugin '{name}' uninstalled successfully[/]");
     }
 
-    private static async Task ExecuteUpdate(string? name)
+    internal static async Task ExecuteUpdate(string? name)
     {
         var target = name ?? "all plugins";
         AnsiConsole.MarkupLine($"[cyan]🔄 Updating {target}[/]");
@@ -295,7 +295,7 @@ public static class PluginCommand
         AnsiConsole.MarkupLine("[green]✅ All plugins are up to date[/]");
     }
 
-    private static async Task ExecuteInfo(string name)
+    internal static async Task ExecuteInfo(string name)
     {
         AnsiConsole.MarkupLine($"[cyan]ℹ️  Plugin Information: {name}[/]");
         AnsiConsole.WriteLine();
@@ -333,52 +333,78 @@ public static class PluginCommand
         AnsiConsole.Write(info);
     }
 
-    private static async Task ExecuteCreate(string name, string outputPath, string template)
+    internal static async Task ExecuteCreate(string name, string outputPath, string template, bool showProgress = true, bool quiet = false)
     {
-        AnsiConsole.MarkupLine($"[cyan]🎨 Creating plugin: {name}[/]");
-        AnsiConsole.WriteLine();
+        if (!quiet)
+        {
+            AnsiConsole.MarkupLine($"[cyan]🎨 Creating plugin: {name}[/]");
+            AnsiConsole.WriteLine();
+        }
 
         var fullPath = Path.Combine(outputPath, name);
 
-        await AnsiConsole.Progress()
-            .StartAsync(async ctx =>
-            {
-                var task = ctx.AddTask("[green]Generating project[/]", maxValue: 5);
+        if (showProgress)
+        {
+            await AnsiConsole.Progress()
+                .StartAsync(async ctx =>
+                {
+                    var task = ctx.AddTask("[green]Generating project[/]", maxValue: 5);
 
-                // Create directory structure
-                Directory.CreateDirectory(fullPath);
-                task.Increment(1);
-                await Task.Delay(200);
+                    // Create directory structure
+                    Directory.CreateDirectory(fullPath);
+                    task.Increment(1);
+                    await Task.Delay(200);
 
-                // Create project file
-                await CreatePluginProject(fullPath, name, template);
-                task.Increment(1);
-                await Task.Delay(200);
+                    // Create project file
+                    await CreatePluginProject(fullPath, name, template);
+                    task.Increment(1);
+                    await Task.Delay(200);
 
-                // Create plugin class
-                await CreatePluginClass(fullPath, name);
-                task.Increment(1);
-                await Task.Delay(200);
+                    // Create plugin class
+                    await CreatePluginClass(fullPath, name);
+                    task.Increment(1);
+                    await Task.Delay(200);
 
-                // Create manifest
-                await CreateManifest(fullPath, name);
-                task.Increment(1);
-                await Task.Delay(200);
+                    // Create manifest
+                    await CreateManifest(fullPath, name);
+                    task.Increment(1);
+                    await Task.Delay(200);
 
-                // Create README
-                await CreateReadme(fullPath, name);
-                task.Increment(1);
-            });
+                    // Create README
+                    await CreateReadme(fullPath, name);
+                    task.Increment(1);
+                });
+        }
+        else
+        {
+            // Create directory structure
+            Directory.CreateDirectory(fullPath);
 
-        AnsiConsole.MarkupLine($"[green]✅ Plugin created: {fullPath}[/]");
-        AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine("[cyan]Next steps:[/]");
-        AnsiConsole.MarkupLine($"  1. cd {name}");
-        AnsiConsole.MarkupLine("  2. dotnet build");
-        AnsiConsole.MarkupLine("  3. relay plugin install .");
+            // Create project file
+            await CreatePluginProject(fullPath, name, template);
+
+            // Create plugin class
+            await CreatePluginClass(fullPath, name);
+
+            // Create manifest
+            await CreateManifest(fullPath, name);
+
+            // Create README
+            await CreateReadme(fullPath, name);
+        }
+
+        if (!quiet)
+        {
+            AnsiConsole.MarkupLine($"[green]✅ Plugin created: {fullPath}[/]");
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[cyan]Next steps:[/]");
+            AnsiConsole.MarkupLine($"  1. cd {name}");
+            AnsiConsole.MarkupLine("  2. dotnet build");
+            AnsiConsole.MarkupLine("  3. relay plugin install .");
+        }
     }
 
-    private static async Task CreatePluginProject(string path, string name, string template)
+    internal static async Task CreatePluginProject(string path, string name, string template)
     {
         var csproj = $@"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
@@ -395,7 +421,7 @@ public static class PluginCommand
         await File.WriteAllTextAsync(Path.Combine(path, $"{name}.csproj"), csproj);
     }
 
-    private static async Task CreatePluginClass(string path, string name)
+    internal static async Task CreatePluginClass(string path, string name)
     {
         var className = name.Replace("relay-plugin-", "").Replace("-", "");
         var pluginCode = $@"using Relay.CLI.Plugins;
@@ -448,7 +474,7 @@ Options:
         await File.WriteAllTextAsync(Path.Combine(path, $"{className}Plugin.cs"), pluginCode);
     }
 
-    private static async Task CreateManifest(string path, string name)
+    internal static async Task CreateManifest(string path, string name)
     {
         var manifest = $@"{{
   ""name"": ""{name}"",
@@ -464,7 +490,7 @@ Options:
         await File.WriteAllTextAsync(Path.Combine(path, "plugin.json"), manifest);
     }
 
-    private static async Task CreateReadme(string path, string name)
+    internal static async Task CreateReadme(string path, string name)
     {
         var readme = $@"# {name}
 

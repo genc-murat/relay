@@ -64,10 +64,6 @@ public abstract class TelemetryDispatcherBase
         var correlationId = TelemetryProvider.GetCorrelationId();
 
         using var activity = TelemetryProvider.StartActivity(operationName, requestType, correlationId);
-        if (handlerName != null)
-        {
-            activity?.SetTag("relay.handler_name", handlerName);
-        }
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -109,10 +105,6 @@ public abstract class TelemetryDispatcherBase
         var correlationId = TelemetryProvider.GetCorrelationId();
 
         using var activity = TelemetryProvider.StartActivity(operationName, requestType, correlationId);
-        if (handlerName != null)
-        {
-            activity?.SetTag("relay.handler_name", handlerName);
-        }
 
         var stopwatch = Stopwatch.StartNew();
 

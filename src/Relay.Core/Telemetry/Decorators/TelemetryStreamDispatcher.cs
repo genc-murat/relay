@@ -62,22 +62,36 @@ public class TelemetryStreamDispatcher : IStreamDispatcher
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var activity = _telemetryProvider.StartActivity(operationName, requestType, correlationId);
-        if (handlerName != null)
-        {
-            activity?.SetTag("relay.handler_name", handlerName);
-        }
 
         var stopwatch = Stopwatch.StartNew();
         var itemCount = 0L;
-        Exception? exception = null;
+        Exception? caughtException = null;
 
-        await foreach (var item in source)
+        var enumerator = source.GetAsyncEnumerator(cancellationToken);
+        try
         {
-            itemCount++;
-            yield return item;
-        }
+            while (true)
+            {
+                try
+                {
+                    if (!await enumerator.MoveNextAsync())
+                        break;
+                }
+                catch (Exception ex)
+                {
+                    caughtException = ex;
+                    throw;
+                }
 
-        stopwatch.Stop();
-        _telemetryProvider.RecordStreamingOperation(requestType, responseType, handlerName, stopwatch.Elapsed, itemCount, exception == null, exception);
+                itemCount++;
+                yield return enumerator.Current;
+            }
+        }
+        finally
+        {
+            await enumerator.DisposeAsync();
+            stopwatch.Stop();
+            _telemetryProvider.RecordStreamingOperation(requestType, responseType, handlerName, stopwatch.Elapsed, itemCount, caughtException == null, caughtException);
+        }
     }
 }

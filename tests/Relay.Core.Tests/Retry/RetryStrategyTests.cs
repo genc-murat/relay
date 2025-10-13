@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Retry;
 using Xunit;
 
@@ -19,7 +18,7 @@ namespace Relay.Core.Tests.Retry
             var strategy = new LinearRetryStrategy(delay);
 
             // Assert
-            strategy.Should().NotBeNull();
+            Assert.NotNull(strategy);
         }
 
         [Fact]
@@ -33,7 +32,7 @@ namespace Relay.Core.Tests.Retry
             var result = await strategy.ShouldRetryAsync(1, exception);
 
             // Assert
-            result.Should().BeTrue();
+            Assert.True(result);
         }
 
         [Fact]
@@ -47,7 +46,7 @@ namespace Relay.Core.Tests.Retry
             var result = await strategy.ShouldRetryAsync(0, exception);
 
             // Assert
-            result.Should().BeFalse();
+            Assert.False(result);
         }
 
         [Fact]
@@ -64,9 +63,9 @@ namespace Relay.Core.Tests.Retry
             var result3 = await strategy.GetRetryDelayAsync(3, exception);
 
             // Assert
-            result1.Should().Be(delay);
-            result2.Should().Be(delay);
-            result3.Should().Be(delay);
+            Assert.Equal(delay, result1);
+            Assert.Equal(delay, result2);
+            Assert.Equal(delay, result3);
         }
 
         [Fact]
@@ -81,7 +80,7 @@ namespace Relay.Core.Tests.Retry
             var result = await strategy.ShouldRetryAsync(1, exception, cts.Token);
 
             // Assert
-            result.Should().BeTrue();
+            Assert.True(result);
         }
 
         #endregion
@@ -99,7 +98,7 @@ namespace Relay.Core.Tests.Retry
                 true);
 
             // Assert
-            strategy.Should().NotBeNull();
+            Assert.NotNull(strategy);
         }
 
         [Fact]
@@ -111,8 +110,8 @@ namespace Relay.Core.Tests.Retry
                 TimeSpan.FromSeconds(10));
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("initialDelay");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("initialDelay", ex.ParamName);
         }
 
         [Fact]
@@ -124,8 +123,8 @@ namespace Relay.Core.Tests.Retry
                 TimeSpan.FromMilliseconds(100));
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("maxDelay");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("maxDelay", ex.ParamName);
         }
 
         [Fact]
@@ -138,8 +137,8 @@ namespace Relay.Core.Tests.Retry
                 0.5);
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("backoffMultiplier");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("backoffMultiplier", ex.ParamName);
         }
 
         [Fact]
@@ -155,7 +154,7 @@ namespace Relay.Core.Tests.Retry
             var result = await strategy.ShouldRetryAsync(1, exception);
 
             // Assert
-            result.Should().BeTrue();
+            Assert.True(result);
         }
 
         [Fact]
@@ -175,9 +174,9 @@ namespace Relay.Core.Tests.Retry
             var delay3 = await strategy.GetRetryDelayAsync(3, exception);
 
             // Assert
-            delay1.Should().Be(TimeSpan.FromMilliseconds(100)); // 100 * 2^0
-            delay2.Should().Be(TimeSpan.FromMilliseconds(200)); // 100 * 2^1
-            delay3.Should().Be(TimeSpan.FromMilliseconds(400)); // 100 * 2^2
+            Assert.Equal(TimeSpan.FromMilliseconds(100), delay1); // 100 * 2^0
+            Assert.Equal(TimeSpan.FromMilliseconds(200), delay2); // 100 * 2^1
+            Assert.Equal(TimeSpan.FromMilliseconds(400), delay3); // 100 * 2^2
         }
 
         [Fact]
@@ -195,7 +194,7 @@ namespace Relay.Core.Tests.Retry
             var delay10 = await strategy.GetRetryDelayAsync(10, exception); // Would be 51200ms without cap
 
             // Assert
-            delay10.Should().Be(TimeSpan.FromSeconds(1)); // Capped at maxDelay
+            Assert.Equal(TimeSpan.FromSeconds(1), delay10); // Capped at maxDelay
         }
 
         [Fact]
@@ -217,8 +216,8 @@ namespace Relay.Core.Tests.Retry
             // With jitter enabled, delays should be different (statistically)
             // and within ±10% of base delay
             var baseDelay = 1000;
-            delay1a.TotalMilliseconds.Should().BeInRange(baseDelay * 0.9, baseDelay * 1.1);
-            delay1b.TotalMilliseconds.Should().BeInRange(baseDelay * 0.9, baseDelay * 1.1);
+            Assert.InRange(delay1a.TotalMilliseconds, baseDelay * 0.9, baseDelay * 1.1);
+            Assert.InRange(delay1b.TotalMilliseconds, baseDelay * 0.9, baseDelay * 1.1);
         }
 
         [Fact]
@@ -235,7 +234,7 @@ namespace Relay.Core.Tests.Retry
             var result = await strategy.ShouldRetryAsync(1, exception, cts.Token);
 
             // Assert
-            result.Should().BeTrue();
+            Assert.True(result);
         }
 
         #endregion

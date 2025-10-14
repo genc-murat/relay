@@ -2,6 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using Relay.Core.AI.Optimization.Models;
@@ -18,17 +20,22 @@ namespace Relay.Core.AI
         private readonly ConcurrentDictionary<string, CircularBuffer<MetricDataPoint>> _metricHistories;
         private readonly ConcurrentDictionary<string, ITransformer> _forecastModels;
         private readonly int _maxHistorySize;
+        private readonly int _forecastHorizon;
+        private readonly int _windowSize;
         private bool _disposed;
 
-        public TimeSeriesDatabase(ILogger<TimeSeriesDatabase> logger, int maxHistorySize = 10000)
+        public TimeSeriesDatabase(ILogger<TimeSeriesDatabase> logger, int maxHistorySize = 10000, IConfiguration? configuration = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _maxHistorySize = maxHistorySize;
+            _maxHistorySize = configuration?.GetValue<int>("TimeSeries:MaxHistorySize", maxHistorySize) ?? maxHistorySize;
+            _forecastHorizon = configuration?.GetValue<int>("TimeSeries:ForecastHorizon", 24) ?? 24;
+            _windowSize = configuration?.GetValue<int>("TimeSeries:WindowSize", 48) ?? 48;
             _mlContext = new MLContext(seed: 42);
             _metricHistories = new ConcurrentDictionary<string, CircularBuffer<MetricDataPoint>>();
             _forecastModels = new ConcurrentDictionary<string, ITransformer>();
 
-            _logger.LogInformation("Time-series database initialized with max history size: {MaxSize}", maxHistorySize);
+            _logger.LogInformation("Time-series database initialized with max history size: {MaxSize}, forecast horizon: {Horizon}, window size: {WindowSize}",
+                _maxHistorySize, _forecastHorizon, _windowSize);
         }
 
         /// <summary>
@@ -92,7 +99,7 @@ namespace Relay.Core.AI
                 return Enumerable.Empty<MetricDataPoint>();
             }
 
-            var allData = history.ToArray();
+            var allData = history.AsEnumerable();
 
             if (lookbackPeriod.HasValue)
             {
@@ -113,7 +120,7 @@ namespace Relay.Core.AI
                 return new List<MetricDataPoint>();
             }
 
-            return history.ToArray()
+            return history
                 .OrderByDescending(d => d.Timestamp)
                 .Take(count)
                 .OrderBy(d => d.Timestamp) // Re-order chronologically
@@ -123,17 +130,15 @@ namespace Relay.Core.AI
         /// <summary>
         /// Train or update forecast model for a specific metric using ML.NET SSA
         /// </summary>
-        public void TrainForecastModel(string metricName, int horizon = 24, int windowSize = 48)
+        public void TrainForecastModel(string metricName)
         {
             try
             {
                 var history = GetHistory(metricName, TimeSpan.FromDays(7)).ToList();
 
-                if (history.Count < windowSize)
+                if (history.Count < _windowSize)
                 {
-                    _logger.LogDebug("Insufficient data for {MetricName}: {Count} data points (minimum {WindowSize} required)",
-                        metricName, history.Count, windowSize);
-                    return;
+                    throw new InsufficientDataException($"Insufficient data for {metricName}: {history.Count} data points (minimum {_windowSize} required)");
                 }
 
                 _logger.LogInformation("Training forecast model for {MetricName} with {Count} data points", 
@@ -146,10 +151,10 @@ namespace Relay.Core.AI
                 var forecastingPipeline = _mlContext.Forecasting.ForecastBySsa(
                     outputColumnName: nameof(MetricForecastResult.ForecastedValues),
                     inputColumnName: nameof(MetricDataPoint.Value),
-                    windowSize: windowSize,
+                    windowSize: _windowSize,
                     seriesLength: history.Count,
                     trainSize: history.Count,
-                    horizon: horizon,
+                    horizon: _forecastHorizon,
                     confidenceLevel: 0.95f,
                     confidenceLowerBoundColumn: nameof(MetricForecastResult.LowerBound),
                     confidenceUpperBoundColumn: nameof(MetricForecastResult.UpperBound));
@@ -159,12 +164,20 @@ namespace Relay.Core.AI
                 _forecastModels[metricName] = model;
 
                 _logger.LogInformation("Forecast model trained for {MetricName} with horizon={Horizon}, windowSize={WindowSize}",
-                    metricName, horizon, windowSize);
+                    metricName, _forecastHorizon, _windowSize);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error training forecast model for {MetricName}", metricName);
             }
+        }
+
+        /// <summary>
+        /// Train or update forecast model for a specific metric using ML.NET SSA (async)
+        /// </summary>
+        public Task TrainForecastModelAsync(string metricName)
+        {
+            return Task.Run(() => TrainForecastModel(metricName));
         }
 
         /// <summary>
@@ -177,7 +190,7 @@ namespace Relay.Core.AI
                 if (!_forecastModels.TryGetValue(metricName, out var model))
                 {
                     _logger.LogDebug("No forecast model available for {MetricName}, training new model", metricName);
-                    TrainForecastModel(metricName, horizon);
+                    TrainForecastModel(metricName);
                     
                     if (!_forecastModels.TryGetValue(metricName, out model))
                     {
@@ -188,7 +201,7 @@ namespace Relay.Core.AI
                 var history = GetHistory(metricName, TimeSpan.FromDays(7)).ToList();
                 if (history.Count == 0)
                 {
-                    return null;
+                    throw new InsufficientDataException($"No data available for forecasting {metricName}");
                 }
 
                 var dataView = _mlContext.Data.LoadFromEnumerable(history);
@@ -199,7 +212,8 @@ namespace Relay.Core.AI
                 _logger.LogInformation("Forecast model available for {MetricName}. " +
                     "Note: Full forecasting requires CreateTimeSeriesEngine which is version-specific.", metricName);
                 
-                // Return null for now - full implementation requires specific ML.NET version
+                // Full forecasting implementation would use TimeSeriesPredictionEngine
+                // For now, return null as placeholder
                 return null;
             }
             catch (Exception ex)
@@ -207,6 +221,14 @@ namespace Relay.Core.AI
                 _logger.LogError(ex, "Error forecasting for {MetricName}", metricName);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Forecast future values for a metric using ML.NET (async)
+        /// </summary>
+        public Task<MetricForecastResult?> ForecastAsync(string metricName)
+        {
+            return Task.Run(() => Forecast(metricName));
         }
 
         /// <summary>
@@ -220,7 +242,7 @@ namespace Relay.Core.AI
 
                 if (history.Count < 12)
                 {
-                    return new List<AnomalyDetectionResult>();
+                    throw new InsufficientDataException($"Insufficient data for anomaly detection in {metricName}: {history.Count} data points (minimum 12 required)");
                 }
 
                 var dataView = _mlContext.Data.LoadFromEnumerable(history);
@@ -271,6 +293,16 @@ namespace Relay.Core.AI
         }
 
         /// <summary>
+        /// Detect anomalies in time-series data using ML.NET (async)
+        /// </summary>
+        public Task<List<AnomalyDetectionResult>> DetectAnomaliesAsync(string metricName, int lookbackPoints = 100)
+        {
+            return Task.Run(() => DetectAnomalies(metricName, lookbackPoints));
+        }
+
+        /// <summary>
+        /// Calculate statistics for a metric
+        /// </summary>
         /// Calculate statistics for a metric
         /// </summary>
         public MetricStatistics? GetStatistics(string metricName, TimeSpan? period = null)
@@ -291,10 +323,10 @@ namespace Relay.Core.AI
                 Mean = values.Average(),
                 Min = values.Min(),
                 Max = values.Max(),
-                StdDev = CalculateStdDev(values),
-                Median = CalculateMedian(values),
-                P95 = CalculatePercentile(values, 0.95),
-                P99 = CalculatePercentile(values, 0.99)
+                StdDev = TimeSeriesStatistics.CalculateStdDev(values),
+                Median = TimeSeriesStatistics.CalculateMedian(values),
+                P95 = TimeSeriesStatistics.CalculatePercentile(values, 0.95),
+                P99 = TimeSeriesStatistics.CalculatePercentile(values, 0.99)
             };
         }
 
@@ -313,14 +345,9 @@ namespace Relay.Core.AI
                     var history = kvp.Value;
                     var originalCount = history.Count;
                     
-                    // Remove old data points
-                    var toKeep = history.Where(d => d.Timestamp >= cutoffTime).ToList();
-                    history.Clear();
-                    
-                    foreach (var dataPoint in toKeep)
-                    {
-                        history.Add(dataPoint);
-                    }
+                    // Remove old data points efficiently
+                    var oldCount = history.Where(d => d.Timestamp < cutoffTime).Count();
+                    history.RemoveFront(oldCount);
 
                     totalRemoved += originalCount - history.Count;
                 }
@@ -336,26 +363,7 @@ namespace Relay.Core.AI
             }
         }
 
-        private double CalculateStdDev(float[] values)
-        {
-            var avg = values.Average();
-            var sumOfSquares = values.Sum(v => Math.Pow(v - avg, 2));
-            return Math.Sqrt(sumOfSquares / values.Length);
-        }
 
-        private float CalculateMedian(float[] values)
-        {
-            var sorted = values.OrderBy(v => v).ToArray();
-            var mid = sorted.Length / 2;
-            return sorted.Length % 2 == 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-        }
-
-        private float CalculatePercentile(float[] values, double percentile)
-        {
-            var sorted = values.OrderBy(v => v).ToArray();
-            var index = (int)Math.Ceiling(percentile * sorted.Length) - 1;
-            return sorted[Math.Max(0, Math.Min(index, sorted.Length - 1))];
-        }
 
         public void Dispose()
         {

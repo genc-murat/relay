@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Relay.Core.Tests.Caching.Behaviors;
 
-public class UnifiedCachingPipelineBehaviorTests
+public class RelayCachingPipelineBehaviorTests
 {
     private readonly Mock<IMemoryCache> _memoryCacheMock;
     private readonly Mock<ILogger<RelayCachingPipelineBehavior<TestRequest, TestResponse>>> _loggerMock;
@@ -26,7 +26,7 @@ public class UnifiedCachingPipelineBehaviorTests
     // Delegate for Moq TryGetValue callback
     public delegate void TryGetValueCallback(string key, out object value);
 
-    public UnifiedCachingPipelineBehaviorTests()
+    public RelayCachingPipelineBehaviorTests()
     {
         _memoryCacheMock = new Mock<IMemoryCache>();
         _loggerMock = new Mock<ILogger<RelayCachingPipelineBehavior<TestRequest, TestResponse>>>();

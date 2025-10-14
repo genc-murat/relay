@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,7 +8,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Circular buffer for efficient time-series storage
     /// </summary>
-    internal class CircularBuffer<T>
+    internal class CircularBuffer<T> : IEnumerable<T>, IReadOnlyCollection<T>
     {
         private readonly T[] _buffer;
         private int _start;
@@ -23,6 +24,18 @@ namespace Relay.Core.AI
 
         public int Count => _count;
         public int Capacity => _buffer.Length;
+
+        public T this[int index]
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    if (index < 0 || index >= _count) throw new ArgumentOutOfRangeException(nameof(index));
+                    return _buffer[(_start + index) % _buffer.Length];
+                }
+            }
+        }
 
         public void Add(T item)
         {
@@ -50,28 +63,50 @@ namespace Relay.Core.AI
             }
         }
 
+        public void RemoveFront(int count)
+        {
+            if (count < 0 || count > _count) throw new ArgumentOutOfRangeException(nameof(count));
+            lock (_lock)
+            {
+                _start = (_start + count) % _buffer.Length;
+                _count -= count;
+            }
+        }
+
         public T[] ToArray()
         {
             lock (_lock)
             {
                 var result = new T[_count];
+                var resultSpan = result.AsSpan();
                 if (_count < _buffer.Length)
                 {
-                    Array.Copy(_buffer, 0, result, 0, _count);
+                    _buffer.AsSpan(0, _count).CopyTo(resultSpan);
                 }
                 else
                 {
                     var firstPart = _buffer.Length - _start;
-                    Array.Copy(_buffer, _start, result, 0, firstPart);
-                    Array.Copy(_buffer, 0, result, firstPart, _start);
+                    _buffer.AsSpan(_start, firstPart).CopyTo(resultSpan);
+                    _buffer.AsSpan(0, _start).CopyTo(resultSpan.Slice(firstPart));
                 }
                 return result;
             }
         }
 
-        public IEnumerable<T> Where(Func<T, bool> predicate)
+
+
+        public IEnumerator<T> GetEnumerator()
         {
-            return ToArray().Where(predicate);
+            lock (_lock)
+            {
+                for (int i = 0; i < _count; i++)
+                {
+                    int index = (_start + i) % _buffer.Length;
+                    yield return _buffer[index];
+                }
+            }
         }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

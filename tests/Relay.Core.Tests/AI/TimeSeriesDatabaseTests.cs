@@ -529,7 +529,7 @@ namespace Relay.Core.Tests.AI
             }
 
             // Act - Should not throw
-            _database.TrainForecastModel("test", horizon: 24, windowSize: 48);
+            _database.TrainForecastModel("test");
 
             // Assert - Should log that data is insufficient
         }
@@ -554,7 +554,7 @@ namespace Relay.Core.Tests.AI
             }
 
             // Act - Should not throw
-            _database.TrainForecastModel("test", horizon: 24, windowSize: 48);
+            _database.TrainForecastModel("test");
 
             // Assert - Model should be trained (verified by Forecast method)
         }
@@ -1042,7 +1042,7 @@ namespace Relay.Core.Tests.AI
             }
 
             // Act - Should not throw
-            _database.TrainForecastModel("test", horizon: 24, windowSize: 48);
+            _database.TrainForecastModel("test");
 
             // Assert - Should handle exactly the minimum required data
         }

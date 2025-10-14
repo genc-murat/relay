@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Relay.Core.Tests.Caching;
 
-public class UnifiedCacheAttributeTests
+public class RelayCacheAttributeTests
 {
     [Fact]
     public void Constructor_WithDefaultValues_ShouldSetCorrectDefaults()

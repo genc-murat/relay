@@ -9,7 +9,7 @@ namespace Relay.Core.Caching.Compression;
 /// <summary>
 /// Unified compressor implementation supporting multiple algorithms.
 /// </summary>
-public sealed class UnifiedCompressor : IRelayCompressor
+public sealed class RelayCompressor : IRelayCompressor
 {
     private readonly CompressionOptions _options;
     private readonly CompressionLevel _compressionLevel;
@@ -20,7 +20,7 @@ public sealed class UnifiedCompressor : IRelayCompressor
     /// <param name="algorithm">The compression algorithm.</param>
     /// <param name="level">The compression level (0-9).</param>
     /// <param name="minimumSizeBytes">Minimum data size to compress.</param>
-    public UnifiedCompressor(CompressionAlgorithm algorithm = CompressionAlgorithm.GZip, int level = 6, int minimumSizeBytes = 1024)
+    public RelayCompressor(CompressionAlgorithm algorithm = CompressionAlgorithm.GZip, int level = 6, int minimumSizeBytes = 1024)
     {
         _options = new CompressionOptions
         {
@@ -41,7 +41,7 @@ public sealed class UnifiedCompressor : IRelayCompressor
     /// Initializes a new instance of the <see cref="UnifiedCompressor"/> class.
     /// </summary>
     /// <param name="options">The compression options.</param>
-    public UnifiedCompressor(CompressionOptions options)
+    public RelayCompressor(CompressionOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
 

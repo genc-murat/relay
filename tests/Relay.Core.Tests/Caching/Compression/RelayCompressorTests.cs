@@ -7,11 +7,11 @@ using Xunit;
 
 namespace Relay.Core.Tests.Caching.Compression;
 
-public class UnifiedCompressorTests
+public class RelayCompressorTests
 {
     private readonly byte[] _testData;
 
-    public UnifiedCompressorTests()
+    public RelayCompressorTests()
     {
         // Create test data - repeating pattern compresses well
         var text = string.Join("", Enumerable.Repeat("This is a test message that should compress well. ", 100));

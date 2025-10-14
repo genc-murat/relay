@@ -6,7 +6,7 @@ namespace Relay.Core.Caching.Compression;
 /// <summary>
 /// Unified interface for compression services supporting both sync and async operations.
 /// </summary>
-public interface IUnifiedCompressor
+public interface IRelayCompressor
 {
     /// <summary>
     /// Gets the compression algorithm.

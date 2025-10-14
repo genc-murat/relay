@@ -19,21 +19,21 @@ namespace Relay.Core.Caching.Behaviors;
 /// </summary>
 /// <typeparam name="TRequest">The type of the request.</typeparam>
 /// <typeparam name="TResponse">The type of the response.</typeparam>
-public class UnifiedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public class RelayCachingPipelineBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
     private readonly IMemoryCache _memoryCache;
     private readonly IDistributedCache? _distributedCache;
-    private readonly ILogger<UnifiedCachingPipelineBehavior<TRequest, TResponse>> _logger;
+    private readonly ILogger<RelayCachingPipelineBehavior<TRequest, TResponse>> _logger;
     private readonly ICacheKeyGenerator _keyGenerator;
     private readonly ICacheSerializer _serializer;
     private readonly ICacheMetrics? _metrics;
     private readonly ICacheInvalidator? _invalidator;
     private readonly ICacheKeyTracker? _keyTracker;
 
-    public UnifiedCachingPipelineBehavior(
+    public RelayCachingPipelineBehavior(
         IMemoryCache memoryCache,
-        ILogger<UnifiedCachingPipelineBehavior<TRequest, TResponse>> logger,
+        ILogger<RelayCachingPipelineBehavior<TRequest, TResponse>> logger,
         ICacheKeyGenerator keyGenerator,
         ICacheSerializer serializer,
         ICacheMetrics? metrics = null,

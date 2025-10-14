@@ -1552,8 +1552,8 @@ public class WorkflowEngineTests
             .Returns(ValueTask.CompletedTask);
 
         TestWorkflowRequestWithProperties? capturedRequest = null;
-        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequestWithProperties>(), It.IsAny<CancellationToken>()))
-            .Callback<object, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<string>, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
             .Returns(new ValueTask<string>("Success"));
 
         // Act
@@ -1595,8 +1595,8 @@ public class WorkflowEngineTests
             .Returns(ValueTask.CompletedTask);
 
         TestWorkflowRequestWithProperties? capturedRequest = null;
-        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequestWithProperties>(), It.IsAny<CancellationToken>()))
-            .Callback<object, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<string>, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
             .Returns(new ValueTask<string>("Success"));
 
         // Act - Pass NumberProperty as string in the input, which should be converted to int

@@ -82,12 +82,12 @@ public class UnifiedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeha
         return response;
     }
 
-    private UnifiedCacheAttribute? GetCacheAttribute()
+    private RelayCacheAttribute? GetCacheAttribute()
     {
-        return typeof(TRequest).GetCustomAttribute<UnifiedCacheAttribute>();
+        return typeof(TRequest).GetCustomAttribute<RelayCacheAttribute>();
     }
 
-    private string GenerateCacheKey(TRequest request, UnifiedCacheAttribute cacheAttribute)
+    private string GenerateCacheKey(TRequest request, RelayCacheAttribute cacheAttribute)
     {
         // For backward compatibility, we need to handle different key generation methods
         if (cacheAttribute.KeyPattern.Contains("{RequestHash}"))
@@ -100,7 +100,7 @@ public class UnifiedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeha
         }
     }
 
-    private string GenerateKeyWithHash(TRequest request, UnifiedCacheAttribute cacheAttribute)
+    private string GenerateKeyWithHash(TRequest request, RelayCacheAttribute cacheAttribute)
     {
         var requestHash = GenerateRequestHash(request);
         var keyPattern = cacheAttribute.KeyPattern
@@ -119,7 +119,7 @@ public class UnifiedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeha
         return Convert.ToBase64String(hashBytes)[..8];
     }
 
-    private async Task<(bool Success, TResponse? Response)> TryGetFromCacheAsync(string cacheKey, UnifiedCacheAttribute cacheAttribute, CancellationToken cancellationToken)
+    private async Task<(bool Success, TResponse? Response)> TryGetFromCacheAsync(string cacheKey, RelayCacheAttribute cacheAttribute, CancellationToken cancellationToken)
     {
         // Try memory cache first
         if (_memoryCache.TryGetValue(cacheKey, out TResponse? cachedResponse))
@@ -156,7 +156,7 @@ public class UnifiedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeha
     private async Task CacheResponseAsync(
         string cacheKey,
         TResponse response,
-        UnifiedCacheAttribute cacheAttribute,
+        RelayCacheAttribute cacheAttribute,
         CancellationToken cancellationToken)
     {
         try
@@ -191,7 +191,7 @@ public class UnifiedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeha
         }
     }
 
-    private MemoryCacheEntryOptions CreateMemoryCacheOptions(UnifiedCacheAttribute cacheAttribute)
+    private MemoryCacheEntryOptions CreateMemoryCacheOptions(RelayCacheAttribute cacheAttribute)
     {
         var options = new MemoryCacheEntryOptions();
 
@@ -216,7 +216,7 @@ public class UnifiedCachingPipelineBehavior<TRequest, TResponse> : IPipelineBeha
         return options;
     }
 
-    private DistributedCacheEntryOptions CreateDistributedCacheOptions(UnifiedCacheAttribute cacheAttribute)
+    private DistributedCacheEntryOptions CreateDistributedCacheOptions(RelayCacheAttribute cacheAttribute)
     {
         var options = new DistributedCacheEntryOptions();
 

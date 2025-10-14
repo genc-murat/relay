@@ -150,7 +150,7 @@ public static class RelayConfigurationExtensions
 
     /// <summary>
     /// Adds and configures unified caching for Relay requests.
-    /// This registers the <see cref="Caching.Behaviors.UnifiedCachingPipelineBehavior{TRequest, TResponse}"/>
+    /// This registers the <see cref="Caching.Behaviors.RelayCachingPipelineBehavior{TRequest, TResponse}"/>
     /// and the required caching services.
     /// </summary>
     /// <param name="services">The service collection.</param>
@@ -158,7 +158,7 @@ public static class RelayConfigurationExtensions
     public static IServiceCollection AddRelayCaching(this IServiceCollection services)
     {
         services.AddMemoryCache();
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Caching.Behaviors.UnifiedCachingPipelineBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(Caching.Behaviors.RelayCachingPipelineBehavior<,>));
         return services;
     }
 

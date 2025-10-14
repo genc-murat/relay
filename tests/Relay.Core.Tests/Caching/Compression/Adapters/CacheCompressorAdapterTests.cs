@@ -26,7 +26,7 @@ public class CacheCompressorAdapterTests
     public void Constructor_WithValidCompressor_ShouldCreateAdapter()
     {
         // Arrange
-        var unifiedCompressor = new UnifiedCompressor(CompressionAlgorithm.GZip);
+        var unifiedCompressor = new RelayCompressor(CompressionAlgorithm.GZip);
 
         // Act
         var adapter = new CacheCompressorAdapter(unifiedCompressor);
@@ -39,7 +39,7 @@ public class CacheCompressorAdapterTests
     public void Compress_ShouldDelegateToUnifiedCompressor()
     {
         // Arrange
-        var unifiedCompressor = new UnifiedCompressor(CompressionAlgorithm.GZip);
+        var unifiedCompressor = new RelayCompressor(CompressionAlgorithm.GZip);
         var adapter = new CacheCompressorAdapter(unifiedCompressor);
 
         // Act
@@ -59,7 +59,7 @@ public class CacheCompressorAdapterTests
     public void Decompress_ShouldDelegateToUnifiedCompressor()
     {
         // Arrange
-        var unifiedCompressor = new UnifiedCompressor(CompressionAlgorithm.GZip);
+        var unifiedCompressor = new RelayCompressor(CompressionAlgorithm.GZip);
         var adapter = new CacheCompressorAdapter(unifiedCompressor);
         var compressed = adapter.Compress(_testData);
 
@@ -74,7 +74,7 @@ public class CacheCompressorAdapterTests
     public void ShouldCompress_ShouldDelegateToUnifiedCompressor()
     {
         // Arrange
-        var unifiedCompressor = new UnifiedCompressor(CompressionAlgorithm.GZip, 6, 100);
+        var unifiedCompressor = new RelayCompressor(CompressionAlgorithm.GZip, 6, 100);
         var adapter = new CacheCompressorAdapter(unifiedCompressor);
 
         // Act
@@ -90,7 +90,7 @@ public class CacheCompressorAdapterTests
     public void Compress_WithNullData_ShouldThrowArgumentNullException()
     {
         // Arrange
-        var unifiedCompressor = new UnifiedCompressor(CompressionAlgorithm.GZip);
+        var unifiedCompressor = new RelayCompressor(CompressionAlgorithm.GZip);
         var adapter = new CacheCompressorAdapter(unifiedCompressor);
 
         // Act & Assert
@@ -101,7 +101,7 @@ public class CacheCompressorAdapterTests
     public void Decompress_WithNullData_ShouldThrowArgumentNullException()
     {
         // Arrange
-        var unifiedCompressor = new UnifiedCompressor(CompressionAlgorithm.GZip);
+        var unifiedCompressor = new RelayCompressor(CompressionAlgorithm.GZip);
         var adapter = new CacheCompressorAdapter(unifiedCompressor);
 
         // Act & Assert
@@ -115,7 +115,7 @@ public class CacheCompressorAdapterTests
     public void Adapter_ShouldWorkWithAllAlgorithms(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var unifiedCompressor = new UnifiedCompressor(algorithm);
+        var unifiedCompressor = new RelayCompressor(algorithm);
         var adapter = new CacheCompressorAdapter(unifiedCompressor);
 
         // Act

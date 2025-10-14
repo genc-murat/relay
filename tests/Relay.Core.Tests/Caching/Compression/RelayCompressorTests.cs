@@ -25,7 +25,7 @@ public class UnifiedCompressorTests
     public void Constructor_WithAlgorithm_ShouldSetCorrectAlgorithm(CompressionAlgorithm algorithm)
     {
         // Arrange & Act
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
 
         // Assert
         Assert.Equal(algorithm, compressor.Algorithm);
@@ -38,7 +38,7 @@ public class UnifiedCompressorTests
     public void Compress_And_Decompress_ShouldReturnOriginalData(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
 
         // Act
         var compressed = compressor.Compress(_testData);
@@ -55,7 +55,7 @@ public class UnifiedCompressorTests
     public async Task CompressAsync_And_DecompressAsync_ShouldReturnOriginalData(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
 
         // Act
         var compressed = await compressor.CompressAsync(_testData);
@@ -72,7 +72,7 @@ public class UnifiedCompressorTests
     public void Compress_ShouldReduceDataSize(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
 
         // Act
         var compressed = compressor.Compress(_testData);
@@ -92,7 +92,7 @@ public class UnifiedCompressorTests
     public void ShouldCompress_WithLargeData_ShouldReturnTrue(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm, 6, 100);
+        var compressor = new RelayCompressor(algorithm, 6, 100);
         var largeData = new byte[200];
 
         // Act
@@ -109,7 +109,7 @@ public class UnifiedCompressorTests
     public void ShouldCompress_WithSmallData_ShouldReturnFalse(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm, 6, 100);
+        var compressor = new RelayCompressor(algorithm, 6, 100);
         var smallData = new byte[50];
 
         // Act
@@ -123,7 +123,7 @@ public class UnifiedCompressorTests
     public void GZipCompressor_IsCompressed_WithGZipMagicNumber_ShouldReturnTrue()
     {
         // Arrange
-        var compressor = new UnifiedCompressor(CompressionAlgorithm.GZip);
+        var compressor = new RelayCompressor(CompressionAlgorithm.GZip);
         var data = new byte[] { 0x1f, 0x8b, 0x00, 0x00 };
 
         // Act
@@ -137,7 +137,7 @@ public class UnifiedCompressorTests
     public void DeflateCompressor_IsCompressed_WithDeflateMagicNumber_ShouldReturnTrue()
     {
         // Arrange
-        var compressor = new UnifiedCompressor(CompressionAlgorithm.Deflate);
+        var compressor = new RelayCompressor(CompressionAlgorithm.Deflate);
         var data = new byte[] { 0x78, 0x9c, 0x00, 0x00 };
 
         // Act
@@ -151,7 +151,7 @@ public class UnifiedCompressorTests
     public void BrotliCompressor_IsCompressed_WithValidPattern_ShouldReturnTrue()
     {
         // Arrange
-        var compressor = new UnifiedCompressor(CompressionAlgorithm.Brotli);
+        var compressor = new RelayCompressor(CompressionAlgorithm.Brotli);
         var data = new byte[] { 0x8b, 0x02, 0x00, 0x00 };
 
         // Act
@@ -168,7 +168,7 @@ public class UnifiedCompressorTests
     public void Compress_WithNullData_ShouldThrowArgumentNullException(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => compressor.Compress(null!));
@@ -181,7 +181,7 @@ public class UnifiedCompressorTests
     public void Decompress_WithNullData_ShouldThrowArgumentNullException(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => compressor.Decompress(null!));
@@ -194,7 +194,7 @@ public class UnifiedCompressorTests
     public async Task CompressAsync_WithNullData_ShouldThrowArgumentNullException(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await compressor.CompressAsync(null!));
@@ -207,7 +207,7 @@ public class UnifiedCompressorTests
     public async Task DecompressAsync_WithNullData_ShouldThrowArgumentNullException(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await compressor.DecompressAsync(null!));
@@ -220,7 +220,7 @@ public class UnifiedCompressorTests
     public void Compress_WithEmptyData_ShouldReturnEmpty(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
         var emptyData = Array.Empty<byte>();
 
         // Act
@@ -237,7 +237,7 @@ public class UnifiedCompressorTests
     public async Task CompressAsync_WithEmptyData_ShouldReturnEmpty(CompressionAlgorithm algorithm)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(algorithm);
+        var compressor = new RelayCompressor(algorithm);
         var emptyData = Array.Empty<byte>();
 
         // Act
@@ -251,7 +251,7 @@ public class UnifiedCompressorTests
     public void Constructor_WithUnsupportedAlgorithm_ShouldThrowNotSupportedException()
     {
         // Arrange & Act
-        var compressor = new UnifiedCompressor(CompressionAlgorithm.LZ4);
+        var compressor = new RelayCompressor(CompressionAlgorithm.LZ4);
 
         // Assert
         Assert.Throws<NotSupportedException>(() => compressor.Compress(_testData));
@@ -269,7 +269,7 @@ public class UnifiedCompressorTests
         };
 
         // Act
-        var compressor = new UnifiedCompressor(options);
+        var compressor = new RelayCompressor(options);
 
         // Assert
         Assert.Equal(CompressionAlgorithm.GZip, compressor.Algorithm);
@@ -285,7 +285,7 @@ public class UnifiedCompressorTests
     public void Compress_Decompress_RoundTrip_ShouldPreserveData(int dataSize)
     {
         // Arrange
-        var compressor = new UnifiedCompressor(CompressionAlgorithm.GZip);
+        var compressor = new RelayCompressor(CompressionAlgorithm.GZip);
         var random = new Random(42); // Fixed seed for reproducible tests
         var originalData = new byte[dataSize];
         random.NextBytes(originalData);

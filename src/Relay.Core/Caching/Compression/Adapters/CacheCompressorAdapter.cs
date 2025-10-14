@@ -7,13 +7,13 @@ namespace Relay.Core.Caching.Compression.Adapters;
 /// </summary>
 public sealed class CacheCompressorAdapter : ICacheCompressor
 {
-    private readonly IUnifiedCompressor _unifiedCompressor;
+    private readonly IRelayCompressor _unifiedCompressor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CacheCompressorAdapter"/> class.
     /// </summary>
     /// <param name="unifiedCompressor">The unified compressor.</param>
-    public CacheCompressorAdapter(IUnifiedCompressor unifiedCompressor)
+    public CacheCompressorAdapter(IRelayCompressor unifiedCompressor)
     {
         _unifiedCompressor = unifiedCompressor ?? throw new ArgumentNullException(nameof(unifiedCompressor));
     }

@@ -10,7 +10,7 @@ public class UnifiedCacheAttributeTests
     public void Constructor_WithDefaultValues_ShouldSetCorrectDefaults()
     {
         // Arrange & Act
-        var attribute = new UnifiedCacheAttribute();
+        var attribute = new RelayCacheAttribute();
 
         // Assert
         Assert.Equal(300, attribute.AbsoluteExpirationSeconds);
@@ -30,7 +30,7 @@ public class UnifiedCacheAttributeTests
     public void Constructor_WithAbsoluteExpiration_ShouldSetCorrectValue()
     {
         // Arrange & Act
-        var attribute = new UnifiedCacheAttribute(600);
+        var attribute = new RelayCacheAttribute(600);
 
         // Assert
         Assert.Equal(600, attribute.AbsoluteExpirationSeconds);
@@ -41,7 +41,7 @@ public class UnifiedCacheAttributeTests
     public void Constructor_WithAbsoluteAndSlidingExpiration_ShouldSetCorrectValues()
     {
         // Arrange & Act
-        var attribute = new UnifiedCacheAttribute(600, 300);
+        var attribute = new RelayCacheAttribute(600, 300);
 
         // Assert
         Assert.Equal(600, attribute.AbsoluteExpirationSeconds);
@@ -52,15 +52,15 @@ public class UnifiedCacheAttributeTests
     public void Constructor_WithInvalidAbsoluteExpiration_ShouldThrowException()
     {
         // Arrange & Act & Assert
-        Assert.Throws<ArgumentOutOfRangeException>(() => new UnifiedCacheAttribute(0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new UnifiedCacheAttribute(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new RelayCacheAttribute(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new RelayCacheAttribute(-1));
     }
 
     [Fact]
     public void Constructor_WithInvalidSlidingExpiration_ShouldThrowException()
     {
         // Arrange & Act & Assert
-        Assert.Throws<ArgumentOutOfRangeException>(() => new UnifiedCacheAttribute(300, -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new RelayCacheAttribute(300, -1));
     }
 
     [Theory]
@@ -71,7 +71,7 @@ public class UnifiedCacheAttributeTests
     public void Priority_SetAndGet_ShouldWorkCorrectly(CachePriority priority)
     {
         // Arrange & Act
-        var attribute = new UnifiedCacheAttribute();
+        var attribute = new RelayCacheAttribute();
         attribute.Priority = priority;
 
         // Assert
@@ -83,7 +83,7 @@ public class UnifiedCacheAttributeTests
     {
         // Arrange
         var tags = new[] { "tag1", "tag2", "tag3" };
-        var attribute = new UnifiedCacheAttribute();
+        var attribute = new RelayCacheAttribute();
 
         // Act
         attribute.Tags = tags;
@@ -97,7 +97,7 @@ public class UnifiedCacheAttributeTests
     {
         // Arrange
         const string region = "test-region";
-        var attribute = new UnifiedCacheAttribute();
+        var attribute = new RelayCacheAttribute();
 
         // Act
         attribute.Region = region;
@@ -111,7 +111,7 @@ public class UnifiedCacheAttributeTests
     {
         // Arrange
         const string keyPattern = "custom-{RequestType}-{RequestHash}";
-        var attribute = new UnifiedCacheAttribute();
+        var attribute = new RelayCacheAttribute();
 
         // Act
         attribute.KeyPattern = keyPattern;
@@ -124,7 +124,7 @@ public class UnifiedCacheAttributeTests
     public void BooleanProperties_SetAndGet_ShouldWorkCorrectly()
     {
         // Arrange
-        var attribute = new UnifiedCacheAttribute();
+        var attribute = new RelayCacheAttribute();
 
         // Act & Assert
         attribute.EnableCompression = false;
@@ -147,7 +147,7 @@ public class UnifiedCacheAttributeTests
     public void AttributeUsage_ShouldAllowClassTargetsAndInheritance()
     {
         // Arrange & Act
-        var attributeUsage = typeof(UnifiedCacheAttribute).GetCustomAttributes(
+        var attributeUsage = typeof(RelayCacheAttribute).GetCustomAttributes(
             typeof(AttributeUsageAttribute), false)[0] as AttributeUsageAttribute;
 
         // Assert

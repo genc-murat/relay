@@ -17,11 +17,11 @@ namespace Relay.Core.Tests.Caching.Behaviors;
 public class UnifiedCachingPipelineBehaviorTests
 {
     private readonly Mock<IMemoryCache> _memoryCacheMock;
-    private readonly Mock<ILogger<UnifiedCachingPipelineBehavior<TestRequest, TestResponse>>> _loggerMock;
+    private readonly Mock<ILogger<RelayCachingPipelineBehavior<TestRequest, TestResponse>>> _loggerMock;
     private readonly Mock<ICacheKeyGenerator> _keyGeneratorMock;
     private readonly Mock<ICacheSerializer> _serializerMock;
     private readonly Mock<ICacheMetrics> _metricsMock;
-    private readonly UnifiedCachingPipelineBehavior<TestRequest, TestResponse> _behavior;
+    private readonly RelayCachingPipelineBehavior<TestRequest, TestResponse> _behavior;
 
     // Delegate for Moq TryGetValue callback
     public delegate void TryGetValueCallback(string key, out object value);
@@ -29,12 +29,12 @@ public class UnifiedCachingPipelineBehaviorTests
     public UnifiedCachingPipelineBehaviorTests()
     {
         _memoryCacheMock = new Mock<IMemoryCache>();
-        _loggerMock = new Mock<ILogger<UnifiedCachingPipelineBehavior<TestRequest, TestResponse>>>();
+        _loggerMock = new Mock<ILogger<RelayCachingPipelineBehavior<TestRequest, TestResponse>>>();
         _keyGeneratorMock = new Mock<ICacheKeyGenerator>();
         _serializerMock = new Mock<ICacheSerializer>();
         _metricsMock = new Mock<ICacheMetrics>();
 
-        _behavior = new UnifiedCachingPipelineBehavior<TestRequest, TestResponse>(
+        _behavior = new RelayCachingPipelineBehavior<TestRequest, TestResponse>(
             _memoryCacheMock.Object,
             _loggerMock.Object,
             _keyGeneratorMock.Object,
@@ -87,16 +87,16 @@ public class UnifiedCachingPipelineBehaviorTests
         memoryCache.Set(cacheKey, cachedResponse);
         
         // Create a new logger with the correct type
-        var loggerMock = new Mock<ILogger<UnifiedCachingPipelineBehavior<CachedRequest, TestResponse>>>();
+        var loggerMock = new Mock<ILogger<RelayCachingPipelineBehavior<CachedRequest, TestResponse>>>();
         
-        var behavior = new UnifiedCachingPipelineBehavior<CachedRequest, TestResponse>(
+        var behavior = new RelayCachingPipelineBehavior<CachedRequest, TestResponse>(
             memoryCache,
             loggerMock.Object,
             _keyGeneratorMock.Object,
             _serializerMock.Object,
             _metricsMock.Object);
         
-        _keyGeneratorMock.Setup(x => x.GenerateKey(request, It.IsAny<UnifiedCacheAttribute>())).Returns(cacheKey);
+        _keyGeneratorMock.Setup(x => x.GenerateKey(request, It.IsAny<RelayCacheAttribute>())).Returns(cacheKey);
 
         var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(new TestResponse()));
 
@@ -124,9 +124,9 @@ public class UnifiedCachingPipelineBehaviorTests
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
         
         // Create a new logger with the correct type
-        var loggerMock = new Mock<ILogger<UnifiedCachingPipelineBehavior<CachedRequest, TestResponse>>>();
+        var loggerMock = new Mock<ILogger<RelayCachingPipelineBehavior<CachedRequest, TestResponse>>>();
         
-        var behavior = new UnifiedCachingPipelineBehavior<CachedRequest, TestResponse>(
+        var behavior = new RelayCachingPipelineBehavior<CachedRequest, TestResponse>(
             memoryCache,
             loggerMock.Object,
             _keyGeneratorMock.Object,
@@ -134,7 +134,7 @@ public class UnifiedCachingPipelineBehaviorTests
             _metricsMock.Object);
         
         // Since the KeyPattern doesn't contain {RequestHash}, it should use the key generator
-        _keyGeneratorMock.Setup(x => x.GenerateKey(request, It.IsAny<UnifiedCacheAttribute>())).Returns(cacheKey);
+        _keyGeneratorMock.Setup(x => x.GenerateKey(request, It.IsAny<RelayCacheAttribute>())).Returns(cacheKey);
         _serializerMock.Setup(x => x.Serialize(response)).Returns(serializedResponse);
 
         var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(response));
@@ -157,9 +157,9 @@ public class UnifiedCachingPipelineBehaviorTests
     public class TestRequest : IRequest<TestResponse> { }
     public class TestResponse { }
 
-    [UnifiedCacheAttribute(KeyPattern = "test-fixed-key")]
+    [RelayCacheAttribute(KeyPattern = "test-fixed-key")]
     public class CachedRequest : TestRequest { }
 
-    [UnifiedCacheAttribute(Enabled = false)]
+    [RelayCacheAttribute(Enabled = false)]
     public class DisabledCacheRequest : TestRequest { }
 }

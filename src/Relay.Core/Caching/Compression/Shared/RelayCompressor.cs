@@ -9,7 +9,7 @@ namespace Relay.Core.Caching.Compression;
 /// <summary>
 /// Unified compressor implementation supporting multiple algorithms.
 /// </summary>
-public sealed class UnifiedCompressor : IUnifiedCompressor
+public sealed class UnifiedCompressor : IRelayCompressor
 {
     private readonly CompressionOptions _options;
     private readonly CompressionLevel _compressionLevel;

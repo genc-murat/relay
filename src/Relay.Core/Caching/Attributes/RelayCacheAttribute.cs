@@ -7,7 +7,7 @@ namespace Relay.Core.Caching.Attributes;
 /// Replaces CacheAttribute, EnhancedCacheAttribute, and DistributedCacheAttribute.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public sealed class UnifiedCacheAttribute : Attribute
+public sealed class RelayCacheAttribute : Attribute
 {
     /// <summary>
     /// Gets the absolute expiration time for the cache, in seconds.
@@ -65,17 +65,17 @@ public sealed class UnifiedCacheAttribute : Attribute
     public bool Enabled { get; set; } = true;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UnifiedCacheAttribute"/> class with default settings.
+    /// Initializes a new instance of the <see cref="RelayCacheAttribute"/> class with default settings.
     /// </summary>
-    public UnifiedCacheAttribute()
+    public RelayCacheAttribute()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UnifiedCacheAttribute"/> class with specified absolute expiration.
+    /// Initializes a new instance of the <see cref="RelayCacheAttribute"/> class with specified absolute expiration.
     /// </summary>
     /// <param name="absoluteExpirationSeconds">The absolute expiration time in seconds.</param>
-    public UnifiedCacheAttribute(int absoluteExpirationSeconds)
+    public RelayCacheAttribute(int absoluteExpirationSeconds)
     {
         if (absoluteExpirationSeconds <= 0)
         {
@@ -85,11 +85,11 @@ public sealed class UnifiedCacheAttribute : Attribute
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UnifiedCacheAttribute"/> class with specified absolute and sliding expiration.
+    /// Initializes a new instance of the <see cref="RelayCacheAttribute"/> class with specified absolute and sliding expiration.
     /// </summary>
     /// <param name="absoluteExpirationSeconds">The absolute expiration time in seconds.</param>
     /// <param name="slidingExpirationSeconds">The sliding expiration time in seconds.</param>
-    public UnifiedCacheAttribute(int absoluteExpirationSeconds, int slidingExpirationSeconds)
+    public RelayCacheAttribute(int absoluteExpirationSeconds, int slidingExpirationSeconds)
     {
         if (absoluteExpirationSeconds <= 0)
         {

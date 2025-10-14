@@ -7,13 +7,13 @@ namespace Relay.MessageBroker.Compression;
 /// </summary>
 public sealed class MessageCompressorAdapter : IMessageCompressor
 {
-    private readonly IUnifiedCompressor _unifiedCompressor;
+    private readonly IRelayCompressor _unifiedCompressor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MessageCompressorAdapter"/> class.
     /// </summary>
     /// <param name="unifiedCompressor">The unified compressor.</param>
-    public MessageCompressorAdapter(IUnifiedCompressor unifiedCompressor)
+    public MessageCompressorAdapter(IRelayCompressor unifiedCompressor)
     {
         _unifiedCompressor = unifiedCompressor ?? throw new ArgumentNullException(nameof(unifiedCompressor));
     }

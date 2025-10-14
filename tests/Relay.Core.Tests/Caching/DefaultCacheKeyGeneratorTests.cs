@@ -38,7 +38,7 @@ namespace Relay.Core.Tests.Caching
         {
             // Arrange
             var request = new SimpleRequest { Id = 1, Name = "Test" };
-            var attribute = new UnifiedCacheAttribute(); // Uses default pattern
+            var attribute = new RelayCacheAttribute(); // Uses default pattern
 
             // Act
             var key = _keyGenerator.GenerateKey(request, attribute);
@@ -54,7 +54,7 @@ namespace Relay.Core.Tests.Caching
         {
             // Arrange
             var request = new SimpleRequest { Id = 1, Name = "Test" };
-            var attribute = new UnifiedCacheAttribute
+            var attribute = new RelayCacheAttribute
             {
                 KeyPattern = "MyCache:{Region}:{RequestType}-{RequestHash}",
                 Region = "Users"
@@ -73,7 +73,7 @@ namespace Relay.Core.Tests.Caching
             // Arrange
             var request1 = new SimpleRequest { Id = 123, Name = "SameName" };
             var request2 = new SimpleRequest { Id = 123, Name = "SameName" };
-            var attribute = new UnifiedCacheAttribute();
+            var attribute = new RelayCacheAttribute();
 
             // Act
             var key1 = _keyGenerator.GenerateKey(request1, attribute);
@@ -89,7 +89,7 @@ namespace Relay.Core.Tests.Caching
             // Arrange
             var request1 = new SimpleRequest { Id = 1, Name = "A" };
             var request2 = new SimpleRequest { Id = 2, Name = "B" };
-            var attribute = new UnifiedCacheAttribute();
+            var attribute = new RelayCacheAttribute();
 
             // Act
             var key1 = _keyGenerator.GenerateKey(request1, attribute);
@@ -105,7 +105,7 @@ namespace Relay.Core.Tests.Caching
             // Arrange
             var request1 = new SimpleRequest { Id = 1, Name = "Same" };
             var request2 = new AnotherRequest { Id = 1, Name = "Same" };
-            var attribute = new UnifiedCacheAttribute();
+            var attribute = new RelayCacheAttribute();
 
             // Act
             var key1 = _keyGenerator.GenerateKey(request1, attribute);
@@ -130,7 +130,7 @@ namespace Relay.Core.Tests.Caching
                     Tags = new[] { "tag1", "tag2" }
                 }
             };
-            var attribute = new UnifiedCacheAttribute();
+            var attribute = new RelayCacheAttribute();
 
             // Act
             var key = _keyGenerator.GenerateKey(request, attribute);
@@ -146,7 +146,7 @@ namespace Relay.Core.Tests.Caching
             // Arrange
             var request1 = new SimpleRequest { Name = "OrderTest", Id = 99 };
             var request2 = new SimpleRequest { Id = 99, Name = "OrderTest" };
-            var attribute = new UnifiedCacheAttribute();
+            var attribute = new RelayCacheAttribute();
 
             // Act
             var key1 = _keyGenerator.GenerateKey(request1, attribute);

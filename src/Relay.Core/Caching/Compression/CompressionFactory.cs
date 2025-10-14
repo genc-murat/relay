@@ -14,12 +14,12 @@ public static class CompressionFactory
     /// <param name="level">The compression level (0-9).</param>
     /// <param name="minimumSizeBytes">Minimum data size to compress.</param>
     /// <returns>A unified compressor instance.</returns>
-    public static IUnifiedCompressor CreateUnified(
+    public static IRelayCompressor CreateUnified(
         CompressionAlgorithm algorithm = CompressionAlgorithm.GZip, 
         int level = 6, 
         int minimumSizeBytes = 1024)
     {
-        return new UnifiedCompressor(algorithm, level, minimumSizeBytes);
+        return new RelayCompressor(algorithm, level, minimumSizeBytes);
     }
 
     /// <summary>
@@ -27,9 +27,9 @@ public static class CompressionFactory
     /// </summary>
     /// <param name="options">The compression options.</param>
     /// <returns>A unified compressor instance.</returns>
-    public static IUnifiedCompressor CreateUnified(CompressionOptions options)
+    public static IRelayCompressor CreateUnified(CompressionOptions options)
     {
-        return new UnifiedCompressor(options);
+        return new RelayCompressor(options);
     }
 
     /// <summary>

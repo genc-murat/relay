@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -843,51 +842,5 @@ namespace Relay.SourceGenerator
             var diagnostic = Diagnostic.Create(descriptor, location, messageArgs);
             context.ReportDiagnostic(diagnostic);
         }
-    }
-
-    /// <summary>
-    /// Registry for tracking handlers during compilation analysis.
-    /// </summary>
-    public class HandlerRegistry
-    {
-        public List<AnalyzerHandlerInfo> Handlers { get; } = new();
-
-        public void AddHandler(IMethodSymbol methodSymbol, AttributeData handleAttribute, MethodDeclarationSyntax methodDeclaration)
-        {
-            var requestType = methodSymbol.Parameters.FirstOrDefault()?.Type;
-            if (requestType == null) return;
-
-            var nameArg = handleAttribute.NamedArguments
-                .FirstOrDefault(arg => arg.Key == "Name");
-
-            var priorityArg = handleAttribute.NamedArguments
-                .FirstOrDefault(arg => arg.Key == "Priority");
-
-            var name = nameArg.Key != null ? nameArg.Value.Value?.ToString() : null;
-            var priority = priorityArg.Key != null && priorityArg.Value.Value is int p ? p : 0;
-
-            Handlers.Add(new AnalyzerHandlerInfo
-            {
-                MethodSymbol = methodSymbol,
-                MethodName = methodSymbol.Name,
-                RequestType = requestType,
-                Name = name,
-                Priority = priority,
-                Location = methodDeclaration.Identifier.GetLocation()
-            });
-        }
-    }
-
-    /// <summary>
-    /// Information about a discovered handler method for analyzer purposes.
-    /// </summary>
-    public class AnalyzerHandlerInfo
-    {
-        public IMethodSymbol MethodSymbol { get; set; } = null!;
-        public string MethodName { get; set; } = string.Empty;
-        public ITypeSymbol RequestType { get; set; } = null!;
-        public string? Name { get; set; }
-        public int Priority { get; set; }
-        public Location Location { get; set; } = null!;
     }
 }

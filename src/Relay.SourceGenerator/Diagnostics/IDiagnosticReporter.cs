@@ -1,7 +1,4 @@
 using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
-using System.Linq;
 
 namespace Relay.SourceGenerator
 {
@@ -15,40 +12,6 @@ namespace Relay.SourceGenerator
         /// </summary>
         /// <param name="diagnostic">The diagnostic to report.</param>
         void ReportDiagnostic(Diagnostic diagnostic);
-    }
-
-    /// <summary>
-    /// Implementation of IDiagnosticReporter that uses IncrementalGeneratorInitializationContext.
-    /// This is a simple implementation that stores diagnostics but doesn't report them immediately.
-    /// </summary>
-    public class IncrementalDiagnosticReporter : IDiagnosticReporter
-    {
-        private readonly ConcurrentBag<Diagnostic> _diagnostics = new();
-
-        public void ReportDiagnostic(Diagnostic diagnostic)
-        {
-            _diagnostics.Add(diagnostic);
-        }
-
-        public IReadOnlyList<Diagnostic> GetDiagnostics() => _diagnostics.ToList();
-    }
-
-    /// <summary>
-    /// Implementation of IDiagnosticReporter for source output context.
-    /// </summary>
-    public class SourceOutputDiagnosticReporter : IDiagnosticReporter
-    {
-        private readonly SourceProductionContext _context;
-
-        public SourceOutputDiagnosticReporter(SourceProductionContext context)
-        {
-            _context = context;
-        }
-
-        public void ReportDiagnostic(Diagnostic diagnostic)
-        {
-            _context.ReportDiagnostic(diagnostic);
-        }
     }
 
     /// <summary>

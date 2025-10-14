@@ -644,27 +644,4 @@ namespace Microsoft.Extensions.DependencyInjection
             }
         }
     }
-
-    // Supporting classes
-    public class HandlerClassInfo
-    {
-        public ClassDeclarationSyntax? ClassDeclaration { get; set; }
-        public INamedTypeSymbol? ClassSymbol { get; set; }
-        public List<HandlerInterfaceInfo> ImplementedInterfaces { get; set; } = new();
-    }
-
-    public class HandlerInterfaceInfo
-    {
-        public HandlerType InterfaceType { get; set; }
-        public INamedTypeSymbol? InterfaceSymbol { get; set; }
-        public ITypeSymbol? RequestType { get; set; }
-        public ITypeSymbol? ResponseType { get; set; }
-    }
-
-    public enum HandlerType
-    {
-        Request,
-        Notification,
-        Stream
-    }
 }

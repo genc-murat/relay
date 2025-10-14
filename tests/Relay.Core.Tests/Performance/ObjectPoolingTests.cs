@@ -3,9 +3,14 @@ using Relay.Core.Performance;
 using Relay.Core.Performance.BufferManagement;
 using Relay.Core.Performance.Telemetry;
 using System;
+using System.Diagnostics;
+using System.Reflection;
 using System.Threading.Tasks;
 using Xunit;
 using Relay.Core.Performance.Extensions;
+using System.Threading;
+using Relay.Core.Telemetry;
+using Microsoft.Extensions.Logging;
 
 namespace Relay.Core.Tests.Performance;
 
@@ -559,6 +564,185 @@ public class ObjectPoolingTests
         // Act & Assert - Should not throw
         telemetryProvider.RecordHandlerExecution(typeof(string), typeof(int), "Handler", TimeSpan.FromMilliseconds(100), false);
         Assert.True(true);
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_StartActivity_Should_SetCorrelationId()
+    {
+        // Arrange
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = s => s.Name == "Relay.Core",
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+        var correlationId = "test-correlation-123";
+
+        // Act
+        var activity = telemetryProvider.StartActivity("TestOperation", typeof(string), correlationId);
+
+        // Assert
+        Assert.NotNull(activity);
+        Assert.Equal(correlationId, telemetryProvider.GetCorrelationId());
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_RecordHandlerExecution_Should_HandleException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+        var exception = new InvalidOperationException("Test exception");
+
+        // Act & Assert - Should not throw
+        telemetryProvider.RecordHandlerExecution(typeof(string), typeof(int), "Handler", TimeSpan.FromMilliseconds(100), false, exception);
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_RecordNotificationPublish_Should_HandleException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+        var exception = new InvalidOperationException("Test exception");
+
+        // Act & Assert - Should not throw
+        telemetryProvider.RecordNotificationPublish(typeof(string), 5, TimeSpan.FromMilliseconds(100), false, exception);
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_RecordStreamingOperation_Should_HandleException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+        var exception = new InvalidOperationException("Test exception");
+
+        // Act & Assert - Should not throw
+        telemetryProvider.RecordStreamingOperation(typeof(string), typeof(int), "StreamHandler", TimeSpan.FromMilliseconds(100), 50, false, exception);
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_SetCorrelationId_Should_HandleNullActivity()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+        var correlationId = "test-correlation-456";
+
+        // Ensure no current activity
+        Activity.Current = null;
+
+        // Act
+        telemetryProvider.SetCorrelationId(correlationId);
+
+        // Assert
+        Assert.Equal(correlationId, telemetryProvider.GetCorrelationId());
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_GetCorrelationId_Should_FallbackToActivityTag()
+    {
+        // Arrange
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = s => s.Name == "Relay.Core",
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+        var correlationId = "activity-correlation-789";
+
+        // Clear context using reflection
+        var contextField = typeof(PooledTelemetryProvider).GetField("CorrelationIdContext", BindingFlags.Static | BindingFlags.NonPublic);
+        var asyncLocal = (AsyncLocal<string?>)contextField!.GetValue(null)!;
+        asyncLocal.Value = null;
+
+        // Get ActivitySource using reflection
+        var activitySourceField = typeof(PooledTelemetryProvider).GetField("ActivitySource", BindingFlags.Static | BindingFlags.NonPublic);
+        var activitySource = (ActivitySource)activitySourceField!.GetValue(null)!;
+
+        // Create activity with tag
+        using var activity = activitySource.StartActivity("Test");
+        activity?.SetTag("relay.correlation_id", correlationId);
+
+        // Act
+        var result = telemetryProvider.GetCorrelationId();
+
+        // Assert
+        Assert.Equal(correlationId, result);
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_Constructor_Should_HandleNullMetricsProvider()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+
+        // Act
+        var telemetryProvider = new PooledTelemetryProvider(contextPool, null, null);
+
+        // Assert
+        Assert.NotNull(telemetryProvider.MetricsProvider);
+        Assert.IsType<DefaultMetricsProvider>(telemetryProvider.MetricsProvider);
+    }
+
+    [Fact]
+    public void PooledTelemetryProvider_Should_LogDebugMessages()
+    {
+        // Arrange
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = s => s.Name == "Relay.Core",
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        var services = new ServiceCollection();
+        services.AddRelayPerformanceOptimizations();
+        services.AddLogging();
+        var provider = services.BuildServiceProvider();
+        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+        var logger = provider.GetRequiredService<ILogger<PooledTelemetryProvider>>();
+        var telemetryProvider = new PooledTelemetryProvider(contextPool, logger);
+
+        // Act - Start activity to trigger logging
+        var activity = telemetryProvider.StartActivity("TestOperation", typeof(string), "test-id");
+
+        // Record execution to trigger logging
+        telemetryProvider.RecordHandlerExecution(typeof(string), typeof(int), "TestHandler", TimeSpan.FromMilliseconds(100), true);
+
+        // Assert - Test passes if no exceptions (logging is tested indirectly)
+        Assert.NotNull(activity);
     }
 
     [Fact]

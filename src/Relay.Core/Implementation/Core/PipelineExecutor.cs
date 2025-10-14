@@ -49,8 +49,8 @@ namespace Relay.Core.Implementation.Core
             // Build the execution chain from the end backwards
             RequestHandlerDelegate<TResponse> next = () => handler(request, cancellationToken);
 
-            // Add pipeline behaviors in reverse order
-            for (int i = pipelineBehaviors.Count - 1; i >= 0; i--)
+            // Add pipeline behaviors in order
+            for (int i = 0; i < pipelineBehaviors.Count; i++)
             {
                 var behavior = pipelineBehaviors[i];
                 var currentNext = next;

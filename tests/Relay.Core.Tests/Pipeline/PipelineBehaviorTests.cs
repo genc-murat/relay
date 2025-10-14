@@ -165,30 +165,427 @@ namespace Relay.Core.Tests
             Assert.Throws<ArgumentNullException>(() => new PipelineExecutor(null!));
         }
 
+        [Fact]
+        public async Task PipelineExecutor_Should_Execute_With_System_Modules_Only()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var executionOrder = new List<string>();
+            services.AddSingleton<ISystemModule>(new TestSystemModule(1, executionOrder));
+            services.AddSingleton<ISystemModule>(new TestSystemModule(2, executionOrder));
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+
+            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            {
+                executionOrder.Add("Handler");
+                return new ValueTask<string>("result");
+            }
+
+            // Act
+            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("result", result);
+            Assert.Equal(5, executionOrder.Count);
+            Assert.Equal("SystemModule_1_Before", executionOrder[0]);
+            Assert.Equal("SystemModule_2_Before", executionOrder[1]);
+            Assert.Equal("Handler", executionOrder[2]);
+            Assert.Equal("SystemModule_2_After", executionOrder[3]);
+            Assert.Equal("SystemModule_1_After", executionOrder[4]);
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Execute_With_Pipeline_Behaviors_Only()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var receivedTokens = new List<CancellationToken>();
+            var behavior1 = new TestPipelineBehavior();
+            var behavior2 = new TestPipelineBehaviorWithCancellationCheck(receivedTokens);
+            services.AddSingleton<IEnumerable<IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>>>(new IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>[] { behavior1, behavior2 });
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+
+            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            {
+                return new ValueTask<string>("result");
+            }
+
+            // Act
+            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("result_Modified_Modified", result); // Each behavior appends "_Modified"
+            Assert.Equal(2, behavior1.ExecutionOrder.Count);
+            Assert.Equal("Before", behavior1.ExecutionOrder[0]);
+            Assert.Equal("After", behavior1.ExecutionOrder[1]);
+            Assert.Single(receivedTokens); // behavior2 should have received the cancellation token
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Execute_With_System_Modules_And_Pipeline_Behaviors()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var systemModule = new TestSystemModule(1);
+            var behavior = new TestPipelineBehavior();
+            services.AddSingleton<ISystemModule>(systemModule);
+            services.AddSingleton<IEnumerable<IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>>>(new IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>[] { behavior });
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+
+            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            {
+                return new ValueTask<string>("result");
+            }
+
+            // Act
+            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("result_Modified", result);
+            Assert.Equal(2, systemModule.ExecutionOrder.Count);
+            Assert.Equal("SystemModule_1_Before", systemModule.ExecutionOrder[0]);
+            Assert.Equal("SystemModule_1_After", systemModule.ExecutionOrder[1]);
+            Assert.Equal(2, behavior.ExecutionOrder.Count);
+            Assert.Equal("Before", behavior.ExecutionOrder[0]);
+            Assert.Equal("After", behavior.ExecutionOrder[1]);
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Execute_In_Correct_Order_SystemModules_Pipelines_Handler()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var globalExecutionOrder = new List<string>();
+
+            var systemModule1 = new TestSystemModuleWithGlobalOrder(1, globalExecutionOrder, "System1");
+            var systemModule2 = new TestSystemModuleWithGlobalOrder(2, globalExecutionOrder, "System2");
+            var behavior1 = new TestPipelineBehaviorWithGlobalOrder(globalExecutionOrder, "Behavior1");
+            var behavior2 = new TestPipelineBehavior(globalExecutionOrder, "Behavior2");
+
+            services.AddSingleton<ISystemModule>(systemModule1);
+            services.AddSingleton<ISystemModule>(systemModule2);
+            services.AddSingleton<IEnumerable<IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>>>(new IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>[] { behavior1, behavior2 });
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+
+            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            {
+                globalExecutionOrder.Add("Handler");
+                return new ValueTask<string>("result");
+            }
+
+            // Act
+            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("result_Modified_Modified", result);
+            // System modules execute first (in order), then pipeline behaviors (in reverse order), then handler
+            Assert.Equal(new[] { "System1_Before", "System2_Before", "Behavior2_Before", "Behavior1_Before", "Handler", "Behavior1_After", "Behavior2_After", "System2_After", "System1_After" }, globalExecutionOrder);
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_DeDuplicate_Pipeline_Behaviors_By_Type()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var globalExecutionOrder = new List<string>();
+
+            // Create behaviors of the same type - they should be de-duplicated
+            var behavior1 = new TestPipelineBehaviorWithGlobalOrder(globalExecutionOrder, "Behavior1");
+            var duplicateBehavior = new TestPipelineBehaviorWithGlobalOrder(globalExecutionOrder, "Duplicate"); // Same type, should replace behavior1
+            var behavior2 = new TestPipelineBehavior(globalExecutionOrder, "Behavior2"); // Different type
+
+            services.AddSingleton<IEnumerable<IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>>>(new IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>[] { behavior1, duplicateBehavior, behavior2 });
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+
+            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            {
+                globalExecutionOrder.Add("Handler");
+                return new ValueTask<string>("result");
+            }
+
+            // Act
+            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("result_Modified_Modified", result); // Only 2 behaviors executed (duplicate replaced the first)
+            // Execution order: behavior2, then duplicateBehavior (replaced behavior1), then handler
+            Assert.Equal(new[] { "Behavior2_Before", "Duplicate_Before", "Handler", "Duplicate_After", "Behavior2_After" }, globalExecutionOrder);
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Order_System_Modules_By_Order_Property()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var globalExecutionOrder = new List<string>();
+
+            // Add system modules with different orders (out of sequence)
+            var module3 = new TestSystemModuleWithGlobalOrder(3, globalExecutionOrder, "Module3");
+            var module1 = new TestSystemModuleWithGlobalOrder(1, globalExecutionOrder, "Module1");
+            var module2 = new TestSystemModuleWithGlobalOrder(2, globalExecutionOrder, "Module2");
+
+            services.AddSingleton<ISystemModule>(module3);
+            services.AddSingleton<ISystemModule>(module1);
+            services.AddSingleton<ISystemModule>(module2);
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+
+            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            {
+                globalExecutionOrder.Add("Handler");
+                return new ValueTask<string>("result");
+            }
+
+            // Act
+            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("result", result);
+            // System modules should execute in order: 1, 2, 3
+            Assert.Equal(new[] { "Module1_Before", "Module2_Before", "Module3_Before", "Handler", "Module3_After", "Module2_After", "Module1_After" }, globalExecutionOrder);
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Execute_Stream_With_System_Modules()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var globalExecutionOrder = new List<string>();
+
+            var systemModule = new TestSystemModuleWithGlobalOrder(1, globalExecutionOrder, "System");
+            services.AddSingleton<ISystemModule>(systemModule);
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestStreamRequest();
+
+            IAsyncEnumerable<string> Handler(TestStreamRequest req, CancellationToken ct)
+            {
+                return GenerateStreamItems();
+            }
+
+            static async IAsyncEnumerable<string> GenerateStreamItems()
+            {
+                await Task.CompletedTask;
+                yield return "item1";
+                yield return "item2";
+            }
+
+            // Act
+            var results = new List<string>();
+            await foreach (var item in executor.ExecuteStreamAsync<TestStreamRequest, string>(request, Handler, CancellationToken.None))
+            {
+                results.Add(item);
+                globalExecutionOrder.Add($"Received_{item}");
+            }
+
+            // Assert
+            Assert.Equal(new[] { "item1", "item2" }, results);
+            Assert.Contains("System_Stream_Before", globalExecutionOrder);
+            Assert.Contains("System_Stream_Item", globalExecutionOrder);
+            Assert.Contains("System_Stream_After", globalExecutionOrder);
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Execute_Stream_With_Pipeline_Behaviors()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var globalExecutionOrder = new List<string>();
+
+            var streamBehavior = new TestStreamPipelineBehaviorWithGlobalOrder(globalExecutionOrder, "StreamBehavior");
+            services.AddSingleton<IEnumerable<IStreamPipelineBehavior<TestStreamRequest, string>>>(new IStreamPipelineBehavior<TestStreamRequest, string>[] { streamBehavior });
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestStreamRequest();
+
+            IAsyncEnumerable<string> Handler(TestStreamRequest req, CancellationToken ct)
+            {
+                return GenerateStreamItems();
+            }
+
+            static async IAsyncEnumerable<string> GenerateStreamItems()
+            {
+                await Task.CompletedTask;
+                yield return "item1";
+                yield return "item2";
+            }
+
+            // Act
+            var results = new List<string>();
+            await foreach (var item in executor.ExecuteStreamAsync<TestStreamRequest, string>(request, Handler, CancellationToken.None))
+            {
+                results.Add(item);
+            }
+
+            // Assert
+            Assert.Equal(new[] { "item1_Modified", "item2_Modified" }, results);
+            Assert.Contains("StreamBehavior_Before", globalExecutionOrder);
+            Assert.Contains("StreamBehavior_Item: item1", globalExecutionOrder);
+            Assert.Contains("StreamBehavior_Item: item2", globalExecutionOrder);
+            Assert.Contains("StreamBehavior_After", globalExecutionOrder);
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Execute_Stream_With_System_Modules_And_Behaviors()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var globalExecutionOrder = new List<string>();
+
+            var systemModule = new TestSystemModuleWithGlobalOrder(1, globalExecutionOrder, "System");
+            var streamBehavior = new TestStreamPipelineBehaviorWithGlobalOrder(globalExecutionOrder, "StreamBehavior");
+
+            services.AddSingleton<ISystemModule>(systemModule);
+            services.AddSingleton<IEnumerable<IStreamPipelineBehavior<TestStreamRequest, string>>>(new IStreamPipelineBehavior<TestStreamRequest, string>[] { streamBehavior });
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestStreamRequest();
+
+            IAsyncEnumerable<string> Handler(TestStreamRequest req, CancellationToken ct)
+            {
+                return GenerateStreamItems();
+            }
+
+            static async IAsyncEnumerable<string> GenerateStreamItems()
+            {
+                await Task.CompletedTask;
+                yield return "item1";
+                yield return "item2";
+            }
+
+            // Act
+            var results = new List<string>();
+            await foreach (var item in executor.ExecuteStreamAsync<TestStreamRequest, string>(request, Handler, CancellationToken.None))
+            {
+                results.Add(item);
+            }
+
+            // Assert
+            Assert.Equal(new[] { "item1_Modified", "item2_Modified" }, results);
+            // System modules execute first, then behaviors
+            var expectedOrder = new[] {
+                "System_Stream_Before",
+                "StreamBehavior_Before",
+                "StreamBehavior_Item: item1",
+                "System_Stream_Item",
+                "StreamBehavior_Item: item2",
+                "System_Stream_Item",
+                "StreamBehavior_After",
+                "System_Stream_After"
+            };
+            foreach (var expected in expectedOrder)
+            {
+                Assert.Contains(expected, globalExecutionOrder);
+            }
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Propagate_Cancellation_Token()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var cancellationTokenSource = new CancellationTokenSource();
+            var receivedTokens = new List<CancellationToken>();
+
+            var behavior = new TestPipelineBehaviorWithCancellationCheck(receivedTokens);
+            services.AddSingleton<IEnumerable<IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>>>(new IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>[] { behavior });
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+
+            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            {
+                receivedTokens.Add(ct);
+                return new ValueTask<string>("result");
+            }
+
+            // Act
+            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, cancellationTokenSource.Token);
+
+            // Assert
+            Assert.Equal("result_Modified", result);
+            // All delegates should receive the same cancellation token
+            Assert.All(receivedTokens, token => Assert.Equal(cancellationTokenSource.Token, token));
+        }
+
+        [Fact]
+        public async Task PipelineExecutor_Should_Fallback_When_DI_Fails()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            // Don't register any pipeline behaviors in DI
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+
+            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            {
+                return new ValueTask<string>("result");
+            }
+
+            // Act - This should not throw even if generated registry doesn't exist
+            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("result", result);
+        }
+
         // Test request types
         public class TestRequest : IRequest<string> { }
         public class TestStreamRequest : IStreamRequest<string> { }
     }
 
-    // Test implementations for pipeline behaviors
-    public class TestPipelineBehavior : IPipelineBehavior<TestPipelineBehaviorTests.TestRequest, string>
+// Test implementations for pipeline behaviors
+public class TestPipelineBehavior : IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>
     {
         public List<string> ExecutionOrder { get; } = new();
+        private readonly List<string>? _globalExecutionOrder;
+        private readonly string _name;
 
-        public async ValueTask<string> HandleAsync(TestPipelineBehaviorTests.TestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        public TestPipelineBehavior(List<string>? globalExecutionOrder = null, string name = "Behavior")
+        {
+            _globalExecutionOrder = globalExecutionOrder;
+            _name = name;
+        }
+
+        public async ValueTask<string> HandleAsync(PipelineBehaviorTests.TestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
         {
             ExecutionOrder.Add("Before");
+            _globalExecutionOrder?.Add($"{_name}_Before");
             var result = await next();
             ExecutionOrder.Add("After");
+            _globalExecutionOrder?.Add($"{_name}_After");
             return result + "_Modified";
         }
     }
 
-    public class TestStreamPipelineBehavior : IStreamPipelineBehavior<TestPipelineBehaviorTests.TestStreamRequest, string>
+    public class TestStreamPipelineBehavior : IStreamPipelineBehavior<PipelineBehaviorTests.TestStreamRequest, string>
     {
         public List<string> ExecutionOrder { get; } = new();
 
-        public async IAsyncEnumerable<string> HandleAsync(TestPipelineBehaviorTests.TestStreamRequest request, StreamHandlerDelegate<string> next, [EnumeratorCancellation] CancellationToken cancellationToken)
+        public async IAsyncEnumerable<string> HandleAsync(PipelineBehaviorTests.TestStreamRequest request, StreamHandlerDelegate<string> next, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             ExecutionOrder.Add("Before");
             await foreach (var item in next())
@@ -204,29 +601,36 @@ namespace Relay.Core.Tests
     {
         public int Order { get; }
         public List<string> ExecutionOrder { get; } = new();
+        private readonly List<string>? _globalExecutionOrder;
 
-        public TestSystemModule(int order = 0)
+        public TestSystemModule(int order = 0, List<string>? globalExecutionOrder = null)
         {
             Order = order;
+            _globalExecutionOrder = globalExecutionOrder;
         }
 
         public async ValueTask<TResponse> ExecuteAsync<TRequest, TResponse>(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
             ExecutionOrder.Add($"SystemModule_{Order}_Before");
+            _globalExecutionOrder?.Add($"SystemModule_{Order}_Before");
             var result = await next();
             ExecutionOrder.Add($"SystemModule_{Order}_After");
+            _globalExecutionOrder?.Add($"SystemModule_{Order}_After");
             return result;
         }
 
         public async IAsyncEnumerable<TResponse> ExecuteStreamAsync<TRequest, TResponse>(TRequest request, StreamHandlerDelegate<TResponse> next, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             ExecutionOrder.Add($"SystemModule_{Order}_Stream_Before");
+            _globalExecutionOrder?.Add($"SystemModule_{Order}_Stream_Before");
             await foreach (var item in next())
             {
                 ExecutionOrder.Add($"SystemModule_{Order}_Stream_Item");
+                _globalExecutionOrder?.Add($"SystemModule_{Order}_Stream_Item");
                 yield return item;
             }
             ExecutionOrder.Add($"SystemModule_{Order}_Stream_After");
+            _globalExecutionOrder?.Add($"SystemModule_{Order}_Stream_After");
         }
     }
 
@@ -234,5 +638,98 @@ namespace Relay.Core.Tests
     {
         public class TestRequest : IRequest<string> { }
         public class TestStreamRequest : IStreamRequest<string> { }
+    }
+
+    public class TestSystemModuleWithGlobalOrder : ISystemModule
+    {
+        public int Order { get; }
+        private readonly List<string> _globalExecutionOrder;
+        private readonly string _name;
+
+        public TestSystemModuleWithGlobalOrder(int order, List<string> globalExecutionOrder, string name)
+        {
+            Order = order;
+            _globalExecutionOrder = globalExecutionOrder;
+            _name = name;
+        }
+
+        public async ValueTask<TResponse> ExecuteAsync<TRequest, TResponse>(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
+        {
+            _globalExecutionOrder.Add($"{_name}_Before");
+            var result = await next();
+            _globalExecutionOrder.Add($"{_name}_After");
+            return result;
+        }
+
+        public async IAsyncEnumerable<TResponse> ExecuteStreamAsync<TRequest, TResponse>(TRequest request, StreamHandlerDelegate<TResponse> next, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            _globalExecutionOrder.Add($"{_name}_Stream_Before");
+            await foreach (var item in next())
+            {
+                _globalExecutionOrder.Add($"{_name}_Stream_Item");
+                yield return item;
+            }
+            _globalExecutionOrder.Add($"{_name}_Stream_After");
+        }
+    }
+
+    public class TestPipelineBehaviorWithGlobalOrder : IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>
+    {
+        private readonly List<string> _globalExecutionOrder;
+        private readonly string _name;
+
+        public TestPipelineBehaviorWithGlobalOrder(List<string> globalExecutionOrder, string name)
+        {
+            _globalExecutionOrder = globalExecutionOrder;
+            _name = name;
+        }
+
+        public async ValueTask<string> HandleAsync(PipelineBehaviorTests.TestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        {
+            _globalExecutionOrder.Add($"{_name}_Before");
+            var result = await next();
+            _globalExecutionOrder.Add($"{_name}_After");
+            return result + "_Modified";
+        }
+    }
+
+    public class TestStreamPipelineBehaviorWithGlobalOrder : IStreamPipelineBehavior<PipelineBehaviorTests.TestStreamRequest, string>
+    {
+        private readonly List<string> _globalExecutionOrder;
+        private readonly string _name;
+
+        public TestStreamPipelineBehaviorWithGlobalOrder(List<string> globalExecutionOrder, string name)
+        {
+            _globalExecutionOrder = globalExecutionOrder;
+            _name = name;
+        }
+
+        public async IAsyncEnumerable<string> HandleAsync(PipelineBehaviorTests.TestStreamRequest request, StreamHandlerDelegate<string> next, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            _globalExecutionOrder.Add($"{_name}_Before");
+            await foreach (var item in next())
+            {
+                _globalExecutionOrder.Add($"{_name}_Item: {item}");
+                yield return item + "_Modified";
+            }
+            _globalExecutionOrder.Add($"{_name}_After");
+        }
+    }
+
+    public class TestPipelineBehaviorWithCancellationCheck : IPipelineBehavior<PipelineBehaviorTests.TestRequest, string>
+    {
+        private readonly List<CancellationToken> _receivedTokens;
+
+        public TestPipelineBehaviorWithCancellationCheck(List<CancellationToken> receivedTokens)
+        {
+            _receivedTokens = receivedTokens;
+        }
+
+        public async ValueTask<string> HandleAsync(PipelineBehaviorTests.TestRequest request, RequestHandlerDelegate<string> next, CancellationToken cancellationToken)
+        {
+            _receivedTokens.Add(cancellationToken);
+            var result = await next();
+            return result + "_Modified";
+        }
     }
 }

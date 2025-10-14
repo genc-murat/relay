@@ -75,7 +75,7 @@ namespace Relay.Core.Tests
         {
             // Arrange
             var behavior = new TestPipelineBehavior();
-            var request = new TestPipelineBehaviorTests.TestRequest();
+            var request = new PipelineBehaviorTests.TestRequest();
 
             ValueTask<string> next() => new ValueTask<string>("response");
 
@@ -94,7 +94,7 @@ namespace Relay.Core.Tests
         {
             // Arrange
             var behavior = new TestStreamPipelineBehavior();
-            var request = new TestPipelineBehaviorTests.TestStreamRequest();
+            var request = new PipelineBehaviorTests.TestStreamRequest();
 
             IAsyncEnumerable<string> next()
             {

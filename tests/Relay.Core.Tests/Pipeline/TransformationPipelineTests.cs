@@ -128,10 +128,10 @@ public class TransformationPipelineTests
             CancellationToken.None);
 
         // Assert
-        // Pipelines execute in order: 1->2->handler->2->1
-        // Input: X -> 1X -> 21X -> 21X (uppercase)
-        // Output: 21X -> 21X2 -> 21X21
-        Assert.Contains("21X", result.Result);
+        // Pipelines execute in order: 2->1->handler->1->2
+        // Input: X -> 2X -> 12X -> 12X (uppercase)
+        // Output: 12X -> 12X1 -> 12X12
+        Assert.Contains("12X", result.Result);
     }
 
     public class ConditionalTransformationPipeline : IPipelineBehavior<InputRequest, OutputResponse>

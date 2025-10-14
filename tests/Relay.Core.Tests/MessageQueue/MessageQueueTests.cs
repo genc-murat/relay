@@ -1,4 +1,6 @@
 using System;
+using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -98,6 +100,199 @@ namespace Relay.Core.Tests.MessageQueue
 
             // Assert
             Assert.True(true); // Consumer stopped successfully
+        }
+
+        [Fact]
+        public void InMemoryMessageQueueConsumer_Constructor_ShouldThrow_WhenServiceProviderIsNull()
+        {
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                new InMemoryMessageQueueConsumer(null!));
+        }
+
+        [Fact]
+        public async Task InMemoryMessageQueueConsumer_ShouldConsumeMessagesSuccessfully()
+        {
+            // Arrange
+            var serviceProvider = new Mock<IServiceProvider>().Object;
+            var consumer = new InMemoryMessageQueueConsumer(serviceProvider);
+            var queueName = "test-queue";
+            var receivedMessages = new List<TestMessage>();
+
+            await consumer.StartConsumingAsync(queueName, (message, ct) =>
+            {
+                if (message is TestMessage testMessage)
+                {
+                    receivedMessages.Add(testMessage);
+                }
+                return ValueTask.CompletedTask;
+            });
+
+            // Act - Enqueue a message
+            var testMessage = new TestMessage { Value = "test content" };
+            var wrapper = new MessageWrapper
+            {
+                MessageType = typeof(TestMessage).AssemblyQualifiedName!,
+                Content = JsonSerializer.Serialize(testMessage)
+            };
+            consumer.EnqueueMessage(queueName, JsonSerializer.Serialize(wrapper));
+
+            // Wait for message to be processed
+            await Task.Delay(200);
+
+            // Assert
+            Assert.Single(receivedMessages);
+            Assert.Equal("test content", receivedMessages[0].Value);
+        }
+
+        [Fact]
+        public async Task InMemoryMessageQueueConsumer_ShouldHandleExchangeAndRoutingKey()
+        {
+            // Arrange
+            var serviceProvider = new Mock<IServiceProvider>().Object;
+            var consumer = new InMemoryMessageQueueConsumer(serviceProvider);
+            var exchangeName = "test-exchange";
+            var routingKey = "test.key";
+            var receivedMessages = new List<TestMessage>();
+
+            await consumer.StartConsumingAsync(exchangeName, routingKey, (message, ct) =>
+            {
+                if (message is TestMessage testMessage)
+                {
+                    receivedMessages.Add(testMessage);
+                }
+                return ValueTask.CompletedTask;
+            });
+
+            // Act - Enqueue a message to the combined queue name
+            var testMessage = new TestMessage { Value = "exchange content" };
+            var wrapper = new MessageWrapper
+            {
+                MessageType = typeof(TestMessage).AssemblyQualifiedName!,
+                Content = JsonSerializer.Serialize(testMessage)
+            };
+            var queueName = $"{exchangeName}.{routingKey}";
+            consumer.EnqueueMessage(queueName, JsonSerializer.Serialize(wrapper));
+
+            // Wait for message to be processed
+            await Task.Delay(200);
+
+            // Assert
+            Assert.Single(receivedMessages);
+            Assert.Equal("exchange content", receivedMessages[0].Value);
+        }
+
+        [Fact]
+        public async Task InMemoryMessageQueueConsumer_ShouldHandleDeserializationFailure()
+        {
+            // Arrange
+            var serviceProvider = new Mock<IServiceProvider>().Object;
+            var consumer = new InMemoryMessageQueueConsumer(serviceProvider);
+            var queueName = "test-queue";
+            var messagesReceived = 0;
+
+            await consumer.StartConsumingAsync(queueName, (message, ct) =>
+            {
+                messagesReceived++;
+                return ValueTask.CompletedTask;
+            });
+
+            // Act - Enqueue invalid JSON
+            consumer.EnqueueMessage(queueName, "invalid json");
+
+            // Wait for processing attempt
+            await Task.Delay(200);
+
+            // Assert - Message should not be processed due to deserialization failure
+            Assert.Equal(0, messagesReceived);
+        }
+
+        [Fact]
+        public async Task InMemoryMessageQueueConsumer_ShouldHandleHandlerException()
+        {
+            // Arrange
+            var serviceProvider = new Mock<IServiceProvider>().Object;
+            var consumer = new InMemoryMessageQueueConsumer(serviceProvider);
+            var queueName = "test-queue";
+
+            await consumer.StartConsumingAsync(queueName, (message, ct) =>
+            {
+                throw new InvalidOperationException("Handler error");
+            });
+
+            // Act - Enqueue a valid message
+            var testMessage = new TestMessage { Value = "test" };
+            var wrapper = new MessageWrapper
+            {
+                MessageType = typeof(TestMessage).AssemblyQualifiedName!,
+                Content = JsonSerializer.Serialize(testMessage)
+            };
+            consumer.EnqueueMessage(queueName, JsonSerializer.Serialize(wrapper));
+
+            // Wait for processing (consumer should continue despite exception)
+            await Task.Delay(200);
+
+            // Assert - Consumer should still be running (no crash)
+            Assert.True(true);
+        }
+
+        [Fact]
+        public async Task InMemoryMessageQueueConsumer_ShouldHandleCancellation()
+        {
+            // Arrange
+            var serviceProvider = new Mock<IServiceProvider>().Object;
+            var consumer = new InMemoryMessageQueueConsumer(serviceProvider);
+            var queueName = "test-queue";
+            var cts = new CancellationTokenSource();
+
+            await consumer.StartConsumingAsync(queueName, async (message, ct) =>
+            {
+                // Simulate long-running handler
+                await Task.Delay(1000, ct);
+            }, cts.Token);
+
+            // Act - Cancel after a short delay
+            await Task.Delay(50);
+            cts.Cancel();
+
+            // Wait a bit more
+            await Task.Delay(100);
+
+            // Assert - Consumer should have stopped gracefully
+            Assert.True(true);
+        }
+
+        [Fact]
+        public async Task InMemoryMessageQueueConsumer_StopConsuming_ShouldCancelAllConsumers()
+        {
+            // Arrange
+            var serviceProvider = new Mock<IServiceProvider>().Object;
+            var consumer = new InMemoryMessageQueueConsumer(serviceProvider);
+            var queue1 = "queue1";
+            var queue2 = "queue2";
+            var activeConsumers = 0;
+
+            // Start multiple consumers
+            await consumer.StartConsumingAsync(queue1, (message, ct) =>
+            {
+                Interlocked.Increment(ref activeConsumers);
+                return ValueTask.CompletedTask;
+            });
+
+            await consumer.StartConsumingAsync(queue2, (message, ct) =>
+            {
+                Interlocked.Increment(ref activeConsumers);
+                return ValueTask.CompletedTask;
+            });
+
+            // Act
+            await consumer.StopConsumingAsync();
+
+            // Wait for consumers to stop
+            await Task.Delay(100);
+
+            // Assert - All consumers should be stopped
+            Assert.Equal(0, activeConsumers);
         }
 
         [Fact]

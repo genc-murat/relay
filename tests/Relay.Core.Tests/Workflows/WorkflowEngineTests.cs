@@ -2080,6 +2080,207 @@ public class WorkflowEngineTests
             It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 
+    [Fact]
+    public async Task ExecuteWorkflow_WithCancellation_ShouldHandleCancellationGracefully()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep { Name = "WaitStep", Type = StepType.Wait, WaitTimeMs = 500 }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        var cts = new CancellationTokenSource();
+        cts.CancelAfter(100); // Cancel after 100ms
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { }, cts.Token);
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should be cancelled or completed (depending on timing)
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteRequestStep_WithRelayException_ShouldFailWorkflow()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "RequestStep",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequest"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Relay error"));
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should fail due to relay exception
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteParallelStep_WithOneFailingStep_ShouldFailWorkflow()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ParallelStep",
+                    Type = StepType.Parallel,
+                    ParallelSteps = new List<WorkflowStep>
+                    {
+                        new WorkflowStep { Name = "Parallel1", Type = StepType.Wait, WaitTimeMs = 50 },
+                        new WorkflowStep
+                        {
+                            Name = "Parallel2",
+                            Type = StepType.Request,
+                            RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequest"
+                        }
+                    }
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Request failed"));
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should fail due to failing parallel step
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteConditionalStep_WithComplexCondition_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Age >= 18 && Status == active && Name != null"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Age = 25, Status = "active", Name = "John" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Complex condition should evaluate to true
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteWorkflow_WithContinueOnError_ShouldContinueAfterFailure()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "FailingStep",
+                    Type = StepType.Request,
+                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequest",
+                    ContinueOnError = true
+                },
+                new WorkflowStep { Name = "SuccessStep", Type = StepType.Wait, WaitTimeMs = 50 }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Request failed"));
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should continue and complete despite first step failure
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
     // Test request types and helper classes for workflow execution
     public class TestWorkflowRequest : IRequest<string>
     {

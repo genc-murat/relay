@@ -181,10 +181,24 @@ public class AuthorizationPipelineBehavior<TRequest, TResponse> : IPipelineBehav
         if (responseType.IsGenericType)
         {
             var genericType = responseType.GetGenericTypeDefinition();
-            if (genericType == typeof(Task<>) || genericType == typeof(ValueTask<>))
+            if (genericType == typeof(Task<>))
             {
                 var innerType = responseType.GetGenericArguments()[0];
-                return (TResponse)(object)Task.FromResult(GetDefaultValue(innerType))!;
+                var defaultValue = GetDefaultValue(innerType);
+
+                // Use reflection to call Task.FromResult<T>(defaultValue)
+                var fromResultMethod = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(innerType);
+                return (TResponse)fromResultMethod.Invoke(null, new[] { defaultValue })!;
+            }
+            else if (genericType == typeof(ValueTask<>))
+            {
+                var innerType = responseType.GetGenericArguments()[0];
+                var defaultValue = GetDefaultValue(innerType);
+
+                // Create ValueTask<T> with the default value using the result constructor
+                var valueTaskType = typeof(ValueTask<>).MakeGenericType(innerType);
+                var constructor = valueTaskType.GetConstructor(new[] { innerType });
+                return (TResponse)constructor!.Invoke(new[] { defaultValue })!;
             }
         }
 

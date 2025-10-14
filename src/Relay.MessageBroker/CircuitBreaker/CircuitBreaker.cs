@@ -83,9 +83,21 @@ public sealed class CircuitBreaker : ICircuitBreaker
             RecordSuccess(stopwatch.Elapsed);
             return result;
         }
-        catch
+        catch (Exception ex)
         {
             stopwatch.Stop();
+
+            // Check if exception should be ignored
+            if (ShouldIgnoreException(ex))
+            {
+                // Don't record as failure, but still track slow calls if applicable
+                if (_options.TrackSlowCalls && stopwatch.Elapsed > _options.SlowCallDurationThreshold)
+                {
+                    Interlocked.Increment(ref _slowCalls);
+                }
+                throw;
+            }
+
             RecordFailure(stopwatch.Elapsed);
             throw;
         }
@@ -227,10 +239,27 @@ public sealed class CircuitBreaker : ICircuitBreaker
         }
     }
 
+    private bool ShouldIgnoreException(Exception exception)
+    {
+        // If custom predicate is set, use it
+        if (_options.ExceptionPredicate != null)
+        {
+            return !_options.ExceptionPredicate(exception);
+        }
+
+        // Otherwise, check if exception type is in ignored types
+        if (_options.IgnoredExceptionTypes != null)
+        {
+            var exceptionType = exception.GetType();
+            return _options.IgnoredExceptionTypes.Any(type => type.IsAssignableFrom(exceptionType));
+        }
+
+        return false;
+    }
+
     private void RecordFailure(TimeSpan duration)
     {
         Interlocked.Increment(ref _totalCalls);
-        Interlocked.Increment(ref _failedCalls);
 
         _callResults.Enqueue(new CallResult
         {
@@ -243,23 +272,28 @@ public sealed class CircuitBreaker : ICircuitBreaker
 
         lock (_lock)
         {
-            _consecutiveSuccesses = 0;
+            Interlocked.Increment(ref _failedCalls);
             _consecutiveFailures++;
 
             if (_state == CircuitBreakerState.HalfOpen)
             {
-                TransitionTo(CircuitBreakerState.Open, "Failure in half-open state");
-                return;
+                _halfOpenRequestInProgress = false;
+                TransitionTo(CircuitBreakerState.Open, "Half-open request failed");
             }
-
-            if (_state == CircuitBreakerState.Closed)
+            else if (_state == CircuitBreakerState.Closed)
             {
-                var metrics = CalculateMetrics();
-                
-                if (ShouldOpenCircuit(metrics))
+                if (_consecutiveFailures >= _options.FailureThreshold)
                 {
-                    TransitionTo(CircuitBreakerState.Open, 
-                        $"Failure threshold reached. Failures: {_consecutiveFailures}, Rate: {metrics.FailureRate:P}");
+                    TransitionTo(CircuitBreakerState.Open, "Failure threshold reached");
+                }
+                else
+                {
+                    var metrics = CalculateMetrics();
+                    if (ShouldOpenCircuit(metrics))
+                    {
+                        TransitionTo(CircuitBreakerState.Open,
+                            $"Failure rate threshold reached. Failures: {_consecutiveFailures}, Rate: {metrics.FailureRate:P}");
+                    }
                 }
             }
         }

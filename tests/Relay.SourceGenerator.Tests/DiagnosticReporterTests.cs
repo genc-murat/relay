@@ -599,6 +599,245 @@ public class DiagnosticReporterTests
         Assert.Contains(mockReporter.ReportedDiagnostics, d => d.Id == DiagnosticDescriptors.Info.Id);
     }
 
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleNullOrEmptyMessages()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+
+        // Act & Assert - Empty message should still create diagnostic
+        reporter.ReportError("");
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Equal(DiagnosticDescriptors.GeneratorError.Id, diagnostics[0].Id);
+
+        // Reset
+        reporter = new IncrementalDiagnosticReporter();
+
+        // Act & Assert - Null message should handle gracefully
+        reporter.ReportError(null!);
+        diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Equal(DiagnosticDescriptors.GeneratorError.Id, diagnostics[0].Id);
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleNullLocations()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+
+        // Act
+        reporter.ReportDuplicateHandler(null!, "Request", "Response");
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Equal(Location.None, diagnostics[0].Location);
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleNullResponseTypeInDuplicateHandler()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var location = Location.None;
+
+        // Act
+        reporter.ReportDuplicateHandler(location, "MyRequest", null);
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Contains("void", diagnostics[0].GetMessage());
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleNegativeOrderInDuplicatePipelineOrder()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var location = Location.None;
+
+        // Act
+        reporter.ReportDuplicatePipelineOrder(location, -5, "Global");
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Contains("-5", diagnostics[0].GetMessage());
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleEmptyScopeInInvalidPipelineScope()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var location = Location.None;
+
+        // Act
+        reporter.ReportInvalidPipelineScope(location, "Request", "MyMethod", "");
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Contains("Request", diagnostics[0].GetMessage());
+        Assert.Contains("MyMethod", diagnostics[0].GetMessage());
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleNullSignatureInInvalidHandlerSignature()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var location = Location.None;
+
+        // Act
+        reporter.ReportInvalidHandlerSignature(location, "HandleAsync", null!);
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Equal(DiagnosticDescriptors.InvalidHandlerSignature.Id, diagnostics[0].Id);
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleZeroPriorityValue()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var location = Location.None;
+
+        // Act
+        reporter.ReportInvalidPriorityValue(location, 0);
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Contains("0", diagnostics[0].GetMessage());
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleVeryLongMessages()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var longMessage = new string('A', 10000);
+
+        // Act
+        reporter.ReportError(longMessage);
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Contains(longMessage, diagnostics[0].GetMessage());
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleSpecialCharactersInMessages()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var specialMessage = "Message with <>&\"'\n\r\t special chars";
+
+        // Act
+        reporter.ReportError(specialMessage);
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Single(diagnostics);
+        Assert.Contains(specialMessage, diagnostics[0].GetMessage());
+    }
+
+    [Fact]
+    public void IncrementalDiagnosticReporter_ShouldHandleConcurrentAccess()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var diagnostic = CreateTestDiagnostic(DiagnosticDescriptors.Info, "test");
+        const int numThreads = 10;
+        const int reportsPerThread = 100;
+
+        // Act
+        var tasks = new List<Task>();
+        for (int i = 0; i < numThreads; i++)
+        {
+            tasks.Add(Task.Run(() =>
+            {
+                for (int j = 0; j < reportsPerThread; j++)
+                {
+                    reporter.ReportDiagnostic(diagnostic);
+                }
+            }));
+        }
+
+        Task.WaitAll(tasks.ToArray());
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Equal(numThreads * reportsPerThread, diagnostics.Count);
+    }
+
+    [Fact]
+    public void DiagnosticReporterExtensions_ShouldHandleAllDiagnosticTypes()
+    {
+        // Arrange
+        var reporter = new IncrementalDiagnosticReporter();
+        var location = Location.None;
+
+        // Act - Report one of each diagnostic type
+        reporter.ReportDuplicateHandler(location, "Req", "Res");
+        reporter.ReportDuplicateNamedHandler(location, "Req", "Handler");
+        reporter.ReportDuplicatePipelineOrder(location, 1, "Global");
+        reporter.ReportInvalidHandlerReturnType(location, "string", "int");
+        reporter.ReportInvalidStreamHandlerReturnType(location, "Task", "IAsyncEnumerable");
+        reporter.ReportInvalidNotificationHandlerReturnType(location, "string");
+        reporter.ReportHandlerMissingRequestParameter(location, "Method");
+        reporter.ReportHandlerInvalidRequestParameter(location, "string", "Request");
+        reporter.ReportHandlerMissingCancellationToken(location, "Method");
+        reporter.ReportNotificationHandlerMissingParameter(location, "Method");
+        reporter.ReportInvalidPriorityValue(location, -1);
+        reporter.ReportNoHandlersFound();
+        reporter.ReportConfigurationConflict(location, "conflict");
+        reporter.ReportInvalidPipelineScope(location, "Request", "Method", "Global");
+        reporter.ReportInvalidHandlerSignature(location, "Method", "signature");
+        reporter.ReportError("error");
+        reporter.ReportDebug("debug");
+        reporter.ReportInfo("info");
+
+        // Assert
+        var diagnostics = reporter.GetDiagnostics();
+        Assert.Equal(18, diagnostics.Count);
+
+        // Verify we have all expected diagnostic IDs
+        var expectedIds = new[]
+        {
+            DiagnosticDescriptors.DuplicateHandler.Id,
+            DiagnosticDescriptors.NamedHandlerConflict.Id,
+            DiagnosticDescriptors.DuplicatePipelineOrder.Id,
+            DiagnosticDescriptors.InvalidHandlerReturnType.Id,
+            DiagnosticDescriptors.InvalidStreamHandlerReturnType.Id,
+            DiagnosticDescriptors.InvalidNotificationHandlerReturnType.Id,
+            DiagnosticDescriptors.HandlerMissingRequestParameter.Id,
+            DiagnosticDescriptors.HandlerInvalidRequestParameter.Id,
+            DiagnosticDescriptors.HandlerMissingCancellationToken.Id,
+            DiagnosticDescriptors.NotificationHandlerMissingParameter.Id,
+            DiagnosticDescriptors.InvalidPriorityValue.Id,
+            DiagnosticDescriptors.NoHandlersFound.Id,
+            DiagnosticDescriptors.ConfigurationConflict.Id,
+            DiagnosticDescriptors.InvalidPipelineScope.Id,
+            DiagnosticDescriptors.InvalidHandlerSignature.Id,
+            DiagnosticDescriptors.GeneratorError.Id,
+            DiagnosticDescriptors.Debug.Id,
+            DiagnosticDescriptors.Info.Id
+        };
+
+        foreach (var expectedId in expectedIds)
+        {
+            Assert.Contains(diagnostics, d => d.Id == expectedId);
+        }
+    }
+
     // Mock reporter for testing SourceOutputDiagnosticReporter behavior
     private class MockSourceOutputReporter : IDiagnosticReporter
     {

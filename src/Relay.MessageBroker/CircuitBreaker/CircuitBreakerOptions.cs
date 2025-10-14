@@ -69,6 +69,17 @@ public sealed class CircuitBreakerOptions
     /// Gets or sets the action to execute when circuit rejects a request.
     /// </summary>
     public Action<CircuitBreakerRejectedEventArgs>? OnRejected { get; set; }
+
+    /// <summary>
+    /// Gets or sets the exception types that should be ignored and not counted as failures.
+    /// </summary>
+    public Type[]? IgnoredExceptionTypes { get; set; }
+
+    /// <summary>
+    /// Gets or sets a predicate to determine if an exception should be counted as a failure.
+    /// If set, this takes precedence over IgnoredExceptionTypes.
+    /// </summary>
+    public Func<Exception, bool>? ExceptionPredicate { get; set; }
 }
 
 /// <summary>

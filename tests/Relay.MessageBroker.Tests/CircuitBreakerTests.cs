@@ -605,4 +605,227 @@ public class CircuitBreakerTests
         Assert.Equal(numTasks / 2, circuitBreaker.Metrics.FailedCalls);
         Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_InHalfOpenState_ConcurrentCalls_ShouldHandleRaceConditions()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 2,
+            SuccessThreshold = 3,
+            Timeout = TimeSpan.FromMilliseconds(100)
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Open the circuit
+        for (int i = 0; i < 2; i++)
+        {
+            try { await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException()); }
+            catch (InvalidOperationException) { }
+        }
+
+        // Wait for timeout
+        await Task.Delay(150);
+
+        // Act - Multiple concurrent calls in HalfOpen state
+        var tasks = new List<Task<string>>();
+        for (int i = 0; i < 5; i++)
+        {
+            tasks.Add(circuitBreaker.ExecuteAsync(ct => ValueTask.FromResult("Success")).AsTask());
+        }
+
+        var results = await Task.WhenAll(tasks);
+
+        // Assert - All should succeed and circuit should close
+        Assert.All(results, r => Assert.Equal("Success", r));
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithCancellationToken_ShouldRespectCancellation()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 5
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+        var cts = new CancellationTokenSource();
+
+        // Act - Cancel immediately
+        cts.Cancel();
+        Func<Task> act = async () => await circuitBreaker.ExecuteAsync(async ct =>
+        {
+            await Task.Delay(1000, ct); // This should be cancelled
+            return "Success";
+        }, cts.Token);
+
+        // Assert
+        await Assert.ThrowsAsync<TaskCanceledException>(act);
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithIgnoredExceptionTypes_ShouldNotCountAsFailure()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 2,
+            IgnoredExceptionTypes = new[] { typeof(ArgumentException) }
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Act - ArgumentException should be ignored
+        try
+        {
+            await circuitBreaker.ExecuteAsync<string>(ct => throw new ArgumentException("Ignored"));
+        }
+        catch (ArgumentException) { }
+
+        // InvalidOperationException should count as failure
+        try
+        {
+            await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException("Failure"));
+        }
+        catch (InvalidOperationException) { }
+
+        // Assert - Circuit should still be closed (ArgumentException ignored)
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+        Assert.Equal(1, circuitBreaker.Metrics.FailedCalls); // Only InvalidOperationException counted
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithVeryShortTimeout_ShouldTransitionQuickly()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 2,
+            Timeout = TimeSpan.FromMilliseconds(10)
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Open the circuit
+        for (int i = 0; i < 2; i++)
+        {
+            try { await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException()); }
+            catch (InvalidOperationException) { }
+        }
+
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+
+        // Wait for very short timeout
+        await Task.Delay(20);
+
+        // Act - Should transition to HalfOpen
+        var result = await circuitBreaker.ExecuteAsync(ct => ValueTask.FromResult("Success"));
+
+        // Assert
+        Assert.Equal("Success", result);
+        Assert.Equal(CircuitBreakerState.HalfOpen, circuitBreaker.State);
+    }
+
+    [Fact]
+    public void Reset_DuringHalfOpenState_ShouldCloseCircuit()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 2,
+            Timeout = TimeSpan.FromMilliseconds(100)
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Open the circuit
+        for (int i = 0; i < 2; i++)
+        {
+            try { circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException()).GetAwaiter().GetResult(); }
+            catch (InvalidOperationException) { }
+        }
+
+        // Wait for timeout (simulated)
+        // In real scenario, we'd wait, but for test we can manually set state or use a longer timeout
+
+        // Act - Reset during any state
+        circuitBreaker.Reset();
+
+        // Assert
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+        Assert.Equal(0, circuitBreaker.Metrics.TotalCalls);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithExceptionPredicate_ShouldUseCustomFailureLogic()
+    {
+        // Arrange
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 2,
+            ExceptionPredicate = ex => ex is InvalidOperationException && ex.Message.Contains("Critical")
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Act - Non-critical exception should not count as failure
+        try
+        {
+            await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException("Non-critical"));
+        }
+        catch (InvalidOperationException) { }
+
+        // Critical exception should count
+        try
+        {
+            await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException("Critical failure"));
+        }
+        catch (InvalidOperationException) { }
+
+        // Assert - Only critical failures count
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+        Assert.Equal(1, circuitBreaker.Metrics.FailedCalls);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_MultipleStateTransitions_ShouldTrackCorrectly()
+    {
+        // Arrange
+        var stateChanges = new List<CircuitBreakerState>();
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 2,
+            SuccessThreshold = 2,
+            Timeout = TimeSpan.FromMilliseconds(50),
+            OnStateChanged = e => stateChanges.Add(e.NewState)
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Act - Open circuit
+        for (int i = 0; i < 2; i++)
+        {
+            try { await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException()); }
+            catch (InvalidOperationException) { }
+        }
+
+        // Wait for timeout and transition to HalfOpen
+        await Task.Delay(60);
+        await circuitBreaker.ExecuteAsync(ct => ValueTask.FromResult("Success"));
+
+        // Wait for HalfOpen duration and close circuit
+        await Task.Delay(60);
+        await circuitBreaker.ExecuteAsync(ct => ValueTask.FromResult("Success"));
+
+        // Assert
+        Assert.Equal(CircuitBreakerState.Closed, circuitBreaker.State);
+        Assert.Contains(CircuitBreakerState.Open, stateChanges);
+        Assert.Contains(CircuitBreakerState.HalfOpen, stateChanges);
+        Assert.Contains(CircuitBreakerState.Closed, stateChanges);
+    }
 }

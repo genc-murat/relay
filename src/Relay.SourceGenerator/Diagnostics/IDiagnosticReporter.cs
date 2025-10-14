@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Linq;
 
 namespace Relay.SourceGenerator
 {
@@ -21,14 +23,14 @@ namespace Relay.SourceGenerator
     /// </summary>
     public class IncrementalDiagnosticReporter : IDiagnosticReporter
     {
-        private readonly List<Diagnostic> _diagnostics = new();
+        private readonly ConcurrentBag<Diagnostic> _diagnostics = new();
 
         public void ReportDiagnostic(Diagnostic diagnostic)
         {
             _diagnostics.Add(diagnostic);
         }
 
-        public IReadOnlyList<Diagnostic> GetDiagnostics() => _diagnostics;
+        public IReadOnlyList<Diagnostic> GetDiagnostics() => _diagnostics.ToList();
     }
 
     /// <summary>

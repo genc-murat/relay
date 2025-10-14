@@ -317,7 +317,7 @@ namespace Relay.Core.Tests.Configuration
             // Assert - Pipeline behavior is registered
             var pipelineBehaviors = services.Where(d => d.ServiceType.IsGenericType &&
                 d.ServiceType.GetGenericTypeDefinition() == typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>));
-            Assert.Contains(pipelineBehaviors, d => d.ImplementationType?.Name.Contains("UnifiedCachingPipelineBehavior") == true);
+            Assert.Contains(pipelineBehaviors, d => d.ImplementationType?.Name.Contains("RelayCachingPipelineBehavior") == true);
         }
 
 

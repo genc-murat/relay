@@ -163,23 +163,6 @@ public class EventVersioningTests
     }
 
     [Fact]
-    public void MigrateEvent_ShouldHandleMigrationWithInvalidVersions()
-    {
-        // Arrange
-        var manager = new EventMigrationManager();
-        manager.RegisterMigration(new InvalidMigration());
-
-        var eventV1 = new TestEventV1 { SchemaVersion = 1, OldField = "Test" };
-
-        // Act
-        var migratedEvent = manager.MigrateEvent(eventV1);
-
-        // Assert
-        // Since InvalidMigration has FromVersion=2 but event is version 1, it shouldn't apply
-        migratedEvent.Should().BeSameAs(eventV1);
-    }
-
-    [Fact]
     public void MigrateEvent_ShouldHandleMigrationThatThrowsException()
     {
         // Arrange

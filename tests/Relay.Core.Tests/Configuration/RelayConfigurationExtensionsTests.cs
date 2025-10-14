@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Relay.Core.Configuration.Core;
 using Relay.Core.Configuration.Options;
+using Relay.Core.HandlerVersioning;
+using Relay.Core.Testing;
 using System;
 using System.Linq;
 using Xunit;
@@ -213,6 +215,28 @@ namespace Relay.Core.Tests.Configuration
         }
 
         [Fact]
+        public void ConfigureNotification_WithEmptyKey_ThrowsArgumentException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() =>
+                services.ConfigureNotification("", options => { }));
+        }
+
+        [Fact]
+        public void ConfigureNotification_WithNullAction_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                services.ConfigureNotification("key", null!));
+        }
+
+        [Fact]
         public void ConfigurePipeline_AddsPipelineOverride()
         {
             // Arrange
@@ -236,6 +260,28 @@ namespace Relay.Core.Tests.Configuration
         }
 
         [Fact]
+        public void ConfigurePipeline_WithEmptyKey_ThrowsArgumentException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() =>
+                services.ConfigurePipeline("", options => { }));
+        }
+
+        [Fact]
+        public void ConfigurePipeline_WithNullAction_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                services.ConfigurePipeline("key", null!));
+        }
+
+        [Fact]
         public void ValidateRelayConfiguration_RegistersValidator()
         {
             // Arrange
@@ -249,6 +295,137 @@ namespace Relay.Core.Tests.Configuration
             var validator = provider.GetService<IValidateOptions<RelayOptions>>();
             Assert.NotNull(validator);
             Assert.IsType<RelayOptionsValidator>(validator);
+        }
+
+        [Fact]
+        public void AddRelayCaching_RegistersCachingServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act
+            var result = services.AddRelayCaching();
+            var provider = services.BuildServiceProvider();
+
+            // Assert - Method chaining
+            Assert.Same(services, result);
+
+            // Assert - MemoryCache is registered
+            var memoryCache = provider.GetService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+            Assert.NotNull(memoryCache);
+
+            // Assert - Pipeline behavior is registered
+            var pipelineBehaviors = services.Where(d => d.ServiceType.IsGenericType &&
+                d.ServiceType.GetGenericTypeDefinition() == typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>));
+            Assert.Contains(pipelineBehaviors, d => d.ImplementationType?.Name.Contains("UnifiedCachingPipelineBehavior") == true);
+        }
+
+
+
+        [Fact]
+        public void AddRelayAuthorization_RegistersAuthorizationServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act
+            var result = services.AddRelayAuthorization();
+
+            // Assert - Method chaining
+            Assert.Same(services, result);
+
+            // Assert - Pipeline behavior is registered
+            var pipelineBehaviors = services.Where(d => d.ServiceType.IsGenericType &&
+                d.ServiceType.GetGenericTypeDefinition() == typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>));
+            Assert.Contains(pipelineBehaviors, d => d.ImplementationType?.Name.Contains("AuthorizationPipelineBehavior") == true);
+        }
+
+        [Fact]
+        public void AddRelayRetry_RegistersRetryServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act
+            var result = services.AddRelayRetry();
+
+            // Assert - Method chaining
+            Assert.Same(services, result);
+
+            // Assert - Pipeline behavior is registered
+            var pipelineBehaviors = services.Where(d => d.ServiceType.IsGenericType &&
+                d.ServiceType.GetGenericTypeDefinition() == typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>));
+            Assert.Contains(pipelineBehaviors, d => d.ImplementationType?.Name.Contains("RetryPipelineBehavior") == true);
+        }
+
+        [Fact]
+        public void AddRelayContractValidation_RegistersContractValidationServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act
+            var result = services.AddRelayContractValidation();
+            var provider = services.BuildServiceProvider();
+
+            // Assert - Method chaining
+            Assert.Same(services, result);
+
+            // Assert - Contract validator is registered
+            var contractValidator = provider.GetService<Relay.Core.ContractValidation.IContractValidator>();
+            Assert.NotNull(contractValidator);
+            Assert.IsType<Relay.Core.ContractValidation.DefaultContractValidator>(contractValidator);
+
+            // Assert - Pipeline behavior is registered
+            var pipelineBehaviors = services.Where(d => d.ServiceType.IsGenericType &&
+                d.ServiceType.GetGenericTypeDefinition() == typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>));
+            Assert.Contains(pipelineBehaviors, d => d.ImplementationType?.Name.Contains("ContractValidationPipelineBehavior") == true);
+        }
+
+        [Fact]
+        public void AddRelayDistributedTracing_RegistersDistributedTracingServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act
+            var result = services.AddRelayDistributedTracing();
+
+            // Assert - Method chaining
+            Assert.Same(services, result);
+
+            // Assert - Pipeline behavior is registered
+            var pipelineBehaviors = services.Where(d => d.ServiceType.IsGenericType &&
+                d.ServiceType.GetGenericTypeDefinition() == typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>));
+            Assert.Contains(pipelineBehaviors, d => d.ImplementationType?.Name.Contains("DistributedTracingPipelineBehavior") == true);
+        }
+
+
+
+        [Fact]
+        public void AddRelayEventSourcing_RegistersEventSourcingServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act
+            var result = services.AddRelayEventSourcing();
+
+            // Assert - Method chaining
+            Assert.Same(services, result);
+        }
+
+        [Fact]
+        public void AddRelayMessageQueue_RegistersMessageQueueServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            // Act
+            var result = services.AddRelayMessageQueue();
+
+            // Assert - Method chaining
+            Assert.Same(services, result);
         }
 
         [Fact]

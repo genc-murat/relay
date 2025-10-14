@@ -10,6 +10,41 @@ namespace Relay.Core.AI.Optimization.Strategies
     /// </summary>
     internal sealed class ModelParameterAdjuster
     {
+        // Constants for adjustment factors and thresholds
+        private const double DefaultBaseAdjustmentDecrease = 0.9;
+        private const double DefaultBaseAdjustmentIncrease = 1.1;
+        private const double TargetAccuracy = 0.85;
+        private const double AccuracyGapMultiplier = 2.0;
+        private const double MinAdaptiveFactor = 0.7;
+        private const double MaxAdaptiveFactor = 1.3;
+        private const double MinFinalFactor = 0.7;
+        private const double MaxFinalFactor = 1.3;
+        private const double MinConfidenceThreshold = 0.3;
+        private const double MaxConfidenceThreshold = 0.98;
+        private const double MinStrategyWeight = 0.5;
+        private const double MaxStrategyWeight = 2.0;
+        private const double MinPredictionSensitivity = 0.5;
+        private const double MaxPredictionSensitivity = 2.0;
+        private const double DefaultLearningRate = 0.01;
+        private const double MinLearningRate = 0.001;
+        private const double MaxLearningRate = 0.1;
+        private const double BaseMomentum = 0.9;
+        private const double MomentumAdjustmentFactor = 0.1;
+        private const double DefaultRepeatRateThreshold = 0.3;
+        private const double MinRepeatRateThreshold = 0.1;
+        private const double MaxRepeatRateThreshold = 0.9;
+        private const int DefaultMinBatchSize = 10;
+        private const int DefaultMaxBatchSize = 1000;
+        private const int MinBatchSize = 5;
+        private const int MaxBatchSize = 2000;
+        private const int DefaultOptimalRangeStart = 50;
+        private const int MinCacheDuration = 60;
+        private const int MaxCacheDuration = 7200;
+        private const int MinMinCacheDuration = 60;
+        private const int MaxMinCacheDuration = 600;
+        private const int MinMaxCacheDuration = 1800;
+        private const int MaxMaxCacheDuration = 7200;
+
         private readonly ILogger<ModelParameterAdjuster> _logger;
         private readonly AIOptimizationOptions _options;
         private readonly ConcurrentQueue<PredictionResult> _recentPredictions;
@@ -62,19 +97,18 @@ namespace Relay.Core.AI.Optimization.Strategies
                 var modelStats = getModelStatistics();
                 var accuracyScore = modelStats.AccuracyScore;
 
-                var baseAdjustment = decrease ? 0.9 : 1.1;
+                var baseAdjustment = decrease ? DefaultBaseAdjustmentDecrease : DefaultBaseAdjustmentIncrease;
 
-                var targetAccuracy = 0.85;
-                var accuracyGap = Math.Abs(accuracyScore - targetAccuracy);
+                var accuracyGap = Math.Abs(accuracyScore - TargetAccuracy);
 
-                var adaptiveFactor = 1.0 + (accuracyGap * 2.0);
-                adaptiveFactor = Math.Max(0.7, Math.Min(1.3, adaptiveFactor));
+                var adaptiveFactor = 1.0 + (accuracyGap * AccuracyGapMultiplier);
+                adaptiveFactor = Math.Max(MinAdaptiveFactor, Math.Min(MaxAdaptiveFactor, adaptiveFactor));
 
                 var finalFactor = decrease
                     ? baseAdjustment * (2.0 - adaptiveFactor)
                     : baseAdjustment * adaptiveFactor;
 
-                finalFactor = Math.Max(0.7, Math.Min(1.3, finalFactor));
+                finalFactor = Math.Max(MinFinalFactor, Math.Min(MaxFinalFactor, finalFactor));
 
                 _logger.LogDebug("Calculated adaptive adjustment factor: {Factor:F3} " +
                     "(Base: {Base:F2}, Accuracy: {Accuracy:P}, Gap: {Gap:P})",
@@ -103,7 +137,7 @@ namespace Relay.Core.AI.Optimization.Strategies
                     var currentConfidence = CalculateStrategyConfidence(strategy);
                     var adjustedConfidence = currentConfidence * factor;
 
-                    adjustedConfidence = Math.Max(0.3, Math.Min(0.98, adjustedConfidence));
+                    adjustedConfidence = Math.Max(MinConfidenceThreshold, Math.Min(MaxConfidenceThreshold, adjustedConfidence));
 
                     _logger.LogDebug("Adjusted confidence threshold for {Strategy}: {Old:P} -> {New:P}",
                         strategy, currentConfidence, adjustedConfidence);
@@ -154,7 +188,7 @@ namespace Relay.Core.AI.Optimization.Strategies
                     var currentWeight = 1.0;
                     var adjustedWeight = currentWeight * (successRate > 0.7 ? factor : (2.0 - factor));
 
-                    adjustedWeight = Math.Max(0.5, Math.Min(2.0, adjustedWeight));
+                    adjustedWeight = Math.Max(MinStrategyWeight, Math.Min(MaxStrategyWeight, adjustedWeight));
 
                     _logger.LogDebug("Adjusted strategy weight for {Strategy}: {OldWeight:F2} -> {NewWeight:F2} " +
                         "(Success rate: {SuccessRate:P})",
@@ -176,7 +210,7 @@ namespace Relay.Core.AI.Optimization.Strategies
                 var currentSensitivity = 1.0;
                 var adjustedSensitivity = currentSensitivity * factor;
 
-                adjustedSensitivity = Math.Max(0.5, Math.Min(2.0, adjustedSensitivity));
+                adjustedSensitivity = Math.Max(MinPredictionSensitivity, Math.Min(MaxPredictionSensitivity, adjustedSensitivity));
 
                 _logger.LogDebug("Adjusted prediction sensitivity: {Old:F2} -> {New:F2}",
                     currentSensitivity, adjustedSensitivity);
@@ -197,10 +231,10 @@ namespace Relay.Core.AI.Optimization.Strategies
         {
             try
             {
-                var currentLearningRate = 0.01;
+                var currentLearningRate = DefaultLearningRate;
                 var adjustedLearningRate = currentLearningRate * factor;
 
-                adjustedLearningRate = Math.Max(0.001, Math.Min(0.1, adjustedLearningRate));
+                adjustedLearningRate = Math.Max(MinLearningRate, Math.Min(MaxLearningRate, adjustedLearningRate));
 
                 var momentum = CalculateMomentum(adjustedLearningRate);
 
@@ -215,9 +249,8 @@ namespace Relay.Core.AI.Optimization.Strategies
 
         private double CalculateMomentum(double learningRate)
         {
-            var baseMomentum = 0.9;
-            var learningRateFactor = Math.Min(1.0, learningRate / 0.01);
-            return baseMomentum * (1.0 - learningRateFactor * 0.1);
+            var learningRateFactor = Math.Min(1.0, learningRate / DefaultLearningRate);
+            return BaseMomentum * (1.0 - learningRateFactor * MomentumAdjustmentFactor);
         }
 
         private void AdjustPerformanceThresholds(double factor)
@@ -230,8 +263,10 @@ namespace Relay.Core.AI.Optimization.Strategies
                 _logger.LogDebug("Adjusted high execution time threshold: {Old}ms -> {New:F0}ms",
                     currentHighThreshold, adjustedHighThreshold);
 
-                var currentRepeatRateThreshold = 0.3; // Default value
+                var currentRepeatRateThreshold = DefaultRepeatRateThreshold;
                 var adjustedRepeatRateThreshold = currentRepeatRateThreshold * (2.0 - factor);
+
+                adjustedRepeatRateThreshold = Math.Max(MinRepeatRateThreshold, Math.Min(MaxRepeatRateThreshold, adjustedRepeatRateThreshold));
 
                 _logger.LogDebug("Adjusted repeat rate threshold: {Old:P} -> {New:P}",
                     currentRepeatRateThreshold, adjustedRepeatRateThreshold);
@@ -252,16 +287,16 @@ namespace Relay.Core.AI.Optimization.Strategies
                 var adjustedMinDuration = (int)(currentMinCacheDuration * factor);
                 var adjustedMaxDuration = (int)(currentMaxCacheDuration * factor);
 
-                adjustedMinDuration = Math.Max(60, Math.Min(600, adjustedMinDuration));
-                adjustedMaxDuration = Math.Max(1800, Math.Min(7200, adjustedMaxDuration));
+                adjustedMinDuration = Math.Max(MinMinCacheDuration, Math.Min(MaxMinCacheDuration, adjustedMinDuration));
+                adjustedMaxDuration = Math.Max(MinMaxCacheDuration, Math.Min(MaxMaxCacheDuration, adjustedMaxDuration));
 
                 _logger.LogDebug("Adjusted cache duration range: {OldMin}-{OldMax}s -> {NewMin}-{NewMax}s",
                     currentMinCacheDuration, currentMaxCacheDuration, adjustedMinDuration, adjustedMaxDuration);
 
-                var currentRepeatRateThreshold = 0.3; // Default value
+                var currentRepeatRateThreshold = DefaultRepeatRateThreshold;
                 var adjustedRepeatRateThreshold = currentRepeatRateThreshold * (2.0 - factor);
 
-                adjustedRepeatRateThreshold = Math.Max(0.1, Math.Min(0.9, adjustedRepeatRateThreshold));
+                adjustedRepeatRateThreshold = Math.Max(MinRepeatRateThreshold, Math.Min(MaxRepeatRateThreshold, adjustedRepeatRateThreshold));
 
                 _logger.LogDebug("Adjusted caching repeat rate threshold: {Old:P} -> {New:P}",
                     currentRepeatRateThreshold, adjustedRepeatRateThreshold);
@@ -276,19 +311,19 @@ namespace Relay.Core.AI.Optimization.Strategies
         {
             try
             {
-                var currentMinBatchSize = 10;
-                var currentMaxBatchSize = 1000;
+                var currentMinBatchSize = DefaultMinBatchSize;
+                var currentMaxBatchSize = DefaultMaxBatchSize;
 
                 var adjustedMinBatchSize = (int)(currentMinBatchSize * factor);
                 var adjustedMaxBatchSize = (int)(currentMaxBatchSize * factor);
 
-                adjustedMinBatchSize = Math.Max(5, Math.Min(50, adjustedMinBatchSize));
-                adjustedMaxBatchSize = Math.Max(500, Math.Min(2000, adjustedMaxBatchSize));
+                adjustedMinBatchSize = Math.Max(MinBatchSize, Math.Min(50, adjustedMinBatchSize));
+                adjustedMaxBatchSize = Math.Max(500, Math.Min(MaxBatchSize, adjustedMaxBatchSize));
 
                 _logger.LogDebug("Adjusted batch size range: {OldMin}-{OldMax} -> {NewMin}-{NewMax}",
                     currentMinBatchSize, currentMaxBatchSize, adjustedMinBatchSize, adjustedMaxBatchSize);
 
-                var currentOptimalRangeStart = 50;
+                var currentOptimalRangeStart = DefaultOptimalRangeStart;
                 var adjustedOptimalRangeStart = (int)(currentOptimalRangeStart * factor);
 
                 _logger.LogDebug("Adjusted optimal batch size range start: {Old} -> {New}",

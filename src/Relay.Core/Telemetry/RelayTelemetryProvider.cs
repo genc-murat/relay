@@ -12,10 +12,10 @@ namespace Relay.Core.Telemetry;
 /// <summary>
 /// Unified telemetry provider that supports all Relay components
 /// </summary>
-public class UnifiedTelemetryProvider : ITelemetryProvider
+public class RelayTelemetryProvider : ITelemetryProvider
 {
-    private readonly UnifiedTelemetryOptions _options;
-    private readonly ILogger<UnifiedTelemetryProvider>? _logger;
+    private readonly RelayTelemetryOptions _options;
+    private readonly ILogger<RelayTelemetryProvider>? _logger;
     private readonly ActivitySource _activitySource;
     private readonly Meter _meter;
     private readonly AsyncLocal<string?> _correlationIdContext = new();
@@ -41,9 +41,9 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
 
     private readonly IMetricsProvider? _metricsProvider;
 
-    public UnifiedTelemetryProvider(
-        IOptions<UnifiedTelemetryOptions> options,
-        ILogger<UnifiedTelemetryProvider>? logger = null,
+    public RelayTelemetryProvider(
+        IOptions<RelayTelemetryOptions> options,
+        ILogger<RelayTelemetryProvider>? logger = null,
         IMetricsProvider? metricsProvider = null)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
@@ -52,74 +52,74 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
 
         // Initialize activity source
         _activitySource = new ActivitySource(
-            $"{UnifiedTelemetryConstants.ActivitySourceName}.{_options.Component}",
-            UnifiedTelemetryConstants.ActivitySourceVersion);
+            $"{RelayTelemetryConstants.ActivitySourceName}.{_options.Component}",
+            RelayTelemetryConstants.ActivitySourceVersion);
 
         // Initialize meter
         _meter = new Meter(
-            $"{UnifiedTelemetryConstants.MeterName}.{_options.Component}",
-            UnifiedTelemetryConstants.MeterVersion);
+            $"{RelayTelemetryConstants.MeterName}.{_options.Component}",
+            RelayTelemetryConstants.MeterVersion);
 
         // Initialize core metrics
         _handlersExecutedCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.HandlersExecuted,
+            RelayTelemetryConstants.Metrics.HandlersExecuted,
             description: "Number of handlers executed");
 
         _handlersSucceededCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.HandlersSucceeded,
+            RelayTelemetryConstants.Metrics.HandlersSucceeded,
             description: "Number of handlers that succeeded");
 
         _handlersFailedCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.HandlersFailed,
+            RelayTelemetryConstants.Metrics.HandlersFailed,
             description: "Number of handlers that failed");
 
         _notificationsPublishedCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.NotificationsPublished,
+            RelayTelemetryConstants.Metrics.NotificationsPublished,
             description: "Number of notifications published");
 
         _streamingOperationsCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.StreamingOperations,
+            RelayTelemetryConstants.Metrics.StreamingOperations,
             description: "Number of streaming operations");
 
         _handlerDurationHistogram = _meter.CreateHistogram<double>(
-            UnifiedTelemetryConstants.Metrics.HandlerDuration,
+            RelayTelemetryConstants.Metrics.HandlerDuration,
             description: "Duration of handler execution in seconds");
 
         _notificationDurationHistogram = _meter.CreateHistogram<double>(
-            UnifiedTelemetryConstants.Metrics.NotificationDuration,
+            RelayTelemetryConstants.Metrics.NotificationDuration,
             description: "Duration of notification publishing in seconds");
 
         _streamingDurationHistogram = _meter.CreateHistogram<double>(
-            UnifiedTelemetryConstants.Metrics.StreamingDuration,
+            RelayTelemetryConstants.Metrics.StreamingDuration,
             description: "Duration of streaming operations in seconds");
 
         // Initialize message broker metrics
         _messagesPublishedCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.MessagesPublished,
+            RelayTelemetryConstants.Metrics.MessagesPublished,
             description: "Number of messages published");
 
         _messagesReceivedCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.MessagesReceived,
+            RelayTelemetryConstants.Metrics.MessagesReceived,
             description: "Number of messages received");
 
         _messagesProcessedCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.MessagesProcessed,
+            RelayTelemetryConstants.Metrics.MessagesProcessed,
             description: "Number of messages processed");
 
         _messagesFailedCounter = _meter.CreateCounter<long>(
-            UnifiedTelemetryConstants.Metrics.MessagesFailed,
+            RelayTelemetryConstants.Metrics.MessagesFailed,
             description: "Number of messages failed to process");
 
         _messagePublishDurationHistogram = _meter.CreateHistogram<double>(
-            UnifiedTelemetryConstants.Metrics.MessagePublishDuration,
+            RelayTelemetryConstants.Metrics.MessagePublishDuration,
             description: "Duration of message publish operations in seconds");
 
         _messageProcessDurationHistogram = _meter.CreateHistogram<double>(
-            UnifiedTelemetryConstants.Metrics.MessageProcessDuration,
+            RelayTelemetryConstants.Metrics.MessageProcessDuration,
             description: "Duration of message processing operations in seconds");
 
         _messagePayloadSizeHistogram = _meter.CreateHistogram<long>(
-            UnifiedTelemetryConstants.Metrics.MessagePayloadSize,
+            RelayTelemetryConstants.Metrics.MessagePayloadSize,
             description: "Size of message payloads in bytes");
     }
 
@@ -134,13 +134,13 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
 
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Component, _options.Component);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.OperationType, operationName);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.RequestType, requestType.FullName);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Component, _options.Component);
+            activity.SetTag(RelayTelemetryConstants.Attributes.OperationType, operationName);
+            activity.SetTag(RelayTelemetryConstants.Attributes.RequestType, requestType.FullName);
 
             if (correlationId != null)
             {
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.CorrelationId, correlationId);
+                activity.SetTag(RelayTelemetryConstants.Attributes.CorrelationId, correlationId);
                 SetCorrelationId(correlationId);
             }
 
@@ -159,10 +159,10 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Record metrics
         var tagList = new TagList
         {
-            { UnifiedTelemetryConstants.Attributes.Component, _options.Component },
-            { UnifiedTelemetryConstants.Attributes.RequestType, requestType.Name },
-            { UnifiedTelemetryConstants.Attributes.HandlerName, handlerName },
-            { UnifiedTelemetryConstants.Attributes.Success, success }
+            { RelayTelemetryConstants.Attributes.Component, _options.Component },
+            { RelayTelemetryConstants.Attributes.RequestType, requestType.Name },
+            { RelayTelemetryConstants.Attributes.HandlerName, handlerName },
+            { RelayTelemetryConstants.Attributes.Success, success }
         };
 
         _handlersExecutedCounter.Add(1, tagList);
@@ -181,14 +181,14 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Update activity
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.ResponseType, responseType?.FullName);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Success, success);
+            activity.SetTag(RelayTelemetryConstants.Attributes.ResponseType, responseType?.FullName);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Success, success);
 
             if (exception != null)
             {
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
                 activity.SetStatus(ActivityStatusCode.Error, exception.Message);
             }
             else if (success)
@@ -221,10 +221,10 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Record metrics
         var tagList = new TagList
         {
-            { UnifiedTelemetryConstants.Attributes.Component, _options.Component },
-            { UnifiedTelemetryConstants.Attributes.NotificationType, notificationType.Name },
-            { UnifiedTelemetryConstants.Attributes.HandlerCount, handlerCount },
-            { UnifiedTelemetryConstants.Attributes.Success, success }
+            { RelayTelemetryConstants.Attributes.Component, _options.Component },
+            { RelayTelemetryConstants.Attributes.NotificationType, notificationType.Name },
+            { RelayTelemetryConstants.Attributes.HandlerCount, handlerCount },
+            { RelayTelemetryConstants.Attributes.Success, success }
         };
 
         _notificationsPublishedCounter.Add(1, tagList);
@@ -233,13 +233,13 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Update activity
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Success, success);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Success, success);
 
             if (exception != null)
             {
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
                 activity.SetStatus(ActivityStatusCode.Error, exception.Message);
             }
             else if (success)
@@ -271,12 +271,12 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Record metrics
         var tagList = new TagList
         {
-            { UnifiedTelemetryConstants.Attributes.Component, _options.Component },
-            { UnifiedTelemetryConstants.Attributes.RequestType, requestType.Name },
-            { UnifiedTelemetryConstants.Attributes.ResponseType, responseType.Name },
-            { UnifiedTelemetryConstants.Attributes.HandlerName, handlerName },
-            { UnifiedTelemetryConstants.Attributes.ItemCount, itemCount },
-            { UnifiedTelemetryConstants.Attributes.Success, success }
+            { RelayTelemetryConstants.Attributes.Component, _options.Component },
+            { RelayTelemetryConstants.Attributes.RequestType, requestType.Name },
+            { RelayTelemetryConstants.Attributes.ResponseType, responseType.Name },
+            { RelayTelemetryConstants.Attributes.HandlerName, handlerName },
+            { RelayTelemetryConstants.Attributes.ItemCount, itemCount },
+            { RelayTelemetryConstants.Attributes.Success, success }
         };
 
         _streamingOperationsCounter.Add(1, tagList);
@@ -285,13 +285,13 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Update activity
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Success, success);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Success, success);
 
             if (exception != null)
             {
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
                 activity.SetStatus(ActivityStatusCode.Error, exception.Message);
             }
             else if (success)
@@ -327,9 +327,9 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Record metrics
         var tagList = new TagList
         {
-            { UnifiedTelemetryConstants.Attributes.Component, _options.Component },
-            { UnifiedTelemetryConstants.Attributes.MessageType, messageType.Name },
-            { UnifiedTelemetryConstants.Attributes.Success, success }
+            { RelayTelemetryConstants.Attributes.Component, _options.Component },
+            { RelayTelemetryConstants.Attributes.MessageType, messageType.Name },
+            { RelayTelemetryConstants.Attributes.Success, success }
         };
 
         _messagesPublishedCounter.Add(1, tagList);
@@ -339,14 +339,14 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Update activity
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize, payloadSize);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Success, success);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingPayloadSize, payloadSize);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Success, success);
 
             if (exception != null)
             {
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
                 activity.SetStatus(ActivityStatusCode.Error, exception.Message);
             }
             else if (success)
@@ -369,9 +369,9 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Record metrics
         var tagList = new TagList
         {
-            { UnifiedTelemetryConstants.Attributes.Component, _options.Component },
-            { UnifiedTelemetryConstants.Attributes.MessageType, messageType.Name },
-            { UnifiedTelemetryConstants.Attributes.Success, success }
+            { RelayTelemetryConstants.Attributes.Component, _options.Component },
+            { RelayTelemetryConstants.Attributes.MessageType, messageType.Name },
+            { RelayTelemetryConstants.Attributes.Success, success }
         };
 
         _messagesReceivedCounter.Add(1, tagList);
@@ -390,13 +390,13 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         // Update activity
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.Success, success);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Duration, duration.TotalMilliseconds);
+            activity.SetTag(RelayTelemetryConstants.Attributes.Success, success);
 
             if (exception != null)
             {
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
                 activity.SetStatus(ActivityStatusCode.Error, exception.Message);
             }
             else if (success)
@@ -416,12 +416,12 @@ public class UnifiedTelemetryProvider : ITelemetryProvider
         var activity = Activity.Current;
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.CorrelationId, correlationId);
+            activity.SetTag(RelayTelemetryConstants.Attributes.CorrelationId, correlationId);
         }
     }
 
     public string? GetCorrelationId()
     {
-        return _correlationIdContext.Value ?? Activity.Current?.GetTagItem(UnifiedTelemetryConstants.Attributes.CorrelationId)?.ToString();
+        return _correlationIdContext.Value ?? Activity.Current?.GetTagItem(RelayTelemetryConstants.Attributes.CorrelationId)?.ToString();
     }
 }

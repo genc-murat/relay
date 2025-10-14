@@ -18,7 +18,7 @@ public class MessageBrokerValidationAdapter
 {
     private readonly IContractValidator? _contractValidator;
     private readonly ILogger<MessageBrokerValidationAdapter> _logger;
-    private readonly UnifiedTelemetryOptions _options;
+    private readonly RelayTelemetryOptions _options;
 
     /// <summary>
     /// Initializes a new instance of the MessageBrokerValidationAdapter class.
@@ -29,7 +29,7 @@ public class MessageBrokerValidationAdapter
     public MessageBrokerValidationAdapter(
         IContractValidator? contractValidator,
         ILogger<MessageBrokerValidationAdapter> logger,
-        IOptions<UnifiedTelemetryOptions> options)
+        IOptions<RelayTelemetryOptions> options)
     {
         _contractValidator = contractValidator;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

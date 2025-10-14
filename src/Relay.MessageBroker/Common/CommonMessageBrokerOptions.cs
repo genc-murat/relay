@@ -48,7 +48,7 @@ public class CommonMessageBrokerOptions
     /// <summary>
     /// Gets or sets the telemetry options.
     /// </summary>
-    public Relay.Core.Telemetry.UnifiedTelemetryOptions? Telemetry { get; set; }
+    public Relay.Core.Telemetry.RelayTelemetryOptions? Telemetry { get; set; }
 
     /// <summary>
     /// Gets or sets the saga options.

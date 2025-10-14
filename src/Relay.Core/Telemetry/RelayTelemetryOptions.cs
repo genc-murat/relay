@@ -6,7 +6,7 @@ namespace Relay.Core.Telemetry;
 /// <summary>
 /// Unified configuration options for all Relay telemetry and logging
 /// </summary>
-public sealed class UnifiedTelemetryOptions
+public sealed class RelayTelemetryOptions
 {
     /// <summary>
     /// Gets or sets whether telemetry is enabled.
@@ -46,7 +46,7 @@ public sealed class UnifiedTelemetryOptions
     /// <summary>
     /// Gets or sets the component name (Core, MessageBroker, etc.)
     /// </summary>
-    public string Component { get; set; } = UnifiedTelemetryConstants.Components.Core;
+    public string Component { get; set; } = RelayTelemetryConstants.Components.Core;
 
     /// <summary>
     /// Gets or sets whether to capture message payloads in traces.

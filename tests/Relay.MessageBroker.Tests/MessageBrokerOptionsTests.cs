@@ -150,7 +150,7 @@ public class MessageBrokerOptionsTests
         {
             CircuitBreaker = new CircuitBreaker.CircuitBreakerOptions(),
             Compression = new Compression.CompressionOptions(),
-            Telemetry = new UnifiedTelemetryOptions(),
+            Telemetry = new RelayTelemetryOptions(),
             Saga = new Saga.SagaOptions(),
             RetryPolicy = new RetryPolicy()
         };

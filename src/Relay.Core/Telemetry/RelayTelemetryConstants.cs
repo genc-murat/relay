@@ -5,7 +5,7 @@ namespace Relay.Core.Telemetry;
 /// <summary>
 /// Unified telemetry constants for all Relay components
 /// </summary>
-public static class UnifiedTelemetryConstants
+public static class RelayTelemetryConstants
 {
     /// <summary>
     /// Activity source name for Relay operations

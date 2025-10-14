@@ -19,7 +19,7 @@ public class OpenTelemetryTests : IDisposable
         Activity.Current = null;
         
         _tracerProvider = Sdk.CreateTracerProviderBuilder()
-            .AddSource(UnifiedTelemetryConstants.ActivitySourceName)
+            .AddSource(RelayTelemetryConstants.ActivitySourceName)
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
                 .AddService("TestService", "1.0.0"))
             .SetSampler(new AlwaysOnSampler())
@@ -43,7 +43,7 @@ public class OpenTelemetryTests : IDisposable
         var exportedActivities = new List<Activity>();
 
         using var tracerProvider = Sdk.CreateTracerProviderBuilder()
-            .AddSource(UnifiedTelemetryConstants.ActivitySourceName)
+            .AddSource(RelayTelemetryConstants.ActivitySourceName)
             .SetResourceBuilder(ResourceBuilder.CreateDefault()
                 .AddService("MyTestService")
                 .AddAttributes(new Dictionary<string, object>
@@ -56,7 +56,7 @@ public class OpenTelemetryTests : IDisposable
             .Build();
 
         // Act
-        using (var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test"))
+        using (var activity = RelayTelemetryConstants.ActivitySource.StartActivity("test"))
         {
             Assert.NotNull(activity);
         }
@@ -82,21 +82,21 @@ public class OpenTelemetryTests : IDisposable
         const string messagingSystem = "rabbitmq";
 
         // Act
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity($"{destination} publish", ActivityKind.Producer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity($"{destination} publish", ActivityKind.Producer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, messagingSystem);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, destination);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "publish");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, messagingSystem);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, destination);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "publish");
         }
 
         // Assert
         Assert.NotNull(activity);
         Assert.Equal($"{destination} publish", activity!.DisplayName);
         Assert.Equal(ActivityKind.Producer, activity.Kind);
-        Assert.Equal(messagingSystem, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingSystem));
-        Assert.Equal(destination, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingDestination));
-        Assert.Equal("publish", activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingOperation));
+        Assert.Equal(messagingSystem, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingSystem));
+        Assert.Equal(destination, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingDestination));
+        Assert.Equal("publish", activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingOperation));
     }
 
     [Fact]
@@ -107,33 +107,33 @@ public class OpenTelemetryTests : IDisposable
         const string messagingSystem = "kafka";
 
         // Act
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity($"{destination} process", ActivityKind.Consumer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity($"{destination} process", ActivityKind.Consumer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, messagingSystem);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, destination);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "process");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, messagingSystem);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, destination);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "process");
         }
 
         // Assert
         Assert.NotNull(activity);
         Assert.Equal($"{destination} process", activity!.DisplayName);
         Assert.Equal(ActivityKind.Consumer, activity.Kind);
-        Assert.Equal(messagingSystem, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingSystem));
-        Assert.Equal(destination, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingDestination));
-        Assert.Equal("process", activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingOperation));
+        Assert.Equal(messagingSystem, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingSystem));
+        Assert.Equal(destination, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingDestination));
+        Assert.Equal("process", activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingOperation));
     }
 
     [Fact]
     public void AddMessageAttributes_ShouldAddCorrectTags()
     {
         // Arrange
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, "test");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, "test-topic");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "publish");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, "test");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, "test-topic");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "publish");
         }
         const string messageType = "TestMessage";
         const string messageId = "msg-123";
@@ -142,27 +142,27 @@ public class OpenTelemetryTests : IDisposable
         // Act
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageType, messageType);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingMessageId, messageId);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize, payloadSize);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessageType, messageType);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingMessageId, messageId);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingPayloadSize, payloadSize);
         }
 
         // Assert
-        Assert.Equal(messageType, activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageType));
-        Assert.Equal(messageId, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingMessageId));
-        Assert.Equal(payloadSize, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize));
+        Assert.Equal(messageType, activity!.GetTagItem(RelayTelemetryConstants.Attributes.MessageType));
+        Assert.Equal(messageId, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingMessageId));
+        Assert.Equal(payloadSize, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingPayloadSize));
     }
 
     [Fact]
     public void AddCompressionAttributes_ShouldCalculateCompressionRatio()
     {
         // Arrange
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, "test");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, "test-topic");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "publish");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, "test");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, "test-topic");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "publish");
         }
         const string algorithm = "gzip";
         const int originalSize = 1000;
@@ -171,20 +171,20 @@ public class OpenTelemetryTests : IDisposable
         // Act
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageCompressed, true);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageCompressionAlgorithm, algorithm);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize, originalSize);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadCompressedSize, compressedSize);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageCompressionRatio, (double)compressedSize / originalSize);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessageCompressed, true);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessageCompressionAlgorithm, algorithm);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingPayloadSize, originalSize);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingPayloadCompressedSize, compressedSize);
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessageCompressionRatio, (double)compressedSize / originalSize);
         }
 
         // Assert
-        Assert.Equal(true, activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageCompressed));
-        Assert.Equal(algorithm, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageCompressionAlgorithm));
-        Assert.Equal(originalSize, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize));
-        Assert.Equal(compressedSize, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessagingPayloadCompressedSize));
+        Assert.Equal(true, activity!.GetTagItem(RelayTelemetryConstants.Attributes.MessageCompressed));
+        Assert.Equal(algorithm, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessageCompressionAlgorithm));
+        Assert.Equal(originalSize, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingPayloadSize));
+        Assert.Equal(compressedSize, activity.GetTagItem(RelayTelemetryConstants.Attributes.MessagingPayloadCompressedSize));
         
-        var ratio = activity.GetTagItem(UnifiedTelemetryConstants.Attributes.MessageCompressionRatio);
+        var ratio = activity.GetTagItem(RelayTelemetryConstants.Attributes.MessageCompressionRatio);
         Assert.NotNull(ratio);
         Assert.InRange((double)ratio!, 0.29, 0.31);
     }
@@ -193,12 +193,12 @@ public class OpenTelemetryTests : IDisposable
     public void AddCircuitBreakerAttributes_ShouldAddCorrectTags()
     {
         // Arrange
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, "test");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, "test-topic");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "publish");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, "test");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, "test-topic");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "publish");
         }
         const string name = "test-breaker";
         const string state = "Open";
@@ -206,25 +206,25 @@ public class OpenTelemetryTests : IDisposable
         // Act
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.CircuitBreakerName, name);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.CircuitBreakerState, state);
+            activity.SetTag(RelayTelemetryConstants.Attributes.CircuitBreakerName, name);
+            activity.SetTag(RelayTelemetryConstants.Attributes.CircuitBreakerState, state);
         }
 
         // Assert
-        Assert.Equal(name, activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.CircuitBreakerName));
-        Assert.Equal(state, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.CircuitBreakerState));
+        Assert.Equal(name, activity!.GetTagItem(RelayTelemetryConstants.Attributes.CircuitBreakerName));
+        Assert.Equal(state, activity.GetTagItem(RelayTelemetryConstants.Attributes.CircuitBreakerState));
     }
 
     [Fact]
     public void RecordError_ShouldSetStatusAndAddErrorTags()
     {
         // Arrange
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, "test");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, "test-topic");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "publish");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, "test");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, "test-topic");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "publish");
         }
         var exception = new InvalidOperationException("Test error");
 
@@ -232,28 +232,28 @@ public class OpenTelemetryTests : IDisposable
         if (activity != null)
         {
             activity.SetStatus(ActivityStatusCode.Error, exception.Message);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorType, exception.GetType().FullName);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorMessage, exception.Message);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorStackTrace, exception.StackTrace);
+            activity.SetTag(RelayTelemetryConstants.Attributes.ErrorType, exception.GetType().FullName);
+            activity.SetTag(RelayTelemetryConstants.Attributes.ErrorMessage, exception.Message);
+            activity.SetTag(RelayTelemetryConstants.Attributes.ErrorStackTrace, exception.StackTrace);
         }
 
         // Assert
         Assert.Equal(ActivityStatusCode.Error, activity!.Status);
         Assert.Equal(exception.Message, activity.StatusDescription);
-        Assert.Equal(exception.GetType().FullName, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorType));
-        Assert.Equal(exception.Message, activity.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorMessage));
+        Assert.Equal(exception.GetType().FullName, activity.GetTagItem(RelayTelemetryConstants.Attributes.ErrorType));
+        Assert.Equal(exception.Message, activity.GetTagItem(RelayTelemetryConstants.Attributes.ErrorMessage));
     }
 
     [Fact]
     public void RecordError_WithoutStackTrace_ShouldNotCaptureStackTrace()
     {
         // Arrange
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, "test");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, "test-topic");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "publish");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, "test");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, "test-topic");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "publish");
         }
         var exception = new InvalidOperationException("Test error");
 
@@ -261,24 +261,24 @@ public class OpenTelemetryTests : IDisposable
         if (activity != null)
         {
             activity.SetStatus(ActivityStatusCode.Error, exception.Message);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorType, exception.GetType().FullName);
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorMessage, exception.Message);
+            activity.SetTag(RelayTelemetryConstants.Attributes.ErrorType, exception.GetType().FullName);
+            activity.SetTag(RelayTelemetryConstants.Attributes.ErrorMessage, exception.Message);
         }
 
         // Assert
-        Assert.Null(activity!.GetTagItem(UnifiedTelemetryConstants.Attributes.ErrorStackTrace));
+        Assert.Null(activity!.GetTagItem(RelayTelemetryConstants.Attributes.ErrorStackTrace));
     }
 
     [Fact]
     public void AddMessageEvent_ShouldAddEventWithAttributes()
     {
         // Arrange
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, "test");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, "test-topic");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "publish");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, "test");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, "test-topic");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "publish");
         }
         const string eventName = "TestEvent";
         var attributes = new Dictionary<string, object?>
@@ -307,12 +307,12 @@ public class OpenTelemetryTests : IDisposable
     public void AddMessageEvent_WithNullAttributes_ShouldNotThrow()
     {
         // Arrange
-        using var activity = UnifiedTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
+        using var activity = RelayTelemetryConstants.ActivitySource.StartActivity("test-topic publish", ActivityKind.Producer);
         if (activity != null)
         {
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingSystem, "test");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingDestination, "test-topic");
-            activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingOperation, "publish");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingSystem, "test");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingDestination, "test-topic");
+            activity.SetTag(RelayTelemetryConstants.Attributes.MessagingOperation, "publish");
         }
         const string eventName = "TestEvent";
 
@@ -332,7 +332,7 @@ public class OpenTelemetryTests : IDisposable
     public void TelemetryOptions_DefaultValues_ShouldBeCorrect()
     {
         // Arrange & Act
-        var options = new UnifiedTelemetryOptions();
+        var options = new RelayTelemetryOptions();
 
         // Assert
         Assert.True(options.Enabled);
@@ -340,7 +340,7 @@ public class OpenTelemetryTests : IDisposable
         Assert.True(options.EnableMetrics);
         Assert.True(options.EnableLogging);
         Assert.Equal("Relay", options.ServiceName);
-        Assert.Equal(UnifiedTelemetryConstants.Components.Core, options.Component);
+        Assert.Equal(RelayTelemetryConstants.Components.Core, options.Component);
         Assert.False(options.CaptureMessagePayloads);
         Assert.Equal(1024, options.MaxPayloadSizeBytes);
         Assert.True(options.CaptureMessageHeaders);
@@ -376,9 +376,9 @@ public class OpenTelemetryTests : IDisposable
     public void ActivitySourceName_ShouldBeRelayMessageBroker()
     {
         // Assert
-        Assert.Equal("Relay", UnifiedTelemetryConstants.ActivitySourceName);
-        Assert.Equal("Relay.MessageBroker", UnifiedTelemetryConstants.Components.MessageBroker);
-        Assert.Equal("Relay", UnifiedTelemetryConstants.MeterName);
+        Assert.Equal("Relay", RelayTelemetryConstants.ActivitySourceName);
+        Assert.Equal("Relay.MessageBroker", RelayTelemetryConstants.Components.MessageBroker);
+        Assert.Equal("Relay", RelayTelemetryConstants.MeterName);
     }
 
     [Fact]
@@ -392,9 +392,9 @@ public class OpenTelemetryTests : IDisposable
         {
             if (activity != null)
             {
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageType, "TestMessage");
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingMessageId, "msg-123");
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize, 1024);
+                activity.SetTag(RelayTelemetryConstants.Attributes.MessageType, "TestMessage");
+                activity.SetTag(RelayTelemetryConstants.Attributes.MessagingMessageId, "msg-123");
+                activity.SetTag(RelayTelemetryConstants.Attributes.MessagingPayloadSize, 1024);
             }
         });
 
@@ -412,11 +412,11 @@ public class OpenTelemetryTests : IDisposable
         {
             if (activity != null)
             {
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageCompressed, true);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageCompressionAlgorithm, "gzip");
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadSize, 1000);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.MessagingPayloadCompressedSize, 300);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.MessageCompressionRatio, 0.3);
+                activity.SetTag(RelayTelemetryConstants.Attributes.MessageCompressed, true);
+                activity.SetTag(RelayTelemetryConstants.Attributes.MessageCompressionAlgorithm, "gzip");
+                activity.SetTag(RelayTelemetryConstants.Attributes.MessagingPayloadSize, 1000);
+                activity.SetTag(RelayTelemetryConstants.Attributes.MessagingPayloadCompressedSize, 300);
+                activity.SetTag(RelayTelemetryConstants.Attributes.MessageCompressionRatio, 0.3);
             }
         });
 
@@ -436,8 +436,8 @@ public class OpenTelemetryTests : IDisposable
             if (activity != null)
             {
                 activity.SetStatus(ActivityStatusCode.Error, exception.Message);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorType, exception.GetType().FullName);
-                activity.SetTag(UnifiedTelemetryConstants.Attributes.ErrorMessage, exception.Message);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ErrorType, exception.GetType().FullName);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ErrorMessage, exception.Message);
             }
         });
 

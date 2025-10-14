@@ -41,9 +41,9 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         _compressor = compressor;
 
         // Initialize unified telemetry
-        var telemetryOptions = options.Value.Telemetry ?? new UnifiedTelemetryOptions
+        var telemetryOptions = options.Value.Telemetry ?? new RelayTelemetryOptions
         {
-            Component = UnifiedTelemetryConstants.Components.MessageBroker
+            Component = RelayTelemetryConstants.Components.MessageBroker
         };
         var telemetryOptionsWrapper = Options.Create(telemetryOptions);
         _telemetry = new Relay.Core.Telemetry.MessageBrokerTelemetryAdapter(telemetryOptionsWrapper, logger);

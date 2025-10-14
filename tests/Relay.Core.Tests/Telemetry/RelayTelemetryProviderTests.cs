@@ -8,16 +8,16 @@ using Xunit;
 
 namespace Relay.Core.Tests.Telemetry
 {
-    public class UnifiedTelemetryProviderTests
+    public class RelayTelemetryProviderTests
     {
         [Fact]
         public void Constructor_WithValidOptions_ShouldInitializeSuccessfully()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions { Component = "TestComponent" });
+            var options = Options.Create(new RelayTelemetryOptions { Component = "TestComponent" });
             
             // Act
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Assert
             Assert.NotNull(provider);
@@ -27,11 +27,11 @@ namespace Relay.Core.Tests.Telemetry
         public void Constructor_WithOptionsAndLogger_ShouldInitializeSuccessfully()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions { Component = "TestComponent" });
-            var logger = new LoggerFactory().CreateLogger<UnifiedTelemetryProvider>();
+            var options = Options.Create(new RelayTelemetryOptions { Component = "TestComponent" });
+            var logger = new LoggerFactory().CreateLogger<RelayTelemetryProvider>();
 
             // Act
-            var provider = new UnifiedTelemetryProvider(options, logger);
+            var provider = new RelayTelemetryProvider(options, logger);
 
             // Assert
             Assert.NotNull(provider);
@@ -41,12 +41,12 @@ namespace Relay.Core.Tests.Telemetry
         public void Constructor_WithOptionsLoggerAndMetricsProvider_ShouldInitializeSuccessfully()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions { Component = "TestComponent" });
-            var logger = new LoggerFactory().CreateLogger<UnifiedTelemetryProvider>();
+            var options = Options.Create(new RelayTelemetryOptions { Component = "TestComponent" });
+            var logger = new LoggerFactory().CreateLogger<RelayTelemetryProvider>();
             var metricsProvider = new CustomMetricsProvider();
 
             // Act
-            var provider = new UnifiedTelemetryProvider(options, logger, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, logger, metricsProvider);
 
             // Assert
             Assert.NotNull(provider);
@@ -57,22 +57,22 @@ namespace Relay.Core.Tests.Telemetry
         public void Constructor_WithOptionsNull_ThrowsArgumentNullException()
         {
             // Arrange
-            IOptions<UnifiedTelemetryOptions> options = null;
+            IOptions<RelayTelemetryOptions> options = null;
 
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new UnifiedTelemetryProvider(options));
+            Assert.Throws<ArgumentNullException>(() => new RelayTelemetryProvider(options));
         }
 
         [Fact]
         public void StartActivity_WhenTracingDisabled_ShouldReturnNull()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = false
             });
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Act
             var activity = provider.StartActivity("TestOperation", typeof(string));
@@ -85,7 +85,7 @@ namespace Relay.Core.Tests.Telemetry
         public void StartActivity_WhenTracingEnabled_ShouldReturnActivity()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
@@ -99,7 +99,7 @@ namespace Relay.Core.Tests.Telemetry
             };
             ActivitySource.AddActivityListener(listener);
 
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Act
             var activity = provider.StartActivity("TestOperation", typeof(string));
@@ -122,7 +122,7 @@ namespace Relay.Core.Tests.Telemetry
         public void StartActivity_WithCorrelationId_WhenTracingEnabled()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
@@ -136,7 +136,7 @@ namespace Relay.Core.Tests.Telemetry
             };
             ActivitySource.AddActivityListener(listener);
 
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Act
             var activity = provider.StartActivity("TestOperation", typeof(string), "test-correlation-123");
@@ -153,13 +153,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordHandlerExecution_WithSuccess_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(100);
@@ -182,13 +182,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordHandlerExecution_WithException_RecordsErrorMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(100);
@@ -212,13 +212,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordNotificationPublish_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(50);
@@ -240,13 +240,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordNotificationPublish_WithException_RecordsErrorMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(50);
@@ -269,13 +269,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordStreamingOperation_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(200);
@@ -299,13 +299,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordStreamingOperation_WithException_RecordsErrorMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(200);
@@ -330,13 +330,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessagePublished_RecordsMessageBrokerMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(75);
@@ -353,12 +353,12 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessagePublished_WithZeroPayloadSize_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(50);
@@ -372,12 +372,12 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessagePublished_WithLargePayloadSize_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(100);
@@ -391,13 +391,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessagePublished_WithException_RecordsErrorMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(75);
@@ -415,13 +415,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessageProcessed_RecordsProcessingMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(80);
@@ -437,12 +437,12 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessageProcessed_WithZeroDuration_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.Zero;
@@ -455,12 +455,12 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessageProcessed_WithLongDuration_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromHours(1);
@@ -473,13 +473,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessageProcessed_WithFailure_RecordsFailureMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(80);
@@ -496,12 +496,12 @@ namespace Relay.Core.Tests.Telemetry
         public void SetCorrelationId_ShouldUpdateContext()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions 
+            var options = Options.Create(new RelayTelemetryOptions 
             { 
                 Component = "TestComponent",
                 EnableTracing = true
             });
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Act
             provider.SetCorrelationId("new-correlation-id");
@@ -514,8 +514,8 @@ namespace Relay.Core.Tests.Telemetry
         public void GetCorrelationId_WhenNoActivity_ShouldReturnContextValue()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions { Component = "TestComponent" });
-            var provider = new UnifiedTelemetryProvider(options);
+            var options = Options.Create(new RelayTelemetryOptions { Component = "TestComponent" });
+            var provider = new RelayTelemetryProvider(options);
 
             // Act
             provider.SetCorrelationId("context-correlation-id");
@@ -529,11 +529,11 @@ namespace Relay.Core.Tests.Telemetry
         public void MetricsProvider_Property_ShouldReturnProvidedMetricsProvider()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions { Component = "TestComponent" });
+            var options = Options.Create(new RelayTelemetryOptions { Component = "TestComponent" });
             var expectedMetricsProvider = new CustomMetricsProvider();
 
             // Act
-            var provider = new UnifiedTelemetryProvider(options, null, expectedMetricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, expectedMetricsProvider);
 
             // Assert
             Assert.Same(expectedMetricsProvider, provider.MetricsProvider);
@@ -543,10 +543,10 @@ namespace Relay.Core.Tests.Telemetry
         public void MetricsProvider_Property_WithNull_ShouldReturnNull()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions { Component = "TestComponent" });
+            var options = Options.Create(new RelayTelemetryOptions { Component = "TestComponent" });
 
             // Act
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Assert
             Assert.Null(provider.MetricsProvider);
@@ -556,13 +556,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordHandlerExecution_WithNullHandlerName_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(100);
@@ -580,13 +580,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordHandlerExecution_WithNullResponseType_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(100);
@@ -604,13 +604,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordNotificationPublish_WithZeroHandlerCount_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(50);
@@ -628,13 +628,13 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordStreamingOperation_WithZeroItemCount_RecordsMetrics()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
             });
             var metricsProvider = new CustomMetricsProvider();
-            var provider = new UnifiedTelemetryProvider(options, null, metricsProvider);
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(200);
@@ -652,7 +652,7 @@ namespace Relay.Core.Tests.Telemetry
         public void StartActivity_WithNullCorrelationId_WhenTracingEnabled()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
@@ -666,7 +666,7 @@ namespace Relay.Core.Tests.Telemetry
             };
             ActivitySource.AddActivityListener(listener);
 
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Act
             var activity = provider.StartActivity("TestOperation", typeof(string), null);
@@ -679,7 +679,7 @@ namespace Relay.Core.Tests.Telemetry
         public void GetCorrelationId_WhenActivityHasCorrelationId_ReturnsActivityCorrelationId()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions
+            var options = Options.Create(new RelayTelemetryOptions
             {
                 Component = "TestComponent",
                 EnableTracing = true
@@ -693,7 +693,7 @@ namespace Relay.Core.Tests.Telemetry
             };
             ActivitySource.AddActivityListener(listener);
 
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Create an activity with correlation ID
             using var activity = provider.StartActivity("TestOperation", typeof(string), "activity-correlation-id");
@@ -709,10 +709,10 @@ namespace Relay.Core.Tests.Telemetry
         public void Constructor_WithEmptyComponentName_ShouldInitializeSuccessfully()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions { Component = "" });
+            var options = Options.Create(new RelayTelemetryOptions { Component = "" });
 
             // Act
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Assert
             Assert.NotNull(provider);
@@ -722,10 +722,10 @@ namespace Relay.Core.Tests.Telemetry
         public void Constructor_WithWhitespaceComponentName_ShouldInitializeSuccessfully()
         {
             // Arrange
-            var options = Options.Create(new UnifiedTelemetryOptions { Component = "   " });
+            var options = Options.Create(new RelayTelemetryOptions { Component = "   " });
 
             // Act
-            var provider = new UnifiedTelemetryProvider(options);
+            var provider = new RelayTelemetryProvider(options);
 
             // Assert
             Assert.NotNull(provider);

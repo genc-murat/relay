@@ -18,15 +18,15 @@ public class MessageBrokerValidationAdapterTests
 {
     private readonly Mock<IContractValidator> _contractValidatorMock;
     private readonly Mock<ILogger<MessageBrokerValidationAdapter>> _loggerMock;
-    private readonly UnifiedTelemetryOptions _options;
+    private readonly RelayTelemetryOptions _options;
 
     public MessageBrokerValidationAdapterTests()
     {
         _contractValidatorMock = new Mock<IContractValidator>();
         _loggerMock = new Mock<ILogger<MessageBrokerValidationAdapter>>();
-        _options = new UnifiedTelemetryOptions
+        _options = new RelayTelemetryOptions
         {
-            Component = UnifiedTelemetryConstants.Components.MessageBroker
+            Component = RelayTelemetryConstants.Components.MessageBroker
         };
     }
 

@@ -10,7 +10,7 @@ namespace Relay.Core.Telemetry;
 /// </summary>
 public sealed class MessageBrokerTelemetryAdapter
 {
-    private readonly UnifiedTelemetryProvider _provider;
+    private readonly RelayTelemetryProvider _provider;
     private readonly ILogger? _logger;
 
     /// <summary>
@@ -18,9 +18,9 @@ public sealed class MessageBrokerTelemetryAdapter
     /// </summary>
     /// <param name="options">The telemetry options.</param>
     /// <param name="logger">The logger.</param>
-    public MessageBrokerTelemetryAdapter(IOptions<UnifiedTelemetryOptions> options, ILogger? logger = null)
+    public MessageBrokerTelemetryAdapter(IOptions<RelayTelemetryOptions> options, ILogger? logger = null)
     {
-        _provider = new UnifiedTelemetryProvider(options);
+        _provider = new RelayTelemetryProvider(options);
         _logger = logger;
     }
 

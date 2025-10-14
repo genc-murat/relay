@@ -10,14 +10,14 @@ namespace Relay.MessageBroker.Tests;
 public class MessageBrokerTelemetryTests
 {
     private readonly Mock<ILogger<MessageBrokerTelemetryAdapter>> _loggerMock;
-    private readonly UnifiedTelemetryOptions _options;
+    private readonly RelayTelemetryOptions _options;
 
     public MessageBrokerTelemetryTests()
     {
         _loggerMock = new Mock<ILogger<MessageBrokerTelemetryAdapter>>();
-        _options = new UnifiedTelemetryOptions
+        _options = new RelayTelemetryOptions
         {
-            Component = UnifiedTelemetryConstants.Components.MessageBroker
+            Component = RelayTelemetryConstants.Components.MessageBroker
         };
     }
 

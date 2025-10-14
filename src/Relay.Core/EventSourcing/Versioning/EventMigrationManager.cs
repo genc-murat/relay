@@ -57,20 +57,29 @@ public class EventMigrationManager
 
         var currentEvent = @event;
         var eventType = @event.GetType();
-        var version = (@event as VersionedEvent)?.SchemaVersion ?? 1;
+        var version = @event is VersionedEvent versionedEvent ? versionedEvent.SchemaVersion : 1;
 
-        // Find applicable migrations and apply them in order
-        var applicableMigrations = _migrations
-            .Where(m => m.CanMigrate(eventType, version))
-            .OrderBy(m => m.FromVersion)
-            .ToList();
-
-        foreach (var migration in applicableMigrations)
+        // Keep applying migrations until no more are applicable
+        bool migrationApplied;
+        do
         {
-            currentEvent = migration.Migrate(currentEvent);
-            eventType = currentEvent.GetType();
-            version = (currentEvent as VersionedEvent)?.SchemaVersion ?? 1;
+            migrationApplied = false;
+
+            // Find the next applicable migration
+            var applicableMigration = _migrations
+                .Where(m => m.CanMigrate(eventType, version))
+                .OrderBy(m => m.FromVersion)
+                .FirstOrDefault();
+
+            if (applicableMigration != null)
+            {
+                currentEvent = applicableMigration.Migrate(currentEvent);
+                eventType = currentEvent.GetType();
+                 version = currentEvent is VersionedEvent versionedEvent2 ? versionedEvent2.SchemaVersion : 1;
+                migrationApplied = true;
+            }
         }
+        while (migrationApplied);
 
         return currentEvent;
     }

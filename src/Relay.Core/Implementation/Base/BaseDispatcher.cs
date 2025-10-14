@@ -70,7 +70,7 @@ namespace Relay.Core.Implementation.Base
             }
 
             return new RelayException(requestType, handlerName,
-                $"An error occurred while processing request of type '{requestType}'", exception);
+                $"An error occurred while processing request of type '{requestType}': {exception.Message}", exception);
         }
 
         /// <summary>

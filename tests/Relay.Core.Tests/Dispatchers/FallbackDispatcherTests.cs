@@ -93,6 +93,83 @@ namespace Relay.Core.Tests
         }
 
         [Fact]
+        public async Task FallbackRequestDispatcher_DispatchAsync_WithHandlerException_WrapsException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IRequestHandler<TestRequest, string>, ThrowingTestRequestHandler>();
+            var serviceProvider = services.BuildServiceProvider();
+            var dispatcher = new FallbackRequestDispatcher(serviceProvider);
+            var request = new TestRequest { Message = "Test" };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<RelayException>(() =>
+                dispatcher.DispatchAsync(request, CancellationToken.None).AsTask());
+
+            Assert.Equal("TestRequest", exception.RequestType);
+            Assert.Contains("Test handler exception", exception.Message);
+            Assert.IsType<InvalidOperationException>(exception.InnerException);
+        }
+
+        [Fact]
+        public async Task FallbackRequestDispatcher_DispatchAsync_VoidRequest_WithHandlerException_WrapsException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IRequestHandler<TestVoidRequest>, ThrowingTestVoidRequestHandler>();
+            var serviceProvider = services.BuildServiceProvider();
+            var dispatcher = new FallbackRequestDispatcher(serviceProvider);
+            var request = new TestVoidRequest { Message = "Test" };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<RelayException>(() =>
+                dispatcher.DispatchAsync(request, CancellationToken.None).AsTask());
+
+            Assert.Equal("TestVoidRequest", exception.RequestType);
+            Assert.Contains("Test void handler exception", exception.Message);
+            Assert.IsType<InvalidOperationException>(exception.InnerException);
+        }
+
+        [Fact]
+        public async Task FallbackRequestDispatcher_DispatchAsync_WithEmptyHandlerName_ThrowsArgumentException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var serviceProvider = services.BuildServiceProvider();
+            var dispatcher = new FallbackRequestDispatcher(serviceProvider);
+            var request = new TestRequest { Message = "Test" };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+                dispatcher.DispatchAsync(request, "", CancellationToken.None).AsTask());
+
+            Assert.Contains("handlerName", exception.Message);
+        }
+
+        [Fact]
+        public async Task FallbackRequestDispatcher_DispatchAsync_VoidRequest_WithEmptyHandlerName_ThrowsArgumentException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var serviceProvider = services.BuildServiceProvider();
+            var dispatcher = new FallbackRequestDispatcher(serviceProvider);
+            var request = new TestVoidRequest { Message = "Test" };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+                dispatcher.DispatchAsync(request, "", CancellationToken.None).AsTask());
+
+            Assert.Contains("handlerName", exception.Message);
+        }
+
+        [Fact]
+        public void FallbackRequestDispatcher_Constructor_WithNullServiceProvider_ThrowsArgumentNullException()
+        {
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new FallbackRequestDispatcher(null!));
+        }
+
+        [Fact]
         public async Task FallbackStreamDispatcher_DispatchAsync_WithRegisteredHandler_CallsHandler()
         {
             // Arrange
@@ -282,6 +359,22 @@ namespace Relay.Core.Tests
             {
                 WasCalled = true;
                 return ValueTask.CompletedTask;
+            }
+        }
+
+        private class ThrowingTestRequestHandler : IRequestHandler<TestRequest, string>
+        {
+            public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+            {
+                throw new InvalidOperationException("Test handler exception");
+            }
+        }
+
+        private class ThrowingTestVoidRequestHandler : IRequestHandler<TestVoidRequest>
+        {
+            public ValueTask HandleAsync(TestVoidRequest request, CancellationToken cancellationToken)
+            {
+                throw new InvalidOperationException("Test void handler exception");
             }
         }
 

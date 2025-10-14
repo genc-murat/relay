@@ -205,7 +205,7 @@ namespace Relay.Core.Implementation.Fallback
             }
 
             return new RelayException(requestType, handlerName,
-                $"An error occurred while processing request of type '{requestType}'", exception);
+                $"An error occurred while processing request of type '{requestType}': {exception.Message}", exception);
         }
     }
 }

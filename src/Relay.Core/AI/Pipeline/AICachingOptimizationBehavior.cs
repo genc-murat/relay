@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -18,13 +20,18 @@ namespace Relay.Core.AI
     {
         private readonly ILogger<AICachingOptimizationBehavior<TRequest, TResponse>> _logger;
         private readonly IAIPredictionCache? _cache;
+        private readonly AICachingOptimizationOptions _options;
+        private readonly ConcurrentDictionary<Type, CacheMetrics> _metrics;
 
         public AICachingOptimizationBehavior(
             ILogger<AICachingOptimizationBehavior<TRequest, TResponse>> logger,
-            IAIPredictionCache? cache = null)
+            IAIPredictionCache? cache = null,
+            AICachingOptimizationOptions? options = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _cache = cache;
+            _options = options ?? new AICachingOptimizationOptions();
+            _metrics = new ConcurrentDictionary<Type, CacheMetrics>();
         }
 
         public async ValueTask<TResponse> HandleAsync(
@@ -32,90 +39,292 @@ namespace Relay.Core.AI
             RequestHandlerDelegate<TResponse> next,
             CancellationToken cancellationToken)
         {
-            if (_cache == null || !IsCacheable(request))
+            if (_cache == null || !_options.EnableCaching || !IsCacheable(request))
             {
                 return await next();
             }
 
+            var requestType = typeof(TRequest);
+            var metrics = _metrics.GetOrAdd(requestType, _ => new CacheMetrics());
             var cacheKey = GenerateCacheKey(request);
 
-            // Check cache for optimization recommendation
-            var cachedRecommendation = await _cache.GetCachedPredictionAsync(cacheKey, cancellationToken);
+            // Track cache attempt
+            metrics.IncrementAttempts();
 
-            if (cachedRecommendation != null)
+            try
             {
-                _logger.LogDebug("Using cached optimization recommendation for request: {RequestType}", typeof(TRequest).Name);
-                
-                // In a production environment, this would:
-                // 1. Apply cached optimization strategy
-                // 2. Skip expensive prediction calculations
-                // 3. Reduce latency for repeated patterns
-                // 4. Track cache hit/miss ratios
-                // 5. Adjust cache TTL based on patterns
-            }
-            else
-            {
-                _logger.LogTrace("No cached optimization recommendation found for request: {RequestType}", typeof(TRequest).Name);
-            }
+                // Check cache for optimization recommendation
+                var cachedRecommendation = await _cache.GetCachedPredictionAsync(cacheKey, cancellationToken);
 
-            var response = await next();
-
-            // Cache the result for future use
-            if (ShouldCacheResult(request, response))
-            {
-                var recommendation = new OptimizationRecommendation
+                if (cachedRecommendation != null)
                 {
-                    Strategy = OptimizationStrategy.EnableCaching,
-                    ConfidenceScore = 0.85,
-                    EstimatedImprovement = TimeSpan.FromMilliseconds(50),
-                    Reasoning = "Caching enabled based on request pattern"
-                };
+                    metrics.IncrementHits();
 
-                await _cache.SetCachedPredictionAsync(cacheKey, recommendation, TimeSpan.FromMinutes(10), cancellationToken);
-                
-                _logger.LogTrace("Cached optimization recommendation for request: {RequestType}", typeof(TRequest).Name);
+                    _logger.LogDebug(
+                        "Cache hit for {RequestType}: Strategy={Strategy}, Confidence={Confidence:F2}, " +
+                        "EstimatedImprovement={Improvement}ms, HitRate={HitRate:P2}",
+                        requestType.Name,
+                        cachedRecommendation.Strategy,
+                        cachedRecommendation.ConfidenceScore,
+                        cachedRecommendation.EstimatedImprovement.TotalMilliseconds,
+                        metrics.GetHitRate());
+
+                    // Apply cached optimization strategy if confidence is high enough
+                    if (cachedRecommendation.ConfidenceScore >= _options.MinConfidenceScore)
+                    {
+                        _logger.LogTrace("Applying cached optimization: {Strategy}", cachedRecommendation.Strategy);
+                        // In production, this would apply the cached optimization strategy
+                    }
+                }
+                else
+                {
+                    metrics.IncrementMisses();
+                    _logger.LogTrace("Cache miss for {RequestType}: HitRate={HitRate:P2}",
+                        requestType.Name, metrics.GetHitRate());
+                }
+
+                // Execute the request
+                var startTime = DateTime.UtcNow;
+                var response = await next();
+                var executionTime = DateTime.UtcNow - startTime;
+
+                // Cache the result for future use
+                if (ShouldCacheResult(request, response, executionTime))
+                {
+                    var ttl = CalculateDynamicTtl(request, executionTime);
+                    var recommendation = CreateRecommendation(request, response, executionTime);
+
+                    await _cache.SetCachedPredictionAsync(cacheKey, recommendation, ttl, cancellationToken);
+
+                    _logger.LogTrace(
+                        "Cached optimization for {RequestType}: TTL={TTL}s, Strategy={Strategy}, Confidence={Confidence:F2}",
+                        requestType.Name,
+                        ttl.TotalSeconds,
+                        recommendation.Strategy,
+                        recommendation.ConfidenceScore);
+                }
+
+                return response;
             }
+            catch (Exception ex)
+            {
+                metrics.IncrementErrors();
+                _logger.LogError(ex, "Error in caching optimization behavior for {RequestType}", requestType.Name);
 
-            return response;
+                // Fall back to direct execution
+                return await next();
+            }
         }
 
         private bool IsCacheable(TRequest request)
         {
-            // Determine if request type is cacheable based on:
-            // 1. Request type attributes
-            // 2. Historical patterns
-            // 3. Data volatility
-            // 4. Business rules
+            // Check for IntelligentCachingAttribute
+            var attribute = typeof(TRequest).GetCustomAttribute<IntelligentCachingAttribute>();
+            if (attribute != null)
+            {
+                if (!attribute.EnableAIAnalysis)
+                    return false;
 
-            return true; // Simple heuristic for now
+                var metrics = _metrics.GetOrAdd(typeof(TRequest), _ => new CacheMetrics());
+
+                // Check if access frequency meets minimum threshold
+                if (metrics.GetAttemptCount() < attribute.MinAccessFrequency)
+                    return false;
+
+                // Check if predicted hit rate meets threshold
+                if (metrics.GetHitRate() < attribute.MinPredictedHitRate && metrics.GetAttemptCount() > 10)
+                    return false;
+            }
+
+            // Check options-based cacheability
+            return _options.EnableCaching;
         }
 
-        private bool ShouldCacheResult(TRequest request, TResponse response)
+        private bool ShouldCacheResult(TRequest request, TResponse response, TimeSpan executionTime)
         {
-            // Determine if result should be cached based on:
-            // 1. Response success status
-            // 2. Response size
-            // 3. Predicted reuse likelihood
-            // 4. Available cache space
+            if (response == null)
+                return false;
 
-            return response != null;
+            // Don't cache very fast operations
+            if (executionTime.TotalMilliseconds < _options.MinExecutionTimeForCaching)
+                return false;
+
+            // Check if response size is reasonable (if applicable)
+            if (response is IEstimateSize sizedResponse)
+            {
+                var estimatedSize = sizedResponse.EstimateSize();
+                if (estimatedSize > _options.MaxCacheSizeBytes)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private TimeSpan CalculateDynamicTtl(TRequest request, TimeSpan executionTime)
+        {
+            var attribute = typeof(TRequest).GetCustomAttribute<IntelligentCachingAttribute>();
+
+            if (attribute?.UseDynamicTtl == true)
+            {
+                var metrics = _metrics.GetOrAdd(typeof(TRequest), _ => new CacheMetrics());
+                var hitRate = metrics.GetHitRate();
+
+                // Higher hit rate = longer TTL
+                var baseTtl = _options.DefaultCacheTtl.TotalSeconds;
+                var adjustedTtl = baseTtl * (1.0 + hitRate);
+
+                // Clamp to reasonable bounds
+                adjustedTtl = Math.Max(_options.MinCacheTtl.TotalSeconds, adjustedTtl);
+                adjustedTtl = Math.Min(_options.MaxCacheTtl.TotalSeconds, adjustedTtl);
+
+                return TimeSpan.FromSeconds(adjustedTtl);
+            }
+
+            return _options.DefaultCacheTtl;
+        }
+
+        private OptimizationRecommendation CreateRecommendation(TRequest request, TResponse response, TimeSpan executionTime)
+        {
+            var metrics = _metrics.GetOrAdd(typeof(TRequest), _ => new CacheMetrics());
+            var hitRate = metrics.GetHitRate();
+
+            // Calculate confidence based on cache hit rate and execution time
+            var confidence = Math.Min(0.95, 0.5 + (hitRate * 0.3) + Math.Min(0.15, executionTime.TotalMilliseconds / 1000.0));
+
+            // Estimate improvement based on typical cache retrieval time
+            var estimatedImprovement = TimeSpan.FromMilliseconds(
+                executionTime.TotalMilliseconds * 0.95); // Assume 95% improvement
+
+            return new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.EnableCaching,
+                ConfidenceScore = confidence,
+                EstimatedImprovement = estimatedImprovement,
+                Reasoning = $"Caching recommended: HitRate={hitRate:P2}, ExecutionTime={executionTime.TotalMilliseconds:F2}ms",
+                Priority = hitRate > 0.5 ? OptimizationPriority.High : OptimizationPriority.Medium,
+                Risk = RiskLevel.Low,
+                EstimatedGainPercentage = Math.Min(0.95, hitRate * 1.5),
+                Parameters = new System.Collections.Generic.Dictionary<string, object>
+                {
+                    ["HitRate"] = hitRate,
+                    ["ExecutionTime"] = executionTime,
+                    ["CacheAttempts"] = metrics.GetAttemptCount()
+                }
+            };
         }
 
         private string GenerateCacheKey(TRequest request)
         {
             try
             {
+                var attribute = typeof(TRequest).GetCustomAttribute<IntelligentCachingAttribute>();
+                var keyPrefix = attribute?.PreferredScope switch
+                {
+                    CacheScope.Global => "global",
+                    CacheScope.User => "user",
+                    CacheScope.Session => "session",
+                    CacheScope.Request => "request",
+                    _ => "global"
+                };
+
                 // Generate deterministic cache key from request
-                var json = JsonSerializer.Serialize(request);
+                var json = JsonSerializer.Serialize(request, _options.SerializerOptions);
                 using var sha256 = SHA256.Create();
                 var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(json));
-                return $"{typeof(TRequest).Name}:{Convert.ToHexString(hashBytes)}";
+                var hash = Convert.ToHexString(hashBytes);
+
+                return $"{keyPrefix}:{typeof(TRequest).Name}:{hash[..16]}"; // Use first 16 chars
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to generate cache key for request: {RequestType}", typeof(TRequest).Name);
-                return $"{typeof(TRequest).Name}:{Guid.NewGuid()}";
+                _logger.LogWarning(ex, "Failed to generate cache key for {RequestType}", typeof(TRequest).Name);
+                return $"fallback:{typeof(TRequest).Name}:{Guid.NewGuid():N}";
             }
         }
+
+        private class CacheMetrics
+        {
+            private long _attempts = 0;
+            private long _hits = 0;
+            private long _misses = 0;
+            private long _errors = 0;
+
+            public void IncrementAttempts() => Interlocked.Increment(ref _attempts);
+            public void IncrementHits() => Interlocked.Increment(ref _hits);
+            public void IncrementMisses() => Interlocked.Increment(ref _misses);
+            public void IncrementErrors() => Interlocked.Increment(ref _errors);
+
+            public long GetAttemptCount() => Interlocked.Read(ref _attempts);
+            public long GetHitCount() => Interlocked.Read(ref _hits);
+            public long GetMissCount() => Interlocked.Read(ref _misses);
+            public long GetErrorCount() => Interlocked.Read(ref _errors);
+
+            public double GetHitRate()
+            {
+                var attempts = GetAttemptCount();
+                return attempts > 0 ? (double)GetHitCount() / attempts : 0.0;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Configuration options for AICachingOptimizationBehavior.
+    /// </summary>
+    public class AICachingOptimizationOptions
+    {
+        /// <summary>
+        /// Gets or sets whether caching optimization is enabled.
+        /// </summary>
+        public bool EnableCaching { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the minimum confidence score to apply cached optimizations.
+        /// </summary>
+        public double MinConfidenceScore { get; set; } = 0.7;
+
+        /// <summary>
+        /// Gets or sets the minimum execution time (ms) to consider caching.
+        /// </summary>
+        public double MinExecutionTimeForCaching { get; set; } = 10.0;
+
+        /// <summary>
+        /// Gets or sets the maximum cache size in bytes.
+        /// </summary>
+        public long MaxCacheSizeBytes { get; set; } = 1024 * 1024; // 1MB
+
+        /// <summary>
+        /// Gets or sets the default cache TTL.
+        /// </summary>
+        public TimeSpan DefaultCacheTtl { get; set; } = TimeSpan.FromMinutes(10);
+
+        /// <summary>
+        /// Gets or sets the minimum cache TTL for dynamic TTL calculation.
+        /// </summary>
+        public TimeSpan MinCacheTtl { get; set; } = TimeSpan.FromMinutes(1);
+
+        /// <summary>
+        /// Gets or sets the maximum cache TTL for dynamic TTL calculation.
+        /// </summary>
+        public TimeSpan MaxCacheTtl { get; set; } = TimeSpan.FromHours(1);
+
+        /// <summary>
+        /// Gets or sets the JSON serializer options for cache key generation.
+        /// </summary>
+        public JsonSerializerOptions SerializerOptions { get; set; } = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
+    }
+
+    /// <summary>
+    /// Interface for objects that can estimate their serialized size.
+    /// </summary>
+    public interface IEstimateSize
+    {
+        /// <summary>
+        /// Estimates the size of the object in bytes.
+        /// </summary>
+        long EstimateSize();
     }
 }

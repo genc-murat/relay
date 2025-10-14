@@ -473,8 +473,8 @@ namespace Relay.Core.Tests.Telemetry
         public void RecordMessageProcessed_WithFailure_RecordsFailureMetrics()
         {
             // Arrange
-            var options = Options.Create(new RelayTelemetryOptions 
-            { 
+            var options = Options.Create(new RelayTelemetryOptions
+            {
                 Component = "TestComponent",
                 EnableTracing = true
             });
@@ -483,12 +483,33 @@ namespace Relay.Core.Tests.Telemetry
 
             using var activity = provider.StartActivity("TestOperation", typeof(string));
             var duration = TimeSpan.FromMilliseconds(80);
-            var exception = new InvalidOperationException("Processing exception");
+            var exception = new InvalidOperationException("Test exception");
 
             // Act
             provider.RecordMessageProcessed(typeof(TestMessage), duration, false, exception);
 
-            // Just ensure the provider exists and method executes without error
+            // Assert - Method should execute without error
+            Assert.NotNull(provider.MetricsProvider);
+        }
+
+        [Fact]
+        public void RecordMessageReceived_RecordsReceivedMetrics()
+        {
+            // Arrange
+            var options = Options.Create(new RelayTelemetryOptions
+            {
+                Component = "TestComponent",
+                EnableTracing = true
+            });
+            var metricsProvider = new CustomMetricsProvider();
+            var provider = new RelayTelemetryProvider(options, null, metricsProvider);
+
+            using var activity = provider.StartActivity("TestOperation", typeof(string));
+
+            // Act
+            provider.RecordMessageReceived(typeof(TestMessage));
+
+            // Assert - Method should execute without error
             Assert.NotNull(provider.MetricsProvider);
         }
 

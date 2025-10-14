@@ -360,6 +360,25 @@ public class RelayTelemetryProvider : ITelemetryProvider
     }
 
     /// <summary>
+    /// Records message broker received metrics
+    /// </summary>
+    public void RecordMessageReceived(Type messageType)
+    {
+        var activity = Activity.Current;
+
+        // Record metrics
+        var tagList = new TagList
+        {
+            { RelayTelemetryConstants.Attributes.Component, _options.Component },
+            { RelayTelemetryConstants.Attributes.MessageType, messageType.Name }
+        };
+
+        _messagesReceivedCounter.Add(1, tagList);
+
+        _logger?.LogDebug("Message received: {MessageType}", messageType.Name);
+    }
+
+    /// <summary>
     /// Records message broker processing metrics
     /// </summary>
     public void RecordMessageProcessed(Type messageType, TimeSpan duration, bool success, Exception? exception = null)
@@ -374,13 +393,9 @@ public class RelayTelemetryProvider : ITelemetryProvider
             { RelayTelemetryConstants.Attributes.Success, success }
         };
 
-        _messagesReceivedCounter.Add(1, tagList);
+        _messagesProcessedCounter.Add(1, tagList);
 
-        if (success)
-        {
-            _messagesProcessedCounter.Add(1, tagList);
-        }
-        else
+        if (!success)
         {
             _messagesFailedCounter.Add(1, tagList);
         }

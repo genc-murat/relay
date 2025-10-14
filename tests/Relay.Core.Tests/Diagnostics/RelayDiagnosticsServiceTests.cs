@@ -740,6 +740,246 @@ public class RelayDiagnosticsServiceTests
         Assert.Contains("Failed to clear diagnostic data", response.ErrorMessage);
     }
 
+    [Fact]
+    public void GetTrace_ShouldReturnSuccess_WhenTraceFound()
+    {
+        // Arrange
+        var tracer = new RequestTracer();
+        var trace = tracer.StartTrace(new TestRequest());
+        var traceId = trace.RequestId;
+        tracer.CompleteTrace();
+
+        var diagnostics = new DefaultRelayDiagnostics(tracer, new DiagnosticsOptions { EnableRequestTracing = true });
+        var options = Options.Create(new DiagnosticsOptions
+        {
+            EnableDiagnosticEndpoints = true,
+            EnableRequestTracing = true
+        });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        // Act
+        var response = service.GetTrace(traceId);
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+    }
+
+    [Fact]
+    public void GetTraces_ShouldFilterBySince_WhenSinceSpecified()
+    {
+        // Arrange
+        var tracer = new RequestTracer();
+        var oldTraceId = Guid.NewGuid();
+        var newTraceId = Guid.NewGuid();
+
+        // Create an old trace
+        tracer.StartTrace(new TestRequest(), oldTraceId.ToString());
+        tracer.CompleteTrace();
+
+        var since = DateTimeOffset.UtcNow;
+
+        // Create a new trace
+        tracer.StartTrace(new TestRequest(), newTraceId.ToString());
+        tracer.CompleteTrace();
+
+        var diagnostics = new DefaultRelayDiagnostics(tracer, new DiagnosticsOptions { EnableRequestTracing = true });
+        var options = Options.Create(new DiagnosticsOptions
+        {
+            EnableDiagnosticEndpoints = true,
+            EnableRequestTracing = true
+        });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        // Act
+        var response = service.GetTraces(since);
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        // Should only return traces after 'since'
+    }
+
+    [Fact]
+    public void GetTrace_ShouldReturnTextFormat_WhenFormatSpecified()
+    {
+        // Arrange
+        var tracer = new RequestTracer();
+        var trace = tracer.StartTrace(new TestRequest());
+        var traceId = trace.RequestId;
+        tracer.CompleteTrace();
+
+        var diagnostics = new DefaultRelayDiagnostics(tracer, new DiagnosticsOptions { EnableRequestTracing = true });
+        var options = Options.Create(new DiagnosticsOptions
+        {
+            EnableDiagnosticEndpoints = true,
+            EnableRequestTracing = true
+        });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        // Act
+        var response = service.GetTrace(traceId, "text");
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        var data = response.Data as dynamic;
+        Assert.Equal("text/plain", data.contentType);
+    }
+
+    [Fact]
+    public async Task RunBenchmark_ShouldReturnError_WhenRelayNotAvailable()
+    {
+        // Arrange
+        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions());
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var services = new ServiceCollection();
+        // Don't add IRelay to make it unavailable
+        var serviceProvider = services.BuildServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        var benchmarkRequest = new BenchmarkRequest
+        {
+            RequestType = "TestRequest",
+            Iterations = 5
+        };
+
+        // Act
+        var response = await service.RunBenchmark(benchmarkRequest);
+
+        // Assert
+        Assert.False(response.IsSuccess);
+        Assert.Equal(500, response.StatusCode);
+        Assert.Contains("IRelay service not available", response.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task RunBenchmark_ShouldReturnSuccess_WithVoidRequest()
+    {
+        // Arrange
+        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions());
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        var benchmarkRequest = new BenchmarkRequest
+        {
+            RequestType = "TestVoidRequest",
+            Iterations = 3
+        };
+
+        // Act
+        var response = await service.RunBenchmark(benchmarkRequest);
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        Assert.Equal("TestVoidRequest", response.Data.RequestType);
+        Assert.Equal(3, response.Data.Iterations);
+    }
+
+    [Fact]
+    public async Task RunBenchmark_ShouldReturnBadRequest_WhenRequestNull()
+    {
+        // Arrange
+        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions());
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        // Act
+        var response = await service.RunBenchmark(null!);
+
+        // Assert
+        Assert.Equal(400, response.StatusCode);
+        Assert.Contains("Invalid benchmark request", response.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task RunBenchmark_ShouldReturnBadRequest_WhenCreateInstanceFails()
+    {
+        // Arrange
+        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions());
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        var benchmarkRequest = new BenchmarkRequest
+        {
+            RequestType = "TestRequest",
+            RequestData = "{ invalid json }", // This should cause deserialization to fail
+            Iterations = 5
+        };
+
+        // Act
+        var response = await service.RunBenchmark(benchmarkRequest);
+
+        // Assert
+        Assert.Equal(400, response.StatusCode);
+        Assert.Contains("Failed to create instance", response.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task RunBenchmark_ShouldHandleSendAsyncExceptions()
+    {
+        // Arrange
+        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions());
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var services = new ServiceCollection();
+        services.AddSingleton<IRelay, ThrowingRelay>();
+        var serviceProvider = services.BuildServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        var benchmarkRequest = new BenchmarkRequest
+        {
+            RequestType = "TestRequest",
+            Iterations = 5
+        };
+
+        // Act
+        var response = await service.RunBenchmark(benchmarkRequest);
+
+        // Assert
+        Assert.True(response.IsSuccess); // Should succeed even with exceptions in iterations
+        Assert.NotNull(response.Data);
+        Assert.Equal(5, response.Data.Iterations);
+        // Failed iterations should be tracked
+        var metrics = response.Data.Metrics as Dictionary<string, object>;
+        Assert.True(metrics.ContainsKey("FailedIterations"));
+    }
+
+    [Fact]
+    public void GetHealth_ShouldReturnSuccess_WithWarnings()
+    {
+        // Arrange
+        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions
+        {
+            EnableRequestTracing = true,
+            EnablePerformanceMetrics = true,
+            TraceBufferSize = 100,
+            MetricsRetentionPeriod = TimeSpan.FromHours(1)
+        });
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        // Act
+        var response = service.GetHealth();
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+    }
+
     private class ThrowingRelay : IRelay
     {
         public ValueTask<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new Exception("Test exception");

@@ -32,8 +32,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Relay.MessageBroker\Relay.MessageBroker.csproj" />
-  </ItemGroup>
+   <ItemGroup>
+     <ProjectReference Include="..\..\src\Relay.MessageBroker\Relay.MessageBroker.csproj" />
+     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj" />
+   </ItemGroup>
 
 </Project>

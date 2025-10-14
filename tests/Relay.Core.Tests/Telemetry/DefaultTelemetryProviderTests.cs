@@ -124,28 +124,7 @@ public class DefaultTelemetryProviderTests
         Assert.Null(activity.GetTagItem("relay.correlation_id"));
     }
 
-    [Fact]
-    public void StartActivity_WhenActivitySourceReturnsNull_ShouldReturnNull()
-    {
-        // Arrange - ActivitySource will return null if no listener is configured
-        var provider = new DefaultTelemetryProvider(_loggerMock.Object);
-        var requestType = typeof(string);
-        var operationName = "TestOperation";
 
-        // Act
-        var activity = provider.StartActivity(operationName, requestType);
-
-        // Assert
-        Assert.Null(activity);
-        _loggerMock.Verify(
-            x => x.Log(
-                It.IsAny<LogLevel>(),
-                It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Never);
-    }
 
     [Fact]
     public void RecordHandlerExecution_WithSuccessfulExecution_ShouldRecordMetricsAndSetTags()

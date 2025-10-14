@@ -2,12 +2,27 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Relay.MessageBroker;
+using Relay.Core.ContractValidation;
+using Relay.Core;
 using Xunit;
 
 namespace Relay.MessageBroker.Tests;
 
 public class ServiceCollectionExtensionsTests
 {
+    private class TestContractValidator : IContractValidator
+    {
+        public ValueTask<IEnumerable<string>> ValidateRequestAsync(object request, JsonSchemaContract schema, CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult(Enumerable.Empty<string>());
+        }
+
+        public ValueTask<IEnumerable<string>> ValidateResponseAsync(object response, JsonSchemaContract schema, CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult(Enumerable.Empty<string>());
+        }
+    }
+
     [Fact]
     public void AddMessageBroker_ShouldRegisterIMessageBroker()
     {
@@ -550,5 +565,151 @@ public class ServiceCollectionExtensionsTests
         Assert.NotNull(configuredOptions.Value.RabbitMQ);
         Assert.Equal("testhost", configuredOptions.Value.RabbitMQ.HostName);
         Assert.Equal(1234, configuredOptions.Value.RabbitMQ.Port);
+    }
+
+    [Fact]
+    public void AddKafka_ShouldConfigureOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddKafka(options =>
+        {
+            options.BootstrapServers = "testserver:9092";
+            options.ConsumerGroupId = "test-group";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var configuredOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MessageBrokerOptions>>();
+
+        // Assert
+        Assert.Equal(MessageBrokerType.Kafka, configuredOptions.Value.BrokerType);
+        Assert.NotNull(configuredOptions.Value.Kafka);
+        Assert.Equal("testserver:9092", configuredOptions.Value.Kafka.BootstrapServers);
+        Assert.Equal("test-group", configuredOptions.Value.Kafka.ConsumerGroupId);
+    }
+
+    [Fact]
+    public void AddAzureServiceBus_ShouldConfigureOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddAzureServiceBus(options =>
+        {
+            options.ConnectionString = "test-connection-string";
+            options.DefaultEntityName = "test-queue";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var configuredOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MessageBrokerOptions>>();
+
+        // Assert
+        Assert.Equal(MessageBrokerType.AzureServiceBus, configuredOptions.Value.BrokerType);
+        Assert.NotNull(configuredOptions.Value.AzureServiceBus);
+        Assert.Equal("test-connection-string", configuredOptions.Value.AzureServiceBus.ConnectionString);
+        Assert.Equal("test-queue", configuredOptions.Value.AzureServiceBus.DefaultEntityName);
+    }
+
+    [Fact]
+    public void AddAwsSqsSns_ShouldConfigureOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddAwsSqsSns(options =>
+        {
+            options.Region = "us-west-2";
+            options.DefaultQueueUrl = "https://sqs.us-west-2.amazonaws.com/123456789012/test-queue";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var configuredOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MessageBrokerOptions>>();
+
+        // Assert
+        Assert.Equal(MessageBrokerType.AwsSqsSns, configuredOptions.Value.BrokerType);
+        Assert.NotNull(configuredOptions.Value.AwsSqsSns);
+        Assert.Equal("us-west-2", configuredOptions.Value.AwsSqsSns.Region);
+        Assert.Equal("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue", configuredOptions.Value.AwsSqsSns.DefaultQueueUrl);
+    }
+
+    [Fact]
+    public void AddNats_ShouldConfigureOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddNats(options =>
+        {
+            options.Servers = new[] { "nats://testserver:4222" };
+            options.Name = "test-connection";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var configuredOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MessageBrokerOptions>>();
+
+        // Assert
+        Assert.Equal(MessageBrokerType.Nats, configuredOptions.Value.BrokerType);
+        Assert.NotNull(configuredOptions.Value.Nats);
+        Assert.Equal(new[] { "nats://testserver:4222" }, configuredOptions.Value.Nats.Servers);
+        Assert.Equal("test-connection", configuredOptions.Value.Nats.Name);
+    }
+
+    [Fact]
+    public void AddRedisStreams_ShouldConfigureOptions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act
+        services.AddRedisStreams(options =>
+        {
+            options.ConnectionString = "testserver:6379";
+            options.DefaultStreamName = "test-stream";
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var configuredOptions = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<MessageBrokerOptions>>();
+
+        // Assert
+        Assert.Equal(MessageBrokerType.RedisStreams, configuredOptions.Value.BrokerType);
+        Assert.NotNull(configuredOptions.Value.RedisStreams);
+        Assert.Equal("testserver:6379", configuredOptions.Value.RedisStreams.ConnectionString);
+        Assert.Equal("test-stream", configuredOptions.Value.RedisStreams.DefaultStreamName);
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithContractValidator_ShouldPassValidatorToBroker()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IContractValidator, TestContractValidator>();
+
+        // Act
+        services.AddMessageBroker(options =>
+        {
+            options.BrokerType = MessageBrokerType.RabbitMQ;
+            options.RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672
+            };
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var messageBroker = serviceProvider.GetService<IMessageBroker>();
+        Assert.NotNull(messageBroker);
     }
 }

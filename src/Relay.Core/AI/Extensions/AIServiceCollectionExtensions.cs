@@ -118,59 +118,7 @@ namespace Relay.Core.AI
             this IServiceCollection services,
             AIOptimizationScenario scenario)
         {
-            return scenario switch
-            {
-                AIOptimizationScenario.HighThroughput => services.AddAIOptimization(options =>
-                {
-                    options.DefaultBatchSize = 50;
-                    options.MaxBatchSize = 200;
-                    options.EnableAutomaticOptimization = true;
-                    options.MaxAutomaticOptimizationRisk = RiskLevel.Medium;
-                    options.ModelUpdateInterval = TimeSpan.FromMinutes(15);
-                }),
-
-                AIOptimizationScenario.LowLatency => services.AddAIOptimization(options =>
-                {
-                    options.DefaultBatchSize = 5;
-                    options.MaxBatchSize = 20;
-                    options.EnableAutomaticOptimization = true;
-                    options.MaxAutomaticOptimizationRisk = RiskLevel.Low;
-                    options.ModelUpdateInterval = TimeSpan.FromMinutes(5);
-                    options.MinConfidenceScore = 0.85;
-                }),
-
-                AIOptimizationScenario.ResourceConstrained => services.AddAIOptimization(options =>
-                {
-                    options.DefaultBatchSize = 10;
-                    options.MaxBatchSize = 30;
-                    options.EnableAutomaticOptimization = false;
-                    options.ModelUpdateInterval = TimeSpan.FromHours(1);
-                    options.EnableMetricsExport = false;
-                    options.MinConfidenceScore = 0.9;
-                }),
-
-                AIOptimizationScenario.Development => services.AddAIOptimization(options =>
-                {
-                    options.LearningEnabled = true;
-                    options.EnableDecisionLogging = true;
-                    options.EnableAutomaticOptimization = false;
-                    options.ModelUpdateInterval = TimeSpan.FromMinutes(10);
-                    options.EnableMetricsExport = true;
-                }),
-
-                AIOptimizationScenario.Production => services.AddAIOptimization(options =>
-                {
-                    options.LearningEnabled = true;
-                    options.EnableAutomaticOptimization = true;
-                    options.MaxAutomaticOptimizationRisk = RiskLevel.Low;
-                    options.ModelUpdateInterval = TimeSpan.FromMinutes(30);
-                    options.EnableHealthMonitoring = true;
-                    options.EnableBottleneckDetection = true;
-                    options.MinConfidenceScore = 0.8;
-                }),
-
-                _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, "Unknown optimization scenario")
-            };
+            return services.AddAIOptimization(scenario.GetDefaultOptions());
         }
 
         /// <summary>

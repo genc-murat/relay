@@ -268,6 +268,123 @@ namespace Relay.Core.Tests.Configuration
         }
 
         [Fact]
+        public void Validate_WithNullNotificationOptions_ReturnsFailure()
+        {
+            // Arrange
+            var options = new RelayOptions
+            {
+                DefaultNotificationOptions = null!
+            };
+
+            // Act
+            var result = _validator.Validate(null, options);
+
+            // Assert
+            Assert.True(result.Failed);
+            Assert.Contains("DefaultNotificationOptions cannot be null.", result.Failures);
+        }
+
+        [Fact]
+        public void Validate_WithNullPipelineOptions_ReturnsFailure()
+        {
+            // Arrange
+            var options = new RelayOptions
+            {
+                DefaultPipelineOptions = null!
+            };
+
+            // Act
+            var result = _validator.Validate(null, options);
+
+            // Assert
+            Assert.True(result.Failed);
+            Assert.Contains("DefaultPipelineOptions cannot be null.", result.Failures);
+        }
+
+        [Fact]
+        public void Validate_WithNullEndpointOptions_ReturnsFailure()
+        {
+            // Arrange
+            var options = new RelayOptions
+            {
+                DefaultEndpointOptions = null!
+            };
+
+            // Act
+            var result = _validator.Validate(null, options);
+
+            // Assert
+            Assert.True(result.Failed);
+            Assert.Contains("DefaultEndpointOptions cannot be null.", result.Failures);
+        }
+
+        [Fact]
+        public void Validate_WithEmptyNotificationOverrideKey_ReturnsFailure()
+        {
+            // Arrange
+            var options = new RelayOptions();
+            options.NotificationOverrides[""] = new NotificationOptions();
+
+            // Act
+            var result = _validator.Validate(null, options);
+
+            // Assert
+            Assert.True(result.Failed);
+            Assert.Contains("Notification override keys cannot be null or empty.", result.Failures);
+        }
+
+        [Fact]
+        public void Validate_WithInvalidNotificationOverride_ReturnsFailure()
+        {
+            // Arrange
+            var options = new RelayOptions();
+            options.NotificationOverrides["TestNotification.Handle"] = new NotificationOptions
+            {
+                MaxDegreeOfParallelism = 0
+            };
+
+            // Act
+            var result = _validator.Validate(null, options);
+
+            // Assert
+            Assert.True(result.Failed);
+            Assert.Contains("NotificationOverrides[TestNotification.Handle].MaxDegreeOfParallelism must be greater than 0.", result.Failures);
+        }
+
+        [Fact]
+        public void Validate_WithEmptyPipelineOverrideKey_ReturnsFailure()
+        {
+            // Arrange
+            var options = new RelayOptions();
+            options.PipelineOverrides[""] = new PipelineOptions();
+
+            // Act
+            var result = _validator.Validate(null, options);
+
+            // Assert
+            Assert.True(result.Failed);
+            Assert.Contains("Pipeline override keys cannot be null or empty.", result.Failures);
+        }
+
+        [Fact]
+        public void Validate_WithInvalidPipelineOverride_ReturnsFailure()
+        {
+            // Arrange
+            var options = new RelayOptions();
+            options.PipelineOverrides["TestPipeline.Execute"] = new PipelineOptions
+            {
+                DefaultScope = (PipelineScope)999
+            };
+
+            // Act
+            var result = _validator.Validate(null, options);
+
+            // Assert
+            Assert.True(result.Failed);
+            Assert.Contains("PipelineOverrides[TestPipeline.Execute].DefaultScope has an invalid value.", result.Failures);
+        }
+
+        [Fact]
         public void Validate_WithMultipleFailures_ReturnsAllFailures()
         {
             // Arrange

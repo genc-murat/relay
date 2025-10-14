@@ -863,80 +863,6 @@ public class WorkflowEngineTests
     }
 
     [Fact]
-    public async Task EvaluateCondition_WithContainsOperator_ShouldEvaluateCorrectly()
-    {
-        // Arrange
-        var definition = new WorkflowDefinition
-        {
-            Id = "test-workflow",
-            Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
-                    Name = "ConditionalStep",
-                    Type = StepType.Conditional,
-                    Condition = "Message contains error"
-                }
-            }
-        };
-
-        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(definition);
-
-        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-
-        // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
-
-        // Wait for background execution
-        await Task.Delay(1000);
-
-        // Assert
-        _mockStateStore.Verify(x => x.SaveExecutionAsync(
-            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
-            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-    }
-
-    [Fact]
-    public async Task EvaluateCondition_WithStartsWithOperator_ShouldEvaluateCorrectly()
-    {
-        // Arrange
-        var definition = new WorkflowDefinition
-        {
-            Id = "test-workflow",
-            Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
-                    Name = "ConditionalStep",
-                    Type = StepType.Conditional,
-                    Condition = "Name startswith Murat"
-                }
-            }
-        };
-
-        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(definition);
-
-        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-
-        // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Name = "Murat Doe" });
-
-        // Wait for background execution
-        await Task.Delay(300);
-
-        // Assert
-        _mockStateStore.Verify(x => x.SaveExecutionAsync(
-            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
-            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-    }
-
-    [Fact]
     public async Task EvaluateCondition_WithEndsWithOperator_ShouldEvaluateCorrectly()
     {
         // Arrange
@@ -1503,7 +1429,7 @@ public class WorkflowEngineTests
                 {
                     Name = "Step1",
                     Type = StepType.Request,
-                    RequestType = "NonExistentRequestType"
+                    RequestType = "NonExistent.Type.That.Does.Not.Exist"
                 }
             }
         };
@@ -2280,6 +2206,92 @@ public class WorkflowEngineTests
             It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
             It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
+
+    [Fact]
+    public async Task EvaluateCondition_WithContainsOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Message contains error"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Message = "An error occurred" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateCondition_WithStartsWithOperator_ShouldEvaluateCorrectly()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Name startswith John"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Name = "John Doe" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Test request types and helper classes for workflow execution
     public class TestWorkflowRequest : IRequest<string>

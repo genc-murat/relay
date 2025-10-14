@@ -447,14 +447,16 @@ public class RelayDiagnosticsService
                 {
                     await relay.SendAsync((IRequest)request, cancellationToken);
                 }
+
+                // Only add to results if the iteration succeeded
+                var iterationEnd = DateTimeOffset.UtcNow;
+                results.Add(iterationEnd - iterationStart);
             }
             catch
             {
                 // Continue even if some iterations fail
+                // Failed iterations are not added to results
             }
-
-            var iterationEnd = DateTimeOffset.UtcNow;
-            results.Add(iterationEnd - iterationStart);
         }
 
         // Get final memory
@@ -463,13 +465,13 @@ public class RelayDiagnosticsService
 
         // Calculate statistics
         var totalTime = results.Aggregate(TimeSpan.Zero, (sum, time) => sum + time);
-        var minTime = results.Min();
-        var maxTime = results.Max();
+        var minTime = results.Count > 0 ? results.Min() : TimeSpan.Zero;
+        var maxTime = results.Count > 0 ? results.Max() : TimeSpan.Zero;
 
         // Calculate standard deviation
-        var avgTicks = totalTime.Ticks / iterations;
-        var variance = results.Select(t => Math.Pow(t.Ticks - avgTicks, 2)).Average();
-        var stdDev = TimeSpan.FromTicks((long)Math.Sqrt(variance));
+        var avgTicks = results.Count > 0 ? totalTime.Ticks / results.Count : 0;
+        var variance = results.Count > 0 ? results.Select(t => Math.Pow(t.Ticks - avgTicks, 2)).Average() : 0;
+        var stdDev = results.Count > 0 ? TimeSpan.FromTicks((long)Math.Sqrt(variance)) : TimeSpan.Zero;
 
         // Try to get handler type from metrics
         var metrics = _diagnostics.GetHandlerMetrics()

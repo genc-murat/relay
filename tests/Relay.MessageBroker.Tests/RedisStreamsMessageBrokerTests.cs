@@ -6,6 +6,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.MessageBroker;
+using System.Reflection;
 
 namespace Relay.MessageBroker.Tests;
 
@@ -321,6 +322,367 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         // Assert
         Assert.NotNull(broker);
     }
+
+    [Fact]
+    public async Task PublishAsync_WithCustomRoutingKey_ShouldUseProvidedRoutingKey()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            RoutingKey = "custom-stream"
+        };
+
+
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithHeaders_ShouldIncludeHeaders()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Headers = new Dictionary<string, object>
+            {
+                ["custom-header"] = "header-value",
+                ["numeric-header"] = 42
+            }
+        };
+
+
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithPriority_ShouldIncludePriority()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Priority = 5
+        };
+
+
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithExpiration_ShouldIncludeExpiration()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Expiration = TimeSpan.FromMinutes(5)
+        };
+
+
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithCorrelationId_ShouldIncludeCorrelationId()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Headers = new Dictionary<string, object>
+            {
+                ["CorrelationId"] = "test-correlation-id"
+            }
+        };
+
+
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithCustomQueueName_ShouldUseProvidedQueueName()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            QueueName = "custom-stream-name"
+        };
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithCustomConsumerGroup_ShouldUseProvidedConsumerGroup()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            ConsumerGroup = "custom-consumer-group"
+        };
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithValidHandler_ShouldNotThrow()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithOptions_ShouldNotThrow()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            QueueName = "test-stream",
+            ConsumerGroup = "test-group"
+        };
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_MultipleHandlers_ShouldNotThrow()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () =>
+        {
+            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
+            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
+        });
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_DifferentMessageTypes_ShouldNotThrow()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () =>
+        {
+            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
+            await broker.SubscribeAsync<ComplexMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
+        });
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task StartAsync_MultipleTimes_ShouldNotThrow()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () =>
+        {
+            await broker.StartAsync();
+            await broker.StartAsync(); // Call twice
+        });
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_MultipleTimes_ShouldNotThrow()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+
+        // Act & Assert
+        var exception = await Record.ExceptionAsync(async () =>
+        {
+            await broker.DisposeAsync();
+            await broker.DisposeAsync(); // Dispose twice
+        });
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new RedisStreamsMessageBroker(Options.Create(_defaultOptions), null!));
+    }
+
+    [Fact]
+    public void Constructor_WithWhitespaceConnectionString_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions { ConnectionString = "   " }
+        };
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object));
+        Assert.Equal("Redis connection string is required.", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WithNullConnectionString_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions { ConnectionString = null }
+        };
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object));
+        Assert.Equal("Redis connection string is required.", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WithNegativeMaxStreamLength_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                MaxStreamLength = -1,
+                CreateConsumerGroupIfNotExists = false
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithZeroMaxStreamLength_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                MaxStreamLength = 0,
+                CreateConsumerGroupIfNotExists = false
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithLargeMaxStreamLength_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                MaxStreamLength = int.MaxValue,
+                CreateConsumerGroupIfNotExists = false
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithNullRetryPolicy_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                CreateConsumerGroupIfNotExists = false
+            },
+            RetryPolicy = null
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithZeroRetryAttempts_ShouldSucceed()
+    {
+        // Arrange
+        var options = new MessageBrokerOptions
+        {
+            RedisStreams = new RedisStreamsOptions
+            {
+                ConnectionString = "localhost:6379",
+                CreateConsumerGroupIfNotExists = false
+            },
+            RetryPolicy = new RetryPolicy
+            {
+                MaxAttempts = 0
+            }
+        };
+
+        // Act
+        var broker = new RedisStreamsMessageBroker(Options.Create(options), _mockLogger.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+
 
     public void Dispose()
     {

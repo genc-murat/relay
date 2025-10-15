@@ -13,7 +13,7 @@ namespace Relay.Core.Validation.Rules
     public class EmailValidationRule : IValidationRule<string>
     {
         private static readonly Regex EmailRegex = new Regex(
-            @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+            @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         /// <inheritdoc />
@@ -24,6 +24,12 @@ namespace Relay.Core.Validation.Rules
             if (string.IsNullOrWhiteSpace(request))
             {
                 return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
+            }
+
+            // Check for consecutive dots
+            if (request.Contains(".."))
+            {
+                return new ValueTask<IEnumerable<string>>(new[] { "Invalid email address format." });
             }
 
             if (!EmailRegex.IsMatch(request))

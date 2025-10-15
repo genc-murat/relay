@@ -21,7 +21,7 @@ namespace Relay.Core.Validation.Rules
         /// </summary>
         /// <param name="pattern">The regex pattern for phone number validation. Defaults to a basic international pattern.</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public PhoneNumberValidationRule(string pattern = @"^\+?[\d\s\-\(\)]{7,15}$", string errorMessage = null)
+        public PhoneNumberValidationRule(string pattern = @"^\+?(?!.*  )(?!.*\(\))[\d\s\-\(\)\.]{7,15}$", string errorMessage = null)
         {
             _phoneRegex = new Regex(pattern, RegexOptions.Compiled);
             _errorMessage = errorMessage ?? "Invalid phone number format.";
@@ -37,7 +37,9 @@ namespace Relay.Core.Validation.Rules
                 return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
             }
 
-            if (!_phoneRegex.IsMatch(request))
+            var trimmed = request.Trim();
+
+            if (!_phoneRegex.IsMatch(trimmed))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
             }

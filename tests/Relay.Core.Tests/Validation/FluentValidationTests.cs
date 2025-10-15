@@ -1,12 +1,29 @@
 using System.Linq;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Builder;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
 namespace Relay.Core.Tests.Validation;
+
+/// <summary>
+/// Simple test logger for tests
+/// </summary>
+internal class TestLogger<T> : ILogger<T>
+{
+    public IDisposable BeginScope<TState>(TState state) => NullScope.Instance;
+    public bool IsEnabled(LogLevel logLevel) => false;
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
+
+    private class NullScope : IDisposable
+    {
+        public static NullScope Instance { get; } = new();
+        public void Dispose() { }
+    }
+}
 
 public class FluentValidationTests
 {
@@ -364,5 +381,65 @@ public class FluentValidationTests
             AddErrorIf(request.Age < 18, "Must be at least 18 years old", errors);
             return ValueTask.CompletedTask;
         }
+    }
+
+    [Fact]
+    public async Task ValidationRuleBuilder_ShouldSupportBusinessValidation()
+    {
+        // Arrange
+        var businessRulesEngine = new DefaultBusinessRulesEngine(new TestLogger<DefaultBusinessRulesEngine>());
+        var builder = new ValidationRuleBuilder<BusinessValidationRequest>();
+        builder.Business(businessRulesEngine);
+
+        var validator = new DefaultValidator<BusinessValidationRequest>(builder.Build());
+        var request = new BusinessValidationRequest
+        {
+            Amount = 1500m,
+            PaymentMethod = "credit_card",
+            StartDate = DateTime.UtcNow.AddDays(1),
+            EndDate = DateTime.UtcNow.AddDays(30),
+            IsRecurring = false,
+            UserType = UserType.Regular,
+            CountryCode = "US",
+            BusinessCategory = "retail",
+            UserTransactionCount = 5
+        };
+
+        // Act
+        var errors = await validator.ValidateAsync(request);
+
+        // Assert - Should pass business validation
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task ValidationRuleBuilder_BusinessValidation_ShouldFail_WhenBusinessRulesFail()
+    {
+        // Arrange
+        var businessRulesEngine = new DefaultBusinessRulesEngine(new TestLogger<DefaultBusinessRulesEngine>());
+        var builder = new ValidationRuleBuilder<BusinessValidationRequest>();
+        builder.Business(businessRulesEngine);
+
+        var validator = new DefaultValidator<BusinessValidationRequest>(builder.Build());
+        var request = new BusinessValidationRequest
+        {
+            Amount = 150000m, // Too high
+            PaymentMethod = "credit_card",
+            StartDate = DateTime.UtcNow.AddDays(-35), // Too old
+            EndDate = DateTime.UtcNow.AddDays(30),
+            IsRecurring = false,
+            UserType = UserType.Regular,
+            CountryCode = "US",
+            BusinessCategory = "retail",
+            UserTransactionCount = 5
+        };
+
+        // Act
+        var errors = await validator.ValidateAsync(request);
+
+        // Assert - Should have business validation errors
+        Assert.NotEmpty(errors);
+        Assert.Contains(errors, e => e.Contains("Transaction amount exceeds maximum limit"));
+        Assert.Contains(errors, e => e.Contains("start date cannot be more than"));
     }
 }

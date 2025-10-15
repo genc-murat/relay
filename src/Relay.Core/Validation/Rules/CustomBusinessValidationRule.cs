@@ -181,7 +181,7 @@ public class DefaultBusinessRulesEngine : IBusinessRulesEngine
         }
 
         // Business rule 5: Time-based restrictions
-        if (request.StartDate < DateTime.UtcNow.AddDays(-30))
+        if (request.StartDate.Date < DateTime.UtcNow.Date.AddDays(-30))
         {
             errors.Add("Transaction start date cannot be more than 30 days in the past.");
         }

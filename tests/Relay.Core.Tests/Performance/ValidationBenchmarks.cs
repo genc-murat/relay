@@ -4,8 +4,25 @@ using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using Relay.Core.Validation.Rules;
+using Microsoft.Extensions.Logging;
 
 namespace Relay.Core.Tests.Performance;
+
+/// <summary>
+/// Simple test logger for benchmarks
+/// </summary>
+internal class TestLogger<T> : ILogger<T>
+{
+    public IDisposable BeginScope<TState>(TState state) => NullScope.Instance;
+    public bool IsEnabled(LogLevel logLevel) => false;
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
+
+    private class NullScope : IDisposable
+    {
+        public static NullScope Instance { get; } = new();
+        public void Dispose() { }
+    }
+}
 
 /// <summary>
 /// Benchmarks for validation rule performance
@@ -86,6 +103,33 @@ public class ValidationBenchmarks
     private readonly ZeroValidationRule<int> _zeroRule = new();
     private readonly EnumValidationRule<TestEnum> _enumRule = new();
     private readonly PostalCodeValidationRule _postalCodeRule = new();
+
+    // Business validation
+    private readonly DefaultBusinessRulesEngine _businessRulesEngine = new(new TestLogger<DefaultBusinessRulesEngine>());
+    private readonly BusinessValidationRequest _validBusinessRequest = new()
+    {
+        Amount = 1500m,
+        PaymentMethod = "credit_card",
+        StartDate = DateTime.UtcNow.AddDays(1),
+        EndDate = DateTime.UtcNow.AddDays(30),
+        IsRecurring = false,
+        UserType = UserType.Regular,
+        CountryCode = "US",
+        BusinessCategory = "retail",
+        UserTransactionCount = 5
+    };
+    private readonly BusinessValidationRequest _invalidBusinessRequest = new()
+    {
+        Amount = 15000m, // Too high for regular user
+        // Missing PaymentMethod
+        StartDate = DateTime.UtcNow.AddDays(-10), // Too old
+        EndDate = DateTime.UtcNow.AddDays(30),
+        IsRecurring = false,
+        UserType = UserType.Regular,
+        CountryCode = "US",
+        BusinessCategory = "retail",
+        UserTransactionCount = 5
+    };
 
     // Test data
     private const string ValidEmail = "user@example.com";
@@ -1253,5 +1297,32 @@ public class ValidationBenchmarks
         await _zeroRule.ValidateAsync(complexObject.Zero);
         await _enumRule.ValidateAsync(complexObject.Enum);
         await _postalCodeRule.ValidateAsync(complexObject.PostalCode);
+    }
+
+    // Business Validation Benchmarks
+    [Benchmark]
+    public async Task BusinessValidation_Valid()
+    {
+        await _businessRulesEngine.ValidateBusinessRulesAsync(_validBusinessRequest);
+    }
+
+    [Benchmark]
+    public async Task BusinessValidation_Invalid()
+    {
+        await _businessRulesEngine.ValidateBusinessRulesAsync(_invalidBusinessRequest);
+    }
+
+    [Benchmark]
+    public async Task BusinessValidation_CustomRule_Valid()
+    {
+        var rule = new CustomBusinessValidationRule(_businessRulesEngine);
+        await rule.ValidateAsync(_validBusinessRequest);
+    }
+
+    [Benchmark]
+    public async Task BusinessValidation_CustomRule_Invalid()
+    {
+        var rule = new CustomBusinessValidationRule(_businessRulesEngine);
+        await rule.ValidateAsync(_invalidBusinessRequest);
     }
 }

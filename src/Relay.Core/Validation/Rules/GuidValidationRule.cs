@@ -27,7 +27,7 @@ namespace Relay.Core.Validation.Rules
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (string.IsNullOrWhiteSpace(request))
+            if (request == null)
             {
                 return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
             }

@@ -33,7 +33,8 @@ namespace Relay.Core.Validation.Rules
             }
 
             if (!Uri.TryCreate(request, UriKind.Absolute, out var uriResult) ||
-                (uriResult.Scheme != Uri.UriSchemeHttp && uriResult.Scheme != Uri.UriSchemeHttps))
+                (uriResult.Scheme != Uri.UriSchemeHttp && uriResult.Scheme != Uri.UriSchemeHttps) ||
+                request.Contains('<') || request.Contains('>'))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
             }

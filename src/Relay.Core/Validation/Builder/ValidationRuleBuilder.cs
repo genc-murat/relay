@@ -62,6 +62,26 @@ public class ValidationRuleBuilder<TRequest>
     }
 
     /// <summary>
+    /// Adds business validation rules using the business rules engine.
+    /// Only available when TRequest is BusinessValidationRequest.
+    /// </summary>
+    public ValidationRuleBuilder<TRequest> Business(IBusinessRulesEngine businessRulesEngine)
+    {
+        if (typeof(TRequest) != typeof(BusinessValidationRequest))
+        {
+            throw new InvalidOperationException("Business validation is only available for BusinessValidationRequest types.");
+        }
+
+        _rules.Add(new CustomValidationRule<TRequest>(async (request, ct) =>
+        {
+            var businessRequest = (BusinessValidationRequest)(object)request!;
+            return await businessRulesEngine.ValidateBusinessRulesAsync(businessRequest, ct);
+        }));
+
+        return this;
+    }
+
+    /// <summary>
     /// Builds the validation rules.
     /// </summary>
     public IEnumerable<IValidationRuleConfiguration<TRequest>> Build()

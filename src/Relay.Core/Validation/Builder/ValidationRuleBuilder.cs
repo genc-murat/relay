@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core.Validation.Interfaces;
 using Relay.Core.Validation.Rules;
 
 namespace Relay.Core.Validation.Builder;
@@ -22,6 +25,39 @@ public class ValidationRuleBuilder<TRequest>
         var propertyFunc = propertyExpression.Compile();
 
         return new PropertyRuleBuilder<TRequest, TProperty>(propertyName, propertyFunc, _rules);
+    }
+
+    /// <summary>
+    /// Adds a custom validation rule.
+    /// </summary>
+    public ValidationRuleBuilder<TRequest> Custom(Func<TRequest, CancellationToken, ValueTask<IEnumerable<string>>> validationFunc)
+    {
+        _rules.Add(new CustomValidationRule<TRequest>(validationFunc));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a registered custom validation rule by name.
+    /// </summary>
+    public ValidationRuleBuilder<TRequest> Custom(string ruleName, CustomValidationRuleRegistry registry)
+    {
+        var ruleFunc = registry.GetRule(ruleName);
+        if (ruleFunc == null)
+        {
+            throw new ArgumentException($"Custom validation rule '{ruleName}' is not registered", nameof(ruleName));
+        }
+
+        _rules.Add(new CustomValidationRule<TRequest>((request, ct) => ruleFunc(request, ct)));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a custom validation rule instance.
+    /// </summary>
+    public ValidationRuleBuilder<TRequest> Custom(IValidationRuleConfiguration<TRequest> customRule)
+    {
+        _rules.Add(customRule);
+        return this;
     }
 
     /// <summary>

@@ -58,6 +58,9 @@ public class RelayBenchmarkRunner
         Console.WriteLine("\n3. Running Throughput Benchmarks...");
         BenchmarkDotNet.Running.BenchmarkRunner.Run<RelayThroughputBenchmarks>(config);
 
+        Console.WriteLine("\n4. Running Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<ValidationBenchmarks>(config);
+
         await Task.CompletedTask;
     }
 
@@ -75,6 +78,9 @@ public class RelayBenchmarkRunner
                 break;
             case "throughput":
                 BenchmarkDotNet.Running.BenchmarkRunner.Run<RelayThroughputBenchmarks>(config);
+                break;
+            case "validation":
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<ValidationBenchmarks>(config);
                 break;
             default:
                 Console.WriteLine($"Unknown benchmark: {benchmarkName}");
@@ -106,6 +112,7 @@ public class RelayBenchmarkRunner
         Console.WriteLine("  performance - Run general performance benchmarks");
         Console.WriteLine("  allocation  - Run memory allocation benchmarks");
         Console.WriteLine("  throughput  - Run throughput benchmarks");
+        Console.WriteLine("  validation  - Run validation rule benchmarks");
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine("  --help      - Show this help message");

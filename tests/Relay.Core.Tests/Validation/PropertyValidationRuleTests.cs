@@ -249,6 +249,89 @@ namespace Relay.Core.Tests.Validation
             Assert.Contains("Predicate failed", exception.Message);
         }
 
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Concurrent_Requests()
+        {
+            // Arrange
+            var rule = new PropertyValidationRule<TestRequest, string>(
+                "Name",
+                r => r.Name,
+                s => !string.IsNullOrEmpty(s),
+                "Name is required");
+
+            var requests = new[]
+            {
+                new TestRequest { Name = "Valid1" },
+                new TestRequest { Name = "" },
+                new TestRequest { Name = "Valid2" },
+                new TestRequest { Name = null }
+            };
+
+            // Act
+            var tasks = requests.Select(r => rule.ValidateAsync(r)).ToArray();
+            var results = await Task.WhenAll(tasks.Select(t => t.AsTask()));
+
+            // Assert
+            Assert.Empty(results[0]); // Valid1
+            Assert.Single(results[1]); // Empty string
+            Assert.Empty(results[2]); // Valid2
+            Assert.Single(results[3]); // Null
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Large_Number_Of_Requests()
+        {
+            // Arrange
+            var rule = new PropertyValidationRule<TestRequest, string>(
+                "Name",
+                r => r.Name,
+                s => !string.IsNullOrEmpty(s),
+                "Name is required");
+
+            var requests = Enumerable.Range(0, 1000)
+                .Select(i => new TestRequest { Name = i % 2 == 0 ? $"Valid{i}" : "" })
+                .ToList();
+
+            // Act
+            var tasks = requests.Select(r => rule.ValidateAsync(r)).ToArray();
+            var results = await Task.WhenAll(tasks.Select(t => t.AsTask()));
+
+            // Assert
+            for (int i = 0; i < results.Length; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    Assert.Empty(results[i]); // Even indices are valid
+                }
+                else
+                {
+                    Assert.Single(results[i]); // Odd indices are invalid
+                }
+            }
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Handle_CancellationToken_In_Concurrent_Scenario()
+        {
+            // Arrange
+            var rule = new PropertyValidationRule<TestRequest, string>(
+                "Name",
+                r => r.Name,
+                s => !string.IsNullOrEmpty(s),
+                "Name is required");
+
+            var cts = new CancellationTokenSource();
+            var request = new TestRequest { Name = "Valid" };
+
+            // Act
+            var task = rule.ValidateAsync(request, cts.Token);
+            cts.Cancel();
+
+            // Assert - Should complete successfully since validation is fast
+            var errors = await task;
+            Assert.Empty(errors);
+        }
+
         private class TestRequest
         {
             public string Name { get; set; } = "";

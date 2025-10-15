@@ -27,6 +27,8 @@ namespace Relay.Core.Validation.Rules
         /// <inheritdoc />
         public ValueTask<IEnumerable<string>> ValidateAsync(TRequest request, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var value = GetPropertyValue(request);
 
             if (string.IsNullOrWhiteSpace(value))

@@ -766,13 +766,7 @@ namespace Relay.CLI.Commands
         public string[] Recommendations { get; set; } = Array.Empty<string>();
     }
 
-    public class PredictedBottleneck
-    {
-        public string Component { get; set; } = "";
-        public string Description { get; set; } = "";
-        public double Probability { get; set; }
-        public string Impact { get; set; } = "";
-    }
+
 
     public class AILearningResults
     {
@@ -798,10 +792,5 @@ namespace Relay.CLI.Commands
         public PredictionResult[] Predictions { get; set; } = Array.Empty<PredictionResult>();
     }
 
-    public class PredictionResult
-    {
-        public string Metric { get; set; } = "";
-        public string PredictedValue { get; set; } = "";
-        public double Confidence { get; set; }
-    }
+
 }

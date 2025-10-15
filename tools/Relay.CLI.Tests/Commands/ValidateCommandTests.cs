@@ -1,4 +1,5 @@
 using Relay.CLI.Commands;
+using System.CommandLine;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -745,6 +746,113 @@ public record TestRequest : IRequest<string>;";
 
         // Assert
         isInfo.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ValidateCommand_Create_ShouldReturnCommand()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+
+        // Assert
+        command.Should().NotBeNull();
+        command.Should().BeOfType<Command>();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldHaveCorrectName()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+
+        // Assert
+        command.Name.Should().Be("validate");
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldHaveDescription()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+
+        // Assert
+        command.Description.Should().Be("Validate project structure and configuration");
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldHavePathOption()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+        var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
+
+        // Assert
+        pathOption.Should().NotBeNull();
+        pathOption!.Name.Should().Be("path");
+        pathOption.Description.Should().Be("Project path to validate");
+        pathOption.Should().BeOfType<Option<string>>();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldHaveStrictOption()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "strict");
+
+        // Assert
+        option.Should().NotBeNull();
+        option!.Name.Should().Be("strict");
+        option.Description.Should().Be("Use strict validation rules");
+        option.Should().BeOfType<Option<bool>>();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldHaveOutputOption()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "output");
+
+        // Assert
+        option.Should().NotBeNull();
+        option!.Name.Should().Be("output");
+        option.Description.Should().Be("Output validation report to file");
+        option.Should().BeOfType<Option<string?>>();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldHaveFormatOption()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "format");
+
+        // Assert
+        option.Should().NotBeNull();
+        option!.Name.Should().Be("format");
+        option.Description.Should().Be("Output format (console, json, markdown)");
+        option.Should().BeOfType<Option<string>>();
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldHaveFourOptions()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+
+        // Assert
+        command.Options.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public void ValidateCommand_ShouldHaveHandler()
+    {
+        // Arrange & Act
+        var command = ValidateCommand.Create();
+
+        // Assert
+        command.Handler.Should().NotBeNull();
     }
 
     public void Dispose()

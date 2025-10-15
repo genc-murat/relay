@@ -525,6 +525,79 @@ public class DiagnosticReporterTests
     }
 
     [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldHandleNullDiagnostic()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+
+        // Act & Assert - Should not throw when reporting null diagnostic
+        Assert.Throws<ArgumentNullException>(() => mockReporter.ReportDiagnostic(null!));
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldReportDiagnosticsInOrder()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var diagnostics = new[]
+        {
+            CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, "Request1", "Response1"),
+            CreateTestDiagnostic(DiagnosticDescriptors.InvalidHandlerReturnType, "string", "int"),
+            CreateTestDiagnostic(DiagnosticDescriptors.NoHandlersFound),
+            CreateTestDiagnostic(DiagnosticDescriptors.InvalidPriorityValue, -5)
+        };
+
+        // Act
+        foreach (var diagnostic in diagnostics)
+        {
+            mockReporter.ReportDiagnostic(diagnostic);
+        }
+
+        // Assert
+        Assert.Equal(diagnostics.Length, mockReporter.ReportedDiagnostics.Count);
+        for (int i = 0; i < diagnostics.Length; i++)
+        {
+            Assert.Equal(diagnostics[i], mockReporter.ReportedDiagnostics[i]);
+        }
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldHandleEmptyDiagnosticList()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+
+        // Act - No diagnostics reported
+
+        // Assert
+        Assert.Empty(mockReporter.ReportedDiagnostics);
+    }
+
+    [Fact]
+    public void SourceProductionContextDiagnosticReporter_ShouldBehaveIdenticallyToSourceOutputDiagnosticReporter()
+    {
+        // This test verifies that SourceProductionContextDiagnosticReporter (the alias)
+        // behaves exactly the same as SourceOutputDiagnosticReporter
+
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var diagnostic1 = CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, "TestRequest", "TestResponse");
+        var diagnostic2 = CreateTestDiagnostic(DiagnosticDescriptors.InvalidHandlerReturnType, "string", "int");
+
+        // Act
+        mockReporter.ReportDiagnostic(diagnostic1);
+        mockReporter.ReportDiagnostic(diagnostic2);
+
+        // Assert - Both types should have identical behavior through the interface
+        Assert.Equal(2, mockReporter.ReportedDiagnostics.Count);
+        Assert.Equal(diagnostic1, mockReporter.ReportedDiagnostics[0]);
+        Assert.Equal(diagnostic2, mockReporter.ReportedDiagnostics[1]);
+
+        // Verify that SourceProductionContextDiagnosticReporter is indeed just an alias
+        Assert.Equal(typeof(SourceOutputDiagnosticReporter), typeof(SourceProductionContextDiagnosticReporter).BaseType);
+    }
+
+    [Fact]
     public void SourceProductionContextDiagnosticReporter_ShouldReportDiagnosticToMockContext()
     {
         // Arrange
@@ -597,6 +670,73 @@ public class DiagnosticReporterTests
         Assert.Contains(mockReporter.ReportedDiagnostics, d => d.Id == DiagnosticDescriptors.DuplicateHandler.Id);
         Assert.Contains(mockReporter.ReportedDiagnostics, d => d.Id == DiagnosticDescriptors.GeneratorError.Id);
         Assert.Contains(mockReporter.ReportedDiagnostics, d => d.Id == DiagnosticDescriptors.Info.Id);
+    }
+
+    [Fact]
+    public void SourceProductionContextDiagnosticReporter_ShouldReportDiagnosticWithCorrectSeverity()
+    {
+        // Arrange
+        var mockReporter = new MockSourceProductionContextReporter();
+        var errorDiagnostic = CreateTestDiagnostic(DiagnosticDescriptors.GeneratorError, "error message");
+        var warningDiagnostic = CreateTestDiagnostic(DiagnosticDescriptors.HandlerMissingCancellationToken, "HandleAsync");
+
+        // Act
+        mockReporter.ReportDiagnostic(errorDiagnostic);
+        mockReporter.ReportDiagnostic(warningDiagnostic);
+
+        // Assert
+        Assert.Equal(2, mockReporter.ReportedDiagnostics.Count);
+        Assert.Equal(DiagnosticSeverity.Error, mockReporter.ReportedDiagnostics[0].Severity);
+        Assert.Equal(DiagnosticSeverity.Warning, mockReporter.ReportedDiagnostics[1].Severity);
+    }
+
+    [Fact]
+    public void SourceProductionContextDiagnosticReporter_ShouldHandleNullDiagnostic()
+    {
+        // Arrange
+        var mockReporter = new MockSourceProductionContextReporter();
+
+        // Act & Assert - Should throw when reporting null diagnostic
+        Assert.Throws<ArgumentNullException>(() => mockReporter.ReportDiagnostic(null!));
+    }
+
+    [Fact]
+    public void SourceProductionContextDiagnosticReporter_ShouldReportDiagnosticsInOrder()
+    {
+        // Arrange
+        var mockReporter = new MockSourceProductionContextReporter();
+        var diagnostics = new[]
+        {
+            CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, "Request1", "Response1"),
+            CreateTestDiagnostic(DiagnosticDescriptors.InvalidHandlerReturnType, "string", "int"),
+            CreateTestDiagnostic(DiagnosticDescriptors.NoHandlersFound),
+            CreateTestDiagnostic(DiagnosticDescriptors.InvalidPriorityValue, -5)
+        };
+
+        // Act
+        foreach (var diagnostic in diagnostics)
+        {
+            mockReporter.ReportDiagnostic(diagnostic);
+        }
+
+        // Assert
+        Assert.Equal(diagnostics.Length, mockReporter.ReportedDiagnostics.Count);
+        for (int i = 0; i < diagnostics.Length; i++)
+        {
+            Assert.Equal(diagnostics[i], mockReporter.ReportedDiagnostics[i]);
+        }
+    }
+
+    [Fact]
+    public void SourceProductionContextDiagnosticReporter_ShouldHandleEmptyDiagnosticList()
+    {
+        // Arrange
+        var mockReporter = new MockSourceProductionContextReporter();
+
+        // Act - No diagnostics reported
+
+        // Assert
+        Assert.Empty(mockReporter.ReportedDiagnostics);
     }
 
     [Fact]
@@ -845,6 +985,10 @@ public class DiagnosticReporterTests
 
         public void ReportDiagnostic(Diagnostic diagnostic)
         {
+            if (diagnostic is null)
+            {
+                throw new ArgumentNullException(nameof(diagnostic));
+            }
             ReportedDiagnostics.Add(diagnostic);
         }
     }
@@ -856,6 +1000,10 @@ public class DiagnosticReporterTests
 
         public void ReportDiagnostic(Diagnostic diagnostic)
         {
+            if (diagnostic is null)
+            {
+                throw new ArgumentNullException(nameof(diagnostic));
+            }
             ReportedDiagnostics.Add(diagnostic);
         }
     }

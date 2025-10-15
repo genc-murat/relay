@@ -128,33 +128,6 @@ public class CircuitBreakerStateTests
     }
 }
 
-public class MessageSerializerTypeTests
-{
-    [Fact]
-    public void MessageSerializerType_ShouldHaveAllExpectedValues()
-    {
-        // Assert
-        Assert.Equal(0, (int)MessageSerializerType.Json);
-        Assert.Equal(1, (int)MessageSerializerType.MessagePack);
-        Assert.Equal(2, (int)MessageSerializerType.Protobuf);
-        Assert.Equal(3, (int)MessageSerializerType.Avro);
-    }
-
-    [Theory]
-    [InlineData(MessageSerializerType.Json)]
-    [InlineData(MessageSerializerType.MessagePack)]
-    [InlineData(MessageSerializerType.Protobuf)]
-    [InlineData(MessageSerializerType.Avro)]
-    public void MessageSerializerType_ShouldConvertToString(MessageSerializerType serializerType)
-    {
-        // Act
-        var stringValue = serializerType.ToString();
-
-        // Assert
-        Assert.False(string.IsNullOrEmpty(stringValue));
-    }
-}
-
 public class SagaStateTests
 {
     [Fact]

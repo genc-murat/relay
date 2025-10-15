@@ -294,20 +294,20 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         {
             if (_subscriptions.TryGetValue(messageType, out var subscriptions))
             {
-                var tasks = subscriptions.Select(async subscription =>
-                {
-                    try
-                    {
-                        await subscription.Handler(message, context, cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, 
-                            "Handler failed to process message of type {MessageType}", 
-                            messageType.Name);
-                        throw;
-                    }
-                });
+                 var tasks = subscriptions.Select(async subscription =>
+                 {
+                     try
+                     {
+                         await subscription.Handler(message, context, cancellationToken);
+                     }
+                     catch (Exception ex)
+                     {
+                         _logger.LogError(ex,
+                             "Handler failed to process message of type {MessageType}",
+                             messageType.Name);
+                         // Don't re-throw to allow other handlers to continue processing
+                     }
+                 });
 
                 await Task.WhenAll(tasks);
             }

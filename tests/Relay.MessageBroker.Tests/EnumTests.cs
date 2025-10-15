@@ -21,6 +21,29 @@ public class MessageBrokerTypeTests
         Assert.Equal(6, (int)MessageBrokerType.InMemory);
     }
 
+    [Fact]
+    public void MessageBrokerType_ShouldHaveCorrectNames()
+    {
+        // Arrange & Act & Assert
+        Assert.Equal("RabbitMQ", MessageBrokerType.RabbitMQ.ToString());
+        Assert.Equal("Kafka", MessageBrokerType.Kafka.ToString());
+        Assert.Equal("AzureServiceBus", MessageBrokerType.AzureServiceBus.ToString());
+        Assert.Equal("AwsSqsSns", MessageBrokerType.AwsSqsSns.ToString());
+        Assert.Equal("Nats", MessageBrokerType.Nats.ToString());
+        Assert.Equal("RedisStreams", MessageBrokerType.RedisStreams.ToString());
+        Assert.Equal("InMemory", MessageBrokerType.InMemory.ToString());
+    }
+
+    [Fact]
+    public void MessageBrokerType_ShouldHaveSevenValues()
+    {
+        // Arrange & Act
+        var values = Enum.GetValues(typeof(MessageBrokerType));
+
+        // Assert
+        Assert.Equal(7, values.Length);
+    }
+
     [Theory]
     [InlineData(MessageBrokerType.InMemory)]
     [InlineData(MessageBrokerType.RabbitMQ)]
@@ -100,6 +123,33 @@ public class CircuitBreakerStateTests
         // Act
         var stringValue = state.ToString();
         
+        // Assert
+        Assert.False(string.IsNullOrEmpty(stringValue));
+    }
+}
+
+public class MessageSerializerTypeTests
+{
+    [Fact]
+    public void MessageSerializerType_ShouldHaveAllExpectedValues()
+    {
+        // Assert
+        Assert.Equal(0, (int)MessageSerializerType.Json);
+        Assert.Equal(1, (int)MessageSerializerType.MessagePack);
+        Assert.Equal(2, (int)MessageSerializerType.Protobuf);
+        Assert.Equal(3, (int)MessageSerializerType.Avro);
+    }
+
+    [Theory]
+    [InlineData(MessageSerializerType.Json)]
+    [InlineData(MessageSerializerType.MessagePack)]
+    [InlineData(MessageSerializerType.Protobuf)]
+    [InlineData(MessageSerializerType.Avro)]
+    public void MessageSerializerType_ShouldConvertToString(MessageSerializerType serializerType)
+    {
+        // Act
+        var stringValue = serializerType.ToString();
+
         // Assert
         Assert.False(string.IsNullOrEmpty(stringValue));
     }

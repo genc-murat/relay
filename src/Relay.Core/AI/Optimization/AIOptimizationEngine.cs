@@ -5011,21 +5011,17 @@ namespace Relay.Core.AI
                 
                 // 5. Historical trend analysis using time-series data
                 var trendFactor = AnalyzeKeepAliveTrends();
-                
-                // 6. Connection pattern analysis
-                var patternHealth = AnalyzeConnectionPatterns();
-                
-                // 7. Time-of-day variations (cached in time-series DB)
+
+                // 6. Time-of-day variations (cached in time-series DB)
                 var temporalFactor = GetTemporalHealthFactor();
-                
-                // Weighted combination of all factors
-                var combinedHealth = 
+
+                // Weighted combination of all factors (removed pattern analysis to avoid circular dependency)
+                var combinedHealth =
                     (baseHealth * 0.25) +           // 25% system stability
                     (networkQuality * 0.20) +        // 20% network quality
                     (errorImpact * 0.15) +           // 15% error impact
                     (loadFactor * 0.15) +            // 15% system load
-                    (trendFactor * 0.15) +           // 15% historical trends
-                    (patternHealth * 0.05) +         // 5% pattern analysis
+                    (trendFactor * 0.20) +           // 20% historical trends (increased weight)
                     (temporalFactor * 0.05);         // 5% temporal factors
                 
                 // Apply bounds with confidence adjustment
@@ -6033,7 +6029,10 @@ namespace Relay.Core.AI
             
             var shouldCache = repeatRate > 0.3; // Cache if >30% repeat rate
             var expectedHitRate = Math.Min(0.95, repeatRate * 1.2);
-            var avgExecutionTime = accessPatterns.Where(p => !p.WasCacheHit).Average(p => p.ExecutionTime.TotalMilliseconds);
+            var nonCacheHits = accessPatterns.Where(p => !p.WasCacheHit);
+            var avgExecutionTime = nonCacheHits.Any()
+                ? nonCacheHits.Average(p => p.ExecutionTime.TotalMilliseconds)
+                : 100.0; // Default 100ms if no non-cache hits
             
             // Calculate optimal TTL based on access patterns
             var accessIntervals = accessPatterns
@@ -6079,7 +6078,9 @@ namespace Relay.Core.AI
         {
             var totalRequests = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
             var totalErrors = _requestAnalytics.Values.Sum(x => x.FailedExecutions);
-            var avgExecutionTime = _requestAnalytics.Values.Average(x => x.AverageExecutionTime.TotalMilliseconds);
+            var avgExecutionTime = _requestAnalytics.Values.Any()
+                ? _requestAnalytics.Values.Average(x => x.AverageExecutionTime.TotalMilliseconds)
+                : 100.0; // Default 100ms if no data
 
             var reliability = totalRequests > 0 ? 1.0 - ((double)totalErrors / totalRequests) : 1.0;
             var performance = Math.Max(0, 1.0 - (avgExecutionTime / 5000)); // 5s baseline
@@ -6109,6 +6110,9 @@ namespace Relay.Core.AI
 
         private double CalculateScalabilityScore()
         {
+            if (!_requestAnalytics.Values.Any())
+                return 1.0; // Default scalability score if no data
+
             var maxConcurrency = _requestAnalytics.Values.Max(x => x.ConcurrentExecutionPeaks);
             var avgConcurrency = _requestAnalytics.Values.Average(x => x.ConcurrentExecutionPeaks);
 
@@ -6318,12 +6322,15 @@ namespace Relay.Core.AI
             {
                 predictions["ThroughputNextHour"] = currentThroughput * 1.1; // 10% growth prediction
             }
-            
-            predictions["ErrorRateNextHour"] = _requestAnalytics.Values.Average(x => x.ErrorRate) * 0.9; // Improvement
-            
+
+            // Handle empty analytics gracefully
+            var avgErrorRate = _requestAnalytics.Values.Any() ? _requestAnalytics.Values.Average(x => x.ErrorRate) : 0.01; // Default 1% error rate
+            predictions["ErrorRateNextHour"] = avgErrorRate * 0.9; // Improvement
+
             // Predict next day metrics
             predictions["ThroughputNextDay"] = currentThroughput * 24.5; // Daily growth
-            predictions["PeakConcurrencyNextDay"] = _requestAnalytics.Values.Max(x => x.ConcurrentExecutionPeaks) * 1.3;
+            var maxConcurrency = _requestAnalytics.Values.Any() ? _requestAnalytics.Values.Max(x => x.ConcurrentExecutionPeaks) : 10; // Default 10
+            predictions["PeakConcurrencyNextDay"] = maxConcurrency * 1.3;
             
             // Identify potential issues
             if (predictions["ErrorRateNextHour"] > 0.05)
@@ -6377,13 +6384,16 @@ namespace Relay.Core.AI
 
         private Dictionary<string, double> CollectKeyMetrics()
         {
+            var hasRequestData = _requestAnalytics.Values.Any();
+            var hasCacheData = _cachingAnalytics.Values.Any();
+
             return new Dictionary<string, double>
             {
                 ["TotalRequests"] = _requestAnalytics.Values.Sum(x => x.TotalExecutions),
-                ["SuccessRate"] = _requestAnalytics.Values.Average(x => x.SuccessRate),
-                ["AverageResponseTime"] = _requestAnalytics.Values.Average(x => x.AverageExecutionTime.TotalMilliseconds),
-                ["PeakConcurrency"] = _requestAnalytics.Values.Max(x => x.ConcurrentExecutionPeaks),
-                ["CacheHitRate"] = _cachingAnalytics.Values.Average(x => x.CacheHitRate),
+                ["SuccessRate"] = hasRequestData ? _requestAnalytics.Values.Average(x => x.SuccessRate) : 1.0,
+                ["AverageResponseTime"] = hasRequestData ? _requestAnalytics.Values.Average(x => x.AverageExecutionTime.TotalMilliseconds) : 100.0,
+                ["PeakConcurrency"] = hasRequestData ? _requestAnalytics.Values.Max(x => x.ConcurrentExecutionPeaks) : 1,
+                ["CacheHitRate"] = hasCacheData ? _cachingAnalytics.Values.Average(x => x.CacheHitRate) : 0.0,
                 ["OptimizationScore"] = GetModelStatistics().AccuracyScore
             };
         }
@@ -6521,7 +6531,11 @@ namespace Relay.Core.AI
 
         private double CalculateModelConfidence()
         {
-            var accuracyScore = GetModelStatistics().AccuracyScore;
+            // Calculate accuracy score directly to avoid circular dependency
+            var totalPredictions = Interlocked.Read(ref _totalPredictions);
+            var correctPredictions = Interlocked.Read(ref _correctPredictions);
+            var accuracyScore = totalPredictions > 0 ? (double)correctPredictions / totalPredictions : 0.0;
+
             var f1Score = CalculateF1Score();
             var predictionCount = _recentPredictions.Count;
 

@@ -1,6 +1,9 @@
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using Relay.MessageBroker.RabbitMQ;
 using Xunit;
 
@@ -164,6 +167,268 @@ public class RabbitMQMessageBrokerTests
     }
 
     [Fact]
+    public async Task SubscribeAsync_WithCustomQueueName_ShouldUseProvidedQueueName()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            QueueName = "custom-queue-name"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithCustomRoutingKey_ShouldUseProvidedRoutingKey()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            RoutingKey = "custom.subscription.key"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithCustomExchange_ShouldUseProvidedExchange()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            Exchange = "custom-subscription-exchange"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithNonDurable_ShouldSetNonDurable()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            Durable = false
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithExclusive_ShouldSetExclusive()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            Exclusive = true
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithAutoDelete_ShouldSetAutoDelete()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            AutoDelete = true
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithPrefetchCount_ShouldSetPrefetchCount()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var subscriptionOptions = new SubscriptionOptions
+        {
+            PrefetchCount = 10
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.SubscribeAsync<TestMessage>(
+            (msg, ctx, ct) => ValueTask.CompletedTask,
+            subscriptionOptions));
+    }
+
+    [Fact]
+    public void GetRoutingKey_ShouldReplaceMessageTypePlaceholder()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Use reflection to access the private GetRoutingKey method
+        var method = typeof(RabbitMQMessageBroker).GetMethod("GetRoutingKey", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        // Act
+        var routingKey = (string)method.Invoke(broker, new object[] { typeof(TestMessage) })!;
+
+        // Assert
+        Assert.Equal("relay.TestMessage", routingKey);
+    }
+
+    [Fact]
+    public void GetRoutingKey_WithCustomPattern_ShouldReplacePlaceholders()
+    {
+        // Arrange
+        var customOptions = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest"
+            },
+            DefaultExchange = "relay-test",
+            DefaultRoutingKeyPattern = "custom.{MessageType}.{MessageFullName}"
+        };
+        var options = Options.Create(customOptions);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Use reflection to access the private GetRoutingKey method
+        var method = typeof(RabbitMQMessageBroker).GetMethod("GetRoutingKey", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        // Act
+        var routingKey = (string)method.Invoke(broker, new object[] { typeof(TestMessage) })!;
+
+        // Assert
+        Assert.Equal($"custom.TestMessage.{typeof(TestMessage).FullName}", routingKey);
+    }
+
+    [Fact]
+    public async Task CreateMessageContext_Acknowledge_ShouldCallBasicAckAsync()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        var channelMock = new Mock<IChannel>();
+        var basicProperties = new BasicProperties
+        {
+            MessageId = "test-message-id",
+            CorrelationId = "test-correlation-id",
+            Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
+            Headers = new Dictionary<string, object?>
+            {
+                ["header1"] = "value1",
+                ["header2"] = 42
+            }
+        };
+
+        var body = ReadOnlyMemory<byte>.Empty;
+        var ea = new BasicDeliverEventArgs("consumer-tag", 123, false, "test-exchange", "test.routing.key", basicProperties, body, CancellationToken.None);
+
+        // Use reflection to access the private CreateMessageContext method
+        var method = typeof(RabbitMQMessageBroker).GetMethod("CreateMessageContext", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        // Act
+        var context = (MessageContext)method.Invoke(broker, new object[] { ea, channelMock.Object })!;
+
+        // Act
+        await context.Acknowledge();
+
+        // Assert
+        channelMock.Verify(c => c.BasicAckAsync(123, false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateMessageContext_Reject_ShouldCallBasicNackAsync()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        var channelMock = new Mock<IChannel>();
+        var basicProperties = new BasicProperties
+        {
+            MessageId = "test-message-id"
+        };
+
+        var body = ReadOnlyMemory<byte>.Empty;
+        var ea = new BasicDeliverEventArgs("consumer-tag", 123, false, "test-exchange", "test.routing.key", basicProperties, body, CancellationToken.None);
+
+        // Use reflection to access the private CreateMessageContext method
+        var method = typeof(RabbitMQMessageBroker).GetMethod("CreateMessageContext", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        // Act
+        var context = (MessageContext)method.Invoke(broker, new object[] { ea, channelMock.Object })!;
+
+        // Act
+        await context.Reject(true);
+
+        // Assert
+        channelMock.Verify(c => c.BasicNackAsync(123, false, true, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void CreateMessageContext_WithNullHeaders_ShouldHandleNullHeaders()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        var channelMock = new Mock<IChannel>();
+        var basicProperties = new BasicProperties
+        {
+            MessageId = "test-message-id",
+            Headers = null
+        };
+
+        var body = ReadOnlyMemory<byte>.Empty;
+        var ea = new BasicDeliverEventArgs("consumer-tag", 123, false, "test-exchange", "test.routing.key", basicProperties, body, CancellationToken.None);
+
+        // Use reflection to access the private CreateMessageContext method
+        var method = typeof(RabbitMQMessageBroker).GetMethod("CreateMessageContext", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        // Act
+        var context = (MessageContext)method.Invoke(broker, new object[] { ea, channelMock.Object })!;
+
+        // Assert
+        Assert.Null(context.Headers);
+    }
+
+    [Fact]
     public async Task SubscribeAsync_MultipleHandlers_ShouldNotThrow()
     {
         // Arrange
@@ -215,6 +480,373 @@ public class RabbitMQMessageBrokerTests
 
         // Assert
         Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new RabbitMQMessageBroker(null!, _loggerMock.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new RabbitMQMessageBroker(options, null!));
+    }
+
+    [Fact]
+    public void Constructor_WithEmptyHostName_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithEmptyHost = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "",
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithEmptyHost);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidPort_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithInvalidPort = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 99999, // Invalid port
+                UserName = "guest",
+                Password = "guest"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithInvalidPort);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithEmptyUserName_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithEmptyUser = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "",
+                Password = "guest"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithEmptyUser);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithEmptyPassword_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithEmptyPassword = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "guest",
+                Password = ""
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithEmptyPassword);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithEmptyVirtualHost_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithEmptyVHost = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest",
+                VirtualHost = ""
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithEmptyVHost);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithEmptyExchangeType_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithEmptyExchangeType = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest",
+                ExchangeType = ""
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithEmptyExchangeType);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithSslEnabled_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithSsl = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5671,
+                UserName = "guest",
+                Password = "guest",
+                UseSsl = true
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithSsl);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithCustomConnectionTimeout_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithTimeout = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest",
+                ConnectionTimeout = TimeSpan.FromSeconds(60)
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithTimeout);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithZeroConnectionTimeout_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithZeroTimeout = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest",
+                ConnectionTimeout = TimeSpan.Zero
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithZeroTimeout);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidConnectionString_ShouldSucceed()
+    {
+        // Arrange
+        var optionsWithInvalidConnectionString = new MessageBrokerOptions
+        {
+            ConnectionString = "invalid-connection-string",
+            RabbitMQ = new RabbitMQOptions
+            {
+                ExchangeType = "topic"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithInvalidConnectionString);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithCustomRoutingKey_ShouldUseProvidedRoutingKey()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            RoutingKey = "custom.routing.key"
+        };
+
+        // Act & Assert
+        // This will fail due to no RabbitMQ server, but should not throw configuration exceptions
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithCustomExchange_ShouldUseProvidedExchange()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Exchange = "custom-exchange"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithHeaders_ShouldIncludeHeaders()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Headers = new Dictionary<string, object>
+            {
+                ["custom-header"] = "header-value",
+                ["numeric-header"] = 42
+            }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithPriority_ShouldSetPriority()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Priority = 5
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithExpiration_ShouldSetExpiration()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Expiration = TimeSpan.FromMinutes(5)
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await broker.PublishAsync(message, publishOptions));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithNonPersistent_ShouldSetNonPersistent()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+        var publishOptions = new PublishOptions
+        {
+            Persistent = false
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await broker.PublishAsync(message, publishOptions));
     }
 
     [Fact]

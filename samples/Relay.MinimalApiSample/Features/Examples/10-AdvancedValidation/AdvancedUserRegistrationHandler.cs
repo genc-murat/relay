@@ -45,7 +45,7 @@ public class AdvancedUserRegistrationHandler : IRequestHandler<AdvancedUserRegis
             CreatedAt = DateTime.UtcNow
         };
 
-        _database.Users.Add(user);
+        _database.Users.TryAdd(user.Id, user);
 
         var processingTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
 

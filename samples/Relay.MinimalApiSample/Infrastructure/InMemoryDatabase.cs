@@ -26,7 +26,9 @@ public class InMemoryDatabase
         {
             Id = Guid.NewGuid(),
             Name = "Murat Doe",
+            Username = "muratoe",
             Email = "murat@example.com",
+            Age = 30,
             CreatedAt = DateTime.UtcNow.AddDays(-30),
             IsActive = true
         };
@@ -35,7 +37,9 @@ public class InMemoryDatabase
         {
             Id = Guid.NewGuid(),
             Name = "Jane Smith",
+            Username = "janesmith",
             Email = "jane@example.com",
+            Age = 25,
             CreatedAt = DateTime.UtcNow.AddDays(-15),
             IsActive = true
         };

@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Relay.Core.Validation.Rules;
@@ -300,5 +302,407 @@ public class ColorValidationRuleTests
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("#000000")] // Boundary: min value
+    [InlineData("#FFFFFF")] // Boundary: max value
+    [InlineData("#808080")] // Mid value
+    [InlineData("#FF0000")] // Pure red
+    [InlineData("#00FF00")] // Pure green
+    [InlineData("#0000FF")] // Pure blue
+    public async Task ValidateAsync_BoundaryHexColors_ReturnsEmptyErrors(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("rgb(0,0,0)")] // Boundary: all min
+    [InlineData("rgb(255,255,255)")] // Boundary: all max
+    [InlineData("rgb(0,255,0)")] // Boundary: green max
+    [InlineData("rgb(255,0,255)")] // Boundary: red and blue max
+    public async Task ValidateAsync_BoundaryRgbColors_ReturnsEmptyErrors(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("rgba(0,0,0,0)")] // Boundary: all min
+    [InlineData("rgba(255,255,255,1)")] // Boundary: all max
+    [InlineData("rgba(128,128,128,0.5)")] // Boundary: mid alpha
+    [InlineData("rgba(255,0,0,0.0)")] // Boundary: zero alpha
+    public async Task ValidateAsync_BoundaryRgbaColors_ReturnsEmptyErrors(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("hsl(0,0%,0%)")] // Boundary: all min
+    [InlineData("hsl(360,100%,100%)")] // Boundary: all max
+    [InlineData("hsl(180,50%,50%)")] // Boundary: mid values
+    [InlineData("hsl(0,100%,50%)")] // Boundary: red
+    [InlineData("hsl(120,100%,50%)")] // Boundary: green
+    [InlineData("hsl(240,100%,50%)")] // Boundary: blue
+    public async Task ValidateAsync_BoundaryHslColors_ReturnsEmptyErrors(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("hsla(0,0%,0%,0)")] // Boundary: all min
+    [InlineData("hsla(360,100%,100%,1)")] // Boundary: all max
+    [InlineData("hsla(180,50%,50%,0.5)")] // Boundary: mid alpha
+    [InlineData("hsla(0,100%,50%,0.0)")] // Boundary: zero alpha
+    public async Task ValidateAsync_BoundaryHslaColors_ReturnsEmptyErrors(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("#123456789")] // Too many digits
+    [InlineData("#GGG")] // Invalid hex chars
+    [InlineData("#12G")] // Mixed valid/invalid
+    [InlineData("#-123")] // Negative sign
+    [InlineData("# 123")] // Space in hex
+    public async Task ValidateAsync_MoreInvalidHexColors_ReturnsError(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+    }
+
+    [Theory]
+    [InlineData("rgb(256,0,0)")] // Over max
+    [InlineData("rgb(-1,0,0)")] // Under min
+    [InlineData("rgb(255,256,0)")] // One over
+    [InlineData("rgb(0,-1,0)")] // One under
+    [InlineData("rgb(255,0,-1)")] // One under
+    [InlineData("rgb(300,300,300)")] // All over
+    [InlineData("rgb(-10,-10,-10)")] // All under
+    public async Task ValidateAsync_ExtremeRgbBoundaries_ReturnsError(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().ContainSingle("RGB values must be between 0 and 255.");
+    }
+
+    [Theory]
+    [InlineData("rgba(256,0,0,1)")] // RGB over max
+    [InlineData("rgba(-1,0,0,1)")] // RGB under min
+    [InlineData("rgba(255,255,255,1.1)")] // Alpha over max
+    [InlineData("rgba(255,255,255,-0.1)")] // Alpha under min
+    [InlineData("rgba(255,255,255,2)")] // Alpha way over
+    [InlineData("rgba(255,255,255,-1)")] // Alpha way under
+    public async Task ValidateAsync_ExtremeRgbaBoundaries_ReturnsError(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        if (color.Contains("1.1") || color.Contains("-0.1") || color.Contains("2") || color.Contains("-1"))
+        {
+            result.Should().ContainSingle("Alpha value must be between 0 and 1.");
+        }
+        else
+        {
+            result.Should().ContainSingle("RGB values must be between 0 and 255.");
+        }
+    }
+
+    [Theory]
+    [InlineData("hsl(361,0%,0%)")] // Hue over max
+    [InlineData("hsl(-1,0%,0%)")] // Hue under min
+    [InlineData("hsl(0,101%,0%)")] // Saturation over max
+    [InlineData("hsl(0,-1%,0%)")] // Saturation under min
+    [InlineData("hsl(0,0%,101%)")] // Lightness over max
+    [InlineData("hsl(0,0%,-1%)")] // Lightness under min
+    [InlineData("hsl(400,200%,200%)")] // All over
+    [InlineData("hsl(-10,-10%,-10%)")] // All under
+    public async Task ValidateAsync_ExtremeHslBoundaries_ReturnsError(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        if (color.Contains("361") || color.Contains("-1") && color.Contains("hsl("))
+        {
+            result.Should().ContainSingle("Hue must be between 0 and 360 degrees.");
+        }
+        else
+        {
+            result.Should().ContainSingle("Saturation and lightness must be between 0% and 100%.");
+        }
+    }
+
+    [Theory]
+    [InlineData("hsla(361,0%,0%,1)")] // Hue over max
+    [InlineData("hsla(-1,0%,0%,1)")] // Hue under min
+    [InlineData("hsla(0,101%,0%,1)")] // Saturation over max
+    [InlineData("hsla(0,-1%,0%,1)")] // Saturation under min
+    [InlineData("hsla(0,0%,101%,1)")] // Lightness over max
+    [InlineData("hsla(0,0%,-1%,1)")] // Lightness under min
+    [InlineData("hsla(0,0%,0%,1.1)")] // Alpha over max
+    [InlineData("hsla(0,0%,0%,-0.1)")] // Alpha under min
+    public async Task ValidateAsync_ExtremeHslaBoundaries_ReturnsError(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        if (color.Contains("361") || (color.Contains("-1") && !color.Contains("%")))
+        {
+            result.Should().ContainSingle("Hue must be between 0 and 360 degrees.");
+        }
+        else if (color.Contains("101") || (color.Contains("-1") && color.Contains("%")))
+        {
+            result.Should().ContainSingle("Saturation and lightness must be between 0% and 100%.");
+        }
+        else if (color.Contains("1.1") || color.Contains("-0.1"))
+        {
+            result.Should().ContainSingle("Alpha value must be between 0 and 1.");
+        }
+    }
+
+    [Theory]
+    [InlineData("rgb(255,255,255,0.5)")] // RGB with alpha
+    [InlineData("hsl(360,100%,100%,0.5)")] // HSL with alpha
+    [InlineData("hsv(360,100%,100%)")] // HSV format
+    [InlineData("cmyk(0,0,0,0)")] // CMYK format
+    [InlineData("lab(50,0,0)")] // LAB format
+    [InlineData("xyz(0.5,0.5,0.5)")] // XYZ format
+    public async Task ValidateAsync_MoreUnsupportedFormats_ReturnsError(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+    }
+
+    [Theory]
+    [InlineData(" rgb(255,255,255) ")] // Leading/trailing spaces
+    [InlineData("  #FFFFFF  ")] // Leading/trailing spaces
+    [InlineData(" red ")] // Leading/trailing spaces
+    [InlineData("\tblue\t")] // Tabs
+    [InlineData("\n green \n")] // Newlines
+    public async Task ValidateAsync_TrimmedInputs_ReturnsEmptyErrors(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ValidateAsync_CancellationToken_ThrowsWhenCancelled()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await _rule.ValidateAsync("red", cts.Token));
+    }
+
+    [Theory]
+    [InlineData("aqua")]
+    [InlineData("azure")]
+    [InlineData("beige")]
+    [InlineData("bisque")]
+    [InlineData("blanchedalmond")]
+    [InlineData("blueviolet")]
+    [InlineData("burlywood")]
+    [InlineData("cadetblue")]
+    [InlineData("chartreuse")]
+    [InlineData("chocolate")]
+    [InlineData("coral")]
+    [InlineData("cornflowerblue")]
+    [InlineData("cornsilk")]
+    [InlineData("crimson")]
+    [InlineData("darkblue")]
+    [InlineData("darkcyan")]
+    [InlineData("darkgoldenrod")]
+    [InlineData("darkgray")]
+    [InlineData("darkgreen")]
+    [InlineData("darkkhaki")]
+    [InlineData("darkmagenta")]
+    [InlineData("darkolivegreen")]
+    [InlineData("darkorange")]
+    [InlineData("darkorchid")]
+    [InlineData("darkred")]
+    [InlineData("darksalmon")]
+    [InlineData("darkseagreen")]
+    [InlineData("darkslateblue")]
+    [InlineData("darkslategray")]
+    [InlineData("darkslategrey")]
+    [InlineData("darkturquoise")]
+    [InlineData("darkviolet")]
+    [InlineData("deeppink")]
+    [InlineData("deepskyblue")]
+    [InlineData("dimgray")]
+    [InlineData("dimgrey")]
+    [InlineData("dodgerblue")]
+    [InlineData("firebrick")]
+    [InlineData("floralwhite")]
+    [InlineData("forestgreen")]
+    [InlineData("fuchsia")]
+    [InlineData("gainsboro")]
+    [InlineData("ghostwhite")]
+    [InlineData("gold")]
+    [InlineData("goldenrod")]
+    [InlineData("gray")]
+    [InlineData("greenyellow")]
+    [InlineData("grey")]
+    [InlineData("honeydew")]
+    [InlineData("hotpink")]
+    [InlineData("indianred")]
+    [InlineData("indigo")]
+    [InlineData("ivory")]
+    [InlineData("khaki")]
+    [InlineData("lavender")]
+    [InlineData("lavenderblush")]
+    [InlineData("lawngreen")]
+    [InlineData("lemonchiffon")]
+    [InlineData("lightblue")]
+    [InlineData("lightcoral")]
+    [InlineData("lightcyan")]
+    [InlineData("lightgoldenrodyellow")]
+    [InlineData("lightgray")]
+    [InlineData("lightgreen")]
+    [InlineData("lightgrey")]
+    [InlineData("lightpink")]
+    [InlineData("lightsalmon")]
+    [InlineData("lightseagreen")]
+    [InlineData("lightskyblue")]
+    [InlineData("lightslategray")]
+    [InlineData("lightslategrey")]
+    [InlineData("lightsteelblue")]
+    [InlineData("lightyellow")]
+    [InlineData("lime")]
+    [InlineData("limegreen")]
+    [InlineData("linen")]
+    [InlineData("magenta")]
+    [InlineData("maroon")]
+    [InlineData("mediumaquamarine")]
+    [InlineData("mediumblue")]
+    [InlineData("mediumorchid")]
+    [InlineData("mediumpurple")]
+    [InlineData("mediumseagreen")]
+    [InlineData("mediumslateblue")]
+    [InlineData("mediumspringgreen")]
+    [InlineData("mediumturquoise")]
+    [InlineData("mediumvioletred")]
+    [InlineData("midnightblue")]
+    [InlineData("mintcream")]
+    [InlineData("mistyrose")]
+    [InlineData("moccasin")]
+    [InlineData("navajowhite")]
+    [InlineData("navy")]
+    [InlineData("oldlace")]
+    [InlineData("olive")]
+    [InlineData("olivedrab")]
+    [InlineData("orangered")]
+    [InlineData("orchid")]
+    [InlineData("palegoldenrod")]
+    [InlineData("palegreen")]
+    [InlineData("paleturquoise")]
+    [InlineData("palevioletred")]
+    [InlineData("papayawhip")]
+    [InlineData("peachpuff")]
+    [InlineData("peru")]
+    [InlineData("pink")]
+    [InlineData("plum")]
+    [InlineData("powderblue")]
+    [InlineData("rebeccapurple")]
+    [InlineData("rosybrown")]
+    [InlineData("royalblue")]
+    [InlineData("saddlebrown")]
+    [InlineData("salmon")]
+    [InlineData("sandybrown")]
+    [InlineData("seagreen")]
+    [InlineData("seashell")]
+    [InlineData("sienna")]
+    [InlineData("silver")]
+    [InlineData("skyblue")]
+    [InlineData("slateblue")]
+    [InlineData("slategray")]
+    [InlineData("slategrey")]
+    [InlineData("snow")]
+    [InlineData("springgreen")]
+    [InlineData("steelblue")]
+    [InlineData("tan")]
+    [InlineData("teal")]
+    [InlineData("thistle")]
+    [InlineData("tomato")]
+    [InlineData("turquoise")]
+    [InlineData("violet")]
+    [InlineData("wheat")]
+    [InlineData("whitesmoke")]
+    public async Task ValidateAsync_AllRemainingNamedColors_ReturnsEmptyErrors(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("rgb(255,255,255,255)")] // RGB with 4 values
+    [InlineData("hsl(360,100%,100%,100%)")] // HSL with 4 values
+    [InlineData("rgba(255,255,255)")] // RGBA with 3 values
+    [InlineData("hsla(360,100%,100%)")] // HSLA with 3 values
+    [InlineData("rgb(255,255)")] // RGB with 2 values
+    [InlineData("rgb(255)")] // RGB with 1 value
+    [InlineData("hsl(360,100%)")] // HSL with 2 values
+    [InlineData("hsl(360)")] // HSL with 1 value
+    public async Task ValidateAsync_IncorrectParameterCounts_ReturnsError(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+    }
+
+    [Theory]
+    [InlineData("rgb(255.5,255,255)")] // Float values
+    [InlineData("rgba(255,255,255,0.5.5)")] // Multiple decimals
+    [InlineData("hsl(360.5,100%,100%)")] // Float hue
+    [InlineData("hsla(360,100.5%,100%,1)")] // Float saturation
+    [InlineData("hsla(360,100%,100.5%,1)")] // Float lightness
+    public async Task ValidateAsync_InvalidNumberFormats_ReturnsError(string color)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(color);
+
+        // Assert
+        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
     }
 }

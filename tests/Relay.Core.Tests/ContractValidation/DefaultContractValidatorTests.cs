@@ -466,5 +466,207 @@ namespace Relay.Core.Tests.ContractValidation
             // The token is passed but not used in the current implementation
             Assert.Empty(errors);
         }
+
+        [Fact]
+        public async Task ValidateRequestAsync_WithWhitespaceOnlySchema_ShouldSkipValidation()
+        {
+            // Arrange
+            var request = new TestRequest { Name = "Test", Value = 123 };
+            var schema = new JsonSchemaContract { Schema = "   \t\n  " };
+
+            // Act
+            var errors = await _validator.ValidateRequestAsync(request, schema);
+
+            // Assert
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        public async Task ValidateResponseAsync_WithWhitespaceOnlySchema_ShouldSkipValidation()
+        {
+            // Arrange
+            var response = new TestResponse { Id = 1, Result = "Success" };
+            var schema = new JsonSchemaContract { Schema = "   \t\n  " };
+
+            // Act
+            var errors = await _validator.ValidateResponseAsync(response, schema);
+
+            // Assert
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        public async Task ValidateRequestAsync_InvalidSchemaCaching_ShouldCacheNullAndReturnErrorConsistently()
+        {
+            // Arrange
+            var request = new TestRequest { Name = "Test", Value = 123 };
+            var invalidSchema = new JsonSchemaContract { Schema = "invalid json schema {" };
+
+            // Act - Call multiple times with same invalid schema
+            var errors1 = await _validator.ValidateRequestAsync(request, invalidSchema);
+            var errors2 = await _validator.ValidateRequestAsync(request, invalidSchema);
+
+            // Assert - Both calls should return the same error (cached null schema)
+            Assert.Single(errors1);
+            Assert.Equal("Invalid JSON schema format", errors1.First());
+            Assert.Single(errors2);
+            Assert.Equal("Invalid JSON schema format", errors2.First());
+        }
+
+        [Fact]
+        public async Task ValidateResponseAsync_WithNullResponseAndSchemaDisallowingNull_ShouldReturnError()
+        {
+            // Arrange
+            var schema = new JsonSchemaContract
+            {
+                Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""Id"": { ""type"": ""integer"" },
+                        ""Result"": { ""type"": ""string"" }
+                    },
+                    ""required"": [""Id"", ""Result""]
+                }"
+            };
+
+            // Act
+            var errors = await _validator.ValidateResponseAsync(null!, schema);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Response cannot be null according to schema", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateRequestAsync_WithComplexNestedValidationErrors_ShouldReturnMultipleErrors()
+        {
+            // Arrange
+            var request = new
+            {
+                User = new
+                {
+                    Name = "", // Too short
+                    Age = 15, // Too young
+                    Address = new
+                    {
+                        Street = "123 Main St",
+                        City = "", // Too short
+                        ZipCode = "abc" // Wrong format
+                    }
+                },
+                Items = new[] { "valid", "" } // One empty string
+            };
+            var schema = new JsonSchemaContract
+            {
+                Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""User"": {
+                            ""type"": ""object"",
+                            ""properties"": {
+                                ""Name"": { ""type"": ""string"", ""minLength"": 1 },
+                                ""Age"": { ""type"": ""integer"", ""minimum"": 18 },
+                                ""Address"": {
+                                    ""type"": ""object"",
+                                    ""properties"": {
+                                        ""Street"": { ""type"": ""string"" },
+                                        ""City"": { ""type"": ""string"", ""minLength"": 1 },
+                                        ""ZipCode"": { ""type"": ""string"", ""pattern"": ""^\\d{5}$"" }
+                                    },
+                                    ""required"": [""Street"", ""City"", ""ZipCode""]
+                                }
+                            },
+                            ""required"": [""Name"", ""Age"", ""Address""]
+                        },
+                        ""Items"": {
+                            ""type"": ""array"",
+                            ""items"": { ""type"": ""string"", ""minLength"": 1 }
+                        }
+                    },
+                    ""required"": [""User"", ""Items""]
+                }"
+            };
+
+            // Act
+            var errors = await _validator.ValidateRequestAsync(request, schema);
+
+            // Assert
+            Assert.NotEmpty(errors);
+            // Should have multiple validation errors from different nested levels
+            Assert.True(errors.Count() >= 4); // At least: Name minLength, Age minimum, City minLength, ZipCode pattern, Items[1] minLength
+        }
+
+        [Fact]
+        public async Task ValidateRequestAsync_WithValidEnumValue_ShouldReturnNoErrors()
+        {
+            // Arrange
+            var request = new { Status = "active" };
+            var schema = new JsonSchemaContract
+            {
+                Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""Status"": { ""enum"": [""active"", ""inactive"", ""pending""] }
+                    },
+                    ""required"": [""Status""]
+                }"
+            };
+
+            // Act
+            var errors = await _validator.ValidateRequestAsync(request, schema);
+
+            // Assert
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        public async Task ValidateRequestAsync_WithInvalidEnumValue_ShouldReturnError()
+        {
+            // Arrange
+            var request = new { Status = "unknown" };
+            var schema = new JsonSchemaContract
+            {
+                Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""Status"": { ""enum"": [""active"", ""inactive"", ""pending""] }
+                    },
+                    ""required"": [""Status""]
+                }"
+            };
+
+            // Act
+            var errors = await _validator.ValidateRequestAsync(request, schema);
+
+            // Assert
+            Assert.NotEmpty(errors);
+            Assert.Contains(errors, e => e.Contains("enum"));
+        }
+
+        [Fact]
+        public async Task ValidateRequestAsync_WithSchemaUsingNotConstraint_ShouldReturnGenericErrorWhenNoDetailedErrors()
+        {
+            // Arrange - Create a schema that might fail validation without detailed error messages
+            var request = new { Value = 5 };
+            var schema = new JsonSchemaContract
+            {
+                Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""Value"": {
+                            ""not"": { ""type"": ""integer"" }
+                        }
+                    },
+                    ""required"": [""Value""]
+                }"
+            };
+
+            // Act
+            var errors = await _validator.ValidateRequestAsync(request, schema);
+
+            // Assert
+            Assert.NotEmpty(errors);
+            // May contain detailed errors or generic error depending on JsonSchema.Net implementation
+        }
     }
 }

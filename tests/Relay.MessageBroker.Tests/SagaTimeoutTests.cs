@@ -1,4 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Relay.MessageBroker.Saga;
 using Relay.MessageBroker.Saga.Services;
 using Xunit;
@@ -224,4 +227,213 @@ public class SagaTimeoutTests
     {
         public TimeSpan Timeout => TimeSpan.FromMinutes(1);
     }
+
+    #region SagaTimeoutService Tests
+
+    [Fact]
+    public void SagaTimeoutService_Constructor_WithValidParameters_ShouldInitializeCorrectly()
+    {
+        // Arrange
+        var serviceProvider = new Mock<IServiceProvider>();
+        var logger = new Mock<ILogger<SagaTimeoutService>>();
+        var checkInterval = TimeSpan.FromSeconds(45);
+        var defaultTimeout = TimeSpan.FromMinutes(10);
+
+        // Act
+        var service = new SagaTimeoutService(serviceProvider.Object, logger.Object, checkInterval, defaultTimeout);
+
+        // Assert - Constructor validation is implicit through successful creation
+        Assert.NotNull(service);
+    }
+
+    [Fact]
+    public void SagaTimeoutService_Constructor_WithNullServiceProvider_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<SagaTimeoutService>>();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            new SagaTimeoutService(null!, logger.Object));
+
+        Assert.Equal("serviceProvider", exception.ParamName);
+    }
+
+    [Fact]
+    public void SagaTimeoutService_Constructor_WithNullLogger_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var serviceProvider = new Mock<IServiceProvider>();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            new SagaTimeoutService(serviceProvider.Object, null!));
+
+        Assert.Equal("logger", exception.ParamName);
+    }
+
+    [Fact]
+    public void SagaTimeoutService_Constructor_WithDefaultParameters_ShouldUseDefaults()
+    {
+        // Arrange
+        var serviceProvider = new Mock<IServiceProvider>();
+        var logger = new Mock<ILogger<SagaTimeoutService>>();
+
+        // Act
+        var service = new SagaTimeoutService(serviceProvider.Object, logger.Object);
+
+        // Assert - We can't directly test private fields, but constructor should succeed
+        Assert.NotNull(service);
+    }
+
+
+
+    [Fact]
+    public async Task SagaTimeoutService_CheckAndHandleTimeoutsAsync_ShouldProcessAllHandlers()
+    {
+        // Arrange
+        var serviceProvider = new Mock<IServiceProvider>();
+        var scopeFactory = new Mock<IServiceScopeFactory>();
+        var scope = new Mock<IServiceScope>();
+        var scopedProvider = new Mock<IServiceProvider>();
+        var logger = new Mock<ILogger<SagaTimeoutService>>();
+
+        var handler1 = new Mock<ISagaTimeoutHandler>();
+        var handler2 = new Mock<ISagaTimeoutHandler>();
+
+        handler1.Setup(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SagaTimeoutCheckResult { CheckedCount = 5, TimedOutCount = 1 });
+        handler2.Setup(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SagaTimeoutCheckResult { CheckedCount = 3, TimedOutCount = 0 });
+
+        serviceProvider.Setup(sp => sp.GetService(typeof(IServiceScopeFactory))).Returns(scopeFactory.Object);
+        scopeFactory.Setup(sf => sf.CreateScope()).Returns(scope.Object);
+        scope.Setup(s => s.ServiceProvider).Returns(scopedProvider.Object);
+        scopedProvider.Setup(sp => sp.GetService(typeof(IEnumerable<ISagaTimeoutHandler>))).Returns(new[] { handler1.Object, handler2.Object });
+
+        var service = new SagaTimeoutService(serviceProvider.Object, logger.Object);
+
+        // Act
+        var result = await (Task<SagaTimeoutCheckResult>)service.GetType()
+            .GetMethod("CheckAndHandleTimeoutsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(service, new object[] { CancellationToken.None })!;
+
+        // Assert
+        handler1.Verify(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
+        handler2.Verify(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(8, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutService_CheckAndHandleTimeoutsAsync_HandlerThrowsException_ShouldLogErrorAndContinue()
+    {
+        // Arrange
+        var serviceProvider = new Mock<IServiceProvider>();
+        var scopeFactory = new Mock<IServiceScopeFactory>();
+        var scope = new Mock<IServiceScope>();
+        var scopedProvider = new Mock<IServiceProvider>();
+        var logger = new Mock<ILogger<SagaTimeoutService>>();
+
+        var goodHandler = new Mock<ISagaTimeoutHandler>();
+        var badHandler = new Mock<ISagaTimeoutHandler>();
+
+        goodHandler.Setup(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SagaTimeoutCheckResult { CheckedCount = 2, TimedOutCount = 0 });
+        badHandler.Setup(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Handler error"));
+
+        serviceProvider.Setup(sp => sp.GetService(typeof(IServiceScopeFactory))).Returns(scopeFactory.Object);
+        scopeFactory.Setup(sf => sf.CreateScope()).Returns(scope.Object);
+        scope.Setup(s => s.ServiceProvider).Returns(scopedProvider.Object);
+        scopedProvider.Setup(sp => sp.GetService(typeof(IEnumerable<ISagaTimeoutHandler>))).Returns(new[] { goodHandler.Object, badHandler.Object });
+
+        var service = new SagaTimeoutService(serviceProvider.Object, logger.Object);
+
+        // Act
+        var result = await (Task<SagaTimeoutCheckResult>)service.GetType()
+            .GetMethod("CheckAndHandleTimeoutsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(service, new object[] { CancellationToken.None })!;
+
+        // Assert
+        goodHandler.Verify(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
+        badHandler.Verify(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(2, result.CheckedCount);
+        Assert.Equal(0, result.TimedOutCount);
+
+        logger.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Error in timeout handler")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutService_CheckAndHandleTimeoutsAsync_WithTimeouts_ReturnsCorrectResult()
+    {
+        // Arrange
+        var serviceProvider = new Mock<IServiceProvider>();
+        var scopeFactory = new Mock<IServiceScopeFactory>();
+        var scope = new Mock<IServiceScope>();
+        var scopedProvider = new Mock<IServiceProvider>();
+        var logger = new Mock<ILogger<SagaTimeoutService>>();
+
+        var handler = new Mock<ISagaTimeoutHandler>();
+        handler.Setup(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SagaTimeoutCheckResult { CheckedCount = 10, TimedOutCount = 3 });
+
+        serviceProvider.Setup(sp => sp.GetService(typeof(IServiceScopeFactory))).Returns(scopeFactory.Object);
+        scopeFactory.Setup(sf => sf.CreateScope()).Returns(scope.Object);
+        scope.Setup(s => s.ServiceProvider).Returns(scopedProvider.Object);
+        scopedProvider.Setup(sp => sp.GetService(typeof(IEnumerable<ISagaTimeoutHandler>))).Returns(new[] { handler.Object });
+
+        var service = new SagaTimeoutService(serviceProvider.Object, logger.Object);
+
+        // Act - Call the private method via reflection
+        var result = await (Task<SagaTimeoutCheckResult>)service.GetType()
+            .GetMethod("CheckAndHandleTimeoutsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(service, new object[] { CancellationToken.None })!;
+
+        // Assert - The method completed without throwing
+        Assert.NotNull(result);
+        Assert.Equal(10, result.CheckedCount);
+        Assert.Equal(3, result.TimedOutCount);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutService_CheckAndHandleTimeoutsAsync_NoTimeouts_ReturnsCorrectResult()
+    {
+        // Arrange
+        var serviceProvider = new Mock<IServiceProvider>();
+        var scopeFactory = new Mock<IServiceScopeFactory>();
+        var scope = new Mock<IServiceScope>();
+        var scopedProvider = new Mock<IServiceProvider>();
+        var logger = new Mock<ILogger<SagaTimeoutService>>();
+
+        var handler = new Mock<ISagaTimeoutHandler>();
+        handler.Setup(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SagaTimeoutCheckResult { CheckedCount = 5, TimedOutCount = 0 });
+
+        serviceProvider.Setup(sp => sp.GetService(typeof(IServiceScopeFactory))).Returns(scopeFactory.Object);
+        scopeFactory.Setup(sf => sf.CreateScope()).Returns(scope.Object);
+        scope.Setup(s => s.ServiceProvider).Returns(scopedProvider.Object);
+        scopedProvider.Setup(sp => sp.GetService(typeof(IEnumerable<ISagaTimeoutHandler>))).Returns(new[] { handler.Object });
+
+        var service = new SagaTimeoutService(serviceProvider.Object, logger.Object);
+
+        // Act - Call the private method via reflection
+        var result = await (Task<SagaTimeoutCheckResult>)service.GetType()
+            .GetMethod("CheckAndHandleTimeoutsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .Invoke(service, new object[] { CancellationToken.None })!;
+
+        // Assert - The method completed without throwing
+        Assert.NotNull(result);
+        Assert.Equal(5, result.CheckedCount);
+        Assert.Equal(0, result.TimedOutCount);
+    }
+
+
+
+    #endregion
 }

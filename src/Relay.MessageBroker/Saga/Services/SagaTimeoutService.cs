@@ -75,7 +75,7 @@ public class SagaTimeoutService : BackgroundService
     /// <summary>
     /// Checks for timed-out sagas and triggers compensation.
     /// </summary>
-    private async Task CheckAndHandleTimeoutsAsync(CancellationToken cancellationToken)
+    private async Task<SagaTimeoutCheckResult> CheckAndHandleTimeoutsAsync(CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
         var timeoutHandlers = scope.ServiceProvider.GetServices<ISagaTimeoutHandler>();
@@ -108,6 +108,12 @@ public class SagaTimeoutService : BackgroundService
         {
             _logger.LogDebug("Checked {CheckedCount} sagas, no timeouts found", checkedCount);
         }
+
+        return new SagaTimeoutCheckResult
+        {
+            CheckedCount = checkedCount,
+            TimedOutCount = timedOutCount
+        };
     }
 }
 

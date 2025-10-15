@@ -14,17 +14,20 @@ public class PropertyValidationRule<TRequest, TProperty> : IValidationRuleConfig
     private readonly Func<TRequest, TProperty> _propertyFunc;
     private readonly Func<TProperty?, bool> _predicate;
     private readonly string _errorMessage;
+    private readonly Func<TRequest, bool>? _condition;
 
     public PropertyValidationRule(
         string propertyName,
         Func<TRequest, TProperty> propertyFunc,
         Func<TProperty?, bool> predicate,
-        string errorMessage)
+        string errorMessage,
+        Func<TRequest, bool>? condition = null)
     {
         _propertyName = propertyName ?? throw new ArgumentNullException(nameof(propertyName));
         _propertyFunc = propertyFunc ?? throw new ArgumentNullException(nameof(propertyFunc));
         _predicate = predicate ?? throw new ArgumentNullException(nameof(predicate));
         _errorMessage = errorMessage ?? throw new ArgumentNullException(nameof(errorMessage));
+        _condition = condition;
     }
 
     public ValueTask<IEnumerable<string>> ValidateAsync(TRequest request, CancellationToken cancellationToken = default)
@@ -32,6 +35,12 @@ public class PropertyValidationRule<TRequest, TProperty> : IValidationRuleConfig
         if (request == null)
         {
             return new ValueTask<IEnumerable<string>>(new[] { "Request cannot be null." });
+        }
+
+        // Check condition first
+        if (_condition != null && !_condition(request))
+        {
+            return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
         }
 
         var value = _propertyFunc(request);

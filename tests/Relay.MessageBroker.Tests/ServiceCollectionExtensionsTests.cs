@@ -160,20 +160,18 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddMessageBroker_WithUnsupportedBrokerType_ShouldThrowNotSupportedException()
+    public void AddMessageBroker_WithUnsupportedBrokerType_ShouldThrowInvalidOperationException()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddMessageBroker(options =>
-        {
-            options.BrokerType = (MessageBrokerType)999; // Invalid broker type
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
 
         // Act & Assert
-        Assert.Throws<NotSupportedException>(() => serviceProvider.GetRequiredService<IMessageBroker>());
+        Assert.Throws<InvalidOperationException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = (MessageBrokerType)999; // Invalid broker type
+            }));
     }
 
     [Fact]

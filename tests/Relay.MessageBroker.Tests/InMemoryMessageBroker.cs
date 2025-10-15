@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
 namespace Relay.MessageBroker.Tests;
@@ -49,17 +50,21 @@ public sealed class InMemoryMessageBroker : IMessageBroker
             var subscriptionSnapshot = subscriptions.ToList();
             foreach (var subscription in subscriptionSnapshot)
             {
-                _ = Task.Run(async () =>
+                // Check if routing keys match
+                if (MatchesRoutingKey(subscription.Options.RoutingKey, options?.RoutingKey))
                 {
-                    try
+                    _ = Task.Run(async () =>
                     {
-                        await subscription.Handler(message!, context, cancellationToken);
-                    }
-                    catch
-                    {
-                        // Swallow exceptions in test broker
-                    }
-                }, cancellationToken);
+                        try
+                        {
+                            await subscription.Handler(message!, context, cancellationToken);
+                        }
+                        catch
+                        {
+                            // Swallow exceptions in test broker
+                        }
+                    }, cancellationToken);
+                }
             }
         }
 
@@ -102,6 +107,27 @@ public sealed class InMemoryMessageBroker : IMessageBroker
     {
         _publishedMessages.Clear();
         _subscriptions.Clear();
+    }
+
+    private static bool MatchesRoutingKey(string? subscriptionKey, string? messageKey)
+    {
+        // If no routing key specified in subscription, match all
+        if (string.IsNullOrEmpty(subscriptionKey))
+            return true;
+
+        // If no routing key in message, only match if subscription also has none
+        if (string.IsNullOrEmpty(messageKey))
+            return string.IsNullOrEmpty(subscriptionKey);
+
+        // Simple wildcard matching: * matches any sequence of characters
+        if (subscriptionKey.Contains('*'))
+        {
+            var pattern = "^" + Regex.Escape(subscriptionKey).Replace("\\*", ".*") + "$";
+            return Regex.IsMatch(messageKey, pattern);
+        }
+
+        // Exact match
+        return subscriptionKey == messageKey;
     }
 
     private sealed class SubscriptionInfo

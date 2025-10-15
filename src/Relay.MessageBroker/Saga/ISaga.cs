@@ -89,7 +89,7 @@ public abstract class Saga<TSagaData> : ISaga<TSagaData> where TSagaData : ISaga
                     data.State = SagaState.Compensating;
                     data.UpdatedAt = DateTimeOffset.UtcNow;
 
-                    await CompensateAsync(data, executedSteps, cancellationToken).ConfigureAwait(false);
+                    var compensationResult = await CompensateAsync(data, executedSteps, cancellationToken).ConfigureAwait(false);
 
                     data.State = SagaState.Compensated;
                     data.UpdatedAt = DateTimeOffset.UtcNow;
@@ -100,7 +100,7 @@ public abstract class Saga<TSagaData> : ISaga<TSagaData> where TSagaData : ISaga
                         IsSuccess = false,
                         FailedStep = step.Name,
                         Exception = ex,
-                        CompensationSucceeded = true
+                        CompensationSucceeded = executedSteps.Any() ? compensationResult : false
                     };
                 }
             }
@@ -134,7 +134,7 @@ public abstract class Saga<TSagaData> : ISaga<TSagaData> where TSagaData : ISaga
         }
     }
 
-    private async ValueTask CompensateAsync(TSagaData data, List<ISagaStep<TSagaData>> executedSteps, CancellationToken cancellationToken)
+    private async ValueTask<bool> CompensateAsync(TSagaData data, List<ISagaStep<TSagaData>> executedSteps, CancellationToken cancellationToken)
     {
         // Comprehensive compensation logic with retry, error tracking, and rollback strategies
         
@@ -281,6 +281,9 @@ public abstract class Saga<TSagaData> : ISaga<TSagaData> where TSagaData : ISaga
             // Store failed compensation details for manual intervention
             await OnPartialCompensationFailureAsync(failedCompensations, successfulCompensations, data, cancellationToken).ConfigureAwait(false);
         }
+
+        // Return true if all compensations succeeded, false if any failed
+        return !failedCompensations.Any();
     }
 
     /// <summary>

@@ -229,7 +229,7 @@ namespace Relay.Core.Tests.Testing
             var result = await framework.RunAllScenariosAsync(cts.Token);
 
             Assert.False(result.Success);
-            Assert.True(result.ScenarioResults[0].StepResults[0].Error.Contains("cancel"));
+            Assert.Contains("cancel", result.ScenarioResults[0].StepResults[0].Error);
         }
 
         // Test data classes

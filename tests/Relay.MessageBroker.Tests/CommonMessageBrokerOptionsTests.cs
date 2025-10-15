@@ -173,4 +173,154 @@ public class CommonMessageBrokerOptionsTests
         // Assert
         Assert.Equal(TimeSpan.FromSeconds(-1), retryPolicy.MaxDelay);
     }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowNullRetryPolicy()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.RetryPolicy = null;
+
+        // Assert
+        Assert.Null(options.RetryPolicy);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowNullCircuitBreaker()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.CircuitBreaker = null;
+
+        // Assert
+        Assert.Null(options.CircuitBreaker);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowNullCompression()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.Compression = null;
+
+        // Assert
+        Assert.Null(options.Compression);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowNullTelemetry()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.Telemetry = null;
+
+        // Assert
+        Assert.Null(options.Telemetry);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowNullSaga()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.Saga = null;
+
+        // Assert
+        Assert.Null(options.Saga);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowEmptyDefaultExchange()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.DefaultExchange = string.Empty;
+
+        // Assert
+        Assert.Equal(string.Empty, options.DefaultExchange);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowEmptyDefaultRoutingKeyPattern()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.DefaultRoutingKeyPattern = string.Empty;
+
+        // Assert
+        Assert.Equal(string.Empty, options.DefaultRoutingKeyPattern);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowAllSerializerTypes()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act & Assert
+        options.SerializerType = MessageSerializerType.Json;
+        Assert.Equal(MessageSerializerType.Json, options.SerializerType);
+
+        options.SerializerType = MessageSerializerType.MessagePack;
+        Assert.Equal(MessageSerializerType.MessagePack, options.SerializerType);
+
+        options.SerializerType = MessageSerializerType.Protobuf;
+        Assert.Equal(MessageSerializerType.Protobuf, options.SerializerType);
+
+        options.SerializerType = MessageSerializerType.Avro;
+        Assert.Equal(MessageSerializerType.Avro, options.SerializerType);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowComplexRoutingKeyPattern()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.DefaultRoutingKeyPattern = "relay.{MessageType}.{Environment}.{Version}";
+
+        // Assert
+        Assert.Equal("relay.{MessageType}.{Environment}.{Version}", options.DefaultRoutingKeyPattern);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowWhitespaceInExchange()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.DefaultExchange = "  relay.events  ";
+
+        // Assert
+        Assert.Equal("  relay.events  ", options.DefaultExchange);
+    }
+
+    [Fact]
+    public void CommonMessageBrokerOptions_ShouldAllowSpecialCharactersInRoutingKey()
+    {
+        // Arrange
+        var options = new CommonMessageBrokerOptions();
+
+        // Act
+        options.DefaultRoutingKeyPattern = "relay.{MessageType}.#.*";
+
+        // Assert
+        Assert.Equal("relay.{MessageType}.#.*", options.DefaultRoutingKeyPattern);
+    }
 }

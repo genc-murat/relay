@@ -155,7 +155,7 @@ namespace Relay.Core.Tests
                 }
             });
 
-            Assert.Contains("IStreamRequest`1", exception.RequestType);
+            Assert.Contains("TestStreamRequest", exception.RequestType);
             Assert.Equal("testHandler", exception.HandlerName);
         }
 

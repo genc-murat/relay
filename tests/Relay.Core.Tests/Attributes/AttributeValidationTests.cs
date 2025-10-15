@@ -321,7 +321,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidatePipelineOrder(order).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Pipeline order must be between -100000 and 100000", errors[0]);
             }
         }
@@ -378,7 +378,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateHandlerName(longName).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Handler name cannot exceed 200 characters", errors[0]);
             }
 
@@ -392,7 +392,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateHandlerName(nameWithControlChar).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Handler name cannot contain control characters", errors[0]);
             }
         }
@@ -416,10 +416,10 @@ namespace Relay.Core.Tests
             public void ValidHttpMethods_ShouldBeCaseInsensitive()
             {
                 // Assert
-                Assert.True(AttributeValidation.ValidHttpMethods.Contains("get"));
-                Assert.True(AttributeValidation.ValidHttpMethods.Contains("GET"));
-                Assert.True(AttributeValidation.ValidHttpMethods.Contains("Post"));
-                Assert.True(AttributeValidation.ValidHttpMethods.Contains("POST"));
+                Assert.Contains("get", AttributeValidation.ValidHttpMethods);
+                Assert.Contains("GET", AttributeValidation.ValidHttpMethods);
+                Assert.Contains("Post", AttributeValidation.ValidHttpMethods);
+                Assert.Contains("POST", AttributeValidation.ValidHttpMethods);
             }
         }
     }

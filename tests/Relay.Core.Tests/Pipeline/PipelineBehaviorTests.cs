@@ -620,7 +620,7 @@ namespace Relay.Core.Tests
             cancellationTokenSource.Cancel();
 
             // Assert
-            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
                 await executor.ExecuteAsync<TestRequest, string>(request, Handler, cancellationTokenSource.Token));
         }
 

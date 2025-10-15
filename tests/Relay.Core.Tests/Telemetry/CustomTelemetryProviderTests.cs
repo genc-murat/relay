@@ -128,7 +128,7 @@ public class CustomTelemetryProviderTests
             TimeSpan.FromMilliseconds(200), true);
 
         // Wait for async processing to complete
-        await Task.Delay(100);
+        await asyncProvider.ProcessingCompleted.Task;
 
         // Assert
         Assert.Single(asyncProvider.ProcessedMetrics);
@@ -435,6 +435,7 @@ public class FilteringMetricsProvider : IMetricsProvider
 public class AsyncMetricsProvider : IMetricsProvider
 {
     public List<ProcessedMetric> ProcessedMetrics { get; } = new();
+    public TaskCompletionSource<bool> ProcessingCompleted { get; } = new();
 
     public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
     {
@@ -447,6 +448,7 @@ public class AsyncMetricsProvider : IMetricsProvider
                 OriginalMetrics = metrics,
                 ProcessedAt = DateTimeOffset.UtcNow
             });
+            ProcessingCompleted.TrySetResult(true);
         });
     }
 

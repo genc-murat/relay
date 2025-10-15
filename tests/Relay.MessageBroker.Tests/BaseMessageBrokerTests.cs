@@ -504,6 +504,96 @@ public class BaseMessageBrokerTests
         Assert.True(broker.DisposeCalled);
     }
 
+
+
+    [Fact]
+    public async Task PublishAsync_WithLargeMessage_ShouldHandleCorrectly()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        var largeMessage = new LargeTestMessage
+        {
+            Id = 123,
+            Name = new string('A', 10000), // 10KB string
+            Data = new byte[50000] // 50KB byte array
+        };
+        Array.Fill(largeMessage.Data, (byte)42);
+
+        // Act
+        await broker.PublishAsync(largeMessage);
+
+        // Assert
+        Assert.Single(broker.PublishedMessages);
+        var (publishedMessage, _, _) = broker.PublishedMessages[0];
+        Assert.Equal(largeMessage.Id, ((LargeTestMessage)publishedMessage).Id);
+        Assert.Equal(largeMessage.Name.Length, ((LargeTestMessage)publishedMessage).Name.Length);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithComplexNestedObject_ShouldSerializeCorrectly()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        var complexMessage = new ComplexNestedMessage
+        {
+            Id = Guid.NewGuid(),
+            Root = new NestedObject
+            {
+                Name = "Root",
+                Children = new List<NestedObject>
+                {
+                    new NestedObject { Name = "Child1", Value = 1 },
+                    new NestedObject { Name = "Child2", Value = 2 }
+                }
+            },
+            Metadata = new Dictionary<string, object>
+            {
+                { "created", DateTimeOffset.UtcNow },
+                { "version", "1.0" }
+            }
+        };
+
+        // Act
+        await broker.PublishAsync(complexMessage);
+
+        // Assert
+        Assert.Single(broker.PublishedMessages);
+        var (publishedMessage, serializedData, _) = broker.PublishedMessages[0];
+
+        // Verify deserialization
+        var deserialized = System.Text.Json.JsonSerializer.Deserialize<ComplexNestedMessage>(serializedData);
+        Assert.NotNull(deserialized);
+        Assert.Equal(complexMessage.Id, deserialized.Id);
+        Assert.Equal(complexMessage.Root.Name, deserialized.Root.Name);
+        Assert.Equal(complexMessage.Root.Children.Count, deserialized.Root.Children.Count);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithMultipleDifferentMessageTypes_ShouldStoreSeparately()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        // Act
+        await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
+        await broker.SubscribeAsync<ComplexMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
+
+        // Assert
+        Assert.Equal(2, broker.SubscribedMessages.Count); // Two different message types
+        Assert.Contains(broker.SubscribedMessages, x => x.MessageType == typeof(TestMessage));
+        Assert.Contains(broker.SubscribedMessages, x => x.MessageType == typeof(ComplexMessage));
+    }
+
+
+
     public class ThrowingTestableMessageBroker : BaseMessageBroker
     {
         public ThrowingTestableMessageBroker(
@@ -561,5 +651,26 @@ public class BaseMessageBrokerTests
         public List<string> Items { get; set; } = new();
         public Dictionary<string, object> Metadata { get; set; } = new();
         public DateTimeOffset Timestamp { get; set; }
+    }
+
+    private class LargeTestMessage
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public byte[] Data { get; set; } = Array.Empty<byte>();
+    }
+
+    private class ComplexNestedMessage
+    {
+        public Guid Id { get; set; }
+        public NestedObject Root { get; set; } = new();
+        public Dictionary<string, object> Metadata { get; set; } = new();
+    }
+
+    private class NestedObject
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Value { get; set; }
+        public List<NestedObject> Children { get; set; } = new();
     }
 }

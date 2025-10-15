@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Relay.Core
 {
@@ -11,6 +12,7 @@ namespace Relay.Core
         /// <summary>
         /// Gets or sets the OpenAPI specification version.
         /// </summary>
+        [JsonPropertyName("openapi")]
         public string OpenApi { get; set; } = "3.0.1";
 
         /// <summary>

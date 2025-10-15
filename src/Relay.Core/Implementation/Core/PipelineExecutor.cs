@@ -34,6 +34,10 @@ namespace Relay.Core.Implementation.Core
             Func<TRequest, CancellationToken, ValueTask<TResponse>> handler,
             CancellationToken cancellationToken)
         {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Get all system modules and sort by order
             var systemModules = GetSystemModules().OrderBy(m => m.Order).ToList();
 
@@ -82,6 +86,10 @@ namespace Relay.Core.Implementation.Core
             Func<TRequest, CancellationToken, IAsyncEnumerable<TResponse>> handler,
             CancellationToken cancellationToken)
         {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Get all system modules and sort by order
             var systemModules = GetSystemModules().OrderBy(m => m.Order).ToList();
 

@@ -107,7 +107,7 @@ namespace Relay.Core.Implementation.Core
 
             if (_streamDispatcher == null)
             {
-                return ThrowHandlerNotFoundAsyncEnumerable<TResponse>(typeof(IStreamRequest<TResponse>).Name, handlerName);
+                return ThrowHandlerNotFoundAsyncEnumerable<TResponse>(request.GetType().Name, handlerName);
             }
 
             try

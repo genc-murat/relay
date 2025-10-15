@@ -21,7 +21,7 @@ namespace Relay.Core.Validation.Rules
         /// </summary>
         /// <param name="country">The country code to determine the postal code format. Defaults to "US".</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public PostalCodeValidationRule(string country = "US", string errorMessage = null)
+        public PostalCodeValidationRule(string country = "US", string? errorMessage = null)
         {
             string pattern = GetPostalCodePattern(country);
             _postalCodeRegex = new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);

@@ -375,13 +375,13 @@ namespace Microsoft.Extensions.DependencyInjection
                 sb.AppendLine();
                 sb.AppendLine("            // Register all discovered handlers");
 
-                foreach (var handlerClass in handlerClasses.Where(h => h != null))
+                foreach (var handlerClass in handlerClasses.Where(h => h != null && h.ClassSymbol != null))
                 {
-                    var className = handlerClass!.ClassSymbol.ToDisplayString();
+                    var className = handlerClass!.ClassSymbol!.ToDisplayString();
                     
-                    foreach (var interfaceInfo in handlerClass.ImplementedInterfaces)
+                    foreach (var interfaceInfo in handlerClass.ImplementedInterfaces.Where(i => i.InterfaceSymbol != null))
                     {
-                        var interfaceTypeName = interfaceInfo.InterfaceSymbol.ToDisplayString();
+                        var interfaceTypeName = interfaceInfo.InterfaceSymbol!.ToDisplayString();
                         sb.Append("            services.AddTransient<");
                         sb.Append(interfaceTypeName);
                         sb.Append(", ");
@@ -550,7 +550,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     sb.Append(requestType);
                     sb.Append("), typeof(");
                     // Strip nullable annotation for typeof
-                    sb.Append(responseType.TrimEnd('?'));
+                    sb.Append(responseType!.TrimEnd('?'));
                     sb.AppendLine("), cancellationToken),");
                 }
 

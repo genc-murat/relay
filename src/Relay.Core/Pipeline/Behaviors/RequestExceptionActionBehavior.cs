@@ -152,7 +152,9 @@ namespace Relay.Core.Pipeline.Behaviors
                 actionType.Name,
                 exception.GetType().Name);
 
-            var resultTask = executeMethod.Invoke(action, new object[] { request, exception, cancellationToken });
+#pragma warning disable CS8601 // Possible null reference assignment
+            var resultTask = executeMethod.Invoke(action, new object[] { request, exception, cancellationToken })!;
+#pragma warning restore CS8601
 
             if (resultTask is ValueTask valueTask)
             {

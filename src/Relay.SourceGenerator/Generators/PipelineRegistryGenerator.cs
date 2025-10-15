@@ -88,13 +88,13 @@ namespace Relay.SourceGenerator
                 var pipelineAttribute = handler.Attributes.First(a => a.Type == RelayAttributeType.Pipeline);
 
                 // Try to read from AttributeData; if missing, fall back to symbol attributes
-                var order = GetAttributeProperty(pipelineAttribute.AttributeData, "Order", 0);
-                var scope = GetAttributeProperty(pipelineAttribute.AttributeData, "Scope", "All");
+                var order = pipelineAttribute.AttributeData != null ? GetAttributeProperty(pipelineAttribute.AttributeData, "Order", 0) : 0;
+                var scope = pipelineAttribute.AttributeData != null ? GetAttributeProperty(pipelineAttribute.AttributeData, "Scope", "All") : "All";
 
                 // If mocked AttributeData has empty/invalid values, inspect symbol attributes
-                if ((pipelineAttribute.AttributeData.NamedArguments.Length == 0 ||
+                if (pipelineAttribute.AttributeData != null && (pipelineAttribute.AttributeData.NamedArguments.Length == 0 ||
                     pipelineAttribute.AttributeData.NamedArguments.All(kv => kv.Value.IsNull || kv.Value.Value is null)) &&
-                    handler.MethodSymbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "Relay.Core.PipelineAttribute") is { } symbolAttr)
+                    handler.MethodSymbol != null && handler.MethodSymbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "Relay.Core.PipelineAttribute") is { } symbolAttr)
                 {
                     var altOrder = symbolAttr.NamedArguments.FirstOrDefault(kv => kv.Key == "Order").Value.Value;
                     if (altOrder is int i) order = i;
@@ -104,13 +104,14 @@ namespace Relay.SourceGenerator
                 else if (order == 0)
                 {
                     // As a fallback, try to parse from attribute syntax
-                    if (TryParsePipelineAttributeFromSyntax(handler.Method, out var parsedOrder, out var parsedScope))
+                    if (handler.Method != null && TryParsePipelineAttributeFromSyntax(handler.Method, out var parsedOrder, out var parsedScope))
                     {
                         if (parsedOrder.HasValue) order = parsedOrder.Value;
                         if (!string.IsNullOrWhiteSpace(parsedScope)) scope = parsedScope!;
                     }
                 }
 
+                if (handler.MethodSymbol == null) continue;
                 var containingType = handler.MethodSymbol.ContainingType.ToDisplayString();
                 var methodName = handler.MethodSymbol.Name;
                 var requestType = GetPipelineRequestType(handler.MethodSymbol);

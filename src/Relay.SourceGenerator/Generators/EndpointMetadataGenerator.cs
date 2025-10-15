@@ -73,7 +73,7 @@ namespace Relay.SourceGenerator
         private void GenerateEndpointRegistration(StringBuilder sourceBuilder, HandlerInfo handler)
         {
             var endpointAttribute = handler.GetExposeAsEndpointAttribute();
-            if (endpointAttribute == null) return;
+            if (endpointAttribute == null || handler.MethodSymbol == null) return;
 
             var requestType = GetRequestType(handler.MethodSymbol);
             var responseType = GetResponseType(handler.MethodSymbol);

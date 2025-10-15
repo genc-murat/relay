@@ -16,7 +16,8 @@ public class SerializationTests
         await broker.SubscribeAsync<ComplexMessage>(async (message, context, ct) =>
         {
             receivedMessage = message;
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -60,7 +61,8 @@ public class SerializationTests
         await broker.SubscribeAsync<OrderMessage>(async (message, context, ct) =>
         {
             receivedMessage = message;
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -110,7 +112,8 @@ public class SerializationTests
         await broker.SubscribeAsync<StatusMessage>(async (message, context, ct) =>
         {
             receivedMessage = message;
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -145,7 +148,8 @@ public class SerializationTests
         await broker.SubscribeAsync<NullableMessage>(async (message, context, ct) =>
         {
             receivedMessage = message;
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -182,7 +186,8 @@ public class SerializationTests
         await broker.SubscribeAsync<TimeMessage>(async (message, context, ct) =>
         {
             receivedMessage = message;
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -218,7 +223,8 @@ public class SerializationTests
         await broker.SubscribeAsync<ArrayMessage>(async (message, context, ct) =>
         {
             receivedMessage = message;
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -261,7 +267,8 @@ public class SerializationTests
         await broker.SubscribeAsync<CollectionMessage>(async (message, context, ct) =>
         {
             receivedMessage = message;
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();

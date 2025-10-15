@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Relay.Core.Validation.Helpers;
 using Relay.Core.Validation.Interfaces;
 using Relay.Core.Validation.Rules;
-using Relay.Core.Validation.Rules;
 
 namespace Relay.Core.Validation.Builder;
 
@@ -51,7 +50,7 @@ public class ValidationRuleBuilder<TRequest>
             throw new ArgumentException($"Custom validation rule '{ruleName}' is not registered", nameof(ruleName));
         }
 
-        _rules.Add(new CustomValidationRule<TRequest>((request, ct) => ruleFunc(request, ct)));
+        _rules.Add(new CustomValidationRule<TRequest>((request, ct) => ruleFunc(request!, ct)));
         return this;
     }
 
@@ -261,7 +260,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// <summary>
     /// Ensures the property meets a custom condition.
     /// </summary>
-    public PropertyRuleBuilder<TRequest, TProperty> Must(Func<TProperty, bool> predicate, string errorMessage)
+    public PropertyRuleBuilder<TRequest, TProperty> Must(Func<TProperty?, bool> predicate, string errorMessage)
     {
         _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
             _propertyName,
@@ -276,7 +275,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> MinLength(int minLength, string? errorMessage = null)
     {
-        AddStringRule(value => value.Length >= minLength, errorMessage ?? $"{_propertyName} must be at least {minLength} characters long.");
+        AddStringRule(value => value != null && value.Length >= minLength, errorMessage ?? $"{_propertyName} must be at least {minLength} characters long.");
         return this;
     }
 
@@ -285,7 +284,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> MaxLength(int maxLength, string? errorMessage = null)
     {
-        AddStringRule(value => value.Length <= maxLength, errorMessage ?? $"{_propertyName} must not exceed {maxLength} characters.");
+        AddStringRule(value => value != null && value.Length <= maxLength, errorMessage ?? $"{_propertyName} must not exceed {maxLength} characters.");
         return this;
     }
 
@@ -480,7 +479,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> TurkishId(string? errorMessage = null)
     {
-        AddStringRule(TurkishValidationHelpers.IsValidTurkishId, errorMessage ?? $"{_propertyName} must be a valid Turkish ID number.");
+        AddStringRule(value => value != null && TurkishValidationHelpers.IsValidTurkishId(value), errorMessage ?? $"{_propertyName} must be a valid Turkish ID number.");
         return this;
     }
 
@@ -489,7 +488,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> TurkishForeignerId(string? errorMessage = null)
     {
-        AddStringRule(TurkishValidationHelpers.IsValidTurkishForeignerId, errorMessage ?? $"{_propertyName} must be a valid Turkish foreigner ID number.");
+        AddStringRule(value => value != null && TurkishValidationHelpers.IsValidTurkishForeignerId(value), errorMessage ?? $"{_propertyName} must be a valid Turkish foreigner ID number.");
         return this;
     }
 
@@ -498,7 +497,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> TurkishPhone(string? errorMessage = null)
     {
-        AddStringRule(TurkishValidationHelpers.IsValidTurkishPhone, errorMessage ?? $"{_propertyName} must be a valid Turkish phone number.");
+        AddStringRule(value => value != null && TurkishValidationHelpers.IsValidTurkishPhone(value), errorMessage ?? $"{_propertyName} must be a valid Turkish phone number.");
         return this;
     }
 
@@ -507,7 +506,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> TurkishPostalCode(string? errorMessage = null)
     {
-        AddStringRule(TurkishValidationHelpers.IsValidTurkishPostalCode, errorMessage ?? $"{_propertyName} must be a valid Turkish postal code.");
+        AddStringRule(value => value != null && TurkishValidationHelpers.IsValidTurkishPostalCode(value), errorMessage ?? $"{_propertyName} must be a valid Turkish postal code.");
         return this;
     }
 
@@ -516,7 +515,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> TurkishIban(string? errorMessage = null)
     {
-        AddStringRule(TurkishValidationHelpers.IsValidTurkishIban, errorMessage ?? $"{_propertyName} must be a valid Turkish IBAN.");
+        AddStringRule(value => value != null && TurkishValidationHelpers.IsValidTurkishIban(value), errorMessage ?? $"{_propertyName} must be a valid Turkish IBAN.");
         return this;
     }
 
@@ -525,7 +524,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> TurkishTaxNumber(string? errorMessage = null)
     {
-        AddStringRule(TurkishValidationHelpers.IsValidTurkishTaxNumber, errorMessage ?? $"{_propertyName} must be a valid Turkish tax number.");
+        AddStringRule(value => value != null && TurkishValidationHelpers.IsValidTurkishTaxNumber(value), errorMessage ?? $"{_propertyName} must be a valid Turkish tax number.");
         return this;
     }
 
@@ -534,7 +533,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> Numeric(string? errorMessage = null)
     {
-        AddStringRule(GeneralValidationHelpers.IsValidNumeric, errorMessage ?? $"{_propertyName} must be a valid number.");
+        AddStringRule(value => value != null && GeneralValidationHelpers.IsValidNumeric(value), errorMessage ?? $"{_propertyName} must be a valid number.");
         return this;
     }
 
@@ -543,7 +542,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> Alpha(string? errorMessage = null)
     {
-        AddStringRule(GeneralValidationHelpers.IsValidAlpha, errorMessage ?? $"{_propertyName} must contain only letters.");
+        AddStringRule(value => value != null && GeneralValidationHelpers.IsValidAlpha(value), errorMessage ?? $"{_propertyName} must contain only letters.");
         return this;
     }
 
@@ -552,7 +551,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> Alphanumeric(string? errorMessage = null)
     {
-        AddStringRule(GeneralValidationHelpers.IsValidAlphanumeric, errorMessage ?? $"{_propertyName} must contain only letters and numbers.");
+        AddStringRule(value => value != null && GeneralValidationHelpers.IsValidAlphanumeric(value), errorMessage ?? $"{_propertyName} must contain only letters and numbers.");
         return this;
     }
 
@@ -561,7 +560,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> DigitsOnly(string? errorMessage = null)
     {
-        AddStringRule(GeneralValidationHelpers.IsValidDigitsOnly, errorMessage ?? $"{_propertyName} must contain only digits.");
+        AddStringRule(value => value != null && GeneralValidationHelpers.IsValidDigitsOnly(value), errorMessage ?? $"{_propertyName} must contain only digits.");
         return this;
     }
 
@@ -570,7 +569,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
     /// </summary>
     public PropertyRuleBuilder<TRequest, TProperty> NoWhitespace(string? errorMessage = null)
     {
-        AddStringRule(GeneralValidationHelpers.HasNoWhitespace, errorMessage ?? $"{_propertyName} must not contain whitespace.");
+        AddStringRule(value => value != null && GeneralValidationHelpers.HasNoWhitespace(value), errorMessage ?? $"{_propertyName} must not contain whitespace.");
         return this;
     }
 
@@ -788,7 +787,7 @@ public class ConditionalPropertyRuleBuilder<TRequest, TProperty>
     /// <summary>
     /// Ensures the property meets a custom condition.
     /// </summary>
-    public ConditionalPropertyRuleBuilder<TRequest, TProperty> Must(Func<TProperty, bool> predicate, string errorMessage)
+    public ConditionalPropertyRuleBuilder<TRequest, TProperty> Must(Func<TProperty?, bool> predicate, string errorMessage)
     {
         _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
             _propertyName,
@@ -922,7 +921,7 @@ public class DependentPropertyRuleBuilder<TRequest, TProperty, TDependentPropert
     /// <summary>
     /// Ensures the property meets a custom condition.
     /// </summary>
-    public DependentPropertyRuleBuilder<TRequest, TProperty, TDependentProperty> Must(Func<TProperty, bool> predicate, string errorMessage)
+    public DependentPropertyRuleBuilder<TRequest, TProperty, TDependentProperty> Must(Func<TProperty?, bool> predicate, string errorMessage)
     {
         _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
             _propertyName,

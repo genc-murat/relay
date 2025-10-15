@@ -110,8 +110,8 @@ namespace Relay.SourceGenerator
 
             // Register all handler types
             var handlerTypes = discoveryResult.Handlers
-                .Where(h => !h.MethodSymbol.IsStatic)
-                .Select(h => h.MethodSymbol.ContainingType.ToDisplayString())
+                .Where(h => h.MethodSymbol != null && !h.MethodSymbol.IsStatic)
+                .Select(h => h.MethodSymbol!.ContainingType.ToDisplayString())
                 .Distinct()
                 .ToList();
 
@@ -143,8 +143,8 @@ namespace Relay.SourceGenerator
         {
             // Group handlers by type for individual registration methods
             var handlersByType = discoveryResult.Handlers
-                .Where(h => !h.MethodSymbol.IsStatic)
-                .GroupBy(h => h.MethodSymbol.ContainingType.ToDisplayString())
+                .Where(h => h.MethodSymbol != null && !h.MethodSymbol.IsStatic)
+                .GroupBy(h => h.MethodSymbol!.ContainingType.ToDisplayString())
                 .ToList();
 
             foreach (var group in handlersByType)

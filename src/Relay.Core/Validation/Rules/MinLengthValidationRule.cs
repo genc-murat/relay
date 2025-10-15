@@ -19,7 +19,7 @@ namespace Relay.Core.Validation.Rules
         /// </summary>
         /// <param name="minLength">The minimum allowed length (inclusive). Default is 1.</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public MinLengthValidationRule(int minLength = 1, string errorMessage = null)
+        public MinLengthValidationRule(int minLength = 1, string? errorMessage = null)
         {
             _minLength = minLength;
             _errorMessage = errorMessage ?? $"Length must be at least {_minLength} characters.";

@@ -18,7 +18,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="TurkishTaxNumberValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public TurkishTaxNumberValidationRule(string errorMessage = null)
+        public TurkishTaxNumberValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Invalid Turkish tax number.";
         }

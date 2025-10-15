@@ -21,7 +21,7 @@ namespace Relay.Core.Validation.Rules
         /// </summary>
         /// <param name="allowedExtensions">The allowed file extensions (without dots, case-insensitive).</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public FileExtensionValidationRule(IEnumerable<string> allowedExtensions, string errorMessage = null)
+        public FileExtensionValidationRule(IEnumerable<string> allowedExtensions, string? errorMessage = null)
         {
             _allowedExtensions = new HashSet<string>(
                 allowedExtensions.Select(ext => ext.TrimStart('.').ToLowerInvariant()),
@@ -39,9 +39,9 @@ namespace Relay.Core.Validation.Rules
                 return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
             }
 
-            string extension = Path.GetExtension(request)?.TrimStart('.').ToLowerInvariant();
+            string? extension = Path.GetExtension(request)?.TrimStart('.').ToLowerInvariant();
 
-            if (string.IsNullOrEmpty(extension) || !_allowedExtensions.Contains(extension))
+            if (string.IsNullOrEmpty(extension) || !_allowedExtensions.Contains(extension!))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
             }

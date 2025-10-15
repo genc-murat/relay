@@ -16,13 +16,15 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<OrderMessage>(async (message, context, ct) =>
         {
             orderMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.SubscribeAsync<PaymentMessage>(async (message, context, ct) =>
         {
             paymentMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -53,13 +55,15 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<AuditMessage>(async (message, context, ct) =>
         {
             auditMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.SubscribeAsync<NotificationMessage>(async (message, context, ct) =>
         {
             notificationMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -91,14 +95,16 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<OrderMessage>(async (message, context, ct) =>
         {
             allOrderMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         }, new SubscriptionOptions { RoutingKey = "orders.*" });
 
         // Subscribe to created orders only
         await broker.SubscribeAsync<OrderMessage>(async (message, context, ct) =>
         {
             createdOrderMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         }, new SubscriptionOptions { RoutingKey = "orders.created" });
 
         await broker.StartAsync();
@@ -128,7 +134,8 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<PriorityMessage>(async (message, context, ct) =>
         {
             highPriorityMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         }, new SubscriptionOptions
         {
             RoutingKey = "high"
@@ -138,7 +145,8 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<PriorityMessage>(async (message, context, ct) =>
         {
             lowPriorityMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         }, new SubscriptionOptions
         {
             RoutingKey = "low"
@@ -179,7 +187,8 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<PriorityMessage>(async (message, context, ct) =>
         {
             receivedMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -210,7 +219,8 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<ExpiringMessage>(async (message, context, ct) =>
         {
             receivedMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -240,13 +250,15 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<UserEvent>(async (message, context, ct) =>
         {
             userEvents.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.SubscribeAsync<SystemEvent>(async (message, context, ct) =>
         {
             systemEvents.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         });
 
         await broker.StartAsync();
@@ -278,7 +290,8 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<AuditMessage>(async (message, context, ct) =>
         {
             auditLogMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         }, new SubscriptionOptions
         {
             Exchange = "audit",
@@ -289,7 +302,8 @@ public class MessageRoutingTests
         await broker.SubscribeAsync<ErrorMessage>(async (message, context, ct) =>
         {
             errorMessages.Add(message);
-            await context.Acknowledge();
+            if (context == null) return;
+            await context!.Acknowledge();
         }, new SubscriptionOptions
         {
             Exchange = "errors",

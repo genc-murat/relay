@@ -8,7 +8,7 @@ public sealed class RedisStreamsOptions
     /// <summary>
     /// Gets or sets the Redis connection string.
     /// </summary>
-    public string ConnectionString { get; set; } = "localhost:6379";
+    public string? ConnectionString { get; set; } = "localhost:6379";
 
     /// <summary>
     /// Gets or sets the default stream name.

@@ -20,7 +20,7 @@ namespace Relay.Core.Validation.Rules
         /// </summary>
         /// <param name="ignoreCase">Whether to ignore case when parsing the enum value.</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public EnumValidationRule(bool ignoreCase = false, string errorMessage = null)
+        public EnumValidationRule(bool ignoreCase = false, string? errorMessage = null)
         {
             _ignoreCase = ignoreCase;
             _errorMessage = errorMessage ?? $"Invalid value for enum {typeof(TEnum).Name}.";

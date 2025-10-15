@@ -290,7 +290,7 @@ public class OpenTelemetryTests : IDisposable
         // Act
         if (activity != null)
         {
-            var eventTags = new ActivityTagsCollection(attributes?.Select(kvp => new KeyValuePair<string, object>(kvp.Key, kvp.Value!)) ?? Enumerable.Empty<KeyValuePair<string, object>>());
+            var eventTags = new ActivityTagsCollection(attributes?.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)) ?? Enumerable.Empty<KeyValuePair<string, object?>>());
             activity.AddEvent(new ActivityEvent(eventName, tags: eventTags));
         }
 

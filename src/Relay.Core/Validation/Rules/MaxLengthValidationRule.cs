@@ -19,7 +19,7 @@ namespace Relay.Core.Validation.Rules
         /// </summary>
         /// <param name="maxLength">The maximum allowed length (inclusive). Default is 255.</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public MaxLengthValidationRule(int maxLength = 255, string errorMessage = null)
+        public MaxLengthValidationRule(int maxLength = 255, string? errorMessage = null)
         {
             _maxLength = maxLength;
             _errorMessage = errorMessage ?? $"Length must not exceed {_maxLength} characters.";

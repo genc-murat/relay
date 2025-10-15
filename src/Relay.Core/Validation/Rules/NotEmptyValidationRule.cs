@@ -17,7 +17,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="NotEmptyValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public NotEmptyValidationRule(string errorMessage = null)
+        public NotEmptyValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Value cannot be null or empty.";
         }

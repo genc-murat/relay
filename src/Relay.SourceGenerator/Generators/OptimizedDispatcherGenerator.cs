@@ -79,8 +79,8 @@ public class OptimizedDispatcherGenerator
     private void GenerateTypeSpecificDispatchMethods(StringBuilder sourceBuilder, HandlerDiscoveryResult discoveryResult)
     {
         var requestHandlers = discoveryResult.Handlers
-            .Where(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Handle))
-            .GroupBy(h => h.MethodSymbol.Parameters[0].Type.ToDisplayString())
+            .Where(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Handle) && h.MethodSymbol != null && h.MethodSymbol.Parameters.Length > 0)
+            .GroupBy(h => h.MethodSymbol!.Parameters[0].Type.ToDisplayString())
             .ToList();
 
         foreach (var group in requestHandlers)
@@ -136,6 +136,7 @@ public class OptimizedDispatcherGenerator
 
     private void GenerateSingleHandlerInvocation(StringBuilder sourceBuilder, HandlerInfo handler, string responseType)
     {
+        if (handler.MethodSymbol == null) return;
         var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
         var methodName = handler.MethodSymbol.Name;
         var isStatic = handler.MethodSymbol.IsStatic;
@@ -181,6 +182,7 @@ public class OptimizedDispatcherGenerator
         bool isFirst = true;
         foreach (var handler in sortedHandlers)
         {
+            if (handler.MethodSymbol == null) continue;
             var handlerName = GetHandlerName(handler);
             var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
             var methodName = handler.MethodSymbol.Name;
@@ -248,8 +250,8 @@ public class OptimizedDispatcherGenerator
 
         // Generate type-specific dispatch calls with branch prediction optimization
         var requestTypes = discoveryResult.Handlers
-            .Where(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Handle))
-            .Select(h => h.MethodSymbol.Parameters[0].Type.ToDisplayString())
+            .Where(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Handle) && h.MethodSymbol != null && h.MethodSymbol.Parameters.Length > 0)
+            .Select(h => h.MethodSymbol!.Parameters[0].Type.ToDisplayString())
             .Distinct()
             .OrderBy(t => t) // Consistent ordering for better branch prediction
             .ToList();
@@ -285,7 +287,7 @@ public class OptimizedDispatcherGenerator
     {
         var streamHandlers = discoveryResult.Handlers
             .Where(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Handle) &&
-                       h.MethodSymbol.ReturnType.ToDisplayString().Contains("IAsyncEnumerable"))
+                       h.MethodSymbol != null && h.MethodSymbol.ReturnType.ToDisplayString().Contains("IAsyncEnumerable"))
             .ToList();
 
         if (!streamHandlers.Any()) return;
@@ -309,6 +311,7 @@ public class OptimizedDispatcherGenerator
         bool isFirst = true;
         foreach (var handler in streamHandlers)
         {
+            if (handler.MethodSymbol == null || handler.MethodSymbol.Parameters.Length == 0) continue;
             var requestType = handler.MethodSymbol.Parameters[0].Type.ToDisplayString();
             var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
             var methodName = handler.MethodSymbol.Name;
@@ -361,7 +364,8 @@ public class OptimizedDispatcherGenerator
 
         // Group notification handlers by type
         var notificationGroups = notificationHandlers
-            .GroupBy(h => h.MethodSymbol.Parameters[0].Type.ToDisplayString())
+            .Where(h => h.MethodSymbol != null && h.MethodSymbol.Parameters.Length > 0)
+            .GroupBy(h => h.MethodSymbol!.Parameters[0].Type.ToDisplayString())
             .ToList();
 
         sourceBuilder.AppendLine($"            var notificationType = typeof(TNotification);");
@@ -380,6 +384,7 @@ public class OptimizedDispatcherGenerator
 
             foreach (var handler in handlers)
             {
+                if (handler.MethodSymbol == null) continue;
                 var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
                 var methodName = handler.MethodSymbol.Name;
                 var isStatic = handler.MethodSymbol.IsStatic;
@@ -411,6 +416,7 @@ public class OptimizedDispatcherGenerator
 
     private string GetResponseType(HandlerInfo handler)
     {
+        if (handler.MethodSymbol == null) return "void";
         var returnType = handler.MethodSymbol.ReturnType;
         var returnTypeString = returnType.ToDisplayString();
 

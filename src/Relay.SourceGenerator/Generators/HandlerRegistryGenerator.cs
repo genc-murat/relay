@@ -121,6 +121,7 @@ namespace Relay.SourceGenerator
 
         private void GenerateHandlerMetadataEntry(StringBuilder sourceBuilder, HandlerInfo handler)
         {
+            if (handler.MethodSymbol == null || handler.MethodSymbol.Parameters.Length == 0) return;
             var requestType = handler.MethodSymbol.Parameters[0].Type.ToDisplayString();
             var responseType = GetResponseType(handler);
             var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
@@ -189,6 +190,7 @@ namespace Relay.SourceGenerator
 
         private string GetResponseType(HandlerInfo handler)
         {
+            if (handler.MethodSymbol == null) return "void";
             ITypeSymbol returnType = handler.MethodSymbol.ReturnType;
             var returnTypeString = returnType.ToDisplayString();
 
@@ -259,7 +261,7 @@ namespace Relay.SourceGenerator
 
         private string GetHandlerKind(HandlerInfo handler)
         {
-            if (handler.Attributes.Any(a => a.Type == RelayAttributeType.Handle))
+            if (handler.Attributes.Any(a => a.Type == RelayAttributeType.Handle) && handler.MethodSymbol != null)
             {
                 var returnType = handler.MethodSymbol.ReturnType.ToDisplayString();
                 if (returnType.StartsWith("System.Collections.Generic.IAsyncEnumerable"))

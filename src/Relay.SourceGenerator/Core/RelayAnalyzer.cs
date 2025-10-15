@@ -711,6 +711,7 @@ namespace Relay.SourceGenerator
 
             foreach (var group in handlerGroups)
             {
+                if (group.Key == null) continue;
                 var handlers = group.ToList();
                 var requestTypeName = group.Key.ToDisplayString();
 

@@ -18,7 +18,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="IpAddressValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public IpAddressValidationRule(string errorMessage = null)
+        public IpAddressValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Invalid IP address format.";
         }

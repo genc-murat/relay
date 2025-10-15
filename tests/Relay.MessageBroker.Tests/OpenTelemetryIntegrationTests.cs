@@ -163,7 +163,7 @@ public class OpenTelemetryIntegrationTests
         var exception = new InvalidOperationException("Test error");
         
         activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
-        activity?.RecordException(exception);
+        activity?.AddException(exception);
 
         // Assert
         Assert.NotNull(activity);

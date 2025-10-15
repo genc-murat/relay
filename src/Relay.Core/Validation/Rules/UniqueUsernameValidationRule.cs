@@ -41,7 +41,7 @@ public class UniqueUsernameValidationRule : IValidationRule<string>
                 errors.Add("Username is already taken. Please choose a different username.");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log the error but don't fail validation - allow registration to proceed
             // In production, you might want to have a fallback behavior
@@ -93,7 +93,7 @@ public class DatabaseUsernameUniquenessChecker : IUsernameUniquenessChecker
         await _connection.OpenAsync(cancellationToken);
         try
         {
-            var count = (long)await command.ExecuteScalarAsync(cancellationToken);
+            var count = (long)(await command.ExecuteScalarAsync(cancellationToken) ?? 0L);
             return count == 0;
         }
         finally

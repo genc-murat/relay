@@ -18,7 +18,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="AlphanumericValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public AlphanumericValidationRule(string errorMessage = null)
+        public AlphanumericValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Value must contain only letters and numbers.";
         }

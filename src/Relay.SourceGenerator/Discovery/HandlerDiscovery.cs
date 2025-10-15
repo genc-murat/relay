@@ -223,6 +223,7 @@ namespace Relay.SourceGenerator
         private bool ValidateHandlerSignature(HandlerInfo handlerInfo, RelayAttributeInfo attributeInfo, IDiagnosticReporter diagnosticReporter)
         {
             var method = handlerInfo.MethodSymbol;
+            if (handlerInfo.Method == null || method == null) return false;
             var location = handlerInfo.Method.GetLocation();
 
             switch (attributeInfo.Type)
@@ -405,7 +406,8 @@ namespace Relay.SourceGenerator
 
             // Group by request type and validate naming conflicts
             var groupedHandlers = requestHandlers
-                .GroupBy(h => GetRequestType(h.MethodSymbol))
+                .Where(h => h.MethodSymbol != null)
+                .GroupBy(h => GetRequestType(h.MethodSymbol!))
                 .ToList();
 
             foreach (var group in groupedHandlers)
@@ -444,6 +446,7 @@ namespace Relay.SourceGenerator
                     // Multiple handlers with the same name for the same request type
                     foreach (var handler in handlersWithName)
                     {
+                        if (handler.Method == null) continue;
                         var diagnostic = Diagnostic.Create(DiagnosticDescriptors.NamedHandlerConflict,
                             handler.Method.GetLocation(), handlerName, requestType);
                         diagnosticReporter.ReportDiagnostic(diagnostic);

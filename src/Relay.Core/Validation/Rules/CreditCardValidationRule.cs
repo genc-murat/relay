@@ -18,7 +18,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="CreditCardValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public CreditCardValidationRule(string errorMessage = null)
+        public CreditCardValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Invalid credit card number.";
         }

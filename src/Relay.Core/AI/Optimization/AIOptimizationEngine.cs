@@ -5904,10 +5904,11 @@ namespace Relay.Core.AI
                 
                 // Get request analytics for estimation
                 var totalRequests = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
-                var avgConcurrency = _requestAnalytics.Values
-                    .Where(x => x.ConcurrentExecutionPeaks > 0)
-                    .DefaultIfEmpty()
-                    .Average(x => x.ConcurrentExecutionPeaks);
+                 var avgConcurrency = _requestAnalytics.Values
+                     .Where(x => x.ConcurrentExecutionPeaks > 0)
+                     .Select(x => (double)x.ConcurrentExecutionPeaks)
+                     .DefaultIfEmpty(0.0)
+                     .Average();
                 
                 // Estimate: connections ≈ average concurrency × connection multiplier
                 // Multiplier accounts for keep-alive connections, pooling, etc.

@@ -17,7 +17,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="UrlValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public UrlValidationRule(string errorMessage = null)
+        public UrlValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Invalid URL format.";
         }

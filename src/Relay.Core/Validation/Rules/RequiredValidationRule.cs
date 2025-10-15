@@ -18,7 +18,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="RequiredValidationRule{T}"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public RequiredValidationRule(string errorMessage = null)
+        public RequiredValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Value is required.";
         }

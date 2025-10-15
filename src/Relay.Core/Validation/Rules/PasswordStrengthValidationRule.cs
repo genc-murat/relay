@@ -35,7 +35,7 @@ namespace Relay.Core.Validation.Rules
             bool requireLowercase = true,
             bool requireDigit = true,
             bool requireSpecialChar = true,
-            string errorMessage = null)
+            string? errorMessage = null)
         {
             _minLength = minLength;
             _requireUppercase = requireUppercase;

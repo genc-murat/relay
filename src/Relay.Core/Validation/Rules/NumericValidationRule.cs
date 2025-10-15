@@ -18,7 +18,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="NumericValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public NumericValidationRule(string errorMessage = null)
+        public NumericValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Value must be a valid number.";
         }

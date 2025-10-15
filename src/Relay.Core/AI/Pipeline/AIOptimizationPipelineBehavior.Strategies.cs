@@ -990,11 +990,11 @@ namespace Relay.Core.AI
                     RecordCircuitBreakerMetrics(typeof(TRequest), CircuitBreakerState.Open, circuitBreaker.GetMetrics(), success: false);
 
                     // Provide fallback response or rethrow
-                    if (TryGetFallbackResponse(recommendation, out var fallbackResponse))
-                    {
-                        _logger.LogDebug("Using fallback response for {RequestType}", typeof(TRequest).Name);
-                        return fallbackResponse;
-                    }
+                     if (TryGetFallbackResponse(recommendation, out var fallbackResponse))
+                     {
+                         _logger.LogDebug("Using fallback response for {RequestType}", typeof(TRequest).Name);
+                         return fallbackResponse!;
+                     }
 
                     throw new InvalidOperationException($"Circuit breaker is open for {typeof(TRequest).Name}", ex);
                 }

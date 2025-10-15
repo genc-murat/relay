@@ -35,7 +35,7 @@ namespace Relay.Core.Validation.Exceptions
         /// <param name="requestType">The type of the request that failed validation.</param>
         /// <param name="errors">The validation errors.</param>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public ValidationException(Type requestType, IEnumerable<string> errors, Exception innerException)
+        public ValidationException(Type requestType, IEnumerable<string> errors, Exception? innerException)
             : base(FormatMessage(requestType, errors), innerException)
         {
             RequestType = requestType ?? throw new ArgumentNullException(nameof(requestType));

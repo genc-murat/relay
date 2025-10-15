@@ -18,7 +18,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="TurkishForeignerIdValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public TurkishForeignerIdValidationRule(string errorMessage = null)
+        public TurkishForeignerIdValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Invalid Turkish foreigner ID number.";
         }

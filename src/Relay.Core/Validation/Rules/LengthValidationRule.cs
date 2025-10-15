@@ -21,7 +21,7 @@ namespace Relay.Core.Validation.Rules
         /// <param name="minLength">The minimum allowed length (inclusive). Use 0 for no minimum.</param>
         /// <param name="maxLength">The maximum allowed length (inclusive). Use int.MaxValue for no maximum.</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public LengthValidationRule(int minLength = 0, int maxLength = int.MaxValue, string errorMessage = null)
+        public LengthValidationRule(int minLength = 0, int maxLength = int.MaxValue, string? errorMessage = null)
         {
             _minLength = minLength;
             _maxLength = maxLength;

@@ -21,7 +21,7 @@ namespace Relay.Core.Validation.Rules
         /// <param name="pattern">The regular expression pattern to match.</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
         /// <param name="options">The regex options to use.</param>
-        public RegexValidationRule(string pattern, string errorMessage = null, RegexOptions options = RegexOptions.None)
+        public RegexValidationRule(string pattern, string? errorMessage = null, RegexOptions options = RegexOptions.None)
         {
             _regex = new Regex(pattern, options | RegexOptions.Compiled);
             _errorMessage = errorMessage ?? "Value does not match the required format.";

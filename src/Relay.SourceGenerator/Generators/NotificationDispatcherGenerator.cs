@@ -108,7 +108,8 @@ namespace Relay.SourceGenerator
 
             // Generate type-specific dispatch calls
             var notificationTypes = notificationHandlers
-                .Select(h => h.MethodSymbol.Parameters[0].Type.ToDisplayString())
+                .Where(h => h.MethodSymbol != null && h.MethodSymbol.Parameters.Length > 0)
+                .Select(h => h.MethodSymbol!.Parameters[0].Type.ToDisplayString())
                 .Distinct()
                 .ToList();
 
@@ -143,7 +144,8 @@ namespace Relay.SourceGenerator
         private void GenerateSpecificDispatchMethods(StringBuilder sourceBuilder, List<HandlerInfo> notificationHandlers)
         {
             var handlersByNotificationType = notificationHandlers
-                .GroupBy(h => h.MethodSymbol.Parameters[0].Type.ToDisplayString())
+                .Where(h => h.MethodSymbol != null && h.MethodSymbol.Parameters.Length > 0)
+                .GroupBy(h => h.MethodSymbol!.Parameters[0].Type.ToDisplayString())
                 .ToList();
 
             foreach (var group in handlersByNotificationType)
@@ -223,6 +225,7 @@ namespace Relay.SourceGenerator
 
         private void GenerateHandlerExecution(StringBuilder sourceBuilder, HandlerInfo handler, string notificationParam, string cancellationTokenParam, bool isSequential)
         {
+            if (handler.MethodSymbol == null) return;
             var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
             var methodName = handler.MethodSymbol.Name;
             var isStatic = handler.MethodSymbol.IsStatic;
@@ -267,6 +270,7 @@ namespace Relay.SourceGenerator
 
         private void GenerateHandlerExecutionAsTask(StringBuilder sourceBuilder, HandlerInfo handler, string notificationParam, string cancellationTokenParam)
         {
+            if (handler.MethodSymbol == null) return;
             var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
             var methodName = handler.MethodSymbol.Name;
             var isStatic = handler.MethodSymbol.IsStatic;
@@ -313,6 +317,7 @@ namespace Relay.SourceGenerator
 
         private bool IsAsyncMethod(HandlerInfo handler)
         {
+            if (handler.MethodSymbol == null) return false;
             var returnType = handler.MethodSymbol.ReturnType.ToDisplayString();
             return returnType.Contains("Task") || returnType.Contains("ValueTask");
         }

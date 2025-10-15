@@ -25,10 +25,10 @@ namespace Relay.Core.Validation.Rules
         /// <param name="dateTimeStyles">The date time styles to use. Defaults to None.</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
         public DateValidationRule(
-            string[] formats = null,
-            IFormatProvider formatProvider = null,
+            string[]? formats = null,
+            IFormatProvider? formatProvider = null,
             DateTimeStyles dateTimeStyles = DateTimeStyles.None,
-            string errorMessage = null)
+            string? errorMessage = null)
         {
             _formats = formats ?? new[] { "yyyy-MM-dd", "MM/dd/yyyy", "dd/MM/yyyy", "yyyy/MM/dd" };
             _formatProvider = formatProvider ?? CultureInfo.InvariantCulture;

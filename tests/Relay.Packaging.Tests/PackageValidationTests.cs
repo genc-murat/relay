@@ -114,7 +114,7 @@ public class PackageValidationTests
             Path.Combine(baseDir, "windows", "Debug")
         };
 
-        string packageFile = null;
+        string? packageFile = null;
         foreach (var packageDir in possibleDirs)
         {
             if (Directory.Exists(packageDir))
@@ -158,7 +158,7 @@ public class PackageValidationTests
                 var packageFile = packageFiles.FirstOrDefault();
                 if (packageFile != null)
                 {
-                    return packageFile;
+        return packageFile!;
                 }
             }
         }

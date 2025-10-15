@@ -21,7 +21,7 @@ namespace Relay.Core.Validation.Rules
         /// </summary>
         /// <param name="maxValue">The maximum allowed value (exclusive).</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public LessThanValidationRule(T maxValue, string errorMessage = null)
+        public LessThanValidationRule(T maxValue, string? errorMessage = null)
         {
             _maxValue = maxValue;
             _errorMessage = errorMessage ?? $"Value must be less than {_maxValue}.";

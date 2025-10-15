@@ -13,5 +13,5 @@ public interface IValidationRuleConfiguration<in TRequest> : IValidationRule<TRe
     /// <summary>
     /// Validates the request.
     /// </summary>
-    ValueTask<IEnumerable<string>> ValidateAsync(TRequest request, CancellationToken cancellationToken = default);
+    new ValueTask<IEnumerable<string>> ValidateAsync(TRequest request, CancellationToken cancellationToken = default);
 }

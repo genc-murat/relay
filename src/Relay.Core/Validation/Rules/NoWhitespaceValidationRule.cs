@@ -18,7 +18,7 @@ namespace Relay.Core.Validation.Rules
         /// Initializes a new instance of the <see cref="NoWhitespaceValidationRule"/> class.
         /// </summary>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public NoWhitespaceValidationRule(string errorMessage = null)
+        public NoWhitespaceValidationRule(string? errorMessage = null)
         {
             _errorMessage = errorMessage ?? "Value must not contain whitespace.";
         }

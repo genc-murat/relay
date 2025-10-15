@@ -22,7 +22,7 @@ namespace Relay.Core.Validation.Rules
         /// <param name="minValue">The minimum allowed value (inclusive).</param>
         /// <param name="maxValue">The maximum allowed value (inclusive).</param>
         /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public RangeValidationRule(T minValue, T maxValue, string errorMessage = null)
+        public RangeValidationRule(T minValue, T maxValue, string? errorMessage = null)
         {
             _minValue = minValue;
             _maxValue = maxValue;

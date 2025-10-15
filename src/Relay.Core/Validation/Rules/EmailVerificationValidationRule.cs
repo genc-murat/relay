@@ -53,7 +53,7 @@ public class EmailVerificationValidationRule : IValidationRule<string>
                 errors.Add("Email address has a high risk score. Please use a different email.");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log the error but don't fail validation - allow registration to proceed
             // In production, you might want to have a fallback behavior

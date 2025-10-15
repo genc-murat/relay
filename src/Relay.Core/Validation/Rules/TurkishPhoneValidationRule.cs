@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Helpers;
 using Relay.Core.Validation.Interfaces;
 
 namespace Relay.Core.Validation.Rules
@@ -29,42 +28,12 @@ namespace Relay.Core.Validation.Rules
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (string.IsNullOrEmpty(request) || !IsValidTurkishPhone(request))
+            if (string.IsNullOrEmpty(request) || !TurkishValidationHelpers.IsValidTurkishPhone(request))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
             }
 
             return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
-        }
-
-        private static bool IsValidTurkishPhone(string phone)
-        {
-            if (string.IsNullOrWhiteSpace(phone))
-            {
-                return false;
-            }
-
-            // Remove all non-digit characters
-            var digitsOnly = new string(phone.Where(char.IsDigit).ToArray());
-
-            // Check for +90 prefix
-            if (phone.StartsWith("+90"))
-            {
-                digitsOnly = digitsOnly.Substring(2);
-            }
-            else if (phone.StartsWith("90") && digitsOnly.Length == 12)
-            {
-                digitsOnly = digitsOnly.Substring(2);
-            }
-
-            // Should be 10 digits
-            if (digitsOnly.Length != 10)
-            {
-                return false;
-            }
-
-            // Mobile numbers start with 5
-            return digitsOnly.StartsWith("5");
         }
     }
 }

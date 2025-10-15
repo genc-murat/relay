@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Helpers;
 using Relay.Core.Validation.Interfaces;
 
 namespace Relay.Core.Validation.Rules
@@ -28,32 +28,12 @@ namespace Relay.Core.Validation.Rules
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (string.IsNullOrEmpty(request) || !IsValidTurkishIban(request))
+            if (string.IsNullOrEmpty(request) || !TurkishValidationHelpers.IsValidTurkishIban(request))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
             }
 
             return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
-        }
-
-        private static bool IsValidTurkishIban(string iban)
-        {
-            if (string.IsNullOrWhiteSpace(iban))
-            {
-                return false;
-            }
-
-            // Remove spaces
-            var cleanIban = iban.Replace(" ", "").ToUpper();
-
-            // Turkish IBAN should start with TR and be 26 characters long
-            if (!cleanIban.StartsWith("TR") || cleanIban.Length != 26)
-            {
-                return false;
-            }
-
-            // Check if all characters after TR are digits
-            return cleanIban.Substring(2).All(char.IsDigit);
         }
     }
 }

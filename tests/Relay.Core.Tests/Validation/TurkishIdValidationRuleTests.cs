@@ -172,5 +172,168 @@ namespace Relay.Core.Tests.Validation
             await Assert.ThrowsAsync<OperationCanceledException>(async () =>
                 await rule.ValidateAsync(request, cts.Token));
         }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Empty_Errors_For_Another_Valid_Turkish_Id()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = "10000000146"; // Another valid TC No
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Checksum_Is_Wrong_By_One()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = "12345678951"; // Checksum should be 0, not 1
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Invalid Turkish ID number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_All_Digits_Are_Zero_Except_First()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = "10000000006"; // Invalid checksum
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.NotEmpty(errors); // This should be invalid
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Has_Leading_Or_Trailing_Whitespace()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = " 12345678950 ";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Invalid Turkish ID number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Contains_Unicode_Characters()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = "1234567895\u00A0"; // Contains non-breaking space
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Invalid Turkish ID number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Is_All_Zeros()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = "00000000000";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Invalid Turkish ID number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Is_All_Same_Digit()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = "11111111111";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Invalid Turkish ID number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Very_Long_Invalid_Strings()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = new string('1', 1000) + "a"; // Very long string with non-digit
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Invalid Turkish ID number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Empty_String_After_Trim()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule();
+            var request = "   ";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Invalid Turkish ID number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Default_Error_Message_When_Custom_Is_Null()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule(null);
+            var request = "12345678900";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Invalid Turkish ID number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Empty_Custom_Error_Message()
+        {
+            // Arrange
+            var rule = new TurkishIdValidationRule("");
+            var request = "12345678900";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("", errors.First());
+        }
     }
 }

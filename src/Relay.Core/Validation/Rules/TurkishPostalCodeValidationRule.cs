@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Helpers;
 using Relay.Core.Validation.Interfaces;
 
 namespace Relay.Core.Validation.Rules
@@ -28,24 +28,12 @@ namespace Relay.Core.Validation.Rules
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (string.IsNullOrEmpty(request) || !IsValidTurkishPostalCode(request))
+            if (string.IsNullOrEmpty(request) || !TurkishValidationHelpers.IsValidTurkishPostalCode(request))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
             }
 
             return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
-        }
-
-        private static bool IsValidTurkishPostalCode(string postalCode)
-        {
-            if (string.IsNullOrWhiteSpace(postalCode))
-            {
-                return false;
-            }
-
-            // Remove spaces and check if it's exactly 5 digits
-            var cleanCode = postalCode.Replace(" ", "");
-            return cleanCode.Length == 5 && cleanCode.All(char.IsDigit);
         }
     }
 }

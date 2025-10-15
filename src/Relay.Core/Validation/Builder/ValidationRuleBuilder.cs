@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Helpers;
 using Relay.Core.Validation.Interfaces;
 using Relay.Core.Validation.Rules;
 
@@ -228,4 +229,182 @@ public class PropertyRuleBuilder<TRequest, TProperty>
         const string emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
         return Matches(emailPattern, errorMessage ?? $"{_propertyName} must be a valid email address.");
     }
+
+    /// <summary>
+    /// Ensures the value is a valid Turkish ID number.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> TurkishId(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && TurkishValidationHelpers.IsValidTurkishId(value.ToString()),
+                errorMessage ?? $"{_propertyName} must be a valid Turkish ID number."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the value is a valid Turkish foreigner ID number.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> TurkishForeignerId(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && TurkishValidationHelpers.IsValidTurkishForeignerId(value.ToString()),
+                errorMessage ?? $"{_propertyName} must be a valid Turkish foreigner ID number."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the value is a valid Turkish phone number.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> TurkishPhone(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && TurkishValidationHelpers.IsValidTurkishPhone(value.ToString()),
+                errorMessage ?? $"{_propertyName} must be a valid Turkish phone number."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the value is a valid Turkish postal code.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> TurkishPostalCode(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && TurkishValidationHelpers.IsValidTurkishPostalCode(value.ToString()),
+                errorMessage ?? $"{_propertyName} must be a valid Turkish postal code."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the value is a valid Turkish IBAN.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> TurkishIban(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && TurkishValidationHelpers.IsValidTurkishIban(value.ToString()),
+                errorMessage ?? $"{_propertyName} must be a valid Turkish IBAN."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the value is a valid Turkish tax number.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> TurkishTaxNumber(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && TurkishValidationHelpers.IsValidTurkishTaxNumber(value.ToString()),
+                errorMessage ?? $"{_propertyName} must be a valid Turkish tax number."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the string value is numeric.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> Numeric(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && GeneralValidationHelpers.IsValidNumeric(value.ToString()),
+                errorMessage ?? $"{_propertyName} must be a valid number."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the string value contains only letters.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> Alpha(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && GeneralValidationHelpers.IsValidAlpha(value.ToString()),
+                errorMessage ?? $"{_propertyName} must contain only letters."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the string value contains only letters and digits.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> Alphanumeric(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && GeneralValidationHelpers.IsValidAlphanumeric(value.ToString()),
+                errorMessage ?? $"{_propertyName} must contain only letters and numbers."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the string value contains only digits.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> DigitsOnly(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && GeneralValidationHelpers.IsValidDigitsOnly(value.ToString()),
+                errorMessage ?? $"{_propertyName} must contain only digits."));
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Ensures the string value has no whitespace.
+    /// </summary>
+    public PropertyRuleBuilder<TRequest, TProperty> NoWhitespace(string? errorMessage = null)
+    {
+        if (typeof(TProperty) == typeof(string))
+        {
+            _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
+                _propertyName,
+                _propertyFunc,
+                value => value != null && GeneralValidationHelpers.HasNoWhitespace(value.ToString()),
+                errorMessage ?? $"{_propertyName} must not contain whitespace."));
+        }
+        return this;
+    }
+
+
 }

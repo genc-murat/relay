@@ -140,5 +140,152 @@ namespace Relay.Core.Tests.Validation
             await Assert.ThrowsAsync<OperationCanceledException>(async () =>
                 await rule.ValidateAsync(request, cts.Token));
         }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Empty_Errors_When_Value_Is_Scientific_Notation()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = "1.23e-4";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Empty_Errors_When_Value_Is_Large_Number()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = "999999999999999999999999999999999999999";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Is_Number_With_Invalid_Characters()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = "123.45.67";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Value must be a valid number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Is_Text_With_Numbers()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = "abc123";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Value must be a valid number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Is_Number_With_Spaces()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = "123 456";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Value must be a valid number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Is_Empty_With_Whitespace()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = "   ";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Value must be a valid number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Return_Error_When_Value_Is_Special_Characters()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = "!@#$%^&*()";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Value must be a valid number.", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Custom_Error_Message_Containing_Special_Chars()
+        {
+            // Arrange
+            var rule = new NumericValidationRule("Custom error: @#$%");
+            var request = "abc";
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Custom error: @#$%", errors.First());
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Very_Long_Numeric_String()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = new string('9', 1000);
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        public async Task ValidateAsync_Should_Work_With_Very_Long_Invalid_String()
+        {
+            // Arrange
+            var rule = new NumericValidationRule();
+            var request = new string('a', 1000);
+
+            // Act
+            var errors = await rule.ValidateAsync(request);
+
+            // Assert
+            Assert.Single(errors);
+            Assert.Equal("Value must be a valid number.", errors.First());
+        }
     }
 }

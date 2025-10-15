@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Helpers;
 using Relay.Core.Validation.Interfaces;
 
 namespace Relay.Core.Validation.Rules
@@ -27,7 +28,7 @@ namespace Relay.Core.Validation.Rules
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (string.IsNullOrEmpty(request) || !double.TryParse(request, out _))
+            if (string.IsNullOrEmpty(request) || !GeneralValidationHelpers.IsValidNumeric(request))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
             }

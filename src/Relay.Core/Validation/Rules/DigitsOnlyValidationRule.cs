@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Validation.Helpers;
 using Relay.Core.Validation.Interfaces;
 
 namespace Relay.Core.Validation.Rules
@@ -28,7 +28,7 @@ namespace Relay.Core.Validation.Rules
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (string.IsNullOrEmpty(request) || !request.All(char.IsDigit))
+            if (string.IsNullOrEmpty(request) || !GeneralValidationHelpers.IsValidDigitsOnly(request))
             {
                 return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
             }

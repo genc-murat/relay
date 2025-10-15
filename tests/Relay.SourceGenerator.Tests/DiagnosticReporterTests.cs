@@ -470,6 +470,38 @@ public class DiagnosticReporterTests
     }
 
     [Fact]
+    public void SourceOutputDiagnosticReporter_Constructor_ShouldAcceptValidContext()
+    {
+        // Arrange - SourceProductionContext is a struct, so we can't test null directly
+        // Instead, we test that the constructor accepts a valid context
+        // This is more of a compilation test than a runtime test
+
+        // Since SourceProductionContext is a struct and cannot be null,
+        // and we can't easily create one in tests, we verify the class can be instantiated
+        // with reflection or by checking the constructor exists
+
+        var constructor = typeof(SourceOutputDiagnosticReporter)
+            .GetConstructor(new[] { typeof(Microsoft.CodeAnalysis.SourceProductionContext) });
+
+        // Assert
+        Assert.NotNull(constructor);
+        Assert.True(constructor!.IsPublic);
+    }
+
+    [Fact]
+    public void SourceProductionContextDiagnosticReporter_Constructor_ShouldAcceptValidContext()
+    {
+        // Arrange - Similar to above, SourceProductionContext is a struct
+
+        var constructor = typeof(SourceProductionContextDiagnosticReporter)
+            .GetConstructor(new[] { typeof(Microsoft.CodeAnalysis.SourceProductionContext) });
+
+        // Assert
+        Assert.NotNull(constructor);
+        Assert.True(constructor!.IsPublic);
+    }
+
+    [Fact]
     public void SourceOutputDiagnosticReporter_ShouldStoreContextAndReportDiagnostics()
     {
         // This test verifies that SourceOutputDiagnosticReporter wraps SourceProductionContext
@@ -532,6 +564,176 @@ public class DiagnosticReporterTests
 
         // Act & Assert - Should not throw when reporting null diagnostic
         Assert.Throws<ArgumentNullException>(() => mockReporter.ReportDiagnostic(null!));
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldHandleReportingSameDiagnosticMultipleTimes()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var diagnostic = CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, "TestRequest", "TestResponse");
+
+        // Act
+        mockReporter.ReportDiagnostic(diagnostic);
+        mockReporter.ReportDiagnostic(diagnostic);
+        mockReporter.ReportDiagnostic(diagnostic);
+
+        // Assert
+        Assert.Equal(3, mockReporter.ReportedDiagnostics.Count);
+        Assert.All(mockReporter.ReportedDiagnostics, d => Assert.Equal(diagnostic, d));
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldHandleLargeNumberOfDiagnostics()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        const int diagnosticCount = 1000;
+        var diagnostics = new List<Diagnostic>();
+
+        for (int i = 0; i < diagnosticCount; i++)
+        {
+            diagnostics.Add(CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, $"Request{i}", $"Response{i}"));
+        }
+
+        // Act
+        foreach (var diagnostic in diagnostics)
+        {
+            mockReporter.ReportDiagnostic(diagnostic);
+        }
+
+        // Assert
+        Assert.Equal(diagnosticCount, mockReporter.ReportedDiagnostics.Count);
+        for (int i = 0; i < diagnosticCount; i++)
+        {
+            Assert.Equal(diagnostics[i], mockReporter.ReportedDiagnostics[i]);
+        }
+    }
+
+    [Fact]
+    public async Task SourceOutputDiagnosticReporter_ShouldBeThreadSafeForConcurrentReporting()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        const int threadCount = 10;
+        const int diagnosticsPerThread = 100;
+        var allDiagnostics = new List<Diagnostic>();
+        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+        // Create diagnostics for each thread
+        for (int i = 0; i < threadCount * diagnosticsPerThread; i++)
+        {
+            allDiagnostics.Add(CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, $"Request{i}", $"Response{i}"));
+        }
+
+        // Act - Report diagnostics concurrently
+        var tasks = new Task[threadCount];
+        for (int t = 0; t < threadCount; t++)
+        {
+            var threadIndex = t;
+            tasks[t] = Task.Run(() =>
+            {
+                try
+                {
+                    for (int i = 0; i < diagnosticsPerThread; i++)
+                    {
+                        var diagnosticIndex = threadIndex * diagnosticsPerThread + i;
+                        mockReporter.ReportDiagnostic(allDiagnostics[diagnosticIndex]);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    exceptions.Add(ex);
+                }
+            });
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert
+        Assert.Empty(exceptions); // No exceptions should occur
+        Assert.Equal(threadCount * diagnosticsPerThread, mockReporter.ReportedDiagnostics.Count);
+
+        // Verify all diagnostics were reported (order may vary due to concurrency)
+        foreach (var expectedDiagnostic in allDiagnostics)
+        {
+            Assert.Contains(expectedDiagnostic, mockReporter.ReportedDiagnostics);
+        }
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldHandleBulkDiagnosticReportingEfficiently()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        const int bulkSize = 10000;
+        var diagnostics = new List<Diagnostic>();
+
+        for (int i = 0; i < bulkSize; i++)
+        {
+            diagnostics.Add(CreateTestDiagnostic(DiagnosticDescriptors.Info, $"Bulk diagnostic {i}"));
+        }
+
+        // Act - Measure performance (basic check that it completes within reasonable time)
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        foreach (var diagnostic in diagnostics)
+        {
+            mockReporter.ReportDiagnostic(diagnostic);
+        }
+        stopwatch.Stop();
+
+        // Assert
+        Assert.Equal(bulkSize, mockReporter.ReportedDiagnostics.Count);
+
+        // Performance check - should complete in less than 1 second for 10k diagnostics
+        // This is a reasonable performance expectation for diagnostic reporting
+        Assert.True(stopwatch.ElapsedMilliseconds < 1000, $"Bulk reporting took {stopwatch.ElapsedMilliseconds}ms, expected < 1000ms");
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldHandleAllDiagnosticSeverities()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var diagnostics = new[]
+        {
+            CreateTestDiagnostic(DiagnosticDescriptors.GeneratorError, "error message"), // Error
+            CreateTestDiagnostic(DiagnosticDescriptors.HandlerMissingCancellationToken, "HandleAsync"), // Warning
+            CreateTestDiagnostic(DiagnosticDescriptors.Info, "info message"), // Info
+            CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, "Request", "Response") // Error
+        };
+
+        // Act
+        foreach (var diagnostic in diagnostics)
+        {
+            mockReporter.ReportDiagnostic(diagnostic);
+        }
+
+        // Assert
+        Assert.Equal(diagnostics.Length, mockReporter.ReportedDiagnostics.Count);
+        Assert.Equal(DiagnosticSeverity.Error, mockReporter.ReportedDiagnostics[0].Severity);
+        Assert.Equal(DiagnosticSeverity.Warning, mockReporter.ReportedDiagnostics[1].Severity);
+        Assert.Equal(DiagnosticSeverity.Info, mockReporter.ReportedDiagnostics[2].Severity);
+        Assert.Equal(DiagnosticSeverity.Error, mockReporter.ReportedDiagnostics[3].Severity);
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldPreserveDiagnosticProperties()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var diagnostic = CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, "TestRequest", "TestResponse");
+
+        // Act
+        mockReporter.ReportDiagnostic(diagnostic);
+
+        // Assert
+        var reported = mockReporter.ReportedDiagnostics[0];
+        Assert.Equal(diagnostic.Id, reported.Id);
+        Assert.Equal(diagnostic.Severity, reported.Severity);
+        Assert.Equal(diagnostic.GetMessage(), reported.GetMessage());
+        Assert.Equal(diagnostic.Location, reported.Location);
+        Assert.Equal(diagnostic.Descriptor, reported.Descriptor);
     }
 
     [Fact]

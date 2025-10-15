@@ -5,8 +5,15 @@
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <Exclude>[*.Tests]*,[*Test*]*</Exclude>
-          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+
+          <Exclude>
+            <ModulePath>.*\.Tests\.dll$</ModulePath>
+            <ModulePath>.*\.tests\.dll$</ModulePath>
+          </Exclude>
+
+          <ExcludeByAttribute>
+            Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute
+          </ExcludeByAttribute>
         </Configuration>
       </DataCollector>
     </DataCollectors>

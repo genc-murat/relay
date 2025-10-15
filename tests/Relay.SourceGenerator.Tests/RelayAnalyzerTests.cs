@@ -2,14 +2,7 @@ extern alias RelayCore;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.Testing;
-using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using Xunit;
-using Relay.SourceGenerator;
 
 namespace Relay.SourceGenerator.Tests
 {
@@ -169,6 +162,386 @@ public class TestHandler
     public ValueTask<string> {|RELAY_GEN_207:HandleAsync|}(TestRequest request)
     {
         return ValueTask.FromResult(""test"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that handlers with invalid request parameter types produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task HandlerInvalidRequestParameterType_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class InvalidRequest { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask<string> {|RELAY_GEN_206:HandleAsync|}(InvalidRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+
+
+        /// <summary>
+        /// Tests that valid void handlers do not produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task ValidVoidHandler_NoDiagnostics()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestVoidRequest : IRequest { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask HandleAsync(TestVoidRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.CompletedTask;
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that void handlers with invalid return types produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task VoidHandlerInvalidReturnType_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestVoidRequest : IRequest { }
+
+public class TestHandler
+{
+    [Handle]
+    public {|RELAY_GEN_202:string|} {|RELAY_GEN_102:HandleAsync|}(TestVoidRequest request, CancellationToken cancellationToken)
+    {
+        return ""invalid"";
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that notification handlers missing notification parameter produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task NotificationHandlerMissingParameter_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestHandler
+{
+    [Notification]
+    public Task {|RELAY_GEN_208:HandleAsync|}()
+    {
+        return Task.CompletedTask;
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that notification handlers with invalid parameter types produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task NotificationHandlerInvalidParameterType_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class InvalidNotification { }
+
+public class TestHandler
+{
+    [Notification]
+    public Task {|RELAY_GEN_206:HandleAsync|}(InvalidNotification notification, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that invalid priority values produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task InvalidPriorityValue_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+public class TestNotification : INotification { }
+
+public class TestHandler
+{
+    [Handle(Priority = ""invalid"")]
+    public ValueTask<string> {|RELAY_GEN_209:HandleAsync|}(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+
+    [Notification(Priority = 123.45)]
+    public Task {|RELAY_GEN_209:HandleNotificationAsync|}(TestNotification notification, CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that named handler conflicts produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task NamedHandlerConflict_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler1
+{
+    [Handle(Name = ""MyHandler"")]
+    public ValueTask<string> {|RELAY_GEN_005:HandleAsync|}(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test1"");
+    }
+}
+
+public class TestHandler2
+{
+    [Handle(Name = ""MyHandler"")]
+    public ValueTask<string> {|RELAY_GEN_005:HandleAsync|}(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test2"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that mixed named and unnamed handlers produce configuration conflict diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task MixedNamedUnnamedHandlers_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler1
+{
+    [Handle]
+    public ValueTask<string> {|RELAY_GEN_211:HandleAsync|}(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test1"");
+    }
+}
+
+public class TestHandler2
+{
+    [Handle(Name = ""NamedHandler"")]
+    public ValueTask<string> HandleNamedAsync(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test2"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that non-async methods with invalid return types produce performance warnings.
+        /// </summary>
+        [Fact]
+        public async Task NonAsyncMethodInvalidReturnType_ProducesWarning()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    public {|RELAY_GEN_102:string|} HandleAsync(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ""invalid"";
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that handlers with incorrect parameter order produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task HandlerIncorrectParameterOrder_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask<string> {|RELAY_GEN_002:HandleAsync|}(TestRequest request, CancellationToken cancellationToken, string extraParam)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that handlers with unexpected parameter types produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task HandlerUnexpectedParameterTypes_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask<string> {|RELAY_GEN_002:HandleAsync|}(TestRequest request, CancellationToken cancellationToken, string unexpectedParam)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that handlers with extreme priority values produce performance warnings.
+        /// </summary>
+        [Fact]
+        public async Task HandlerExtremePriorityValues_ProducesWarning()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest1 : IRequest<string> { }
+public class TestRequest2 : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle(Priority = -2000)]
+    public ValueTask<string> {|RELAY_GEN_102:HandleLowPriorityAsync|}(TestRequest1 request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""low priority"");
+    }
+
+    [Handle(Priority = 2000)]
+    public ValueTask<string> {|RELAY_GEN_102:HandleHighPriorityAsync|}(TestRequest2 request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""high priority"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that pipeline methods missing parameters produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task PipelineMethodMissingParameters_ProducesDiagnostic()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestHandler
+{
+    [Pipeline]
+    public void {|RELAY_GEN_002:ExecutePipeline|}()
+    {
+        // Pipeline logic
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that valid notification handlers do not produce diagnostics.
+        /// </summary>
+        [Fact]
+        public async Task ValidNotificationHandler_NoDiagnostics()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestNotification : INotification { }
+
+public class TestHandler
+{
+    [Notification]
+    public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+    {
+        return ValueTask.CompletedTask;
     }
 }";
 

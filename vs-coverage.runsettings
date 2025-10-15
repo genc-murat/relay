@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage" uri="datacollector://Microsoft/CodeCoverage/2.0">
+        <Configuration>
+          <CodeCoverage>
+
+            <!-- ===== Hariç Tutulacak Assembly/DLL’ler ===== -->
+            <ModulePaths>
+              <Exclude>
+                <!-- Test projeleri -->
+                <ModulePath>.*Tests.dll$</ModulePath>
+                <ModulePath>.*Test.dll$</ModulePath>
+                <ModulePath>.*UnitTests.dll$</ModulePath>
+
+                <!-- .NET ve yaygın third-party kütüphaneler -->
+                <ModulePath>.*Microsoft\..*</ModulePath>
+                <ModulePath>.*System\..*</ModulePath>
+                <ModulePath>.*Newtonsoft\.Json.*</ModulePath>
+                <ModulePath>.*xunit\..*</ModulePath>
+                <ModulePath>.*nunit\..*</ModulePath>
+                <ModulePath>.*Moq\..*</ModulePath>
+                <ModulePath>.*FluentAssertions.*</ModulePath>
+                <ModulePath>.*coverlet\..*</ModulePath>
+
+                <!-- Senin belirttiklerin -->
+                <ModulePath>.*StackExchange\..*</ModulePath>
+                <ModulePath>.*Spectre\..*</ModulePath>
+                <ModulePath>.*Pipelines\.Sockets\..*</ModulePath>
+              </Exclude>
+            </ModulePaths>
+
+            <!-- ===== Namespace düzeyinde hariç tutma ===== -->
+            <Namespaces>
+              <Exclude>
+                <Namespace>System.*</Namespace>
+                <Namespace>Microsoft.*</Namespace>
+                <Namespace>xunit.*</Namespace>
+                <Namespace>nunit.*</Namespace>
+                <Namespace>Moq.*</Namespace>
+                <Namespace>StackExchange.*</Namespace>
+                <Namespace>Spectre.*</Namespace>
+                <Namespace>Pipelines.Sockets.*</Namespace>
+              </Exclude>
+            </Namespaces>
+
+            <!-- ===== Kaynak yoluna göre hariç tutma ===== -->
+            <Sources>
+              <Exclude>
+                <Source>.*\\Tests\\.*</Source>
+                <Source>.*\\TestHelpers\\.*</Source>
+                <Source>.*\\ThirdParty\\.*</Source>
+                <Source>.*\\packages\\.*</Source>
+                <Source>.*\\obj\\.*</Source>
+              </Exclude>
+            </Sources>
+
+            <!-- ===== Kod bazlı hariç tutma ===== -->
+            <Attributes>
+              <Exclude>
+                <Attribute>^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$</Attribute>
+              </Exclude>
+            </Attributes>
+
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

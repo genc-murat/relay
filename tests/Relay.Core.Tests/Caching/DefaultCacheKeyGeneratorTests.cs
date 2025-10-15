@@ -155,5 +155,219 @@ namespace Relay.Core.Tests.Caching
             // Assert
             Assert.Equal(key1, key2);
         }
+
+        [Fact]
+        public void GenerateKey_WithNullProperties_HandlesNullValues()
+        {
+            // Arrange
+            var request = new SimpleRequest { Id = 1, Name = null };
+            var attribute = new RelayCacheAttribute();
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.StartsWith("SimpleRequest:", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithEmptyStringProperties_HandlesEmptyStrings()
+        {
+            // Arrange
+            var request = new SimpleRequest { Id = 1, Name = "" };
+            var attribute = new RelayCacheAttribute();
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.StartsWith("SimpleRequest:", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithSpecialCharactersInProperties_HandlesSpecialChars()
+        {
+            // Arrange
+            var request = new SimpleRequest { Id = 1, Name = "Test@#$%^&*()" };
+            var attribute = new RelayCacheAttribute();
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.StartsWith("SimpleRequest:", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithUnicodeCharacters_HandlesUnicode()
+        {
+            // Arrange
+            var request = new SimpleRequest { Id = 1, Name = "测试数据🚀" };
+            var attribute = new RelayCacheAttribute();
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.StartsWith("SimpleRequest:", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithVeryLongPropertyValues_HandlesLongStrings()
+        {
+            // Arrange
+            var longName = new string('A', 10000);
+            var request = new SimpleRequest { Id = 1, Name = longName };
+            var attribute = new RelayCacheAttribute();
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.StartsWith("SimpleRequest:", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithCustomPatternAndMissingPlaceholders_LeavesUnresolvedPlaceholders()
+        {
+            // Arrange
+            var request = new SimpleRequest { Id = 1, Name = "Test" };
+            var attribute = new RelayCacheAttribute
+            {
+                KeyPattern = "Cache:{Region}:{RequestType}:{MissingPlaceholder}",
+                Region = "Users"
+            };
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.Equal("Cache:Users:SimpleRequest:{MissingPlaceholder}", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithRegionContainingSpecialChars_HandlesSpecialCharsInRegion()
+        {
+            // Arrange
+            var request = new SimpleRequest { Id = 1, Name = "Test" };
+            var attribute = new RelayCacheAttribute
+            {
+                KeyPattern = "MyCache:{Region}:{RequestType}-{RequestHash}",
+                Region = "User@Domain#123"
+            };
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.StartsWith("MyCache:User@Domain#123:SimpleRequest-", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithComplexObjectAndNullNestedProperties_HandlesNulls()
+        {
+            // Arrange
+            var request = new ComplexRequest
+            {
+                RequestId = Guid.NewGuid(),
+                Data = new NestedData
+                {
+                    IsActive = true,
+                    Tags = null // null array
+                }
+            };
+            var attribute = new RelayCacheAttribute();
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.StartsWith("ComplexRequest:", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithComplexObjectAndEmptyNestedArray_HandlesEmptyArrays()
+        {
+            // Arrange
+            var request = new ComplexRequest
+            {
+                RequestId = Guid.NewGuid(),
+                Data = new NestedData
+                {
+                    IsActive = false,
+                    Tags = new string[0] // empty array
+                }
+            };
+            var attribute = new RelayCacheAttribute();
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.StartsWith("ComplexRequest:", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithDefaultPatternAndNullRequestType_HandlesNullGracefully()
+        {
+            // Arrange
+            SimpleRequest? request = null;
+            var attribute = new RelayCacheAttribute();
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request!, attribute);
+
+            // Assert
+            Assert.False(string.IsNullOrEmpty(key));
+            Assert.Contains("SimpleRequest", key); // Uses the type name
+        }
+
+        [Fact]
+        public void GenerateKey_WithCustomPatternAndNullRegion_UsesEmptyRegion()
+        {
+            // Arrange
+            var request = new SimpleRequest { Id = 1, Name = "Test" };
+            var attribute = new RelayCacheAttribute
+            {
+                KeyPattern = "Cache:{Region}:{RequestType}",
+                Region = null
+            };
+
+            // Act
+            var key = _keyGenerator.GenerateKey(request, attribute);
+
+            // Assert
+            Assert.StartsWith("Cache::SimpleRequest", key);
+        }
+
+        [Fact]
+        public void GenerateKey_WithMultipleRequestsOfSameType_GeneratesUniqueKeys()
+        {
+            // Arrange
+            var requests = new[]
+            {
+                new SimpleRequest { Id = 1, Name = "A" },
+                new SimpleRequest { Id = 2, Name = "B" },
+                new SimpleRequest { Id = 3, Name = "C" }
+            };
+            var attribute = new RelayCacheAttribute();
+            var keys = new System.Collections.Generic.HashSet<string>();
+
+            // Act
+            foreach (var request in requests)
+            {
+                keys.Add(_keyGenerator.GenerateKey(request, attribute));
+            }
+
+            // Assert
+            Assert.Equal(3, keys.Count);
+        }
     }
 }

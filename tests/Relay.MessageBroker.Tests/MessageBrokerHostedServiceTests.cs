@@ -17,15 +17,15 @@ public class MessageBrokerHostedServiceTests
         services.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
         services.AddLogging();
         var serviceProvider = services.BuildServiceProvider();
-        
+
         var messageBroker = serviceProvider.GetRequiredService<IMessageBroker>();
         var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
         var hostedService = new MessageBrokerHostedService(messageBroker, logger);
         var cancellationToken = CancellationToken.None;
-        
+
         // Act
         await hostedService.StartAsync(cancellationToken);
-        
+
         // Assert - Should not throw
         Assert.NotNull(messageBroker);
     }
@@ -38,17 +38,17 @@ public class MessageBrokerHostedServiceTests
         services.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
         services.AddLogging();
         var serviceProvider = services.BuildServiceProvider();
-        
+
         var messageBroker = serviceProvider.GetRequiredService<IMessageBroker>();
         var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
         var hostedService = new MessageBrokerHostedService(messageBroker, logger);
         var cancellationToken = CancellationToken.None;
-        
+
         await hostedService.StartAsync(cancellationToken);
-        
+
         // Act
         await hostedService.StopAsync(cancellationToken);
-        
+
         // Assert - Should not throw
         Assert.NotNull(messageBroker);
     }
@@ -61,13 +61,13 @@ public class MessageBrokerHostedServiceTests
         services.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
         services.AddLogging();
         var serviceProvider = services.BuildServiceProvider();
-        
+
         var messageBroker = serviceProvider.GetRequiredService<IMessageBroker>();
         var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
         var hostedService = new MessageBrokerHostedService(messageBroker, logger);
         var cts = new CancellationTokenSource();
         cts.Cancel();
-        
+
         // Act & Assert - Should handle cancellation gracefully
         await hostedService.StartAsync(cts.Token);
     }
@@ -80,15 +80,15 @@ public class MessageBrokerHostedServiceTests
         services.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
         services.AddLogging();
         var serviceProvider = services.BuildServiceProvider();
-        
+
         var messageBroker = serviceProvider.GetRequiredService<IMessageBroker>();
         var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
         var hostedService = new MessageBrokerHostedService(messageBroker, logger);
         var cts = new CancellationTokenSource();
-        
+
         await hostedService.StartAsync(CancellationToken.None);
         cts.Cancel();
-        
+
         // Act & Assert - Should handle cancellation gracefully
         await hostedService.StopAsync(cts.Token);
     }
@@ -101,18 +101,18 @@ public class MessageBrokerHostedServiceTests
         services.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
         services.AddLogging();
         var serviceProvider = services.BuildServiceProvider();
-        
+
         var messageBroker = serviceProvider.GetRequiredService<IMessageBroker>();
         var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
         var hostedService = new MessageBrokerHostedService(messageBroker, logger);
         var cancellationToken = CancellationToken.None;
-        
+
         // Act
         await hostedService.StartAsync(cancellationToken);
         await hostedService.StopAsync(cancellationToken);
         await hostedService.StartAsync(cancellationToken);
         await hostedService.StopAsync(cancellationToken);
-        
+
         // Assert - Should not throw
         Assert.NotNull(messageBroker);
     }
@@ -125,14 +125,14 @@ public class MessageBrokerHostedServiceTests
         var exception = new InvalidOperationException("Failed to start");
         mockBroker.Setup(b => b.StartAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
-        
+
         var mockLogger = new Mock<ILogger<MessageBrokerHostedService>>();
         var hostedService = new MessageBrokerHostedService(mockBroker.Object, mockLogger.Object);
-        
+
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => hostedService.StartAsync(CancellationToken.None));
-            
+
         mockLogger.Verify(
             x => x.Log(
                 LogLevel.Error,
@@ -153,15 +153,15 @@ public class MessageBrokerHostedServiceTests
             .Returns(ValueTask.CompletedTask);
         mockBroker.Setup(b => b.StopAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
-        
+
         var mockLogger = new Mock<ILogger<MessageBrokerHostedService>>();
         var hostedService = new MessageBrokerHostedService(mockBroker.Object, mockLogger.Object);
-        
+
         await hostedService.StartAsync(CancellationToken.None);
-        
+
         // Act
         await hostedService.StopAsync(CancellationToken.None);
-        
+
         // Assert
         mockLogger.Verify(
             x => x.Log(
@@ -181,10 +181,10 @@ public class MessageBrokerHostedServiceTests
         var mockLogger = new Mock<ILogger<MessageBrokerHostedService>>();
         var hostedService = new MessageBrokerHostedService(mockBroker.Object, mockLogger.Object);
         var cts = new CancellationTokenSource();
-        
+
         // Act
         await hostedService.StartAsync(cts.Token);
-        
+
         // Assert
         mockBroker.Verify(b => b.StartAsync(cts.Token), Times.Once);
     }
@@ -202,8 +202,221 @@ public class MessageBrokerHostedServiceTests
 
         // Act
         await hostedService.StopAsync(cts.Token);
-        
+
         // Assert
         mockBroker.Verify(b => b.StopAsync(cts.Token), Times.Once);
     }
+
+    [Fact]
+    public async Task StartAsync_ShouldLogSuccessfulStart()
+    {
+        // Arrange
+        var mockBroker = new Mock<IMessageBroker>();
+        var mockLogger = new Mock<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(mockBroker.Object, mockLogger.Object);
+
+        // Act
+        await hostedService.StartAsync(CancellationToken.None);
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Starting message broker")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task StopAsync_ShouldLogSuccessfulStop()
+    {
+        // Arrange
+        var mockBroker = new Mock<IMessageBroker>();
+        var mockLogger = new Mock<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(mockBroker.Object, mockLogger.Object);
+
+        await hostedService.StartAsync(CancellationToken.None);
+
+        // Act
+        await hostedService.StopAsync(CancellationToken.None);
+
+        // Assert
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Stopping message broker")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task StartAsync_WithDifferentMessageBrokers_ShouldWork()
+    {
+        // Test with InMemoryMessageBroker
+        var services1 = new ServiceCollection();
+        services1.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
+        services1.AddLogging();
+        var serviceProvider1 = services1.BuildServiceProvider();
+
+        var messageBroker1 = serviceProvider1.GetRequiredService<IMessageBroker>();
+        var logger1 = serviceProvider1.GetRequiredService<ILogger<MessageBrokerHostedService>>();
+        var hostedService1 = new MessageBrokerHostedService(messageBroker1, logger1);
+
+        await hostedService1.StartAsync(CancellationToken.None);
+        await hostedService1.StopAsync(CancellationToken.None);
+
+        // Test with another broker type if available, but since we only have InMemory, just verify it works
+        Assert.NotNull(messageBroker1);
+    }
+
+    [Fact]
+    public async Task MultipleRapidStartStopCycles_ShouldWork()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
+        services.AddLogging();
+        var serviceProvider = services.BuildServiceProvider();
+
+        var messageBroker = serviceProvider.GetRequiredService<IMessageBroker>();
+        var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(messageBroker, logger);
+
+        // Act - Rapid start/stop cycles
+        for (int i = 0; i < 10; i++)
+        {
+            await hostedService.StartAsync(CancellationToken.None);
+            await hostedService.StopAsync(CancellationToken.None);
+        }
+
+        // Assert - Should not throw
+        Assert.NotNull(messageBroker);
+    }
+
+    [Fact]
+    public async Task StartAsync_WithAlreadyCancelledToken_ShouldHandleGracefully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
+        services.AddLogging();
+        var serviceProvider = services.BuildServiceProvider();
+
+        var messageBroker = serviceProvider.GetRequiredService<IMessageBroker>();
+        var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(messageBroker, logger);
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert - Should not throw, just handle cancellation
+        await hostedService.StartAsync(cts.Token);
+    }
+
+    [Fact]
+    public async Task StopAsync_WithAlreadyCancelledToken_ShouldHandleGracefully()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IMessageBroker, InMemoryMessageBroker>();
+        services.AddLogging();
+        var serviceProvider = services.BuildServiceProvider();
+
+        var messageBroker = serviceProvider.GetRequiredService<IMessageBroker>();
+        var logger = serviceProvider.GetRequiredService<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(messageBroker, logger);
+        var cts = new CancellationTokenSource();
+
+        await hostedService.StartAsync(CancellationToken.None);
+        cts.Cancel();
+
+        // Act & Assert - Should not throw, just handle cancellation
+        await hostedService.StopAsync(cts.Token);
+    }
+
+    [Fact]
+    public async Task Constructor_AllowsNullMessageBroker()
+    {
+        // Arrange
+        var mockLogger = new Mock<ILogger<MessageBrokerHostedService>>();
+
+        // Act & Assert - Should not throw
+        var service = new MessageBrokerHostedService(null!, mockLogger.Object);
+        Assert.NotNull(service);
+    }
+
+    [Fact]
+    public async Task Constructor_AllowsNullLogger()
+    {
+        // Arrange
+        var mockBroker = new Mock<IMessageBroker>();
+
+        // Act & Assert - Should not throw
+        var service = new MessageBrokerHostedService(mockBroker.Object, null!);
+        Assert.NotNull(service);
+    }
+
+    [Fact]
+    public async Task StartAsync_WhenBrokerStartThrows_ShouldLogAndRethrow()
+    {
+        // Arrange
+        var mockBroker = new Mock<IMessageBroker>();
+        var exception = new InvalidOperationException("Start failed");
+        mockBroker.Setup(b => b.StartAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception);
+
+        var mockLogger = new Mock<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(mockBroker.Object, mockLogger.Object);
+
+        // Act & Assert
+        var thrownException = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => hostedService.StartAsync(CancellationToken.None));
+
+        Assert.Equal(exception, thrownException);
+
+        // Verify logging happened
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to start message broker")),
+                exception,
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenBrokerStopThrows_ShouldLogButNotRethrow()
+    {
+        // Arrange
+        var mockBroker = new Mock<IMessageBroker>();
+        var exception = new InvalidOperationException("Stop failed");
+        mockBroker.Setup(b => b.StartAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+        mockBroker.Setup(b => b.StopAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception);
+
+        var mockLogger = new Mock<ILogger<MessageBrokerHostedService>>();
+        var hostedService = new MessageBrokerHostedService(mockBroker.Object, mockLogger.Object);
+
+        await hostedService.StartAsync(CancellationToken.None);
+
+        // Act - Should not throw
+        await hostedService.StopAsync(CancellationToken.None);
+
+        // Assert - Verify logging happened
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to stop message broker")),
+                exception,
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
 }
+
+

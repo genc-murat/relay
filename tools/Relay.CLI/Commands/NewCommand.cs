@@ -156,6 +156,20 @@ public class NewCommand : Command
         bool noRestore,
         bool noBuild)
     {
+        if (string.IsNullOrEmpty(name))
+        {
+            Console.WriteLine("❌ Error: Project name is required");
+            Console.WriteLine("Usage: relay new --name MyProject --template relay-webapi");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(template))
+        {
+            Console.WriteLine("❌ Error: Template is required");
+            Console.WriteLine("Use 'relay new --list' to see available templates");
+            return;
+        }
+
         Console.WriteLine();
         Console.WriteLine($"🚀 Creating project '{name}' from template '{template}'");
         Console.WriteLine("".PadRight(80, '='));

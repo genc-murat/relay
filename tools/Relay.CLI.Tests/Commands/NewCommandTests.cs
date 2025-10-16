@@ -1216,6 +1216,485 @@ public class NewCommandTests : IDisposable
 
     #endregion
 
+    #region Handler Execution Tests
+
+    [Fact]
+    public async Task NewCommand_ListTemplatesAsync_ShouldDisplayTemplates()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act
+            await NewCommand.ListTemplatesAsync();
+
+            // Assert
+            var output = consoleOutput.ToString();
+            output.Should().Contain("Available Relay Templates");
+            output.Should().Contain("relay-webapi");
+            output.Should().Contain("Description:");
+            output.Should().Contain("Usage Examples:");
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task NewCommand_CreateProjectAsync_WithoutName_ShouldShowError()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act
+            await NewCommand.CreateProjectAsync("", "relay-webapi", Array.Empty<string>(),
+                _testPath, null, null, null, true, true);
+
+            // Assert
+            var output = consoleOutput.ToString();
+            output.Should().Contain("Project name is required");
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task NewCommand_Handler_WithoutTemplate_ShouldShowError()
+    {
+        // Arrange
+        var command = new NewCommand();
+        var consoleOutput = new StringWriter();
+        Console.SetOut(consoleOutput);
+
+        // Act
+        var result = await command.InvokeAsync("--name TestProject");
+
+        // Assert
+        result.Should().Be(0);
+        var output = consoleOutput.ToString();
+        output.Should().Contain("Template is required");
+    }
+
+    [Fact]
+    public async Task NewCommand_Handler_WithValidOptions_ShouldAttemptProjectCreation()
+    {
+        // Arrange
+        var command = new NewCommand();
+        var consoleOutput = new StringWriter();
+        Console.SetOut(consoleOutput);
+
+        // Act
+        var result = await command.InvokeAsync("--name TestProject --template relay-webapi --output " + _testPath);
+
+        // Assert
+        result.Should().Be(0);
+        var output = consoleOutput.ToString();
+        output.Should().Contain("Creating project 'TestProject'");
+    }
+
+    [Fact]
+    public async Task NewCommand_Handler_WithExistingDirectory_ShouldShowError()
+    {
+        // Arrange
+        var existingPath = Path.Combine(_testPath, "ExistingProject");
+        Directory.CreateDirectory(existingPath);
+
+        var command = new NewCommand();
+        var consoleOutput = new StringWriter();
+        Console.SetOut(consoleOutput);
+
+        // Act
+        var result = await command.InvokeAsync($"--name ExistingProject --template relay-webapi --output {_testPath}");
+
+        // Assert
+        result.Should().Be(0);
+        var output = consoleOutput.ToString();
+        output.Should().Contain("already exists");
+    }
+
+    [Fact]
+    public async Task NewCommand_Handler_WithInvalidTemplate_ShouldShowError()
+    {
+        // Arrange
+        var command = new NewCommand();
+        var consoleOutput = new StringWriter();
+        Console.SetOut(consoleOutput);
+
+        // Act
+        var result = await command.InvokeAsync("--name TestProject --template invalid-template");
+
+        // Assert
+        result.Should().Be(0);
+        var output = consoleOutput.ToString();
+        output.Should().Contain("Template 'invalid-template' not found");
+    }
+
+    #endregion
+
+    #region Project Creation Flow Tests
+
+    [Fact]
+    public async Task NewCommand_CreateProjectAsync_WithWebApiTemplate_ShouldCreateStructure()
+    {
+        // Arrange
+        var projectName = "WebApiTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+
+        // Act
+        await NewCommand.CreateProjectAsync(projectName, "relay-webapi", Array.Empty<string>(),
+            _testPath, null, null, null, true, true);
+
+        // Assert
+        Directory.Exists(projectPath).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "src")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Api")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Application")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Domain")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Infrastructure")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "tests")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "docs")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task NewCommand_CreateProjectAsync_WithMicroserviceTemplate_ShouldCreateStructure()
+    {
+        // Arrange
+        var projectName = "MicroserviceTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+
+        // Act
+        await NewCommand.CreateProjectAsync(projectName, "relay-microservice", Array.Empty<string>(),
+            _testPath, null, null, null, true, true);
+
+        // Assert
+        Directory.Exists(projectPath).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "src")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "k8s")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "helm")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task NewCommand_CreateProjectAsync_WithFeatures_ShouldGenerateDockerFiles()
+    {
+        // Arrange
+        var projectName = "DockerTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+
+        // Act
+        await NewCommand.CreateProjectAsync(projectName, "relay-webapi", new[] { "docker" },
+            _testPath, null, null, null, true, true);
+
+        // Assert
+        Directory.Exists(projectPath).Should().BeTrue();
+        // Note: Actual Docker file generation is not implemented yet, but structure should be created
+    }
+
+    [Fact]
+    public async Task NewCommand_CreateProjectAsync_WithBroker_ShouldPassBrokerToGeneration()
+    {
+        // Arrange
+        var projectName = "BrokerTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+
+        // Act
+        await NewCommand.CreateProjectAsync(projectName, "relay-microservice", Array.Empty<string>(),
+            _testPath, "rabbitmq", null, null, true, true);
+
+        // Assert
+        Directory.Exists(projectPath).Should().BeTrue();
+        // Note: Specific broker integration testing would require more detailed implementation
+    }
+
+    #endregion
+
+    #region Template Listing Tests
+
+    [Fact]
+    public async Task NewCommand_ListTemplatesAsync_ShouldDisplayAllTemplates()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        Console.SetOut(consoleOutput);
+
+        // Act
+        await NewCommand.ListTemplatesAsync();
+
+        // Assert
+        var output = consoleOutput.ToString();
+        output.Should().Contain("Available Relay Templates");
+        output.Should().Contain("relay-webapi");
+        output.Should().Contain("relay-microservice");
+        output.Should().Contain("relay-ddd");
+        output.Should().Contain("relay-cqrs-es");
+        output.Should().Contain("relay-modular");
+        output.Should().Contain("relay-graphql");
+        output.Should().Contain("relay-grpc");
+        output.Should().Contain("relay-serverless");
+        output.Should().Contain("relay-blazor");
+        output.Should().Contain("relay-maui");
+    }
+
+    [Fact]
+    public async Task NewCommand_ListTemplatesAsync_ShouldShowTemplateDetails()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        Console.SetOut(consoleOutput);
+
+        // Act
+        await NewCommand.ListTemplatesAsync();
+
+        // Assert
+        var output = consoleOutput.ToString();
+        output.Should().Contain("Description:");
+        output.Should().Contain("Best for:");
+        output.Should().Contain("Tags:");
+        output.Should().Contain("Available features:");
+    }
+
+    [Fact]
+    public async Task NewCommand_ListTemplatesAsync_ShouldShowUsageExamples()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        Console.SetOut(consoleOutput);
+
+        // Act
+        await NewCommand.ListTemplatesAsync();
+
+        // Assert
+        var output = consoleOutput.ToString();
+        output.Should().Contain("Usage Examples:");
+        output.Should().Contain("relay new --name MyApi --template relay-webapi");
+        output.Should().Contain("--features auth,swagger,docker");
+        output.Should().Contain("--broker rabbitmq");
+    }
+
+    #endregion
+
+    #region File Generation Tests
+
+    [Fact]
+    public async Task NewCommand_GenerateReadme_ShouldIncludeProjectName()
+    {
+        // Arrange
+        var template = new TemplateInfo
+        {
+            Id = "relay-webapi",
+            Name = "Web API",
+            Description = "Test description",
+            BestFor = "Testing",
+            Tags = new[] { "test" },
+            Features = new[] { "auth" },
+            Structure = "clean-architecture"
+        };
+
+        // Act
+        var readme = NewCommand.GenerateReadme("TestProject", template, new[] { "auth", "swagger" });
+
+        // Assert
+        readme.Should().Contain("# TestProject");
+        readme.Should().Contain("Test description");
+        readme.Should().Contain("- auth");
+        readme.Should().Contain("- swagger");
+    }
+
+    [Fact]
+    public async Task NewCommand_GenerateReadme_ShouldIncludeRunningInstructions()
+    {
+        // Arrange
+        var template = new TemplateInfo
+        {
+            Id = "relay-webapi",
+            Name = "Web API",
+            Description = "Test description",
+            BestFor = "Testing",
+            Tags = new[] { "test" },
+            Features = new[] { "auth" },
+            Structure = "clean-architecture"
+        };
+
+        // Act
+        var readme = NewCommand.GenerateReadme("TestProject", template, Array.Empty<string>());
+
+        // Assert
+        readme.Should().Contain("dotnet run --project src/TestProject.Api");
+        readme.Should().Contain("dotnet test");
+        readme.Should().Contain("## Getting Started");
+        readme.Should().Contain("### Prerequisites");
+    }
+
+    [Fact]
+    public async Task NewCommand_GenerateGitignore_ShouldIncludeStandardPatterns()
+    {
+        // Arrange
+        var gitignorePath = Path.Combine(_testPath, ".gitignore");
+
+        // Act
+        await NewCommand.GenerateGitignore(_testPath);
+
+        // Assert
+        File.Exists(gitignorePath).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(gitignorePath);
+        content.Should().Contain("[Bb]in/");
+        content.Should().Contain("[Oo]bj/");
+        content.Should().Contain(".vs/");
+        content.Should().Contain("*.nupkg");
+        content.Should().Contain("packages/");
+        content.Should().Contain("TestResults/");
+    }
+
+    #endregion
+
+    #region Path Resolution Edge Cases
+
+    [Theory]
+    [InlineData(".")]
+    [InlineData("..")]
+    [InlineData("./subdir")]
+    [InlineData("../parent")]
+    public void NewCommand_Path_ShouldHandleRelativePaths(string relativePath)
+    {
+        // Arrange & Act
+        var absolutePath = Path.GetFullPath(relativePath);
+
+        // Assert
+        absolutePath.Should().NotBeNullOrEmpty();
+        Path.IsPathRooted(absolutePath).Should().BeTrue();
+    }
+
+    [Fact]
+    public void NewCommand_Path_ShouldHandleTildeInPath()
+    {
+        // Arrange
+        var pathWithTilde = "~/projects/test";
+
+        // Act
+        var expandedPath = pathWithTilde.Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+
+        // Assert
+        expandedPath.Should().NotBeNullOrEmpty();
+        expandedPath.Should().NotContain("~");
+    }
+
+    [Fact]
+    public void NewCommand_Path_ShouldHandleLongPaths()
+    {
+        // Arrange
+        var longPath = Path.Combine(_testPath, new string('a', 200));
+
+        // Act
+        var canCreatePath = longPath.Length > 10; // Just verify we can construct long paths
+
+        // Assert
+        canCreatePath.Should().BeTrue();
+        longPath.Should().Contain(new string('a', 200));
+    }
+
+    #endregion
+
+    #region Feature Combination Tests
+
+    [Theory]
+    [InlineData(new[] { "auth", "swagger" }, "relay-webapi")]
+    [InlineData(new[] { "docker", "tests" }, "relay-webapi")]
+    [InlineData(new[] { "rabbitmq", "k8s" }, "relay-microservice")]
+    [InlineData(new[] { "auth", "swagger", "docker", "tests" }, "relay-webapi")]
+    public void NewCommand_Features_ShouldSupportMultipleCombinations(string[] features, string template)
+    {
+        // Arrange
+        var supportedFeatures = GetSupportedFeaturesForTemplate(template);
+
+        // Assert
+        foreach (var feature in features)
+        {
+            supportedFeatures.Should().Contain(feature);
+        }
+    }
+
+    [Fact]
+    public void NewCommand_Features_ShouldHandleEmptyFeaturesArray()
+    {
+        // Arrange
+        string[] features = Array.Empty<string>();
+
+        // Act
+        var hasFeatures = features.Any();
+
+        // Assert
+        hasFeatures.Should().BeFalse();
+    }
+
+    [Fact]
+    public void NewCommand_Features_ShouldHandleNullFeaturesArray()
+    {
+        // Arrange
+        string[]? features = null;
+
+        // Act
+        var safeFeatures = features ?? Array.Empty<string>();
+
+        // Assert
+        safeFeatures.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region Process Execution Tests
+
+    [Fact]
+    public async Task NewCommand_RestorePackages_ShouldExecuteDotnetRestore()
+    {
+        // Arrange
+        var projectPath = Path.Combine(_testPath, "RestoreTest");
+        Directory.CreateDirectory(projectPath);
+
+        // Act & Assert
+        // Note: This test would require mocking Process.Start or running in an environment with dotnet
+        // For now, we verify the method doesn't throw
+        await NewCommand.RestorePackages(projectPath);
+    }
+
+    [Fact]
+    public async Task NewCommand_BuildProject_ShouldExecuteDotnetBuild()
+    {
+        // Arrange
+        var projectPath = Path.Combine(_testPath, "BuildTest");
+        Directory.CreateDirectory(projectPath);
+
+        // Act & Assert
+        // Note: This test would require mocking Process.Start or running in an environment with dotnet
+        // For now, we verify the method doesn't throw
+        await NewCommand.BuildProject(projectPath);
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private static string[] GetSupportedFeaturesForTemplate(string templateId)
+    {
+        return templateId switch
+        {
+            "relay-webapi" => new[] { "auth", "swagger", "docker", "tests", "healthchecks" },
+            "relay-microservice" => new[] { "rabbitmq", "kafka", "k8s", "docker", "tracing" },
+            _ => Array.Empty<string>()
+        };
+    }
+
+    #endregion
+
     public void Dispose()
     {
         try

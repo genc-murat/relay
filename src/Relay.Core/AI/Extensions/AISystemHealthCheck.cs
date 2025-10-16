@@ -80,6 +80,11 @@ namespace Relay.Core.AI
                 _logger.LogDebug("AI System health check: {Status}, Score: {Score:P1}, Warnings: {WarningCount}", 
                     result.Status, result.HealthScore, result.Warnings.Count);
             }
+            catch (OperationCanceledException)
+            {
+                // Re-throw cancellation exceptions to indicate the operation was cancelled
+                throw;
+            }
             catch (Exception ex)
             {
                 result.IsHealthy = false;

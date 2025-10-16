@@ -92,7 +92,7 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
         CancellationToken cancellationToken)
     {
         var messageBody = System.Text.Encoding.UTF8.GetString(serializedMessage);
-        var messageType = typeof(TMessage).FullName ?? typeof(TMessage).Name;
+        var messageType = typeof(TMessage).AssemblyQualifiedName ?? typeof(TMessage).FullName ?? typeof(TMessage).Name;
 
         // Use SNS for pub/sub if topic ARN is provided
         if (!string.IsNullOrWhiteSpace(_options.AwsSqsSns!.DefaultTopicArn))
@@ -233,19 +233,26 @@ protected override async ValueTask StartInternalAsync(CancellationToken cancella
         }, _pollingCts.Token);
     }
 
-protected override async ValueTask StopInternalAsync(CancellationToken cancellationToken)
+    protected override async ValueTask StopInternalAsync(CancellationToken cancellationToken)
     {
         _pollingCts?.Cancel();
-        
+
         if (_pollingTask != null)
         {
-            await _pollingTask;
+            try
+            {
+                await _pollingTask;
+            }
+            catch (TaskCanceledException)
+            {
+                // Expected when canceling the polling task
+            }
         }
-        
+
         _pollingCts?.Dispose();
         _pollingCts = null;
         _pollingTask = null;
-        
+
         _logger.LogInformation("AWS SQS/SNS message broker stopped");
     }
 
@@ -269,7 +276,7 @@ private async Task ProcessMessageAsync(Message sqsMessage, string queueUrl, Canc
             }
 
             var messageBytes = System.Text.Encoding.UTF8.GetBytes(sqsMessage.Body);
-            var message = DeserializeMessage<object>(messageBytes);
+            var message = System.Text.Json.JsonSerializer.Deserialize(sqsMessage.Body, type);
 
             if (message == null)
             {

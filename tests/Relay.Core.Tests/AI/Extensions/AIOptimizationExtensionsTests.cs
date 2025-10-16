@@ -4,7 +4,7 @@ using System.Linq;
 using Relay.Core.AI;
 using Xunit;
 
-namespace Relay.Core.AI.Extensions
+namespace Relay.Core.Tests.AI.Extensions
 {
     public class AIOptimizationExtensionsTests
     {

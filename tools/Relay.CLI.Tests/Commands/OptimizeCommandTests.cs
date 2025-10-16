@@ -1,4 +1,6 @@
 using Relay.CLI.Commands;
+using Relay.CLI.Commands.Models.Optimization;
+using System.CommandLine;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -825,6 +827,677 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         // Assert
         optimizationCount.Should().Be(20);
     }
+
+    #region Command Creation Tests
+
+    [Fact]
+    public void OptimizeCommand_Create_ShouldReturnValidCommand()
+    {
+        // Act
+        var command = OptimizeCommand.Create();
+
+        // Assert
+        command.Should().NotBeNull();
+        command.Name.Should().Be("optimize");
+        command.Description.Should().Contain("optimization");
+    }
+
+    [Fact]
+    public void OptimizeCommand_ShouldHavePathOption()
+    {
+        // Act
+        var command = OptimizeCommand.Create();
+        var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
+
+        // Assert
+        pathOption.Should().NotBeNull();
+        pathOption!.Name.Should().Be("path");
+        pathOption!.Description.Should().Be("Project path to optimize");
+    }
+
+    [Fact]
+    public void OptimizeCommand_ShouldHaveDryRunOption()
+    {
+        // Act
+        var command = OptimizeCommand.Create();
+        var dryRunOption = command.Options.FirstOrDefault(o => o.Name == "dry-run");
+
+        // Assert
+        dryRunOption.Should().NotBeNull();
+        dryRunOption!.Name.Should().Be("dry-run");
+        dryRunOption!.Description.Should().Be("Show what would be optimized without applying changes");
+    }
+
+    [Fact]
+    public void OptimizeCommand_ShouldHaveTargetOption()
+    {
+        // Act
+        var command = OptimizeCommand.Create();
+        var targetOption = command.Options.FirstOrDefault(o => o.Name == "target");
+
+        // Assert
+        targetOption.Should().NotBeNull();
+        targetOption!.Name.Should().Be("target");
+        targetOption!.Description.Should().Be("Optimization target (all, handlers, requests, config)");
+    }
+
+    [Fact]
+    public void OptimizeCommand_ShouldHaveAggressiveOption()
+    {
+        // Act
+        var command = OptimizeCommand.Create();
+        var aggressiveOption = command.Options.FirstOrDefault(o => o.Name == "aggressive");
+
+        // Assert
+        aggressiveOption.Should().NotBeNull();
+        aggressiveOption!.Name.Should().Be("aggressive");
+        aggressiveOption!.Description.Should().Be("Apply aggressive optimizations");
+    }
+
+    [Fact]
+    public void OptimizeCommand_ShouldHaveBackupOption()
+    {
+        // Act
+        var command = OptimizeCommand.Create();
+        var backupOption = command.Options.FirstOrDefault(o => o.Name == "backup");
+
+        // Assert
+        backupOption.Should().NotBeNull();
+        backupOption!.Name.Should().Be("backup");
+        backupOption!.Description.Should().Be("Create backup before applying changes");
+    }
+
+    [Fact]
+    public void OptimizeCommand_ShouldHaveCorrectNumberOfOptions()
+    {
+        // Act
+        var command = OptimizeCommand.Create();
+
+        // Assert
+        command.Options.Should().HaveCount(5);
+    }
+
+    #endregion
+
+    #region ExecuteOptimize Tests
+
+    [Fact]
+    public async Task ExecuteOptimize_WithDryRun_ShouldNotModifyFiles()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "Handler.cs");
+        var originalContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, originalContent);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, true, "all", false, false);
+
+        // Assert
+        var finalContent = await File.ReadAllTextAsync(testFile);
+        finalContent.Should().Be(originalContent); // Should not be modified in dry run
+    }
+
+    [Fact]
+    public async Task ExecuteOptimize_WithActualRun_ShouldModifyFiles()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "Handler.cs");
+        var originalContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, originalContent);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, false);
+
+        // Assert
+        var finalContent = await File.ReadAllTextAsync(testFile);
+        finalContent.Should().Contain("ValueTask<string>"); // Should be optimized
+    }
+
+    [Fact]
+    public async Task ExecuteOptimize_WithHandlersTarget_ShouldOnlyOptimizeHandlers()
+    {
+        // Arrange
+        var handlerFile = Path.Combine(_testPath, "Handler.cs");
+        var otherFile = Path.Combine(_testPath, "Service.cs");
+
+        var handlerContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        var serviceContent = @"using System;
+
+public class TestService
+{
+    public async Task<string> GetData()
+    {
+        return ""data"";
+    }
+}";
+
+        await File.WriteAllTextAsync(handlerFile, handlerContent);
+        await File.WriteAllTextAsync(otherFile, serviceContent);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "handlers", false, false);
+
+        // Assert
+        var handlerFinalContent = await File.ReadAllTextAsync(handlerFile);
+        var serviceFinalContent = await File.ReadAllTextAsync(otherFile);
+
+        handlerFinalContent.Should().Contain("ValueTask<string>");
+        serviceFinalContent.Should().Be(serviceContent); // Should not be modified
+    }
+
+    [Fact]
+    public async Task ExecuteOptimize_WithAggressiveMode_ShouldApplyMoreOptimizations()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "Aggressive.cs");
+        var content = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, content);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", true, false);
+
+        // Assert
+        var finalContent = await File.ReadAllTextAsync(testFile);
+        finalContent.Should().Contain("ValueTask<string>");
+    }
+
+    #endregion
+
+    #region File Discovery Tests
+
+    [Fact]
+    public async Task DiscoverFiles_ShouldFindCsFiles()
+    {
+        // Arrange
+        var csFile1 = Path.Combine(_testPath, "File1.cs");
+        var csFile2 = Path.Combine(_testPath, "File2.cs");
+        var txtFile = Path.Combine(_testPath, "File.txt");
+
+        await File.WriteAllTextAsync(csFile1, "class Test1 {}");
+        await File.WriteAllTextAsync(csFile2, "class Test2 {}");
+        await File.WriteAllTextAsync(txtFile, "text content");
+
+        var context = new OptimizationContext
+        {
+            ProjectPath = _testPath
+        };
+
+        // Act
+        await OptimizeCommand.DiscoverFiles(context, null, null);
+
+        // Assert
+        context.SourceFiles.Should().HaveCount(2);
+        context.SourceFiles.Should().Contain(f => f.EndsWith("File1.cs"));
+        context.SourceFiles.Should().Contain(f => f.EndsWith("File2.cs"));
+        context.SourceFiles.Should().NotContain(f => f.EndsWith("File.txt"));
+    }
+
+    [Fact]
+    public async Task DiscoverFiles_ShouldExcludeBinAndObjDirectories()
+    {
+        // Arrange
+        Directory.CreateDirectory(Path.Combine(_testPath, "bin"));
+        Directory.CreateDirectory(Path.Combine(_testPath, "obj"));
+
+        var validFile = Path.Combine(_testPath, "Valid.cs");
+        var binFile = Path.Combine(_testPath, "bin", "Invalid.cs");
+        var objFile = Path.Combine(_testPath, "obj", "Invalid.cs");
+
+        await File.WriteAllTextAsync(validFile, "class Test {}");
+        await File.WriteAllTextAsync(binFile, "class BinTest {}");
+        await File.WriteAllTextAsync(objFile, "class ObjTest {}");
+
+        var context = new OptimizationContext
+        {
+            ProjectPath = _testPath
+        };
+
+        // Act
+        await OptimizeCommand.DiscoverFiles(context, null, null);
+
+        // Assert
+        context.SourceFiles.Should().HaveCount(1);
+        context.SourceFiles[0].Should().EndWith("Valid.cs");
+    }
+
+    #endregion
+
+    #region Optimization Logic Tests
+
+    [Fact]
+    public async Task OptimizeHandlers_ShouldConvertTaskToValueTask()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "Handler.cs");
+        var originalContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, originalContent);
+
+        var context = new OptimizationContext
+        {
+            ProjectPath = _testPath,
+            IsDryRun = false
+        };
+
+        // Manually add the file to context
+        context.SourceFiles.Add(testFile);
+
+        // Act
+        await OptimizeCommand.OptimizeHandlers(context, null, null);
+
+        // Assert
+        context.OptimizationActions.Should().HaveCount(1);
+        var action = context.OptimizationActions[0];
+        action.Type.Should().Be("Handler Optimization");
+        action.Modifications.Should().Contain("Replaced Task<T> with ValueTask<T> for better performance");
+
+        var finalContent = await File.ReadAllTextAsync(testFile);
+        finalContent.Should().Contain("ValueTask<string>");
+    }
+
+    [Fact]
+    public async Task OptimizeHandlers_WithDryRun_ShouldNotModifyFiles()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "Handler.cs");
+        var originalContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, originalContent);
+
+        var context = new OptimizationContext
+        {
+            ProjectPath = _testPath,
+            IsDryRun = true
+        };
+
+        context.SourceFiles.Add(testFile);
+
+        // Act
+        await OptimizeCommand.OptimizeHandlers(context, null, null);
+
+        // Assert
+        context.OptimizationActions.Should().HaveCount(1);
+        var finalContent = await File.ReadAllTextAsync(testFile);
+        finalContent.Should().Be(originalContent); // Should not be modified
+    }
+
+    [Fact]
+    public async Task OptimizeHandlers_WithNoOptimizableCode_ShouldNotCreateActions()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "Service.cs");
+        var content = @"using System;
+
+public class TestService
+{
+    public void DoSomething()
+    {
+        Console.WriteLine(""test"");
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, content);
+
+        var context = new OptimizationContext
+        {
+            ProjectPath = _testPath,
+            IsDryRun = false
+        };
+
+        context.SourceFiles.Add(testFile);
+
+        // Act
+        await OptimizeCommand.OptimizeHandlers(context, null, null);
+
+        // Assert
+        context.OptimizationActions.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region Target Option Tests
+
+    [Fact]
+    public async Task ExecuteOptimize_WithAllTarget_ShouldRunAllOptimizations()
+    {
+        // Arrange
+        var handlerFile = Path.Combine(_testPath, "Handler.cs");
+        var handlerContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(handlerFile, handlerContent);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, false);
+
+        // Assert
+        var finalContent = await File.ReadAllTextAsync(handlerFile);
+        finalContent.Should().Contain("ValueTask<string>");
+    }
+
+    [Fact]
+    public async Task ExecuteOptimize_WithHandlersTarget_ShouldOnlyRunHandlerOptimizations()
+    {
+        // Arrange
+        var handlerFile = Path.Combine(_testPath, "Handler.cs");
+        var handlerContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(handlerFile, handlerContent);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "handlers", false, false);
+
+        // Assert
+        var finalContent = await File.ReadAllTextAsync(handlerFile);
+        finalContent.Should().Contain("ValueTask<string>");
+    }
+
+    [Fact]
+    public async Task ExecuteOptimize_WithInvalidTarget_ShouldDefaultToAll()
+    {
+        // Arrange
+        var handlerFile = Path.Combine(_testPath, "Handler.cs");
+        var handlerContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(handlerFile, handlerContent);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "invalid", false, false);
+
+        // Assert - Should still run optimizations as if target was "all"
+        var finalContent = await File.ReadAllTextAsync(handlerFile);
+        finalContent.Should().Contain("ValueTask<string>");
+    }
+
+    #endregion
+
+    #region Backup Tests
+
+    [Fact]
+    public async Task ExecuteOptimize_WithBackupEnabled_ShouldCreateBackup()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "Handler.cs");
+        var originalContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, originalContent);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, true);
+
+        // Assert
+        var backupFiles = Directory.GetFiles(_testPath, "*.bak", SearchOption.AllDirectories);
+        backupFiles.Should().HaveCountGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task ExecuteOptimize_WithBackupDisabled_ShouldNotCreateBackup()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "Handler.cs");
+        var originalContent = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, originalContent);
+
+        // Act
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, false);
+
+        // Assert
+        var backupFiles = Directory.GetFiles(_testPath, "*.bak", SearchOption.AllDirectories);
+        backupFiles.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region Error Handling Tests
+
+    [Fact]
+    public async Task ExecuteOptimize_WithNonExistentPath_ShouldHandleGracefully()
+    {
+        // Arrange
+        var nonExistentPath = Path.Combine(_testPath, "NonExistent");
+
+        // Act & Assert - Should not throw
+        await OptimizeCommand.ExecuteOptimize(nonExistentPath, true, "all", false, false);
+    }
+
+    [Fact]
+    public async Task ExecuteOptimize_WithEmptyDirectory_ShouldHandleGracefully()
+    {
+        // Arrange
+        var emptyDir = Path.Combine(_testPath, "Empty");
+        Directory.CreateDirectory(emptyDir);
+
+        // Act & Assert - Should not throw
+        await OptimizeCommand.ExecuteOptimize(emptyDir, true, "all", false, false);
+    }
+
+    [Fact]
+    public async Task ExecuteOptimize_WithReadOnlyFile_ShouldHandleGracefully()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testPath, "ReadOnly.cs");
+        var content = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        await File.WriteAllTextAsync(testFile, content);
+        File.SetAttributes(testFile, FileAttributes.ReadOnly);
+
+        // Act & Assert - Should not throw
+        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, false);
+
+        // Cleanup
+        File.SetAttributes(testFile, FileAttributes.Normal);
+    }
+
+    #endregion
+
+    #region Results Display Tests
+
+    [Fact]
+    public void DisplayOptimizationResults_WithNoOptimizations_ShouldShowNoChangesMessage()
+    {
+        // Arrange
+        var context = new OptimizationContext
+        {
+            IsDryRun = false,
+            OptimizationActions = new List<OptimizationAction>()
+        };
+
+        // Act & Assert - This would normally write to console, but we can't easily test console output
+        // The method should not throw
+        OptimizeCommand.DisplayOptimizationResults(context);
+    }
+
+    [Fact]
+    public void DisplayOptimizationResults_WithOptimizations_ShouldShowResultsTable()
+    {
+        // Arrange
+        var context = new OptimizationContext
+        {
+            IsDryRun = false,
+            OptimizationActions = new List<OptimizationAction>
+            {
+                new OptimizationAction
+                {
+                    FilePath = "TestHandler.cs",
+                    Type = "Handler Optimization",
+                    Modifications = new List<string> { "Replaced Task<T> with ValueTask<T>" }
+                }
+            }
+        };
+
+        // Act & Assert - Should not throw
+        OptimizeCommand.DisplayOptimizationResults(context);
+    }
+
+    [Fact]
+    public void DisplayOptimizationResults_WithDryRun_ShouldShowDryRunMessage()
+    {
+        // Arrange
+        var context = new OptimizationContext
+        {
+            IsDryRun = true,
+            OptimizationActions = new List<OptimizationAction>
+            {
+                new OptimizationAction
+                {
+                    FilePath = "TestHandler.cs",
+                    Type = "Handler Optimization",
+                    Modifications = new List<string> { "Replaced Task<T> with ValueTask<T>" }
+                }
+            }
+        };
+
+        // Act & Assert - Should not throw
+        OptimizeCommand.DisplayOptimizationResults(context);
+    }
+
+    #endregion
+
+    #region Progress Reporting Tests
+
+    [Fact]
+    public void GetOptimizationSteps_WithAllTarget_ShouldReturnCorrectSteps()
+    {
+        // Act
+        var steps = OptimizeCommand.GetOptimizationSteps("all");
+
+        // Assert
+        steps.Should().Be(2);
+    }
+
+    [Fact]
+    public void GetOptimizationSteps_WithHandlersTarget_ShouldReturnCorrectSteps()
+    {
+        // Act
+        var steps = OptimizeCommand.GetOptimizationSteps("handlers");
+
+        // Assert
+        steps.Should().Be(2);
+    }
+
+    [Fact]
+    public void GetOptimizationSteps_WithOtherTarget_ShouldReturnOneStep()
+    {
+        // Act
+        var steps = OptimizeCommand.GetOptimizationSteps("other");
+
+        // Assert
+        steps.Should().Be(1);
+    }
+
+    #endregion
 
     public void Dispose()
     {

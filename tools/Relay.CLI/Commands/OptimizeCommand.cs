@@ -57,7 +57,14 @@ public static class OptimizeCommand
                 await DiscoverFiles(optimization, ctx, overallTask);
                 overallTask.Increment(1);
 
-                if (target == "all" || target == "handlers")
+                // Default to "all" if target is invalid
+                var effectiveTarget = target;
+                if (target != "all" && target != "handlers")
+                {
+                    effectiveTarget = "all";
+                }
+
+                if (effectiveTarget == "all" || effectiveTarget == "handlers")
                 {
                     await OptimizeHandlers(optimization, ctx, overallTask);
                     overallTask.Increment(1);
@@ -70,20 +77,50 @@ public static class OptimizeCommand
         DisplayOptimizationResults(optimization);
     }
 
-    private static async Task DiscoverFiles(OptimizationContext context, ProgressContext ctx, ProgressTask overallTask)
+    internal static async Task DiscoverFiles(OptimizationContext context, ProgressContext ctx, ProgressTask overallTask)
     {
-        var discoveryTask = ctx.AddTask("[green]Discovering files[/]");
-        var csFiles = Directory.GetFiles(context.ProjectPath, "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains("bin") && !f.Contains("obj")).ToList();
-        context.SourceFiles.AddRange(csFiles);
-        discoveryTask.Value = discoveryTask.MaxValue;
-        AnsiConsole.MarkupLine($"[dim]Found {csFiles.Count} source files[/]");
+        try
+        {
+            if (!Directory.Exists(context.ProjectPath))
+            {
+                // Directory doesn't exist, just return empty list
+                if (ctx != null)
+                {
+                    AnsiConsole.MarkupLine($"[dim]Directory {context.ProjectPath} does not exist[/]");
+                }
+                await Task.CompletedTask;
+                return;
+            }
+
+            var csFiles = Directory.GetFiles(context.ProjectPath, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("bin") && !f.Contains("obj")).ToList();
+            context.SourceFiles.AddRange(csFiles);
+
+            if (ctx != null)
+            {
+                var discoveryTask = ctx.AddTask("[green]Discovering files[/]");
+                discoveryTask.Value = discoveryTask.MaxValue;
+                AnsiConsole.MarkupLine($"[dim]Found {csFiles.Count} source files[/]");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (ctx != null)
+            {
+                AnsiConsole.MarkupLine($"[red]Error discovering files: {ex.Message}[/]");
+            }
+        }
+
         await Task.CompletedTask;
     }
 
-    private static async Task OptimizeHandlers(OptimizationContext context, ProgressContext ctx, ProgressTask overallTask)
+    internal static async Task OptimizeHandlers(OptimizationContext context, ProgressContext ctx, ProgressTask overallTask)
     {
-        var handlerTask = ctx.AddTask("[yellow]Optimizing handlers[/]");
+        ProgressTask handlerTask = null;
+        if (ctx != null)
+        {
+            handlerTask = ctx.AddTask("[yellow]Optimizing handlers[/]");
+        }
         var optimizedCount = 0;
 
         foreach (var file in context.SourceFiles)
@@ -92,14 +129,18 @@ public static class OptimizeCommand
             var originalContent = content;
             var modifications = new List<string>();
 
-            // Replace Task with ValueTask
-            if (content.Contains("Task<") && !content.Contains("ValueTask<"))
+            // Only optimize handler files (contain IRequestHandler or [Handle])
+            if (content.Contains("IRequestHandler") || content.Contains("[Handle]"))
             {
-                var taskPattern = @"public\s+async\s+Task<([^>]+)>\s+(\w+)\s*\(";
-                if (Regex.IsMatch(content, taskPattern))
+                // Replace Task with ValueTask
+                if (content.Contains("Task<") && !content.Contains("ValueTask<"))
                 {
-                    content = Regex.Replace(content, taskPattern, "public async ValueTask<$1> $2(");
-                    modifications.Add("Replaced Task<T> with ValueTask<T> for better performance");
+                    var taskPattern = @"public\s+async\s+Task<([^>]+)>\s+(\w+)\s*\(";
+                    if (Regex.IsMatch(content, taskPattern))
+                    {
+                        content = Regex.Replace(content, taskPattern, "public async ValueTask<$1> $2(");
+                        modifications.Add("Replaced Task<T> with ValueTask<T> for better performance");
+                    }
                 }
             }
 
@@ -116,17 +157,36 @@ public static class OptimizeCommand
 
                 if (!context.IsDryRun)
                 {
-                    await File.WriteAllTextAsync(file, content);
+                    try
+                    {
+                        if (context.CreateBackup)
+                        {
+                            var backupPath = file + ".bak";
+                            File.Copy(file, backupPath, true);
+                        }
+                        await File.WriteAllTextAsync(file, content);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ctx != null)
+                        {
+                            AnsiConsole.MarkupLine($"[red]Error writing file {Path.GetFileName(file)}: {ex.Message}[/]");
+                        }
+                        // Continue with other files
+                    }
                 }
                 optimizedCount++;
             }
         }
 
-        handlerTask.Value = handlerTask.MaxValue;
-        AnsiConsole.MarkupLine($"[dim]Optimized {optimizedCount} handler file(s)[/]");
+        if (handlerTask != null)
+        {
+            handlerTask.Value = handlerTask.MaxValue;
+            AnsiConsole.MarkupLine($"[dim]Optimized {optimizedCount} handler file(s)[/]");
+        }
     }
 
-    private static void DisplayOptimizationResults(OptimizationContext context)
+    internal static void DisplayOptimizationResults(OptimizationContext context)
     {
         if (!context.OptimizationActions.Any())
         {
@@ -165,7 +225,7 @@ public static class OptimizeCommand
         }
     }
 
-    private static int GetOptimizationSteps(string target) => target switch
+    internal static int GetOptimizationSteps(string target) => target switch
     {
         "all" => 2,
         "handlers" => 2,

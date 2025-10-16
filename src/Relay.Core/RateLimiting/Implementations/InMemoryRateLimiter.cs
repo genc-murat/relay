@@ -14,11 +14,20 @@ namespace Relay.Core.RateLimiting.Implementations
     {
         private readonly IMemoryCache _cache;
         private readonly ILogger<InMemoryRateLimiter> _logger;
+        private readonly int _requestsPerWindow;
+        private readonly int _windowSeconds;
 
         public InMemoryRateLimiter(IMemoryCache cache, ILogger<InMemoryRateLimiter> logger)
+            : this(cache, logger, 100, 60)
+        {
+        }
+
+        public InMemoryRateLimiter(IMemoryCache cache, ILogger<InMemoryRateLimiter> logger, int requestsPerWindow, int windowSeconds)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _requestsPerWindow = requestsPerWindow;
+            _windowSeconds = windowSeconds;
         }
 
         /// <inheritdoc />
@@ -36,7 +45,9 @@ namespace Relay.Core.RateLimiting.Implementations
                 info = new RateLimitInfo
                 {
                     WindowStart = DateTime.UtcNow,
-                    RequestCount = 1
+                    RequestCount = 1,
+                    RequestsPerWindow = _requestsPerWindow,
+                    WindowSeconds = _windowSeconds
                 };
 
                 _cache.Set(cacheKey, info, TimeSpan.FromMinutes(5)); // Keep info for 5 minutes
@@ -99,8 +110,8 @@ namespace Relay.Core.RateLimiting.Implementations
         {
             public DateTime WindowStart { get; set; }
             public int RequestCount { get; set; }
-            public int RequestsPerWindow { get; set; } = 100; // Default value
-            public int WindowSeconds { get; set; } = 60; // Default value
+            public int RequestsPerWindow { get; set; }
+            public int WindowSeconds { get; set; }
         }
     }
 }

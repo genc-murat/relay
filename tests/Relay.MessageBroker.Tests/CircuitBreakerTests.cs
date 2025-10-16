@@ -364,7 +364,7 @@ public class CircuitBreakerTests
         // Act - Execute slow operation
         await circuitBreaker.ExecuteAsync(async ct =>
         {
-            await Task.Delay(100, ct);
+            await Task.Delay(60, ct);
             return "Success";
         });
 

@@ -299,7 +299,7 @@ public class AzureServiceBusIntegrationTests : IDisposable
             CancellationToken.None);
 
         await Task.WhenAll(publishTasks.Select(vt => vt.AsTask()));
-        await Task.Delay(1000); // Allow time for processing
+        await Task.Delay(10); // Allow time for processing
 
         // Assert
         Assert.Equal(messageCount, publishedMessages.Count);

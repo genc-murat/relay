@@ -1316,7 +1316,7 @@ public class WorkflowEngineTests
         await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
 
         // Wait for background execution
-        await Task.Delay(1000);
+        await Task.Delay(100);
 
         // Assert - Workflow should fail due to missing definition
         _mockStateStore.Verify(x => x.SaveExecutionAsync(
@@ -1528,7 +1528,7 @@ public class WorkflowEngineTests
                 {
                     Name = "RequestStep",
                     Type = StepType.Request,
-                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequestWithProperties",
+                    RequestType = typeof(TestWorkflowRequestWithProperties).AssemblyQualifiedName,
                     OutputKey = "Result"
                 }
             }
@@ -1582,7 +1582,7 @@ public class WorkflowEngineTests
                 {
                     Name = "RequestStep",
                     Type = StepType.Request,
-                    RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineTests+TestWorkflowRequestWithProperties",
+                    RequestType = typeof(TestWorkflowRequestWithProperties).AssemblyQualifiedName,
                     OutputKey = "Result"
                 }
             }

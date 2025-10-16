@@ -535,7 +535,7 @@ public class RateLimitingTests
     {
         // Arrange
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var rateLimiter = new InMemoryRateLimiter(cache, NullLogger<InMemoryRateLimiter>.Instance);
+        var rateLimiter = new InMemoryRateLimiter(cache, NullLogger<InMemoryRateLimiter>.Instance, 100, 1);
         var key = "user:133";
 
         // Act - Make 100 requests to reach the limit
@@ -547,10 +547,8 @@ public class RateLimitingTests
         // Verify limit is reached
         var beforeWait = await rateLimiter.IsAllowedAsync(key);
 
-        // Wait for the window to expire (default is 60 seconds, but we need to test this)
-        // Note: This test assumes default 60 second window. In a real scenario, 
-        // you'd want to inject the window configuration for testing
-        await Task.Delay(TimeSpan.FromSeconds(61));
+        // Wait for the window to expire
+        await Task.Delay(TimeSpan.FromSeconds(2));
 
         // Make a request after window expiration
         var afterWait = await rateLimiter.IsAllowedAsync(key);
@@ -587,14 +585,14 @@ public class RateLimitingTests
     {
         // Arrange
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var rateLimiter = new InMemoryRateLimiter(cache, NullLogger<InMemoryRateLimiter>.Instance);
+        var rateLimiter = new InMemoryRateLimiter(cache, NullLogger<InMemoryRateLimiter>.Instance, 100, 1);
         var key = "user:135";
 
         // Act - Make a request to start the window
         await rateLimiter.IsAllowedAsync(key);
 
         // Wait for window to expire
-        await Task.Delay(TimeSpan.FromSeconds(61));
+        await Task.Delay(TimeSpan.FromSeconds(2));
 
         // Get retry after
         var retryAfter = await rateLimiter.GetRetryAfterAsync(key);

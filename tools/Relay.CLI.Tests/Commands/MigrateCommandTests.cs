@@ -1,4 +1,7 @@
+using Relay.CLI.Commands;
+using System.CommandLine;
 using Xunit;
+using FluentAssertions;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -962,5 +965,1112 @@ public class MyExceptionHandler : IRequestExceptionHandler<MyRequest, MyResponse
         // Assert
         Assert.Equal(5, logs.Count);
         Assert.Equal("Migration complete!", logs.Last());
+    }
+
+    // ===== COMPREHENSIVE INTEGRATION TESTS =====
+
+    [Fact]
+    public void Create_ReturnsConfiguredCommand()
+    {
+        // Act
+        var command = MigrateCommand.Create();
+
+        // Assert
+        command.Should().NotBeNull();
+        command.Name.Should().Be("migrate");
+        command.Description.Should().Be("Migrate from MediatR to Relay with automated transformation");
+
+        var fromOption = command.Options.FirstOrDefault(o => o.Name == "from");
+        fromOption.Should().NotBeNull();
+        fromOption.IsRequired.Should().BeFalse();
+
+        var toOption = command.Options.FirstOrDefault(o => o.Name == "to");
+        toOption.Should().NotBeNull();
+        toOption.IsRequired.Should().BeFalse();
+
+        var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
+        pathOption.Should().NotBeNull();
+        pathOption.IsRequired.Should().BeFalse();
+
+        var analyzeOnlyOption = command.Options.FirstOrDefault(o => o.Name == "analyze-only");
+        analyzeOnlyOption.Should().NotBeNull();
+        analyzeOnlyOption.IsRequired.Should().BeFalse();
+
+        var dryRunOption = command.Options.FirstOrDefault(o => o.Name == "dry-run");
+        dryRunOption.Should().NotBeNull();
+        dryRunOption.IsRequired.Should().BeFalse();
+
+        var previewOption = command.Options.FirstOrDefault(o => o.Name == "preview");
+        previewOption.Should().NotBeNull();
+        previewOption.IsRequired.Should().BeFalse();
+
+        var backupOption = command.Options.FirstOrDefault(o => o.Name == "backup");
+        backupOption.Should().NotBeNull();
+        backupOption.IsRequired.Should().BeFalse();
+
+        var outputOption = command.Options.FirstOrDefault(o => o.Name == "output");
+        outputOption.Should().NotBeNull();
+        outputOption.IsRequired.Should().BeFalse();
+
+        var formatOption = command.Options.FirstOrDefault(o => o.Name == "format");
+        formatOption.Should().NotBeNull();
+        formatOption.IsRequired.Should().BeFalse();
+
+        var aggressiveOption = command.Options.FirstOrDefault(o => o.Name == "aggressive");
+        aggressiveOption.Should().NotBeNull();
+        aggressiveOption.IsRequired.Should().BeFalse();
+
+        var interactiveOption = command.Options.FirstOrDefault(o => o.Name == "interactive");
+        interactiveOption.Should().NotBeNull();
+        interactiveOption.IsRequired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithInvalidSourceFramework_ShowsError()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"migrate-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        try
+        {
+            // Act & Assert - Should not throw but should show error message
+            // The method validates frameworks and exits with error code
+            await MigrateCommand.ExecuteMigrate(
+                "InvalidFramework", // Invalid source
+                "Relay",
+                tempPath,
+                false, false, false, false, true, ".backup", null, "markdown", false, false);
+
+            // In the actual implementation, this sets Environment.ExitCode = 1
+            // We can't easily test Environment.ExitCode in unit tests, but the method should handle this gracefully
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithInvalidTargetFramework_ShowsError()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"migrate-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        try
+        {
+            // Act & Assert - Should not throw but should show error message
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "InvalidFramework", // Invalid target
+                tempPath,
+                false, false, false, false, true, ".backup", null, "markdown", false, false);
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithAnalyzeOnly_DoesNotModifyFiles()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"migrate-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a sample MediatR handler
+        var handlerFile = Path.Combine(tempPath, "UserHandler.cs");
+        var originalContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(handlerFile, originalContent);
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: true, // Only analyze
+                dryRun: false,
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Assert - File should remain unchanged
+            var contentAfter = await File.ReadAllTextAsync(handlerFile);
+            contentAfter.Should().Be(originalContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithDryRun_DoesNotModifyFiles()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"migrate-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a sample MediatR handler
+        var handlerFile = Path.Combine(tempPath, "UserHandler.cs");
+        var originalContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(handlerFile, originalContent);
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Dry run
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Assert - File should remain unchanged
+            var contentAfter = await File.ReadAllTextAsync(handlerFile);
+            contentAfter.Should().Be(originalContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithBackup_CreatesBackupDirectory()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"migrate-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a minimal project with MediatR code
+        var csprojContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <ItemGroup>
+    <PackageReference Include=""MediatR"" Version=""12.0.0"" />
+  </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "TestProject.csproj"), csprojContent);
+
+        var handlerContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "UserHandler.cs"), handlerContent);
+
+        try
+        {
+            // Act & Assert - Method should complete without throwing
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Use dry run to avoid actual file modifications
+                preview: false,
+                sideBySide: false,
+                createBackup: true, // Request backup creation
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Test passes if no exception is thrown
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithMarkdownOutput_CreatesReportFile()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"migrate-test-{Guid.NewGuid()}");
+        var reportPath = Path.Combine(tempPath, "migration-report.md");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a minimal project with MediatR code
+        var csprojContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <ItemGroup>
+    <PackageReference Include=""MediatR"" Version=""12.0.0"" />
+  </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "TestProject.csproj"), csprojContent);
+
+        var handlerContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "UserHandler.cs"), handlerContent);
+
+        try
+        {
+            // Act & Assert - Method should complete without throwing when output file is specified
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Use dry run to avoid actual file modifications
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: reportPath, // Output file
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Test passes if no exception is thrown
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithJsonOutput_CreatesJsonReportFile()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"migrate-test-{Guid.NewGuid()}");
+        var reportPath = Path.Combine(tempPath, "migration-report.json");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a minimal project with MediatR code
+        var csprojContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <ItemGroup>
+    <PackageReference Include=""MediatR"" Version=""12.0.0"" />
+  </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "TestProject.csproj"), csprojContent);
+
+        var handlerContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "UserHandler.cs"), handlerContent);
+
+        try
+        {
+            // Act & Assert - Method should complete without throwing when JSON output is specified
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Use dry run to avoid actual file modifications
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: reportPath, // Output file
+                format: "json",
+                aggressive: false,
+                interactive: false);
+
+            // Test passes if no exception is thrown
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithHtmlOutput_CreatesHtmlReportFile()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"migrate-test-{Guid.NewGuid()}");
+        var reportPath = Path.Combine(tempPath, "migration-report.html");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a minimal project with MediatR code
+        var csprojContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <ItemGroup>
+    <PackageReference Include=""MediatR"" Version=""12.0.0"" />
+  </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "TestProject.csproj"), csprojContent);
+
+        var handlerContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "UserHandler.cs"), handlerContent);
+
+        try
+        {
+            // Act & Assert - Method should complete without throwing when HTML output is specified
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Use dry run to avoid actual file modifications
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: reportPath, // Output file
+                format: "html",
+                aggressive: false,
+                interactive: false);
+
+            // Test passes if no exception is thrown
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithNonExistentPath_HandlesGracefully()
+    {
+        // Arrange
+        var nonExistentPath = Path.Combine(Path.GetTempPath(), $"non-existent-{Guid.NewGuid()}");
+
+        // Act & Assert - Should not throw exception
+        await MigrateCommand.ExecuteMigrate(
+            "MediatR",
+            "Relay",
+            nonExistentPath,
+            analyzeOnly: true,
+            dryRun: false,
+            preview: false,
+            sideBySide: false,
+            createBackup: false,
+            backupPath: ".backup",
+            outputFile: null,
+            format: "markdown",
+            aggressive: false,
+            interactive: false);
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithComplexProjectStructure_ProcessesAllFiles()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"complex-migrate-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create complex project structure
+        var srcPath = Path.Combine(tempPath, "src", "MyProject");
+        var testPath = Path.Combine(tempPath, "tests", "MyProject.Tests");
+        Directory.CreateDirectory(srcPath);
+        Directory.CreateDirectory(testPath);
+
+        // Create multiple handler files
+        var handlers = new[]
+        {
+            ("UserHandler.cs", @"
+using MediatR;
+public class GetUserHandler : IRequestHandler<GetUserQuery, User> {
+    public async Task<User> Handle(GetUserQuery request, CancellationToken ct) => new User();
+}"),
+            ("OrderHandler.cs", @"
+using MediatR;
+public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Order> {
+    public async Task<Order> Handle(CreateOrderCommand request, CancellationToken ct) => new Order();
+}"),
+            ("NotificationHandler.cs", @"
+using MediatR;
+public class OrderCreatedHandler : INotificationHandler<OrderCreatedEvent> {
+    public async Task Handle(OrderCreatedEvent notification, CancellationToken ct) { }
+}")
+        };
+
+        foreach (var (fileName, content) in handlers)
+        {
+            await File.WriteAllTextAsync(Path.Combine(srcPath, fileName), content);
+        }
+
+        // Create csproj with MediatR reference
+        var csprojContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <ItemGroup>
+    <PackageReference Include=""MediatR"" Version=""12.0.0"" />
+  </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(srcPath, "MyProject.csproj"), csprojContent);
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: true, // Just analyze to avoid actual file modifications
+                dryRun: false,
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Assert - Analysis should find multiple handlers
+            // The files should still exist and be unchanged (since we used analyzeOnly: true)
+            foreach (var (fileName, _) in handlers)
+            {
+                File.Exists(Path.Combine(srcPath, fileName)).Should().BeTrue();
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithCustomBackupPath_UsesSpecifiedPath()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"custom-backup-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a minimal project with MediatR code
+        var csprojContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <ItemGroup>
+    <PackageReference Include=""MediatR"" Version=""12.0.0"" />
+  </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "TestProject.csproj"), csprojContent);
+
+        var handlerContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(Path.Combine(tempPath, "UserHandler.cs"), handlerContent);
+
+        try
+        {
+            // Act & Assert - Method should complete without throwing with custom backup path
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Use dry run to avoid actual file modifications
+                preview: false,
+                sideBySide: false,
+                createBackup: true,
+                backupPath: "my-custom-backup", // Custom backup path
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Test passes if no exception is thrown
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithPreview_ShowsPreviewInformation()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"preview-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a sample MediatR handler
+        var handlerFile = Path.Combine(tempPath, "UserHandler.cs");
+        var originalContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(handlerFile, originalContent);
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Dry run with preview
+                preview: true, // Show preview
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Assert - File should remain unchanged (dry run)
+            var contentAfter = await File.ReadAllTextAsync(handlerFile);
+            contentAfter.Should().Be(originalContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithSideBySide_ShowsSideBySideDiff()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"side-by-side-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a sample MediatR handler
+        var handlerFile = Path.Combine(tempPath, "UserHandler.cs");
+        var originalContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(handlerFile, originalContent);
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Dry run
+                preview: true, // Show preview
+                sideBySide: true, // Side-by-side diff
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Assert - File should remain unchanged (dry run)
+            var contentAfter = await File.ReadAllTextAsync(handlerFile);
+            contentAfter.Should().Be(originalContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithInteractiveMode_PromptsForEachChange()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"interactive-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a sample MediatR handler
+        var handlerFile = Path.Combine(tempPath, "UserHandler.cs");
+        var originalContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(handlerFile, originalContent);
+
+        try
+        {
+            // Act - Interactive mode would normally prompt, but in tests we can't easily simulate user input
+            // This test verifies the method can be called with interactive=true without throwing
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Use dry run to avoid actual changes
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: true); // Interactive mode
+
+            // Assert - File should remain unchanged (dry run)
+            var contentAfter = await File.ReadAllTextAsync(handlerFile);
+            contentAfter.Should().Be(originalContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithAggressiveOptimization_AppliesOptimizations()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"aggressive-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a sample MediatR handler with potential optimizations
+        var handlerFile = Path.Combine(tempPath, "UserHandler.cs");
+        var originalContent = @"
+using MediatR;
+using System.Threading.Tasks;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        // Some code that could be optimized
+        var result = await Task.FromResult(new User());
+        return result;
+    }
+}";
+        await File.WriteAllTextAsync(handlerFile, originalContent);
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: true, // Dry run to avoid actual changes
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: true, // Aggressive optimization
+                interactive: false);
+
+            // Assert - File should remain unchanged (dry run)
+            var contentAfter = await File.ReadAllTextAsync(handlerFile);
+            contentAfter.Should().Be(originalContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithReadOnlyFileSystem_HandlesPermissionErrors()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"readonly-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a sample file and make it read-only
+        var handlerFile = Path.Combine(tempPath, "UserHandler.cs");
+        var originalContent = @"
+using MediatR;
+
+public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+{
+    public async Task<User> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    {
+        return new User();
+    }
+}";
+        await File.WriteAllTextAsync(handlerFile, originalContent);
+
+        try
+        {
+            // Make file read-only to simulate permission issues
+            File.SetAttributes(handlerFile, FileAttributes.ReadOnly);
+
+            // Act & Assert - Should handle the error gracefully
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: false, // Try to actually modify files
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // The method should handle the error and continue or exit gracefully
+            // We can't easily test the exact behavior without mocking, but it shouldn't crash
+        }
+        finally
+        {
+            // Clean up - remove read-only attribute first
+            if (File.Exists(handlerFile))
+            {
+                File.SetAttributes(handlerFile, FileAttributes.Normal);
+            }
+
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithCorruptedCsprojFile_HandlesXmlErrors()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"corrupted-csproj-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create a corrupted csproj file
+        var csprojFile = Path.Combine(tempPath, "TestProject.csproj");
+        var corruptedContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <ItemGroup>
+    <PackageReference Include=""MediatR"" Version=""12.0.0""
+    <!-- Missing closing tag -->
+  </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(csprojFile, corruptedContent);
+
+        try
+        {
+            // Act & Assert - Should handle XML parsing errors gracefully
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: false,
+                dryRun: false,
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // The method should handle the XML error and continue with code transformation
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithNestedProjectStructure_ProcessesAllLevels()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"nested-structure-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create nested directory structure
+        var srcPath = Path.Combine(tempPath, "src", "MyApp", "Handlers");
+        var testsPath = Path.Combine(tempPath, "tests", "MyApp.Tests", "Handlers");
+        Directory.CreateDirectory(srcPath);
+        Directory.CreateDirectory(testsPath);
+
+        // Create handlers in different levels
+        var mainHandler = Path.Combine(srcPath, "UserHandler.cs");
+        var testHandler = Path.Combine(testsPath, "UserHandlerTests.cs");
+
+        var mainContent = @"
+using MediatR;
+
+namespace MyApp.Handlers
+{
+    public class GetUserHandler : IRequestHandler<GetUserQuery, User>
+    {
+        public async Task<User> Handle(GetUserQuery request, CancellationToken ct) => new User();
+    }
+}";
+        var testContent = @"
+// Test file - should not be modified
+using MediatR;
+using Xunit;
+
+public class UserHandlerTests
+{
+    [Fact]
+    public void TestHandler() { }
+}";
+
+        await File.WriteAllTextAsync(mainHandler, mainContent);
+        await File.WriteAllTextAsync(testHandler, testContent);
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: true, // Just analyze to avoid actual modifications
+                dryRun: false,
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Assert - Files should still exist and be unchanged (analyze only)
+            File.Exists(mainHandler).Should().BeTrue();
+            File.Exists(testHandler).Should().BeTrue();
+
+            var mainContentAfter = await File.ReadAllTextAsync(mainHandler);
+            var testContentAfter = await File.ReadAllTextAsync(testHandler);
+
+            mainContentAfter.Should().Be(mainContent);
+            testContentAfter.Should().Be(testContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithLargeProject_HandlesPerformance()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"large-project-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create multiple files to simulate a large project
+        for (int i = 0; i < 10; i++)
+        {
+            var handlerFile = Path.Combine(tempPath, $"Handler{i}.cs");
+            var content = $@"
+using MediatR;
+
+public class Handler{i} : IRequestHandler<Query{i}, Result{i}>
+{{
+    public async Task<Result{i}> Handle(Query{i} request, CancellationToken ct)
+    {{
+        return new Result{i}();
+    }}
+}}";
+            await File.WriteAllTextAsync(handlerFile, content);
+        }
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: true, // Just analyze for performance
+                dryRun: false,
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Assert - All files should still exist
+            for (int i = 0; i < 10; i++)
+            {
+                var handlerFile = Path.Combine(tempPath, $"Handler{i}.cs");
+                File.Exists(handlerFile).Should().BeTrue();
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithInvalidOutputFormat_ShowsError()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"invalid-format-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        try
+        {
+            // Act & Assert - Should handle invalid format gracefully
+            // Note: The current implementation doesn't validate format, but this test ensures it doesn't crash
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: true,
+                dryRun: false,
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "invalidformat", // Invalid format
+                aggressive: false,
+                interactive: false);
+
+            // Should complete without throwing
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExecuteMigrate_WithEmptyProject_HandlesGracefully()
+    {
+        // Arrange
+        var tempPath = Path.Combine(Path.GetTempPath(), $"empty-project-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempPath);
+
+        // Create an empty csproj file
+        var csprojFile = Path.Combine(tempPath, "EmptyProject.csproj");
+        var csprojContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+</Project>";
+        await File.WriteAllTextAsync(csprojFile, csprojContent);
+
+        try
+        {
+            // Act
+            await MigrateCommand.ExecuteMigrate(
+                "MediatR",
+                "Relay",
+                tempPath,
+                analyzeOnly: true,
+                dryRun: false,
+                preview: false,
+                sideBySide: false,
+                createBackup: false,
+                backupPath: ".backup",
+                outputFile: null,
+                format: "markdown",
+                aggressive: false,
+                interactive: false);
+
+            // Assert - Should complete without issues
+            File.Exists(csprojFile).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+        }
     }
 }

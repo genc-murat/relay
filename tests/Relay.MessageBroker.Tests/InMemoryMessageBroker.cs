@@ -77,10 +77,8 @@ public sealed class InMemoryMessageBroker : IMessageBroker
                 }
             }
 
-            _ = Task.WhenAll(tasks);
+            await Task.WhenAll(tasks);
         }
-
-        return;
     }
 
     public ValueTask SubscribeAsync<TMessage>(

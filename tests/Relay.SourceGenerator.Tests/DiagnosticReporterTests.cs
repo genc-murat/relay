@@ -1183,6 +1183,7 @@ public class DiagnosticReporterTests
     // Mock reporter for testing SourceOutputDiagnosticReporter behavior
     private class MockSourceOutputReporter : IDiagnosticReporter
     {
+        private readonly object _lock = new();
         public List<Diagnostic> ReportedDiagnostics { get; } = new();
 
         public void ReportDiagnostic(Diagnostic diagnostic)
@@ -1191,7 +1192,10 @@ public class DiagnosticReporterTests
             {
                 throw new ArgumentNullException(nameof(diagnostic));
             }
-            ReportedDiagnostics.Add(diagnostic);
+            lock (_lock)
+            {
+                ReportedDiagnostics.Add(diagnostic);
+            }
         }
     }
 

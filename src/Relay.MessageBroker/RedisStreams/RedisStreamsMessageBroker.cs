@@ -16,7 +16,7 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
 {
     private readonly Dictionary<string, CancellationTokenSource> _consumerTasks = new();
     private readonly AsyncRetryPolicy _redisRetryPolicy;
-    private ConnectionMultiplexer? _redis;
+    private IConnectionMultiplexer? _redis;
     private IDatabase? _database;
     private CancellationTokenSource? _pollingCts;
     private Task? _pendingEntriesTask;
@@ -25,14 +25,22 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
         IOptions<MessageBrokerOptions> options,
         ILogger<RedisStreamsMessageBroker> logger,
         IMessageCompressor? compressor = null,
-        IContractValidator? contractValidator = null)
+        IContractValidator? contractValidator = null,
+        IConnectionMultiplexer? connectionMultiplexer = null)
         : base(options, logger, compressor, contractValidator)
     {
         if (_options.RedisStreams == null)
             throw new InvalidOperationException("Redis Streams options are required.");
-        
+
         if (string.IsNullOrWhiteSpace(_options.RedisStreams.ConnectionString))
             throw new InvalidOperationException("Redis connection string is required.");
+
+        // Use injected connection if provided (for testing)
+        if (connectionMultiplexer != null)
+        {
+            _redis = connectionMultiplexer;
+            _database = connectionMultiplexer.GetDatabase(_options.RedisStreams.Database);
+        }
 
         // Configure retry policy for Redis operations
         _redisRetryPolicy = Policy
@@ -407,7 +415,7 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
         if (_redis == null || !_redis.IsConnected)
         {
             var configOptions = ConfigurationOptions.Parse(_options.RedisStreams!.ConnectionString!);
-            
+
             if (_options.RedisStreams.ConnectTimeout.HasValue)
             {
                 configOptions.ConnectTimeout = (int)_options.RedisStreams.ConnectTimeout.Value.TotalMilliseconds;
@@ -426,7 +434,7 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
 
             _redis = await ConnectionMultiplexer.ConnectAsync(configOptions);
             _database = _redis.GetDatabase(_options.RedisStreams.Database);
-            
+
             _logger?.LogInformation("Connected to Redis server (Database: {Database})", _options.RedisStreams.Database);
         }
     }
@@ -537,9 +545,9 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
 
     protected override async ValueTask DisposeInternalAsync()
     {
-        if (_redis != null)
+        if (_redis is ConnectionMultiplexer connectionMultiplexer)
         {
-            await _redis.DisposeAsync();
+            await connectionMultiplexer.DisposeAsync();
         }
     }
 }

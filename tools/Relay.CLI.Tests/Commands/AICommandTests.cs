@@ -949,4 +949,662 @@ public void ProcessOrder(Order order)
             Directory.Delete(_testPath, true);
         }
     }
+
+    [Fact]
+    public async Task ExecuteAnalyzeCommand_WithValidParameters_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        var depth = "standard";
+        var format = "console";
+        string? output = null;
+        var includeMetrics = true;
+        var suggestOptimizations = true;
+
+        // Act & Assert - Should not throw exception
+        await AICommand.ExecuteAnalyzeCommand(path, depth, format, output, includeMetrics, suggestOptimizations);
+    }
+
+    [Fact]
+    public async Task ExecuteOptimizeCommand_WithValidParameters_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        var strategies = new[] { "caching", "async" };
+        var riskLevel = "low";
+        var backup = true;
+        var dryRun = false;
+        var confidenceThreshold = 0.8;
+
+        // Act & Assert - Should not throw exception
+        await AICommand.ExecuteOptimizeCommand(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
+    }
+
+    [Fact]
+    public async Task ExecutePredictCommand_WithValidParameters_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        var scenario = "production";
+        var load = "medium";
+        var timeHorizon = "1h";
+        var format = "console";
+
+        // Act & Assert - Should not throw exception
+        await AICommand.ExecutePredictCommand(path, scenario, load, timeHorizon, format);
+    }
+
+    [Fact]
+    public async Task ExecuteLearnCommand_WithValidParameters_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        string? metricsPath = null;
+        var updateModel = true;
+        var validate = true;
+
+        // Act & Assert - Should not throw exception
+        await AICommand.ExecuteLearnCommand(path, metricsPath, updateModel, validate);
+    }
+
+    [Fact]
+    public async Task ExecuteInsightsCommand_WithValidParameters_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        var timeWindow = "24h";
+        var format = "console";
+        string? output = null;
+        var includeHealth = true;
+        var includePredictions = true;
+
+        // Act & Assert - Should not throw exception
+        await AICommand.ExecuteInsightsCommand(path, timeWindow, format, output, includeHealth, includePredictions);
+    }
+
+    [Fact]
+    public async Task OutputResults_WithConsoleFormat_DisplaysResults()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = new[]
+            {
+                new AIPerformanceIssue { Severity = "High", Description = "Test issue", Location = "Test.cs", Impact = "High" }
+            },
+            OptimizationOpportunities = new[]
+            {
+                new OptimizationOpportunity { Strategy = "Caching", Description = "Test optimization", ExpectedImprovement = 0.5, Confidence = 0.8, RiskLevel = "Low" }
+            }
+        };
+
+        // Act & Assert - Should not throw exception
+        await AICommand.OutputResults(results, "console", null);
+    }
+
+    [Fact]
+    public async Task OutputResults_WithJsonFormat_ReturnsJson()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+        };
+
+        // Act & Assert - Should not throw exception
+        await AICommand.OutputResults(results, "json", null);
+    }
+
+    [Fact]
+    public async Task OutputResults_WithUnsupportedFormat_ThrowsException()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            AICommand.OutputResults(results, "unsupported", null));
+    }
+
+    [Fact]
+    public void DisplayAnalysisResults_WithValidResults_DisplaysCorrectly()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = new[]
+            {
+                new AIPerformanceIssue { Severity = "High", Description = "Test issue", Location = "Test.cs", Impact = "High" }
+            },
+            OptimizationOpportunities = new[]
+            {
+                new OptimizationOpportunity { Strategy = "Caching", Description = "Test optimization", ExpectedImprovement = 0.5, Confidence = 0.8, RiskLevel = "Low" }
+            }
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayAnalysisResults(results);
+    }
+
+    [Fact]
+    public void DisplayAnalysisResults_WithEmptyCollections_DisplaysCorrectly()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayAnalysisResults(results);
+    }
+
+    [Fact]
+    public void DisplayOptimizationResults_WithValidResults_DisplaysCorrectly()
+    {
+        // Arrange
+        var results = new AIOptimizationResults
+        {
+            AppliedOptimizations = new[]
+            {
+                new OptimizationResult { Strategy = "Caching", FilePath = "Services/UserService.cs", Description = "Added cache", Success = true, PerformanceGain = 0.6 },
+                new OptimizationResult { Strategy = "Async", FilePath = "Services/OrderService.cs", Description = "Converted to ValueTask", Success = true, PerformanceGain = 0.1 }
+            },
+            OverallImprovement = 0.35
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayOptimizationResults(results, false);
+    }
+
+    [Fact]
+    public void DisplayOptimizationResults_WithDryRun_DisplaysCorrectly()
+    {
+        // Arrange
+        var results = new AIOptimizationResults
+        {
+            AppliedOptimizations = new[]
+            {
+                new OptimizationResult { Strategy = "Caching", FilePath = "Services/UserService.cs", Description = "Added cache", Success = true, PerformanceGain = 0.6 }
+            },
+            OverallImprovement = 0.35
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayOptimizationResults(results, true);
+    }
+
+    [Fact]
+    public async Task OutputPredictions_WithConsoleFormat_DisplaysCorrectly()
+    {
+        // Arrange
+        var predictions = new AIPredictionResults
+        {
+            ExpectedThroughput = 1250,
+            ExpectedResponseTime = 85,
+            ExpectedErrorRate = 0.02,
+            ExpectedCpuUsage = 0.65,
+            ExpectedMemoryUsage = 0.45,
+            Bottlenecks = new[]
+            {
+                new PredictedBottleneck { Component = "Database", Description = "Connection pool", Probability = 0.3, Impact = "High" }
+            },
+            Recommendations = new[] { "Increase connection pool", "Enable read replicas" }
+        };
+
+        // Act & Assert - Should not throw exception
+        await AICommand.OutputPredictions(predictions, "console");
+    }
+
+    [Fact]
+    public async Task OutputPredictions_WithJsonFormat_DisplaysCorrectly()
+    {
+        // Arrange
+        var predictions = new AIPredictionResults
+        {
+            ExpectedThroughput = 1250,
+            ExpectedResponseTime = 85,
+            ExpectedErrorRate = 0.02,
+            ExpectedCpuUsage = 0.65,
+            ExpectedMemoryUsage = 0.45,
+            Bottlenecks = Array.Empty<PredictedBottleneck>(),
+            Recommendations = Array.Empty<string>()
+        };
+
+        // Act & Assert - Should not throw exception
+        await AICommand.OutputPredictions(predictions, "json");
+    }
+
+    [Fact]
+    public void DisplayPredictions_WithValidResults_DisplaysCorrectly()
+    {
+        // Arrange
+        var predictions = new AIPredictionResults
+        {
+            ExpectedThroughput = 1250,
+            ExpectedResponseTime = 85,
+            ExpectedErrorRate = 0.02,
+            ExpectedCpuUsage = 0.65,
+            ExpectedMemoryUsage = 0.45,
+            Bottlenecks = new[]
+            {
+                new PredictedBottleneck { Component = "Database", Description = "Connection pool", Probability = 0.3, Impact = "High" }
+            },
+            Recommendations = new[] { "Increase connection pool", "Enable read replicas" }
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayPredictions(predictions);
+    }
+
+    [Fact]
+    public void DisplayPredictions_WithEmptyCollections_DisplaysCorrectly()
+    {
+        // Arrange
+        var predictions = new AIPredictionResults
+        {
+            ExpectedThroughput = 1250,
+            ExpectedResponseTime = 85,
+            ExpectedErrorRate = 0.02,
+            ExpectedCpuUsage = 0.65,
+            ExpectedMemoryUsage = 0.45,
+            Bottlenecks = Array.Empty<PredictedBottleneck>(),
+            Recommendations = Array.Empty<string>()
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayPredictions(predictions);
+    }
+
+    [Fact]
+    public void DisplayLearningResults_WithValidResults_DisplaysCorrectly()
+    {
+        // Arrange
+        var results = new AILearningResults
+        {
+            TrainingSamples = 15420,
+            ModelAccuracy = 0.94,
+            TrainingTime = 2.3,
+            ImprovementAreas = new[]
+            {
+                new ImprovementArea { Area = "Caching Predictions", Improvement = 0.12 },
+                new ImprovementArea { Area = "Batch Size Optimization", Improvement = 0.08 }
+            }
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayLearningResults(results);
+    }
+
+    [Fact]
+    public async Task OutputInsights_WithConsoleFormat_DisplaysCorrectly()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = new[] { "High memory usage detected" },
+            OptimizationOpportunities = new[]
+            {
+                new OptimizationOpportunity { Title = "Enable Caching", ExpectedImprovement = 0.4 },
+                new OptimizationOpportunity { Title = "Optimize Queries", ExpectedImprovement = 0.25 }
+            },
+            Predictions = new[]
+            {
+                new PredictionResult { Metric = "Throughput", PredictedValue = "1,200 req/sec", Confidence = 0.89 }
+            }
+        };
+
+        // Act & Assert - Should not throw exception
+        await AICommand.OutputInsights(insights, "console", null);
+    }
+
+    [Fact]
+    public async Task OutputInsights_WithJsonFormat_DisplaysCorrectly()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = Array.Empty<string>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
+            Predictions = Array.Empty<PredictionResult>()
+        };
+
+        // Act & Assert - Should not throw exception
+        await AICommand.OutputInsights(insights, "json", null);
+    }
+
+    [Fact]
+    public void DisplayInsights_WithValidResults_DisplaysCorrectly()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = new[] { "High memory usage detected" },
+            OptimizationOpportunities = new[]
+            {
+                new OptimizationOpportunity { Title = "Enable Caching", ExpectedImprovement = 0.4 },
+                new OptimizationOpportunity { Title = "Optimize Queries", ExpectedImprovement = 0.25 }
+            },
+            Predictions = new[]
+            {
+                new PredictionResult { Metric = "Throughput", PredictedValue = "1,200 req/sec", Confidence = 0.89 }
+            }
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayInsights(insights);
+    }
+
+    [Fact]
+    public void DisplayInsights_WithEmptyCollections_DisplaysCorrectly()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = Array.Empty<string>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
+            Predictions = Array.Empty<PredictionResult>()
+        };
+
+        // Act & Assert - Should not throw exception
+        AICommand.DisplayInsights(insights);
+    }
+
+    [Fact]
+    public void GenerateHtmlReport_WithValidResults_ReturnsValidHtml()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = new[]
+            {
+                new AIPerformanceIssue { Severity = "High", Description = "Test issue", Location = "Test.cs", Impact = "High" }
+            },
+            OptimizationOpportunities = new[]
+            {
+                new OptimizationOpportunity { Strategy = "Caching", Description = "Test optimization", ExpectedImprovement = 0.5, Confidence = 0.8, RiskLevel = "Low" }
+            }
+        };
+
+        // Act
+        var html = AICommand.GenerateHtmlReport(results);
+
+        // Assert
+        Assert.Contains("<!DOCTYPE html>", html);
+        Assert.Contains("<title>AI Analysis Report</title>", html);
+        Assert.Contains("Test issue", html);
+        Assert.Contains("Test optimization", html);
+        Assert.Contains("7.8/10", html);
+    }
+
+    [Fact]
+    public void GenerateHtmlReport_WithEmptyCollections_ReturnsValidHtml()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+        };
+
+        // Act
+        var html = AICommand.GenerateHtmlReport(results);
+
+        // Assert
+        Assert.Contains("<!DOCTYPE html>", html);
+        Assert.Contains("<title>AI Analysis Report</title>", html);
+        Assert.Contains("7.8/10", html);
+    }
+
+    [Fact]
+    public void GenerateInsightsHtmlReport_WithValidResults_ReturnsValidHtml()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = new[] { "High memory usage detected" },
+            OptimizationOpportunities = new[]
+            {
+                new OptimizationOpportunity { Title = "Enable Caching", ExpectedImprovement = 0.4 },
+                new OptimizationOpportunity { Title = "Optimize Queries", ExpectedImprovement = 0.25 }
+            },
+            Predictions = new[]
+            {
+                new PredictionResult { Metric = "Throughput", PredictedValue = "1,200 req/sec", Confidence = 0.89 }
+            }
+        };
+
+        // Act
+        var html = AICommand.GenerateInsightsHtmlReport(insights);
+
+        // Assert
+        Assert.Contains("<!DOCTYPE html>", html);
+        Assert.Contains("<title>AI System Insights</title>", html);
+        Assert.Contains("8.2/10", html);
+        Assert.Contains("High memory usage detected", html);
+    }
+
+    [Fact]
+    public void GenerateInsightsHtmlReport_WithEmptyCollections_ReturnsValidHtml()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = Array.Empty<string>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
+            Predictions = Array.Empty<PredictionResult>()
+        };
+
+        // Act
+        var html = AICommand.GenerateInsightsHtmlReport(insights);
+
+        // Assert
+        Assert.Contains("<!DOCTYPE html>", html);
+        Assert.Contains("<title>AI System Insights</title>", html);
+        Assert.Contains("8.2/10", html);
+    }
+
+    [Fact]
+    public async Task ExecuteAnalyzeCommand_WithInvalidDepth_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        var depth = "invalid";
+        var format = "console";
+        string? output = null;
+        var includeMetrics = true;
+        var suggestOptimizations = true;
+
+        // Act & Assert - Methods don't validate parameters, so they complete successfully
+        await AICommand.ExecuteAnalyzeCommand(path, depth, format, output, includeMetrics, suggestOptimizations);
+    }
+
+    [Fact]
+    public async Task ExecuteOptimizeCommand_WithInvalidRiskLevel_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        var strategies = new[] { "caching" };
+        var riskLevel = "invalid";
+        var backup = true;
+        var dryRun = false;
+        var confidenceThreshold = 0.8;
+
+        // Act & Assert - Methods don't validate parameters, so they complete successfully
+        await AICommand.ExecuteOptimizeCommand(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
+    }
+
+    [Fact]
+    public async Task ExecutePredictCommand_WithInvalidScenario_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        var scenario = "invalid";
+        var load = "medium";
+        var timeHorizon = "1h";
+        var format = "console";
+
+        // Act & Assert - Methods don't validate parameters, so they complete successfully
+        await AICommand.ExecutePredictCommand(path, scenario, load, timeHorizon, format);
+    }
+
+    [Fact]
+    public async Task ExecuteInsightsCommand_WithInvalidTimeWindow_CompletesSuccessfully()
+    {
+        // Arrange
+        var path = @"C:\test\project";
+        var timeWindow = "invalid";
+        var format = "console";
+        string? output = null;
+        var includeHealth = true;
+        var includePredictions = true;
+
+        // Act & Assert - Methods don't validate parameters, so they complete successfully
+        await AICommand.ExecuteInsightsCommand(path, timeWindow, format, output, includeHealth, includePredictions);
+    }
+
+    [Fact]
+    public async Task OutputResults_WithHtmlFormatAndOutput_WritesToFile()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+        };
+        var outputPath = Path.Combine(_testPath, "report.html");
+
+        // Act
+        await AICommand.OutputResults(results, "html", outputPath);
+
+        // Assert
+        Assert.True(File.Exists(outputPath));
+        var content = await File.ReadAllTextAsync(outputPath);
+        Assert.Contains("<!DOCTYPE html>", content);
+    }
+
+    [Fact]
+    public async Task OutputInsights_WithHtmlFormatAndOutput_WritesToFile()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = Array.Empty<string>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
+            Predictions = Array.Empty<PredictionResult>()
+        };
+        var outputPath = Path.Combine(_testPath, "insights.html");
+
+        // Act
+        await AICommand.OutputInsights(insights, "html", outputPath);
+
+        // Assert
+        Assert.True(File.Exists(outputPath));
+        var content = await File.ReadAllTextAsync(outputPath);
+        Assert.Contains("<!DOCTYPE html>", content);
+    }
+
+    [Fact]
+    public async Task OutputResults_WithHtmlFormatAndNoOutput_DisplaysMessage()
+    {
+        // Arrange
+        var results = new AIAnalysisResults
+        {
+            ProjectPath = @"C:\test\project",
+            FilesAnalyzed = 42,
+            HandlersFound = 15,
+            PerformanceScore = 7.8,
+            AIConfidence = 0.87,
+            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+        };
+
+        // Act & Assert - Should not throw exception and should display message
+        await AICommand.OutputResults(results, "html", null);
+    }
+
+    [Fact]
+    public async Task OutputInsights_WithHtmlFormatAndNoOutput_DisplaysMessage()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = Array.Empty<string>(),
+            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
+            Predictions = Array.Empty<PredictionResult>()
+        };
+
+        // Act & Assert - Should not throw exception and should display message
+        await AICommand.OutputInsights(insights, "html", null);
+    }
 }

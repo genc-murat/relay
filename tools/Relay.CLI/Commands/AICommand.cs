@@ -668,7 +668,7 @@ namespace Relay.CLI.Commands
     {
         public async Task<AILearningResults> LearnAsync(string path, string? metricsPath, bool updateModel, bool validate)
         {
-            await Task.Delay(3000);
+            await Task.Delay(4500);
 
             return new AILearningResults
             {

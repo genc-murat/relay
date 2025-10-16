@@ -46,6 +46,7 @@ public sealed class MessageCompressorAdapter : IMessageCompressor
     /// <inheritdoc/>
     public bool IsCompressed(byte[] data)
     {
+        if (data == null) return false;
         return _unifiedCompressor.IsCompressed(data);
     }
 }

@@ -62,12 +62,12 @@ public static class ServiceCollectionExtensions
                     contractValidator),
                 MessageBrokerType.AwsSqsSns => new AwsSqsSnsMessageBroker(
                     brokerOptions,
-                    sp.GetService<ILogger<AwsSqsSnsMessageBroker>>(),
+                    sp.GetRequiredService<ILogger<AwsSqsSnsMessageBroker>>(),
                     null,
                     contractValidator),
                 MessageBrokerType.Nats => new NatsMessageBroker(
                     brokerOptions,
-                    sp.GetService<ILogger<NatsMessageBroker>>(),
+                    sp.GetRequiredService<ILogger<NatsMessageBroker>>(),
                     null,
                     contractValidator),
                 MessageBrokerType.RedisStreams => new RedisStreamsMessageBroker(

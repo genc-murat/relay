@@ -37,10 +37,10 @@ namespace Relay.Core.Tests.AI.Extensions
         [Fact]
         public void AddRange_ThrowsArgumentNullException_WhenDictionaryIsNull()
         {
-            Dictionary<string, int> dict = null;
+            Dictionary<string, int>? dict = null;
             var other = new Dictionary<string, int>();
 
-            Assert.Throws<ArgumentNullException>(() => dict.AddRange(other));
+            Assert.Throws<ArgumentNullException>(() => dict!.AddRange(other));
         }
 
         [Fact]
@@ -49,7 +49,7 @@ namespace Relay.Core.Tests.AI.Extensions
             var dict = new Dictionary<string, int>();
             Dictionary<string, int> other = null;
 
-            Assert.Throws<ArgumentNullException>(() => dict.AddRange(other));
+            Assert.Throws<ArgumentNullException>(() => dict.AddRange(other!));
         }
 
         [Fact]
@@ -219,7 +219,7 @@ namespace Relay.Core.Tests.AI.Extensions
         {
             IEnumerable<double> source = null;
 
-            Assert.Throws<ArgumentNullException>(() => source.Percentile(50));
+            Assert.Throws<ArgumentNullException>(() => source!.Percentile(50));
         }
 
         [Fact]
@@ -280,7 +280,7 @@ namespace Relay.Core.Tests.AI.Extensions
         {
             IEnumerable<double> source = null;
 
-            Assert.Throws<ArgumentNullException>(() => source.ExponentialMovingAverage());
+            Assert.Throws<ArgumentNullException>(() => source!.ExponentialMovingAverage());
         }
 
         [Fact]
@@ -317,7 +317,7 @@ namespace Relay.Core.Tests.AI.Extensions
         {
             IEnumerable<object> source = null;
 
-            Assert.Throws<ArgumentNullException>(() => source.WeightedAverage(_ => 1.0, _ => 1.0));
+            Assert.Throws<ArgumentNullException>(() => source!.WeightedAverage(_ => 1.0, _ => 1.0));
         }
 
         [Fact]
@@ -325,8 +325,8 @@ namespace Relay.Core.Tests.AI.Extensions
         {
             var source = new[] { 1 };
 
-            Assert.Throws<ArgumentNullException>(() => source.WeightedAverage(null, _ => 1.0));
-            Assert.Throws<ArgumentNullException>(() => source.WeightedAverage(_ => 1.0, null));
+            Assert.Throws<ArgumentNullException>(() => source.WeightedAverage(null!, _ => 1.0));
+            Assert.Throws<ArgumentNullException>(() => source.WeightedAverage(_ => 1.0, null!));
         }
 
         [Fact]

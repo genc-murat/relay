@@ -228,6 +228,8 @@ public sealed class RabbitMQMessageBroker : BaseMessageBroker
             try
             {
                 var message = DeserializeMessage<object>(ea.Body.ToArray());
+                if (message == null) return;
+
                 var context = CreateMessageContext(ea, channel);
 
                 await ProcessMessageAsync(message, subscription.MessageType, context, CancellationToken.None);

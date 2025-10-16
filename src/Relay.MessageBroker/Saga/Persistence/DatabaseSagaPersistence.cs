@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace Relay.MessageBroker.Saga.Persistence;
@@ -100,7 +101,7 @@ public sealed class DatabaseSagaPersistence<TSagaData> : ISagaPersistence<TSagaD
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<TSagaData> GetActiveSagasAsync(CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<TSagaData> GetActiveSagasAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var entities = await _dbContext.Sagas
             .Where(s => s.State == SagaState.Running || s.State == SagaState.Compensating)
@@ -117,7 +118,7 @@ public sealed class DatabaseSagaPersistence<TSagaData> : ISagaPersistence<TSagaD
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<TSagaData> GetByStateAsync(SagaState state, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<TSagaData> GetByStateAsync(SagaState state, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var entities = await _dbContext.Sagas
             .Where(s => s.State == state)

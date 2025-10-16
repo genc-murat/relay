@@ -104,8 +104,8 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
             entries.Add(new NameValueEntry("expiration", options.Expiration.Value.TotalMilliseconds.ToString()));
         }
 
-        var maxLength = _options.RedisStreams.MaxStreamLength > 0 
-            ? _options.RedisStreams.MaxStreamLength 
+        var maxLength = _options.RedisStreams!.MaxStreamLength > 0
+            ? _options.RedisStreams!.MaxStreamLength
             : (int?)null;
 
         await _redisRetryPolicy.ExecuteAsync(async () =>
@@ -136,16 +136,16 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
         
         // Start consumer for specific stream if not already running
         var streamName = subscriptionInfo.Options.QueueName ?? _options.RedisStreams!.DefaultStreamName ?? "relay:stream";
-        
+
         if (!_consumerTasks.ContainsKey(streamName))
         {
-            var groupName = subscriptionInfo.Options.ConsumerGroup ?? _options.RedisStreams.ConsumerGroupName ?? "relay-consumer-group";
-            var consumerName = subscriptionInfo.Options.ConsumerGroup != null 
+            var groupName = subscriptionInfo.Options.ConsumerGroup ?? _options.RedisStreams!.ConsumerGroupName ?? "relay-consumer-group";
+            var consumerName = subscriptionInfo.Options.ConsumerGroup != null
                 ? $"{subscriptionInfo.Options.ConsumerGroup}-{Environment.MachineName}-{Guid.NewGuid():N}"
-                : _options.RedisStreams.ConsumerName ?? $"relay-consumer-{Environment.MachineName}";
+                : _options.RedisStreams!.ConsumerName ?? $"relay-consumer-{Environment.MachineName}";
 
             // Create consumer group if not exists
-            if (_options.RedisStreams.CreateConsumerGroupIfNotExists)
+            if (_options.RedisStreams!.CreateConsumerGroupIfNotExists)
             {
                 await CreateConsumerGroupIfNotExistsAsync(streamName, groupName);
             }
@@ -281,7 +281,7 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
                 }
             }
 
-            var type = Type.GetType(messageType);
+            var type = Type.GetType(messageType!);
 
             if (type == null)
             {
@@ -295,7 +295,7 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
             object? deserializedMessage;
             try
             {
-                deserializedMessage = JsonSerializer.Deserialize(messageData, type);
+                deserializedMessage = JsonSerializer.Deserialize(messageData!, type);
             }
             catch (JsonException ex)
             {
@@ -343,7 +343,7 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
                 MessageId = customMessageId,
                 CorrelationId = headers?.ContainsKey("CorrelationId") == true ? headers["CorrelationId"].ToString() : null,
                 Timestamp = timestamp,
-                Headers = headers.Count > 0 ? headers : null,
+                Headers = headers!.Count > 0 ? headers : null,
                 RoutingKey = streamName,
                 Acknowledge = async () => 
                     await AcknowledgeMessageAsync(streamName, groupName, message.Id, cancellationToken),

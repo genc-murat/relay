@@ -80,7 +80,7 @@ public sealed class NatsMessageBroker : BaseMessageBroker
                             MessageId = Guid.NewGuid().ToString(),
                             Timestamp = DateTimeOffset.UtcNow,
                             RoutingKey = subject,
-                            Headers = msg.Headers?.ToDictionary(kvp => kvp.Key, kvp => (object)string.Join(",", kvp.Value))
+                            Headers = msg.Headers?.ToDictionary(kvp => kvp.Key, kvp => (object)string.Join(",", kvp.Value!))
                         };
                         
                         await ProcessMessageAsync(message, messageType, context, cancellationToken);

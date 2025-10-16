@@ -60,13 +60,13 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
         PublishOptions? options,
         CancellationToken cancellationToken)
     {
-        _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
-        
-        var entityName = options?.RoutingKey 
-            ?? _options.AzureServiceBus.DefaultEntityName 
-            ?? typeof(TMessage).Name;
-        
-        _sender ??= _client.CreateSender(entityName);
+            _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
+
+            var entityName = options?.RoutingKey
+                ?? _options.AzureServiceBus!.DefaultEntityName
+                ?? typeof(TMessage).Name;
+
+            _sender ??= _client.CreateSender(entityName);
 
         var messageBody = Encoding.UTF8.GetString(serializedMessage);
         var serviceBusMessage = new ServiceBusMessage(messageBody)
@@ -123,9 +123,9 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
         try
         {
             _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
-            
-            var entityName = options?.RoutingKey 
-                ?? _options.AzureServiceBus.DefaultEntityName 
+
+            var entityName = options?.RoutingKey
+                ?? _options.AzureServiceBus!.DefaultEntityName
                 ?? typeof(TMessage).Name;
             
             _sender ??= _client.CreateSender(entityName);
@@ -204,11 +204,11 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
         try
         {
             _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
-            
-            var entityName = options?.RoutingKey 
-                ?? _options.AzureServiceBus.DefaultEntityName 
+
+            var entityName = options?.RoutingKey
+                ?? _options.AzureServiceBus!.DefaultEntityName
                 ?? typeof(TMessage).Name;
-            
+
             _sender ??= _client.CreateSender(entityName);
 
             var messageBody = JsonSerializer.Serialize(message);
@@ -262,9 +262,9 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
         try
         {
             _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
-            
-            entityName ??= _options.AzureServiceBus.DefaultEntityName ?? "relay-messages";
-            
+
+            entityName ??= _options.AzureServiceBus!.DefaultEntityName ?? "relay-messages";
+
             var sender = _client.CreateSender(entityName);
             await _retryPolicy.ExecuteAsync(async () =>
             {
@@ -294,19 +294,19 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
         try
         {
             _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
-            
-            entityName ??= _options.AzureServiceBus.DefaultEntityName ?? "relay-messages";
+
+            entityName ??= _options.AzureServiceBus!.DefaultEntityName ?? "relay-messages";
             var deadLetterEntityName = $"{entityName}/$DeadLetterQueue";
-            
+
             var receiverOptions = new ServiceBusReceiverOptions
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock,
-                PrefetchCount = _options.AzureServiceBus.PrefetchCount
+                PrefetchCount = _options.AzureServiceBus!.PrefetchCount
             };
 
-            var receiver = _options.AzureServiceBus.EntityType == AzureEntityType.Topic && 
-                          !string.IsNullOrWhiteSpace(_options.AzureServiceBus.SubscriptionName)
-                ? _client.CreateReceiver(entityName, _options.AzureServiceBus.SubscriptionName, receiverOptions)
+            var receiver = _options.AzureServiceBus!.EntityType == AzureEntityType.Topic &&
+                          !string.IsNullOrWhiteSpace(_options.AzureServiceBus!.SubscriptionName)
+                ? _client.CreateReceiver(entityName, _options.AzureServiceBus!.SubscriptionName, receiverOptions)
                 : _client.CreateReceiver(entityName, receiverOptions);
 
             var receivedMessages = await receiver.ReceiveMessagesAsync(_options.AzureServiceBus.MaxConcurrentCalls, TimeSpan.FromSeconds(1));
@@ -387,18 +387,18 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
         try
         {
             _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
-            
-            entityName ??= _options.AzureServiceBus.DefaultEntityName ?? "relay-messages";
+
+            entityName ??= _options.AzureServiceBus!.DefaultEntityName ?? "relay-messages";
             var deadLetterEntityName = $"{entityName}/$DeadLetterQueue";
-            
+
             var receiverOptions = new ServiceBusReceiverOptions
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
             };
 
-            var receiver = _options.AzureServiceBus.EntityType == AzureEntityType.Topic && 
-                          !string.IsNullOrWhiteSpace(_options.AzureServiceBus.SubscriptionName)
-                ? _client.CreateReceiver(entityName, _options.AzureServiceBus.SubscriptionName, receiverOptions)
+            var receiver = _options.AzureServiceBus!.EntityType == AzureEntityType.Topic &&
+                          !string.IsNullOrWhiteSpace(_options.AzureServiceBus!.SubscriptionName)
+                ? _client.CreateReceiver(entityName, _options.AzureServiceBus!.SubscriptionName, receiverOptions)
                 : _client.CreateReceiver(entityName, receiverOptions);
 
             var sender = _client.CreateSender(entityName);
@@ -482,7 +482,7 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
 
         try
         {
-            entityName ??= _options.AzureServiceBus.DefaultEntityName ?? typeof(TMessage).Name;
+            entityName ??= _options.AzureServiceBus!.DefaultEntityName ?? typeof(TMessage).Name;
             
             var sender = _client?.CreateSender(entityName) ?? throw new InvalidOperationException("Service Bus client not initialized");
 
@@ -537,16 +537,16 @@ protected override async ValueTask PublishInternalAsync<TMessage>(
 
         try
         {
-            entityName ??= _options.AzureServiceBus.DefaultEntityName ?? "relay-messages";
+            entityName ??= _options.AzureServiceBus!.DefaultEntityName ?? "relay-messages";
             
             var receiverOptions = new ServiceBusReceiverOptions
             {
                 ReceiveMode = ServiceBusReceiveMode.PeekLock
             };
 
-            var receiver = _options.AzureServiceBus.EntityType == AzureEntityType.Topic && 
-                          !string.IsNullOrWhiteSpace(_options.AzureServiceBus.SubscriptionName)
-                ? _client!.CreateReceiver(entityName, _options.AzureServiceBus.SubscriptionName, receiverOptions)
+            var receiver = _options.AzureServiceBus!.EntityType == AzureEntityType.Topic &&
+                          !string.IsNullOrWhiteSpace(_options.AzureServiceBus!.SubscriptionName)
+                ? _client!.CreateReceiver(entityName, _options.AzureServiceBus!.SubscriptionName, receiverOptions)
                 : _client!.CreateReceiver(entityName, receiverOptions);
 
             await receiver.CompleteMessageAsync(message, cancellationToken);
@@ -573,7 +573,7 @@ protected override async ValueTask StartInternalAsync(CancellationToken cancella
     {
         _client ??= new ServiceBusClient(_options.AzureServiceBus!.ConnectionString);
         
-        var entityName = _options.AzureServiceBus.DefaultEntityName ?? "relay-messages";
+        var entityName = _options.AzureServiceBus!.DefaultEntityName ?? "relay-messages";
         
         var processorOptions = new ServiceBusProcessorOptions
         {

@@ -228,6 +228,8 @@ protected override async ValueTask StopInternalAsync(CancellationToken cancellat
         try
         {
             var message = System.Text.Json.JsonSerializer.Deserialize(result.Message.Value, subscription.MessageType);
+            if (message == null) return;
+
             var context = CreateMessageContext(result, consumer);
 
             await ProcessMessageAsync(message, subscription.MessageType, context, CancellationToken.None);

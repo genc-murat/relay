@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Relay.MessageBroker.Saga;
 
 /// <summary>
@@ -120,7 +122,7 @@ public sealed class InMemorySagaPersistence<TSagaData> : ISagaPersistence<TSagaD
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<TSagaData> GetActiveSagasAsync(CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<TSagaData> GetActiveSagasAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         TSagaData[] sagas;
         
@@ -140,7 +142,7 @@ public sealed class InMemorySagaPersistence<TSagaData> : ISagaPersistence<TSagaD
     }
 
     /// <inheritdoc/>
-    public async IAsyncEnumerable<TSagaData> GetByStateAsync(SagaState state, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<TSagaData> GetByStateAsync(SagaState state, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         TSagaData[] sagas;
         

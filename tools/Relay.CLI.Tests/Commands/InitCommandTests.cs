@@ -1,4 +1,5 @@
 using Relay.CLI.Commands;
+using System.CommandLine;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -12,576 +13,428 @@ public class InitCommandTests : IDisposable
     }
 
     [Fact]
-    public void InitCommand_WithValidOptions_ShouldCreateProject()
+    public void Create_ReturnsConfiguredCommand()
     {
-        // Arrange
-        var projectName = "TestProject";
-
         // Act
-        Directory.CreateDirectory(_testPath);
-        var solutionPath = Path.Combine(_testPath, $"{projectName}.sln");
-        File.WriteAllText(solutionPath, "# Test solution");
+        var command = InitCommand.Create();
 
         // Assert
-        Directory.Exists(_testPath).Should().BeTrue();
-        File.Exists(solutionPath).Should().BeTrue();
-    }
+        command.Should().NotBeNull();
+        command.Name.Should().Be("init");
+        command.Description.Should().Be("Initialize a new Relay project with complete scaffolding");
 
-    [Fact]
-    public void InitCommand_WithMinimalTemplate_ShouldCreateBasicFiles()
-    {
-        // Arrange
-        Directory.CreateDirectory(_testPath);
-        var expectedFiles = new[] { "Program.cs", "appsettings.json" };
+        var nameOption = command.Options.FirstOrDefault(o => o.Name == "name");
+        nameOption.Should().NotBeNull();
+        nameOption.IsRequired.Should().BeTrue();
 
-        // Act
-        foreach (var file in expectedFiles)
-        {
-            File.WriteAllText(Path.Combine(_testPath, file), $"// {file}");
-        }
+        var templateOption = command.Options.FirstOrDefault(o => o.Name == "template");
+        templateOption.Should().NotBeNull();
+        templateOption.IsRequired.Should().BeFalse();
 
-        // Assert
-        foreach (var file in expectedFiles)
-        {
-            File.Exists(Path.Combine(_testPath, file)).Should().BeTrue();
-        }
-    }
+        var outputOption = command.Options.FirstOrDefault(o => o.Name == "output");
+        outputOption.Should().NotBeNull();
+        outputOption.IsRequired.Should().BeFalse();
 
-    [Fact]
-    public void InitCommand_ShouldRejectExistingDirectory()
-    {
-        // Arrange
-        Directory.CreateDirectory(_testPath);
+        var frameworkOption = command.Options.FirstOrDefault(o => o.Name == "framework");
+        frameworkOption.Should().NotBeNull();
+        frameworkOption.IsRequired.Should().BeFalse();
 
-        // Act
-        var exists = Directory.Exists(_testPath);
+        var gitOption = command.Options.FirstOrDefault(o => o.Name == "git");
+        gitOption.Should().NotBeNull();
+        gitOption.IsRequired.Should().BeFalse();
 
-        // Assert
-        exists.Should().BeTrue();
+        var dockerOption = command.Options.FirstOrDefault(o => o.Name == "docker");
+        dockerOption.Should().NotBeNull();
+        dockerOption.IsRequired.Should().BeFalse();
+
+        var ciOption = command.Options.FirstOrDefault(o => o.Name == "ci");
+        ciOption.Should().NotBeNull();
+        ciOption.IsRequired.Should().BeFalse();
     }
 
     [Theory]
     [InlineData("minimal")]
     [InlineData("standard")]
     [InlineData("enterprise")]
-    public void InitCommand_ShouldSupportAllTemplates(string template)
+    public async Task ExecuteInit_WithValidTemplate_CreatesProjectStructure(string template)
     {
         // Arrange
-        var validTemplates = new[] { "minimal", "standard", "enterprise" };
+        var projectName = $"TestProject_{template}";
+        var projectPath = Path.Combine(_testPath, projectName);
+
+        // Act
+        await InitCommand.ExecuteInit(projectName, template, _testPath, "net8.0", true, false, false);
 
         // Assert
-        validTemplates.Should().Contain(template);
+        Directory.Exists(projectPath).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "src", projectName)).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "tests", $"{projectName}.Tests")).Should().BeTrue();
+        Directory.Exists(Path.Combine(projectPath, "docs")).Should().BeTrue();
+
+        // Check solution file
+        File.Exists(Path.Combine(projectPath, $"{projectName}.sln")).Should().BeTrue();
+
+        // Check main project files
+        var mainProjectPath = Path.Combine(projectPath, "src", projectName);
+        File.Exists(Path.Combine(mainProjectPath, $"{projectName}.csproj")).Should().BeTrue();
+        File.Exists(Path.Combine(mainProjectPath, "Program.cs")).Should().BeTrue();
+
+        // Check test project files
+        var testProjectPath = Path.Combine(projectPath, "tests", $"{projectName}.Tests");
+        File.Exists(Path.Combine(testProjectPath, $"{projectName}.Tests.csproj")).Should().BeTrue();
+        File.Exists(Path.Combine(testProjectPath, "SampleTests.cs")).Should().BeTrue();
+
+        // Check configuration files
+        File.Exists(Path.Combine(projectPath, "README.md")).Should().BeTrue();
+        File.Exists(Path.Combine(projectPath, "appsettings.json")).Should().BeTrue();
+        File.Exists(Path.Combine(projectPath, ".relay-cli.json")).Should().BeTrue();
+        File.Exists(Path.Combine(projectPath, ".gitignore")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ExecuteInit_WithExistingDirectory_ThrowsNoException()
+    {
+        // Arrange
+        var projectName = "ExistingProject";
+        var projectPath = Path.Combine(_testPath, projectName);
+        Directory.CreateDirectory(projectPath);
+
+        // Act & Assert
+        // The method should not throw an exception but should handle the existing directory gracefully
+        // In the current implementation, it checks for existing directory and returns early
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+
+        // The directory should still exist but no new files should be created
+        Directory.Exists(projectPath).Should().BeTrue();
     }
 
     [Theory]
     [InlineData("net6.0")]
     [InlineData("net8.0")]
     [InlineData("net9.0")]
-    public void InitCommand_ShouldSupportTargetFrameworks(string framework)
+    public async Task ExecuteInit_WithDifferentFrameworks_SetsCorrectTargetFramework(string framework)
     {
         // Arrange
-        var validFrameworks = new[] { "net6.0", "net8.0", "net9.0" };
-
-        // Assert
-        validFrameworks.Should().Contain(framework);
-    }
-
-    [Fact]
-    public void InitCommand_ShouldCreateSolutionFile()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        Directory.CreateDirectory(_testPath);
+        var projectName = $"TestProject_{framework.Replace(".", "")}";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        var solutionPath = Path.Combine(_testPath, $"{projectName}.sln");
-        File.WriteAllText(solutionPath, "Microsoft Visual Studio Solution File");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, framework, true, false, false);
 
         // Assert
-        File.Exists(solutionPath).Should().BeTrue();
-        File.ReadAllText(solutionPath).Should().Contain("Microsoft Visual Studio Solution File");
+        var csprojContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, $"{projectName}.csproj"));
+        csprojContent.Should().Contain($"<TargetFramework>{framework}</TargetFramework>");
     }
 
     [Fact]
-    public void InitCommand_ShouldCreateMainProject()
+    public async Task ExecuteInit_WithDockerOption_CreatesDockerFiles()
     {
         // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
+        var projectName = "DockerProject";
+        var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        var csprojPath = Path.Combine(projectPath, $"{projectName}.csproj");
-        File.WriteAllText(csprojPath, "<Project Sdk=\"Microsoft.NET.Sdk\">");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", false, true, false);
 
         // Assert
-        File.Exists(csprojPath).Should().BeTrue();
+        File.Exists(Path.Combine(projectPath, "Dockerfile")).Should().BeTrue();
+        File.Exists(Path.Combine(projectPath, "docker-compose.yml")).Should().BeTrue();
+
+        var dockerfileContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "Dockerfile"));
+        dockerfileContent.Should().Contain("FROM mcr.microsoft.com/dotnet/sdk:8.0");
+        dockerfileContent.Should().Contain($"ENTRYPOINT [\"dotnet\", \"{projectName}.dll\"]");
+
+        var dockerComposeContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "docker-compose.yml"));
+        dockerComposeContent.Should().Contain("version: '3.8'");
+        dockerComposeContent.Should().Contain(projectName.ToLower());
     }
 
     [Fact]
-    public void InitCommand_ShouldCreateTestProject()
+    public async Task ExecuteInit_WithCIOption_CreatesGitHubActionsWorkflow()
     {
         // Arrange
-        var projectName = "TestProject";
-        var testPath = Path.Combine(_testPath, "tests", $"{projectName}.Tests");
-        Directory.CreateDirectory(testPath);
+        var projectName = "CIProject";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var workflowsPath = Path.Combine(projectPath, ".github", "workflows");
 
         // Act
-        var testCsprojPath = Path.Combine(testPath, $"{projectName}.Tests.csproj");
-        File.WriteAllText(testCsprojPath, "<Project Sdk=\"Microsoft.NET.Sdk\">");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", false, false, true);
 
         // Assert
-        File.Exists(testCsprojPath).Should().BeTrue();
+        Directory.Exists(workflowsPath).Should().BeTrue();
+        File.Exists(Path.Combine(workflowsPath, "ci.yml")).Should().BeTrue();
+
+        var ciContent = await File.ReadAllTextAsync(Path.Combine(workflowsPath, "ci.yml"));
+        ciContent.Should().Contain("name: CI");
+        ciContent.Should().Contain("on:");
+        ciContent.Should().Contain("push:");
+        ciContent.Should().Contain("branches: [ main ]");
+        ciContent.Should().Contain("dotnet build");
+        ciContent.Should().Contain("dotnet test");
     }
 
     [Fact]
-    public void InitCommand_ShouldCreateProgramFile()
+    public async Task ExecuteInit_WithGitOption_CreatesGitIgnoreFile()
     {
         // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
+        var projectName = "GitProject";
+        var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        var programPath = Path.Combine(projectPath, "Program.cs");
-        File.WriteAllText(programPath, "using Microsoft.Extensions.DependencyInjection;");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(programPath).Should().BeTrue();
-        File.ReadAllText(programPath).Should().Contain("Microsoft.Extensions.DependencyInjection");
+        File.Exists(Path.Combine(projectPath, ".gitignore")).Should().BeTrue();
+
+        var gitignoreContent = await File.ReadAllTextAsync(Path.Combine(projectPath, ".gitignore"));
+        gitignoreContent.Should().Contain("[Bb]in/");
+        gitignoreContent.Should().Contain("[Oo]bj/");
+        gitignoreContent.Should().Contain(".vs/");
+        gitignoreContent.Should().Contain("*.user");
+        gitignoreContent.Should().Contain("*.suo");
+        gitignoreContent.Should().Contain("*.nupkg");
     }
 
     [Fact]
-    public void InitCommand_ShouldCreateReadmeFile()
+    public async Task ExecuteInit_EnterpriseTemplate_CreatesAdditionalFolders()
     {
         // Arrange
-        var projectName = "TestProject";
-        Directory.CreateDirectory(_testPath);
+        var projectName = "EnterpriseProject";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        var readmePath = Path.Combine(_testPath, "README.md");
-        File.WriteAllText(readmePath, $"# {projectName}");
+        await InitCommand.ExecuteInit(projectName, "enterprise", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(readmePath).Should().BeTrue();
-        File.ReadAllText(readmePath).Should().Contain($"# {projectName}");
+        Directory.Exists(Path.Combine(mainProjectPath, "Handlers")).Should().BeTrue();
+        Directory.Exists(Path.Combine(mainProjectPath, "Requests")).Should().BeTrue();
+        Directory.Exists(Path.Combine(mainProjectPath, "Responses")).Should().BeTrue();
+        Directory.Exists(Path.Combine(mainProjectPath, "Validators")).Should().BeTrue();
+        Directory.Exists(Path.Combine(mainProjectPath, "Behaviors")).Should().BeTrue();
     }
 
     [Fact]
-    public void InitCommand_ShouldCreateAppSettingsFile()
+    public async Task ExecuteInit_CreatesSolutionFileWithCorrectContent()
     {
         // Arrange
-        Directory.CreateDirectory(_testPath);
+        var projectName = "SolutionTestProject";
+        var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        var configPath = Path.Combine(_testPath, "appsettings.json");
-        File.WriteAllText(configPath, "{\"relay\":{}}");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(configPath).Should().BeTrue();
-        File.ReadAllText(configPath).Should().Contain("relay");
+        var slnContent = await File.ReadAllTextAsync(Path.Combine(projectPath, $"{projectName}.sln"));
+        slnContent.Should().Contain("Microsoft Visual Studio Solution File");
+        slnContent.Should().Contain($"\"{projectName}\"");
+        slnContent.Should().Contain($"\"{projectName}.Tests\"");
+        slnContent.Should().Contain("src\\");
+        slnContent.Should().Contain("tests\\");
     }
 
     [Fact]
-    public void InitCommand_ShouldCreateCliConfigFile()
+    public async Task ExecuteInit_CreatesMainProjectWithCorrectDependencies()
     {
         // Arrange
-        Directory.CreateDirectory(_testPath);
+        var projectName = "MainProjectTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        var cliConfigPath = Path.Combine(_testPath, ".relay-cli.json");
-        File.WriteAllText(cliConfigPath, "{\"defaultNamespace\":\"MyApp\"}");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(cliConfigPath).Should().BeTrue();
-        File.ReadAllText(cliConfigPath).Should().Contain("defaultNamespace");
+        var csprojContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, $"{projectName}.csproj"));
+        csprojContent.Should().Contain("<TargetFramework>net8.0</TargetFramework>");
+        csprojContent.Should().Contain("<LangVersion>latest</LangVersion>");
+        csprojContent.Should().Contain("<Nullable>enable</Nullable>");
+        csprojContent.Should().Contain("<ImplicitUsings>enable</ImplicitUsings>");
+        csprojContent.Should().Contain("<PackageReference Include=\"Relay.Core\" Version=\"2.0.0\" />");
     }
 
     [Fact]
-    public void InitCommand_WithDocker_ShouldCreateDockerfile()
+    public async Task ExecuteInit_CreatesTestProjectWithCorrectDependencies()
     {
         // Arrange
-        Directory.CreateDirectory(_testPath);
+        var projectName = "TestProjectTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var testProjectPath = Path.Combine(projectPath, "tests", $"{projectName}.Tests");
 
         // Act
-        var dockerfilePath = Path.Combine(_testPath, "Dockerfile");
-        File.WriteAllText(dockerfilePath, "FROM mcr.microsoft.com/dotnet/sdk:8.0");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(dockerfilePath).Should().BeTrue();
+        var csprojContent = await File.ReadAllTextAsync(Path.Combine(testProjectPath, $"{projectName}.Tests.csproj"));
+        csprojContent.Should().Contain("<TargetFramework>net8.0</TargetFramework>");
+        csprojContent.Should().Contain("<IsPackable>false</IsPackable>");
+        csprojContent.Should().Contain("<PackageReference Include=\"Microsoft.NET.Test.Sdk\" Version=\"17.11.0\" />");
+        csprojContent.Should().Contain("<PackageReference Include=\"xunit\" Version=\"2.9.0\" />");
+        csprojContent.Should().Contain("<PackageReference Include=\"FluentAssertions\" Version=\"6.12.0\" />");
+        csprojContent.Should().Contain("<PackageReference Include=\"NSubstitute\" Version=\"5.1.0\" />");
+        csprojContent.Should().Contain($"<ProjectReference Include=\"..\\..\\src\\{projectName}\\{projectName}.csproj\" />");
     }
 
     [Fact]
-    public void InitCommand_WithDocker_ShouldCreateDockerCompose()
+    public async Task ExecuteInit_CreatesProgramFileWithCorrectContent()
     {
         // Arrange
-        Directory.CreateDirectory(_testPath);
+        var projectName = "ProgramTestProject";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        var dockerComposePath = Path.Combine(_testPath, "docker-compose.yml");
-        File.WriteAllText(dockerComposePath, "version: '3.8'");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(dockerComposePath).Should().BeTrue();
+        var programContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Program.cs"));
+        programContent.Should().Contain("using Microsoft.Extensions.DependencyInjection;");
+        programContent.Should().Contain("using Microsoft.Extensions.Hosting;");
+        programContent.Should().Contain("using Relay.Core;");
+        programContent.Should().Contain("Host.CreateApplicationBuilder(args)");
+        programContent.Should().Contain("builder.Services.AddRelay();");
+        programContent.Should().Contain($"🚀 {projectName} is running with Relay!");
     }
 
     [Fact]
-    public void InitCommand_WithCI_ShouldCreateGitHubActions()
+    public async Task ExecuteInit_CreatesReadmeWithCorrectContent()
     {
         // Arrange
-        var workflowPath = Path.Combine(_testPath, ".github", "workflows");
-        Directory.CreateDirectory(workflowPath);
+        var projectName = "ReadmeTestProject";
+        var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        var ciPath = Path.Combine(workflowPath, "ci.yml");
-        File.WriteAllText(ciPath, "name: CI");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(ciPath).Should().BeTrue();
+        var readmeContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "README.md"));
+        readmeContent.Should().Contain($"# {projectName}");
+        readmeContent.Should().Contain("A high-performance application built with [Relay]");
+        readmeContent.Should().Contain("## 🚀 Getting Started");
+        readmeContent.Should().Contain("dotnet build");
+        readmeContent.Should().Contain("dotnet run");
+        readmeContent.Should().Contain("dotnet test");
+        readmeContent.Should().Contain("## 📖 Project Structure");
+        readmeContent.Should().Contain("## 🎯 Features");
+        readmeContent.Should().Contain("⚡ High-performance request/response handling");
     }
 
     [Fact]
-    public void InitCommand_WithGit_ShouldCreateGitignore()
+    public async Task ExecuteInit_CreatesConfigurationFiles()
     {
         // Arrange
-        Directory.CreateDirectory(_testPath);
+        var projectName = "ConfigTestProject";
+        var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        var gitignorePath = Path.Combine(_testPath, ".gitignore");
-        File.WriteAllText(gitignorePath, "bin/\nobj/");
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(gitignorePath).Should().BeTrue();
+        var appsettingsContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "appsettings.json"));
+        appsettingsContent.Should().Contain("\"version\": \"2.0\"");
+        appsettingsContent.Should().Contain("\"relay\": {");
+        appsettingsContent.Should().Contain("\"enableCaching\": false");
+
+        var cliConfigContent = await File.ReadAllTextAsync(Path.Combine(projectPath, ".relay-cli.json"));
+        cliConfigContent.Should().Contain("\"defaultNamespace\": \"MyApp\"");
+        cliConfigContent.Should().Contain("\"templatePreference\": \"standard\"");
+        cliConfigContent.Should().Contain("\"includeTests\": true");
     }
 
     [Fact]
-    public void InitCommand_EnterpriseTemplate_ShouldCreateHandlersFolder()
+    public async Task ExecuteInit_StandardTemplate_CreatesSampleCodeInRoot()
     {
         // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        var handlersPath = Path.Combine(projectPath, "Handlers");
+        var projectName = "SampleCodeTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        Directory.CreateDirectory(handlersPath);
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        Directory.Exists(handlersPath).Should().BeTrue();
+        File.Exists(Path.Combine(mainProjectPath, "GetUserQuery.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(mainProjectPath, "UserResponse.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(mainProjectPath, "GetUserHandler.cs")).Should().BeTrue();
+
+        var queryContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "GetUserQuery.cs"));
+        queryContent.Should().Contain($"namespace {projectName}.Requests;");
+        queryContent.Should().Contain("public record GetUserQuery(int UserId) : IRequest<UserResponse>;");
+
+        var responseContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "UserResponse.cs"));
+        responseContent.Should().Contain($"namespace {projectName}.Requests;");
+        responseContent.Should().Contain("public record UserResponse(int Id, string Name, string Email);");
+
+        var handlerContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "GetUserHandler.cs"));
+        handlerContent.Should().Contain($"namespace {projectName}.Handlers;");
+        handlerContent.Should().Contain("public class GetUserHandler : IRequestHandler<GetUserQuery, UserResponse>");
+        handlerContent.Should().Contain("[Handle]");
+        handlerContent.Should().Contain("ValueTask<UserResponse>");
     }
 
     [Fact]
-    public void InitCommand_EnterpriseTemplate_ShouldCreateRequestsFolder()
+    public async Task ExecuteInit_EnterpriseTemplate_CreatesSampleCodeInFolders()
     {
         // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        var requestsPath = Path.Combine(projectPath, "Requests");
+        var projectName = "EnterpriseSampleTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        Directory.CreateDirectory(requestsPath);
+        await InitCommand.ExecuteInit(projectName, "enterprise", _testPath, "net8.0", true, false, false);
 
         // Assert
-        Directory.Exists(requestsPath).Should().BeTrue();
+        File.Exists(Path.Combine(mainProjectPath, "Requests", "GetUserQuery.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(mainProjectPath, "Responses", "UserResponse.cs")).Should().BeTrue();
+        File.Exists(Path.Combine(mainProjectPath, "Handlers", "GetUserHandler.cs")).Should().BeTrue();
+
+        var queryContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Requests", "GetUserQuery.cs"));
+        queryContent.Should().Contain($"namespace {projectName}.Requests;");
+
+        var responseContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Responses", "UserResponse.cs"));
+        responseContent.Should().Contain($"namespace {projectName}.Requests;");
+
+        var handlerContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Handlers", "GetUserHandler.cs"));
+        handlerContent.Should().Contain($"namespace {projectName}.Handlers;");
     }
 
     [Fact]
-    public void InitCommand_EnterpriseTemplate_ShouldCreateResponsesFolder()
+    public async Task ExecuteInit_CreatesSampleTestFile()
     {
         // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        var responsesPath = Path.Combine(projectPath, "Responses");
+        var projectName = "SampleTestTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var testProjectPath = Path.Combine(projectPath, "tests", $"{projectName}.Tests");
 
         // Act
-        Directory.CreateDirectory(responsesPath);
+        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        Directory.Exists(responsesPath).Should().BeTrue();
+        var testContent = await File.ReadAllTextAsync(Path.Combine(testProjectPath, "SampleTests.cs"));
+        testContent.Should().Contain($"namespace {projectName}.Tests;");
+        testContent.Should().Contain("public class SampleTests");
+        testContent.Should().Contain("[Fact]");
+        testContent.Should().Contain("SampleTest_ShouldPass");
+        testContent.Should().Contain("using Xunit;");
+        testContent.Should().Contain("using FluentAssertions;");
     }
 
     [Fact]
-    public void InitCommand_EnterpriseTemplate_ShouldCreateValidatorsFolder()
+    public async Task ExecuteInit_CustomOutputDirectory_CreatesProjectInCorrectLocation()
     {
         // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        var validatorsPath = Path.Combine(projectPath, "Validators");
+        var projectName = "CustomOutputTest";
+        var customOutputPath = Path.Combine(_testPath, "custom");
+        Directory.CreateDirectory(customOutputPath);
 
         // Act
-        Directory.CreateDirectory(validatorsPath);
+        await InitCommand.ExecuteInit(projectName, "standard", customOutputPath, "net8.0", true, false, false);
 
         // Assert
-        Directory.Exists(validatorsPath).Should().BeTrue();
-    }
-
-    [Fact]
-    public void InitCommand_EnterpriseTemplate_ShouldCreateBehaviorsFolder()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        var behaviorsPath = Path.Combine(projectPath, "Behaviors");
-
-        // Act
-        Directory.CreateDirectory(behaviorsPath);
-
-        // Assert
-        Directory.Exists(behaviorsPath).Should().BeTrue();
-    }
-
-    [Fact]
-    public void InitCommand_ShouldCreateSampleRequest()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        // Act
-        var requestPath = Path.Combine(projectPath, "GetUserQuery.cs");
-        File.WriteAllText(requestPath, "public record GetUserQuery(int UserId) : IRequest<UserResponse>;");
-
-        // Assert
-        File.Exists(requestPath).Should().BeTrue();
-        File.ReadAllText(requestPath).Should().Contain("GetUserQuery");
-    }
-
-    [Fact]
-    public void InitCommand_ShouldCreateSampleResponse()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        // Act
-        var responsePath = Path.Combine(projectPath, "UserResponse.cs");
-        File.WriteAllText(responsePath, "public record UserResponse(int Id, string Name, string Email);");
-
-        // Assert
-        File.Exists(responsePath).Should().BeTrue();
-        File.ReadAllText(responsePath).Should().Contain("UserResponse");
-    }
-
-    [Fact]
-    public void InitCommand_ShouldCreateSampleHandler()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        // Act
-        var handlerPath = Path.Combine(projectPath, "GetUserHandler.cs");
-        File.WriteAllText(handlerPath, "public class GetUserHandler : IRequestHandler<GetUserQuery, UserResponse>");
-
-        // Assert
-        File.Exists(handlerPath).Should().BeTrue();
-        File.ReadAllText(handlerPath).Should().Contain("GetUserHandler");
-    }
-
-    [Fact]
-    public void InitCommand_ShouldCreateSampleTest()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var testPath = Path.Combine(_testPath, "tests", $"{projectName}.Tests");
-        Directory.CreateDirectory(testPath);
-
-        // Act
-        var testFilePath = Path.Combine(testPath, "SampleTests.cs");
-        File.WriteAllText(testFilePath, "public class SampleTests");
-
-        // Assert
-        File.Exists(testFilePath).Should().BeTrue();
-    }
-
-    [Fact]
-    public void InitCommand_ShouldCreateDocsFolder()
-    {
-        // Arrange
-        var docsPath = Path.Combine(_testPath, "docs");
-
-        // Act
-        Directory.CreateDirectory(docsPath);
-
-        // Assert
-        Directory.Exists(docsPath).Should().BeTrue();
-    }
-
-    [Fact]
-    public void InitCommand_ShouldIncludeRelayPackageReference()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        // Act
-        var csprojPath = Path.Combine(projectPath, $"{projectName}.csproj");
-        File.WriteAllText(csprojPath, "<PackageReference Include=\"Relay.Core\" Version=\"2.0.0\" />");
-
-        // Assert
-        File.ReadAllText(csprojPath).Should().Contain("Relay.Core");
-    }
-
-    [Fact]
-    public void InitCommand_TestProject_ShouldIncludeXUnit()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var testPath = Path.Combine(_testPath, "tests", $"{projectName}.Tests");
-        Directory.CreateDirectory(testPath);
-
-        // Act
-        var csprojPath = Path.Combine(testPath, $"{projectName}.Tests.csproj");
-        File.WriteAllText(csprojPath, "<PackageReference Include=\"xunit\" Version=\"2.9.0\" />");
-
-        // Assert
-        File.ReadAllText(csprojPath).Should().Contain("xunit");
-    }
-
-    [Fact]
-    public void InitCommand_TestProject_ShouldIncludeFluentAssertions()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var testPath = Path.Combine(_testPath, "tests", $"{projectName}.Tests");
-        Directory.CreateDirectory(testPath);
-
-        // Act
-        var csprojPath = Path.Combine(testPath, $"{projectName}.Tests.csproj");
-        File.WriteAllText(csprojPath, "<PackageReference Include=\"FluentAssertions\" Version=\"6.12.0\" />");
-
-        // Assert
-        File.ReadAllText(csprojPath).Should().Contain("FluentAssertions");
-    }
-
-    [Fact]
-    public void InitCommand_TestProject_ShouldIncludeNSubstitute()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var testPath = Path.Combine(_testPath, "tests", $"{projectName}.Tests");
-        Directory.CreateDirectory(testPath);
-
-        // Act
-        var csprojPath = Path.Combine(testPath, $"{projectName}.Tests.csproj");
-        File.WriteAllText(csprojPath, "<PackageReference Include=\"NSubstitute\" Version=\"5.1.0\" />");
-
-        // Assert
-        File.ReadAllText(csprojPath).Should().Contain("NSubstitute");
-    }
-
-    [Fact]
-    public void InitCommand_ShouldSetNullableEnable()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        // Act
-        var csprojPath = Path.Combine(projectPath, $"{projectName}.csproj");
-        File.WriteAllText(csprojPath, "<Nullable>enable</Nullable>");
-
-        // Assert
-        File.ReadAllText(csprojPath).Should().Contain("<Nullable>enable</Nullable>");
-    }
-
-    [Fact]
-    public void InitCommand_ShouldSetImplicitUsings()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        // Act
-        var csprojPath = Path.Combine(projectPath, $"{projectName}.csproj");
-        File.WriteAllText(csprojPath, "<ImplicitUsings>enable</ImplicitUsings>");
-
-        // Assert
-        File.ReadAllText(csprojPath).Should().Contain("<ImplicitUsings>enable</ImplicitUsings>");
-    }
-
-    [Fact]
-    public void InitCommand_ShouldSetLatestLangVersion()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        // Act
-        var csprojPath = Path.Combine(projectPath, $"{projectName}.csproj");
-        File.WriteAllText(csprojPath, "<LangVersion>latest</LangVersion>");
-
-        // Assert
-        File.ReadAllText(csprojPath).Should().Contain("<LangVersion>latest</LangVersion>");
-    }
-
-    [Fact]
-    public void InitCommand_ShouldCreateProjectWithCorrectStructure()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        Directory.CreateDirectory(_testPath);
-        Directory.CreateDirectory(Path.Combine(_testPath, "src", projectName));
-        Directory.CreateDirectory(Path.Combine(_testPath, "tests", $"{projectName}.Tests"));
-        Directory.CreateDirectory(Path.Combine(_testPath, "docs"));
-
-        // Assert
-        Directory.Exists(Path.Combine(_testPath, "src", projectName)).Should().BeTrue();
-        Directory.Exists(Path.Combine(_testPath, "tests", $"{projectName}.Tests")).Should().BeTrue();
-        Directory.Exists(Path.Combine(_testPath, "docs")).Should().BeTrue();
-    }
-
-    [Fact]
-    public void InitCommand_ConfigFile_ShouldHaveValidJson()
-    {
-        // Arrange
-        Directory.CreateDirectory(_testPath);
-
-        // Act
-        var configPath = Path.Combine(_testPath, "appsettings.json");
-        var configContent = "{\"version\":\"2.0\",\"relay\":{\"enableCaching\":false}}";
-        File.WriteAllText(configPath, configContent);
-
-        // Assert
-        File.ReadAllText(configPath).Should().Contain("version");
-        File.ReadAllText(configPath).Should().Contain("relay");
-    }
-
-    [Fact]
-    public void InitCommand_ShouldHaveHandleAttributeInSampleHandler()
-    {
-        // Arrange
-        var projectName = "TestProject";
-        var projectPath = Path.Combine(_testPath, "src", projectName);
-        Directory.CreateDirectory(projectPath);
-
-        // Act
-        var handlerPath = Path.Combine(projectPath, "GetUserHandler.cs");
-        File.WriteAllText(handlerPath, "[Handle]");
-
-        // Assert
-        File.ReadAllText(handlerPath).Should().Contain("[Handle]");
-    }
-
-    [Fact]
-    public void InitCommand_ReadmeShouldContainProjectName()
-    {
-        // Arrange
-        var projectName = "MyTestProject";
-        Directory.CreateDirectory(_testPath);
-
-        // Act
-        var readmePath = Path.Combine(_testPath, "README.md");
-        File.WriteAllText(readmePath, $"# {projectName}");
-
-        // Assert
-        File.ReadAllText(readmePath).Should().Contain(projectName);
+        var expectedProjectPath = Path.Combine(customOutputPath, projectName);
+        Directory.Exists(expectedProjectPath).Should().BeTrue();
+        File.Exists(Path.Combine(expectedProjectPath, $"{projectName}.sln")).Should().BeTrue();
     }
 
     public void Dispose()

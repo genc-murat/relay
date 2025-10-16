@@ -18,14 +18,14 @@ public class MessageRoutingTests
             orderMessages.Add(message);
             if (context == null) return;
             await context!.Acknowledge();
-        });
+        }, new SubscriptionOptions { RoutingKey = "orders" });
 
         await broker.SubscribeAsync<PaymentMessage>(async (message, context, ct) =>
         {
             paymentMessages.Add(message);
             if (context == null) return;
             await context!.Acknowledge();
-        });
+        }, new SubscriptionOptions { RoutingKey = "payments" });
 
         await broker.StartAsync();
 

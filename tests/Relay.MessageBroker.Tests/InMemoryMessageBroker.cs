@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
@@ -15,16 +16,18 @@ public sealed class InMemoryMessageBroker : IMessageBroker
 
     public IReadOnlyList<PublishedMessage> PublishedMessages => _publishedMessages.ToList();
 
-    public ValueTask PublishAsync<TMessage>(
+    public async ValueTask PublishAsync<TMessage>(
         TMessage message,
         PublishOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(message);
 
+        var serializedMessage = SerializeMessage(message);
         var publishedMessage = new PublishedMessage
         {
             Message = message,
+            SerializedMessage = serializedMessage,
             MessageType = typeof(TMessage),
             Options = options,
             Timestamp = DateTimeOffset.UtcNow
@@ -48,12 +51,13 @@ public sealed class InMemoryMessageBroker : IMessageBroker
 
             // Create a snapshot of subscriptions to avoid concurrent modification issues
             var subscriptionSnapshot = subscriptions.ToList();
+            var tasks = new List<Task>();
             foreach (var subscription in subscriptionSnapshot)
             {
                 // Check if routing keys match
                 if (MatchesRoutingKey(subscription.Options.RoutingKey, options?.RoutingKey))
                 {
-                    _ = Task.Run(async () =>
+                    tasks.Add(Task.Run(async () =>
                     {
                         try
                         {
@@ -63,12 +67,14 @@ public sealed class InMemoryMessageBroker : IMessageBroker
                         {
                             // Swallow exceptions in test broker
                         }
-                    }, cancellationToken);
+                    }, cancellationToken));
                 }
             }
+
+            await Task.WhenAll(tasks);
         }
 
-        return ValueTask.CompletedTask;
+        return;
     }
 
     public ValueTask SubscribeAsync<TMessage>(
@@ -109,6 +115,16 @@ public sealed class InMemoryMessageBroker : IMessageBroker
         _subscriptions.Clear();
     }
 
+    private static byte[] SerializeMessage<TMessage>(TMessage message)
+    {
+        return JsonSerializer.SerializeToUtf8Bytes(message);
+    }
+
+    private static TMessage? DeserializeMessage<TMessage>(byte[] data)
+    {
+        return JsonSerializer.Deserialize<TMessage>(data);
+    }
+
     private static bool MatchesRoutingKey(string? subscriptionKey, string? messageKey)
     {
         // If no routing key specified in subscription, match all
@@ -140,6 +156,7 @@ public sealed class InMemoryMessageBroker : IMessageBroker
     public sealed class PublishedMessage
     {
         public required object Message { get; init; }
+        public required byte[] SerializedMessage { get; init; }
         public required Type MessageType { get; init; }
         public PublishOptions? Options { get; init; }
         public DateTimeOffset Timestamp { get; init; }

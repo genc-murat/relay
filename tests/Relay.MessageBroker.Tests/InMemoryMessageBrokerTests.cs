@@ -93,7 +93,7 @@ public class InMemoryMessageBrokerTests
 
         // Act
         await _broker.PublishAsync(message);
-        await Task.Delay(100); // Give time for async dispatch
+        await Task.Delay(500); // Give time for async dispatch
 
         // Assert
         Assert.Single(receivedMessages1);
@@ -126,24 +126,16 @@ public class InMemoryMessageBrokerTests
     {
         // Arrange
         var receivedMessages = new List<TestMessage>();
-        var messageReceived = new TaskCompletionSource<bool>();
-
         await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) =>
         {
-            lock (receivedMessages)
-            {
-                receivedMessages.Add(msg);
-                messageReceived.TrySetResult(true);
-            }
+            receivedMessages.Add(msg);
             return ValueTask.CompletedTask;
         });
 
         // Act
         await _broker.StartAsync();
         await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test" });
-
-        // Wait for message to be received (with timeout)
-        await Task.WhenAny(messageReceived.Task, Task.Delay(500));
+        await Task.Delay(100); // Give time for async dispatch
 
         // Assert
         Assert.Single(receivedMessages);

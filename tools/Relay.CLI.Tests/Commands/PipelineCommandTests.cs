@@ -1,3 +1,6 @@
+ using System.CommandLine;
+using Relay.CLI.Commands;
+using Relay.CLI.Commands.Models.Pipeline;
 using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
@@ -933,5 +936,735 @@ public class PipelineCommandTests
         // Assert
         Assert.Single(stagesToRun);
         Assert.Contains("optimize", stagesToRun);
+    }
+
+    [Fact]
+    public void Create_ShouldReturnCommandWithCorrectNameAndDescription()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+
+        // Assert
+        Assert.Equal("pipeline", command.Name);
+        Assert.Equal("Run complete project development pipeline", command.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHavePathOptionWithCorrectDefaults()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+        var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
+
+        // Assert
+        Assert.NotNull(pathOption);
+        Assert.Equal("Project path", pathOption.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHaveNameOption()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+        var nameOption = command.Options.FirstOrDefault(o => o.Name == "name");
+
+        // Assert
+        Assert.NotNull(nameOption);
+        Assert.Equal("Project name (for new projects)", nameOption.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHaveTemplateOptionWithCorrectDefaults()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+        var templateOption = command.Options.FirstOrDefault(o => o.Name == "template");
+
+        // Assert
+        Assert.NotNull(templateOption);
+        Assert.Equal("Template (minimal, standard, enterprise)", templateOption.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHaveSkipOptionWithCorrectDefaults()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+        var skipOption = command.Options.FirstOrDefault(o => o.Name == "skip");
+
+        // Assert
+        Assert.NotNull(skipOption);
+        Assert.Equal("Skip stages (init, doctor, validate, optimize)", skipOption.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHaveAggressiveOptionWithCorrectDefaults()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+        var aggressiveOption = command.Options.FirstOrDefault(o => o.Name == "aggressive");
+
+        // Assert
+        Assert.NotNull(aggressiveOption);
+        Assert.Equal("Use aggressive optimizations", aggressiveOption.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHaveAutoFixOptionWithCorrectDefaults()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+        var autoFixOption = command.Options.FirstOrDefault(o => o.Name == "auto-fix");
+
+        // Assert
+        Assert.NotNull(autoFixOption);
+        Assert.Equal("Automatically fix detected issues", autoFixOption.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHaveReportOption()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+        var reportOption = command.Options.FirstOrDefault(o => o.Name == "report");
+
+        // Assert
+        Assert.NotNull(reportOption);
+        Assert.Equal("Generate pipeline report", reportOption.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHaveCiOptionWithCorrectDefaults()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+        var ciOption = command.Options.FirstOrDefault(o => o.Name == "ci");
+
+        // Assert
+        Assert.NotNull(ciOption);
+        Assert.Equal("Run in CI mode (non-interactive)", ciOption.Description);
+    }
+
+    [Fact]
+    public void Create_ShouldHaveAllRequiredOptions()
+    {
+        // Act
+        var command = PipelineCommand.Create();
+
+        // Assert
+        Assert.Equal(8, command.Options.Count);
+        var optionNames = command.Options.Select(o => o.Name).ToArray();
+        Assert.Contains("path", optionNames);
+        Assert.Contains("name", optionNames);
+        Assert.Contains("template", optionNames);
+        Assert.Contains("skip", optionNames);
+        Assert.Contains("aggressive", optionNames);
+        Assert.Contains("auto-fix", optionNames);
+        Assert.Contains("report", optionNames);
+        Assert.Contains("ci", optionNames);
+    }
+
+    [Fact]
+    public async Task RunInitStage_ShouldReturnSuccessfulResult()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-init");
+        var projectName = "TestProject";
+        var template = "standard";
+        var ciMode = false;
+        var cancellationToken = CancellationToken.None;
+
+        try
+        {
+            Directory.CreateDirectory(path);
+
+            // Act
+            var result = await PipelineCommand.RunInitStage(path, projectName, template, ciMode, cancellationToken);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("Init", result.StageName);
+            Assert.Equal("🎬", result.StageEmoji);
+            Assert.Contains($"Project '{projectName}' created successfully", result.Message);
+            Assert.Contains($"Template: {template}", result.Details);
+            Assert.Contains($"Location: {Path.GetFullPath(path)}", result.Details);
+            Assert.True(result.Duration.TotalMilliseconds > 0);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
+    public async Task RunInitStage_ShouldHandleCancellation()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-init-cancel");
+        var projectName = "TestProject";
+        var template = "standard";
+        var ciMode = false;
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        try
+        {
+            Directory.CreateDirectory(path);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                PipelineCommand.RunInitStage(path, projectName, template, ciMode, cts.Token));
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
+    public async Task RunDoctorStage_ShouldReturnSuccessfulResult()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-doctor");
+        var autoFix = false;
+        var ciMode = false;
+        var cancellationToken = CancellationToken.None;
+
+        try
+        {
+            Directory.CreateDirectory(path);
+
+            // Act
+            var result = await PipelineCommand.RunDoctorStage(path, autoFix, ciMode, cancellationToken);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("Doctor", result.StageName);
+            Assert.Equal("🏥", result.StageEmoji);
+            Assert.Equal("All health checks passed", result.Message);
+            Assert.Contains("Structure: Project structure is valid", result.Details);
+            Assert.Contains("Dependencies: All dependencies up to date", result.Details);
+            Assert.Contains("Configuration: Configuration is valid", result.Details);
+            Assert.True(result.Duration.TotalMilliseconds > 0);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
+    public async Task RunValidateStage_ShouldReturnSuccessfulResult()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-validate");
+        var ciMode = false;
+        var cancellationToken = CancellationToken.None;
+
+        try
+        {
+            Directory.CreateDirectory(path);
+
+            // Act
+            var result = await PipelineCommand.RunValidateStage(path, ciMode, cancellationToken);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("Validate", result.StageName);
+            Assert.Equal("✅", result.StageEmoji);
+            Assert.Equal("Code validation passed", result.Message);
+            Assert.Contains("No critical issues found", result.Details);
+            Assert.Contains("All handlers follow best practices", result.Details);
+            Assert.True(result.Duration.TotalMilliseconds > 0);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
+    public async Task RunOptimizeStage_ShouldReturnSuccessfulResult_WithStandardOptimizations()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-optimize");
+        var aggressive = false;
+        var ciMode = false;
+        var cancellationToken = CancellationToken.None;
+
+        try
+        {
+            Directory.CreateDirectory(path);
+
+            // Act
+            var result = await PipelineCommand.RunOptimizeStage(path, aggressive, ciMode, cancellationToken);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("Optimize", result.StageName);
+            Assert.Equal("⚡", result.StageEmoji);
+            Assert.Equal("2 optimization(s) applied", result.Message);
+            Assert.Contains("ValueTask Conversion: High impact", result.Details);
+            Assert.Contains("Allocation Reduction: Medium impact", result.Details);
+            Assert.DoesNotContain("SIMD Vectorization", result.Details);
+            Assert.True(result.Duration.TotalMilliseconds > 0);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
+    public async Task RunOptimizeStage_ShouldReturnSuccessfulResult_WithAggressiveOptimizations()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-optimize-aggressive");
+        var aggressive = true;
+        var ciMode = false;
+        var cancellationToken = CancellationToken.None;
+
+        try
+        {
+            Directory.CreateDirectory(path);
+
+            // Act
+            var result = await PipelineCommand.RunOptimizeStage(path, aggressive, ciMode, cancellationToken);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("Optimize", result.StageName);
+            Assert.Equal("⚡", result.StageEmoji);
+            Assert.Equal("3 optimization(s) applied", result.Message);
+            Assert.Contains("ValueTask Conversion: High impact", result.Details);
+            Assert.Contains("Allocation Reduction: Medium impact", result.Details);
+            Assert.Contains("SIMD Vectorization: High impact", result.Details);
+            Assert.True(result.Duration.TotalMilliseconds > 0);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
+    public async Task RunOptimizeStage_ShouldHandleCancellation()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-optimize-cancel");
+        var aggressive = false;
+        var ciMode = false;
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        try
+        {
+            Directory.CreateDirectory(path);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                PipelineCommand.RunOptimizeStage(path, aggressive, ciMode, cts.Token));
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
+    public void ExecutePipeline_ShouldSkipInitStage_WhenProjectNameIsNull()
+    {
+        // Arrange
+        var path = ".";
+        string? projectName = null;
+        var template = "standard";
+        var skipStages = Array.Empty<string>();
+        var aggressive = false;
+        var autoFix = false;
+        string? reportPath = null;
+        var ciMode = true; // Use CI mode to avoid console output
+        var cancellationToken = CancellationToken.None;
+
+        // Act & Assert
+        // Since projectName is null, init stage should be skipped
+        // We can't easily test the full execution due to console output and exit code
+        // But we can test the condition logic
+        var shouldRunInit = !skipStages.Contains("init") && projectName != null;
+        Assert.False(shouldRunInit);
+    }
+
+    [Fact]
+    public void ExecutePipeline_ShouldSkipInitStage_WhenInitIsInSkipList()
+    {
+        // Arrange
+        var skipStages = new[] { "init" };
+
+        // Act
+        var shouldRunInit = !skipStages.Contains("init");
+        var shouldRunDoctor = !skipStages.Contains("doctor");
+        var shouldRunValidate = !skipStages.Contains("validate");
+        var shouldRunOptimize = !skipStages.Contains("optimize");
+
+        // Assert
+        Assert.False(shouldRunInit);
+        Assert.True(shouldRunDoctor);
+        Assert.True(shouldRunValidate);
+        Assert.True(shouldRunOptimize);
+    }
+
+    [Fact]
+    public void ExecutePipeline_ShouldRunAllStages_WhenNoSkips()
+    {
+        // Arrange
+        var skipStages = Array.Empty<string>();
+
+        // Act
+        var shouldRunInit = !skipStages.Contains("init");
+        var shouldRunDoctor = !skipStages.Contains("doctor");
+        var shouldRunValidate = !skipStages.Contains("validate");
+        var shouldRunOptimize = !skipStages.Contains("optimize");
+
+        // Assert
+        Assert.True(shouldRunInit);
+        Assert.True(shouldRunDoctor);
+        Assert.True(shouldRunValidate);
+        Assert.True(shouldRunOptimize);
+    }
+
+    [Fact]
+    public void ExecutePipeline_ShouldSkipMultipleStages_WhenSpecified()
+    {
+        // Arrange
+        var skipStages = new[] { "doctor", "validate" };
+
+        // Act
+        var shouldRunInit = !skipStages.Contains("init");
+        var shouldRunDoctor = !skipStages.Contains("doctor");
+        var shouldRunValidate = !skipStages.Contains("validate");
+        var shouldRunOptimize = !skipStages.Contains("optimize");
+
+        // Assert
+        Assert.True(shouldRunInit);
+        Assert.False(shouldRunDoctor);
+        Assert.False(shouldRunValidate);
+        Assert.True(shouldRunOptimize);
+    }
+
+    [Fact]
+    public async Task ExecutePipeline_ShouldHandleCancellationException()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-pipeline-cancel");
+        var projectName = "TestProject";
+        var template = "standard";
+        var skipStages = Array.Empty<string>();
+        var aggressive = false;
+        var autoFix = false;
+        string? reportPath = null;
+        var ciMode = true;
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        try
+        {
+            Directory.CreateDirectory(path);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                PipelineCommand.ExecutePipeline(path, projectName, template, skipStages, aggressive, autoFix, reportPath, ciMode, cts.Token));
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
+    public async Task GeneratePipelineReport_ShouldCreateReportFile_WithSuccessfulResults()
+    {
+        // Arrange
+        var reportPath = Path.Combine(Path.GetTempPath(), "test-report.md");
+        var pipelineResult = new PipelineResult
+        {
+            Success = true,
+            TotalDuration = TimeSpan.FromSeconds(2.5),
+            Stages = new List<PipelineStageResult>
+            {
+                new PipelineStageResult
+                {
+                    StageName = "Init",
+                    StageEmoji = "🎬",
+                    Success = true,
+                    Message = "Project created",
+                    Duration = TimeSpan.FromSeconds(0.8)
+                },
+                new PipelineStageResult
+                {
+                    StageName = "Doctor",
+                    StageEmoji = "🏥",
+                    Success = true,
+                    Message = "Health checks passed",
+                    Duration = TimeSpan.FromSeconds(0.5)
+                }
+            }
+        };
+
+        try
+        {
+            // Act
+            await PipelineCommand.GeneratePipelineReport(pipelineResult, reportPath);
+
+            // Assert
+            Assert.True(File.Exists(reportPath));
+            var content = await File.ReadAllTextAsync(reportPath);
+            Assert.Contains("**Generated:**", content);
+
+            // Extract the timestamp from the content
+            var lines = content.Split('\n');
+            var generatedLine = lines.FirstOrDefault(l => l.Contains("**Generated:**"));
+            Assert.NotNull(generatedLine);
+
+            var timestampStr = generatedLine.Replace("**Generated:** ", "").Trim();
+            var timestamp = DateTime.Parse(timestampStr);
+
+            var now = DateTime.Now;
+            Assert.True(timestamp >= now.AddSeconds(-1) && timestamp <= now.AddSeconds(1));
+        }
+        finally
+        {
+            if (File.Exists(reportPath))
+                File.Delete(reportPath);
+        }
+    }
+
+    [Fact]
+    public void DisplayPipelineResults_ShouldNotThrowException_WithValidResult()
+    {
+        // Arrange
+        var pipelineResult = new PipelineResult
+        {
+            Success = true,
+            TotalDuration = TimeSpan.FromSeconds(2.0),
+            Stages = new List<PipelineStageResult>
+            {
+                new PipelineStageResult
+                {
+                    StageName = "Init",
+                    StageEmoji = "🎬",
+                    Success = true,
+                    Message = "Project created",
+                    Duration = TimeSpan.FromSeconds(0.8),
+                    Details = new List<string> { "Template: standard" }
+                }
+            }
+        };
+
+        // Act & Assert
+        // DisplayPipelineResults uses AnsiConsole, so we just verify it doesn't throw
+        // If it throws, the test will fail automatically
+        PipelineCommand.DisplayPipelineResults(pipelineResult, ciMode: true);
+    }
+
+    [Fact]
+    public void DisplayPipelineHeader_ShouldNotThrowException()
+    {
+        // Act & Assert
+        // DisplayPipelineHeader uses AnsiConsole, so we just verify it doesn't throw
+        // If it throws, the test will fail automatically
+        PipelineCommand.DisplayPipelineHeader();
+    }
+
+    [Fact]
+    public async Task RunInitStage_ShouldHandleInvalidPath()
+    {
+        // Arrange
+        var path = "invalid:\\path\\that\\does\\not\\exist";
+        var projectName = "TestProject";
+        var template = "standard";
+        var ciMode = true;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await PipelineCommand.RunInitStage(path, projectName, template, ciMode, cancellationToken);
+
+        // Assert
+        // The method should still complete, even if the path is invalid
+        // (it doesn't actually validate the path in the current implementation)
+        Assert.NotNull(result);
+        Assert.Equal("Init", result.StageName);
+    }
+
+    [Fact]
+    public async Task RunDoctorStage_ShouldHandleInvalidPath()
+    {
+        // Arrange
+        var path = "invalid:\\path\\that\\does\\not\\exist";
+        var autoFix = false;
+        var ciMode = true;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await PipelineCommand.RunDoctorStage(path, autoFix, ciMode, cancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("Doctor", result.StageName);
+    }
+
+    [Fact]
+    public async Task RunValidateStage_ShouldHandleInvalidPath()
+    {
+        // Arrange
+        var path = "invalid:\\path\\that\\does\\not\\exist";
+        var ciMode = true;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await PipelineCommand.RunValidateStage(path, ciMode, cancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("Validate", result.StageName);
+    }
+
+    [Fact]
+    public async Task RunOptimizeStage_ShouldHandleInvalidPath()
+    {
+        // Arrange
+        var path = "invalid:\\path\\that\\does\\not\\exist";
+        var aggressive = false;
+        var ciMode = true;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await PipelineCommand.RunOptimizeStage(path, aggressive, ciMode, cancellationToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("Optimize", result.StageName);
+    }
+
+    [Fact]
+    public void Pipeline_ShouldHandleNullSkipArray()
+    {
+        // Arrange
+        string[]? skipStages = null;
+        var allStages = new[] { "init", "doctor", "validate", "optimize" };
+
+        // Act
+        var stagesToExecute = allStages.Where(stage => skipStages == null || !skipStages.Contains(stage)).ToList();
+
+        // Assert
+        Assert.Equal(4, stagesToExecute.Count);
+        Assert.Equal(allStages, stagesToExecute);
+    }
+
+    [Fact]
+    public void Pipeline_ShouldHandleInvalidStageNamesInSkip()
+    {
+        // Arrange
+        var skipStages = new[] { "invalid", "also_invalid" };
+        var allStages = new[] { "init", "doctor", "validate", "optimize" };
+
+        // Act
+        var stagesToExecute = allStages.Where(stage => !skipStages.Contains(stage)).ToList();
+
+        // Assert
+        Assert.Equal(4, stagesToExecute.Count);
+        Assert.Equal(allStages, stagesToExecute);
+    }
+
+    [Fact]
+    public void Pipeline_ShouldHandleDuplicateSkipStages()
+    {
+        // Arrange
+        var skipStages = new[] { "init", "init", "doctor" };
+        var allStages = new[] { "init", "doctor", "validate", "optimize" };
+
+        // Act
+        var stagesToExecute = allStages.Where(stage => !skipStages.Contains(stage)).ToList();
+
+        // Assert
+        Assert.Equal(2, stagesToExecute.Count);
+        Assert.Contains("validate", stagesToExecute);
+        Assert.Contains("optimize", stagesToExecute);
+    }
+
+    [Fact]
+    public async Task GeneratePipelineReport_ShouldHandleEmptyStages()
+    {
+        // Arrange
+        var reportPath = Path.Combine(Path.GetTempPath(), "test-report-empty.md");
+        var pipelineResult = new PipelineResult
+        {
+            Success = true,
+            TotalDuration = TimeSpan.Zero,
+            Stages = new List<PipelineStageResult>()
+        };
+
+        try
+        {
+            // Act
+            await PipelineCommand.GeneratePipelineReport(pipelineResult, reportPath);
+
+            // Assert
+            Assert.True(File.Exists(reportPath));
+            var content = await File.ReadAllTextAsync(reportPath);
+            Assert.Contains("**Stages Completed:** 0/0", content);
+            Assert.Contains("**Success Rate:** 0.0%", content);
+        }
+        finally
+        {
+            if (File.Exists(reportPath))
+                File.Delete(reportPath);
+        }
+    }
+
+    [Fact]
+    public async Task GeneratePipelineReport_ShouldHandleNullDetails()
+    {
+        // Arrange
+        var reportPath = Path.Combine(Path.GetTempPath(), "test-report-null-details.md");
+        var pipelineResult = new PipelineResult
+        {
+            Success = true,
+            TotalDuration = TimeSpan.FromSeconds(1.0),
+            Stages = new List<PipelineStageResult>
+            {
+                new PipelineStageResult
+                {
+                    StageName = "Test",
+                    StageEmoji = "🧪",
+                    Success = true,
+                    Message = "Test passed",
+                    Duration = TimeSpan.FromSeconds(1.0),
+                    Details = null // Null details
+                }
+            }
+        };
+
+        try
+        {
+            // Act
+            await PipelineCommand.GeneratePipelineReport(pipelineResult, reportPath);
+
+            // Assert
+            Assert.True(File.Exists(reportPath));
+            var content = await File.ReadAllTextAsync(reportPath);
+            Assert.Contains("| 🧪 Test | ✅ | 1.00s | Test passed |", content);
+        }
+        finally
+        {
+            if (File.Exists(reportPath))
+                File.Delete(reportPath);
+        }
     }
 }

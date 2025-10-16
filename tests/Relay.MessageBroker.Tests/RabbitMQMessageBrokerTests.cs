@@ -59,6 +59,30 @@ public class RabbitMQMessageBrokerTests
     }
 
     [Fact]
+    public async Task PublishAsync_WithValidMessage_ShouldNotThrowConfigurationExceptions()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        var message = new TestMessage { Id = 1, Content = "test" };
+
+        // Act & Assert
+        // Note: This will fail in test environment without RabbitMQ server, but should not throw configuration exceptions
+        // The test verifies that the method can be called with valid parameters without throwing ArgumentException etc.
+        try
+        {
+            await broker.PublishAsync(message);
+            // If it succeeds, that's also fine (if RabbitMQ is running)
+        }
+        catch (Exception ex)
+        {
+            // Connection exceptions are expected in test environment, but not configuration exceptions
+            Assert.IsNotType<ArgumentException>(ex);
+            Assert.IsNotType<ArgumentNullException>(ex);
+        }
+    }
+
+    [Fact]
     public async Task SubscribeAsync_WithNullHandler_ShouldThrowArgumentNullException()
     {
         // Arrange
@@ -483,6 +507,23 @@ public class RabbitMQMessageBrokerTests
     }
 
     [Fact]
+    public void Constructor_WithoutRabbitMQOptions_ShouldUseDefaults()
+    {
+        // Arrange
+        var optionsWithoutRabbitMQ = new MessageBrokerOptions
+        {
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithoutRabbitMQ);
+
+        // Act
+        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(broker);
+    }
+
+    [Fact]
     public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
     {
         // Arrange & Act & Assert
@@ -500,7 +541,118 @@ public class RabbitMQMessageBrokerTests
     }
 
     [Fact]
-    public void Constructor_WithEmptyHostName_ShouldSucceed()
+    public void Constructor_WithNullHostName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var optionsWithNullHost = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = null!,
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithNullHost);
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("HostName", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WithNullUserName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var optionsWithNullUser = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = null!,
+                Password = "guest"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithNullUser);
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("UserName", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WithNullVirtualHost_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var optionsWithNullVHost = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest",
+                VirtualHost = null!
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithNullVHost);
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("VirtualHost", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WithZeroPort_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var optionsWithZeroPort = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 0,
+                UserName = "guest",
+                Password = "guest"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithZeroPort);
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("Port", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WithNegativePort_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var optionsWithNegativePort = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = -1,
+                UserName = "guest",
+                Password = "guest"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithNegativePort);
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("Port", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WithEmptyHostName_ShouldThrowArgumentException()
     {
         // Arrange
         var optionsWithEmptyHost = new MessageBrokerOptions
@@ -516,15 +668,13 @@ public class RabbitMQMessageBrokerTests
         };
         var options = Options.Create(optionsWithEmptyHost);
 
-        // Act
-        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
-
-        // Assert
-        Assert.NotNull(broker);
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("HostName", exception.Message);
     }
 
     [Fact]
-    public void Constructor_WithInvalidPort_ShouldSucceed()
+    public void Constructor_WithInvalidPort_ShouldThrowArgumentException()
     {
         // Arrange
         var optionsWithInvalidPort = new MessageBrokerOptions
@@ -540,15 +690,13 @@ public class RabbitMQMessageBrokerTests
         };
         var options = Options.Create(optionsWithInvalidPort);
 
-        // Act
-        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
-
-        // Assert
-        Assert.NotNull(broker);
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("Port", exception.Message);
     }
 
     [Fact]
-    public void Constructor_WithEmptyUserName_ShouldSucceed()
+    public void Constructor_WithEmptyUserName_ShouldThrowArgumentException()
     {
         // Arrange
         var optionsWithEmptyUser = new MessageBrokerOptions
@@ -564,39 +712,35 @@ public class RabbitMQMessageBrokerTests
         };
         var options = Options.Create(optionsWithEmptyUser);
 
-        // Act
-        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
-
-        // Assert
-        Assert.NotNull(broker);
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("UserName", exception.Message);
     }
 
     [Fact]
-    public void Constructor_WithEmptyPassword_ShouldSucceed()
+    public void Constructor_WithNullPassword_ShouldThrowArgumentException()
     {
         // Arrange
-        var optionsWithEmptyPassword = new MessageBrokerOptions
+        var optionsWithNullPassword = new MessageBrokerOptions
         {
             RabbitMQ = new RabbitMQOptions
             {
                 HostName = "localhost",
                 Port = 5672,
                 UserName = "guest",
-                Password = ""
+                Password = null!
             },
             DefaultExchange = "relay-test"
         };
-        var options = Options.Create(optionsWithEmptyPassword);
+        var options = Options.Create(optionsWithNullPassword);
 
-        // Act
-        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
-
-        // Assert
-        Assert.NotNull(broker);
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("Password", exception.Message);
     }
 
     [Fact]
-    public void Constructor_WithEmptyVirtualHost_ShouldSucceed()
+    public void Constructor_WithEmptyVirtualHost_ShouldThrowArgumentException()
     {
         // Arrange
         var optionsWithEmptyVHost = new MessageBrokerOptions
@@ -613,15 +757,13 @@ public class RabbitMQMessageBrokerTests
         };
         var options = Options.Create(optionsWithEmptyVHost);
 
-        // Act
-        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
-
-        // Assert
-        Assert.NotNull(broker);
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("VirtualHost", exception.Message);
     }
 
     [Fact]
-    public void Constructor_WithEmptyExchangeType_ShouldSucceed()
+    public void Constructor_WithEmptyExchangeType_ShouldThrowArgumentException()
     {
         // Arrange
         var optionsWithEmptyExchangeType = new MessageBrokerOptions
@@ -638,11 +780,32 @@ public class RabbitMQMessageBrokerTests
         };
         var options = Options.Create(optionsWithEmptyExchangeType);
 
-        // Act
-        var broker = new RabbitMQMessageBroker(options, _loggerMock.Object);
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("ExchangeType", exception.Message);
+    }
 
-        // Assert
-        Assert.NotNull(broker);
+    [Fact]
+    public void Constructor_WithInvalidExchangeType_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var optionsWithInvalidExchangeType = new MessageBrokerOptions
+        {
+            RabbitMQ = new RabbitMQOptions
+            {
+                HostName = "localhost",
+                Port = 5672,
+                UserName = "guest",
+                Password = "guest",
+                ExchangeType = "invalid"
+            },
+            DefaultExchange = "relay-test"
+        };
+        var options = Options.Create(optionsWithInvalidExchangeType);
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new RabbitMQMessageBroker(options, _loggerMock.Object));
+        Assert.Contains("ExchangeType", exception.Message);
     }
 
     [Fact]

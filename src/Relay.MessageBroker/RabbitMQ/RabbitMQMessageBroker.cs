@@ -25,6 +25,36 @@ public sealed class RabbitMQMessageBroker : BaseMessageBroker
         IContractValidator? contractValidator = null)
         : base(options, logger, compressor, contractValidator)
     {
+        var rabbitMqOptions = options.Value.RabbitMQ ?? new RabbitMQOptions();
+        if (string.IsNullOrEmpty(rabbitMqOptions.HostName))
+        {
+            throw new ArgumentException("HostName cannot be null or empty.", nameof(rabbitMqOptions.HostName));
+        }
+        if (rabbitMqOptions.Port <= 0 || rabbitMqOptions.Port > 65535)
+        {
+            throw new ArgumentException("Port must be between 1 and 65535.", nameof(rabbitMqOptions.Port));
+        }
+        if (string.IsNullOrEmpty(rabbitMqOptions.UserName))
+        {
+            throw new ArgumentException("UserName cannot be null or empty.", nameof(rabbitMqOptions.UserName));
+        }
+        if (rabbitMqOptions.Password == null)
+        {
+            throw new ArgumentException("Password cannot be null.", nameof(rabbitMqOptions.Password));
+        }
+        if (string.IsNullOrEmpty(rabbitMqOptions.VirtualHost))
+        {
+            throw new ArgumentException("VirtualHost cannot be null or empty.", nameof(rabbitMqOptions.VirtualHost));
+        }
+        if (string.IsNullOrEmpty(rabbitMqOptions.ExchangeType))
+        {
+            throw new ArgumentException("ExchangeType cannot be null or empty.", nameof(rabbitMqOptions.ExchangeType));
+        }
+        var validExchangeTypes = new[] { "direct", "topic", "fanout", "headers" };
+        if (!validExchangeTypes.Contains(rabbitMqOptions.ExchangeType.ToLowerInvariant()))
+        {
+            throw new ArgumentException($"ExchangeType must be one of: {string.Join(", ", validExchangeTypes)}.", nameof(rabbitMqOptions.ExchangeType));
+        }
     }
 
     protected override async ValueTask PublishInternalAsync<TMessage>(

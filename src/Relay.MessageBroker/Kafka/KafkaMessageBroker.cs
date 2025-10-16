@@ -16,6 +16,7 @@ public sealed class KafkaMessageBroker : BaseMessageBroker
     private IProducer<string, byte[]>? _producer;
     private readonly List<IConsumer<string, byte[]>> _consumers = new();
     private readonly CancellationTokenSource _consumeCts = new();
+    private bool _messageAcknowledged;
 
     public KafkaMessageBroker(
         IOptions<MessageBrokerOptions> options,
@@ -24,6 +25,23 @@ public sealed class KafkaMessageBroker : BaseMessageBroker
         IContractValidator? contractValidator = null)
         : base(options, logger, compressor, contractValidator)
     {
+        var kafkaOptions = options.Value.Kafka ?? new KafkaOptions();
+        if (string.IsNullOrEmpty(kafkaOptions.BootstrapServers))
+        {
+            throw new ArgumentException("BootstrapServers cannot be null or empty.", nameof(kafkaOptions.BootstrapServers));
+        }
+        if (string.IsNullOrEmpty(kafkaOptions.ConsumerGroupId))
+        {
+            throw new ArgumentException("ConsumerGroupId cannot be null or empty.", nameof(kafkaOptions.ConsumerGroupId));
+        }
+        if (!Enum.TryParse<AutoOffsetReset>(kafkaOptions.AutoOffsetReset, true, out _))
+        {
+            throw new ArgumentException($"AutoOffsetReset must be one of: {string.Join(", ", Enum.GetNames<AutoOffsetReset>())}.", nameof(kafkaOptions.AutoOffsetReset));
+        }
+        if (!Enum.TryParse<CompressionType>(kafkaOptions.CompressionType, true, out _))
+        {
+            throw new ArgumentException($"CompressionType must be one of: {string.Join(", ", Enum.GetNames<CompressionType>())}.", nameof(kafkaOptions.CompressionType));
+        }
     }
 
 protected override async ValueTask PublishInternalAsync<TMessage>(
@@ -202,19 +220,19 @@ protected override async ValueTask StopInternalAsync(CancellationToken cancellat
         await ValueTask.CompletedTask;
     }
 
-private async ValueTask ProcessMessageAsync(
+    private async ValueTask ProcessMessageAsync(
         ConsumeResult<string, byte[]> result,
         SubscriptionInfo subscription,
         IConsumer<string, byte[]> consumer)
     {
         try
         {
-            var message = DeserializeMessage<object>(result.Message.Value);
+            var message = System.Text.Json.JsonSerializer.Deserialize(result.Message.Value, subscription.MessageType);
             var context = CreateMessageContext(result, consumer);
 
             await ProcessMessageAsync(message, subscription.MessageType, context, CancellationToken.None);
 
-            if (!subscription.Options.AutoAck && !_options.Kafka!.EnableAutoCommit)
+            if (!subscription.Options.AutoAck && !_options.Kafka!.EnableAutoCommit && !_messageAcknowledged)
             {
                 consumer.Commit(result);
             }
@@ -253,6 +271,8 @@ private async ValueTask ProcessMessageAsync(
             ? DateTimeOffset.Parse(timestampStr)
             : result.Message.Timestamp.UtcDateTime;
 
+        _messageAcknowledged = false;
+
         return new MessageContext
         {
             MessageId = messageId,
@@ -263,6 +283,7 @@ private async ValueTask ProcessMessageAsync(
             Acknowledge = async () =>
             {
                 consumer.Commit(result);
+                _messageAcknowledged = true;
                 await ValueTask.CompletedTask;
             },
             Reject = async (requeue) =>
@@ -273,6 +294,7 @@ private async ValueTask ProcessMessageAsync(
                 {
                     consumer.Commit(result);
                 }
+                _messageAcknowledged = true;
                 await ValueTask.CompletedTask;
             }
         };

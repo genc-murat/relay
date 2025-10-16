@@ -55,23 +55,29 @@ public sealed class InMemoryMessageBroker : IMessageBroker
             foreach (var subscription in subscriptionSnapshot)
             {
                 // Check if routing keys match
-                if (MatchesRoutingKey(subscription.Options.RoutingKey, options?.RoutingKey))
+                if (MatchesRoutingKey(subscription.Options.RoutingKey, options?.RoutingKey) &&
+                    !subscription.CancellationToken.IsCancellationRequested)
                 {
+                    var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(subscription.CancellationToken, cancellationToken);
                     tasks.Add(Task.Run(async () =>
                     {
                         try
                         {
-                            await subscription.Handler(message!, context, cancellationToken);
+                            await subscription.Handler(message!, context, linkedCts.Token);
                         }
                         catch
                         {
                             // Swallow exceptions in test broker
                         }
+                        finally
+                        {
+                            linkedCts.Dispose();
+                        }
                     }, cancellationToken));
                 }
             }
 
-            await Task.WhenAll(tasks);
+            _ = Task.WhenAll(tasks);
         }
 
         return;
@@ -88,7 +94,8 @@ public sealed class InMemoryMessageBroker : IMessageBroker
         {
             MessageType = typeof(TMessage),
             Handler = async (msg, ctx, ct) => await handler((TMessage)msg, ctx, ct),
-            Options = options ?? new SubscriptionOptions()
+            Options = options ?? new SubscriptionOptions(),
+            CancellationToken = cancellationToken
         };
 
         var bag = _subscriptions.GetOrAdd(typeof(TMessage), _ => new ConcurrentBag<SubscriptionInfo>());
@@ -151,6 +158,7 @@ public sealed class InMemoryMessageBroker : IMessageBroker
         public required Type MessageType { get; init; }
         public required Func<object, MessageContext, CancellationToken, ValueTask> Handler { get; init; }
         public required SubscriptionOptions Options { get; init; }
+        public CancellationToken CancellationToken { get; init; }
     }
 
     public sealed class PublishedMessage

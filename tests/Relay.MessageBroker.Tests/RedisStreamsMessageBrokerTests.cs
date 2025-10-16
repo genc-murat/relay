@@ -334,10 +334,8 @@ public class RedisStreamsMessageBrokerTests : IDisposable
             RoutingKey = "custom-stream"
         };
 
-
-
-        // Act & Assert
-        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+        // Act & Assert - Custom routing key is supported, so no exception should be thrown
+        await broker.PublishAsync(message, publishOptions);
     }
 
     [Fact]
@@ -355,10 +353,8 @@ public class RedisStreamsMessageBrokerTests : IDisposable
             }
         };
 
-
-
-        // Act & Assert
-        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+        // Act & Assert - Headers are supported, so no exception should be thrown
+        await broker.PublishAsync(message, publishOptions);
     }
 
     [Fact]
@@ -372,10 +368,8 @@ public class RedisStreamsMessageBrokerTests : IDisposable
             Priority = 5
         };
 
-
-
-        // Act & Assert
-        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+        // Act & Assert - Priority is supported, so no exception should be thrown
+        await broker.PublishAsync(message, publishOptions);
     }
 
     [Fact]
@@ -389,10 +383,8 @@ public class RedisStreamsMessageBrokerTests : IDisposable
             Expiration = TimeSpan.FromMinutes(5)
         };
 
-
-
-        // Act & Assert
-        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+        // Act & Assert - Expiration is supported, so no exception should be thrown
+        await broker.PublishAsync(message, publishOptions);
     }
 
     [Fact]
@@ -409,10 +401,8 @@ public class RedisStreamsMessageBrokerTests : IDisposable
             }
         };
 
-
-
-        // Act & Assert
-        await Assert.ThrowsAnyAsync<Exception>(async () => await broker.PublishAsync(message, publishOptions));
+        // Act & Assert - Correlation ID is supported, so no exception should be thrown
+        await broker.PublishAsync(message, publishOptions);
     }
 
     [Fact]

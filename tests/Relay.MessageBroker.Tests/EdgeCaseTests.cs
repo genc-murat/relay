@@ -12,11 +12,13 @@ public class EdgeCaseTests
         // Arrange
         var broker = new InMemoryMessageBroker();
         var receivedMessages = new List<LargeMessage>();
+        var tcs = new TaskCompletionSource<bool>();
         var largeData = new string('A', 1000000); // 1MB string
 
         await broker.SubscribeAsync<LargeMessage>(async (message, context, ct) =>
         {
             receivedMessages.Add(message);
+            tcs.SetResult(true);
             await context.Acknowledge();
         });
 
@@ -26,7 +28,7 @@ public class EdgeCaseTests
 
         // Act
         await broker.PublishAsync(message);
-        await Task.Delay(100); // Give time for async dispatch
+        await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5)); // Wait for handler
 
         // Assert
         Assert.Single(receivedMessages);

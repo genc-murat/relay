@@ -48,6 +48,7 @@ public class InMemoryMessageBrokerTests
 
         // Act
         await _broker.PublishAsync(message);
+        await Task.Delay(10); // Wait for handlers
 
         // Assert
         Assert.Single(receivedMessages1);
@@ -88,6 +89,7 @@ public class InMemoryMessageBrokerTests
         // Act
         await _broker.StartAsync();
         await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test" });
+        await Task.Delay(10); // Wait for handler
 
         // Assert
         Assert.Single(receivedMessages);
@@ -152,6 +154,7 @@ public class InMemoryMessageBrokerTests
     {
         // Arrange
         MessageContext? receivedContext = null;
+        var tcs = new TaskCompletionSource<bool>();
         var options = new PublishOptions
         {
             RoutingKey = "test.routing",
@@ -162,6 +165,7 @@ public class InMemoryMessageBrokerTests
         await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) =>
         {
             receivedContext = ctx;
+            tcs.SetResult(true);
             return ValueTask.CompletedTask;
         });
 
@@ -169,6 +173,9 @@ public class InMemoryMessageBrokerTests
 
         // Act
         await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test" }, options);
+
+        // Wait for the handler to be called
+        await tcs.Task.WaitAsync(TimeSpan.FromSeconds(1));
 
         // Assert
         Assert.NotNull(receivedContext);
@@ -220,6 +227,7 @@ public class InMemoryMessageBrokerTests
         // Act
         await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test1" });
         await _broker.PublishAsync(new AnotherTestMessage { Name = "Test2" });
+        await Task.Delay(10); // Wait for handlers
 
         // Assert
         Assert.Single(receivedTestMessages);
@@ -258,6 +266,7 @@ public class InMemoryMessageBrokerTests
 
         // Act
         await _broker.PublishAsync(message);
+        await Task.Delay(10); // Wait for handlers
 
         // Assert
         Assert.Single(receivedMessages);
@@ -268,9 +277,11 @@ public class InMemoryMessageBrokerTests
     {
         // Arrange
         MessageContext? receivedContext = null;
+        var tcs = new TaskCompletionSource<bool>();
         await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) =>
         {
             receivedContext = ctx;
+            tcs.SetResult(true);
             return ValueTask.CompletedTask;
         });
 
@@ -278,6 +289,9 @@ public class InMemoryMessageBrokerTests
 
         // Act
         await _broker.PublishAsync(new TestMessage { Id = 1, Content = "Test" });
+
+        // Wait for the handler to be called
+        await tcs.Task.WaitAsync(TimeSpan.FromSeconds(1));
 
         // Assert
         Assert.NotNull(receivedContext);

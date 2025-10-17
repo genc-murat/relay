@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.Text;
 using Xunit;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -773,6 +774,90 @@ public class DiagnosticReporterTests
 
         // Assert
         Assert.Empty(mockReporter.ReportedDiagnostics);
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldPreserveDiagnosticAdditionalLocations()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var additionalLocation = CreateTestLocation();
+        var diagnostic = Diagnostic.Create(
+            DiagnosticDescriptors.DuplicateHandler,
+            Location.None,
+            new[] { additionalLocation },
+            ImmutableDictionary<string, string?>.Empty,
+            "TestRequest", "TestResponse");
+
+        // Act
+        mockReporter.ReportDiagnostic(diagnostic);
+
+        // Assert
+        var reported = mockReporter.ReportedDiagnostics[0];
+        Assert.Equal(diagnostic.AdditionalLocations, reported.AdditionalLocations);
+        Assert.Single(reported.AdditionalLocations);
+        Assert.Equal(additionalLocation, reported.AdditionalLocations[0]);
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldPreserveDiagnosticCustomProperties()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var properties = ImmutableDictionary<string, string?>.Empty
+            .Add("CustomProperty1", "Value1")
+            .Add("CustomProperty2", "Value2");
+        var diagnostic = Diagnostic.Create(
+            DiagnosticDescriptors.DuplicateHandler,
+            Location.None,
+            properties,
+            "TestRequest", "TestResponse");
+
+        // Act
+        mockReporter.ReportDiagnostic(diagnostic);
+
+        // Assert
+        var reported = mockReporter.ReportedDiagnostics[0];
+        Assert.Equal(diagnostic.Properties, reported.Properties);
+        Assert.Equal(2, reported.Properties.Count);
+        Assert.Equal("Value1", reported.Properties["CustomProperty1"]);
+        Assert.Equal("Value2", reported.Properties["CustomProperty2"]);
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldPreserveDiagnosticDescriptorProperties()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var diagnostic = CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, "TestRequest", "TestResponse");
+
+        // Act
+        mockReporter.ReportDiagnostic(diagnostic);
+
+        // Assert
+        var reported = mockReporter.ReportedDiagnostics[0];
+        Assert.Equal(diagnostic.Descriptor.Id, reported.Descriptor.Id);
+        Assert.Equal(diagnostic.Descriptor.Title, reported.Descriptor.Title);
+        Assert.Equal(diagnostic.Descriptor.Description, reported.Descriptor.Description);
+        Assert.Equal(diagnostic.Descriptor.MessageFormat, reported.Descriptor.MessageFormat);
+        Assert.Equal(diagnostic.Descriptor.Category, reported.Descriptor.Category);
+        Assert.Equal(diagnostic.Descriptor.DefaultSeverity, reported.Descriptor.DefaultSeverity);
+        Assert.Equal(diagnostic.Descriptor.IsEnabledByDefault, reported.Descriptor.IsEnabledByDefault);
+    }
+
+    [Fact]
+    public void SourceOutputDiagnosticReporter_ShouldPreserveDiagnosticWarningLevel()
+    {
+        // Arrange
+        var mockReporter = new MockSourceOutputReporter();
+        var diagnostic = CreateTestDiagnostic(DiagnosticDescriptors.DuplicateHandler, "TestRequest", "TestResponse");
+
+        // Act
+        mockReporter.ReportDiagnostic(diagnostic);
+
+        // Assert
+        var reported = mockReporter.ReportedDiagnostics[0];
+        Assert.Equal(diagnostic.WarningLevel, reported.WarningLevel);
     }
 
     [Fact]

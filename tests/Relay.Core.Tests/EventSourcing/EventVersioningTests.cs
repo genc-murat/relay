@@ -257,6 +257,46 @@ public class EventVersioningTests
         migratedEvent.Should().BeSameAs(eventV1);
     }
 
+    [Fact]
+    public void RegisterMigration_ShouldThrowArgumentNullException_WhenMigrationIsNull()
+    {
+        // Arrange
+        var manager = new EventMigrationManager();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => manager.RegisterMigration(null!));
+    }
+
+    [Fact]
+    public void RegisterMigrations_ShouldThrowArgumentNullException_WhenMigrationsIsNull()
+    {
+        // Arrange
+        var manager = new EventMigrationManager();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => manager.RegisterMigrations(null!));
+    }
+
+    [Fact]
+    public void MigrateEvent_ShouldThrowArgumentNullException_WhenEventIsNull()
+    {
+        // Arrange
+        var manager = new EventMigrationManager();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => manager.MigrateEvent(null!));
+    }
+
+    [Fact]
+    public void MigrateEvents_ShouldThrowArgumentNullException_WhenEventsIsNull()
+    {
+        // Arrange
+        var manager = new EventMigrationManager();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => manager.MigrateEvents(null!));
+    }
+
     // Test Event Classes
     public class TestEventV1 : VersionedEvent
     {

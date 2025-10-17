@@ -148,7 +148,7 @@ namespace Relay.SourceGenerator
         private static void CheckForMissingRelayCoreReference(SourceProductionContext context, (Compilation Left, ImmutableArray<SyntaxNode?> Right) source)
         {
             var (compilation, attributeMethods) = source;
-            
+
             // If there are methods with Relay attributes, check if Relay.Core is referenced
             if (attributeMethods.Length > 0)
             {
@@ -158,7 +158,8 @@ namespace Relay.SourceGenerator
                 if (!hasRelayCoreReference)
                 {
                     // Report missing Relay.Core reference
-                    context.ReportDiagnostic(
+                    var reporter = new SourceOutputDiagnosticReporter(context);
+                    reporter.ReportDiagnostic(
                         Diagnostic.Create(
                             DiagnosticDescriptors.MissingRelayCoreReference,
                             Location.None));
@@ -274,7 +275,8 @@ namespace Relay.SourceGenerator
             }
             catch (Exception ex)
             {
-                context.ReportDiagnostic(
+                var reporter = new SourceOutputDiagnosticReporter(context);
+                reporter.ReportDiagnostic(
                     Diagnostic.Create(
                         DiagnosticDescriptors.GeneratorError,
                         Location.None,

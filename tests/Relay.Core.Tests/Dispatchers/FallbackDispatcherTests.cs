@@ -289,6 +289,46 @@ namespace Relay.Core.Tests
         }
 
         [Fact]
+        public async Task FallbackNotificationDispatcher_DispatchAsync_WithSingleHandler_CallsHandler()
+        {
+            // Arrange
+            var handler = new TestNotificationHandler();
+
+            var services = new ServiceCollection();
+            services.AddSingleton<INotificationHandler<TestNotification>>(handler);
+
+            var serviceProvider = services.BuildServiceProvider();
+            var dispatcher = new FallbackNotificationDispatcher(serviceProvider);
+            var notification = new TestNotification { Message = "Test" };
+
+            // Act
+            await dispatcher.DispatchAsync(notification, CancellationToken.None);
+
+            // Assert
+            Assert.True(handler.WasCalled);
+        }
+
+        [Fact]
+        public async Task FallbackNotificationDispatcher_DispatchAsync_WithHandlerException_WrapsException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<INotificationHandler<TestNotification>, ThrowingTestNotificationHandler>();
+
+            var serviceProvider = services.BuildServiceProvider();
+            var dispatcher = new FallbackNotificationDispatcher(serviceProvider);
+            var notification = new TestNotification { Message = "Test" };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<RelayException>(() =>
+                dispatcher.DispatchAsync(notification, CancellationToken.None).AsTask());
+
+            Assert.Equal("TestNotification", exception.RequestType);
+            Assert.Contains("Test notification handler exception", exception.Message);
+            Assert.IsType<InvalidOperationException>(exception.InnerException);
+        }
+
+        [Fact]
         public async Task FallbackNotificationDispatcher_DispatchAsync_WithNullNotification_ThrowsArgumentNullException()
         {
             // Arrange
@@ -375,6 +415,14 @@ namespace Relay.Core.Tests
             public ValueTask HandleAsync(TestVoidRequest request, CancellationToken cancellationToken)
             {
                 throw new InvalidOperationException("Test void handler exception");
+            }
+        }
+
+        private class ThrowingTestNotificationHandler : INotificationHandler<TestNotification>
+        {
+            public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+            {
+                throw new InvalidOperationException("Test notification handler exception");
             }
         }
 

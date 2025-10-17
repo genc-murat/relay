@@ -200,10 +200,10 @@ public static class PluginCommand
         // Simulated results (in production, this would call a real API)
         var results = new[]
         {
-            new { Name = "relay-plugin-swagger", Version = "1.0.0", Description = "Generate Swagger/OpenAPI documentation", Downloads = 1234 },
-            new { Name = "relay-plugin-graphql", Version = "1.2.0", Description = "GraphQL schema generation", Downloads = 890 },
-            new { Name = "relay-plugin-docker", Version = "2.0.0", Description = "Docker configuration generator", Downloads = 2100 },
-            new { Name = "relay-plugin-kubernetes", Version = "1.5.0", Description = "Kubernetes deployment templates", Downloads = 1567 },
+            new { Name = "relay-plugin-swagger", Version = "1.0.0", Description = "Generate Swagger/OpenAPI documentation", Downloads = 1234, Author = "Microsoft", Tags = "swagger, openapi, docs" },
+            new { Name = "relay-plugin-graphql", Version = "1.2.0", Description = "GraphQL schema generation", Downloads = 890, Author = "GraphQL Foundation", Tags = "graphql, schema" },
+            new { Name = "relay-plugin-docker", Version = "2.0.0", Description = "Docker configuration generator", Downloads = 2100, Author = "Docker Inc", Tags = "docker, container" },
+            new { Name = "relay-plugin-kubernetes", Version = "1.5.0", Description = "Kubernetes deployment templates", Downloads = 1567, Author = "CNCF", Tags = "kubernetes, deployment" },
         };
 
         var table = new Table()
@@ -211,6 +211,8 @@ public static class PluginCommand
             .AddColumn("[bold]Name[/]")
             .AddColumn("[bold]Version[/]")
             .AddColumn("[bold]Description[/]")
+            .AddColumn("[bold]Author[/]")
+            .AddColumn("[bold]Tags[/]")
             .AddColumn("[bold]Downloads[/]");
 
         foreach (var result in results)
@@ -219,6 +221,8 @@ public static class PluginCommand
                 $"[blue]{result.Name}[/]",
                 result.Version,
                 result.Description,
+                result.Author,
+                result.Tags,
                 result.Downloads.ToString("N0")
             );
         }

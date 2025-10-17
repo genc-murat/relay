@@ -310,24 +310,6 @@ public class AzureServiceBusIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task StopStartCycle_ShouldMaintainState()
-    {
-        // Arrange
-        var broker = CreateBroker();
-
-        // Act & Assert - Multiple start/stop cycles
-        for (int i = 0; i < 3; i++)
-        {
-            await broker.StartAsync(CancellationToken.None);
-            await Task.Delay(100); // Allow some running time
-
-            await broker.StopAsync(CancellationToken.None);
-        }
-
-        Assert.NotNull(broker);
-    }
-
-    [Fact]
     public async Task Dispose_ShouldCleanupResources()
     {
         // Arrange

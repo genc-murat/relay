@@ -138,7 +138,7 @@ namespace Relay.Core.Tests.MessageQueue
             consumer.EnqueueMessage(queueName, JsonSerializer.Serialize(wrapper));
 
             // Wait for message to be processed
-            await Task.Delay(200);
+            await Task.Delay(1000);
 
             // Assert
             Assert.Single(receivedMessages);

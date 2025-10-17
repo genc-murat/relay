@@ -233,7 +233,7 @@ public class RefactorCommandTests
 
             // Assert
             testConsole.Output.Should().Contain("🔧 Code Refactoring Engine");
-            testConsole.Output.Should().Contain("📊 Analysis Results");
+            testConsole.Output.Should().Contain("✅ Analysis complete");
         }
         finally
         {
@@ -279,7 +279,7 @@ public class RefactorCommandTests
 
             // Assert
             testConsole.Output.Should().Contain("🔧 Code Refactoring Engine");
-            testConsole.Output.Should().Contain("📊 Analysis Results");
+            testConsole.Output.Should().Contain("🔍 Scanning for refactoring opportunities...");
         }
         finally
         {

@@ -167,6 +167,113 @@ namespace Relay.SourceGenerator.Tests
         }
 
         [Fact]
+        public void ValidatePipelineConfigurations_WithValidConfigurations_ReportsNoDiagnostics()
+        {
+            // Arrange
+            var compilation = CreateCompilation(@"
+                public class TestPipeline
+                {
+                    [Pipeline(Order = 1)] public void Pipeline1() { }
+                    [Pipeline(Order = 2)] public void Pipeline2() { }
+                }
+            ");
+
+            var pipelineType = GetTypeSymbol(compilation, "TestPipeline");
+            var method1 = pipelineType.GetMembers("Pipeline1").OfType<IMethodSymbol>().First();
+            var method2 = pipelineType.GetMembers("Pipeline2").OfType<IMethodSymbol>().First();
+
+            var pipelines = new[]
+            {
+                new PipelineRegistration
+                {
+                    PipelineType = pipelineType,
+                    Method = method1,
+                    Order = 1,
+                    Scope = PipelineScope.All,
+                    Location = Location.None
+                },
+                new PipelineRegistration
+                {
+                    PipelineType = pipelineType,
+                    Method = method2,
+                    Order = 2,
+                    Scope = PipelineScope.All,
+                    Location = Location.None
+                }
+            };
+
+            // Act
+            _validator.ValidatePipelineConfigurations(pipelines);
+
+            // Assert
+            _mockReporter.Verify(r => r.ReportDiagnostic(It.IsAny<Diagnostic>()), Times.Never);
+        }
+
+        [Fact]
+        public void ValidatePipelineConfigurations_WithDifferentScopes_ValidatesSeparately()
+        {
+            // Arrange
+            var compilation = CreateCompilation(@"
+                public class TestPipeline
+                {
+                    [Pipeline(Order = 1, Scope = PipelineScope.Requests)] public void Pipeline1() { }
+                    [Pipeline(Order = 1, Scope = PipelineScope.Notifications)] public void Pipeline2() { }
+                }
+            ");
+
+            var pipelineType = GetTypeSymbol(compilation, "TestPipeline");
+            var method1 = pipelineType.GetMembers("Pipeline1").OfType<IMethodSymbol>().First();
+            var method2 = pipelineType.GetMembers("Pipeline2").OfType<IMethodSymbol>().First();
+
+            var pipelines = new[]
+            {
+                new PipelineRegistration
+                {
+                    PipelineType = pipelineType,
+                    Method = method1,
+                    Order = 1,
+                    Scope = PipelineScope.Requests,
+                    Location = Location.None
+                },
+                new PipelineRegistration
+                {
+                    PipelineType = pipelineType,
+                    Method = method2,
+                    Order = 1,
+                    Scope = PipelineScope.Notifications,
+                    Location = Location.None
+                }
+            };
+
+            // Act
+            _validator.ValidatePipelineConfigurations(pipelines);
+
+            // Assert - Should not report duplicates since they're in different scopes
+            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+                d.Descriptor.Id == "RELAY_GEN_201")), Times.Never);
+        }
+
+        [Fact]
+        public void ValidatePipelineConfigurations_WithNullMethod_DoesNotThrowException()
+        {
+            // Arrange
+            var pipelines = new[]
+            {
+                new PipelineRegistration
+                {
+                    PipelineType = null,
+                    Method = null, // System modules don't have methods
+                    Order = 1,
+                    Scope = PipelineScope.All,
+                    Location = Location.None
+                }
+            };
+
+            // Act & Assert - Should not throw exception
+            _validator.ValidatePipelineConfigurations(pipelines);
+        }
+
+        [Fact]
         public void ValidateConfigurationCompleteness_WithNoHandlers_ReportsNoHandlersFound()
         {
             // Arrange
@@ -180,6 +287,65 @@ namespace Relay.SourceGenerator.Tests
             // Assert
             _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
                 d.Descriptor.Id == "RELAY_GEN_210")), Times.Once);
+        }
+
+        [Fact]
+        public void ValidateConfigurationCompleteness_WithHandlersAndPipelines_DoesNotReportNoHandlersFound()
+        {
+            // Arrange
+            var compilation = CreateCompilation(@"
+                public class TestRequest : IRequest<string> { }
+                public class TestHandler
+                {
+                    [Handle] public string Handle(TestRequest request, CancellationToken cancellationToken) => string.Empty;
+                }
+                public class TestPipeline
+                {
+                    [Pipeline(Order = 1)] public void Pipeline1() { }
+                }
+            ");
+
+            var requestType = GetTypeSymbol(compilation, "TestRequest");
+            var responseType = GetTypeSymbol(compilation, "string");
+            var handlerType = GetTypeSymbol(compilation, "TestHandler");
+            var pipelineType = GetTypeSymbol(compilation, "TestPipeline");
+            var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+            var pipelineMethod = pipelineType.GetMembers("Pipeline1").OfType<IMethodSymbol>().First();
+
+            var handlers = new[]
+            {
+                new HandlerRegistration
+                {
+                    RequestType = requestType,
+                    ResponseType = responseType,
+                    Method = method,
+                    Name = null,
+                    Priority = 0,
+                    Kind = HandlerKind.Request,
+                    Location = Location.None
+                }
+            };
+
+            var notificationHandlers = Enumerable.Empty<NotificationHandlerRegistration>();
+
+            var pipelines = new[]
+            {
+                new PipelineRegistration
+                {
+                    PipelineType = pipelineType,
+                    Method = pipelineMethod,
+                    Order = 1,
+                    Scope = PipelineScope.All,
+                    Location = Location.None
+                }
+            };
+
+            // Act
+            _validator.ValidateConfigurationCompleteness(handlers, notificationHandlers, pipelines);
+
+            // Assert - Should not report no handlers found since we have handlers
+            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+                d.Descriptor.Id == "RELAY_GEN_210")), Times.Never);
         }
 
         [Fact]

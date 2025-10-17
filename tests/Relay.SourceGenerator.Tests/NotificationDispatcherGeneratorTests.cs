@@ -261,6 +261,76 @@ namespace TestApp
     }
 
     [Fact]
+    public void GenerateNotificationDispatcher_ShouldHandleNonAsyncHandlers()
+    {
+        // Arrange
+        var compilation = CreateTestCompilation();
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = CreateDiscoveryResultWithNonAsyncNotificationHandler(compilation);
+
+        // Act
+        var result = generator.GenerateNotificationDispatcher(discoveryResult);
+
+        // Assert
+        Assert.Contains("handler.HandleAsync(notification, cancellationToken);", result);
+        Assert.DoesNotContain("await handler.HandleAsync(notification, cancellationToken);", result);
+    }
+
+    [Fact]
+    public void GenerateNotificationDispatcher_ShouldOrderHandlersByPriority()
+    {
+        // Arrange
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace TestApp
+{
+    public class TestNotification : INotification { }
+
+    public class HighPriorityHandler
+    {
+        [Notification(Priority = 10)]
+        public async Task HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+        }
+    }
+
+    public class LowPriorityHandler
+    {
+        [Notification(Priority = 1)]
+        public async Task HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = CreateDiscoveryResultWithPriorityHandlers(compilation);
+
+        // Act
+        var result = generator.GenerateNotificationDispatcher(discoveryResult);
+
+        // Assert
+        // High priority handler should appear before low priority handler
+        var highPriorityIndex = result.IndexOf("HighPriorityHandler");
+        var lowPriorityIndex = result.IndexOf("LowPriorityHandler");
+        Assert.True(highPriorityIndex < lowPriorityIndex, "High priority handler should be executed before low priority handler");
+    }
+
+
+
+
+
+
+
+    [Fact]
     public void GenerateNotificationDispatcher_ShouldGenerateLoggingStatements()
     {
         // Arrange
@@ -301,11 +371,17 @@ namespace Relay.Core
 {
     public interface INotification { }
 
+    public enum NotificationDispatchMode
+    {
+        Parallel,
+        Sequential
+    }
+
     [AttributeUsage(AttributeTargets.Method)]
     public sealed class NotificationAttribute : Attribute
     {
         public int Priority { get; set; }
-        public int DispatchMode { get; set; }
+        public NotificationDispatchMode DispatchMode { get; set; }
     }
 
     public abstract class BaseNotificationDispatcher
@@ -463,4 +539,90 @@ namespace MockTest
 
         return result;
     }
+
+    private HandlerDiscoveryResult CreateDiscoveryResultWithNonAsyncNotificationHandler(Compilation compilation)
+    {
+        // Create a simple non-async notification handler source to get a real method symbol
+        var mockHandlerSource = @"
+using System.Threading;
+using Relay.Core;
+
+namespace MockTest
+{
+    public class MockNotification : INotification { }
+
+    public class MockHandler
+    {
+        public void HandleAsync(MockNotification notification, CancellationToken cancellationToken)
+        {
+            // Non-async handler
+        }
+    }
+}";
+
+        var mockCompilation = CreateTestCompilation(mockHandlerSource);
+        var mockHandlerType = mockCompilation.GetTypeByMetadataName("MockTest.MockHandler");
+        var mockMethod = mockHandlerType?.GetMembers().OfType<IMethodSymbol>().FirstOrDefault();
+
+        var result = new HandlerDiscoveryResult();
+        result.Handlers.Add(new HandlerInfo
+        {
+            MethodSymbol = mockMethod!,
+            Attributes = new List<RelayAttributeInfo>
+            {
+                new RelayAttributeInfo
+                {
+                    Type = RelayAttributeType.Notification
+                }
+            }
+        });
+        return result;
+    }
+
+    private HandlerDiscoveryResult CreateDiscoveryResultWithPriorityHandlers(Compilation compilation)
+    {
+        var result = new HandlerDiscoveryResult();
+
+        // Add high priority handler
+        var highPriorityType = compilation.GetTypeByMetadataName("TestApp.HighPriorityHandler");
+        var highPriorityMethod = highPriorityType?.GetMembers().OfType<IMethodSymbol>().FirstOrDefault();
+        if (highPriorityMethod != null)
+        {
+            result.Handlers.Add(new HandlerInfo
+            {
+                MethodSymbol = highPriorityMethod,
+                Attributes = new List<RelayAttributeInfo>
+                {
+                    new RelayAttributeInfo
+                    {
+                        Type = RelayAttributeType.Notification,
+                        AttributeData = highPriorityMethod.GetAttributes().FirstOrDefault()
+                    }
+                }
+            });
+        }
+
+        // Add low priority handler
+        var lowPriorityType = compilation.GetTypeByMetadataName("TestApp.LowPriorityHandler");
+        var lowPriorityMethod = lowPriorityType?.GetMembers().OfType<IMethodSymbol>().FirstOrDefault();
+        if (lowPriorityMethod != null)
+        {
+            result.Handlers.Add(new HandlerInfo
+            {
+                MethodSymbol = lowPriorityMethod,
+                Attributes = new List<RelayAttributeInfo>
+                {
+                    new RelayAttributeInfo
+                    {
+                        Type = RelayAttributeType.Notification,
+                        AttributeData = lowPriorityMethod.GetAttributes().FirstOrDefault()
+                    }
+                }
+            });
+        }
+
+        return result;
+    }
+
+
 }

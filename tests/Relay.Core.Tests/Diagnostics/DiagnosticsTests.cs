@@ -293,6 +293,22 @@ public class DiagnosticsTests
     }
 
     [Fact]
+    public async Task BenchmarkHandlerAsync_ShouldThrowOnNullRequest()
+    {
+        // Arrange
+        var options = new DiagnosticsOptions();
+        var tracer = CreateTracer();
+        var diagnostics = new DefaultRelayDiagnostics(tracer, options);
+
+        // Act
+        Func<Task> act = async () => await diagnostics.BenchmarkHandlerAsync<TestRequest>(null!, 10);
+
+        // Assert
+        var exception = await Assert.ThrowsAsync<ArgumentNullException>(act);
+        Assert.Equal("request", exception.ParamName);
+    }
+
+    [Fact]
     public async Task BenchmarkHandlerAsync_ShouldReturnValidResult()
     {
         // Arrange
@@ -515,6 +531,26 @@ public class DiagnosticsTests
 
         // Assert
         Assert.NotEqual(TimeSpan.Zero, result.StandardDeviation);
+    }
+
+    [Fact]
+    public async Task BenchmarkHandlerAsync_ShouldUseHandlerTypeFromMetrics()
+    {
+        // Arrange
+        var options = new DiagnosticsOptions { EnablePerformanceMetrics = true };
+        var tracer = CreateTracer();
+        var diagnostics = new DefaultRelayDiagnostics(tracer, options);
+
+        // Record some metrics first
+        diagnostics.RecordHandlerMetrics("TestRequest", typeof(string).AssemblyQualifiedName!, TimeSpan.FromMilliseconds(50), true);
+
+        var request = new TestRequest();
+
+        // Act
+        var result = await diagnostics.BenchmarkHandlerAsync(request, 5);
+
+        // Assert
+        Assert.Equal("String", result.HandlerType);
     }
 
     [Fact]

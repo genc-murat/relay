@@ -76,7 +76,7 @@ public class PipelineExecutorTests
         }
     }
 
-    private IServiceProvider CreateServiceProvider(bool includeSystemModules = true, bool includePipelineBehaviors = true)
+    private IServiceProvider CreateServiceProvider(bool includeSystemModules = true, bool includePipelineBehaviors = true, bool duplicateBehaviors = false)
     {
         var services = new ServiceCollection();
 
@@ -89,6 +89,12 @@ public class PipelineExecutorTests
         {
             services.AddSingleton<IPipelineBehavior<TestRequest, TestResponse>, TestPipelineBehavior>();
             services.AddSingleton<IStreamPipelineBehavior<TestRequest, TestResponse>, TestStreamPipelineBehavior>();
+            if (duplicateBehaviors)
+            {
+                // Add another instance of the same type to test de-duplication
+                services.AddSingleton<IPipelineBehavior<TestRequest, TestResponse>, TestPipelineBehavior>();
+                services.AddSingleton<IStreamPipelineBehavior<TestRequest, TestResponse>, TestStreamPipelineBehavior>();
+            }
         }
 
         return services.BuildServiceProvider();
@@ -360,6 +366,94 @@ public class PipelineExecutorTests
 
         // Assert
         await Assert.ThrowsAsync<OperationCanceledException>(() => { executor.ExecuteStreamAsync(request, (req, ct) => CreateTestStream(), cts.Token); return Task.CompletedTask; });
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithDuplicatePipelineBehaviors_ShouldDeduplicateByType()
+    {
+        // Arrange
+        var serviceProvider = CreateServiceProvider(includeSystemModules: false, includePipelineBehaviors: true, duplicateBehaviors: true);
+        var executor = new PipelineExecutor(serviceProvider);
+        var request = new TestRequest();
+        var response = new TestResponse { Value = "HandlerResult" };
+
+        // Act
+        var result = await executor.ExecuteAsync<TestRequest, TestResponse>(request, (req, ct) => ValueTask.FromResult(response), CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("HandlerResult", result.Value);
+
+        // Verify pipeline behavior was executed (only once, despite duplicates)
+        var behaviors = serviceProvider.GetServices<IPipelineBehavior<TestRequest, TestResponse>>();
+        Assert.Equal(2, behaviors.Count()); // Two instances registered
+        var pipelineBehavior = behaviors.Last() as TestPipelineBehavior; // The executed one is the last due to replacement
+        Assert.NotNull(pipelineBehavior);
+        Assert.Equal("PipelineBehavior", pipelineBehavior.Result);
+    }
+
+    [Fact]
+    public async Task ExecuteStreamAsync_WithDuplicateStreamBehaviors_ShouldDeduplicateByType()
+    {
+        // Arrange
+        var serviceProvider = CreateServiceProvider(includeSystemModules: false, includePipelineBehaviors: true, duplicateBehaviors: true);
+        var executor = new PipelineExecutor(serviceProvider);
+        var request = new TestRequest();
+
+        // Act
+        var results = new List<TestResponse>();
+        await foreach (var item in executor.ExecuteStreamAsync(request, (req, ct) => CreateTestStream(), CancellationToken.None))
+        {
+            results.Add(item);
+        }
+
+        // Assert
+        Assert.Single(results);
+        Assert.Equal("StreamResult", results[0].Value);
+
+        // Verify stream behavior was executed (only once, despite duplicates)
+        var behaviors = serviceProvider.GetServices<IStreamPipelineBehavior<TestRequest, TestResponse>>();
+        Assert.Equal(2, behaviors.Count()); // Two instances registered
+        var streamBehavior = behaviors.Last() as TestStreamPipelineBehavior; // The executed one is the last due to replacement
+        Assert.NotNull(streamBehavior);
+        Assert.Equal("StreamPipelineBehavior", streamBehavior.Result);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithoutPipelineBehaviors_ShouldExecuteHandlerDirectly()
+    {
+        // Arrange
+        var serviceProvider = CreateServiceProvider(includeSystemModules: false, includePipelineBehaviors: false);
+        var executor = new PipelineExecutor(serviceProvider);
+        var request = new TestRequest();
+        var response = new TestResponse { Value = "DirectHandlerResult" };
+
+        // Act
+        var result = await executor.ExecuteAsync<TestRequest, TestResponse>(request, (req, ct) => ValueTask.FromResult(response), CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("DirectHandlerResult", result.Value);
+    }
+
+    [Fact]
+    public async Task ExecuteStreamAsync_WithoutStreamBehaviors_ShouldExecuteHandlerDirectly()
+    {
+        // Arrange
+        var serviceProvider = CreateServiceProvider(includeSystemModules: false, includePipelineBehaviors: false);
+        var executor = new PipelineExecutor(serviceProvider);
+        var request = new TestRequest();
+
+        // Act
+        var results = new List<TestResponse>();
+        await foreach (var item in executor.ExecuteStreamAsync(request, (req, ct) => CreateTestStream(), CancellationToken.None))
+        {
+            results.Add(item);
+        }
+
+        // Assert
+        Assert.Single(results);
+        Assert.Equal("StreamResult", results[0].Value);
     }
 
     private async IAsyncEnumerable<TestResponse> CreateTestStream()

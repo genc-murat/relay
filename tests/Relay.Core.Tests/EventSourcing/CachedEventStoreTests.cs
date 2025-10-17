@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -127,6 +128,88 @@ namespace Relay.Core.Tests.EventSourcing
 
             // Assert
             Assert.Null(retrievedEvents);
+        }
+
+        [Fact]
+        public void InMemoryEventStoreCache_Constructor_ShouldThrowWhenCacheIsNull()
+        {
+            // Arrange, Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new InMemoryEventStoreCache(null!));
+        }
+
+        [Fact]
+        public void InMemoryEventStoreCache_Constructor_ShouldAcceptCustomExpirationMinutes()
+        {
+            // Arrange
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+            var customExpiration = 60;
+
+            // Act
+            var cache = new InMemoryEventStoreCache(memoryCache, customExpiration);
+
+            // Assert
+            Assert.NotNull(cache);
+        }
+
+        [Fact]
+        public async Task InMemoryEventStoreCache_SetEventsAsync_ShouldThrowWhenEventsIsNull()
+        {
+            // Arrange
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+            var cache = new InMemoryEventStoreCache(memoryCache);
+            var aggregateId = Guid.NewGuid();
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+                await cache.SetEventsAsync(aggregateId, null!));
+        }
+
+        [Fact]
+        public async Task InMemoryEventStoreCache_ShouldHandleEmptyEventList()
+        {
+            // Arrange
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+            var cache = new InMemoryEventStoreCache(memoryCache);
+            var aggregateId = Guid.NewGuid();
+            var events = new List<Event>();
+
+            // Act
+            await cache.SetEventsAsync(aggregateId, events);
+            var retrievedEvents = await cache.GetEventsAsync(aggregateId);
+
+            // Assert
+            Assert.NotNull(retrievedEvents);
+            Assert.Empty(retrievedEvents);
+        }
+
+        [Fact]
+        public async Task InMemoryEventStoreCache_ClearAsync_ShouldRemoveAllEntries()
+        {
+            // Arrange
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+            var cache = new InMemoryEventStoreCache(memoryCache);
+            var aggregateId1 = Guid.NewGuid();
+            var aggregateId2 = Guid.NewGuid();
+            var events1 = new List<Event> { new TestEvent { Data = "Event 1" } };
+            var events2 = new List<Event> { new TestEvent { Data = "Event 2" } };
+
+            await cache.SetEventsAsync(aggregateId1, events1);
+            await cache.SetEventsAsync(aggregateId2, events2);
+
+            // Verify both are cached
+            var retrieved1 = await cache.GetEventsAsync(aggregateId1);
+            var retrieved2 = await cache.GetEventsAsync(aggregateId2);
+            Assert.NotNull(retrieved1);
+            Assert.NotNull(retrieved2);
+
+            // Act
+            await cache.ClearAsync();
+
+            // Assert
+            var cleared1 = await cache.GetEventsAsync(aggregateId1);
+            var cleared2 = await cache.GetEventsAsync(aggregateId2);
+            Assert.Null(cleared1);
+            Assert.Null(cleared2);
         }
 
         public class TestEvent : Event

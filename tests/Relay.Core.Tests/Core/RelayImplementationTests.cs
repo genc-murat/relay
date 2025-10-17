@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1074,6 +1075,75 @@ public class RelayImplementationTests
         // Assert
         Assert.Equal("response", result);
         mockDispatcher.Verify(x => x.DispatchAsync(request, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendBatchAsync_WithSIMDOptimizationsEnabled_ButNotSupported_ShouldUseFallback()
+    {
+        // Arrange
+        var mockDispatcher = new Mock<IRequestDispatcher>();
+        var requests = new[] { new TestRequest<string>(), new TestRequest<string>() };
+        var expectedResults = new[] { "result1", "result2" };
+
+        mockDispatcher
+            .SetupSequence(d => d.DispatchAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(expectedResults[0]))
+            .Returns(ValueTask.FromResult(expectedResults[1]));
+
+        var services = new ServiceCollection();
+        services.Configure<RelayOptions>(options =>
+        {
+            options.Performance.EnableSIMDOptimizations = true;
+        });
+        services.AddSingleton(mockDispatcher.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var relay = new RelayImplementation(serviceProvider);
+
+        // Act
+        var results = await relay.SendBatchAsync(requests);
+
+        // Assert
+        Assert.Equal(expectedResults, results);
+        mockDispatcher.Verify(d => d.DispatchAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task SendBatchAsync_WithSmallBatch_ShouldUseFallback()
+    {
+        // Arrange
+        var mockDispatcher = new Mock<IRequestDispatcher>();
+        var requests = new IRequest<string>[Vector<int>.Count - 1]; // Smaller than SIMD threshold
+        var expectedResults = new string[requests.Length];
+
+        for (int i = 0; i < requests.Length; i++)
+        {
+            requests[i] = new TestRequest<string>();
+            expectedResults[i] = $"result{i}";
+        }
+
+        var setup = mockDispatcher.SetupSequence(d => d.DispatchAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()));
+        foreach (var result in expectedResults)
+        {
+            setup.Returns(ValueTask.FromResult(result));
+        }
+
+        var services = new ServiceCollection();
+        services.Configure<RelayOptions>(options =>
+        {
+            options.Performance.EnableSIMDOptimizations = true;
+        });
+        services.AddSingleton(mockDispatcher.Object);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var relay = new RelayImplementation(serviceProvider);
+
+        // Act
+        var results = await relay.SendBatchAsync(requests);
+
+        // Assert
+        Assert.Equal(expectedResults, results);
+        mockDispatcher.Verify(d => d.DispatchAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()), Times.Exactly(requests.Length));
     }
 
     // Helper methods

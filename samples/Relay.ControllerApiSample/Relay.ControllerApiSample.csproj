@@ -8,6 +8,19 @@
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
+  <!-- Relay Source Generator Configuration -->
+  <PropertyGroup Label="Relay Generator Settings">
+    <!-- Example: API-only project - no notifications or pipeline behaviors -->
+    <RelayEnableNotificationDispatcher>false</RelayEnableNotificationDispatcher>
+    <RelayEnablePipelineRegistry>false</RelayEnablePipelineRegistry>
+
+    <!-- Keep core generators enabled -->
+    <!-- RelayEnableDIGeneration: true (default) -->
+    <!-- RelayEnableHandlerRegistry: true (default) -->
+    <!-- RelayEnableOptimizedDispatcher: true (default) -->
+    <!-- RelayEnableEndpointMetadata: true (default) -->
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Relay\Relay.csproj" />
     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj" />

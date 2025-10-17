@@ -9,12 +9,13 @@ namespace Relay.SourceGenerator
     /// <summary>
     /// Compilation context for the Relay source generator.
     /// Provides access to compilation information and helper methods with aggressive caching.
+    /// Thread-safe for concurrent access.
     /// </summary>
     public class RelayCompilationContext
     {
-        private readonly ConcurrentDictionary<SyntaxTree, SemanticModel> _semanticModelCache = new();
-        private readonly ConcurrentDictionary<string, INamedTypeSymbol?> _typeCache = new();
-        private bool? _hasRelayCoreReference;
+        private readonly ConcurrentDictionary<SyntaxTree, Lazy<SemanticModel>> _semanticModelCache = new();
+        private readonly ConcurrentDictionary<string, Lazy<INamedTypeSymbol?>> _typeCache = new();
+        private readonly Lazy<bool> _hasRelayCoreReference;
 
         public Compilation Compilation { get; }
         public CancellationToken CancellationToken { get; }
@@ -25,43 +26,64 @@ namespace Relay.SourceGenerator
             Compilation = compilation ?? throw new ArgumentNullException(nameof(compilation));
             CancellationToken = cancellationToken;
             AssemblyName = compilation.AssemblyName ?? "Unknown";
+
+            // Initialize Lazy<bool> for thread-safe singleton evaluation
+            _hasRelayCoreReference = new Lazy<bool>(() => ComputeHasRelayCoreReference(), LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         /// <summary>
-        /// Gets the semantic model for a syntax tree with caching.
+        /// Gets the semantic model for a syntax tree with thread-safe caching.
+        /// Uses Lazy&lt;T&gt; to ensure semantic model is created only once per syntax tree.
         /// </summary>
         public SemanticModel GetSemanticModel(SyntaxTree syntaxTree)
         {
-            return _semanticModelCache.GetOrAdd(syntaxTree, tree => Compilation.GetSemanticModel(tree));
+            var lazy = _semanticModelCache.GetOrAdd(
+                syntaxTree,
+                tree => new Lazy<SemanticModel>(
+                    () => Compilation.GetSemanticModel(tree),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+
+            return lazy.Value;
         }
 
         /// <summary>
-        /// Finds a type by its full name with caching.
+        /// Finds a type by its full name with thread-safe caching.
+        /// Uses Lazy&lt;T&gt; to ensure type lookup is performed only once per type name.
         /// </summary>
         public INamedTypeSymbol? FindType(string fullTypeName)
         {
-            return _typeCache.GetOrAdd(fullTypeName, typeName => Compilation.GetTypeByMetadataName(typeName));
+            var lazy = _typeCache.GetOrAdd(
+                fullTypeName,
+                typeName => new Lazy<INamedTypeSymbol?>(
+                    () => Compilation.GetTypeByMetadataName(typeName),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+
+            return lazy.Value;
         }
 
         /// <summary>
-        /// Checks if the compilation references the Relay.Core assembly (cached).
+        /// Checks if the compilation references the Relay.Core assembly (thread-safe cached).
+        /// Uses Lazy&lt;bool&gt; to ensure computation happens only once across all threads.
         /// </summary>
         public bool HasRelayCoreReference()
         {
-            if (_hasRelayCoreReference.HasValue)
-                return _hasRelayCoreReference.Value;
+            return _hasRelayCoreReference.Value;
+        }
 
+        /// <summary>
+        /// Computes whether Relay.Core is referenced. Called by Lazy&lt;bool&gt; initialization.
+        /// </summary>
+        private bool ComputeHasRelayCoreReference()
+        {
             // Allow the generator project itself to compile without Relay.Core
             if (string.Equals(AssemblyName, "Relay.SourceGenerator", StringComparison.OrdinalIgnoreCase))
             {
-                _hasRelayCoreReference = true;
                 return true;
             }
 
             if (Compilation.ReferencedAssemblyNames
                 .Any(name => name.Name.Equals("Relay.Core", StringComparison.OrdinalIgnoreCase)))
             {
-                _hasRelayCoreReference = true;
                 return true;
             }
 
@@ -77,23 +99,23 @@ namespace Relay.SourceGenerator
             {
                 if (Compilation.GetTypeByMetadataName(typeName) is not null)
                 {
-                    _hasRelayCoreReference = true;
                     return true;
                 }
             }
 
-            _hasRelayCoreReference = false;
             return false;
         }
 
         /// <summary>
         /// Clears all internal caches. Useful for testing.
+        /// WARNING: Not thread-safe. Should only be called when no other threads are accessing this context.
         /// </summary>
         public void ClearCaches()
         {
             _semanticModelCache.Clear();
             _typeCache.Clear();
-            _hasRelayCoreReference = null;
+            // Note: _hasRelayCoreReference is Lazy<bool> and cannot be reset once created
+            // To reset, create a new RelayCompilationContext instance
         }
     }
 }

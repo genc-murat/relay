@@ -1,0 +1,73 @@
+<Project>
+  <!--
+    Example MSBuild configuration for Relay.SourceGenerator
+
+    Copy this file to your project directory as 'Directory.Build.props' or add these
+    properties to your .csproj file to customize generator behavior.
+  -->
+
+  <PropertyGroup Label="Relay Generator Configuration">
+
+    <!-- General Options -->
+
+    <!-- Include debug information in generated code (default: false) -->
+    <RelayIncludeDebugInfo>false</RelayIncludeDebugInfo>
+
+    <!-- Include XML documentation comments (default: true) -->
+    <RelayIncludeDocumentation>true</RelayIncludeDocumentation>
+
+    <!-- Enable nullable reference types in generated code (default: true) -->
+    <RelayEnableNullableContext>true</RelayEnableNullableContext>
+
+    <!-- Use aggressive inlining optimizations (default: true) -->
+    <RelayUseAggressiveInlining>true</RelayUseAggressiveInlining>
+
+    <!-- Custom namespace for generated code (default: Relay.Generated) -->
+    <!-- <RelayCustomNamespace>MyCompany.MyApp.Generated</RelayCustomNamespace> -->
+
+
+    <!-- Generator Enable/Disable Flags -->
+
+    <!-- Enable DI Registration generator (default: true) -->
+    <!-- Generates AddRelay() extension method and service registrations -->
+    <RelayEnableDIGeneration>true</RelayEnableDIGeneration>
+
+    <!-- Enable Handler Registry generator (default: true) -->
+    <!-- Generates handler metadata for runtime reflection -->
+    <RelayEnableHandlerRegistry>true</RelayEnableHandlerRegistry>
+
+    <!-- Enable Optimized Dispatcher generator (default: true) -->
+    <!-- Generates high-performance request dispatcher -->
+    <RelayEnableOptimizedDispatcher>true</RelayEnableOptimizedDispatcher>
+
+    <!-- Enable Notification Dispatcher generator (default: true) -->
+    <!-- Generates notification handler dispatcher -->
+    <RelayEnableNotificationDispatcher>true</RelayEnableNotificationDispatcher>
+
+    <!-- Enable Pipeline Registry generator (default: true) -->
+    <!-- Generates pipeline behavior registry -->
+    <RelayEnablePipelineRegistry>true</RelayEnablePipelineRegistry>
+
+    <!-- Enable Endpoint Metadata generator (default: true) -->
+    <!-- Generates endpoint metadata for ExposeAsEndpoint attributes -->
+    <RelayEnableEndpointMetadata>true</RelayEnableEndpointMetadata>
+
+  </PropertyGroup>
+
+  <!-- Example: Disable specific generators for performance or minimal builds -->
+  <!--
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <RelayEnableEndpointMetadata>false</RelayEnableEndpointMetadata>
+    <RelayEnablePipelineRegistry>false</RelayEnablePipelineRegistry>
+  </PropertyGroup>
+  -->
+
+  <!-- Example: Different settings for Release builds -->
+  <!--
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RelayIncludeDebugInfo>false</RelayIncludeDebugInfo>
+    <RelayUseAggressiveInlining>true</RelayUseAggressiveInlining>
+  </PropertyGroup>
+  -->
+
+</Project>

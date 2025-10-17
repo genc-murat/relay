@@ -11,15 +11,35 @@ namespace Relay.SourceGenerator
 {
     /// <summary>
     /// Discovers and validates handler methods in the compilation with parallel processing support.
+    /// Thread-safe for concurrent handler discovery.
     /// </summary>
     public class HandlerDiscoveryEngine
     {
         private readonly RelayCompilationContext _context;
-        private readonly ConcurrentDictionary<IMethodSymbol, ITypeSymbol?> _responseTypeCache = new(SymbolEqualityComparer.Default);
+        private readonly ConcurrentDictionary<IMethodSymbol, Lazy<ITypeSymbol?>> _responseTypeCache = new(SymbolEqualityComparer.Default);
+        private readonly int _maxDegreeOfParallelism;
+
+        /// <summary>
+        /// Default maximum degree of parallelism for handler discovery.
+        /// Conservative value that works well across different machine configurations.
+        /// </summary>
+        private const int DefaultMaxDegreeOfParallelism = 4;
 
         public HandlerDiscoveryEngine(RelayCompilationContext context)
+            : this(context, DefaultMaxDegreeOfParallelism)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new HandlerDiscoveryEngine with a custom degree of parallelism.
+        /// </summary>
+        /// <param name="context">The compilation context</param>
+        /// <param name="maxDegreeOfParallelism">Maximum number of parallel tasks (2-8 recommended)</param>
+        public HandlerDiscoveryEngine(RelayCompilationContext context, int maxDegreeOfParallelism)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            // Clamp between 2 and 8 for optimal performance
+            _maxDegreeOfParallelism = Math.Min(8, Math.Max(2, maxDegreeOfParallelism));
         }
 
         /// <summary>
@@ -79,10 +99,10 @@ namespace Relay.SourceGenerator
             var handlers = new ConcurrentBag<HandlerInfo>();
             var diagnostics = new ConcurrentBag<Diagnostic>();
 
-            // Use a reasonable degree of parallelism without Environment.ProcessorCount
-            // Most machines have 4-16 cores, use 4 as a safe default
+            // Use configured degree of parallelism for optimal resource utilization
+            // This is set during engine construction and clamped to safe values (2-8)
             Parallel.ForEach(methods,
-                new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = _context.CancellationToken },
+                new ParallelOptions { MaxDegreeOfParallelism = _maxDegreeOfParallelism, CancellationToken = _context.CancellationToken },
                 method =>
                 {
                     if (method == null) return;
@@ -157,32 +177,44 @@ namespace Relay.SourceGenerator
             return handlerInfo;
         }
 
+        /// <summary>
+        /// Gets the response type for a handler method with thread-safe caching.
+        /// Uses Lazy&lt;T&gt; to ensure expensive type analysis is performed only once per method.
+        /// </summary>
         private ITypeSymbol? GetResponseType(IMethodSymbol methodSymbol)
         {
-            // Use cache to avoid repeated type analysis
-            return _responseTypeCache.GetOrAdd(methodSymbol, symbol =>
+            var lazy = _responseTypeCache.GetOrAdd(
+                methodSymbol,
+                symbol => new Lazy<ITypeSymbol?>(() => ComputeResponseType(symbol), LazyThreadSafetyMode.ExecutionAndPublication));
+
+            return lazy.Value;
+        }
+
+        /// <summary>
+        /// Computes the response type for a handler method. Called by Lazy&lt;T&gt; initialization.
+        /// </summary>
+        private ITypeSymbol? ComputeResponseType(IMethodSymbol methodSymbol)
+        {
+            var returnType = methodSymbol.ReturnType;
+
+            if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
             {
-                var returnType = symbol.ReturnType;
-                
-                if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
+                var genericDef = namedType.OriginalDefinition.ToDisplayString();
+                if (genericDef == "System.Threading.Tasks.Task<TResult>" ||
+                    genericDef == "System.Threading.Tasks.ValueTask<TResult>" ||
+                    genericDef == "System.Collections.Generic.IAsyncEnumerable<T>")
                 {
-                    var genericDef = namedType.OriginalDefinition.ToDisplayString();
-                    if (genericDef == "System.Threading.Tasks.Task<TResult>" ||
-                        genericDef == "System.Threading.Tasks.ValueTask<TResult>" ||
-                        genericDef == "System.Collections.Generic.IAsyncEnumerable<T>")
-                    {
-                        return namedType.TypeArguments.FirstOrDefault();
-                    }
+                    return namedType.TypeArguments.FirstOrDefault();
                 }
+            }
 
-                var returnTypeString = returnType.ToDisplayString();
-                if (returnTypeString == "System.Threading.Tasks.Task" || returnTypeString == "System.Threading.Tasks.ValueTask")
-                {
-                    return _context.FindType("Relay.Core.Unit");
-                }
+            var returnTypeString = returnType.ToDisplayString();
+            if (returnTypeString == "System.Threading.Tasks.Task" || returnTypeString == "System.Threading.Tasks.ValueTask")
+            {
+                return _context.FindType("Relay.Core.Unit");
+            }
 
-                return returnType;
-            });
+            return returnType;
         }
 
         private List<RelayAttributeInfo> GetRelayAttributes(IMethodSymbol methodSymbol)

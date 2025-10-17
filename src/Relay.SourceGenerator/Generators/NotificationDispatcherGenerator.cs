@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator
 {
     /// <summary>
     /// Generates notification dispatcher implementation code.
+    /// Implements the Strategy pattern via ICodeGenerator interface.
     /// </summary>
-    public class NotificationDispatcherGenerator
+    public class NotificationDispatcherGenerator : BaseCodeGenerator
     {
         private readonly RelayCompilationContext _context;
 
@@ -18,9 +20,29 @@ namespace Relay.SourceGenerator
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        /// <inheritdoc/>
+        public override string GeneratorName => "Notification Dispatcher Generator";
+
+        /// <inheritdoc/>
+        public override string OutputFileName => "GeneratedNotificationDispatcher";
+
+        /// <inheritdoc/>
+        public override int Priority => 40; // Run after optimized dispatcher
+
+        /// <inheritdoc/>
+        public override bool CanGenerate(HandlerDiscoveryResult result)
+        {
+            // Only generate if there are notification handlers
+            return result != null && result.Handlers.Any(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Notification));
+        }
+
         /// <summary>
         /// Generates the notification dispatcher implementation.
         /// </summary>
+        /// <remarks>
+        /// Legacy method maintained for backward compatibility.
+        /// New code should use Generate() from ICodeGenerator interface.
+        /// </remarks>
         public string GenerateNotificationDispatcher(HandlerDiscoveryResult discoveryResult)
         {
             var notificationHandlers = discoveryResult.Handlers
@@ -367,6 +389,31 @@ namespace Relay.SourceGenerator
                 .Replace(" ", "")
                 .Replace("[", "_")
                 .Replace("]", "_");
+        }
+
+        /// <inheritdoc/>
+        protected override void AppendUsings(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            builder.AppendLine("using System;");
+            builder.AppendLine("using System.Collections.Generic;");
+            builder.AppendLine("using System.Linq;");
+            builder.AppendLine("using System.Threading;");
+            builder.AppendLine("using System.Threading.Tasks;");
+            builder.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            builder.AppendLine("using Microsoft.Extensions.Logging;");
+            builder.AppendLine("using Relay.Core;");
+            builder.AppendLine("using Relay.Core.Implementation.Base;");
+        }
+
+        /// <inheritdoc/>
+        protected override void GenerateContent(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            var notificationHandlers = result.Handlers
+                .Where(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Notification))
+                .ToList();
+
+            // Generate the dispatcher class
+            GenerateGeneratedNotificationDispatcher(builder, notificationHandlers);
         }
     }
 }

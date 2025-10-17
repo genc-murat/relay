@@ -25,6 +25,10 @@ namespace Relay.SourceGenerator
         [ThreadStatic]
         private static StringBuilder? t_cachedStringBuilder;
 
+        // Pool configuration for modern code generation workloads
+        private const int DefaultStringBuilderCapacity = 1024;      // 1KB initial
+        private const int MaxPooledCapacity = 16 * 1024;             // 16KB maximum
+
         private static StringBuilder GetStringBuilder()
         {
             var sb = t_cachedStringBuilder;
@@ -34,12 +38,14 @@ namespace Relay.SourceGenerator
                 sb.Clear();
                 return sb;
             }
-            return new StringBuilder(1024); // Start with reasonable capacity
+            return new StringBuilder(DefaultStringBuilderCapacity);
         }
 
         private static void ReturnStringBuilder(StringBuilder sb)
         {
-            if (sb.Capacity <= 4096) // Don't cache if too large
+            // Cache StringBuilder if it's within reasonable size limits
+            // Modern generated code often exceeds 4KB, so we allow up to 16KB
+            if (sb.Capacity <= MaxPooledCapacity)
             {
                 t_cachedStringBuilder = sb;
             }
@@ -66,7 +72,7 @@ namespace Relay.SourceGenerator
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => IsMethodWithRelayAttribute(s),
                     transform: static (ctx, _) => ctx.Node)
-                .Where(static m => m is not null);
+                .Where(static m => m != null);
 
             // Create pipeline for compilation data
             var compilationAndHandlers = context.CompilationProvider.Combine(handlerClasses.Collect());
@@ -145,7 +151,7 @@ namespace Relay.SourceGenerator
             }
         }
 
-        private static void CheckForMissingRelayCoreReference(SourceProductionContext context, (Compilation Left, ImmutableArray<SyntaxNode?> Right) source)
+        private static void CheckForMissingRelayCoreReference(SourceProductionContext context, (Compilation Left, ImmutableArray<SyntaxNode> Right) source)
         {
             var (compilation, attributeMethods) = source;
 
@@ -177,26 +183,19 @@ namespace Relay.SourceGenerator
         private static HandlerClassInfo? GetSemanticHandlerInfo(GeneratorSyntaxContext context)
         {
             var classDeclaration = (ClassDeclarationSyntax)context.Node;
-            
+
             if (context.SemanticModel.GetDeclaredSymbol(classDeclaration) is not INamedTypeSymbol classSymbol)
                 return null;
 
-            var handlerInfo = new HandlerClassInfo
-            {
-                ClassDeclaration = classDeclaration,
-                ClassSymbol = classSymbol,
-                ImplementedInterfaces = new List<HandlerInterfaceInfo>()
-            };
+            var implementedInterfaces = new List<HandlerInterfaceInfo>();
 
             // Analyze implemented interfaces
             foreach (var interfaceSymbol in classSymbol.AllInterfaces)
             {
-                var interfaceName = interfaceSymbol.ToDisplayString();
-                
                 if (IsRequestHandlerInterface(interfaceSymbol))
                 {
                     var genericArgs = interfaceSymbol.TypeArguments;
-                    handlerInfo.ImplementedInterfaces.Add(new HandlerInterfaceInfo
+                    implementedInterfaces.Add(new HandlerInterfaceInfo
                     {
                         InterfaceType = HandlerType.Request,
                         InterfaceSymbol = interfaceSymbol,
@@ -207,7 +206,7 @@ namespace Relay.SourceGenerator
                 else if (IsNotificationHandlerInterface(interfaceSymbol))
                 {
                     var genericArgs = interfaceSymbol.TypeArguments;
-                    handlerInfo.ImplementedInterfaces.Add(new HandlerInterfaceInfo
+                    implementedInterfaces.Add(new HandlerInterfaceInfo
                     {
                         InterfaceType = HandlerType.Notification,
                         InterfaceSymbol = interfaceSymbol,
@@ -217,7 +216,7 @@ namespace Relay.SourceGenerator
                 else if (IsStreamHandlerInterface(interfaceSymbol))
                 {
                     var genericArgs = interfaceSymbol.TypeArguments;
-                    handlerInfo.ImplementedInterfaces.Add(new HandlerInterfaceInfo
+                    implementedInterfaces.Add(new HandlerInterfaceInfo
                     {
                         InterfaceType = HandlerType.Stream,
                         InterfaceSymbol = interfaceSymbol,
@@ -227,7 +226,15 @@ namespace Relay.SourceGenerator
                 }
             }
 
-            return handlerInfo.ImplementedInterfaces.Count > 0 ? handlerInfo : null;
+            if (implementedInterfaces.Count == 0)
+                return null;
+
+            return new HandlerClassInfo
+            {
+                ClassDeclaration = classDeclaration,
+                ClassSymbol = classSymbol,
+                ImplementedInterfaces = implementedInterfaces
+            };
         }
 
         private static bool IsRequestHandlerInterface(INamedTypeSymbol interfaceSymbol)
@@ -292,14 +299,16 @@ namespace Relay.SourceGenerator
 
         private static void GenerateDIRegistrations(SourceProductionContext context, List<HandlerClassInfo?> handlerClasses)
         {
-            var source = GenerateDIRegistrationSource(handlerClasses);
+            var validHandlers = handlerClasses.Where(h => h != null).Cast<HandlerClassInfo>().ToList();
+            var source = GenerateDIRegistrationSource(validHandlers);
             context.AddSource("RelayRegistration.g.cs", source);
         }
 
         private static void GenerateOptimizedDispatchers(SourceProductionContext context, List<HandlerClassInfo?> handlerClasses)
         {
+            var validHandlers = handlerClasses.Where(h => h != null).Cast<HandlerClassInfo>().ToList();
             // Generate optimized request dispatcher
-            var requestDispatcherSource = GenerateOptimizedRequestDispatcher(handlerClasses);
+            var requestDispatcherSource = GenerateOptimizedRequestDispatcher(validHandlers);
             context.AddSource("OptimizedRequestDispatcher.g.cs", requestDispatcherSource);
         }
 
@@ -340,7 +349,7 @@ namespace Microsoft.Extensions.DependencyInjection
 }";
         }
 
-        private static string GenerateDIRegistrationSource(List<HandlerClassInfo?> handlerClasses)
+        private static string GenerateDIRegistrationSource(List<HandlerClassInfo> handlerClasses)
         {
             var sb = GetStringBuilder();
             
@@ -377,13 +386,13 @@ namespace Microsoft.Extensions.DependencyInjection
                 sb.AppendLine();
                 sb.AppendLine("            // Register all discovered handlers");
 
-                foreach (var handlerClass in handlerClasses.Where(h => h != null && h.ClassSymbol != null))
+                foreach (var handlerClass in handlerClasses)
                 {
-                    var className = handlerClass!.ClassSymbol!.ToDisplayString();
-                    
-                    foreach (var interfaceInfo in handlerClass.ImplementedInterfaces.Where(i => i.InterfaceSymbol != null))
+                    var className = handlerClass.ClassSymbol.ToDisplayString();
+
+                    foreach (var interfaceInfo in handlerClass.ImplementedInterfaces)
                     {
-                        var interfaceTypeName = interfaceInfo.InterfaceSymbol!.ToDisplayString();
+                        var interfaceTypeName = interfaceInfo.InterfaceSymbol.ToDisplayString();
                         sb.Append("            services.AddTransient<");
                         sb.Append(interfaceTypeName);
                         sb.Append(", ");
@@ -406,16 +415,16 @@ namespace Microsoft.Extensions.DependencyInjection
             }
         }
 
-        private static string GenerateOptimizedRequestDispatcher(List<HandlerClassInfo?> handlerClasses)
+        private static string GenerateOptimizedRequestDispatcher(List<HandlerClassInfo> handlerClasses)
         {
             var sb = GetStringBuilder();
-            
+
             try
             {
                 sb.AppendLine("// <auto-generated />");
                 sb.AppendLine("// Generated by Relay.SourceGenerator - Optimized Request Dispatcher");
                 sb.AppendLine();
-                sb.AppendLine("#nullable disable");
+                sb.AppendLine("#nullable enable");
                 sb.AppendLine();
                 sb.AppendLine("using System;");
                 sb.AppendLine("using System.Runtime.CompilerServices;");
@@ -445,21 +454,17 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 // Generate switch cases for requests with a response
                 var responseRequestHandlers = handlerClasses
-                    .Where(h => h != null)
-                    .SelectMany(h => h!.ImplementedInterfaces)
-                    .Where(i => i.InterfaceType == HandlerType.Request && i.ResponseType != null)
-                    .GroupBy(i => i.RequestType?.ToDisplayString())
+                    .SelectMany(h => h.ImplementedInterfaces)
+                    .Where(i => i.InterfaceType == HandlerType.Request && i.ResponseType != null && i.RequestType != null)
+                    .GroupBy(i => i.RequestType!.ToDisplayString())
                     .ToList();
 
                 foreach (var group in responseRequestHandlers)
                 {
                     var requestType = group.Key;
-                    if (string.IsNullOrEmpty(requestType)) continue;
-
                     var handlerInterface = group.First();
-                    var responseType = handlerInterface.ResponseType?.ToDisplayString();
-                    if (string.IsNullOrEmpty(responseType)) continue;
-                    
+                    var responseType = handlerInterface.ResponseType!.ToDisplayString();
+
                     sb.Append("                ");
                     sb.Append(requestType);
                     sb.Append(" req when request is ");
@@ -483,16 +488,14 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 // Generate switch cases for void requests
                 var voidRequestHandlers = handlerClasses
-                    .Where(h => h != null)
-                    .SelectMany(h => h!.ImplementedInterfaces)
-                    .Where(i => i.InterfaceType == HandlerType.Request && i.ResponseType == null)
-                    .GroupBy(i => i.RequestType?.ToDisplayString())
+                    .SelectMany(h => h.ImplementedInterfaces)
+                    .Where(i => i.InterfaceType == HandlerType.Request && i.ResponseType == null && i.RequestType != null)
+                    .GroupBy(i => i.RequestType!.ToDisplayString())
                     .ToList();
 
                 foreach (var group in voidRequestHandlers)
                 {
                     var requestType = group.Key;
-                    if (string.IsNullOrEmpty(requestType)) continue;
 
                     sb.Append("                ");
                     sb.Append(requestType);
@@ -533,11 +536,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 foreach (var group in responseRequestHandlers)
                 {
                     var requestType = group.Key;
-                    if (string.IsNullOrEmpty(requestType)) continue;
-
                     var handlerInterface = group.First();
-                    var responseType = handlerInterface.ResponseType?.ToDisplayString();
-                    if (string.IsNullOrEmpty(responseType)) continue;
+                    var responseType = handlerInterface.ResponseType!.ToDisplayString();
 
                     sb.Append("                ");
                     sb.Append(requestType);
@@ -571,7 +571,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 foreach (var group in voidRequestHandlers)
                 {
                     var requestType = group.Key;
-                    if (string.IsNullOrEmpty(requestType)) continue;
 
                     sb.Append("                ");
                     sb.Append(requestType);
@@ -591,6 +590,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 sb.AppendLine("        private async ValueTask<TResponse> DispatchNamedHandlerWithResponse<TRequest, TResponse>(");
                 sb.AppendLine("            TRequest request, string handlerName, Type requestType, Type responseType, CancellationToken cancellationToken)");
                 sb.AppendLine("            where TRequest : IRequest<TResponse>");
+                sb.AppendLine("            where TResponse : notnull");
                 sb.AppendLine("        {");
                 sb.AppendLine("            // Try to get keyed service first (for .NET 8+ named services)");
                 sb.AppendLine("            var handlerInterfaceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);");

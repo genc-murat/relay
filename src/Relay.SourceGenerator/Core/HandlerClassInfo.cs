@@ -4,11 +4,24 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Relay.SourceGenerator
 {
-    // Supporting classes
+    /// <summary>
+    /// Information about a handler class and its implemented interfaces.
+    /// </summary>
     public class HandlerClassInfo
     {
-        public ClassDeclarationSyntax? ClassDeclaration { get; set; }
-        public INamedTypeSymbol? ClassSymbol { get; set; }
+        /// <summary>
+        /// Gets or sets the class declaration syntax node.
+        /// </summary>
+        public ClassDeclarationSyntax ClassDeclaration { get; set; } = null!;
+
+        /// <summary>
+        /// Gets or sets the semantic symbol for the handler class.
+        /// </summary>
+        public INamedTypeSymbol ClassSymbol { get; set; } = null!;
+
+        /// <summary>
+        /// Gets the list of handler interfaces implemented by this class.
+        /// </summary>
         public List<HandlerInterfaceInfo> ImplementedInterfaces { get; set; } = new();
     }
 }

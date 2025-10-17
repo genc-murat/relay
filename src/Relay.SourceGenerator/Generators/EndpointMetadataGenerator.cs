@@ -4,13 +4,15 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator
 {
     /// <summary>
     /// Generates endpoint metadata registration code for handlers marked with ExposeAsEndpoint attribute.
+    /// Implements the Strategy pattern via ICodeGenerator interface.
     /// </summary>
-    public class EndpointMetadataGenerator
+    public class EndpointMetadataGenerator : BaseCodeGenerator
     {
         private readonly Compilation _compilation;
         private readonly IDiagnosticReporter _diagnosticReporter;
@@ -21,11 +23,31 @@ namespace Relay.SourceGenerator
             _diagnosticReporter = diagnosticReporter;
         }
 
+        /// <inheritdoc/>
+        public override string GeneratorName => "Endpoint Metadata Generator";
+
+        /// <inheritdoc/>
+        public override string OutputFileName => "GeneratedEndpointMetadata";
+
+        /// <inheritdoc/>
+        public override int Priority => 60; // Run last
+
+        /// <inheritdoc/>
+        public override bool CanGenerate(HandlerDiscoveryResult result)
+        {
+            // Only generate if there are handlers with ExposeAsEndpoint attribute
+            return result != null && result.Handlers.Any(h => h.HasExposeAsEndpointAttribute());
+        }
+
         /// <summary>
         /// Generates endpoint metadata registration code for all discovered endpoints.
         /// </summary>
         /// <param name="handlers">The handler methods discovered by HandlerDiscovery.</param>
         /// <returns>The generated source code for endpoint metadata registration.</returns>
+        /// <remarks>
+        /// Legacy method maintained for backward compatibility.
+        /// New code should use Generate() from ICodeGenerator interface.
+        /// </remarks>
         public string GenerateEndpointMetadata(IEnumerable<HandlerInfo> handlers)
         {
             var endpointMethods = handlers
@@ -252,6 +274,42 @@ namespace Relay.SourceGenerator
                 SymbolDisplayFormat.MinimallyQualifiedFormat.MiscellaneousOptions |
                 SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
             return type.ToDisplayString(format);
+        }
+
+        /// <inheritdoc/>
+        protected override void AppendUsings(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            builder.AppendLine("using System;");
+            builder.AppendLine("using System.Collections.Generic;");
+            builder.AppendLine("using Relay.Core;");
+        }
+
+        /// <inheritdoc/>
+        protected override void GenerateContent(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            var endpointMethods = result.Handlers
+                .Where(h => h.HasExposeAsEndpointAttribute())
+                .ToList();
+
+            // Generate endpoint metadata class
+            AppendIndented(builder, 1, "/// <summary>");
+            AppendIndented(builder, 1, "/// Generated endpoint metadata registrations.");
+            AppendIndented(builder, 1, "/// </summary>");
+            AppendIndented(builder, 1, "internal static class GeneratedEndpointMetadata");
+            AppendIndented(builder, 1, "{");
+            AppendIndented(builder, 2, "/// <summary>");
+            AppendIndented(builder, 2, "/// Registers all generated endpoint metadata.");
+            AppendIndented(builder, 2, "/// </summary>");
+            AppendIndented(builder, 2, "public static void RegisterEndpoints()");
+            AppendIndented(builder, 2, "{");
+
+            foreach (var handler in endpointMethods)
+            {
+                GenerateEndpointRegistration(builder, handler);
+            }
+
+            AppendIndented(builder, 2, "}");
+            AppendIndented(builder, 1, "}");
         }
     }
 }

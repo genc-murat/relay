@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator;
 
 /// <summary>
-/// Generates optimized dispatch methods for maximum performance
+/// Generates optimized dispatch methods for maximum performance.
+/// Implements the Strategy pattern via ICodeGenerator interface.
 /// </summary>
-public class OptimizedDispatcherGenerator
+public class OptimizedDispatcherGenerator : BaseCodeGenerator
 {
     private readonly RelayCompilationContext _context;
 
@@ -18,9 +20,22 @@ public class OptimizedDispatcherGenerator
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
+    /// <inheritdoc/>
+    public override string GeneratorName => "Optimized Dispatcher Generator";
+
+    /// <inheritdoc/>
+    public override string OutputFileName => "OptimizedDispatcher";
+
+    /// <inheritdoc/>
+    public override int Priority => 30; // Run after DI registration and handler registry
+
     /// <summary>
     /// Generates optimized dispatcher source code with specialized methods for each request type
     /// </summary>
+    /// <remarks>
+    /// Legacy method maintained for backward compatibility.
+    /// New code should use Generate() from ICodeGenerator interface.
+    /// </remarks>
     public string GenerateOptimizedDispatcher(HandlerDiscoveryResult discoveryResult)
     {
         var sourceBuilder = new StringBuilder();
@@ -245,7 +260,6 @@ public class OptimizedDispatcherGenerator
         sourceBuilder.AppendLine($"            IServiceProvider serviceProvider,");
         sourceBuilder.AppendLine($"            string? handlerName = null,");
         sourceBuilder.AppendLine($"            CancellationToken cancellationToken = default)");
-        sourceBuilder.AppendLine($"            where TRequest : IRequest<TResponse>");
         sourceBuilder.AppendLine($"        {{");
 
         // Generate type-specific dispatch calls with branch prediction optimization
@@ -301,7 +315,6 @@ public class OptimizedDispatcherGenerator
         sourceBuilder.AppendLine($"            IServiceProvider serviceProvider,");
         sourceBuilder.AppendLine($"            string? handlerName = null,");
         sourceBuilder.AppendLine($"            CancellationToken cancellationToken = default)");
-        sourceBuilder.AppendLine($"            where TRequest : IStreamRequest<TResponse>");
         sourceBuilder.AppendLine($"        {{");
 
         // Generate streaming dispatch logic
@@ -359,7 +372,6 @@ public class OptimizedDispatcherGenerator
         sourceBuilder.AppendLine($"            TNotification notification,");
         sourceBuilder.AppendLine($"            IServiceProvider serviceProvider,");
         sourceBuilder.AppendLine($"            CancellationToken cancellationToken = default)");
-        sourceBuilder.AppendLine($"            where TNotification : INotification");
         sourceBuilder.AppendLine($"        {{");
 
         // Group notification handlers by type
@@ -494,5 +506,24 @@ public class OptimizedDispatcherGenerator
             .Replace(" ", "")
             .Replace("[", "_")
             .Replace("]", "_");
+    }
+
+    /// <inheritdoc/>
+    protected override void AppendUsings(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+    {
+        builder.AppendLine("using System;");
+        builder.AppendLine("using System.Collections.Generic;");
+        builder.AppendLine("using System.Runtime.CompilerServices;");
+        builder.AppendLine("using System.Threading;");
+        builder.AppendLine("using System.Threading.Tasks;");
+        builder.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+        builder.AppendLine("using Relay.Core;");
+    }
+
+    /// <inheritdoc/>
+    protected override void GenerateContent(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+    {
+        // Generate optimized dispatcher class
+        GenerateOptimizedDispatcherClass(builder, result);
     }
 }

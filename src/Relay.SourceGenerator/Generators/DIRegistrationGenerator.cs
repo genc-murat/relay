@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator
 {
     /// <summary>
     /// Generates DI container registration code for handlers.
+    /// Implements the Strategy pattern via ICodeGenerator interface.
     /// </summary>
-    public class DIRegistrationGenerator
+    public class DIRegistrationGenerator : BaseCodeGenerator
     {
         private readonly RelayCompilationContext _context;
 
@@ -18,9 +20,29 @@ namespace Relay.SourceGenerator
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        /// <inheritdoc/>
+        public override string GeneratorName => "DI Registration Generator";
+
+        /// <inheritdoc/>
+        public override string OutputFileName => "RelayServiceRegistration";
+
+        /// <inheritdoc/>
+        public override int Priority => 10; // Run early to register services
+
+        /// <inheritdoc/>
+        public override bool CanGenerate(HandlerDiscoveryResult result)
+        {
+            // Can always generate DI registrations, even with no handlers (will register core services)
+            return result != null;
+        }
+
         /// <summary>
         /// Generates the DI registration extension methods.
         /// </summary>
+        /// <remarks>
+        /// Legacy method maintained for backward compatibility.
+        /// New code should use Generate() from ICodeGenerator interface.
+        /// </remarks>
         public string GenerateDIRegistrations(HandlerDiscoveryResult discoveryResult)
         {
             var sourceBuilder = new StringBuilder();
@@ -245,6 +267,38 @@ namespace Relay.SourceGenerator
         {
             // Handlers that need request scope (e.g., those using Entity Framework)
             return handlerType.Contains("Command") || handlerType.Contains("Writer");
+        }
+
+        /// <inheritdoc/>
+        protected override string GetNamespace(HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            // DI registration extensions are placed in Microsoft.Extensions.DependencyInjection
+            // for better discoverability
+            return "Microsoft.Extensions.DependencyInjection";
+        }
+
+        /// <inheritdoc/>
+        protected override void AppendUsings(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            builder.AppendLine("using System;");
+            builder.AppendLine("using Microsoft.AspNetCore.Builder;");
+            builder.AppendLine("using Microsoft.AspNetCore.Hosting;");
+            builder.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            builder.AppendLine("using Microsoft.Extensions.DependencyInjection.Extensions;");
+            builder.AppendLine("using Relay.Core;");
+            builder.AppendLine("using Relay.Core.Contracts.Core;");
+            builder.AppendLine("using Relay.Core.Contracts.Dispatchers;");
+            builder.AppendLine("using Relay.Core.Implementation.Core;");
+            builder.AppendLine("using Relay.Core.Implementation.Dispatchers;");
+            builder.AppendLine("using Relay.Core.Implementation.Fallback;");
+            builder.AppendLine("using Relay.Generated;");
+        }
+
+        /// <inheritdoc/>
+        protected override void GenerateContent(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            // Generate extension class
+            GenerateServiceCollectionExtensions(builder, result);
         }
     }
 }

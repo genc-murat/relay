@@ -2,13 +2,15 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
 using System.Text;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator
 {
     /// <summary>
     /// Generates handler registry code for compile-time request routing.
+    /// Implements the Strategy pattern via ICodeGenerator interface.
     /// </summary>
-    public class HandlerRegistryGenerator
+    public class HandlerRegistryGenerator : BaseCodeGenerator
     {
         private readonly RelayCompilationContext _context;
 
@@ -17,9 +19,22 @@ namespace Relay.SourceGenerator
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        /// <inheritdoc/>
+        public override string GeneratorName => "Handler Registry Generator";
+
+        /// <inheritdoc/>
+        public override string OutputFileName => "HandlerRegistry";
+
+        /// <inheritdoc/>
+        public override int Priority => 20; // Run after DI registration
+
         /// <summary>
         /// Generates the handler registry source code.
         /// </summary>
+        /// <remarks>
+        /// Legacy method maintained for backward compatibility.
+        /// New code should use Generate() from ICodeGenerator interface.
+        /// </remarks>
         public string GenerateHandlerRegistry(HandlerDiscoveryResult discoveryResult)
         {
             var sourceBuilder = new StringBuilder();
@@ -282,6 +297,26 @@ namespace Relay.SourceGenerator
             }
 
             return "Request";
+        }
+
+        /// <inheritdoc/>
+        protected override void AppendUsings(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            builder.AppendLine("using System;");
+            builder.AppendLine("using System.Collections.Generic;");
+            builder.AppendLine("using System.Linq;");
+            builder.AppendLine("using System.Reflection;");
+            builder.AppendLine("using Relay.Core;");
+        }
+
+        /// <inheritdoc/>
+        protected override void GenerateContent(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            // Generate handler metadata classes
+            GenerateHandlerMetadataClasses(builder);
+
+            // Generate handler registry class
+            GenerateHandlerRegistryClass(builder, result);
         }
     }
 }

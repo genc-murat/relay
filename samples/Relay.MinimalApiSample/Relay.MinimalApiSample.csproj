@@ -8,6 +8,23 @@
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
+  <!-- Relay Source Generator Configuration -->
+  <PropertyGroup Label="Relay Generator Settings">
+    <!-- General Options -->
+    <RelayIncludeDocumentation>true</RelayIncludeDocumentation>
+    <RelayEnableNullableContext>true</RelayEnableNullableContext>
+    <RelayUseAggressiveInlining>true</RelayUseAggressiveInlining>
+
+    <!-- Generator Enable/Disable Flags -->
+    <!-- All generators enabled for full-featured minimal API sample -->
+    <RelayEnableDIGeneration>true</RelayEnableDIGeneration>
+    <RelayEnableHandlerRegistry>true</RelayEnableHandlerRegistry>
+    <RelayEnableOptimizedDispatcher>true</RelayEnableOptimizedDispatcher>
+    <RelayEnableNotificationDispatcher>true</RelayEnableNotificationDispatcher>
+    <RelayEnablePipelineRegistry>true</RelayEnablePipelineRegistry>
+    <RelayEnableEndpointMetadata>true</RelayEnableEndpointMetadata>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Relay\Relay.csproj" />
     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj" />

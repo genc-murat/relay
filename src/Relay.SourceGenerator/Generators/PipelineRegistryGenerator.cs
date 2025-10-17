@@ -5,13 +5,15 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator
 {
     /// <summary>
     /// Generates pipeline registration code for discovered pipeline behaviors.
+    /// Implements the Strategy pattern via ICodeGenerator interface.
     /// </summary>
-    public class PipelineRegistryGenerator
+    public class PipelineRegistryGenerator : BaseCodeGenerator
     {
         private readonly RelayCompilationContext _context;
 
@@ -20,9 +22,29 @@ namespace Relay.SourceGenerator
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        /// <inheritdoc/>
+        public override string GeneratorName => "Pipeline Registry Generator";
+
+        /// <inheritdoc/>
+        public override string OutputFileName => "PipelineRegistry";
+
+        /// <inheritdoc/>
+        public override int Priority => 50; // Run after notification dispatcher
+
+        /// <inheritdoc/>
+        public override bool CanGenerate(HandlerDiscoveryResult result)
+        {
+            // Only generate if there are pipeline behaviors
+            return result != null && result.Handlers.Any(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Pipeline));
+        }
+
         /// <summary>
         /// Generates the pipeline registry source code.
         /// </summary>
+        /// <remarks>
+        /// Legacy method maintained for backward compatibility.
+        /// New code should use Generate() from ICodeGenerator interface.
+        /// </remarks>
         public string GeneratePipelineRegistry(HandlerDiscoveryResult discoveryResult)
         {
             var pipelineHandlers = discoveryResult.Handlers
@@ -423,6 +445,28 @@ namespace Relay.SourceGenerator
                 break;
             }
             return order.HasValue || !string.IsNullOrWhiteSpace(scope);
+        }
+
+        /// <inheritdoc/>
+        protected override void AppendUsings(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            builder.AppendLine("using System;");
+            builder.AppendLine("using System.Collections.Generic;");
+            builder.AppendLine("using System.Linq;");
+            builder.AppendLine("using System.Threading;");
+            builder.AppendLine("using System.Threading.Tasks;");
+            builder.AppendLine("using Relay.Core;");
+        }
+
+        /// <inheritdoc/>
+        protected override void GenerateContent(StringBuilder builder, HandlerDiscoveryResult result, GenerationOptions options)
+        {
+            var pipelineHandlers = result.Handlers
+                .Where(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Pipeline))
+                .ToList();
+
+            // Generate pipeline registry class
+            GeneratePipelineRegistryClass(builder, pipelineHandlers);
         }
     }
 }

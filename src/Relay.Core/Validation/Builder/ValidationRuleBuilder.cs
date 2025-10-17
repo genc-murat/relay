@@ -825,7 +825,7 @@ public class ConditionalPropertyRuleBuilder<TRequest, TProperty>
             _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
                 _propertyName,
                 _propertyFunc,
-                value => value?.ToString()?.Length >= minLength,
+                value => value == null || value?.ToString()?.Length >= minLength,
                 errorMessage ?? $"{_propertyName} must be at least {minLength} characters long.",
                 GetEffectiveCondition()));
         }
@@ -842,7 +842,7 @@ public class ConditionalPropertyRuleBuilder<TRequest, TProperty>
             _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
                 _propertyName,
                 _propertyFunc,
-                value => value?.ToString()?.Length <= maxLength,
+                value => value == null || value?.ToString()?.Length <= maxLength,
                 errorMessage ?? $"{_propertyName} must not exceed {maxLength} characters.",
                 GetEffectiveCondition()));
         }

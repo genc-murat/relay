@@ -1,5 +1,7 @@
 using Relay.CLI.Commands;
 using System.CommandLine;
+using Spectre.Console;
+using Spectre.Console.Testing;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -10,6 +12,28 @@ public class InitCommandTests : IDisposable
     public InitCommandTests()
     {
         _testPath = Path.Combine(Path.GetTempPath(), $"relay-init-{Guid.NewGuid()}");
+    }
+
+    private async Task ExecuteInitWithMockedConsole(string projectName, string template, string outputPath, string framework, bool initGit, bool includeDocker, bool includeCI)
+    {
+        // Mock console to avoid concurrency issues with Spectre.Console
+        // Use a lock to prevent concurrent access to Spectre.Console
+        lock (typeof(AnsiConsole))
+        {
+            var testConsole = new Spectre.Console.Testing.TestConsole();
+            var originalConsole = AnsiConsole.Console;
+
+            AnsiConsole.Console = testConsole;
+
+            try
+            {
+                InitCommand.ExecuteInit(projectName, template, outputPath, framework, initGit, includeDocker, includeCI).Wait();
+            }
+            finally
+            {
+                AnsiConsole.Console = originalConsole;
+            }
+        }
     }
 
     [Fact]
@@ -63,7 +87,7 @@ public class InitCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, template, _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, template, _testPath, "net8.0", true, false, false);
 
         // Assert
         Directory.Exists(projectPath).Should().BeTrue();
@@ -102,7 +126,7 @@ public class InitCommandTests : IDisposable
         // Act & Assert
         // The method should not throw an exception but should handle the existing directory gracefully
         // In the current implementation, it checks for existing directory and returns early
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // The directory should still exist but no new files should be created
         Directory.Exists(projectPath).Should().BeTrue();
@@ -120,7 +144,7 @@ public class InitCommandTests : IDisposable
         var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, framework, true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, framework, true, false, false);
 
         // Assert
         var csprojContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, $"{projectName}.csproj"));
@@ -135,7 +159,7 @@ public class InitCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", false, true, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", false, true, false);
 
         // Assert
         File.Exists(Path.Combine(projectPath, "Dockerfile")).Should().BeTrue();
@@ -159,7 +183,7 @@ public class InitCommandTests : IDisposable
         var workflowsPath = Path.Combine(projectPath, ".github", "workflows");
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", false, false, true);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", false, false, true);
 
         // Assert
         Directory.Exists(workflowsPath).Should().BeTrue();
@@ -182,7 +206,7 @@ public class InitCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
         File.Exists(Path.Combine(projectPath, ".gitignore")).Should().BeTrue();
@@ -205,7 +229,7 @@ public class InitCommandTests : IDisposable
         var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "enterprise", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "enterprise", _testPath, "net8.0", true, false, false);
 
         // Assert
         Directory.Exists(Path.Combine(mainProjectPath, "Handlers")).Should().BeTrue();
@@ -223,7 +247,7 @@ public class InitCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
         var slnContent = await File.ReadAllTextAsync(Path.Combine(projectPath, $"{projectName}.sln"));
@@ -243,7 +267,7 @@ public class InitCommandTests : IDisposable
         var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
         var csprojContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, $"{projectName}.csproj"));
@@ -263,7 +287,7 @@ public class InitCommandTests : IDisposable
         var testProjectPath = Path.Combine(projectPath, "tests", $"{projectName}.Tests");
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
         var csprojContent = await File.ReadAllTextAsync(Path.Combine(testProjectPath, $"{projectName}.Tests.csproj"));
@@ -285,7 +309,7 @@ public class InitCommandTests : IDisposable
         var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
         var programContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Program.cs"));
@@ -305,7 +329,7 @@ public class InitCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
         var readmeContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "README.md"));
@@ -327,19 +351,31 @@ public class InitCommandTests : IDisposable
         var projectName = "ConfigTestProject";
         var projectPath = Path.Combine(_testPath, projectName);
 
-        // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        // Mock console to avoid concurrency issues with Spectre.Console
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
 
-        // Assert
-        var appsettingsContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "appsettings.json"));
-        appsettingsContent.Should().Contain("\"version\": \"2.0\"");
-        appsettingsContent.Should().Contain("\"relay\": {");
-        appsettingsContent.Should().Contain("\"enableCaching\": false");
+        try
+        {
+            // Act
+            await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
 
-        var cliConfigContent = await File.ReadAllTextAsync(Path.Combine(projectPath, ".relay-cli.json"));
-        cliConfigContent.Should().Contain("\"defaultNamespace\": \"MyApp\"");
-        cliConfigContent.Should().Contain("\"templatePreference\": \"standard\"");
-        cliConfigContent.Should().Contain("\"includeTests\": true");
+            // Assert
+            var appsettingsContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "appsettings.json"));
+            appsettingsContent.Should().Contain("\"version\": \"2.0\"");
+            appsettingsContent.Should().Contain("\"relay\": {");
+            appsettingsContent.Should().Contain("\"enableCaching\": false");
+
+            var cliConfigContent = await File.ReadAllTextAsync(Path.Combine(projectPath, ".relay-cli.json"));
+            cliConfigContent.Should().Contain("\"defaultNamespace\": \"MyApp\"");
+            cliConfigContent.Should().Contain("\"templatePreference\": \"standard\"");
+            cliConfigContent.Should().Contain("\"includeTests\": true");
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
     }
 
     [Fact]
@@ -351,7 +387,7 @@ public class InitCommandTests : IDisposable
         var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
         File.Exists(Path.Combine(mainProjectPath, "GetUserQuery.cs")).Should().BeTrue();
@@ -382,7 +418,7 @@ public class InitCommandTests : IDisposable
         var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "enterprise", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "enterprise", _testPath, "net8.0", true, false, false);
 
         // Assert
         File.Exists(Path.Combine(mainProjectPath, "Requests", "GetUserQuery.cs")).Should().BeTrue();
@@ -408,7 +444,7 @@ public class InitCommandTests : IDisposable
         var testProjectPath = Path.Combine(projectPath, "tests", $"{projectName}.Tests");
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", _testPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
         var testContent = await File.ReadAllTextAsync(Path.Combine(testProjectPath, "SampleTests.cs"));
@@ -429,7 +465,7 @@ public class InitCommandTests : IDisposable
         Directory.CreateDirectory(customOutputPath);
 
         // Act
-        await InitCommand.ExecuteInit(projectName, "standard", customOutputPath, "net8.0", true, false, false);
+        await ExecuteInitWithMockedConsole(projectName, "standard", customOutputPath, "net8.0", true, false, false);
 
         // Assert
         var expectedProjectPath = Path.Combine(customOutputPath, projectName);

@@ -1,12 +1,58 @@
  using System.CommandLine;
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Pipeline;
+using Spectre.Console;
+using Spectre.Console.Testing;
 using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
 public class PipelineCommandTests
 {
+    private async Task<T> ExecuteWithMockedConsole<T>(Func<Task<T>> action)
+    {
+        // Mock console to avoid concurrency issues with Spectre.Console
+        // Use a lock to prevent concurrent access to Spectre.Console
+        lock (typeof(AnsiConsole))
+        {
+            var testConsole = new Spectre.Console.Testing.TestConsole();
+            var originalConsole = AnsiConsole.Console;
+
+            AnsiConsole.Console = testConsole;
+
+            try
+            {
+                return action().Result;
+            }
+            finally
+            {
+                AnsiConsole.Console = originalConsole;
+            }
+        }
+    }
+
+    private async Task ExecuteWithMockedConsole(Func<Task> action)
+    {
+        // Mock console to avoid concurrency issues with Spectre.Console
+        // Use a lock to prevent concurrent access to Spectre.Console
+        lock (typeof(AnsiConsole))
+        {
+            var testConsole = new Spectre.Console.Testing.TestConsole();
+            var originalConsole = AnsiConsole.Console;
+
+            AnsiConsole.Console = testConsole;
+
+            try
+            {
+                action().Wait();
+            }
+            finally
+            {
+                AnsiConsole.Console = originalConsole;
+            }
+        }
+    }
+
     [Fact]
     public async Task Pipeline_ShouldRunAllStages_WhenNoSkipSpecified()
     {
@@ -1079,7 +1125,7 @@ public class PipelineCommandTests
             Directory.CreateDirectory(path);
 
             // Act
-            var result = await PipelineCommand.RunInitStage(path, projectName, template, ciMode, cancellationToken);
+            var result = await ExecuteWithMockedConsole(() => PipelineCommand.RunInitStage(path, projectName, template, ciMode, cancellationToken));
 
             // Assert
             Assert.True(result.Success);
@@ -1137,7 +1183,7 @@ public class PipelineCommandTests
             Directory.CreateDirectory(path);
 
             // Act
-            var result = await PipelineCommand.RunDoctorStage(path, autoFix, ciMode, cancellationToken);
+            var result = await ExecuteWithMockedConsole(() => PipelineCommand.RunDoctorStage(path, autoFix, ciMode, cancellationToken));
 
             // Assert
             Assert.True(result.Success);
@@ -1234,7 +1280,7 @@ public class PipelineCommandTests
             Directory.CreateDirectory(path);
 
             // Act
-            var result = await PipelineCommand.RunOptimizeStage(path, aggressive, ciMode, cancellationToken);
+            var result = await ExecuteWithMockedConsole(() => PipelineCommand.RunOptimizeStage(path, aggressive, ciMode, cancellationToken));
 
             // Assert
             Assert.True(result.Success);
@@ -1762,7 +1808,7 @@ public class PipelineCommandTests
         try
         {
             // Act
-            await PipelineCommand.ExecutePipeline(
+            await ExecuteWithMockedConsole(() => PipelineCommand.ExecutePipeline(
                 path: path,
                 projectName: null,
                 template: "standard",
@@ -1771,7 +1817,7 @@ public class PipelineCommandTests
                 autoFix: false,
                 reportPath: reportPath,
                 ciMode: true,
-                cancellationToken: CancellationToken.None);
+                cancellationToken: CancellationToken.None));
 
             // Assert
             Assert.True(File.Exists(reportPath));

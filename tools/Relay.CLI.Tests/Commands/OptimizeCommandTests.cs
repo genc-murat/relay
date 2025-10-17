@@ -1,6 +1,8 @@
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Optimization;
 using System.CommandLine;
+using Spectre.Console;
+using Spectre.Console.Testing;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -12,6 +14,28 @@ public class OptimizeCommandTests : IDisposable
     {
         _testPath = Path.Combine(Path.GetTempPath(), $"relay-optimize-{Guid.NewGuid()}");
         Directory.CreateDirectory(_testPath);
+    }
+
+    private async Task ExecuteOptimizeWithMockedConsole(string projectPath, bool dryRun, string target, bool aggressive, bool backup)
+    {
+        // Mock console to avoid concurrency issues with Spectre.Console
+        // Use a lock to prevent concurrent access to Spectre.Console
+        lock (typeof(AnsiConsole))
+        {
+            var testConsole = new Spectre.Console.Testing.TestConsole();
+            var originalConsole = AnsiConsole.Console;
+
+            AnsiConsole.Console = testConsole;
+
+            try
+            {
+                OptimizeCommand.ExecuteOptimize(projectPath, dryRun, target, aggressive, backup).Wait();
+            }
+            finally
+            {
+                AnsiConsole.Console = originalConsole;
+            }
+        }
     }
 
     [Fact]
@@ -940,7 +964,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await File.WriteAllTextAsync(testFile, originalContent);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, true, "all", false, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, true, "all", false, false);
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(testFile);
@@ -966,7 +990,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await File.WriteAllTextAsync(testFile, originalContent);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "all", false, false);
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(testFile);
@@ -1005,7 +1029,7 @@ public class TestService
         await File.WriteAllTextAsync(otherFile, serviceContent);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "handlers", false, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "handlers", false, false);
 
         // Assert
         var handlerFinalContent = await File.ReadAllTextAsync(handlerFile);
@@ -1034,7 +1058,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await File.WriteAllTextAsync(testFile, content);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", true, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "all", true, false);
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(testFile);
@@ -1234,7 +1258,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await File.WriteAllTextAsync(handlerFile, handlerContent);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "all", false, false);
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(handlerFile);
@@ -1260,7 +1284,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await File.WriteAllTextAsync(handlerFile, handlerContent);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "handlers", false, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "handlers", false, false);
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(handlerFile);
@@ -1286,7 +1310,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await File.WriteAllTextAsync(handlerFile, handlerContent);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "invalid", false, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "invalid", false, false);
 
         // Assert - Should still run optimizations as if target was "all"
         var finalContent = await File.ReadAllTextAsync(handlerFile);
@@ -1316,7 +1340,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await File.WriteAllTextAsync(testFile, originalContent);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, true);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "all", false, true);
 
         // Assert
         var backupFiles = Directory.GetFiles(_testPath, "*.bak", SearchOption.AllDirectories);
@@ -1342,7 +1366,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await File.WriteAllTextAsync(testFile, originalContent);
 
         // Act
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "all", false, false);
 
         // Assert
         var backupFiles = Directory.GetFiles(_testPath, "*.bak", SearchOption.AllDirectories);
@@ -1360,7 +1384,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var nonExistentPath = Path.Combine(_testPath, "NonExistent");
 
         // Act & Assert - Should not throw
-        await OptimizeCommand.ExecuteOptimize(nonExistentPath, true, "all", false, false);
+        await ExecuteOptimizeWithMockedConsole(nonExistentPath, true, "all", false, false);
     }
 
     [Fact]
@@ -1371,7 +1395,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         Directory.CreateDirectory(emptyDir);
 
         // Act & Assert - Should not throw
-        await OptimizeCommand.ExecuteOptimize(emptyDir, true, "all", false, false);
+        await ExecuteOptimizeWithMockedConsole(emptyDir, true, "all", false, false);
     }
 
     [Fact]
@@ -1394,7 +1418,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         File.SetAttributes(testFile, FileAttributes.ReadOnly);
 
         // Act & Assert - Should not throw
-        await OptimizeCommand.ExecuteOptimize(_testPath, false, "all", false, false);
+        await ExecuteOptimizeWithMockedConsole(_testPath, false, "all", false, false);
 
         // Cleanup
         File.SetAttributes(testFile, FileAttributes.Normal);

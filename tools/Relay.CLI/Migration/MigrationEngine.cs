@@ -471,6 +471,17 @@ public class MigrationEngine
                 }
             }
 
+            // Add manual steps if needed
+            if (analysis.HasCustomMediator)
+            {
+                result.ManualSteps.Add("Review custom IMediator implementation - may need manual updates");
+            }
+
+            if (analysis.HasCustomBehaviors)
+            {
+                result.ManualSteps.Add("Review custom pipeline behaviors - signatures may need updates");
+            }
+
             result.Status = MigrationStatus.Preview;
         }
         catch (Exception ex)

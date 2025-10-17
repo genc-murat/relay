@@ -310,6 +310,616 @@ namespace Relay.Core.Tests.AI
             // Assert - No exception thrown
         }
 
+        [Fact]
+        public async Task AnalyzeRequestAsync_Should_Handle_Null_Request()
+        {
+            // Arrange
+            var metrics = CreateMetrics();
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+                await _engine.AnalyzeRequestAsync<TestRequest>(null!, metrics));
+        }
+
+        [Fact]
+        public async Task AnalyzeRequestAsync_Should_Handle_Null_Metrics()
+        {
+            // Arrange
+            var request = new TestRequest();
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+                await _engine.AnalyzeRequestAsync(request, null!));
+        }
+
+        [Fact]
+        public async Task AnalyzeRequestAsync_Should_Handle_Extreme_Execution_Times()
+        {
+            // Arrange
+            var request = new TestRequest();
+            var extremeMetrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromMilliseconds(0.1), // Very fast
+                MedianExecutionTime = TimeSpan.FromMilliseconds(0.05),
+                P95ExecutionTime = TimeSpan.FromMilliseconds(0.2),
+                P99ExecutionTime = TimeSpan.FromMilliseconds(0.5),
+                TotalExecutions = 1000,
+                SuccessfulExecutions = 999,
+                FailedExecutions = 1,
+                MemoryAllocated = 1024,
+                ConcurrentExecutions = 1,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromMinutes(10),
+                CpuUsage = 0.01,
+                MemoryUsage = 512,
+                DatabaseCalls = 0,
+                ExternalApiCalls = 0
+            };
+
+            // Act
+            var recommendation = await _engine.AnalyzeRequestAsync(request, extremeMetrics);
+
+            // Assert
+            Assert.NotNull(recommendation);
+            Assert.True(recommendation.ConfidenceScore >= 0 && recommendation.ConfidenceScore <= 1);
+        }
+
+        [Fact]
+        public async Task AnalyzeRequestAsync_Should_Handle_Very_Slow_Requests()
+        {
+            // Arrange
+            var request = new TestRequest();
+            var slowMetrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromSeconds(30), // Very slow
+                MedianExecutionTime = TimeSpan.FromSeconds(25),
+                P95ExecutionTime = TimeSpan.FromSeconds(45),
+                P99ExecutionTime = TimeSpan.FromMinutes(1),
+                TotalExecutions = 50,
+                SuccessfulExecutions = 45,
+                FailedExecutions = 5,
+                MemoryAllocated = 1024 * 1024 * 1024, // 1GB
+                ConcurrentExecutions = 5,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromHours(1),
+                CpuUsage = 0.9,
+                MemoryUsage = 1024 * 1024 * 512,
+                DatabaseCalls = 10,
+                ExternalApiCalls = 5
+            };
+
+            // Act
+            var recommendation = await _engine.AnalyzeRequestAsync(request, slowMetrics);
+
+            // Assert
+            Assert.NotNull(recommendation);
+            Assert.True(recommendation.ConfidenceScore >= 0 && recommendation.ConfidenceScore <= 1);
+        }
+
+        [Fact]
+        public async Task ShouldCacheAsync_Should_Recommend_Caching_For_High_Repeat_Rate()
+        {
+            // Arrange - Multiple access patterns with repeated keys to create high repeat rate
+            var accessPatterns = new[]
+            {
+                new AccessPattern
+                {
+                    AccessCount = 5,
+                    TimeSinceLastAccess = TimeSpan.FromMinutes(5),
+                    Timestamp = DateTime.UtcNow,
+                    RequestKey = "frequent",
+                    WasCacheHit = true,
+                    ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    AccessFrequency = 2.0,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                    DataVolatility = 0.1,
+                    SampleSize = 5
+                },
+                new AccessPattern
+                {
+                    AccessCount = 3,
+                    TimeSinceLastAccess = TimeSpan.FromMinutes(3),
+                    Timestamp = DateTime.UtcNow.AddMinutes(1),
+                    RequestKey = "frequent", // Same key - repeat
+                    WasCacheHit = true,
+                    ExecutionTime = TimeSpan.FromMilliseconds(95),
+                    AccessFrequency = 2.5,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(95),
+                    DataVolatility = 0.1,
+                    SampleSize = 3
+                },
+                new AccessPattern
+                {
+                    AccessCount = 2,
+                    TimeSinceLastAccess = TimeSpan.FromMinutes(10),
+                    Timestamp = DateTime.UtcNow.AddMinutes(2),
+                    RequestKey = "rare",
+                    WasCacheHit = false,
+                    ExecutionTime = TimeSpan.FromMilliseconds(150),
+                    AccessFrequency = 0.2,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(150),
+                    DataVolatility = 0.3,
+                    SampleSize = 2
+                }
+            };
+
+            // Act
+            var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+
+            // Assert
+            Assert.NotNull(recommendation);
+            Assert.True(recommendation.ShouldCache, "Should recommend caching for high repeat rate");
+            Assert.True(recommendation.ExpectedHitRate > 0.5, "Expected hit rate should be high");
+        }
+
+        [Fact]
+        public async Task ShouldCacheAsync_Should_Not_Recommend_Caching_For_Low_Repeat_Rate()
+        {
+            // Arrange - All unique keys, no repeats
+            var accessPatterns = new[]
+            {
+                new AccessPattern
+                {
+                    AccessCount = 1,
+                    TimeSinceLastAccess = TimeSpan.FromHours(1),
+                    Timestamp = DateTime.UtcNow,
+                    RequestKey = "rare1",
+                    WasCacheHit = false,
+                    ExecutionTime = TimeSpan.FromMilliseconds(50),
+                    AccessFrequency = 0.1,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(50),
+                    DataVolatility = 0.9,
+                    SampleSize = 1
+                },
+                new AccessPattern
+                {
+                    AccessCount = 1,
+                    TimeSinceLastAccess = TimeSpan.FromHours(2),
+                    Timestamp = DateTime.UtcNow.AddMinutes(1),
+                    RequestKey = "rare2",
+                    WasCacheHit = false,
+                    ExecutionTime = TimeSpan.FromMilliseconds(60),
+                    AccessFrequency = 0.05,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(60),
+                    DataVolatility = 0.8,
+                    SampleSize = 1
+                },
+                new AccessPattern
+                {
+                    AccessCount = 1,
+                    TimeSinceLastAccess = TimeSpan.FromHours(3),
+                    Timestamp = DateTime.UtcNow.AddMinutes(2),
+                    RequestKey = "rare3",
+                    WasCacheHit = false,
+                    ExecutionTime = TimeSpan.FromMilliseconds(55),
+                    AccessFrequency = 0.03,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(55),
+                    DataVolatility = 0.7,
+                    SampleSize = 1
+                }
+            };
+
+            // Act
+            var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+
+            // Assert
+            Assert.NotNull(recommendation);
+            Assert.False(recommendation.ShouldCache, "Should not recommend caching for low repeat rate");
+        }
+
+        [Fact]
+        public async Task PredictOptimalBatchSizeAsync_Should_Handle_Zero_Load()
+        {
+            // Arrange
+            var zeroLoadMetrics = new SystemLoadMetrics
+            {
+                CpuUtilization = 0.0,
+                MemoryUtilization = 0.0,
+                ActiveConnections = 0,
+                QueuedRequestCount = 0,
+                AvailableMemory = 8L * 1024 * 1024 * 1024, // 8GB
+                ActiveRequestCount = 0,
+                ThroughputPerSecond = 0.0,
+                AverageResponseTime = TimeSpan.FromMilliseconds(1),
+                ErrorRate = 0.0,
+                Timestamp = DateTime.UtcNow,
+                DatabasePoolUtilization = 0.0,
+                ThreadPoolUtilization = 0.0
+            };
+
+            // Act
+            var batchSize = await _engine.PredictOptimalBatchSizeAsync(typeof(TestRequest), zeroLoadMetrics);
+
+            // Assert
+            Assert.True(batchSize >= 1 && batchSize <= _options.MaxBatchSize);
+        }
+
+        [Fact]
+        public async Task PredictOptimalBatchSizeAsync_Should_Handle_Maximum_Load()
+        {
+            // Arrange
+            var maxLoadMetrics = new SystemLoadMetrics
+            {
+                CpuUtilization = 1.0,
+                MemoryUtilization = 1.0,
+                ActiveConnections = 10000,
+                QueuedRequestCount = 5000,
+                AvailableMemory = 1024, // 1KB
+                ActiveRequestCount = 1000,
+                ThroughputPerSecond = 10.0,
+                AverageResponseTime = TimeSpan.FromSeconds(10),
+                ErrorRate = 0.5,
+                Timestamp = DateTime.UtcNow,
+                DatabasePoolUtilization = 1.0,
+                ThreadPoolUtilization = 1.0
+            };
+
+            // Act
+            var batchSize = await _engine.PredictOptimalBatchSizeAsync(typeof(TestRequest), maxLoadMetrics);
+
+            // Assert
+            Assert.True(batchSize >= 1 && batchSize <= _options.MaxBatchSize);
+            Assert.True(batchSize <= _options.DefaultBatchSize, "Batch size should be reduced under maximum load");
+        }
+
+        [Fact]
+        public async Task LearnFromExecutionAsync_Should_Handle_Empty_Optimizations_Array()
+        {
+            // Arrange
+            var optimizations = Array.Empty<OptimizationStrategy>();
+            var metrics = CreateMetrics();
+
+            // Act & Assert - Should not throw
+            await _engine.LearnFromExecutionAsync(typeof(TestRequest), optimizations, metrics);
+        }
+
+        [Fact]
+        public async Task LearnFromExecutionAsync_Should_Handle_Multiple_Strategies()
+        {
+            // Arrange
+            var optimizations = new[]
+            {
+                OptimizationStrategy.Caching,
+                OptimizationStrategy.BatchProcessing,
+                OptimizationStrategy.MemoryPooling
+            };
+            var metrics = CreateMetrics();
+
+            // Act & Assert - Should not throw
+            await _engine.LearnFromExecutionAsync(typeof(TestRequest), optimizations, metrics);
+        }
+
+        [Fact]
+        public async Task GetSystemInsightsAsync_Should_Handle_Zero_Time_Window()
+        {
+            // Arrange
+            var timeWindow = TimeSpan.Zero;
+
+            // Act
+            var insights = await _engine.GetSystemInsightsAsync(timeWindow);
+
+            // Assert
+            Assert.NotNull(insights);
+            Assert.Equal(timeWindow, insights.AnalysisPeriod);
+        }
+
+        [Fact]
+        public async Task GetSystemInsightsAsync_Should_Handle_Large_Time_Window()
+        {
+            // Arrange
+            var timeWindow = TimeSpan.FromDays(365);
+
+            // Act
+            var insights = await _engine.GetSystemInsightsAsync(timeWindow);
+
+            // Assert
+            Assert.NotNull(insights);
+            Assert.Equal(timeWindow, insights.AnalysisPeriod);
+        }
+
+        [Fact]
+        public void GetModelStatistics_Should_Return_Valid_Statistics_After_Learning()
+        {
+            // Arrange - Perform some operations to generate statistics
+            var statsBefore = _engine.GetModelStatistics();
+
+            // Act - Perform some learning operations
+            _engine.SetLearningMode(true);
+
+            // Assert
+            var statsAfter = _engine.GetModelStatistics();
+            Assert.NotNull(statsAfter);
+            Assert.Equal(statsBefore.ModelVersion, statsAfter.ModelVersion);
+            Assert.True(statsAfter.AccuracyScore >= 0 && statsAfter.AccuracyScore <= 1);
+        }
+
+        [Fact]
+        public async Task ShouldCacheAsync_Should_Handle_Empty_Access_Patterns()
+        {
+            // Arrange
+            var accessPatterns = Array.Empty<AccessPattern>();
+
+            // Act
+            var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+
+            // Assert
+            Assert.NotNull(recommendation);
+            Assert.False(recommendation.ShouldCache, "Should not recommend caching with no access patterns");
+        }
+
+        [Fact]
+        public async Task ShouldCacheAsync_Should_Handle_Multiple_Access_Patterns()
+        {
+            // Arrange
+            var accessPatterns = new[]
+            {
+                new AccessPattern
+                {
+                    AccessCount = 20,
+                    TimeSinceLastAccess = TimeSpan.FromMinutes(10),
+                    Timestamp = DateTime.UtcNow,
+                    RequestKey = "pattern1",
+                    WasCacheHit = true,
+                    ExecutionTime = TimeSpan.FromMilliseconds(80),
+                    AccessFrequency = 5.0,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(80),
+                    DataVolatility = 0.2,
+                    SampleSize = 20
+                },
+                new AccessPattern
+                {
+                    AccessCount = 15,
+                    TimeSinceLastAccess = TimeSpan.FromMinutes(15),
+                    Timestamp = DateTime.UtcNow,
+                    RequestKey = "pattern2",
+                    WasCacheHit = false,
+                    ExecutionTime = TimeSpan.FromMilliseconds(120),
+                    AccessFrequency = 3.0,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(120),
+                    DataVolatility = 0.3,
+                    SampleSize = 15
+                }
+            };
+
+            // Act
+            var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+
+            // Assert
+            Assert.NotNull(recommendation);
+            Assert.True(recommendation.ExpectedHitRate >= 0 && recommendation.ExpectedHitRate <= 1);
+        }
+
+        [Fact]
+        public async Task ShouldCacheAsync_Should_Consider_Data_Volatility()
+        {
+            // Arrange - High volatility should reduce caching recommendation
+            var volatilePatterns = new[]
+            {
+                new AccessPattern
+                {
+                    AccessCount = 30,
+                    TimeSinceLastAccess = TimeSpan.FromMinutes(5),
+                    Timestamp = DateTime.UtcNow,
+                    RequestKey = "volatile",
+                    WasCacheHit = true,
+                    ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    AccessFrequency = 8.0,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                    DataVolatility = 0.9, // High volatility
+                    SampleSize = 30
+                }
+            };
+
+            var stablePatterns = new[]
+            {
+                new AccessPattern
+                {
+                    AccessCount = 30,
+                    TimeSinceLastAccess = TimeSpan.FromMinutes(5),
+                    Timestamp = DateTime.UtcNow,
+                    RequestKey = "stable",
+                    WasCacheHit = true,
+                    ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    AccessFrequency = 8.0,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                    DataVolatility = 0.1, // Low volatility
+                    SampleSize = 30
+                }
+            };
+
+            // Act
+            var volatileRecommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), volatilePatterns);
+            var stableRecommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), stablePatterns);
+
+            // Assert
+            Assert.NotNull(volatileRecommendation);
+            Assert.NotNull(stableRecommendation);
+            // Stable data should generally have higher or equal hit rate expectation
+            Assert.True(stableRecommendation.ExpectedHitRate >= volatileRecommendation.ExpectedHitRate * 0.8,
+                "Stable data should have similar or better caching prospects");
+        }
+
+        [Fact]
+        public async Task AnalyzeRequestAsync_Should_Improve_Confidence_With_More_Data()
+        {
+            // Arrange
+            var request = new TestRequest();
+            var initialMetrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                MedianExecutionTime = TimeSpan.FromMilliseconds(95),
+                P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+                P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+                TotalExecutions = 5, // Low sample size
+                SuccessfulExecutions = 4,
+                FailedExecutions = 1,
+                MemoryAllocated = 1024 * 1024,
+                ConcurrentExecutions = 2,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromMinutes(1),
+                CpuUsage = 0.45,
+                MemoryUsage = 512 * 1024,
+                DatabaseCalls = 2,
+                ExternalApiCalls = 1
+            };
+
+            var matureMetrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                MedianExecutionTime = TimeSpan.FromMilliseconds(95),
+                P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+                P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+                TotalExecutions = 1000, // High sample size
+                SuccessfulExecutions = 950,
+                FailedExecutions = 50,
+                MemoryAllocated = 1024 * 1024,
+                ConcurrentExecutions = 2,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromHours(1),
+                CpuUsage = 0.45,
+                MemoryUsage = 512 * 1024,
+                DatabaseCalls = 2,
+                ExternalApiCalls = 1
+            };
+
+            // Act
+            var initialRecommendation = await _engine.AnalyzeRequestAsync(request, initialMetrics);
+            var matureRecommendation = await _engine.AnalyzeRequestAsync(request, matureMetrics);
+
+            // Assert
+            Assert.NotNull(initialRecommendation);
+            Assert.NotNull(matureRecommendation);
+            // More data should generally provide higher confidence (though not guaranteed due to other factors)
+            Assert.True(matureRecommendation.ConfidenceScore >= initialRecommendation.ConfidenceScore * 0.9,
+                "More data should not significantly reduce confidence");
+        }
+
+        [Fact]
+        public async Task PredictOptimalBatchSizeAsync_Should_Consider_Request_Type_Characteristics()
+        {
+            // Arrange
+            var fastRequestType = typeof(FastTestRequest);
+            var slowRequestType = typeof(SlowTestRequest);
+
+            var loadMetrics = CreateLoadMetrics();
+
+            // First, train with different characteristics
+            var fastMetrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromMilliseconds(10), // Fast
+                MedianExecutionTime = TimeSpan.FromMilliseconds(8),
+                P95ExecutionTime = TimeSpan.FromMilliseconds(20),
+                P99ExecutionTime = TimeSpan.FromMilliseconds(50),
+                TotalExecutions = 100,
+                SuccessfulExecutions = 98,
+                FailedExecutions = 2,
+                MemoryAllocated = 1024,
+                ConcurrentExecutions = 1,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromMinutes(10),
+                CpuUsage = 0.1,
+                MemoryUsage = 512,
+                DatabaseCalls = 0,
+                ExternalApiCalls = 0
+            };
+
+            var slowMetrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromSeconds(5), // Slow
+                MedianExecutionTime = TimeSpan.FromSeconds(4),
+                P95ExecutionTime = TimeSpan.FromSeconds(8),
+                P99ExecutionTime = TimeSpan.FromSeconds(15),
+                TotalExecutions = 50,
+                SuccessfulExecutions = 45,
+                FailedExecutions = 5,
+                MemoryAllocated = 10 * 1024 * 1024,
+                ConcurrentExecutions = 5,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromMinutes(10),
+                CpuUsage = 0.8,
+                MemoryUsage = 5 * 1024 * 1024,
+                DatabaseCalls = 5,
+                ExternalApiCalls = 2
+            };
+
+            // Train the engine
+            await _engine.AnalyzeRequestAsync<FastTestRequest>(new FastTestRequest(), fastMetrics);
+            await _engine.AnalyzeRequestAsync<SlowTestRequest>(new SlowTestRequest(), slowMetrics);
+
+            // Act
+            var fastBatchSize = await _engine.PredictOptimalBatchSizeAsync(fastRequestType, loadMetrics);
+            var slowBatchSize = await _engine.PredictOptimalBatchSizeAsync(slowRequestType, loadMetrics);
+
+            // Assert
+            Assert.True(fastBatchSize >= 1 && fastBatchSize <= _options.MaxBatchSize);
+            Assert.True(slowBatchSize >= 1 && slowBatchSize <= _options.MaxBatchSize);
+            // Fast requests should generally allow larger batch sizes than slow ones
+            Assert.True(fastBatchSize >= slowBatchSize,
+                "Fast requests should support larger batch sizes than slow requests");
+        }
+
+        [Fact]
+        public async Task GetSystemInsightsAsync_Should_Include_All_Required_Components()
+        {
+            // Arrange
+            var timeWindow = TimeSpan.FromHours(2);
+
+            // Act
+            var insights = await _engine.GetSystemInsightsAsync(timeWindow);
+
+            // Assert
+            Assert.NotNull(insights);
+            Assert.NotNull(insights.Bottlenecks);
+            Assert.NotNull(insights.Opportunities);
+            Assert.NotNull(insights.Predictions);
+            Assert.NotNull(insights.KeyMetrics);
+            Assert.True(insights.HealthScore.Overall >= 0 && insights.HealthScore.Overall <= 1);
+            Assert.True(insights.PerformanceGrade >= 'A' && insights.PerformanceGrade <= 'F');
+        }
+
+        [Fact]
+        public async Task Multiple_Request_Types_Should_Be_Handled_Independently()
+        {
+            // Arrange
+            var requestType1 = typeof(RequestType1);
+            var requestType2 = typeof(RequestType2);
+
+            // Normal performance - should not trigger optimization
+            var metrics1 = CreateMetrics();
+
+            // Very slow performance with high CPU usage - should trigger SIMD optimization
+            var metrics2 = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromSeconds(5), // Very slow
+                MedianExecutionTime = TimeSpan.FromSeconds(4),
+                P95ExecutionTime = TimeSpan.FromSeconds(8),
+                P99ExecutionTime = TimeSpan.FromSeconds(15),
+                TotalExecutions = 50,
+                SuccessfulExecutions = 45,
+                FailedExecutions = 5,
+                MemoryAllocated = 10 * 1024 * 1024,
+                ConcurrentExecutions = 5,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromMinutes(10),
+                CpuUsage = 0.95, // High CPU usage
+                MemoryUsage = 5 * 1024 * 1024,
+                DatabaseCalls = 5,
+                ExternalApiCalls = 2
+            };
+
+            // Act
+            var recommendation1 = await _engine.AnalyzeRequestAsync(new RequestType1(), metrics1);
+            var recommendation2 = await _engine.AnalyzeRequestAsync(new RequestType2(), metrics2);
+
+            // Assert
+            Assert.NotNull(recommendation1);
+            Assert.NotNull(recommendation2);
+            // Different metrics should potentially lead to different strategies
+            // At minimum, they should have different confidence scores
+            Assert.True(Math.Abs(recommendation1.ConfidenceScore - recommendation2.ConfidenceScore) > 0.01,
+                "Different request types should have different confidence scores based on their metrics");
+        }
+
         #region Helper Methods
 
         private RequestExecutionMetrics CreateMetrics()
@@ -358,6 +968,14 @@ namespace Relay.Core.Tests.AI
         #region Test Types
 
         private class TestRequest { }
+
+        private class FastTestRequest { }
+
+        private class SlowTestRequest { }
+
+        private class RequestType1 { }
+
+        private class RequestType2 { }
 
         #endregion
     }

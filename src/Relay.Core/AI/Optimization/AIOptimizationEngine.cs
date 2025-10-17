@@ -115,12 +115,14 @@ namespace Relay.Core.AI
         }
 
         public async ValueTask<OptimizationRecommendation> AnalyzeRequestAsync<TRequest>(
-            TRequest request, 
-            RequestExecutionMetrics executionMetrics, 
+            TRequest request,
+            RequestExecutionMetrics executionMetrics,
             CancellationToken cancellationToken = default)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
-            
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (executionMetrics == null) throw new ArgumentNullException(nameof(executionMetrics));
+
             var requestType = typeof(TRequest);
             var analysisData = _requestAnalytics.GetOrAdd(requestType, _ => new RequestAnalysisData());
             
@@ -139,12 +141,14 @@ namespace Relay.Core.AI
         }
 
         public async ValueTask<int> PredictOptimalBatchSizeAsync(
-            Type requestType, 
-            SystemLoadMetrics currentLoad, 
+            Type requestType,
+            SystemLoadMetrics currentLoad,
             CancellationToken cancellationToken = default)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
-            
+            if (requestType == null) throw new ArgumentNullException(nameof(requestType));
+            if (currentLoad == null) throw new ArgumentNullException(nameof(currentLoad));
+
             var analysisData = _requestAnalytics.GetOrAdd(requestType, _ => new RequestAnalysisData());
             
             // AI algorithm for optimal batch size prediction
@@ -179,12 +183,14 @@ namespace Relay.Core.AI
         }
 
         public async ValueTask<CachingRecommendation> ShouldCacheAsync(
-            Type requestType, 
-            AccessPattern[] accessPatterns, 
+            Type requestType,
+            AccessPattern[] accessPatterns,
             CancellationToken cancellationToken = default)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
-            
+            if (requestType == null) throw new ArgumentNullException(nameof(requestType));
+            if (accessPatterns == null) throw new ArgumentNullException(nameof(accessPatterns));
+
             var analysisData = _cachingAnalytics.GetOrAdd(requestType, _ => new CachingAnalysisData());
             analysisData.AddAccessPatterns(accessPatterns);
             
@@ -199,13 +205,16 @@ namespace Relay.Core.AI
         }
 
         public async ValueTask LearnFromExecutionAsync(
-            Type requestType, 
-            OptimizationStrategy[] appliedOptimizations, 
-            RequestExecutionMetrics actualMetrics, 
+            Type requestType,
+            OptimizationStrategy[] appliedOptimizations,
+            RequestExecutionMetrics actualMetrics,
             CancellationToken cancellationToken = default)
         {
             if (_disposed || !_learningEnabled) return;
-            
+            if (requestType == null) throw new ArgumentNullException(nameof(requestType));
+            if (appliedOptimizations == null) throw new ArgumentNullException(nameof(appliedOptimizations));
+            if (actualMetrics == null) throw new ArgumentNullException(nameof(actualMetrics));
+
             var analysisData = _requestAnalytics.GetOrAdd(requestType, _ => new RequestAnalysisData());
             
             // Learn from the results of applied optimizations
@@ -6024,7 +6033,7 @@ namespace Relay.Core.AI
         private CachingRecommendation AnalyzeCachingPatterns(Type requestType, CachingAnalysisData analysisData, AccessPattern[] accessPatterns)
         {
             // AI-based caching analysis
-            var totalAccesses = accessPatterns.Length;
+            var totalAccesses = accessPatterns.Sum(p => p.AccessCount);
             var uniqueKeys = accessPatterns.Select(p => p.RequestKey).Distinct().Count();
             var repeatRate = totalAccesses > 0 ? 1.0 - ((double)uniqueKeys / totalAccesses) : 0.0;
             

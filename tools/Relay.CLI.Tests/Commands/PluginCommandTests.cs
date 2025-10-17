@@ -1,5 +1,9 @@
 using Relay.CLI.Commands;
+using Relay.CLI.Plugins;
 using System.CommandLine;
+using Moq;
+using Spectre.Console;
+using Spectre.Console.Testing;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -596,5 +600,523 @@ public class PluginCommandTests
         // Assert - Plugin development operations
         subcommandNames.Should().Contain("create", "Create enables plugin development");
         subcommandNames.Should().Contain("info", "Info helps with plugin development");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteList_ShouldExecuteWithoutException()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act & Assert - The method should execute without throwing exceptions
+        // Since it creates PluginManager internally, we test that it runs and produces output
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteList(false);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("📦 Installed Plugins");
+        // The exact output depends on whether plugins are installed in the test environment
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteList_IncludeAll_ShouldExecuteWithoutException()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act & Assert
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteList(true);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("📦 Installed Plugins");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteSearch_ShouldDisplaySearchResults()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteSearch("test", null, null);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("🔍 Searching for: test");
+        testConsole.Output.Should().Contain("relay-plugin-swagger");
+        testConsole.Output.Should().Contain("relay-plugin-graphql");
+        testConsole.Output.Should().Contain("relay-plugin-docker");
+        testConsole.Output.Should().Contain("relay-plugin-kubernetes");
+        testConsole.Output.Should().Contain("To install: relay plugin install <name>");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteSearch_WithFilters_ShouldExecuteWithoutException()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteSearch("test", "swagger", "microsoft");
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("🔍 Searching for: test");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteInstall_ShouldDisplayInstallationProgress()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteInstall("test-plugin", "1.0.0", false);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("📥 Installing plugin: test-plugin (1.0.0)");
+        testConsole.Output.Should().Contain("✅ Plugin 'test-plugin' installed successfully (local)");
+        testConsole.Output.Should().Contain("Run with: relay plugin run test-plugin");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteInstall_Global_ShouldDisplayGlobalInstallation()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteInstall("test-plugin", null, true);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("📥 Installing plugin: test-plugin");
+        testConsole.Output.Should().Contain("✅ Plugin 'test-plugin' installed successfully (global)");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteUninstall_WithConfirmation_ShouldDisplaySuccess()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteUninstall("test-plugin", false, true);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("🗑️  Uninstalling plugin: test-plugin");
+        testConsole.Output.Should().Contain("✅ Plugin 'test-plugin' uninstalled successfully");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteUninstall_Global_ShouldExecuteWithoutException()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteUninstall("test-plugin", true, true);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("🗑️  Uninstalling plugin: test-plugin");
+        testConsole.Output.Should().Contain("✅ Plugin 'test-plugin' uninstalled successfully");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteUpdate_AllPlugins_ShouldDisplaySuccess()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteUpdate(null);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("🔄 Updating all plugins");
+        testConsole.Output.Should().Contain("✅ All plugins are up to date");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteUpdate_SpecificPlugin_ShouldDisplayTarget()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteUpdate("test-plugin");
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("🔄 Updating test-plugin");
+        testConsole.Output.Should().Contain("✅ All plugins are up to date");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteInfo_ShouldDisplayPluginDetails()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        try
+        {
+            await PluginCommand.ExecuteInfo("test-plugin");
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+
+        // Assert
+        testConsole.Output.Should().Contain("ℹ️  Plugin Information: test-plugin");
+        testConsole.Output.Should().Contain("test-plugin v1.2.0");
+        testConsole.Output.Should().Contain("Description:");
+        testConsole.Output.Should().Contain("Generate Swagger/OpenAPI documentation");
+        testConsole.Output.Should().Contain("Authors:");
+        testConsole.Output.Should().Contain("Murat Doe");
+        testConsole.Output.Should().Contain("Jane Smith");
+        testConsole.Output.Should().Contain("Tags:");
+        testConsole.Output.Should().Contain("swagger, openapi, documentation, api");
+        testConsole.Output.Should().Contain("Dependencies:");
+        testConsole.Output.Should().Contain("Swashbuckle.AspNetCore");
+        testConsole.Output.Should().Contain("NSwag.Core");
+        testConsole.Output.Should().Contain("Repository:");
+        testConsole.Output.Should().Contain("https://github.com/relay-plugins/swagger");
+        testConsole.Output.Should().Contain("License:");
+        testConsole.Output.Should().Contain("MIT");
+        testConsole.Output.Should().Contain("Installation:");
+        testConsole.Output.Should().Contain("relay plugin install test-plugin");
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteCreate_ShouldCreatePluginStructure()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            try
+            {
+                await PluginCommand.ExecuteCreate("test-plugin", tempDir, "basic", true, false);
+            }
+            finally
+            {
+                AnsiConsole.Console = originalConsole;
+            }
+
+            // Assert
+            var pluginDir = Path.Combine(tempDir, "test-plugin");
+            Directory.Exists(pluginDir).Should().BeTrue();
+
+            var csprojFile = Path.Combine(pluginDir, "test-plugin.csproj");
+            File.Exists(csprojFile).Should().BeTrue();
+
+            var pluginClassFile = Path.Combine(pluginDir, "TestPluginPlugin.cs");
+            File.Exists(pluginClassFile).Should().BeTrue();
+
+            var manifestFile = Path.Combine(pluginDir, "plugin.json");
+            File.Exists(manifestFile).Should().BeTrue();
+
+            var readmeFile = Path.Combine(pluginDir, "README.md");
+            File.Exists(readmeFile).Should().BeTrue();
+
+            testConsole.Output.Should().Contain("🎨 Creating plugin: test-plugin");
+            testConsole.Output.Should().Contain("✅ Plugin created:");
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task PluginCommand_ExecuteCreate_QuietMode_ShouldNotDisplayOutput()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            try
+            {
+                await PluginCommand.ExecuteCreate("test-plugin", tempDir, "basic", false, true);
+            }
+            finally
+            {
+                AnsiConsole.Console = originalConsole;
+            }
+
+            // Assert
+            var pluginDir = Path.Combine(tempDir, "test-plugin");
+            Directory.Exists(pluginDir).Should().BeTrue();
+
+            // In quiet mode, should not display progress messages
+            testConsole.Output.Should().NotContain("🎨 Creating plugin:");
+            testConsole.Output.Should().NotContain("✅ Plugin created:");
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task PluginCommand_CreatePluginProject_ShouldCreateValidCsprojFile()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Act
+            await PluginCommand.CreatePluginProject(tempDir, "test-plugin", "basic");
+
+            // Assert
+            var csprojFile = Path.Combine(tempDir, "test-plugin.csproj");
+            File.Exists(csprojFile).Should().BeTrue();
+
+            var content = await File.ReadAllTextAsync(csprojFile);
+            content.Should().Contain("<Project Sdk=\"Microsoft.NET.Sdk\">");
+            content.Should().Contain("<TargetFramework>net8.0</TargetFramework>");
+            content.Should().Contain("<PackageReference Include=\"Relay.CLI.Sdk\" Version=\"2.1.0\" />");
+            content.Should().Contain("<Nullable>enable</Nullable>");
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task PluginCommand_CreatePluginClass_ShouldCreateValidPluginClass()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Act
+            await PluginCommand.CreatePluginClass(tempDir, "relay-plugin-test");
+
+            // Assert
+            var classFile = Path.Combine(tempDir, "testPlugin.cs");
+            File.Exists(classFile).Should().BeTrue();
+
+            var content = await File.ReadAllTextAsync(classFile);
+            content.Should().Contain("using Relay.CLI.Plugins;");
+            content.Should().Contain("[RelayPlugin(\"relay-plugin-test\", \"1.0.0\")]");
+            content.Should().Contain("public class testPlugin : IRelayPlugin");
+            content.Should().Contain("public string Name => \"relay-plugin-test\";");
+            content.Should().Contain("public async Task<bool> InitializeAsync");
+            content.Should().Contain("public async Task<int> ExecuteAsync");
+            content.Should().Contain("public async Task CleanupAsync");
+            content.Should().Contain("public string GetHelp()");
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task PluginCommand_CreateManifest_ShouldCreateValidJsonManifest()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Act
+            await PluginCommand.CreateManifest(tempDir, "test-plugin");
+
+            // Assert
+            var manifestFile = Path.Combine(tempDir, "plugin.json");
+            File.Exists(manifestFile).Should().BeTrue();
+
+            var content = await File.ReadAllTextAsync(manifestFile);
+            content.Should().Contain("\"name\": \"test-plugin\"");
+            content.Should().Contain("\"version\": \"1.0.0\"");
+            content.Should().Contain("\"description\": \"My awesome Relay plugin\"");
+            content.Should().Contain("\"authors\": [\"Your Name\"]");
+            content.Should().Contain("\"tags\": [\"utility\"]");
+            content.Should().Contain("\"minimumRelayVersion\": \"2.1.0\"");
+            content.Should().Contain("\"dependencies\": {}");
+            content.Should().Contain("\"repository\": \"https://github.com/youruser/test-plugin\"");
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task PluginCommand_CreateReadme_ShouldCreateValidMarkdownReadme()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Act
+            await PluginCommand.CreateReadme(tempDir, "test-plugin");
+
+            // Assert
+            var readmeFile = Path.Combine(tempDir, "README.md");
+            File.Exists(readmeFile).Should().BeTrue();
+
+            var content = await File.ReadAllTextAsync(readmeFile);
+            content.Should().Contain("# test-plugin");
+            content.Should().Contain("My awesome Relay CLI plugin.");
+            content.Should().Contain("## Installation");
+            content.Should().Contain("relay plugin install test-plugin");
+            content.Should().Contain("## Usage");
+            content.Should().Contain("relay plugin run test-plugin");
+            content.Should().Contain("## Development");
+            content.Should().Contain("dotnet build");
+            content.Should().Contain("relay plugin install .");
+            content.Should().Contain("## License");
+            content.Should().Contain("MIT");
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
     }
 }

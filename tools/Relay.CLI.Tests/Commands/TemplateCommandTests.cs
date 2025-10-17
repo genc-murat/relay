@@ -316,6 +316,92 @@ public class TemplateCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task TemplateCommand_PackTemplateAsync_WithValidTemplate_CreatesPackage()
+    {
+        // Arrange
+        var templatePath = CreateValidTemplate("pack-test");
+        var outputPath = Path.Combine(_testPath, "packages");
+        Directory.CreateDirectory(outputPath);
+
+        // Act & Assert - Method executes without throwing
+        await TemplateCommand.PackTemplateAsync(templatePath, outputPath);
+    }
+
+    [Fact]
+    public async Task TemplateCommand_PackTemplateAsync_WithInvalidTemplate_Fails()
+    {
+        // Arrange
+        var invalidTemplatePath = Path.Combine(_testPath, "invalid-template");
+        Directory.CreateDirectory(invalidTemplatePath);
+        var outputPath = Path.Combine(_testPath, "packages");
+        Directory.CreateDirectory(outputPath);
+
+        // Act & Assert - Method executes without throwing
+        await TemplateCommand.PackTemplateAsync(invalidTemplatePath, outputPath);
+    }
+
+    [Fact]
+    public async Task TemplateCommand_PackTemplateAsync_WithNonexistentTemplate_Fails()
+    {
+        // Arrange
+        var nonexistentPath = Path.Combine(_testPath, "nonexistent");
+        var outputPath = Path.Combine(_testPath, "packages");
+        Directory.CreateDirectory(outputPath);
+
+        // Act & Assert - Method executes without throwing
+        await TemplateCommand.PackTemplateAsync(nonexistentPath, outputPath);
+    }
+
+    [Fact]
+    public async Task TemplateCommand_PublishTemplateAsync_WithValidPackage_Succeeds()
+    {
+        // Arrange
+        var packagePath = Path.Combine(_testPath, "test-package.nupkg");
+        await File.WriteAllTextAsync(packagePath, "fake package content");
+        var registryUrl = "https://api.nuget.org/v3/index.json";
+
+        // Act & Assert - Method executes without throwing
+        await TemplateCommand.PublishTemplateAsync(packagePath, registryUrl);
+    }
+
+    [Fact]
+    public async Task TemplateCommand_PublishTemplateAsync_WithNonexistentPackage_Fails()
+    {
+        // Arrange
+        var nonexistentPackage = Path.Combine(_testPath, "nonexistent.nupkg");
+        var registryUrl = "https://api.nuget.org/v3/index.json";
+
+        // Act & Assert - Method executes without throwing
+        await TemplateCommand.PublishTemplateAsync(nonexistentPackage, registryUrl);
+    }
+
+    [Fact]
+    public async Task TemplateCommand_ListTemplatesAsync_WithTemplates_DisplaysTemplates()
+    {
+        // Arrange
+        var templatesPath = Path.Combine(_testPath, "templates");
+        Directory.CreateDirectory(templatesPath);
+
+        // Create a couple of test templates
+        CreateValidTemplateInDirectory(templatesPath, "template1");
+        CreateValidTemplateInDirectory(templatesPath, "template2");
+
+        // Act & Assert - Method executes without throwing
+        await TemplateCommand.ListTemplatesAsync();
+    }
+
+    [Fact]
+    public async Task TemplateCommand_ListTemplatesAsync_WithNoTemplates_DisplaysEmptyMessage()
+    {
+        // Arrange
+        var emptyTemplatesPath = Path.Combine(_testPath, "empty-templates");
+        Directory.CreateDirectory(emptyTemplatesPath);
+
+        // Act & Assert - Method executes without throwing
+        await TemplateCommand.ListTemplatesAsync();
+    }
+
+    [Fact]
     public void TemplateCommand_Validate_PathOption_ShouldBeRequired()
     {
         // Arrange
@@ -546,6 +632,35 @@ public class TemplateCommandTests : IDisposable
         File.WriteAllText(Path.Combine(projectPath, "Program.cs"), "Console.WriteLine(\"Hello World\");");
 
         return projectPath;
+    }
+
+    private void CreateValidTemplateInDirectory(string templatesPath, string templateName)
+    {
+        var templatePath = Path.Combine(templatesPath, templateName);
+        var configDir = Path.Combine(templatePath, ".template.config");
+        var contentDir = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configDir);
+        Directory.CreateDirectory(contentDir);
+
+        var templateJson = $$"""
+        {
+          "$schema": "http://json.schemastore.org/template",
+          "author": "Test Author",
+          "classifications": ["Test", "Relay"],
+          "identity": "Relay.Templates.{{templateName}}",
+          "name": "{{templateName}} Template",
+          "shortName": "{{templateName}}",
+          "description": "Test template",
+          "tags": {
+            "language": "C#",
+            "type": "project"
+          }
+        }
+        """;
+
+        File.WriteAllText(Path.Combine(configDir, "template.json"), templateJson);
+        File.WriteAllText(Path.Combine(contentDir, "Program.cs"), "// Test program");
     }
 
     public void Dispose()

@@ -23,9 +23,8 @@ public class DependencyResolver
     /// Resolves dependencies for a plugin assembly with conflict detection and resolution
     /// </summary>
     /// <param name="pluginPath">Path to the plugin assembly</param>
-    /// <param name="context">The AssemblyLoadContext to use</param>
     /// <returns>Resolved dependency paths</returns>
-    public async Task<List<string>> ResolveDependenciesAsync(string pluginPath, PluginLoadContext context)
+    public async Task<List<string>> ResolveDependenciesAsync(string pluginPath)
     {
         var resolvedDependencies = new List<string>();
         

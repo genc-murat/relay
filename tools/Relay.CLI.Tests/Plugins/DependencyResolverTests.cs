@@ -27,17 +27,31 @@ public class DependencyResolverTests
     }
 
     [Fact]
-    public async Task ResolveDependenciesAsync_WithInvalidPluginPath_ShouldThrowException()
+    public async Task ResolveDependenciesAsync_WithInvalidPluginPath_ShouldReturnEmptyList()
     {
         // Arrange
         var pluginPath = "NonExistentPlugin.dll";
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-        {
-            var context = new PluginLoadContext(pluginPath);
-            await _dependencyResolver.ResolveDependenciesAsync(pluginPath, context);
-        });
+        // Act
+        var result = await _dependencyResolver.ResolveDependenciesAsync(pluginPath);
+
+        // Assert
+        result.Should().BeEmpty();
+        _loggerMock.Verify(x => x.LogError(It.Is<string>(s => s.Contains("Error resolving dependencies")), It.IsAny<Exception>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveDependenciesAsync_WithValidPlugin_ShouldResolveDependencies()
+    {
+        // Arrange
+        var pluginPath = typeof(DependencyResolver).Assembly.Location;
+
+        // Act
+        var result = await _dependencyResolver.ResolveDependenciesAsync(pluginPath);
+
+        // Assert
+        result.Should().NotBeNull();
+        _loggerMock.Verify(x => x.LogDebug(It.Is<string>(s => s.Contains("Resolved"))), Times.Once);
     }
 
     [Fact]

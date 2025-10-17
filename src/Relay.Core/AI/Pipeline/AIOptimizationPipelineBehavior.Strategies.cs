@@ -1056,8 +1056,8 @@ namespace Relay.Core.AI
                 }
             }
 
-            // Check if response type has a default constructor
-            if (typeof(TResponse).IsClass && typeof(TResponse).GetConstructor(Type.EmptyTypes) != null)
+            // Check if response type has a public default constructor
+            if (typeof(TResponse).IsClass && typeof(TResponse).GetConstructor(BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null) != null)
             {
                 fallbackResponse = Activator.CreateInstance<TResponse>();
                 return true;
@@ -1175,7 +1175,7 @@ namespace Relay.Core.AI
 
                         // Exponential backoff
                         var delay = retryDelay * (int)Math.Pow(2, retryCount - 1);
-                        await Task.Delay(delay);
+                        await Task.Delay(delay, cancellationToken);
                     }
                     catch (Exception ex)
                     {

@@ -11,7 +11,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Provides system load metrics for AI optimization decisions.
     /// </summary>
-    public sealed class SystemLoadMetricsProvider : IDisposable
+    public sealed class SystemLoadMetricsProvider : ISystemLoadMetricsProvider, IDisposable
     {
         private readonly ILogger<SystemLoadMetricsProvider> _logger;
         private readonly SystemLoadMetricsOptions _options;

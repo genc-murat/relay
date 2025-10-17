@@ -41,7 +41,7 @@ namespace Relay.Core.AI
             {
                 // Register core AI services
                 ServiceRegistrationHelper.TryAddSingleton<IAIOptimizationEngine, Relay.Core.AI.AIOptimizationEngine>(svc);
-                svc.TryAddSingleton<SystemLoadMetricsProvider>();
+                svc.TryAddSingleton<ISystemLoadMetricsProvider, SystemLoadMetricsProvider>();
 
                 // Register pipeline behaviors
                 ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
@@ -67,7 +67,7 @@ namespace Relay.Core.AI
                 {
                 // Register core AI services
                 ServiceRegistrationHelper.TryAddSingleton<IAIOptimizationEngine, Relay.Core.AI.AIOptimizationEngine>(svc);
-                svc.TryAddSingleton<SystemLoadMetricsProvider>();
+                svc.TryAddSingleton<ISystemLoadMetricsProvider, SystemLoadMetricsProvider>();
 
                     // Register pipeline behaviors
                     ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));

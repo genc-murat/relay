@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.RateLimiting.Attributes;
@@ -27,7 +26,7 @@ public class RateLimitingTests
         var result = await rateLimiter.IsAllowedAsync("user:123");
 
         // Assert
-        result.Should().BeTrue();
+        Assert.True(result);
     }
 
     [Fact]
@@ -41,7 +40,7 @@ public class RateLimitingTests
         for (int i = 0; i < 5; i++)
         {
             var result = await rateLimiter.IsAllowedAsync("user:124");
-            result.Should().BeTrue();
+            Assert.True(result);
         }
     }
 
@@ -56,7 +55,7 @@ public class RateLimitingTests
         Func<Task> act = async () => await rateLimiter.IsAllowedAsync(null!);
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
+        await Assert.ThrowsAsync<ArgumentException>(act);
     }
 
     [Fact]
@@ -70,7 +69,7 @@ public class RateLimitingTests
         Func<Task> act = async () => await rateLimiter.IsAllowedAsync(string.Empty);
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
+        await Assert.ThrowsAsync<ArgumentException>(act);
     }
 
     [Fact]
@@ -84,7 +83,7 @@ public class RateLimitingTests
         var retryAfter = await rateLimiter.GetRetryAfterAsync("user:125");
 
         // Assert
-        retryAfter.Should().Be(TimeSpan.Zero);
+        Assert.Equal(TimeSpan.Zero, retryAfter);
     }
 
     [Fact]
@@ -101,7 +100,7 @@ public class RateLimitingTests
         var retryAfter = await rateLimiter.GetRetryAfterAsync("user:126");
 
         // Assert - Should be close to the window size
-        retryAfter.Should().BeGreaterThan(TimeSpan.Zero);
+        Assert.True(retryAfter > TimeSpan.Zero);
     }
 
     [Fact]
@@ -115,7 +114,7 @@ public class RateLimitingTests
         Func<Task> act = async () => await rateLimiter.GetRetryAfterAsync(null!);
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
+        await Assert.ThrowsAsync<ArgumentException>(act);
     }
 
     [Fact]
@@ -129,8 +128,8 @@ public class RateLimitingTests
         var result1 = await rateLimiter.IsAllowedAsync("user:127");
         var result2 = await rateLimiter.IsAllowedAsync("user:128");
 
-        result1.Should().BeTrue();
-        result2.Should().BeTrue();
+        Assert.True(result1);
+        Assert.True(result2);
     }
 
     [Fact]
@@ -144,10 +143,10 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.Message.Should().Contain(key);
-        exception.Message.Should().Contain("30");
-        exception.Key.Should().Be(key);
-        exception.RetryAfter.Should().Be(retryAfter);
+        Assert.Contains(key, exception.Message);
+        Assert.Contains("30", exception.Message);
+        Assert.Equal(key, exception.Key);
+        Assert.Equal(retryAfter, exception.RetryAfter);
     }
 
     [Fact]
@@ -162,11 +161,11 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter, innerException);
 
         // Assert
-        exception.Key.Should().Be(key);
-        exception.RetryAfter.Should().Be(retryAfter);
-        exception.InnerException.Should().Be(innerException);
-        exception.Message.Should().Contain(key);
-        exception.Message.Should().Contain("45");
+        Assert.Equal(key, exception.Key);
+        Assert.Equal(retryAfter, exception.RetryAfter);
+        Assert.Equal(innerException, exception.InnerException);
+        Assert.Contains(key, exception.Message);
+        Assert.Contains("45", exception.Message);
     }
 
     [Fact]
@@ -179,7 +178,8 @@ public class RateLimitingTests
         Action act = () => new RateLimitExceededException(null!, retryAfter);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("key");
+        var ex = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("key", ex.ParamName);
     }
 
     [Fact]
@@ -193,7 +193,8 @@ public class RateLimitingTests
         Action act = () => new RateLimitExceededException(null!, retryAfter, innerException);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("key");
+        var ex = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("key", ex.ParamName);
     }
 
     [Fact]
@@ -207,7 +208,7 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.Key.Should().Be(key);
+        Assert.Equal(key, exception.Key);
         // Note: Properties are read-only, so no setter to test
     }
 
@@ -222,8 +223,8 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.RetryAfter.Should().Be(TimeSpan.Zero);
-        exception.Message.Should().Contain("0");
+        Assert.Equal(TimeSpan.Zero, exception.RetryAfter);
+        Assert.Contains("0", exception.Message);
     }
 
     [Fact]
@@ -237,8 +238,8 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.RetryAfter.Should().Be(retryAfter);
-        exception.Message.Should().Contain("-10");
+        Assert.Equal(retryAfter, exception.RetryAfter);
+        Assert.Contains("-10", exception.Message);
     }
 
     [Fact]
@@ -252,8 +253,8 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.RetryAfter.Should().Be(retryAfter);
-        exception.Message.Should().Contain("86400"); // 24*3600
+        Assert.Equal(retryAfter, exception.RetryAfter);
+        Assert.Contains("86400", exception.Message); // 24*3600
     }
 
     [Fact]
@@ -267,8 +268,8 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.Message.Should().Be($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.");
-        exception.Message.Should().Contain("1.5");
+        Assert.Equal($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.", exception.Message);
+        Assert.Contains("1.5", exception.Message);
     }
 
     [Fact]
@@ -282,8 +283,8 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.Message.Should().Contain(key);
-        exception.Message.Should().Contain("30");
+        Assert.Contains(key, exception.Message);
+        Assert.Contains("30", exception.Message);
     }
 
     [Fact]
@@ -297,8 +298,8 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.Message.Should().Be($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.");
-        exception.Message.Should().Contain("''"); // empty key in quotes
+        Assert.Equal($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.", exception.Message);
+        Assert.Contains("''", exception.Message); // empty key in quotes
     }
 
     [Fact]
@@ -313,7 +314,7 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter, innerException);
 
         // Assert
-        exception.Message.Should().Be($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.");
+        Assert.Equal($"Rate limit exceeded for key '{key}'. Retry after {retryAfter.TotalSeconds} seconds.", exception.Message);
     }
 
     [Fact]
@@ -327,7 +328,7 @@ public class RateLimitingTests
         var exception = new RateLimitExceededException(key, retryAfter);
 
         // Assert
-        exception.Should().BeAssignableTo<Exception>();
+        Assert.IsAssignableFrom<Exception>(exception);
     }
 
     [Fact]
@@ -344,8 +345,8 @@ public class RateLimitingTests
         }
         catch (Exception ex)
         {
-            ex.Should().BeOfType<RateLimitExceededException>();
-            ex.Message.Should().Contain(key);
+            Assert.IsType<RateLimitExceededException>(ex);
+            Assert.Contains(key, ex.Message);
         }
     }
 
@@ -363,7 +364,8 @@ public class RateLimitingTests
         }
         catch (RateLimitExceededException ex)
         {
-            ex.StackTrace.Should().NotBeNullOrEmpty();
+            Assert.NotNull(ex.StackTrace);
+            Assert.NotEmpty(ex.StackTrace);
         }
     }
 
@@ -378,7 +380,7 @@ public class RateLimitingTests
         // Act & Assert - Test that it's marked as serializable
         // Since Exception is serializable, and we don't add non-serializable fields,
         // it should be serializable
-        originalException.Should().BeAssignableTo<System.Runtime.Serialization.ISerializable>();
+        Assert.IsAssignableFrom<System.Runtime.Serialization.ISerializable>(originalException);
     }
 
     [Fact]
@@ -388,9 +390,9 @@ public class RateLimitingTests
         var attribute = new RateLimitAttribute(100, 60, "api");
 
         // Assert
-        attribute.RequestsPerWindow.Should().Be(100);
-        attribute.WindowSeconds.Should().Be(60);
-        attribute.Key.Should().Be("api");
+        Assert.Equal(100, attribute.RequestsPerWindow);
+        Assert.Equal(60, attribute.WindowSeconds);
+        Assert.Equal("api", attribute.Key);
     }
 
     [Fact]
@@ -400,9 +402,9 @@ public class RateLimitingTests
         var attribute = new RateLimitAttribute(100, 60);
 
         // Assert
-        attribute.RequestsPerWindow.Should().Be(100);
-        attribute.WindowSeconds.Should().Be(60);
-        attribute.Key.Should().Be("Global");
+        Assert.Equal(100, attribute.RequestsPerWindow);
+        Assert.Equal(60, attribute.WindowSeconds);
+        Assert.Equal("Global", attribute.Key);
     }
 
     [Fact]
@@ -412,7 +414,8 @@ public class RateLimitingTests
         Action act = () => new RateLimitAttribute(0, 60);
 
         // Assert
-        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("requestsPerWindow");
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+        Assert.Equal("requestsPerWindow", ex.ParamName);
     }
 
     [Fact]
@@ -422,7 +425,8 @@ public class RateLimitingTests
         Action act = () => new RateLimitAttribute(-1, 60);
 
         // Assert
-        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("requestsPerWindow");
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+        Assert.Equal("requestsPerWindow", ex.ParamName);
     }
 
     [Fact]
@@ -432,7 +436,8 @@ public class RateLimitingTests
         Action act = () => new RateLimitAttribute(100, 0);
 
         // Assert
-        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("windowSeconds");
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+        Assert.Equal("windowSeconds", ex.ParamName);
     }
 
     [Fact]
@@ -442,7 +447,8 @@ public class RateLimitingTests
         Action act = () => new RateLimitAttribute(100, 60, null!);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("key");
+        var ex = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("key", ex.ParamName);
     }
 
     [Fact]
@@ -452,7 +458,8 @@ public class RateLimitingTests
         Action act = () => new InMemoryRateLimiter(null!, NullLogger<InMemoryRateLimiter>.Instance);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("cache");
+        var ex = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("cache", ex.ParamName);
     }
 
     [Fact]
@@ -465,7 +472,8 @@ public class RateLimitingTests
         Action act = () => new InMemoryRateLimiter(cache, null!);
 
         // Assert
-        act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
+        var ex = Assert.Throws<ArgumentNullException>(act);
+        Assert.Equal("logger", ex.ParamName);
     }
 
     [Fact]
@@ -484,8 +492,8 @@ public class RateLimitingTests
         }
 
         // Assert - All requests should be tracked
-        results.Should().NotBeEmpty();
-        results.Should().ContainInOrder(Enumerable.Repeat(true, results.Count(r => r)));
+        Assert.NotEmpty(results);
+        Assert.All(results, r => Assert.True(r));
     }
 
     [Fact]
@@ -504,7 +512,7 @@ public class RateLimitingTests
         var result = await rateLimiter.IsAllowedAsync("user:131", cts.Token);
 
         // Assert - Should still work (implementation doesn't throw on cancellation)
-        result.Should().BeTrue();
+        Assert.True(result);
     }
 
     [Fact]
@@ -526,8 +534,8 @@ public class RateLimitingTests
         var exceedResult = await rateLimiter.IsAllowedAsync(key);
 
         // Assert
-        results.Should().AllSatisfy(r => r.Should().BeTrue(), "all requests within limit should be allowed");
-        exceedResult.Should().BeFalse("request exceeding limit should be blocked");
+        Assert.All(results, r => Assert.True(r));
+        Assert.False(exceedResult);
     }
 
     [Fact]
@@ -554,8 +562,8 @@ public class RateLimitingTests
         var afterWait = await rateLimiter.IsAllowedAsync(key);
 
         // Assert
-        beforeWait.Should().BeFalse("request should be blocked before window expires");
-        afterWait.Should().BeTrue("request should be allowed after window expires");
+        Assert.False(beforeWait);
+        Assert.True(afterWait);
     }
 
     [Fact]
@@ -576,8 +584,8 @@ public class RateLimitingTests
         var retryAfter = await rateLimiter.GetRetryAfterAsync(key);
 
         // Assert
-        retryAfter.Should().BeGreaterThan(TimeSpan.Zero);
-        retryAfter.Should().BeLessThanOrEqualTo(TimeSpan.FromSeconds(60), "should not exceed window duration");
+        Assert.True(retryAfter > TimeSpan.Zero);
+        Assert.True(retryAfter <= TimeSpan.FromSeconds(60));
     }
 
     [Fact]
@@ -598,7 +606,7 @@ public class RateLimitingTests
         var retryAfter = await rateLimiter.GetRetryAfterAsync(key);
 
         // Assert
-        retryAfter.Should().Be(TimeSpan.Zero, "window has expired");
+        Assert.Equal(TimeSpan.Zero, retryAfter);
     }
 
     [Fact]
@@ -617,7 +625,7 @@ public class RateLimitingTests
         var results = await Task.WhenAll(tasks);
 
         // Assert - All should succeed since we're under the limit
-        results.Should().AllSatisfy(r => r.Should().BeTrue());
+        Assert.All(results, r => Assert.True(r));
     }
 
     [Fact]
@@ -639,8 +647,8 @@ public class RateLimitingTests
         var allowedCount = results.Count(r => r);
         var blockedCount = results.Count(r => !r);
 
-        allowedCount.Should().BeLessThanOrEqualTo(100, "should not exceed limit");
-        blockedCount.Should().BeGreaterThanOrEqualTo(50, "should block excess requests");
+        Assert.True(allowedCount <= 100);
+        Assert.True(blockedCount >= 50);
     }
 
     [Fact]
@@ -654,8 +662,8 @@ public class RateLimitingTests
         Func<Task> act = async () => await rateLimiter.IsAllowedAsync("   ");
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("key");
+        var ex = await Assert.ThrowsAsync<ArgumentException>(act);
+        Assert.Equal("key", ex.ParamName);
     }
 
     [Fact]
@@ -669,8 +677,8 @@ public class RateLimitingTests
         Func<Task> act = async () => await rateLimiter.GetRetryAfterAsync(string.Empty);
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("key");
+        var ex = await Assert.ThrowsAsync<ArgumentException>(act);
+        Assert.Equal("key", ex.ParamName);
     }
 
     [Fact]
@@ -684,8 +692,8 @@ public class RateLimitingTests
         Func<Task> act = async () => await rateLimiter.GetRetryAfterAsync("   ");
 
         // Assert
-        await act.Should().ThrowAsync<ArgumentException>()
-            .WithParameterName("key");
+        var ex = await Assert.ThrowsAsync<ArgumentException>(act);
+        Assert.Equal("key", ex.ParamName);
     }
 
     [Fact]
@@ -707,8 +715,8 @@ public class RateLimitingTests
         var key2Allowed = await rateLimiter.IsAllowedAsync(key2);
 
         // Assert
-        key1Exceeded.Should().BeFalse("key1 should be rate limited");
-        key2Allowed.Should().BeTrue("key2 should not be affected");
+        Assert.False(key1Exceeded);
+        Assert.True(key2Allowed);
     }
 
     [Fact]
@@ -727,7 +735,7 @@ public class RateLimitingTests
         var retryAfter2 = await rateLimiter.GetRetryAfterAsync(key);
 
         // Assert
-        retryAfter2.Should().BeLessThan(retryAfter1, "retry after should decrease over time");
+        Assert.True(retryAfter2 < retryAfter1);
     }
 
     [Fact]
@@ -749,8 +757,8 @@ public class RateLimitingTests
         var allowedCount = results.Count(r => r);
         var blockedCount = results.Count(r => !r);
 
-        allowedCount.Should().Be(100, "exactly 100 requests should be allowed");
-        blockedCount.Should().Be(5, "exactly 5 requests should be blocked");
+        Assert.Equal(100, allowedCount);
+        Assert.Equal(5, blockedCount);
     }
 
     [Fact]
@@ -774,6 +782,6 @@ public class RateLimitingTests
 
         // Assert - Documented behavior
         // After 5 minutes, the cache entry should be evicted and a new window should start
-        true.Should().BeTrue("This test documents expected cache behavior");
+        Assert.True(true);
     }
 }

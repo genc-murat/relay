@@ -1,12 +1,10 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.EventSourcing;
 using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Repositories;
 using Relay.Core.EventSourcing.Stores;
 using Relay.Core.Extensions;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.EventSourcing
@@ -20,8 +18,8 @@ namespace Relay.Core.Tests.EventSourcing
             var aggregate = new TestAggregate();
 
             // Assert
-            aggregate.Version.Should().Be(-1);
-            aggregate.UncommittedEvents.Should().BeEmpty();
+            Assert.Equal(-1, aggregate.Version);
+            Assert.Empty(aggregate.UncommittedEvents);
         }
 
         [Fact]
@@ -35,10 +33,10 @@ namespace Relay.Core.Tests.EventSourcing
             aggregate.Create(id, "Test Name");
 
             // Assert
-            aggregate.Id.Should().Be(id);
-            aggregate.Name.Should().Be("Test Name");
-            aggregate.UncommittedEvents.Should().HaveCount(1);
-            aggregate.UncommittedEvents.First().Should().BeOfType<TestAggregateCreated>();
+            Assert.Equal(id, aggregate.Id);
+            Assert.Equal("Test Name", aggregate.Name);
+            Assert.Equal(1, aggregate.UncommittedEvents.Count);
+            Assert.IsType<TestAggregateCreated>(aggregate.UncommittedEvents.First());
         }
 
         [Fact]
@@ -52,7 +50,7 @@ namespace Relay.Core.Tests.EventSourcing
             aggregate.ClearUncommittedEvents();
 
             // Assert
-            aggregate.UncommittedEvents.Should().BeEmpty();
+            Assert.Empty(aggregate.UncommittedEvents);
         }
 
         [Fact]
@@ -71,10 +69,10 @@ namespace Relay.Core.Tests.EventSourcing
             aggregate.LoadFromHistory(events);
 
             // Assert
-            aggregate.Id.Should().Be(aggregateId);
-            aggregate.Name.Should().Be("Updated Name");
-            aggregate.Version.Should().Be(1);
-            aggregate.UncommittedEvents.Should().BeEmpty();
+            Assert.Equal(aggregateId, aggregate.Id);
+            Assert.Equal("Updated Name", aggregate.Name);
+            Assert.Equal(1, aggregate.Version);
+            Assert.Empty(aggregate.UncommittedEvents);
         }
 
         [Fact]
@@ -93,9 +91,9 @@ namespace Relay.Core.Tests.EventSourcing
             var retrievedEvents = await eventStore.GetEventsAsync(aggregateId).ToListAsync();
 
             // Assert
-            retrievedEvents.Should().HaveCount(1);
-            retrievedEvents.First().Should().BeOfType<TestAggregateCreated>();
-            ((TestAggregateCreated)retrievedEvents.First()).AggregateName.Should().Be("Test Name");
+            Assert.Equal(1, retrievedEvents.Count);
+            Assert.IsType<TestAggregateCreated>(retrievedEvents.First());
+            Assert.Equal("Test Name", ((TestAggregateCreated)retrievedEvents.First()).AggregateName);
         }
 
         [Fact]
@@ -136,9 +134,9 @@ namespace Relay.Core.Tests.EventSourcing
             var retrievedEvents = await eventStore.GetEventsAsync(aggregateId, 1, 2).ToListAsync();
 
             // Assert
-            retrievedEvents.Should().HaveCount(2);
-            retrievedEvents.First().AggregateVersion.Should().Be(1);
-            retrievedEvents.Last().AggregateVersion.Should().Be(2);
+            Assert.Equal(2, retrievedEvents.Count);
+            Assert.Equal(1, retrievedEvents.First().AggregateVersion);
+            Assert.Equal(2, retrievedEvents.Last().AggregateVersion);
         }
 
         [Fact()]
@@ -154,7 +152,7 @@ namespace Relay.Core.Tests.EventSourcing
             aggregate.Create(id, "Test Name");
             
             // Verify the ID was set correctly before saving
-            aggregate.Id.Should().Be(id);
+            Assert.Equal(id, aggregate.Id);
 
             // Act
             await repository.SaveAsync(aggregate);
@@ -162,11 +160,11 @@ namespace Relay.Core.Tests.EventSourcing
             var loadedAggregate = await repository.GetByIdAsync(id);
 
             // Assert
-            loadedAggregate.Should().NotBeNull();
-            loadedAggregate!.Id.Should().Be(id);
-            loadedAggregate.Name.Should().Be("Test Name");
+            Assert.NotNull(loadedAggregate);
+            Assert.Equal(id, loadedAggregate.Id);
+            Assert.Equal("Test Name", loadedAggregate.Name);
             // Note: Version starts at -1, after applying first event at version 0, it should become 0
-            loadedAggregate.Version.Should().Be(0);
+            Assert.Equal(0, loadedAggregate.Version);
         }
 
         [Fact]
@@ -188,9 +186,9 @@ namespace Relay.Core.Tests.EventSourcing
             var loadedAggregate = await repository.GetByIdAsync(id);
 
             // Assert
-            loadedAggregate.Should().NotBeNull();
-            loadedAggregate!.Name.Should().Be("Updated Name");
-            loadedAggregate.Version.Should().Be(1);
+            Assert.NotNull(loadedAggregate);
+            Assert.Equal("Updated Name", loadedAggregate.Name);
+            Assert.Equal(1, loadedAggregate.Version);
         }
     }
 

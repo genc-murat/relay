@@ -4,7 +4,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
@@ -104,7 +103,8 @@ namespace Relay.Core.Tests.Implementation
             Action act = () => new StreamDispatcher(null!);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>().WithParameterName("serviceProvider");
+            var ex = Assert.Throws<ArgumentNullException>(act);
+            Assert.Equal("serviceProvider", ex.ParamName);
         }
 
         [Fact]
@@ -117,7 +117,7 @@ namespace Relay.Core.Tests.Implementation
             var dispatcher = new StreamDispatcher(serviceProvider);
 
             // Assert
-            dispatcher.Should().NotBeNull();
+            Assert.NotNull(dispatcher);
         }
 
         [Fact]
@@ -137,7 +137,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<ArgumentNullException>();
+            await Assert.ThrowsAsync<ArgumentNullException>(act);
         }
 
         [Fact]
@@ -158,7 +158,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<HandlerNotFoundException>();
+            await Assert.ThrowsAsync<HandlerNotFoundException>(act);
         }
 
         [Fact]
@@ -183,7 +183,7 @@ namespace Relay.Core.Tests.Implementation
 
             // Assert - StreamDispatcher will throw HandlerNotFoundException before checking cancellation
             // This is expected behavior as the handler resolution happens first
-            await act.Should().ThrowAsync<Exception>();
+            await Assert.ThrowsAsync<OperationCanceledException>(act);
         }
 
         [Fact]
@@ -204,7 +204,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<ArgumentException>();
+            await Assert.ThrowsAsync<ArgumentException>(act);
         }
 
         [Fact]
@@ -225,7 +225,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<ArgumentException>();
+            await Assert.ThrowsAsync<ArgumentException>(act);
         }
 
         [Fact]
@@ -246,7 +246,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<ArgumentException>();
+            await Assert.ThrowsAsync<ArgumentException>(act);
         }
 
         [Fact]
@@ -267,7 +267,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<HandlerNotFoundException>();
+            await Assert.ThrowsAsync<HandlerNotFoundException>(act);
         }
 
         #endregion
@@ -281,7 +281,8 @@ namespace Relay.Core.Tests.Implementation
             Action act = () => new BackpressureStreamDispatcher(null!);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>().WithParameterName("serviceProvider");
+            var ex = Assert.Throws<ArgumentNullException>(act);
+            Assert.Equal("serviceProvider", ex.ParamName);
         }
 
         [Fact]
@@ -294,7 +295,7 @@ namespace Relay.Core.Tests.Implementation
             var dispatcher = new BackpressureStreamDispatcher(serviceProvider, 5, 50);
 
             // Assert
-            dispatcher.Should().NotBeNull();
+            Assert.NotNull(dispatcher);
         }
 
         [Fact]
@@ -307,7 +308,7 @@ namespace Relay.Core.Tests.Implementation
             var dispatcher = new BackpressureStreamDispatcher(serviceProvider);
 
             // Assert
-            dispatcher.Should().NotBeNull();
+            Assert.NotNull(dispatcher);
         }
 
         [Fact]
@@ -320,7 +321,8 @@ namespace Relay.Core.Tests.Implementation
             Action act = () => new BackpressureStreamDispatcher(serviceProvider, -1, 100);
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("maxConcurrency");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("maxConcurrency", ex.ParamName);
         }
 
         [Fact]
@@ -333,7 +335,8 @@ namespace Relay.Core.Tests.Implementation
             Action act = () => new BackpressureStreamDispatcher(serviceProvider, 0, 100);
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("maxConcurrency");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("maxConcurrency", ex.ParamName);
         }
 
         [Fact]
@@ -346,7 +349,8 @@ namespace Relay.Core.Tests.Implementation
             Action act = () => new BackpressureStreamDispatcher(serviceProvider, 10, -1);
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("bufferSize");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("bufferSize", ex.ParamName);
         }
 
         [Fact]
@@ -359,7 +363,8 @@ namespace Relay.Core.Tests.Implementation
             Action act = () => new BackpressureStreamDispatcher(serviceProvider, 10, 0);
 
             // Assert
-            act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("bufferSize");
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(act);
+            Assert.Equal("bufferSize", ex.ParamName);
         }
 
         [Fact]
@@ -379,7 +384,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<ArgumentNullException>();
+            await Assert.ThrowsAsync<ArgumentNullException>(act);
         }
 
         [Fact]
@@ -400,7 +405,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<HandlerNotFoundException>();
+            await Assert.ThrowsAsync<HandlerNotFoundException>(act);
         }
 
         [Fact]
@@ -425,8 +430,8 @@ namespace Relay.Core.Tests.Implementation
             }
 
             // Assert
-            results.Should().HaveCount(10);
-            results.Should().BeInAscendingOrder();
+            Assert.Equal(10, results.Count);
+            Assert.True(results.SequenceEqual(results.OrderBy(x => x)));
         }
 
         [Fact]
@@ -456,8 +461,8 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<OperationCanceledException>();
-            results.Count.Should().BeLessThan(1000); // Should have stopped before processing all items
+            await Assert.ThrowsAsync<OperationCanceledException>(act);
+            Assert.True(results.Count < 1000); // Should have stopped before processing all items
         }
 
         [Fact]
@@ -478,7 +483,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<ArgumentException>();
+            await Assert.ThrowsAsync<ArgumentException>(act);
         }
 
         [Fact]
@@ -499,7 +504,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<ArgumentException>();
+            await Assert.ThrowsAsync<ArgumentException>(act);
         }
 
         [Fact]
@@ -520,7 +525,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await act.Should().ThrowAsync<HandlerNotFoundException>();
+            await Assert.ThrowsAsync<HandlerNotFoundException>(act);
         }
 
         [Fact]
@@ -555,8 +560,8 @@ namespace Relay.Core.Tests.Implementation
             await Task.WhenAll(tasks);
 
             // Assert
-            results.Should().HaveCount(20);
-            results.OrderBy(x => x).Should().BeEquivalentTo(Enumerable.Range(0, 20));
+            Assert.Equal(20, results.Count);
+            Assert.Equal(Enumerable.Range(0, 20), results.OrderBy(x => x));
         }
 
         [Fact]
@@ -597,9 +602,9 @@ namespace Relay.Core.Tests.Implementation
             await Task.WhenAll(task1, task2);
 
             // Assert - Each stream should complete independently
-            results1.Should().HaveCount(5);
-            results2.Should().HaveCount(5);
-            results2.Should().AllSatisfy(s => s.Should().StartWith("Test-"));
+            Assert.Equal(5, results1.Count);
+            Assert.Equal(5, results2.Count);
+            Assert.All(results2, s => Assert.StartsWith("Test-", s));
         }
 
         #endregion
@@ -628,7 +633,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert - StreamDispatcher uses PipelineExecutor which cannot resolve the handler
-            await act.Should().ThrowAsync<HandlerNotFoundException>();
+            await Assert.ThrowsAsync<HandlerNotFoundException>(act);
         }
 
         [Fact]
@@ -651,7 +656,7 @@ namespace Relay.Core.Tests.Implementation
             }
 
             // Assert
-            results.Should().BeEmpty();
+            Assert.Empty(results);
         }
 
         [Fact]
@@ -680,8 +685,8 @@ namespace Relay.Core.Tests.Implementation
             var completed = await Task.WhenAny(streamTask, timeout);
 
             // Assert
-            completed.Should().Be(streamTask, "Stream should complete before timeout");
-            results.Should().HaveCount(50);
+            Assert.Equal(streamTask, completed);
+            Assert.Equal(50, results.Count);
         }
 
         #endregion

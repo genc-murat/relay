@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Contracts.Handlers;
@@ -229,7 +228,7 @@ namespace Relay.Core.Tests.Publishing
             var publisher = new OrderedNotificationPublisher();
 
             // Assert
-            publisher.Should().NotBeNull();
+            Assert.NotNull(publisher);
         }
 
         [Fact]
@@ -242,7 +241,7 @@ namespace Relay.Core.Tests.Publishing
             var publisher = new OrderedNotificationPublisher(mockLogger.Object);
 
             // Assert
-            publisher.Should().NotBeNull();
+            Assert.NotNull(publisher);
         }
 
         [Fact]
@@ -255,7 +254,7 @@ namespace Relay.Core.Tests.Publishing
             var publisher = new OrderedNotificationPublisher(mockLogger.Object, continueOnException: false, maxDegreeOfParallelism: 4);
 
             // Assert
-            publisher.Should().NotBeNull();
+            Assert.NotNull(publisher);
         }
 
         [Fact]
@@ -266,7 +265,7 @@ namespace Relay.Core.Tests.Publishing
 
             // Assert
             // Should not throw and should use Environment.ProcessorCount internally
-            publisher.Should().NotBeNull();
+            Assert.NotNull(publisher);
         }
 
         [Fact]
@@ -276,7 +275,7 @@ namespace Relay.Core.Tests.Publishing
             var publisher = new OrderedNotificationPublisher(maxDegreeOfParallelism: -1);
 
             // Assert
-            publisher.Should().NotBeNull();
+            Assert.NotNull(publisher);
         }
 
         #endregion
@@ -356,10 +355,10 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(3);
-            BasicHandler.ExecutionLog[0].Should().Be("OrderedHandler1: test");
-            BasicHandler.ExecutionLog[1].Should().Be("OrderedHandler2: test");
-            BasicHandler.ExecutionLog[2].Should().Be("OrderedHandler3: test");
+            Assert.Equal(3, BasicHandler.ExecutionLog.Count);
+            Assert.Equal("OrderedHandler1: test", BasicHandler.ExecutionLog[0]);
+            Assert.Equal("OrderedHandler2: test", BasicHandler.ExecutionLog[1]);
+            Assert.Equal("OrderedHandler3: test", BasicHandler.ExecutionLog[2]);
         }
 
         [Fact]
@@ -380,11 +379,11 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(3);
+            Assert.Equal(3, BasicHandler.ExecutionLog.Count);
             // Handler with no order (0) should execute first, then ordered handlers
-            BasicHandler.ExecutionLog[0].Should().Be("BasicHandler: test");
-            BasicHandler.ExecutionLog[1].Should().Be("OrderedHandler1: test");
-            BasicHandler.ExecutionLog[2].Should().Be("OrderedHandler2: test");
+            Assert.Equal("BasicHandler: test", BasicHandler.ExecutionLog[0]);
+            Assert.Equal("OrderedHandler1: test", BasicHandler.ExecutionLog[1]);
+            Assert.Equal("OrderedHandler2: test", BasicHandler.ExecutionLog[2]);
         }
 
         #endregion
@@ -409,13 +408,13 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(5);
+            Assert.Equal(5, BasicHandler.ExecutionLog.Count);
 
             // Group A handlers should both complete before Group B starts
             var groupAEndIndex = BasicHandler.ExecutionLog.FindLastIndex(x => x.Contains("GroupAHandler"));
             var groupBStartIndex = BasicHandler.ExecutionLog.FindIndex(x => x.Contains("GroupBHandler"));
 
-            groupAEndIndex.Should().BeLessThan(groupBStartIndex);
+            Assert.True(groupAEndIndex < groupBStartIndex);
         }
 
         [Fact]
@@ -436,11 +435,11 @@ namespace Relay.Core.Tests.Publishing
 
             // Assert
             // PublishAsync should await all handlers, so all should be complete
-            BasicHandler.ExecutionLog.Count.Should().BeGreaterThanOrEqualTo(4);
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("GroupAHandler1-Start"));
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("GroupAHandler1-End"));
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("GroupAHandler2-Start"));
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("GroupAHandler2-End"));
+            Assert.True(BasicHandler.ExecutionLog.Count >= 4);
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("GroupAHandler1-Start"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("GroupAHandler1-End"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("GroupAHandler2-Start"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("GroupAHandler2-End"));
         }
 
         #endregion
@@ -464,9 +463,9 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(2);
-            BasicHandler.ExecutionLog[0].Should().Be("DependencyBaseHandler: test");
-            BasicHandler.ExecutionLog[1].Should().Be("DependentHandler: test");
+            Assert.Equal(2, BasicHandler.ExecutionLog.Count);
+            Assert.Equal("DependencyBaseHandler: test", BasicHandler.ExecutionLog[0]);
+            Assert.Equal("DependentHandler: test", BasicHandler.ExecutionLog[1]);
         }
 
         [Fact]
@@ -486,9 +485,9 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(2);
-            BasicHandler.ExecutionLog[0].Should().Be("ExecuteBeforeLastHandler: test");
-            BasicHandler.ExecutionLog[1].Should().Be("ExecuteLastHandler: test");
+            Assert.Equal(2, BasicHandler.ExecutionLog.Count);
+            Assert.Equal("ExecuteBeforeLastHandler: test", BasicHandler.ExecutionLog[0]);
+            Assert.Equal("ExecuteLastHandler: test", BasicHandler.ExecutionLog[1]);
         }
 
         [Fact]
@@ -509,7 +508,7 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(2);
+            Assert.Equal(2, BasicHandler.ExecutionLog.Count);
 
             // Verify warning was logged
             mockLogger.Verify(
@@ -543,11 +542,11 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(3);
+            Assert.Equal(3, BasicHandler.ExecutionLog.Count);
             // Sequential handler should fully complete before basic handler
-            BasicHandler.ExecutionLog[0].Should().Be("SequentialHandler-Start: test");
-            BasicHandler.ExecutionLog[1].Should().Be("SequentialHandler-End: test");
-            BasicHandler.ExecutionLog[2].Should().Be("BasicHandler: test");
+            Assert.Equal("SequentialHandler-Start: test", BasicHandler.ExecutionLog[0]);
+            Assert.Equal("SequentialHandler-End: test", BasicHandler.ExecutionLog[1]);
+            Assert.Equal("BasicHandler: test", BasicHandler.ExecutionLog[2]);
         }
 
         [Fact]
@@ -568,13 +567,13 @@ namespace Relay.Core.Tests.Publishing
 
             // Assert
             // PublishAsync should await all handlers, so all should be complete
-            BasicHandler.ExecutionLog.Count.Should().BeGreaterThanOrEqualTo(4);
+            Assert.True(BasicHandler.ExecutionLog.Count >= 4);
 
             // Both handlers should execute fully
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("ParallelHandler1-Start"));
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("ParallelHandler1-End"));
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("ParallelHandler2-Start"));
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("ParallelHandler2-End"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("ParallelHandler1-Start"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("ParallelHandler1-End"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("ParallelHandler2-Start"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("ParallelHandler2-End"));
         }
 
         [Fact]
@@ -594,13 +593,13 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(4);
+            Assert.Equal(4, BasicHandler.ExecutionLog.Count);
 
             // Sequential handler should complete before parallel handler starts
             var sequentialEndIndex = BasicHandler.ExecutionLog.FindIndex(x => x.Contains("SequentialHandler-End"));
             var parallelStartIndex = BasicHandler.ExecutionLog.FindIndex(x => x.Contains("ParallelHandler1-Start"));
 
-            sequentialEndIndex.Should().BeLessThan(parallelStartIndex);
+            Assert.True(sequentialEndIndex < parallelStartIndex);
         }
 
         #endregion
@@ -626,10 +625,10 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(3);
-            BasicHandler.ExecutionLog[0].Should().Be("BasicHandler: test");
-            BasicHandler.ExecutionLog[1].Should().Be("ThrowingHandler: test");
-            BasicHandler.ExecutionLog[2].Should().Be("OrderedHandler1: test");
+            Assert.Equal(3, BasicHandler.ExecutionLog.Count);
+            Assert.Equal("BasicHandler: test", BasicHandler.ExecutionLog[0]);
+            Assert.Equal("ThrowingHandler: test", BasicHandler.ExecutionLog[1]);
+            Assert.Equal("OrderedHandler1: test", BasicHandler.ExecutionLog[2]);
 
             // Verify error was logged
             mockLogger.Verify(
@@ -663,13 +662,13 @@ namespace Relay.Core.Tests.Publishing
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 publisher.PublishAsync(notification, handlers, CancellationToken.None).AsTask());
 
-            exception.Message.Should().Be("Handler failed");
+            Assert.Equal("Handler failed", exception.Message);
 
             // GroupA should have executed, ThrowingGroupHandler should have thrown,
             // GroupC should not have executed
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("GroupAHandler1"));
-            BasicHandler.ExecutionLog.Should().Contain(x => x.Contains("ThrowingGroupHandler"));
-            BasicHandler.ExecutionLog.Should().NotContain(x => x.Contains("GroupCHandler"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("GroupAHandler1"));
+            Assert.Contains(BasicHandler.ExecutionLog, x => x.Contains("ThrowingGroupHandler"));
+            Assert.DoesNotContain(BasicHandler.ExecutionLog, x => x.Contains("GroupCHandler"));
         }
 
         [NotificationHandlerGroup("GroupB", 2)]
@@ -711,8 +710,8 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(3);
-            BasicHandler.ExecutionLog[2].Should().Be("OrderedHandler1: test");
+            Assert.Equal(3, BasicHandler.ExecutionLog.Count);
+            Assert.Equal("OrderedHandler1: test", BasicHandler.ExecutionLog[2]);
         }
 
         #endregion
@@ -740,7 +739,7 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, cts.Token);
 
             // Assert
-            tokenPassed.Should().BeTrue();
+            Assert.True(tokenPassed);
         }
 
         private class TestCancellationHandler : INotificationHandler<TestNotification>
@@ -788,12 +787,12 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(4);
+            Assert.Equal(4, BasicHandler.ExecutionLog.Count);
 
             // DependencyBaseHandler must execute before DependentHandler
             var baseIndex = BasicHandler.ExecutionLog.FindIndex(x => x.Contains("DependencyBaseHandler"));
             var dependentIndex = BasicHandler.ExecutionLog.FindIndex(x => x.Contains("DependentHandler"));
-            baseIndex.Should().BeLessThan(dependentIndex);
+            Assert.True(baseIndex < dependentIndex);
         }
 
         [Fact]
@@ -812,8 +811,8 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(1);
-            BasicHandler.ExecutionLog[0].Should().Be("BasicHandler: test");
+            Assert.Equal(1, BasicHandler.ExecutionLog.Count);
+            Assert.Equal("BasicHandler: test", BasicHandler.ExecutionLog[0]);
         }
 
         [Fact]
@@ -834,15 +833,15 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            BasicHandler.ExecutionLog.Should().HaveCount(3);
+            Assert.Equal(3, BasicHandler.ExecutionLog.Count);
 
             // Both dependencies should execute before MultipleDependenciesHandler
             var multiDepIndex = BasicHandler.ExecutionLog.FindIndex(x => x.Contains("MultipleDependenciesHandler"));
             var baseIndex = BasicHandler.ExecutionLog.FindIndex(x => x.Contains("DependencyBaseHandler"));
             var basicIndex = BasicHandler.ExecutionLog.FindIndex(x => x.Contains("BasicHandler"));
 
-            baseIndex.Should().BeLessThan(multiDepIndex);
-            basicIndex.Should().BeLessThan(multiDepIndex);
+            Assert.True(baseIndex < multiDepIndex);
+            Assert.True(basicIndex < multiDepIndex);
         }
 
         [ExecuteAfter(typeof(DependencyBaseHandler))]

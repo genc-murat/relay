@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.EventSourcing;
@@ -28,9 +27,9 @@ namespace Relay.Core.Tests.EventSourcing
             var eventStore = serviceProvider.GetService<IEventStore>();
             var dbContext = serviceProvider.GetService<EventStoreDbContext>();
 
-            eventStore.Should().NotBeNull();
-            eventStore.Should().BeOfType<EfCoreEventStore>();
-            dbContext.Should().NotBeNull();
+            Assert.NotNull(eventStore);
+            Assert.IsType<EfCoreEventStore>(eventStore);
+            Assert.NotNull(dbContext);
         }
 
         [Fact]
@@ -48,9 +47,9 @@ namespace Relay.Core.Tests.EventSourcing
             var eventStore = serviceProvider.GetService<IEventStore>();
             var dbContext = serviceProvider.GetService<EventStoreDbContext>();
 
-            eventStore.Should().NotBeNull();
-            eventStore.Should().BeOfType<EfCoreEventStore>();
-            dbContext.Should().NotBeNull();
+            Assert.NotNull(eventStore);
+            Assert.IsType<EfCoreEventStore>(eventStore);
+            Assert.NotNull(dbContext);
         }
 
         [Fact]
@@ -70,7 +69,7 @@ namespace Relay.Core.Tests.EventSourcing
             var eventStore2 = scope2.ServiceProvider.GetService<IEventStore>();
 
             // Assert
-            eventStore1.Should().NotBeSameAs(eventStore2);
+            Assert.NotSame(eventStore1, eventStore2);
         }
 
         [Fact]
@@ -89,7 +88,7 @@ namespace Relay.Core.Tests.EventSourcing
             // Should not throw exception
             var serviceProvider = services.BuildServiceProvider();
             var eventStore = serviceProvider.GetService<IEventStore>();
-            eventStore.Should().NotBeNull();
+            Assert.NotNull(eventStore);
         }
 
         [Fact]
@@ -109,7 +108,7 @@ namespace Relay.Core.Tests.EventSourcing
             using var scope = serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<EventStoreDbContext>();
             var canConnect = await context.Database.CanConnectAsync();
-            canConnect.Should().BeTrue();
+            Assert.True(canConnect);
         }
 
         [Fact]
@@ -130,7 +129,7 @@ namespace Relay.Core.Tests.EventSourcing
             using var scope = serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<EventStoreDbContext>();
             var canConnect = await context.Database.CanConnectAsync();
-            canConnect.Should().BeTrue();
+            Assert.True(canConnect);
         }
 
         [Fact]
@@ -168,8 +167,8 @@ namespace Relay.Core.Tests.EventSourcing
                 retrievedEvents.Add(@event);
             }
 
-            retrievedEvents.Should().HaveCount(1);
-            retrievedEvents[0].Should().BeOfType<TestAggregateCreated>();
+            Assert.Equal(1, retrievedEvents.Count);
+            Assert.IsType<TestAggregateCreated>(retrievedEvents[0]);
         }
 
         [Fact]
@@ -184,7 +183,7 @@ namespace Relay.Core.Tests.EventSourcing
 
             // Assert
             var eventStore = serviceProvider.GetService<IEventStore>();
-            eventStore.Should().NotBeNull();
+            Assert.NotNull(eventStore);
         }
 
         [Fact]
@@ -230,7 +229,7 @@ namespace Relay.Core.Tests.EventSourcing
                 }
 
                 // Assert - InMemory database persists across scopes with same database name
-                retrievedEvents.Should().HaveCount(1);
+                Assert.Equal(1, retrievedEvents.Count);
             }
         }
     }

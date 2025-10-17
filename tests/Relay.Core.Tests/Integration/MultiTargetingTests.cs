@@ -1,15 +1,12 @@
-using System;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Tests.Testing;
+using System;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
-using static Relay.Core.Tests.Testing.FluentAssertionsExtensions;
 
 namespace Relay.Core.Tests.Integration;
 
@@ -29,8 +26,8 @@ public class MultiTargetingTests
         // Assert
         // This test validates that the assembly can be loaded and used
         // The actual target framework validation would be done at build time
-        assembly.Should().NotBeNull();
-        typeof(IRelay).Should().BeInterface();
+        Assert.NotNull(assembly);
+        Assert.True(typeof(IRelay).IsInterface);
     }
 
     [Fact]
@@ -41,17 +38,17 @@ public class MultiTargetingTests
         var genericValueTaskType = typeof(ValueTask<>);
 
         // Assert
-        valueTaskType.Should().NotBeNull();
-        genericValueTaskType.Should().NotBeNull();
+        Assert.NotNull(valueTaskType);
+        Assert.NotNull(genericValueTaskType);
 
         // Verify ValueTask constructors and properties are available
         var closedGenericType = typeof(ValueTask<string>);
         var constructors = closedGenericType.GetConstructors();
-        constructors.Should().NotBeEmpty();
+        Assert.NotEmpty(constructors);
 
         // Verify ValueTask can be created from a result
         var valueTaskInstance = new ValueTask<string>("test");
-        valueTaskInstance.IsCompleted.Should().BeTrue();
+        Assert.True(valueTaskInstance.IsCompleted);
     }
 
     [Fact]
@@ -73,7 +70,7 @@ public class MultiTargetingTests
         }
 
         // Assert
-        results.Should().BeEquivalentTo(new[] { 0, 1, 2 });
+        Assert.Equal(new[] { 0, 1, 2 }, results);
     }
 
     [Fact]
@@ -84,8 +81,8 @@ public class MultiTargetingTests
         var token = cts.Token;
 
         // Assert
-        token.Should().NotBeNull();
-        token.CanBeCanceled.Should().BeTrue();
+        Assert.NotNull(token);
+        Assert.True(token.CanBeCanceled);
     }
 
     [Fact]
@@ -95,8 +92,8 @@ public class MultiTargetingTests
         await Task.CompletedTask;
 
         // Assert
-        Task.CompletedTask.Should().NotBeNull();
-        Task.CompletedTask.IsCompleted.Should().BeTrue();
+        Assert.NotNull(Task.CompletedTask);
+        Assert.True(Task.CompletedTask.IsCompleted);
     }
 
     [Fact]
@@ -107,15 +104,15 @@ public class MultiTargetingTests
         var handlerType = typeof(IRequestHandler<,>);
 
         // Assert
-        requestType.IsGenericTypeDefinition.Should().BeTrue();
-        handlerType.IsGenericTypeDefinition.Should().BeTrue();
+        Assert.True(requestType.IsGenericTypeDefinition);
+        Assert.True(handlerType.IsGenericTypeDefinition);
 
         // Verify constraints work at runtime
         var concreteRequestType = requestType.MakeGenericType(typeof(string));
         var concreteHandlerType = handlerType.MakeGenericType(typeof(MultiTargetRequest), typeof(string));
 
-        concreteRequestType.Should().NotBeNull();
-        concreteHandlerType.Should().NotBeNull();
+        Assert.NotNull(concreteRequestType);
+        Assert.NotNull(concreteHandlerType);
     }
 
     [Fact]
@@ -133,8 +130,8 @@ public class MultiTargetingTests
         var result = await relay.SendAsync(request);
 
         // Assert
-        result.Should().Be("Handled: test");
-        handler.WasCalled.Should().BeTrue();
+        Assert.Equal("Handled: test", result);
+        Assert.True(handler.WasCalled);
     }
 
     [Fact]
@@ -146,13 +143,13 @@ public class MultiTargetingTests
         var pipelineAttribute = new PipelineAttribute { Order = 5, Scope = PipelineScope.Requests };
 
         // Assert
-        handleAttribute.Name.Should().Be("test");
-        handleAttribute.Priority.Should().Be(1);
+        Assert.Equal("test", handleAttribute.Name);
+        Assert.Equal(1, handleAttribute.Priority);
 
-        notificationAttribute.DispatchMode.Should().Be(NotificationDispatchMode.Sequential);
+        Assert.Equal(NotificationDispatchMode.Sequential, notificationAttribute.DispatchMode);
 
-        pipelineAttribute.Order.Should().Be(5);
-        pipelineAttribute.Scope.Should().Be(PipelineScope.Requests);
+        Assert.Equal(5, pipelineAttribute.Order);
+        Assert.Equal(PipelineScope.Requests, pipelineAttribute.Scope);
     }
 
     [Fact]
@@ -164,12 +161,12 @@ public class MultiTargetingTests
         var multipleHandlersException = new MultipleHandlersException("TestRequest");
 
         // Assert
-        relayException.RequestType.Should().Be("TestRequest");
-        relayException.HandlerName.Should().Be("TestHandler");
-        relayException.Message.Should().Be("Test message");
+        Assert.Equal("TestRequest", relayException.RequestType);
+        Assert.Equal("TestHandler", relayException.HandlerName);
+        Assert.Equal("Test message", relayException.Message);
 
-        handlerNotFoundException.Should().BeAssignableTo<RelayException>();
-        multipleHandlersException.Should().BeAssignableTo<RelayException>();
+        Assert.IsAssignableFrom<RelayException>(handlerNotFoundException);
+        Assert.IsAssignableFrom<RelayException>(multipleHandlersException);
     }
 
     [Fact]
@@ -191,7 +188,7 @@ public class MultiTargetingTests
         }
 
         // Assert
-        handler.CallCount.Should().Be(100);
+        Assert.Equal(100, handler.CallCount);
 
         // Force garbage collection to test for memory leaks
         GC.Collect();
@@ -199,7 +196,7 @@ public class MultiTargetingTests
         GC.Collect();
 
         // If we get here without OutOfMemoryException, memory management is working
-        handler.CallCount.Should().Be(100);
+        Assert.Equal(100, handler.CallCount);
     }
 
     [Fact]
@@ -221,12 +218,12 @@ public class MultiTargetingTests
             {
                 var request = new MultiTargetRequest { Value = $"thread-{index}" };
                 var result = await relay.SendAsync(request);
-                result.Should().Be($"Handled: thread-{index}");
+                Assert.Equal($"Handled: thread-{index}", result);
             });
         }
 
         await Task.WhenAll(tasks);
-        handler.CallCount.Should().Be(10);
+        Assert.Equal(10, handler.CallCount);
     }
 
     // Test classes

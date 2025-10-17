@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Xunit;
 using Relay.Core.Validation.Rules;
 
@@ -222,7 +221,7 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(input);
 
             // Assert
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
 
         [Theory]
@@ -245,7 +244,7 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(input);
 
             // Assert
-            result.Should().ContainSingle("Value cannot be null or empty.");
+            Assert.Single(result, "Value cannot be null or empty.");
         }
 
         [Fact]
@@ -260,7 +259,7 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(input);
 
             // Assert
-            result.Should().ContainSingle(customMessage);
+            Assert.Single(result, customMessage);
         }
 
         [Fact]
@@ -287,7 +286,7 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(input);
 
             // Assert
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
 
         [Fact]
@@ -301,7 +300,7 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(input);
 
             // Assert
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
 
         [Fact]
@@ -315,7 +314,7 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(input);
 
             // Assert
-            result.Should().ContainSingle("Value cannot be null or empty.");
+            Assert.Single(result, "Value cannot be null or empty.");
         }
 
         // Test implementations

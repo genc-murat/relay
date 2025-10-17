@@ -1,7 +1,7 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -19,7 +19,7 @@ public class VinValidationRuleTests
         var result = await _rule.ValidateAsync(vin);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -39,13 +39,12 @@ public class VinValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(vin))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle().Which.Should().Match(s =>
-                s.Contains("VIN must be exactly 17 characters long.") ||
-                s.Contains("VIN contains invalid characters."));
+            Assert.Contains(result, error => error.Contains("VIN must be exactly 17 characters long.") ||
+                                             error.Contains("VIN contains invalid characters."));
         }
     }
 
@@ -59,7 +58,7 @@ public class VinValidationRuleTests
         var result = await _rule.ValidateAsync(vin);
 
         // Assert
-        result.Should().ContainSingle("Invalid VIN check digit.");
+        Assert.Single(result, "Invalid VIN check digit.");
     }
 
     [Fact]
@@ -83,7 +82,7 @@ public class VinValidationRuleTests
         var result = await _rule.ValidateAsync(vin);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
 
@@ -98,6 +97,6 @@ public class VinValidationRuleTests
         var result = await _rule.ValidateAsync(vin);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 }

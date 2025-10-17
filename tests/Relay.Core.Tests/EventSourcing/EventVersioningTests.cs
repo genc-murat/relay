@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FluentAssertions;
 using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Versioning;
 using Xunit;
@@ -21,7 +20,7 @@ public class EventVersioningTests
         manager.RegisterMigration(migration);
 
         // Assert
-        manager.MigrationCount.Should().Be(1);
+        Assert.Equal(1, manager.MigrationCount);
     }
 
     [Fact]
@@ -44,10 +43,10 @@ public class EventVersioningTests
         var migratedEvent = manager.MigrateEvent(oldEvent);
 
         // Assert
-        migratedEvent.Should().BeOfType<TestEventV3>();
+        Assert.IsType<TestEventV3>(migratedEvent);
         var v3Event = (TestEventV3)migratedEvent;
-        v3Event.FinalField.Should().Be("Final: Migrated: Original");
-        v3Event.SchemaVersion.Should().Be(3);
+        Assert.Equal("Final: Migrated: Original", v3Event.FinalField);
+        Assert.Equal(3, v3Event.SchemaVersion);
     }
 
     [Fact]
@@ -71,10 +70,10 @@ public class EventVersioningTests
         var migratedEvent = manager.MigrateEvent(oldEvent);
 
         // Assert
-        migratedEvent.Should().BeOfType<TestEventV3>();
+        Assert.IsType<TestEventV3>(migratedEvent);
         var v3Event = (TestEventV3)migratedEvent;
-        v3Event.FinalField.Should().Be("Final: Migrated: Original");
-        v3Event.SchemaVersion.Should().Be(3);
+        Assert.Equal("Final: Migrated: Original", v3Event.FinalField);
+        Assert.Equal(3, v3Event.SchemaVersion);
     }
 
     [Fact]
@@ -97,10 +96,10 @@ public class EventVersioningTests
         var migratedEvent = manager.MigrateEvent(v2Event);
 
         // Assert
-        migratedEvent.Should().BeOfType<TestEventV3>();
+        Assert.IsType<TestEventV3>(migratedEvent);
         var v3Event = (TestEventV3)migratedEvent;
-        v3Event.FinalField.Should().Be("Final: Already V2");
-        v3Event.SchemaVersion.Should().Be(3);
+        Assert.Equal("Final: Already V2", v3Event.FinalField);
+        Assert.Equal(3, v3Event.SchemaVersion);
     }
 
     [Fact]
@@ -114,7 +113,7 @@ public class EventVersioningTests
         var migratedEvents = manager.MigrateEvents(emptyEvents);
 
         // Assert
-        migratedEvents.Should().BeEmpty();
+        Assert.Empty(migratedEvents);
     }
 
     [Fact]
@@ -124,16 +123,16 @@ public class EventVersioningTests
         var manager = new EventMigrationManager();
 
         // Act & Assert
-        manager.MigrationCount.Should().Be(0);
+        Assert.Equal(0, manager.MigrationCount);
 
         manager.RegisterMigration(new TestEventMigrationV1ToV2());
-        manager.MigrationCount.Should().Be(1);
+        Assert.Equal(1, manager.MigrationCount);
 
         manager.RegisterMigrations(new[] { new TestEventMigrationV2ToV3() });
-        manager.MigrationCount.Should().Be(2);
+        Assert.Equal(2, manager.MigrationCount);
 
         manager.Clear();
-        manager.MigrationCount.Should().Be(0);
+        Assert.Equal(0, manager.MigrationCount);
     }
 
     [Fact]
@@ -143,7 +142,7 @@ public class EventVersioningTests
         var versionedEvent = new TestEventV1();
 
         // Assert
-        versionedEvent.SchemaVersion.Should().Be(1);
+        Assert.Equal(1, versionedEvent.SchemaVersion);
     }
 
     [Fact]
@@ -159,7 +158,7 @@ public class EventVersioningTests
         manager.RegisterMigration(migration2);
 
         // Assert
-        manager.MigrationCount.Should().Be(2);
+        Assert.Equal(2, manager.MigrationCount);
     }
 
     [Fact]
@@ -189,9 +188,9 @@ public class EventVersioningTests
         var migratedEvent = manager.MigrateEvent(eventV1);
 
         // Assert
-        migratedEvent.Should().BeOfType<TestEventV3>();
+        Assert.IsType<TestEventV3>(migratedEvent);
         var v3Event = (TestEventV3)migratedEvent;
-        v3Event.FinalField.Should().Be("Direct to V3: Test");
+        Assert.Equal("Direct to V3: Test", v3Event.FinalField);
     }
 
     [Fact]
@@ -208,9 +207,9 @@ public class EventVersioningTests
         var migratedEvent = manager.MigrateEvent(eventV1);
 
         // Assert
-        migratedEvent.Should().BeOfType<TestEventV3>();
+        Assert.IsType<TestEventV3>(migratedEvent);
         var v3Event = (TestEventV3)migratedEvent;
-        v3Event.FinalField.Should().Be("Final: Migrated: Start");
+        Assert.Equal("Final: Migrated: Start", v3Event.FinalField);
     }
 
     [Fact]
@@ -231,10 +230,10 @@ public class EventVersioningTests
         var migratedEvents = manager.MigrateEvents(events).ToList();
 
         // Assert
-        migratedEvents.Should().HaveCount(3);
-        migratedEvents[0].Should().BeOfType<TestEventV2>(); // No change
-        migratedEvents[1].Should().BeOfType<TestEventV2>(); // Migrated
-        migratedEvents[2].Should().BeOfType<TestEventV2>(); // Migrated
+        Assert.Equal(3, migratedEvents.Count);
+        Assert.IsType<TestEventV2>(migratedEvents[0]); // No change
+        Assert.IsType<TestEventV2>(migratedEvents[1]); // Migrated
+        Assert.IsType<TestEventV2>(migratedEvents[2]); // Migrated
     }
 
     [Fact]
@@ -249,12 +248,12 @@ public class EventVersioningTests
         manager.Clear();
 
         // Assert
-        manager.MigrationCount.Should().Be(0);
+        Assert.Equal(0, manager.MigrationCount);
 
         // Verify no migrations apply
         var eventV1 = new TestEventV1 { SchemaVersion = 1, OldField = "Test" };
         var migratedEvent = manager.MigrateEvent(eventV1);
-        migratedEvent.Should().BeSameAs(eventV1);
+        Assert.Same(eventV1, migratedEvent);
     }
 
     [Fact]

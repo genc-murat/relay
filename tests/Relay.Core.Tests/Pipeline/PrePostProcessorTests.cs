@@ -1,16 +1,13 @@
+using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Pipeline.Behaviors;
+using Relay.Core.Pipeline.Extensions;
+using Relay.Core.Pipeline.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using Relay.Core;
-using Relay.Core.Contracts.Handlers;
-using Relay.Core.Contracts.Requests;
-using Relay.Core.Pipeline;
-using Relay.Core.Pipeline.Behaviors;
-using Relay.Core.Pipeline.Extensions;
-using Relay.Core.Pipeline.Interfaces;
 using Xunit;
 
 namespace Relay.Core.Tests.Pipeline
@@ -82,10 +79,10 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            handlerCalled.Should().BeTrue();
-            TestPreProcessor.ExecutionLog.Should().ContainSingle();
-            TestPreProcessor.ExecutionLog[0].Should().Be("PreProcessor: test");
-            response.Result.Should().Be("Handled: test");
+            Assert.True(handlerCalled);
+            Assert.Single(TestPreProcessor.ExecutionLog);
+            Assert.Equal("PreProcessor: test", TestPreProcessor.ExecutionLog[0]);
+            Assert.Equal("Handled: test", response.Result);
         }
 
         [Fact]
@@ -112,9 +109,9 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            TestPreProcessor.ExecutionLog.Should().HaveCount(2);
-            TestPreProcessor.ExecutionLog[0].Should().Be("PreProcessor: test");
-            TestPreProcessor.ExecutionLog[1].Should().Be("AnotherPreProcessor: test");
+            Assert.Equal(2, TestPreProcessor.ExecutionLog.Count);
+            Assert.Equal("PreProcessor: test", TestPreProcessor.ExecutionLog[0]);
+            Assert.Equal("AnotherPreProcessor: test", TestPreProcessor.ExecutionLog[1]);
         }
 
         [Fact]
@@ -147,7 +144,7 @@ namespace Relay.Core.Tests.Pipeline
                     default);
             });
 
-            handlerCalled.Should().BeFalse();
+            Assert.False(handlerCalled);
         }
 
         public class ThrowingPreProcessor : IRequestPreProcessor<TestRequest>
@@ -205,9 +202,9 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            response.Result.Should().Be("Handled: test");
-            TestPostProcessor.ExecutionLog.Should().ContainSingle();
-            TestPostProcessor.ExecutionLog[0].Should().Be("PostProcessor - Request: test, Response: Handled: test");
+            Assert.Equal("Handled: test", response.Result);
+            Assert.Single(TestPostProcessor.ExecutionLog);
+            Assert.Equal("PostProcessor - Request: test, Response: Handled: test", TestPostProcessor.ExecutionLog[0]);
         }
 
         [Fact]
@@ -234,9 +231,9 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            TestPostProcessor.ExecutionLog.Should().HaveCount(2);
-            TestPostProcessor.ExecutionLog[0].Should().Be("PostProcessor - Request: test, Response: Handled: test");
-            TestPostProcessor.ExecutionLog[1].Should().Be("AnotherPostProcessor - Request: test, Response: Handled: test");
+            Assert.Equal(2, TestPostProcessor.ExecutionLog.Count);
+            Assert.Equal("PostProcessor - Request: test, Response: Handled: test", TestPostProcessor.ExecutionLog[0]);
+            Assert.Equal("AnotherPostProcessor - Request: test, Response: Handled: test", TestPostProcessor.ExecutionLog[1]);
         }
 
         [Fact]
@@ -262,7 +259,7 @@ namespace Relay.Core.Tests.Pipeline
                     default);
             });
 
-            TestPostProcessor.ExecutionLog.Should().BeEmpty();
+            Assert.Empty(TestPostProcessor.ExecutionLog);
         }
 
         [Fact]
@@ -333,11 +330,11 @@ namespace Relay.Core.Tests.Pipeline
                 default);
 
             // Assert
-            response.Result.Should().Be("Handled: integration");
-            TestPreProcessor.ExecutionLog.Should().ContainSingle();
-            TestPreProcessor.ExecutionLog[0].Should().Be("PreProcessor: integration");
-            TestPostProcessor.ExecutionLog.Should().ContainSingle();
-            TestPostProcessor.ExecutionLog[0].Should().Be("PostProcessor - Request: integration, Response: Handled: integration");
+            Assert.Equal("Handled: integration", response.Result);
+            Assert.Single(TestPreProcessor.ExecutionLog);
+            Assert.Equal("PreProcessor: integration", TestPreProcessor.ExecutionLog[0]);
+            Assert.Single(TestPostProcessor.ExecutionLog);
+            Assert.Equal("PostProcessor - Request: integration, Response: Handled: integration", TestPostProcessor.ExecutionLog[0]);
         }
 
         #endregion

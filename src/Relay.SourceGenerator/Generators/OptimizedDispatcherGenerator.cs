@@ -315,6 +315,7 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
         sourceBuilder.AppendLine($"            IServiceProvider serviceProvider,");
         sourceBuilder.AppendLine($"            string? handlerName = null,");
         sourceBuilder.AppendLine($"            CancellationToken cancellationToken = default)");
+        sourceBuilder.AppendLine($"            where TRequest : IStreamRequest<TResponse>");
         sourceBuilder.AppendLine($"        {{");
 
         // Generate streaming dispatch logic
@@ -372,6 +373,7 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
         sourceBuilder.AppendLine($"            TNotification notification,");
         sourceBuilder.AppendLine($"            IServiceProvider serviceProvider,");
         sourceBuilder.AppendLine($"            CancellationToken cancellationToken = default)");
+        sourceBuilder.AppendLine($"            where TNotification : INotification");
         sourceBuilder.AppendLine($"        {{");
 
         // Group notification handlers by type

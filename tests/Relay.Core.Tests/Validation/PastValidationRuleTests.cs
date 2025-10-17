@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -20,7 +19,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(pastDate);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -34,7 +33,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(futureDate);
 
         // Assert
-        result.Should().ContainSingle("Date must be in the past.");
+        Assert.Single(result, "Date must be in the past.");
     }
 
     [Fact]
@@ -48,7 +47,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(currentTime);
 
         // Assert
-        result.Should().ContainSingle("Date must be in the past.");
+        Assert.Single(result, "Date must be in the past.");
     }
 
     [Fact]
@@ -62,7 +61,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(justPast);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -76,7 +75,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(justFuture);
 
         // Assert
-        result.Should().ContainSingle("Date must be in the past.");
+        Assert.Single(result, "Date must be in the past.");
     }
 
     [Fact]
@@ -90,7 +89,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(oldDate);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -118,7 +117,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(pastDate);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -132,7 +131,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(futureDate);
 
         // Assert
-        result.Should().ContainSingle("Date must be in the past.");
+        Assert.Single(result, "Date must be in the past.");
     }
 
     [Fact]
@@ -146,7 +145,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(currentTime);
 
         // Assert
-        result.Should().ContainSingle("Date must be in the past.");
+        Assert.Single(result, "Date must be in the past.");
     }
 
     [Fact]
@@ -160,7 +159,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(justPast);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -174,7 +173,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(justFuture);
 
         // Assert
-        result.Should().ContainSingle("Date must be in the past.");
+        Assert.Single(result, "Date must be in the past.");
     }
 
     [Fact]
@@ -188,7 +187,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(pastDate);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -202,7 +201,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(futureDate);
 
         // Assert
-        result.Should().ContainSingle("Date must be in the past.");
+        Assert.Single(result, "Date must be in the past.");
     }
 
     [Fact]
@@ -230,7 +229,7 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(minDate);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -244,6 +243,6 @@ public class PastValidationRuleTests
         var result = await rule.ValidateAsync(minDate);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 }

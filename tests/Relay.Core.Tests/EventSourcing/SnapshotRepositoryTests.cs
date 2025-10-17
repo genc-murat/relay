@@ -1,7 +1,6 @@
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Repositories;
 using Relay.Core.EventSourcing.Stores;
@@ -38,10 +37,10 @@ public class SnapshotRepositoryTests
         var loadedAggregate = await repository.GetByIdAsync(id);
 
         // Assert
-        loadedAggregate.Should().NotBeNull();
-        loadedAggregate!.Id.Should().Be(id);
-        loadedAggregate.Name.Should().Be("Name 9");
-        loadedAggregate.Version.Should().Be(9);
+        Assert.NotNull(loadedAggregate);
+        Assert.Equal(id, loadedAggregate.Id);
+        Assert.Equal("Name 9", loadedAggregate.Name);
+        Assert.Equal(9, loadedAggregate.Version);
     }
 
     [Fact]
@@ -76,9 +75,9 @@ public class SnapshotRepositoryTests
         var loadedAggregate = await repository.GetByIdAsync(id);
 
         // Assert
-        loadedAggregate.Should().NotBeNull();
-        loadedAggregate!.Name.Should().Be("After Snapshot 2");
-        loadedAggregate.Version.Should().Be(11);
+        Assert.NotNull(loadedAggregate);
+        Assert.Equal("After Snapshot 2", loadedAggregate.Name);
+        Assert.Equal(11, loadedAggregate.Version);
     }
 
     [Fact]
@@ -94,7 +93,7 @@ public class SnapshotRepositoryTests
         var loadedAggregate = await repository.GetByIdAsync(Guid.NewGuid());
 
         // Assert
-        loadedAggregate.Should().BeNull();
+        Assert.Null(loadedAggregate);
     }
 
     [Fact]
@@ -124,8 +123,8 @@ public class SnapshotRepositoryTests
         var snapshot1 = await snapshotStore.GetSnapshotAsync<TestAggregateSnapshot>(id);
 
         // Assert - Should have snapshot at version 10 (since frequency is 10)
-        snapshot1.Should().NotBeNull();
-        snapshot1!.Value.Version.Should().Be(10);
+        Assert.NotNull(snapshot1);
+        Assert.Equal(10, snapshot1.Value.Version);
     }
 
     [Fact]
@@ -165,7 +164,7 @@ public class SnapshotRepositoryTests
 
         // Assert - No events should be saved
         var events = await eventStore.GetEventsAsync(id).ToListAsync();
-        events.Should().BeEmpty();
+        Assert.Empty(events);
     }
 
     [Fact]
@@ -189,10 +188,10 @@ public class SnapshotRepositoryTests
         var loadedAggregate = await repository.GetByIdAsync(id);
 
         // Assert
-        loadedAggregate.Should().NotBeNull();
-        loadedAggregate!.Id.Should().Be(id);
-        loadedAggregate.Name.Should().Be("Snapshot Only");
-        loadedAggregate.Version.Should().Be(1);
+        Assert.NotNull(loadedAggregate);
+        Assert.Equal(id, loadedAggregate.Id);
+        Assert.Equal("Snapshot Only", loadedAggregate.Name);
+        Assert.Equal(1, loadedAggregate.Version);
     }
 
     [Fact]
@@ -216,10 +215,10 @@ public class SnapshotRepositoryTests
         var loadedAggregate = await repository.GetByIdAsync(id);
 
         // Assert
-        loadedAggregate.Should().NotBeNull();
-        loadedAggregate!.Id.Should().Be(id);
-        loadedAggregate.Name.Should().Be("Updated Name");
-        loadedAggregate.Version.Should().Be(1);
+        Assert.NotNull(loadedAggregate);
+        Assert.Equal(id, loadedAggregate.Id);
+        Assert.Equal("Updated Name", loadedAggregate.Name);
+        Assert.Equal(1, loadedAggregate.Version);
     }
 
     [Fact]

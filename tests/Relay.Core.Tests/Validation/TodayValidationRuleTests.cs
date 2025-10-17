@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -20,7 +19,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(today);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -34,7 +33,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(todayWithTime);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -48,7 +47,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(yesterday);
 
         // Assert
-        result.Should().ContainSingle("Date must be today.");
+        Assert.Single(result, "Date must be today.");
     }
 
     [Fact]
@@ -62,7 +61,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(tomorrow);
 
         // Assert
-        result.Should().ContainSingle("Date must be today.");
+        Assert.Single(result, "Date must be today.");
     }
 
     [Fact]
@@ -76,7 +75,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(midnightToday);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -90,7 +89,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(endOfToday);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -118,7 +117,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(today);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -132,7 +131,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(todayWithTime);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -146,7 +145,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(yesterday);
 
         // Assert
-        result.Should().ContainSingle("Date must be today.");
+        Assert.Single(result, "Date must be today.");
     }
 
     [Fact]
@@ -160,7 +159,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(tomorrow);
 
         // Assert
-        result.Should().ContainSingle("Date must be today.");
+        Assert.Single(result, "Date must be today.");
     }
 
     [Fact]
@@ -176,7 +175,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(todayWithOffset);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -192,7 +191,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(yesterdayWithOffset);
 
         // Assert
-        result.Should().ContainSingle("Date must be today.");
+        Assert.Single(result, "Date must be today.");
     }
 
     [Fact]
@@ -220,7 +219,7 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(minDate);
 
         // Assert
-        result.Should().ContainSingle("Date must be today.");
+        Assert.Single(result, "Date must be today.");
     }
 
     [Fact]
@@ -234,6 +233,6 @@ public class TodayValidationRuleTests
         var result = await rule.ValidateAsync(minDate);
 
         // Assert
-        result.Should().ContainSingle("Date must be today.");
+        Assert.Single(result, "Date must be today.");
     }
 }

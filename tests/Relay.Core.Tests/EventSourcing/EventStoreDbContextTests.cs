@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Relay.Core.EventSourcing.Infrastructure;
 using System;
@@ -41,9 +40,9 @@ public class EventStoreDbContextTests : IDisposable
 
         // Assert
         var savedEvent = await _context.Events.FirstOrDefaultAsync();
-        savedEvent.Should().NotBeNull();
-        savedEvent!.Id.Should().Be(eventEntity.Id);
-        savedEvent.AggregateId.Should().Be(eventEntity.AggregateId);
+        Assert.NotNull(savedEvent);
+        Assert.Equal(eventEntity.Id, savedEvent.Id);
+        Assert.Equal(eventEntity.AggregateId, savedEvent.AggregateId);
     }
 
     [Fact]
@@ -131,7 +130,7 @@ public class EventStoreDbContextTests : IDisposable
 
         // Assert
         var events = await _context.Events.ToListAsync();
-        events.Should().HaveCount(2);
+        Assert.Equal(2, events.Count);
     }
 
     [Fact]
@@ -179,8 +178,8 @@ public class EventStoreDbContextTests : IDisposable
             .ToListAsync();
 
         // Assert
-        eventsForAggregate1.Should().HaveCount(2);
-        eventsForAggregate1.All(e => e.AggregateId == aggregateId1).Should().BeTrue();
+        Assert.Equal(2, eventsForAggregate1.Count);
+        Assert.True(eventsForAggregate1.All(e => e.AggregateId == aggregateId1));
     }
 
     [Fact]
@@ -229,10 +228,10 @@ public class EventStoreDbContextTests : IDisposable
             .ToListAsync();
 
         // Assert
-        events.Should().HaveCount(3);
-        events[0].AggregateVersion.Should().Be(0);
-        events[1].AggregateVersion.Should().Be(1);
-        events[2].AggregateVersion.Should().Be(2);
+        Assert.Equal(3, events.Count);
+        Assert.Equal(0, events[0].AggregateVersion);
+        Assert.Equal(1, events[1].AggregateVersion);
+        Assert.Equal(2, events[2].AggregateVersion);
     }
 
     [Fact]
@@ -256,8 +255,8 @@ public class EventStoreDbContextTests : IDisposable
 
         // Assert
         var savedEvent = await _context.Events.FirstOrDefaultAsync();
-        savedEvent.Should().NotBeNull();
-        savedEvent!.EventData.Should().Be(jsonData);
+        Assert.NotNull(savedEvent);
+        Assert.Equal(jsonData, savedEvent.EventData);
     }
 
     [Fact]
@@ -279,12 +278,12 @@ public class EventStoreDbContextTests : IDisposable
         await _context.SaveChangesAsync();
 
         var savedEvent = await _context.Events.FirstOrDefaultAsync();
-        savedEvent.Should().NotBeNull();
-        savedEvent!.Id.Should().NotBe(Guid.Empty);
-        savedEvent.AggregateId.Should().NotBe(Guid.Empty);
-        savedEvent.EventType.Should().NotBeNullOrEmpty();
-        savedEvent.EventData.Should().NotBeNullOrEmpty();
-        savedEvent.Timestamp.Should().NotBe(default(DateTime));
+        Assert.NotNull(savedEvent);
+        Assert.NotEqual(Guid.Empty, savedEvent.Id);
+        Assert.NotEqual(Guid.Empty, savedEvent.AggregateId);
+        Assert.False(string.IsNullOrEmpty(savedEvent.EventType));
+        Assert.False(string.IsNullOrEmpty(savedEvent.EventData));
+        Assert.NotEqual(default(DateTime), savedEvent.Timestamp);
     }
 
     [Fact]
@@ -308,8 +307,8 @@ public class EventStoreDbContextTests : IDisposable
 
         // Assert
         var savedEvent = await _context.Events.FirstOrDefaultAsync();
-        savedEvent.Should().NotBeNull();
-        savedEvent!.EventData.Length.Should().Be(10000);
+        Assert.NotNull(savedEvent);
+        Assert.Equal(10000, savedEvent.EventData.Length);
     }
 
     [Fact]
@@ -336,7 +335,7 @@ public class EventStoreDbContextTests : IDisposable
             .Where(e => e.AggregateId == aggregateId)
             .ToListAsync();
 
-        savedEvents.Should().HaveCount(100);
+        Assert.Equal(100, savedEvents.Count);
     }
 
     public void Dispose()

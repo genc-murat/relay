@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Infrastructure;
@@ -25,11 +24,11 @@ public class SnapshotStoreTests
         var result = await store.GetSnapshotAsync<TestSnapshot>(aggregateId);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.Value.Snapshot.Should().NotBeNull();
-        result.Value.Snapshot!.Name.Should().Be("Test Snapshot");
-        result.Value.Snapshot.Value.Should().Be(42);
-        result.Value.Version.Should().Be(10);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Value.Snapshot);
+        Assert.Equal("Test Snapshot", result.Value.Snapshot.Name);
+        Assert.Equal(42, result.Value.Snapshot.Value);
+        Assert.Equal(10, result.Value.Version);
     }
 
     [Fact]
@@ -47,9 +46,9 @@ public class SnapshotStoreTests
         var result = await store.GetSnapshotAsync<TestSnapshot>(aggregateId);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.Value.Snapshot!.Name.Should().Be("Snapshot 3");
-        result.Value.Version.Should().Be(15);
+        Assert.NotNull(result);
+        Assert.Equal("Snapshot 3", result.Value.Snapshot.Name);
+        Assert.Equal(15, result.Value.Version);
     }
 
     [Fact]
@@ -69,9 +68,9 @@ public class SnapshotStoreTests
         var result = await store.GetSnapshotAsync<TestSnapshot>(aggregateId);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.Value.Snapshot!.Name.Should().Be("Snapshot 3");
-        result.Value.Version.Should().Be(15);
+        Assert.NotNull(result);
+        Assert.Equal("Snapshot 3", result.Value.Snapshot.Name);
+        Assert.Equal(15, result.Value.Version);
     }
 
     [Fact]
@@ -85,7 +84,7 @@ public class SnapshotStoreTests
         var result = await store.GetSnapshotAsync<TestSnapshot>(aggregateId);
 
         // Assert
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -106,10 +105,10 @@ public class SnapshotStoreTests
         var result = await store.GetSnapshotAsync<TestSnapshot>(aggregateId);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.Value.Snapshot!.Name.Should().Be("EF Snapshot");
-        result.Value.Snapshot.Value.Should().Be(99);
-        result.Value.Version.Should().Be(5);
+        Assert.NotNull(result);
+        Assert.Equal("EF Snapshot", result.Value.Snapshot.Name);
+        Assert.Equal(99, result.Value.Snapshot.Value);
+        Assert.Equal(5, result.Value.Version);
     }
 
     [Fact]
@@ -136,8 +135,8 @@ public class SnapshotStoreTests
             .ToListAsync();
 
         // Assert
-        allSnapshots.Should().HaveCount(1);
-        allSnapshots.First().Version.Should().Be(15);
+        Assert.Single(allSnapshots);
+        Assert.Equal(15, allSnapshots.First().Version);
     }
 
     public class TestSnapshot

@@ -1,7 +1,7 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -26,7 +26,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle($"Length must not exceed {maxLength} characters.");
+        Assert.Single(result, $"Length must not exceed {maxLength} characters.");
     }
 
     [Theory]
@@ -58,7 +58,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle(customMessage);
+        Assert.Single(result, customMessage);
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Length must not exceed 3 characters.");
+        Assert.Single(result, "Length must not exceed 3 characters.");
     }
 
     [Fact]
@@ -138,11 +138,11 @@ public class MaxLengthValidationRuleTests
         // The behavior depends on how .NET represents the emoji
         if (input.Length <= 2)
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Length must not exceed 2 characters.");
+            Assert.Single(result, "Length must not exceed 2 characters.");
         }
     }
 
@@ -157,7 +157,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Length must not exceed 255 characters.");
+        Assert.Single(result, "Length must not exceed 255 characters.");
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Length must not exceed 100 characters.");
+        Assert.Single(result, "Length must not exceed 100 characters.");
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -212,7 +212,7 @@ public class MaxLengthValidationRuleTests
         var result = await new MaxLengthValidationRule(maxLength).ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -242,7 +242,7 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle($"Length must not exceed {maxLength} characters.");
+        Assert.Single(result, $"Length must not exceed {maxLength} characters.");
     }
 
     [Theory]
@@ -257,12 +257,12 @@ public class MaxLengthValidationRuleTests
         // Test exactly at boundary
         var atBoundary = new string('a', maxLength);
         var resultAtBoundary = await rule.ValidateAsync(atBoundary);
-        resultAtBoundary.Should().BeEmpty();
+        Assert.Empty(resultAtBoundary);
 
         // Test one over boundary
         var overBoundary = new string('a', maxLength + 1);
         var resultOverBoundary = await rule.ValidateAsync(overBoundary);
-        resultOverBoundary.Should().ContainSingle($"Length must not exceed {maxLength} characters.");
+        Assert.Single(resultOverBoundary, $"Length must not exceed {maxLength} characters.");
     }
 
     [Fact]
@@ -273,11 +273,11 @@ public class MaxLengthValidationRuleTests
 
         // Test empty string
         var resultEmpty = await rule.ValidateAsync("");
-        resultEmpty.Should().BeEmpty();
+        Assert.Empty(resultEmpty);
 
         // Test any non-empty string
         var resultNonEmpty = await rule.ValidateAsync("a");
-        resultNonEmpty.Should().ContainSingle("Length must not exceed 0 characters.");
+        Assert.Single(resultNonEmpty, "Length must not exceed 0 characters.");
     }
 
     [Theory]
@@ -297,11 +297,11 @@ public class MaxLengthValidationRuleTests
         // Assert
         if (input.Length <= maxLength)
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle($"Length must not exceed {maxLength} characters.");
+            Assert.Single(result, $"Length must not exceed {maxLength} characters.");
         }
     }
 
@@ -317,6 +317,6 @@ public class MaxLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle($"Length must not exceed {maxLength} characters.");
+        Assert.Single(result, $"Length must not exceed {maxLength} characters.");
     }
 }

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Contracts.Pipeline;
@@ -53,7 +52,7 @@ namespace Relay.Core.Tests.Security
             var result = await behavior.HandleAsync(request, nextMock.Object, cancellationToken);
 
             // Assert
-            result.Should().Be(response);
+            Assert.Equal(response, result);
 
             // Verify all security steps were called
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", request, cancellationToken), Times.Once);
@@ -85,7 +84,7 @@ namespace Relay.Core.Tests.Security
             var result = await behavior.HandleAsync(request, nextMock.Object, cancellationToken);
 
             // Assert
-            result.Should().Be(response);
+            Assert.Equal(response, result);
 
             // Verify all security steps were called
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", request, cancellationToken), Times.Once);
@@ -115,8 +114,8 @@ namespace Relay.Core.Tests.Security
             var exception = await Assert.ThrowsAsync<RateLimitExceededException>(() =>
                 behavior.HandleAsync(request, nextMock.Object, cancellationToken).AsTask());
 
-            exception.UserId.Should().Be(userId);
-            exception.RequestType.Should().Be("IntegrationTestRequest");
+            Assert.Equal(userId, exception.UserId);
+            Assert.Equal("IntegrationTestRequest", exception.RequestType);
 
             // Verify pipeline stopped at rate limit check (before audit logging)
             _rateLimiterMock.Verify(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest"), Times.Once);
@@ -148,7 +147,7 @@ namespace Relay.Core.Tests.Security
             var thrownException = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 behavior.HandleAsync(request, nextMock.Object, cancellationToken).AsTask());
 
-            thrownException.Should().Be(exception);
+            Assert.Equal(exception, thrownException);
 
             // Verify failure was logged
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", request, cancellationToken), Times.Once);
@@ -180,7 +179,7 @@ namespace Relay.Core.Tests.Security
             var result = await behavior.HandleAsync(request, nextMock.Object, cancellationToken);
 
             // Assert
-            result.Should().Be(response);
+            Assert.Equal(response, result);
 
             // Verify rate limiter was not called
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", request, cancellationToken), Times.Once);
@@ -223,8 +222,8 @@ namespace Relay.Core.Tests.Security
             }
 
             // Assert
-            results.Should().HaveCount(10);
-            results.Should().BeEquivalentTo(responses);
+            Assert.Equal(10, results.Length);
+            Assert.Equal(responses, results);
 
             // Verify all requests were processed
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", It.IsAny<object>(), cancellationToken), Times.Exactly(10));

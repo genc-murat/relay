@@ -4,7 +4,6 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Contracts.Pipeline;
@@ -79,7 +78,7 @@ namespace Relay.Core.Tests.Security
             var behavior = new SecurityPipelineBehavior<TestRequest, TestResponse>(logger, securityContext, auditor);
 
             // Assert
-            behavior.Should().NotBeNull();
+            Assert.NotNull(behavior);
         }
 
         [Fact]
@@ -95,7 +94,7 @@ namespace Relay.Core.Tests.Security
             var behavior = new SecurityPipelineBehavior<TestRequest, TestResponse>(logger, securityContext, auditor, rateLimiter);
 
             // Assert
-            behavior.Should().NotBeNull();
+            Assert.NotNull(behavior);
         }
 
         [Fact]
@@ -140,7 +139,7 @@ namespace Relay.Core.Tests.Security
 
             // Assert
             _nextMock.Verify(x => x(), Times.Once);
-            result.Should().Be(response);
+            Assert.Equal(response, result);
         }
 
         [Fact]
@@ -185,7 +184,7 @@ namespace Relay.Core.Tests.Security
                 behavior.HandleAsync(request, _nextMock.Object, cancellationToken).AsTask());
 
             // Assert
-            thrownException.Should().Be(exception);
+            Assert.Equal(exception, thrownException);
             _auditorMock.Verify(x => x.LogFailureAsync(userId, "TestRequest", exception, cancellationToken), Times.Once);
         }
 
@@ -252,8 +251,8 @@ namespace Relay.Core.Tests.Security
             var exception = await Assert.ThrowsAsync<RateLimitExceededException>(() =>
                 behavior.HandleAsync(request, _nextMock.Object, cancellationToken).AsTask());
 
-            exception.UserId.Should().Be(userId);
-            exception.RequestType.Should().Be("TestRequest");
+            Assert.Equal(userId, exception.UserId);
+            Assert.Equal("TestRequest", exception.RequestType);
         }
 
         [Fact]
@@ -302,7 +301,7 @@ namespace Relay.Core.Tests.Security
             var result = await behavior.HandleAsync(request, _nextMock.Object, cancellationToken);
 
             // Assert
-            result.Should().Be(response);
+            Assert.Equal(response, result);
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "TestRequest", request, cancellationToken), Times.Once);
         }
 
@@ -325,7 +324,7 @@ namespace Relay.Core.Tests.Security
             var result = await behavior.HandleAsync(request, _nextMock.Object, cancellationToken);
 
             // Assert
-            result.Should().Be(response);
+            Assert.Equal(response, result);
             _auditorMock.Verify(x => x.LogSuccessAsync(userId, "TestRequest", cancellationToken), Times.Once);
         }
 

@@ -1,8 +1,8 @@
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Validation.Rules;
@@ -28,7 +28,7 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(null);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync("");
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync("   ");
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(email);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -88,7 +88,8 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(email);
 
         // Assert
-        result.Should().ContainSingle("Email address appears to be invalid or undeliverable.");
+        Assert.Single(result);
+        Assert.Equal("Email address appears to be invalid or undeliverable.", result.Single());
     }
 
     [Fact]
@@ -108,7 +109,8 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(email);
 
         // Assert
-        result.Should().ContainSingle("Disposable email addresses are not allowed.");
+        Assert.Single(result);
+        Assert.Equal("Disposable email addresses are not allowed.", result.Single());
     }
 
     [Fact]
@@ -128,7 +130,8 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(email);
 
         // Assert
-        result.Should().ContainSingle("Email address has a high risk score. Please use a different email.");
+        Assert.Single(result);
+        Assert.Equal("Email address has a high risk score. Please use a different email.", result.Single());
     }
 
     [Fact]
@@ -148,9 +151,9 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(email);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain("Email address appears to be invalid or undeliverable.");
-        result.Should().Contain("Disposable email addresses are not allowed.");
+        Assert.Equal(2, result.Count());
+        Assert.Contains("Email address appears to be invalid or undeliverable.", result);
+        Assert.Contains("Disposable email addresses are not allowed.", result);
     }
 
     [Fact]
@@ -170,9 +173,9 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(email);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain("Email address appears to be invalid or undeliverable.");
-        result.Should().Contain("Email address has a high risk score. Please use a different email.");
+        Assert.Equal(2, result.Count());
+        Assert.Contains("Email address appears to be invalid or undeliverable.", result);
+        Assert.Contains("Email address has a high risk score. Please use a different email.", result);
     }
 
     [Fact]
@@ -192,10 +195,10 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(email);
 
         // Assert
-        result.Should().HaveCount(3);
-        result.Should().Contain("Email address appears to be invalid or undeliverable.");
-        result.Should().Contain("Disposable email addresses are not allowed.");
-        result.Should().Contain("Email address has a high risk score. Please use a different email.");
+        Assert.Equal(3, result.Count());
+        Assert.Contains("Email address appears to be invalid or undeliverable.", result);
+        Assert.Contains("Disposable email addresses are not allowed.", result);
+        Assert.Contains("Email address has a high risk score. Please use a different email.", result);
     }
 
     [Fact]
@@ -210,7 +213,8 @@ public class EmailVerificationValidationRuleTests
         var result = await _rule.ValidateAsync(email);
 
         // Assert
-        result.Should().ContainSingle("Unable to verify email address. Please try again later.");
+        Assert.Single(result);
+        Assert.Equal("Unable to verify email address. Please try again later.", result.Single());
     }
 
     [Fact]
@@ -265,10 +269,10 @@ public class MockEmailVerifierTests
         var result = await _verifier.VerifyEmailAsync(email);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.IsDisposable.Should().BeFalse();
-        result.RiskScore.Should().Be(0.1);
-        result.Domain.Should().Be("example.com");
+        Assert.True(result.IsValid);
+        Assert.False(result.IsDisposable);
+        Assert.Equal(0.1, result.RiskScore);
+        Assert.Equal("example.com", result.Domain);
     }
 
     [Fact]
@@ -281,9 +285,9 @@ public class MockEmailVerifierTests
         var result = await _verifier.VerifyEmailAsync(email);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.IsDisposable.Should().BeTrue();
-        result.RiskScore.Should().Be(0.9);
+        Assert.True(result.IsValid);
+        Assert.True(result.IsDisposable);
+        Assert.Equal(0.9, result.RiskScore);
     }
 
     [Fact]
@@ -296,9 +300,9 @@ public class MockEmailVerifierTests
         var result = await _verifier.VerifyEmailAsync(email);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.IsDisposable.Should().BeFalse();
-        result.RiskScore.Should().Be(0.8);
+        Assert.True(result.IsValid);
+        Assert.False(result.IsDisposable);
+        Assert.Equal(0.8, result.RiskScore);
     }
 
     [Fact]
@@ -311,7 +315,7 @@ public class MockEmailVerifierTests
         var result = await _verifier.VerifyEmailAsync(email);
 
         // Assert
-        result.IsValid.Should().BeFalse();
+        Assert.False(result.IsValid);
     }
 
     [Fact]
@@ -365,7 +369,7 @@ public class CircuitBreakerEmailVerifierTests
         var result = await _verifier.VerifyEmailAsync(email);
 
         // Assert
-        result.Should().Be(expectedResult);
+        Assert.Equal(expectedResult, result);
         _mockInnerVerifier.Verify(v => v.VerifyEmailAsync(email, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -381,10 +385,10 @@ public class CircuitBreakerEmailVerifierTests
         var result = await _verifier.VerifyEmailAsync(email);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.IsDisposable.Should().BeFalse();
-        result.RiskScore.Should().Be(0.5);
-        result.Domain.Should().Be("verification-failed");
+        Assert.True(result.IsValid);
+        Assert.False(result.IsDisposable);
+        Assert.Equal(0.5, result.RiskScore);
+        Assert.Equal("verification-failed", result.Domain);
     }
 
     [Fact]
@@ -413,8 +417,8 @@ public class CircuitBreakerEmailVerifierTests
         var result = await _verifier.VerifyEmailAsync(email);
 
         // Assert
-        result.IsValid.Should().BeTrue();
-        result.Domain.Should().Be("circuit-breaker-open");
+        Assert.True(result.IsValid);
+        Assert.Equal("circuit-breaker-open", result.Domain);
     }
 
     [Fact]

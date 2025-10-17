@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -80,7 +79,8 @@ namespace Relay.Core.Tests.RateLimiting
                 _optionsMock.Object);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>().WithParameterName("rateLimiter");
+            var ex = Assert.Throws<ArgumentNullException>(() => act());
+            Assert.Equal("rateLimiter", ex.ParamName);
         }
 
         [Fact]
@@ -93,7 +93,8 @@ namespace Relay.Core.Tests.RateLimiting
                 _optionsMock.Object);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
+            var ex = Assert.Throws<ArgumentNullException>(() => act());
+            Assert.Equal("logger", ex.ParamName);
         }
 
         [Fact]
@@ -106,7 +107,8 @@ namespace Relay.Core.Tests.RateLimiting
                 null!);
 
             // Assert
-            act.Should().Throw<ArgumentNullException>().WithParameterName("options");
+            var ex = Assert.Throws<ArgumentNullException>(() => act());
+            Assert.Equal("options", ex.ParamName);
         }
 
         #endregion
@@ -114,26 +116,25 @@ namespace Relay.Core.Tests.RateLimiting
         #region Rate Limiting Disabled Tests
 
         [Fact]
-        public async Task HandleAsync_WhenRateLimitingDisabledGlobally_ShouldBypassRateLimiting()
+        public async Task HandleAsync_WithRateLimitAttribute_WhenAutomaticDisabled_ShouldEnableRateLimiting()
         {
             // Arrange
             _relayOptions.DefaultRateLimitingOptions.EnableAutomaticRateLimiting = false;
-            var behavior = CreateBehavior<NonRateLimitedRequest, TestResponse>();
-            var request = new NonRateLimitedRequest();
-            var nextCalled = false;
+            var behavior = CreateBehavior<RateLimitedRequest, TestResponse>();
+            var request = new RateLimitedRequest();
+
+            _rateLimiterMock.Setup(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
             var next = new RequestHandlerDelegate<TestResponse>(() =>
-            {
-                nextCalled = true;
-                return new ValueTask<TestResponse>(new TestResponse { Data = "success" });
-            });
+                new ValueTask<TestResponse>(new TestResponse { Data = "success" }));
 
             // Act
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            nextCalled.Should().BeTrue();
-            result.Data.Should().Be("success");
-            _rateLimiterMock.Verify(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            Assert.Equal("success", result.Data);
+            _rateLimiterMock.Verify(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -154,7 +155,7 @@ namespace Relay.Core.Tests.RateLimiting
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Data.Should().Be("success");
+            Assert.Equal("success", result.Data);
             _rateLimiterMock.Verify(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -163,7 +164,7 @@ namespace Relay.Core.Tests.RateLimiting
         #region Rate Limiting Enabled Tests
 
         [Fact]
-        public async Task HandleAsync_WhenRateLimitingEnabled_ShouldCheckRateLimit()
+        public async Task HandleAsync_WithAutomaticRateLimitingEnabled_ShouldApplyRateLimiting()
         {
             // Arrange
             _relayOptions.DefaultRateLimitingOptions.EnableAutomaticRateLimiting = true;
@@ -180,7 +181,7 @@ namespace Relay.Core.Tests.RateLimiting
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Data.Should().Be("success");
+            Assert.Equal("success", result.Data);
             _rateLimiterMock.Verify(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -206,7 +207,7 @@ namespace Relay.Core.Tests.RateLimiting
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            nextCalled.Should().BeTrue();
+            Assert.True(nextCalled);
         }
 
         [Fact]
@@ -231,8 +232,8 @@ namespace Relay.Core.Tests.RateLimiting
             Func<Task> act = async () => await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<RateLimitExceededException>()
-                .Where(e => e.RetryAfter == retryAfter);
+            var ex = await Assert.ThrowsAsync<RateLimitExceededException>(act);
+            Assert.Equal(retryAfter, ex.RetryAfter);
         }
 
         [Fact]
@@ -258,8 +259,8 @@ namespace Relay.Core.Tests.RateLimiting
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            nextCalled.Should().BeTrue();
-            result.Data.Should().Be("success");
+            Assert.True(nextCalled);
+            Assert.Equal("success", result.Data);
         }
 
         #endregion
@@ -287,7 +288,7 @@ namespace Relay.Core.Tests.RateLimiting
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            capturedKey.Should().Be("Global");
+            Assert.Equal("Global", capturedKey);
         }
 
         [Fact]
@@ -311,7 +312,7 @@ namespace Relay.Core.Tests.RateLimiting
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            capturedKey.Should().Be(typeof(NonRateLimitedRequest).FullName ?? typeof(NonRateLimitedRequest).Name);
+            Assert.Equal(typeof(NonRateLimitedRequest).FullName ?? typeof(NonRateLimitedRequest).Name, capturedKey);
         }
 
         [Fact]
@@ -335,7 +336,7 @@ namespace Relay.Core.Tests.RateLimiting
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            capturedKey.Should().Be($"Custom:{typeof(NonRateLimitedRequest).FullName ?? typeof(NonRateLimitedRequest).Name}");
+            Assert.Equal($"Custom:{typeof(NonRateLimitedRequest).FullName ?? typeof(NonRateLimitedRequest).Name}", capturedKey);
         }
 
         [Fact]
@@ -357,7 +358,7 @@ namespace Relay.Core.Tests.RateLimiting
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            capturedKey.Should().Be($"UserKey:{typeof(RateLimitedRequest).FullName ?? typeof(RateLimitedRequest).Name}");
+            Assert.Equal($"UserKey:{typeof(RateLimitedRequest).FullName ?? typeof(RateLimitedRequest).Name}", capturedKey);
         }
 
         #endregion
@@ -390,7 +391,7 @@ namespace Relay.Core.Tests.RateLimiting
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            result.Data.Should().Be("success");
+            Assert.Equal("success", result.Data);
             _rateLimiterMock.Verify(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -419,7 +420,7 @@ namespace Relay.Core.Tests.RateLimiting
             await behavior.HandleAsync(request, next, cts.Token);
 
             // Assert
-            capturedToken.Should().Be(cts.Token);
+            Assert.Equal(cts.Token, capturedToken);
         }
 
         [Fact]
@@ -453,7 +454,7 @@ namespace Relay.Core.Tests.RateLimiting
             }
 
             // Assert
-            capturedToken.Should().Be(cts.Token);
+            Assert.Equal(cts.Token, capturedToken);
         }
 
         #endregion
@@ -482,7 +483,7 @@ namespace Relay.Core.Tests.RateLimiting
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            callCount.Should().Be(3);
+            Assert.Equal(3, callCount);
         }
 
         [Fact]
@@ -513,10 +514,10 @@ namespace Relay.Core.Tests.RateLimiting
             await behavior2.HandleAsync(request2, next2, CancellationToken.None);
 
             // Assert
-            capturedKeys.Should().HaveCount(2);
-            capturedKeys[0].Should().Be(typeof(NonRateLimitedRequest).FullName ?? typeof(NonRateLimitedRequest).Name);
+            Assert.Equal(2, capturedKeys.Count);
+            Assert.Equal(typeof(NonRateLimitedRequest).FullName ?? typeof(NonRateLimitedRequest).Name, capturedKeys[0]);
             // RateLimitedRequest has a RateLimit attribute with "UserKey", so it should use that
-            capturedKeys[1].Should().Contain("UserKey");
+            Assert.Contains("UserKey", capturedKeys[1]);
         }
 
         #endregion

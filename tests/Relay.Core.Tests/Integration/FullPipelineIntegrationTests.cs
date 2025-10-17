@@ -1,17 +1,14 @@
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Tests.Testing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Relay.Core;
-using Relay.Core.Tests.Testing;
-using Relay.Core.Contracts.Requests;
-using Relay.Core.Contracts.Handlers;
-using Relay.Core.Contracts.Pipeline;
 
 namespace Relay.Core.Tests.Integration;
 
@@ -36,9 +33,9 @@ public class FullPipelineIntegrationTests
         var result = await relay.SendAsync(request);
 
         // Assert
-        result.Should().Be("Processed: test input");
-        handler.WasCalled.Should().BeTrue();
-        handler.LastRequest.Should().BeSameAs(request);
+        Assert.Equal("Processed: test input", result);
+        Assert.True(handler.WasCalled);
+        Assert.Same(request, handler.LastRequest);
     }
 
     [Fact]
@@ -59,9 +56,9 @@ public class FullPipelineIntegrationTests
         var result = await relay.SendAsync(request);
 
         // Assert
-        result.Should().Be("Pipeline: Processed: test input");
-        handler.WasCalled.Should().BeTrue();
-        pipeline.WasCalled.Should().BeTrue();
+        Assert.Equal("Pipeline: Processed: test input", result);
+        Assert.True(handler.WasCalled);
+        Assert.True(pipeline.WasCalled);
     }
 
     [Fact]
@@ -81,10 +78,10 @@ public class FullPipelineIntegrationTests
         await relay.PublishAsync(notification);
 
         // Assert
-        handler1.WasCalled.Should().BeTrue();
-        handler2.WasCalled.Should().BeTrue();
-        handler1.LastNotification.Should().BeSameAs(notification);
-        handler2.LastNotification.Should().BeSameAs(notification);
+        Assert.True(handler1.WasCalled);
+        Assert.True(handler2.WasCalled);
+        Assert.Same(notification, handler1.LastNotification);
+        Assert.Same(notification, handler2.LastNotification);
     }
 
     [Fact]
@@ -109,9 +106,9 @@ public class FullPipelineIntegrationTests
         }
 
         // Assert
-        results.Should().BeEquivalentTo(new[] { 0, 2, 4 }); // Doubled by pipeline
-        handler.WasCalled.Should().BeTrue();
-        pipeline.WasCalled.Should().BeTrue();
+        Assert.Equal(new[] { 0, 2, 4 }, results); // Doubled by pipeline
+        Assert.True(handler.WasCalled);
+        Assert.True(pipeline.WasCalled);
     }
 
     [Fact]
@@ -130,10 +127,10 @@ public class FullPipelineIntegrationTests
         var result = await relay.SendAsync(request);
 
         // Assert
-        result.Should().Be("Processed: test input");
+        Assert.Equal("Processed: test input", result);
 
         // Verify telemetry was recorded
-        telemetryProvider.Should().NotBeNull();
+        Assert.NotNull(telemetryProvider);
         TestUtilities.AssertTelemetryRecorded(telemetryProvider!, typeof(IntegrationTestRequest));
     }
 
@@ -152,8 +149,8 @@ public class FullPipelineIntegrationTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             relay.SendAsync(request).AsTask());
 
-        exception.Message.Should().Be("Handler failed");
-        handler.WasCalled.Should().BeTrue();
+        Assert.Equal("Handler failed", exception.Message);
+        Assert.True(handler.WasCalled);
     }
 
     [Fact]
@@ -193,11 +190,11 @@ public class FullPipelineIntegrationTests
         var intResult = await relay.SendAsync(intRequest);
 
         // Assert
-        stringResult.Should().Be("Processed: test");
-        intResult.Should().Be(84); // Doubled
+        Assert.Equal("Processed: test", stringResult);
+        Assert.Equal(84, intResult); // Doubled
 
-        stringHandler.WasCalled.Should().BeTrue();
-        intHandler.WasCalled.Should().BeTrue();
+        Assert.True(stringHandler.WasCalled);
+        Assert.True(intHandler.WasCalled);
     }
 
     [Fact]
@@ -218,9 +215,9 @@ public class FullPipelineIntegrationTests
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        results.Should().HaveCount(10);
-        results.Should().AllSatisfy(r => r.Should().StartWith("Processed: request-"));
-        handler.CallCount.Should().Be(10);
+        Assert.Equal(10, results.Length);
+        Assert.All(results, r => Assert.StartsWith("Processed: request-", r));
+        Assert.Equal(10, handler.CallCount);
     }
 
     [Fact]
@@ -247,12 +244,12 @@ public class FullPipelineIntegrationTests
         });
 
         // Assert - Should have received some items but not all
-        results.Should().NotBeEmpty("cancellation should occur after receiving some items");
-        results.Should().HaveCountLessThan(100, "stream should be cancelled before completion");
+        Assert.NotEmpty(results);
+        Assert.True(results.Count < 100, "stream should be cancelled before completion");
 
         // With 10ms delay and 150ms timeout, we should get at least a couple items
         // Being conservative here due to thread scheduling in test environments
-        results.Count.Should().BeGreaterThan(0, "should receive at least one item before cancellation");
+        Assert.True(results.Count > 0, "should receive at least one item before cancellation");
     }
 
     // Test classes

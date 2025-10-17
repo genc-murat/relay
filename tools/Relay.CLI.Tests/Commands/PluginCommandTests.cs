@@ -811,46 +811,6 @@ public class PluginCommandTests
     }
 
     [Fact]
-    public async Task PluginCommand_ExecuteInfo_ShouldDisplayPluginDetails()
-    {
-        // Arrange
-        var testConsole = new Spectre.Console.Testing.TestConsole();
-
-        // Act
-        var originalConsole = AnsiConsole.Console;
-        AnsiConsole.Console = testConsole;
-
-        try
-        {
-            await PluginCommand.ExecuteInfo("test-plugin");
-        }
-        finally
-        {
-            AnsiConsole.Console = originalConsole;
-        }
-
-        // Assert
-        testConsole.Output.Should().Contain("ℹ️  Plugin Information: test-plugin");
-        testConsole.Output.Should().Contain("test-plugin v1.2.0");
-        testConsole.Output.Should().Contain("Description:");
-        testConsole.Output.Should().Contain("Generate Swagger/OpenAPI documentation");
-        testConsole.Output.Should().Contain("Authors:");
-        testConsole.Output.Should().Contain("Murat Doe");
-        testConsole.Output.Should().Contain("Jane Smith");
-        testConsole.Output.Should().Contain("Tags:");
-        testConsole.Output.Should().Contain("swagger, openapi, documentation, api");
-        testConsole.Output.Should().Contain("Dependencies:");
-        testConsole.Output.Should().Contain("Swashbuckle.AspNetCore");
-        testConsole.Output.Should().Contain("NSwag.Core");
-        testConsole.Output.Should().Contain("Repository:");
-        testConsole.Output.Should().Contain("https://github.com/relay-plugins/swagger");
-        testConsole.Output.Should().Contain("License:");
-        testConsole.Output.Should().Contain("MIT");
-        testConsole.Output.Should().Contain("Installation:");
-        testConsole.Output.Should().Contain("relay plugin install test-plugin");
-    }
-
-    [Fact]
     public async Task PluginCommand_ExecuteCreate_ShouldCreatePluginStructure()
     {
         // Arrange

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Relay.Core.Workflows;
 using Relay.Core.Workflows.Infrastructure;
@@ -29,10 +28,10 @@ public class WorkflowDefinitionStoreTests
         var retrieved = await store.GetDefinitionAsync(definition.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Id.Should().Be(definition.Id);
-        retrieved.Name.Should().Be(definition.Name);
-        retrieved.Steps.Should().HaveCount(definition.Steps.Count);
+        Assert.NotNull(retrieved);
+        Assert.Equal(definition.Id, retrieved!.Id);
+        Assert.Equal(definition.Name, retrieved.Name);
+        Assert.Equal(definition.Steps.Count, retrieved.Steps.Count);
     }
 
     [Fact]
@@ -57,11 +56,11 @@ public class WorkflowDefinitionStoreTests
         var entities2 = await context.WorkflowDefinitions.Where(d => d.Id == definition.Id).ToListAsync();
 
         // Assert
-        entities1.Should().HaveCount(1);
-        entities1[0].Version.Should().Be(1);
+        Assert.Single(entities1);
+        Assert.Equal(1, entities1[0].Version);
 
-        entities2.Should().HaveCount(2); // Both versions exist
-        entities2.Where(e => e.Version == 2).Should().HaveCount(1);
+        Assert.Equal(2, entities2.Count); // Both versions exist
+        Assert.Single(entities2.Where(e => e.Version == 2));
     }
 
     [Fact]
@@ -85,10 +84,10 @@ public class WorkflowDefinitionStoreTests
             .ToListAsync();
 
         // Assert
-        allVersions.Should().HaveCount(2);
-        allVersions.Count(d => d.IsActive).Should().Be(1); // Only one active
-        allVersions.First(d => d.Version == 2).IsActive.Should().BeTrue();
-        allVersions.First(d => d.Version == 1).IsActive.Should().BeFalse();
+        Assert.Equal(2, allVersions.Count);
+        Assert.Equal(1, allVersions.Count(d => d.IsActive)); // Only one active
+        Assert.True(allVersions.First(d => d.Version == 2).IsActive);
+        Assert.False(allVersions.First(d => d.Version == 1).IsActive);
     }
 
     [Fact]
@@ -113,8 +112,8 @@ public class WorkflowDefinitionStoreTests
         var retrieved = await store.GetDefinitionAsync(definition.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Name.Should().Be("Updated Name v3"); // Latest version
+        Assert.NotNull(retrieved);
+        Assert.Equal("Updated Name v3", retrieved!.Name); // Latest version
     }
 
     [Fact]
@@ -144,11 +143,11 @@ public class WorkflowDefinitionStoreTests
         var allDefinitions = (await store.GetAllDefinitionsAsync()).ToList();
 
         // Assert
-        allDefinitions.Should().HaveCount(3); // Three unique workflows
-        allDefinitions.Should().Contain(d => d.Id == "workflow-1");
-        allDefinitions.Should().Contain(d => d.Id == "workflow-2");
-        allDefinitions.Should().Contain(d => d.Id == "workflow-3");
-        allDefinitions.First(d => d.Id == "workflow-1").Name.Should().Be("Updated Workflow 1");
+        Assert.Equal(3, allDefinitions.Count); // Three unique workflows
+        Assert.Contains(allDefinitions, d => d.Id == "workflow-1");
+        Assert.Contains(allDefinitions, d => d.Id == "workflow-2");
+        Assert.Contains(allDefinitions, d => d.Id == "workflow-3");
+        Assert.Equal("Updated Workflow 1", allDefinitions.First(d => d.Id == "workflow-1").Name);
     }
 
     [Fact]
@@ -170,11 +169,11 @@ public class WorkflowDefinitionStoreTests
         var deleted = await store.DeleteDefinitionAsync(definition.Id);
 
         // Assert
-        deleted.Should().BeTrue();
+        Assert.True(deleted);
         var remaining = await context.WorkflowDefinitions
             .Where(d => d.Id == definition.Id)
             .ToListAsync();
-        remaining.Should().BeEmpty();
+        Assert.Empty(remaining);
     }
 
     [Fact]
@@ -192,7 +191,7 @@ public class WorkflowDefinitionStoreTests
         var deleted = await store.DeleteDefinitionAsync("non-existent");
 
         // Assert
-        deleted.Should().BeFalse();
+        Assert.False(deleted);
     }
 
     [Fact]
@@ -224,11 +223,11 @@ public class WorkflowDefinitionStoreTests
         var retrieved = await store.GetDefinitionAsync(definition.Id);
 
         // Assert
-        retrieved.Should().NotBeNull();
-        retrieved!.Steps.Should().HaveCount(3);
+        Assert.NotNull(retrieved);
+        Assert.Equal(3, retrieved!.Steps.Count);
         var conditionalStep = retrieved.Steps.First(s => s.Name == "ConditionalStep");
-        conditionalStep.Condition.Should().Be("status == 'approved'");
-        conditionalStep.ElseSteps.Should().HaveCount(1);
+        Assert.Equal("status == 'approved'", conditionalStep.Condition);
+        Assert.Single(conditionalStep.ElseSteps);
     }
 
     private static WorkflowDefinition CreateTestDefinition(string? id = null, string? name = null)

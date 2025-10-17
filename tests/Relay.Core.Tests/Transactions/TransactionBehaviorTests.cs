@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.Contracts.Infrastructure; // Corrected
 using Relay.Core.Contracts.Pipeline;       // Corrected
@@ -87,8 +86,8 @@ namespace Relay.Core.Tests.Transactions
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            handlerCalled.Should().BeTrue();
-            unitOfWork.CallLog.Should().BeEmpty();
+            Assert.True(handlerCalled);
+            Assert.Empty(unitOfWork.CallLog);
         }
 
         [Fact]
@@ -111,13 +110,14 @@ namespace Relay.Core.Tests.Transactions
             await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            handlerCalled.Should().BeTrue();
-            unitOfWork.CallLog.Should().Equal(
+            Assert.True(handlerCalled);
+            Assert.Equal(new[]
+            {
                 nameof(IUnitOfWork.BeginTransactionAsync),
                 "Handler",
                 nameof(IUnitOfWork.SaveChangesAsync),
                 nameof(IDbTransaction.CommitAsync)
-            );
+            }, unitOfWork.CallLog);
         }
 
         [Fact]
@@ -134,11 +134,12 @@ namespace Relay.Core.Tests.Transactions
             var act = async () => await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<InvalidOperationException>();
-            unitOfWork.CallLog.Should().Equal(
+            await Assert.ThrowsAsync<InvalidOperationException>(act);
+            Assert.Equal(new[]
+            {
                 nameof(IUnitOfWork.BeginTransactionAsync),
                 nameof(IDbTransaction.RollbackAsync)
-            );
+            }, unitOfWork.CallLog);
         }
 
         [Fact]
@@ -159,13 +160,14 @@ namespace Relay.Core.Tests.Transactions
             var act = async () => await behavior.HandleAsync(request, next, CancellationToken.None);
 
             // Assert
-            await act.Should().ThrowAsync<InvalidOperationException>();
-            unitOfWork.CallLog.Should().Equal(
+            await Assert.ThrowsAsync<InvalidOperationException>(act);
+            Assert.Equal(new[]
+            {
                 nameof(IUnitOfWork.BeginTransactionAsync),
                 "Handler",
                 nameof(IUnitOfWork.SaveChangesAsync),
                 nameof(IDbTransaction.RollbackAsync)
-            );
+            }, unitOfWork.CallLog);
         }
     }
 }

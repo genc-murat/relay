@@ -1,5 +1,4 @@
-using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
+ using Microsoft.EntityFrameworkCore;
 using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Infrastructure;
 using Relay.Core.Extensions;
@@ -47,9 +46,9 @@ public class EfCoreEventStoreTests : IDisposable
 
         // Assert
         var savedEvents = await _context.Events.ToListAsync();
-        savedEvents.Should().HaveCount(1);
-        savedEvents.First().AggregateId.Should().Be(aggregateId);
-        savedEvents.First().EventType.Should().Contain("TestAggregateCreated");
+        Assert.Equal(1, savedEvents.Count);
+        Assert.Equal(aggregateId, savedEvents.First().AggregateId);
+        Assert.Contains("TestAggregateCreated", savedEvents.First().EventType);
     }
 
     [Fact]
@@ -110,8 +109,11 @@ public class EfCoreEventStoreTests : IDisposable
 
         // Assert
         var savedEvents = await _context.Events.ToListAsync();
-        savedEvents.Should().HaveCount(2);
-        savedEvents.Should().BeInAscendingOrder(e => e.AggregateVersion);
+        Assert.Equal(2, savedEvents.Count);
+        for (int i = 0; i < savedEvents.Count - 1; i++)
+        {
+            Assert.True(savedEvents[i].AggregateVersion < savedEvents[i + 1].AggregateVersion);
+        }
     }
 
     [Fact]
@@ -135,9 +137,9 @@ public class EfCoreEventStoreTests : IDisposable
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId).ToListAsync();
 
         // Assert
-        retrievedEvents.Should().HaveCount(1);
-        retrievedEvents.First().Should().BeOfType<TestAggregateCreated>();
-        ((TestAggregateCreated)retrievedEvents.First()).AggregateName.Should().Be("Test Name");
+        Assert.Equal(1, retrievedEvents.Count);
+        Assert.IsType<TestAggregateCreated>(retrievedEvents.First());
+        Assert.Equal("Test Name", ((TestAggregateCreated)retrievedEvents.First()).AggregateName);
     }
 
     [Fact]
@@ -150,7 +152,7 @@ public class EfCoreEventStoreTests : IDisposable
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId).ToListAsync();
 
         // Assert
-        retrievedEvents.Should().BeEmpty();
+        Assert.Empty(retrievedEvents);
     }
 
     [Fact]
@@ -186,11 +188,14 @@ public class EfCoreEventStoreTests : IDisposable
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId).ToListAsync();
 
         // Assert
-        retrievedEvents.Should().HaveCount(3);
-        retrievedEvents.Should().BeInAscendingOrder(e => e.AggregateVersion);
-        retrievedEvents[0].AggregateVersion.Should().Be(0);
-        retrievedEvents[1].AggregateVersion.Should().Be(1);
-        retrievedEvents[2].AggregateVersion.Should().Be(2);
+        Assert.Equal(3, retrievedEvents.Count);
+        for (int i = 0; i < retrievedEvents.Count - 1; i++)
+        {
+            Assert.True(retrievedEvents[i].AggregateVersion < retrievedEvents[i + 1].AggregateVersion);
+        }
+        Assert.Equal(0, retrievedEvents[0].AggregateVersion);
+        Assert.Equal(1, retrievedEvents[1].AggregateVersion);
+        Assert.Equal(2, retrievedEvents[2].AggregateVersion);
     }
 
     [Fact]
@@ -232,9 +237,9 @@ public class EfCoreEventStoreTests : IDisposable
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId, 1, 2).ToListAsync();
 
         // Assert
-        retrievedEvents.Should().HaveCount(2);
-        retrievedEvents.First().AggregateVersion.Should().Be(1);
-        retrievedEvents.Last().AggregateVersion.Should().Be(2);
+        Assert.Equal(2, retrievedEvents.Count);
+        Assert.Equal(1, retrievedEvents.First().AggregateVersion);
+        Assert.Equal(2, retrievedEvents.Last().AggregateVersion);
     }
 
     [Fact]
@@ -258,7 +263,7 @@ public class EfCoreEventStoreTests : IDisposable
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId, 5, 10).ToListAsync();
 
         // Assert
-        retrievedEvents.Should().BeEmpty();
+        Assert.Empty(retrievedEvents);
     }
 
     [Fact]
@@ -292,7 +297,7 @@ public class EfCoreEventStoreTests : IDisposable
 
         // Assert
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId).ToListAsync();
-        retrievedEvents.Should().HaveCount(2);
+        Assert.Equal(2, retrievedEvents.Count);
     }
 
     [Fact]
@@ -330,10 +335,10 @@ public class EfCoreEventStoreTests : IDisposable
         var retrievedEvents1 = await _eventStore.GetEventsAsync(aggregateId1).ToListAsync();
         var retrievedEvents2 = await _eventStore.GetEventsAsync(aggregateId2).ToListAsync();
 
-        retrievedEvents1.Should().HaveCount(1);
-        retrievedEvents2.Should().HaveCount(1);
-        ((TestAggregateCreated)retrievedEvents1.First()).AggregateName.Should().Be("Aggregate 1");
-        ((TestAggregateCreated)retrievedEvents2.First()).AggregateName.Should().Be("Aggregate 2");
+        Assert.Equal(1, retrievedEvents1.Count);
+        Assert.Equal(1, retrievedEvents2.Count);
+        Assert.Equal("Aggregate 1", ((TestAggregateCreated)retrievedEvents1.First()).AggregateName);
+        Assert.Equal("Aggregate 2", ((TestAggregateCreated)retrievedEvents2.First()).AggregateName);
     }
 
     [Fact]
@@ -348,7 +353,7 @@ public class EfCoreEventStoreTests : IDisposable
 
         // Assert
         var savedEvents = await _context.Events.ToListAsync();
-        savedEvents.Should().BeEmpty();
+        Assert.Empty(savedEvents);
     }
 
     [Fact]
@@ -369,10 +374,10 @@ public class EfCoreEventStoreTests : IDisposable
 
         // Assert
         var retrievedEvent = retrievedEvents.First() as TestAggregateCreated;
-        retrievedEvent.Should().NotBeNull();
-        retrievedEvent!.AggregateName.Should().Be(originalEvent.AggregateName);
-        retrievedEvent.AggregateId.Should().Be(originalEvent.AggregateId);
-        retrievedEvent.AggregateVersion.Should().Be(originalEvent.AggregateVersion);
+        Assert.NotNull(retrievedEvent);
+        Assert.Equal(originalEvent.AggregateName, retrievedEvent.AggregateName);
+        Assert.Equal(originalEvent.AggregateId, retrievedEvent.AggregateId);
+        Assert.Equal(originalEvent.AggregateVersion, retrievedEvent.AggregateVersion);
     }
 
     [Fact]
@@ -394,7 +399,7 @@ public class EfCoreEventStoreTests : IDisposable
 
         // Assert
         var retrievedEvent = retrievedEvents.First();
-        retrievedEvent.Timestamp.Should().BeCloseTo(originalTimestamp, TimeSpan.FromSeconds(1));
+        Assert.True(Math.Abs((retrievedEvent.Timestamp - originalTimestamp).TotalSeconds) < 1);
     }
 
     public void Dispose()

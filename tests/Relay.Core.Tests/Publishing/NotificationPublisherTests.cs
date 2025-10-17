@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
+ using System;
+ using System.Collections.Concurrent;
+ using System.Collections.Generic;
+ using System.Linq;
+ using System.Threading;
+ using System.Threading.Tasks;
+ using Microsoft.Extensions.DependencyInjection;
 using Relay.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
@@ -101,14 +100,14 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, default);
 
             // Assert
-            TestHandler1.ExecutionLog.Should().HaveCount(6);
+            Assert.Equal(6, TestHandler1.ExecutionLog.Count);
             // Sequential execution means handlers complete one at a time
-            TestHandler1.ExecutionLog.ElementAt(0).Should().Be("Handler1-Start: test");
-            TestHandler1.ExecutionLog.ElementAt(1).Should().Be("Handler1-End: test");
-            TestHandler1.ExecutionLog.ElementAt(2).Should().Be("Handler2-Start: test");
-            TestHandler1.ExecutionLog.ElementAt(3).Should().Be("Handler2-End: test");
-            TestHandler1.ExecutionLog.ElementAt(4).Should().Be("Handler3-Start: test");
-            TestHandler1.ExecutionLog.ElementAt(5).Should().Be("Handler3-End: test");
+            Assert.Equal("Handler1-Start: test", TestHandler1.ExecutionLog.ElementAt(0));
+            Assert.Equal("Handler1-End: test", TestHandler1.ExecutionLog.ElementAt(1));
+            Assert.Equal("Handler2-Start: test", TestHandler1.ExecutionLog.ElementAt(2));
+            Assert.Equal("Handler2-End: test", TestHandler1.ExecutionLog.ElementAt(3));
+            Assert.Equal("Handler3-Start: test", TestHandler1.ExecutionLog.ElementAt(4));
+            Assert.Equal("Handler3-End: test", TestHandler1.ExecutionLog.ElementAt(5));
         }
 
         [Fact]
@@ -134,9 +133,9 @@ namespace Relay.Core.Tests.Publishing
             });
 
             // Handler2 should not have executed
-            TestHandler1.ExecutionLog.Should().Contain("Handler1-Start: test");
-            TestHandler1.ExecutionLog.Should().Contain("ThrowingHandler: test");
-            TestHandler1.ExecutionLog.Should().NotContain(x => x.Contains("Handler2"));
+            Assert.Contains("Handler1-Start: test", TestHandler1.ExecutionLog);
+            Assert.Contains("ThrowingHandler: test", TestHandler1.ExecutionLog);
+            Assert.DoesNotContain(TestHandler1.ExecutionLog, x => x.Contains("Handler2"));
         }
 
         #endregion
@@ -183,9 +182,9 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, default);
 
             // Assert
-            TestHandler1.ExecutionLog.Should().HaveCount(2);
-            TestHandler1.ExecutionLog.ElementAt(0).Should().Be("Handler1-Start: test");
-            TestHandler1.ExecutionLog.ElementAt(1).Should().Be("Handler1-End: test");
+            Assert.Equal(2, TestHandler1.ExecutionLog.Count);
+            Assert.Equal("Handler1-Start: test", TestHandler1.ExecutionLog.ElementAt(0));
+            Assert.Equal("Handler1-End: test", TestHandler1.ExecutionLog.ElementAt(1));
         }
 
         #endregion
@@ -215,12 +214,12 @@ namespace Relay.Core.Tests.Publishing
             });
 
             // All handlers should have executed
-            TestHandler1.ExecutionLog.Should().Contain("Handler1-Start: test");
-            TestHandler1.ExecutionLog.Should().Contain("ThrowingHandler: test");
-            TestHandler1.ExecutionLog.Should().Contain("Handler2-Start: test");
+            Assert.Contains("Handler1-Start: test", TestHandler1.ExecutionLog);
+            Assert.Contains("ThrowingHandler: test", TestHandler1.ExecutionLog);
+            Assert.Contains("Handler2-Start: test", TestHandler1.ExecutionLog);
 
-            exception.InnerExceptions.Should().ContainSingle();
-            exception.InnerExceptions[0].Should().BeOfType<InvalidOperationException>();
+            Assert.Single(exception.InnerExceptions);
+            Assert.IsType<InvalidOperationException>(exception.InnerExceptions[0]);
         }
 
         [Fact]
@@ -245,8 +244,8 @@ namespace Relay.Core.Tests.Publishing
                 await publisher.PublishAsync(notification, handlers, default);
             });
 
-            exception.InnerExceptions.Should().HaveCount(2);
-            TestHandler1.ExecutionLog.Should().Contain("Handler1-Start: test");
+            Assert.Equal(2, exception.InnerExceptions.Count);
+            Assert.Contains("Handler1-Start: test", TestHandler1.ExecutionLog);
         }
 
         [Fact]
@@ -269,7 +268,7 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, default);
 
             // Assert
-            TestHandler1.ExecutionLog.Should().HaveCount(6);
+            Assert.Equal(6, TestHandler1.ExecutionLog.Count);
         }
 
         #endregion
@@ -288,8 +287,8 @@ namespace Relay.Core.Tests.Publishing
             var publisher = provider.GetService<INotificationPublisher>();
 
             // Assert
-            publisher.Should().NotBeNull();
-            publisher.Should().BeOfType<SequentialNotificationPublisher>();
+            Assert.NotNull(publisher);
+            Assert.IsType<SequentialNotificationPublisher>(publisher);
         }
 
         [Fact]
@@ -304,8 +303,8 @@ namespace Relay.Core.Tests.Publishing
             var publisher = provider.GetService<INotificationPublisher>();
 
             // Assert
-            publisher.Should().NotBeNull();
-            publisher.Should().BeOfType<ParallelNotificationPublisher>();
+            Assert.NotNull(publisher);
+            Assert.IsType<ParallelNotificationPublisher>(publisher);
         }
 
         [Fact]
@@ -320,8 +319,8 @@ namespace Relay.Core.Tests.Publishing
             var publisher = provider.GetService<INotificationPublisher>();
 
             // Assert
-            publisher.Should().NotBeNull();
-            publisher.Should().BeOfType<ParallelWhenAllNotificationPublisher>();
+            Assert.NotNull(publisher);
+            Assert.IsType<ParallelWhenAllNotificationPublisher>(publisher);
         }
 
         [Fact]
@@ -339,8 +338,8 @@ namespace Relay.Core.Tests.Publishing
             var publisher = provider.GetService<INotificationPublisher>();
 
             // Assert
-            publisher.Should().NotBeNull();
-            publisher.Should().BeOfType<SequentialNotificationPublisher>();
+            Assert.NotNull(publisher);
+            Assert.IsType<SequentialNotificationPublisher>(publisher);
         }
 
         [Fact]
@@ -359,7 +358,7 @@ namespace Relay.Core.Tests.Publishing
             var publisher = provider.GetService<INotificationPublisher>();
 
             // Assert
-            publisher.Should().BeSameAs(customPublisher);
+            Assert.Same(customPublisher, publisher);
         }
 
         #endregion

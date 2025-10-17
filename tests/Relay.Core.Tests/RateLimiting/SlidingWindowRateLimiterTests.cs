@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.RateLimiting.Implementations;
@@ -30,7 +29,7 @@ public class SlidingWindowRateLimiterTests
         }
 
         // Assert
-        results.Should().AllBeEquivalentTo(true);
+        Assert.All(results, r => Assert.True(r));
     }
 
     [Fact]
@@ -49,10 +48,10 @@ public class SlidingWindowRateLimiterTests
         var result4 = await limiter.IsAllowedAsync("test-key");
 
         // Assert
-        result1.Should().BeTrue();
-        result2.Should().BeTrue();
-        result3.Should().BeTrue();
-        result4.Should().BeFalse(); // Over limit
+        Assert.True(result1);
+        Assert.True(result2);
+        Assert.True(result3);
+        Assert.False(result4); // Over limit
     }
 
     [Fact]
@@ -70,8 +69,8 @@ public class SlidingWindowRateLimiterTests
         var retryAfter = await limiter.GetRetryAfterAsync("retry-test");
 
         // Assert
-        retryAfter.Should().BeGreaterThan(TimeSpan.Zero);
-        retryAfter.Should().BeLessThanOrEqualTo(TimeSpan.FromSeconds(3)); // Window + buffer
+        Assert.True(retryAfter > TimeSpan.Zero);
+        Assert.True(retryAfter <= TimeSpan.FromSeconds(3)); // Window + buffer
     }
 
     [Fact]
@@ -87,7 +86,7 @@ public class SlidingWindowRateLimiterTests
         var retryAfter = await limiter.GetRetryAfterAsync("nonexistent-key");
 
         // Assert
-        retryAfter.Should().Be(TimeSpan.Zero);
+        Assert.Equal(TimeSpan.Zero, retryAfter);
     }
 
     [Fact]
@@ -103,12 +102,12 @@ public class SlidingWindowRateLimiterTests
         var stats = limiter.GetStats("nonexistent");
 
         // Assert
-        stats.CurrentCount.Should().Be(0);
-        stats.Limit.Should().Be(50);
-        stats.Remaining.Should().Be(50);
-        stats.WindowDuration.Should().Be(TimeSpan.FromSeconds(30));
-        stats.CurrentWindowRequests.Should().Be(0);
-        stats.PreviousWindowRequests.Should().Be(0);
+        Assert.Equal(0, stats.CurrentCount);
+        Assert.Equal(50, stats.Limit);
+        Assert.Equal(50, stats.Remaining);
+        Assert.Equal(TimeSpan.FromSeconds(30), stats.WindowDuration);
+        Assert.Equal(0, stats.CurrentWindowRequests);
+        Assert.Equal(0, stats.PreviousWindowRequests);
     }
 
     [Fact]
@@ -129,11 +128,11 @@ public class SlidingWindowRateLimiterTests
         var result = stats.ToString();
 
         // Assert
-        result.Should().Contain("Used: 25/100");
-        result.Should().Contain("Current: 15");
-        result.Should().Contain("Previous: 10");
-        result.Should().Contain("Remaining: 75");
-        result.Should().Contain("Window: 60s");
+        Assert.Contains("Used: 25/100", result);
+        Assert.Contains("Current: 15", result);
+        Assert.Contains("Previous: 10", result);
+        Assert.Contains("Remaining: 75", result);
+        Assert.Contains("Window: 60s", result);
     }
 
 
@@ -156,7 +155,7 @@ public class SlidingWindowRateLimiterTests
         await limiter.IsAllowedAsync("log-test");
 
         // Assert
-        logger.LoggedMessages.Should().Contain(msg =>
+        Assert.Contains(logger.LoggedMessages, msg =>
             msg.LogLevel == LogLevel.Debug &&
             msg.Message.Contains("Rate limit exceeded"));
     }
@@ -172,7 +171,7 @@ public class SlidingWindowRateLimiterTests
         limiter.Reset("reset-test");
 
         // Assert
-        logger.LoggedMessages.Should().Contain(msg =>
+        Assert.Contains(logger.LoggedMessages, msg =>
             msg.LogLevel == LogLevel.Information &&
             msg.Message.Contains("Rate limit reset"));
     }

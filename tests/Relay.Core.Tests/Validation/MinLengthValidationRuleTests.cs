@@ -1,7 +1,7 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -26,7 +26,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle($"Length must be at least {minLength} characters.");
+        Assert.Single(result, $"Length must be at least {minLength} characters.");
     }
 
     [Theory]
@@ -58,7 +58,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle(customMessage);
+        Assert.Single(result, customMessage);
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Length must be at least 5 characters.");
+        Assert.Single(result, "Length must be at least 5 characters.");
     }
 
     [Fact]
@@ -138,11 +138,11 @@ public class MinLengthValidationRuleTests
         // The behavior depends on how .NET represents the emoji
         if (input.Length >= 1)
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Length must be at least 1 characters.");
+            Assert.Single(result, "Length must be at least 1 characters.");
         }
     }
 
@@ -157,7 +157,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Length must be at least 1 characters.");
+        Assert.Single(result, "Length must be at least 1 characters.");
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Length must be at least 10 characters.");
+        Assert.Single(result, "Length must be at least 10 characters.");
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -212,7 +212,7 @@ public class MinLengthValidationRuleTests
         var result = await new MinLengthValidationRule(minLength).ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -242,7 +242,7 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle($"Length must be at least {minLength} characters.");
+        Assert.Single(result, $"Length must be at least {minLength} characters.");
     }
 
     [Theory]
@@ -257,14 +257,14 @@ public class MinLengthValidationRuleTests
         // Test exactly at boundary
         var atBoundary = new string('a', minLength);
         var resultAtBoundary = await rule.ValidateAsync(atBoundary);
-        resultAtBoundary.Should().BeEmpty();
+        Assert.Empty(resultAtBoundary);
 
         // Test one under boundary
         if (minLength > 0)
         {
             var underBoundary = new string('a', minLength - 1);
             var resultUnderBoundary = await rule.ValidateAsync(underBoundary);
-            resultUnderBoundary.Should().ContainSingle($"Length must be at least {minLength} characters.");
+            Assert.Single(resultUnderBoundary, $"Length must be at least {minLength} characters.");
         }
     }
 
@@ -276,11 +276,11 @@ public class MinLengthValidationRuleTests
 
         // Test empty string
         var resultEmpty = await rule.ValidateAsync("");
-        resultEmpty.Should().BeEmpty();
+        Assert.Empty(resultEmpty);
 
         // Test any non-empty string
         var resultNonEmpty = await rule.ValidateAsync("a");
-        resultNonEmpty.Should().BeEmpty();
+        Assert.Empty(resultNonEmpty);
     }
 
     [Theory]
@@ -300,11 +300,11 @@ public class MinLengthValidationRuleTests
         // Assert
         if (input.Length >= minLength)
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle($"Length must be at least {minLength} characters.");
+            Assert.Single(result, $"Length must be at least {minLength} characters.");
         }
     }
 
@@ -320,6 +320,6 @@ public class MinLengthValidationRuleTests
         var result = await rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle($"Length must be at least {minLength} characters.");
+        Assert.Single(result, $"Length must be at least {minLength} characters.");
     }
 }

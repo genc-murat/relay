@@ -1,7 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using System.Linq;
-using Xunit;
 
 namespace Relay.SourceGenerator.Tests
 {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.EventSourcing.Core;
@@ -51,6 +52,14 @@ public class SnapshotRepository<TAggregate, TId, TSnapshot> : IEventSourcedRepos
         {
             aggregate.RestoreFromSnapshot(snapshotResult.Value.Snapshot!);
             startVersion = snapshotResult.Value.Version;
+
+            // Set the version from the snapshot store
+            var baseType = typeof(AggregateRoot<>).MakeGenericType(typeof(TId));
+            var versionProperty = baseType.GetProperty("Version", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (versionProperty != null)
+            {
+                versionProperty.SetValue(aggregate, snapshotResult.Value.Version, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, null, null);
+            }
         }
 
         // Load events after the snapshot

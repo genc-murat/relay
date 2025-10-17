@@ -1,9 +1,11 @@
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Repositories;
 using Relay.Core.EventSourcing.Stores;
+using Relay.Core.Extensions;
 using Xunit;
 
 namespace Relay.Core.Tests.EventSourcing;
@@ -126,6 +128,114 @@ public class SnapshotRepositoryTests
         snapshot1!.Value.Version.Should().Be(10);
     }
 
+    [Fact]
+    public void SnapshotRepository_Constructor_ShouldThrowWhenEventStoreIsNull()
+    {
+        // Arrange, Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new SnapshotRepository<TestSnapshotAggregate, Guid, TestAggregateSnapshot>(null!, new InMemorySnapshotStore()));
+    }
+
+    [Fact]
+    public void SnapshotRepository_Constructor_ShouldThrowWhenSnapshotStoreIsNull()
+    {
+        // Arrange, Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new SnapshotRepository<TestSnapshotAggregate, Guid, TestAggregateSnapshot>(new InMemoryEventStore(), null!));
+    }
+
+    [Fact]
+    public async Task SnapshotRepository_SaveAsync_ShouldReturnEarlyWhenNoUncommittedEvents()
+    {
+        // Arrange
+        var eventStore = new InMemoryEventStore();
+        var snapshotStore = new InMemorySnapshotStore();
+        var repository = new SnapshotRepository<TestSnapshotAggregate, Guid, TestAggregateSnapshot>(
+            eventStore, snapshotStore);
+
+        var aggregate = new TestSnapshotAggregate();
+        var id = Guid.NewGuid();
+        aggregate.Create(id, "Test");
+
+        // Clear uncommitted events
+        aggregate.ClearUncommittedEvents();
+
+        // Act - Should not throw and should return early
+        await repository.SaveAsync(aggregate);
+
+        // Assert - No events should be saved
+        var events = await eventStore.GetEventsAsync(id).ToListAsync();
+        events.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task SnapshotRepository_GetByIdAsync_ShouldLoadFromSnapshotOnly()
+    {
+        // Arrange
+        var eventStore = new InMemoryEventStore();
+        var snapshotStore = new InMemorySnapshotStore();
+        var repository = new SnapshotRepository<TestSnapshotAggregate, Guid, TestAggregateSnapshot>(
+            eventStore, snapshotStore);
+
+        var aggregate = new TestSnapshotAggregate();
+        var id = Guid.NewGuid();
+
+        // Create aggregate and save snapshot directly
+        aggregate.Create(id, "Snapshot Only");
+        var snapshot = aggregate.CreateSnapshot();
+        await snapshotStore.SaveSnapshotAsync(id, snapshot, 1);
+
+        // Act
+        var loadedAggregate = await repository.GetByIdAsync(id);
+
+        // Assert
+        loadedAggregate.Should().NotBeNull();
+        loadedAggregate!.Id.Should().Be(id);
+        loadedAggregate.Name.Should().Be("Snapshot Only");
+        loadedAggregate.Version.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SnapshotRepository_GetByIdAsync_ShouldLoadFromEventsOnly()
+    {
+        // Arrange
+        var eventStore = new InMemoryEventStore();
+        var snapshotStore = new InMemorySnapshotStore();
+        var repository = new SnapshotRepository<TestSnapshotAggregate, Guid, TestAggregateSnapshot>(
+            eventStore, snapshotStore);
+
+        var aggregate = new TestSnapshotAggregate();
+        var id = Guid.NewGuid();
+
+        // Create and save aggregate without snapshot
+        aggregate.Create(id, "Events Only");
+        aggregate.ChangeName("Updated Name");
+        await repository.SaveAsync(aggregate);
+
+        // Act
+        var loadedAggregate = await repository.GetByIdAsync(id);
+
+        // Assert
+        loadedAggregate.Should().NotBeNull();
+        loadedAggregate!.Id.Should().Be(id);
+        loadedAggregate.Name.Should().Be("Updated Name");
+        loadedAggregate.Version.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SnapshotRepository_GetAggregateGuid_ShouldThrowForNonGuidId()
+    {
+        // Arrange
+        var eventStore = new InMemoryEventStore();
+        var snapshotStore = new InMemorySnapshotStore();
+        var repository = new SnapshotRepository<TestSnapshotAggregateWithStringId, string, TestAggregateSnapshot>(
+            eventStore, snapshotStore);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotSupportedException>(async () =>
+            await repository.GetByIdAsync("test-id"));
+    }
+
     // Test Aggregate with Snapshot Support
     public class TestSnapshotAggregate : AggregateRoot<Guid>, ISnapshotable<TestAggregateSnapshot>
     {
@@ -179,9 +289,9 @@ public class SnapshotRepositoryTests
             Id = snapshot.Id;
             Name = snapshot.Name;
 
-            // Restore version using reflection
-            var versionProperty = typeof(AggregateRoot<Guid>).GetProperty(nameof(Version));
-            if (versionProperty != null && versionProperty.CanWrite)
+            // Restore version using reflection with non-public access
+            var versionProperty = typeof(AggregateRoot<Guid>).GetProperty(nameof(Version), BindingFlags.NonPublic | BindingFlags.Instance);
+            if (versionProperty != null)
             {
                 versionProperty.SetValue(this, snapshot.Version);
             }
@@ -203,5 +313,49 @@ public class SnapshotRepositoryTests
     public class TestAggregateNameChanged : Event
     {
         public string NewName { get; set; } = string.Empty;
+    }
+
+    // Test Aggregate with String ID for testing non-Guid ID exception
+    public class TestSnapshotAggregateWithStringId : AggregateRoot<string>, ISnapshotable<TestAggregateSnapshot>
+    {
+        public string Name { get; private set; } = string.Empty;
+
+        public int SnapshotFrequency => 10;
+
+        public void Create(string id, string name)
+        {
+            Apply(new TestAggregateCreated
+            {
+                AggregateId = Guid.NewGuid(), // Use Guid for event, but aggregate ID is string
+                AggregateName = name,
+                AggregateVersion = 0
+            });
+            Id = id;
+        }
+
+        public void When(TestAggregateCreated @event)
+        {
+            Name = @event.AggregateName;
+        }
+
+        public TestAggregateSnapshot CreateSnapshot()
+        {
+            return new TestAggregateSnapshot
+            {
+                Id = Guid.NewGuid(), // Dummy
+                Name = Name,
+                Version = Version
+            };
+        }
+
+        public void RestoreFromSnapshot(TestAggregateSnapshot snapshot)
+        {
+            Name = snapshot.Name;
+            var versionProperty = typeof(AggregateRoot<string>).GetProperty(nameof(Version));
+            if (versionProperty != null && versionProperty.CanWrite)
+            {
+                versionProperty.SetValue(this, snapshot.Version);
+            }
+        }
     }
 }

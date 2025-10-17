@@ -1,16 +1,32 @@
 using Relay.CLI.Commands;
+using Relay.CLI.Commands.Models.Validation;
 using System.CommandLine;
+using System.Reflection;
 
 namespace Relay.CLI.Tests.Commands;
 
 public class ValidateCommandTests : IDisposable
 {
-    private readonly string _testPath;
+    private string _testPath;
 
     public ValidateCommandTests()
     {
         _testPath = Path.Combine(Path.GetTempPath(), $"relay-validate-{Guid.NewGuid()}");
         Directory.CreateDirectory(_testPath);
+    }
+
+    private string GetUniqueTestPath()
+    {
+        return Path.Combine(Path.GetTempPath(), $"relay-validate-{Guid.NewGuid()}");
+    }
+
+    private void CleanTestDirectory(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, true);
+        }
+        Directory.CreateDirectory(path);
     }
 
     [Fact]
@@ -138,26 +154,26 @@ public record TestRequest;";
     }
 
     [Fact]
-    public async Task ValidateCommand_ValidatesUsingDirectives()
+    public async Task ValidateRequestsAndResponses_WithClassRequestInStrictMode_ShouldWarn()
     {
-        // Arrange
-        var missingUsings = @"
-public class TestHandler
-{
-    public async ValueTask<string> HandleAsync(TestRequest request)
-    {
-        return ""test"";
-    }
-}"; // Missing using directives
+        // Arrange - Use unique directory
+        var testPath = GetUniqueTestPath();
+        CleanTestDirectory(testPath);
+        var requestCode = @"using Relay.Core;
 
-        await File.WriteAllTextAsync(Path.Combine(_testPath, "MissingUsings.cs"), missingUsings);
+public class GetUserQuery : IRequest<string>
+{
+    public int Id { get; set; }
+}";
+        await File.WriteAllTextAsync(Path.Combine(testPath, "Requests.cs"), requestCode);
 
         // Act
-        var content = await File.ReadAllTextAsync(Path.Combine(_testPath, "MissingUsings.cs"));
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateRequestsAndResponses", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { testPath, results, true })!;
 
         // Assert
-        content.Should().NotContain("using Relay.Core");
-        content.Should().NotContain("using System.Threading.Tasks");
+        results.Should().Contain(r => r.Type == "Request Pattern" && r.Status == ValidationStatus.Warning);
     }
 
     [Theory]
@@ -273,6 +289,7 @@ public record TestRequest : IRequest<string>;";
         var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
@@ -280,6 +297,15 @@ public record TestRequest : IRequest<string>;";
 </Project>";
 
         await File.WriteAllTextAsync(Path.Combine(_testPath, "Test.csproj"), csproj);
+
+        var program = @"using Relay.Core;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddRelay();
+
+var app = builder.Build();";
+
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "Program.cs"), program);
 
         var handler = @"using Relay.Core;
 using System.Threading;
@@ -853,6 +879,440 @@ public record TestRequest : IRequest<string>;";
 
         // Assert
         command.Handler.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ExecuteValidate_WithValidProject_ShouldPassAllValidations()
+    {
+        // Arrange
+        await CreateValidProject();
+
+        // Act & Assert - This should not throw and should set exit code to 0
+        // We can't easily capture console output in unit tests, but we can verify no exceptions
+        await ValidateCommand.ExecuteValidate(_testPath, false, null, "console");
+
+        // Verify exit code was set to 0 (success)
+        Environment.ExitCode.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ExecuteValidate_WithMissingCsproj_ShouldFail()
+    {
+        // Arrange - Create directory with no .csproj files
+
+        // Act & Assert
+        await ValidateCommand.ExecuteValidate(_testPath, false, null, "console");
+
+        // Should set exit code to 2 (failure)
+        Environment.ExitCode.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ExecuteValidate_WithStrictMode_ShouldCheckAdditionalRules()
+    {
+        // Arrange
+        await CreateValidProject();
+
+        // Act
+        await ValidateCommand.ExecuteValidate(_testPath, true, null, "console");
+
+        // Assert - Exit code should still be 0 for valid project, but strict mode may add warnings
+        Environment.ExitCode.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ExecuteValidate_WithOutputFile_ShouldSaveReport()
+    {
+        // Arrange
+        await CreateValidProject();
+        var outputFile = Path.Combine(_testPath, "validation-report.json");
+
+        // Act
+        await ValidateCommand.ExecuteValidate(_testPath, false, outputFile, "json");
+
+        // Assert
+        File.Exists(outputFile).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputFile);
+        content.Should().Contain("\"Status\": 0"); // Should contain validation results (0 = Pass)
+        content.Should().Contain("Package Reference");
+        content.Should().Contain("Handlers");
+    }
+
+    [Fact]
+    public async Task ExecuteValidate_WithMarkdownFormat_ShouldSaveMarkdownReport()
+    {
+        // Arrange
+        await CreateValidProject();
+        var outputFile = Path.Combine(_testPath, "validation-report.md");
+
+        // Act
+        await ValidateCommand.ExecuteValidate(_testPath, false, outputFile, "markdown");
+
+        // Assert
+        File.Exists(outputFile).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputFile);
+        content.Should().Contain("# Validation Report");
+    }
+
+    [Fact]
+    public async Task ValidateProjectFiles_WithNoCsprojFiles_ShouldFail()
+    {
+        // Arrange - Empty directory
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Project Files" && r.Status == ValidationStatus.Fail);
+    }
+
+    [Fact]
+    public async Task ValidateProjectFiles_WithRelayPackage_ShouldPass()
+    {
+        // Arrange
+        var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+    <ItemGroup>
+        <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+    </ItemGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "Test.csproj"), csproj);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Package Reference" && r.Status == ValidationStatus.Pass);
+    }
+
+    [Fact]
+    public async Task ValidateProjectFiles_WithStrictModeAndNoNullable_ShouldWarn()
+    {
+        // Arrange
+        var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "Test.csproj"), csproj);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, true })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Code Quality" && r.Status == ValidationStatus.Warning);
+    }
+
+    [Fact]
+    public async Task ValidateProjectFiles_WithLatestLangVersion_ShouldPass()
+    {
+        // Arrange
+        var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+    <PropertyGroup>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+</Project>";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "Test.csproj"), csproj);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Message.Contains("Latest C# features enabled"));
+    }
+
+    [Fact]
+    public async Task ValidateHandlers_WithValidHandler_ShouldPass()
+    {
+        // Arrange
+        var handlerCode = @"using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async ValueTask<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""test"";
+    }
+}
+
+public record TestRequest : IRequest<string>;";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "TestHandler.cs"), handlerCode);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Handlers" && r.Status == ValidationStatus.Pass);
+    }
+
+    [Fact]
+    public async Task ValidateHandlers_WithHandlerUsingTaskInsteadOfValueTask_ShouldWarn()
+    {
+        // Arrange
+        var handlerCode = @"using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""test"";
+    }
+}
+
+public record TestRequest : IRequest<string>;";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "TestHandler.cs"), handlerCode);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Handler Pattern" && r.Status == ValidationStatus.Warning);
+    }
+
+    [Fact]
+    public async Task ValidateHandlers_WithHandlerMissingCancellationToken_ShouldWarn()
+    {
+        // Arrange
+        var handlerCode = @"using Relay.Core;
+using System.Threading.Tasks;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async ValueTask<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}
+
+public record TestRequest : IRequest<string>;";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "TestHandler.cs"), handlerCode);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Handler Pattern" && r.Message.Contains("missing CancellationToken"));
+    }
+
+    [Fact]
+    public async Task ValidateHandlers_WithNoHandlers_ShouldWarn()
+    {
+        // Arrange - No handler files
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Handlers" && r.Status == ValidationStatus.Warning);
+    }
+
+    [Fact]
+    public async Task ValidateDIRegistration_WithoutAddRelayInStrictMode_ShouldFail()
+    {
+        // Arrange - Use unique directory
+        var testPath = GetUniqueTestPath();
+        CleanTestDirectory(testPath);
+        var programCode = @"var builder = WebApplication.CreateBuilder(args);
+ // No relay registration call
+
+ var app = builder.Build();";
+        await File.WriteAllTextAsync(Path.Combine(testPath, "Program.cs"), programCode);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateDIRegistration", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { testPath, results, true })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Fail);
+    }
+
+    [Fact]
+    public async Task ValidateDIRegistration_WithoutAddRelay_ShouldWarn()
+    {
+        // Arrange - Use unique directory
+        var testPath = GetUniqueTestPath();
+        CleanTestDirectory(testPath);
+        var programCode = @"var builder = WebApplication.CreateBuilder(args);
+ // No relay registration call
+
+ var app = builder.Build();";
+        await File.WriteAllTextAsync(Path.Combine(testPath, "Program.cs"), programCode);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateDIRegistration", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Warning);
+    }
+
+    [Fact]
+    public async Task ValidateConfiguration_WithValidAppSettings_ShouldPass()
+    {
+        // Arrange
+        var appSettings = @"{
+    ""Logging"": {
+        ""LogLevel"": {
+            ""Default"": ""Information""
+        }
+    }
+}";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "appsettings.json"), appSettings);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateConfiguration", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Configuration" && r.Status == ValidationStatus.Pass);
+    }
+
+    [Fact]
+    public async Task ValidateConfiguration_WithValidCliConfig_ShouldPass()
+    {
+        // Arrange
+        var cliConfig = @"{
+    ""relay"": {
+        ""enableCaching"": true
+    }
+}";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, ".relay-cli.json"), cliConfig);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateConfiguration", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Configuration" && r.Message.Contains("Relay CLI configuration found"));
+    }
+
+    [Fact]
+    public async Task ValidateConfiguration_WithInvalidJson_ShouldFail()
+    {
+        // Arrange
+        var invalidJson = @"{
+    ""relay"": {
+        ""enableCaching"": true,
+    }
+}"; // Trailing comma makes it invalid
+        await File.WriteAllTextAsync(Path.Combine(_testPath, ".relay-cli.json"), invalidJson);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateConfiguration", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "Configuration" && r.Status == ValidationStatus.Fail);
+    }
+
+    [Fact]
+    public async Task ValidateDIRegistration_WithAddRelay_ShouldPass()
+    {
+        // Arrange
+        var programCode = @"using Relay.Core;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddRelay();
+
+var app = builder.Build();";
+        await File.WriteAllTextAsync(Path.Combine(_testPath, "Program.cs"), programCode);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateDIRegistration", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+
+        // Assert
+        results.Should().Contain(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Pass);
+    }
+
+
+
+    [Fact]
+    public void DisplayValidationResults_WithMixedResults_ShouldNotThrow()
+    {
+        // Arrange
+        var results = new List<ValidationResult>
+        {
+            new ValidationResult { Type = "Test", Status = ValidationStatus.Pass, Message = "Pass message" },
+            new ValidationResult { Type = "Test", Status = ValidationStatus.Warning, Message = "Warning message", Suggestion = "Fix this" },
+            new ValidationResult { Type = "Test", Status = ValidationStatus.Fail, Message = "Fail message" }
+        };
+
+        // Act & Assert - Should not throw
+        var method = typeof(ValidateCommand).GetMethod("DisplayValidationResults", BindingFlags.NonPublic | BindingFlags.Static);
+        method!.Invoke(null, new object[] { results, "console" });
+    }
+
+    [Fact]
+    public async Task SaveValidationResults_WithJsonFormat_ShouldCreateValidJson()
+    {
+        // Arrange
+        var results = new List<ValidationResult>
+        {
+            new ValidationResult { Type = "Test", Status = ValidationStatus.Pass, Message = "Test passed" }
+        };
+        var outputFile = Path.Combine(_testPath, "test-output.json");
+
+        // Act
+        var method = typeof(ValidateCommand).GetMethod("SaveValidationResults", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { results, outputFile, "json" })!;
+
+        // Assert
+        File.Exists(outputFile).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputFile);
+        content.Should().Contain("\"Status\": 0"); // 0 = Pass enum value
+        content.Should().Contain("\"Type\": \"Test\"");
+    }
+
+    [Fact]
+    public async Task SaveValidationResults_WithMarkdownFormat_ShouldCreateValidMarkdown()
+    {
+        // Arrange
+        var results = new List<ValidationResult>
+        {
+            new ValidationResult { Type = "Test", Status = ValidationStatus.Pass, Message = "Test passed", Suggestion = "Optional suggestion" }
+        };
+        var outputFile = Path.Combine(_testPath, "test-output.md");
+
+        // Act
+        var method = typeof(ValidateCommand).GetMethod("SaveValidationResults", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, new object[] { results, outputFile, "markdown" })!;
+
+        // Assert
+        File.Exists(outputFile).Should().BeTrue();
+        var content = await File.ReadAllTextAsync(outputFile);
+        content.Should().Contain("# Validation Report");
+        content.Should().Contain("✅ Test");
+        content.Should().Contain("**Status:** Pass");
+        content.Should().Contain("**Suggestion:** Optional suggestion");
     }
 
     public void Dispose()

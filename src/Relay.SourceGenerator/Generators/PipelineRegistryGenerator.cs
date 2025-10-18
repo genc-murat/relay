@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Relay.SourceGenerator.Generators;
+using Relay.SourceGenerator.Core;
 
 namespace Relay.SourceGenerator
 {
@@ -116,7 +117,7 @@ namespace Relay.SourceGenerator
                 // If mocked AttributeData has empty/invalid values, inspect symbol attributes
                 if (pipelineAttribute.AttributeData != null && (pipelineAttribute.AttributeData.NamedArguments.Length == 0 ||
                     pipelineAttribute.AttributeData.NamedArguments.All(kv => kv.Value.IsNull || kv.Value.Value is null)) &&
-                    handler.MethodSymbol != null && handler.MethodSymbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "Relay.Core.PipelineAttribute") is { } symbolAttr)
+                    handler.MethodSymbol != null && handler.MethodSymbol.GetAttributes().FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == AttributeNames.Pipeline) is { } symbolAttr)
                 {
                     var altOrder = symbolAttr.NamedArguments.FirstOrDefault(kv => kv.Key == "Order").Value.Value;
                     if (altOrder is int i) order = i;

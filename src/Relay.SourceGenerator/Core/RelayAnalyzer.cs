@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Relay.SourceGenerator.Validators;
+using Relay.SourceGenerator.Core;
 
 namespace Relay.SourceGenerator
 {
@@ -81,9 +82,9 @@ namespace Relay.SourceGenerator
                     return;
 
                 // Check for Relay attributes
-                var handleAttribute = ValidationHelper.GetAttribute(methodSymbol, "Relay.Core.HandleAttribute");
-                var notificationAttribute = ValidationHelper.GetAttribute(methodSymbol, "Relay.Core.NotificationAttribute");
-                var pipelineAttribute = ValidationHelper.GetAttribute(methodSymbol, "Relay.Core.PipelineAttribute");
+                var handleAttribute = ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Handle);
+                var notificationAttribute = ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Notification);
+                var pipelineAttribute = ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Pipeline);
 
                 // Validate handler methods with [Handle] attribute
                 if (handleAttribute != null)
@@ -146,13 +147,13 @@ namespace Relay.SourceGenerator
                             var methodSymbol = ValidationHelper.TryGetDeclaredSymbol(semanticModel, methodDeclaration);
                             if (methodSymbol == null) continue;
 
-                            var handleAttribute = ValidationHelper.GetAttribute(methodSymbol, "Relay.Core.HandleAttribute");
+                            var handleAttribute = ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Handle);
                             if (handleAttribute != null)
                             {
                                 handlerRegistry.AddHandler(methodSymbol, handleAttribute, methodDeclaration);
                             }
 
-                            var pipelineAttribute = ValidationHelper.GetAttribute(methodSymbol, "Relay.Core.PipelineAttribute");
+                            var pipelineAttribute = ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Pipeline);
                             if (pipelineAttribute != null)
                             {
                                 PipelineValidator.CollectPipelineInfo(pipelineRegistry, methodSymbol, pipelineAttribute, methodDeclaration);

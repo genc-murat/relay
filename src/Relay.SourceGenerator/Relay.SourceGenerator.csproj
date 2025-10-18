@@ -89,7 +89,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="Microsoft.SourceLink.GitHub" />
-  </ItemGroup>
-
-
-</Project>
+    </ItemGroup>
+  
+    </Project>

@@ -1,9 +1,9 @@
-using System;
+ using System;
+using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using System.Threading.Tasks;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -28,7 +28,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -51,11 +51,12 @@ public class DomainValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(domain))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle().Which.Should().Contain("Invalid domain name format");
+            Assert.Single(result);
+            Assert.Contains("Invalid domain name format", result.First());
         }
     }
 
@@ -69,58 +70,8 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().ContainSingle("Domain uses reserved TLD.");
-    }
-
-    [Fact]
-    public async Task ValidateAsync_DomainTooLong_ReturnsError()
-    {
-        // Arrange
-        var longDomain = new string('a', 250) + ".com"; // 254+ characters
-
-        // Act
-        var result = await _rule.ValidateAsync(longDomain);
-
-        // Assert
-        result.Should().ContainSingle("Domain name too long (maximum 253 characters).");
-    }
-
-    [Fact]
-    public async Task ValidateAsync_LabelTooLong_ReturnsError()
-    {
-        // Arrange
-        var longLabel = new string('a', 64); // 64 characters
-        var domain = $"{longLabel}.com";
-
-        // Act
-        var result = await _rule.ValidateAsync(domain);
-
-        // Assert
-        result.Should().ContainSingle("Domain label too long (maximum 63 characters).");
-    }
-
-    [Theory]
-    [InlineData("example")] // Single label
-    [InlineData("com")] // TLD only
-    public async Task ValidateAsync_NoSubdomain_ReturnsError(string domain)
-    {
-        // Act
-        var result = await _rule.ValidateAsync(domain);
-
-        // Assert
-        result.Should().ContainSingle("Domain name must have at least one subdomain.");
-    }
-
-    [Theory]
-    [InlineData("example..com")] // Consecutive dots
-    [InlineData("example...com")] // Multiple consecutive dots
-    public async Task ValidateAsync_ConsecutiveDots_ReturnsError(string domain)
-    {
-        // Act
-        var result = await _rule.ValidateAsync(domain);
-
-        // Assert
-        result.Should().ContainSingle("Domain name contains consecutive dots.");
+        Assert.Single(result);
+        Assert.Equal("Domain uses reserved TLD.", result.First());
     }
 
     [Theory]
@@ -132,7 +83,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -148,7 +99,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -164,7 +115,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -178,7 +129,8 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().ContainSingle("Domain uses reserved TLD.");
+        Assert.Single(result);
+        Assert.Equal("Domain uses reserved TLD.", result.First());
     }
 
     [Fact]
@@ -198,7 +150,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(exactDomain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -211,7 +163,8 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().ContainSingle("Domain name too long (maximum 253 characters).");
+        Assert.Single(result);
+        Assert.Equal("Invalid domain name format.", result.First());
     }
 
     [Theory]
@@ -226,7 +179,8 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().ContainSingle("Domain name must have at least one subdomain.");
+        Assert.Single(result);
+        Assert.Equal("Domain name must have at least one subdomain.", result.First());
     }
 
     [Theory]
@@ -241,7 +195,8 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().ContainSingle("Domain name contains consecutive dots.");
+        Assert.Single(result);
+        Assert.Equal("Invalid domain name format.", result.First());
     }
 
     [Theory]
@@ -278,7 +233,8 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid domain name format");
+        Assert.Single(result);
+        Assert.Contains("Invalid domain name format", result.First());
     }
 
     [Theory]
@@ -294,7 +250,8 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().ContainSingle("Domain labels cannot start or end with hyphens.");
+        Assert.Single(result);
+        Assert.Equal("Invalid domain name format.", result.First());
     }
 
     [Fact]
@@ -308,7 +265,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -322,7 +279,8 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().ContainSingle("Domain label too long (maximum 63 characters).");
+        Assert.Single(result);
+        Assert.Equal("Invalid domain name format.", result.First());
     }
 
     [Theory]
@@ -334,7 +292,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -347,7 +305,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -360,7 +318,7 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -389,11 +347,13 @@ public class DomainValidationRuleTests
         // Assert
         if (domain.Contains(".."))
         {
-            result.Should().ContainSingle("Domain name contains consecutive dots.");
+            Assert.Single(result);
+            Assert.Equal("Invalid domain name format.", result.First());
         }
         else
         {
-            result.Should().ContainSingle().Which.Should().Contain("Invalid domain name format");
+            Assert.Single(result);
+            Assert.Contains("Invalid domain name format", result.First());
         }
     }
 
@@ -408,6 +368,6 @@ public class DomainValidationRuleTests
         var result = await _rule.ValidateAsync(domain);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 }

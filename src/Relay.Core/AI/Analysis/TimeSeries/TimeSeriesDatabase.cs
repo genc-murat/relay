@@ -78,7 +78,23 @@ namespace Relay.Core.AI.Analysis.TimeSeries
             var statisticsLogger = loggerFactory.CreateLogger<TimeSeriesStatisticsService>();
 
             var repository = new TimeSeriesRepository(repositoryLogger, validatedMaxHistorySize);
-            var forecastingService = new ForecastingService(logger, repository, forecastHorizon, defaultMethod);
+
+            // Create forecasting service dependencies
+            var config = new ForecastingConfiguration
+            {
+                DefaultForecastHorizon = forecastHorizon,
+                DefaultForecastingMethod = defaultMethod
+            };
+            var modelManagerLogger = loggerFactory.CreateLogger<ForecastingModelManager>();
+            var modelManager = new ForecastingModelManager(modelManagerLogger);
+            var methodManagerLogger = loggerFactory.CreateLogger<ForecastingMethodManager>();
+            var methodManager = new ForecastingMethodManager(methodManagerLogger, config);
+            var trainerLogger = loggerFactory.CreateLogger<ForecastingTrainer>();
+            var trainer = new ForecastingTrainer(trainerLogger, repository, modelManager, methodManager, config);
+            var predictorLogger = loggerFactory.CreateLogger<ForecastingPredictor>();
+            var predictor = new ForecastingPredictor(predictorLogger, repository, modelManager, trainer, config);
+            var forecastingServiceLogger = loggerFactory.CreateLogger<ForecastingService>();
+            var forecastingService = new ForecastingService(forecastingServiceLogger, trainer, predictor, methodManager);
             var anomalyDetectionService = new AnomalyDetectionService(anomalyLogger, repository);
             var statisticsService = new TimeSeriesStatisticsService(statisticsLogger, repository);
 
@@ -166,15 +182,31 @@ namespace Relay.Core.AI.Analysis.TimeSeries
         /// </summary>
         public void TrainForecastModel(string metricName, ForecastingMethod? method = null)
         {
-            _forecastingService.TrainForecastModel(metricName, method);
+            try
+            {
+                _forecastingService.TrainForecastModel(metricName, method);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error training forecast model for {MetricName}", metricName);
+                // Do not throw - handle gracefully
+            }
         }
 
         /// <summary>
         /// Train or update forecast model for a specific metric using ML.NET (async)
         /// </summary>
-        public Task TrainForecastModelAsync(string metricName, ForecastingMethod? method = null)
+        public async Task TrainForecastModelAsync(string metricName, ForecastingMethod? method = null)
         {
-            return _forecastingService.TrainForecastModelAsync(metricName, method);
+            try
+            {
+                await _forecastingService.TrainForecastModelAsync(metricName, method);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error training forecast model for {MetricName}", metricName);
+                // Do not throw - handle gracefully
+            }
         }
 
         /// <summary>

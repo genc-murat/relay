@@ -1,7 +1,4 @@
 using Relay.CLI.Commands;
-using FluentAssertions;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -29,8 +26,8 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeOfType<AIOptimizationResults>();
+        Assert.NotNull(result);
+        Assert.IsType<AIOptimizationResults>(result);
     }
 
     [Fact]
@@ -48,8 +45,8 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.AppliedOptimizations.Should().NotBeNull();
-        result.AppliedOptimizations.Should().HaveCount(2);
+        Assert.NotNull(result.AppliedOptimizations);
+        Assert.Equal(2, result.AppliedOptimizations.Length);
     }
 
     [Fact]
@@ -67,7 +64,7 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.OverallImprovement.Should().Be(0.35);
+        Assert.Equal(0.35, result.OverallImprovement);
     }
 
     [Fact]
@@ -85,8 +82,8 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.OverallImprovement.Should().BeGreaterThanOrEqualTo(0);
-        result.OverallImprovement.Should().BeLessThanOrEqualTo(1);
+        Assert.True(result.OverallImprovement >= 0);
+        Assert.True(result.OverallImprovement <= 1);
     }
 
     [Fact]
@@ -105,12 +102,12 @@ public class AICodeOptimizerTests
 
         // Assert
         var cachingResult = result.AppliedOptimizations.FirstOrDefault(o => o.Strategy == "Caching");
-        cachingResult.Should().NotBeNull();
-        cachingResult.Strategy.Should().Be("Caching");
-        cachingResult.FilePath.Should().Be("Services/UserService.cs");
-        cachingResult.Description.Should().Be("Added [DistributedCache] attribute");
-        cachingResult.Success.Should().BeTrue();
-        cachingResult.PerformanceGain.Should().Be(0.6);
+        Assert.NotNull(cachingResult);
+        Assert.Equal("Caching", cachingResult.Strategy);
+        Assert.Equal("Services/UserService.cs", cachingResult.FilePath);
+        Assert.Equal("Added [DistributedCache] attribute", cachingResult.Description);
+        Assert.True(cachingResult.Success);
+        Assert.Equal(0.6, cachingResult.PerformanceGain);
     }
 
     [Fact]
@@ -129,12 +126,12 @@ public class AICodeOptimizerTests
 
         // Assert
         var asyncResult = result.AppliedOptimizations.FirstOrDefault(o => o.Strategy == "Async");
-        asyncResult.Should().NotBeNull();
-        asyncResult.Strategy.Should().Be("Async");
-        asyncResult.FilePath.Should().Be("Services/OrderService.cs");
-        asyncResult.Description.Should().Be("Converted Task to ValueTask");
-        asyncResult.Success.Should().BeTrue();
-        asyncResult.PerformanceGain.Should().Be(0.1);
+        Assert.NotNull(asyncResult);
+        Assert.Equal("Async", asyncResult.Strategy);
+        Assert.Equal("Services/OrderService.cs", asyncResult.FilePath);
+        Assert.Equal("Converted Task to ValueTask", asyncResult.Description);
+        Assert.True(asyncResult.Success);
+        Assert.Equal(0.1, asyncResult.PerformanceGain);
     }
 
     [Fact]
@@ -152,7 +149,10 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.AppliedOptimizations.Should().AllSatisfy(o => o.Success.Should().BeTrue());
+        foreach (var optimization in result.AppliedOptimizations)
+        {
+            Assert.True(optimization.Success);
+        }
     }
 
     [Fact]
@@ -172,10 +172,10 @@ public class AICodeOptimizerTests
         // Assert
         foreach (var optimization in result.AppliedOptimizations)
         {
-            optimization.Strategy.Should().NotBeNullOrEmpty();
-            optimization.FilePath.Should().NotBeNullOrEmpty();
-            optimization.Description.Should().NotBeNullOrEmpty();
-            optimization.PerformanceGain.Should().BeGreaterThanOrEqualTo(0);
+            Assert.False(string.IsNullOrWhiteSpace(optimization.Strategy));
+            Assert.False(string.IsNullOrWhiteSpace(optimization.FilePath));
+            Assert.False(string.IsNullOrWhiteSpace(optimization.Description));
+            Assert.True(optimization.PerformanceGain >= 0);
         }
     }
 
@@ -196,8 +196,8 @@ public class AICodeOptimizerTests
         // Assert
         foreach (var optimization in result.AppliedOptimizations)
         {
-            optimization.PerformanceGain.Should().BeGreaterThanOrEqualTo(0);
-            optimization.PerformanceGain.Should().BeLessThanOrEqualTo(1);
+            Assert.True(optimization.PerformanceGain >= 0);
+            Assert.True(optimization.PerformanceGain <= 1);
         }
     }
 
@@ -219,8 +219,8 @@ public class AICodeOptimizerTests
 
         // Assert
         // Currently implementation doesn't use strategies parameter, so results are the same
-        result1.AppliedOptimizations.Should().HaveCount(result2.AppliedOptimizations.Length);
-        result1.OverallImprovement.Should().Be(result2.OverallImprovement);
+        Assert.Equal(result2.AppliedOptimizations.Length, result1.AppliedOptimizations.Length);
+        Assert.Equal(result2.OverallImprovement, result1.OverallImprovement);
     }
 
     [Fact]
@@ -238,10 +238,10 @@ public class AICodeOptimizerTests
         foreach (var riskLevel in riskLevels)
         {
             var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
-            result.Should().NotBeNull();
+            Assert.NotNull(result);
             // Currently implementation doesn't use riskLevel parameter, so results are the same
-            result.AppliedOptimizations.Should().HaveCount(2);
-            result.OverallImprovement.Should().Be(0.35);
+            Assert.Equal(2, result.AppliedOptimizations.Length);
+            Assert.Equal(0.35, result.OverallImprovement);
         }
     }
 
@@ -260,10 +260,10 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use backup parameter, so results are the same
-        result.AppliedOptimizations.Should().HaveCount(2);
-        result.OverallImprovement.Should().Be(0.35);
+        Assert.Equal(2, result.AppliedOptimizations.Length);
+        Assert.Equal(0.35, result.OverallImprovement);
     }
 
     [Fact]
@@ -281,10 +281,10 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use dryRun parameter, so results are the same
-        result.AppliedOptimizations.Should().HaveCount(2);
-        result.OverallImprovement.Should().Be(0.35);
+        Assert.Equal(2, result.AppliedOptimizations.Length);
+        Assert.Equal(0.35, result.OverallImprovement);
     }
 
     [Fact]
@@ -302,10 +302,10 @@ public class AICodeOptimizerTests
         foreach (var threshold in confidenceThresholds)
         {
             var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, threshold);
-            result.Should().NotBeNull();
+            Assert.NotNull(result);
             // Currently implementation doesn't use confidenceThreshold parameter, so results are the same
-            result.AppliedOptimizations.Should().HaveCount(2);
-            result.OverallImprovement.Should().Be(0.35);
+            Assert.Equal(2, result.AppliedOptimizations.Length);
+            Assert.Equal(0.35, result.OverallImprovement);
         }
     }
 
@@ -327,8 +327,8 @@ public class AICodeOptimizerTests
 
         // Assert
         // Should complete in less than 3 seconds (simulated delay is 2 seconds)
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(3000);
-        result.Should().NotBeNull();
+        Assert.True(stopwatch.ElapsedMilliseconds < 3000);
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -346,7 +346,7 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.AppliedOptimizations.Should().NotBeEmpty();
+        Assert.NotEmpty(result.AppliedOptimizations);
     }
 
     [Fact]
@@ -366,8 +366,8 @@ public class AICodeOptimizerTests
         // Assert
         foreach (var optimization in result.AppliedOptimizations)
         {
-            optimization.FilePath.Should().Contain(".cs");
-            optimization.FilePath.Should().Contain("Services/");
+            Assert.Contains(".cs", optimization.FilePath);
+            Assert.Contains("Services/", optimization.FilePath);
         }
     }
 
@@ -389,7 +389,7 @@ public class AICodeOptimizerTests
         var validStrategies = new[] { "Caching", "Async" };
         foreach (var optimization in result.AppliedOptimizations)
         {
-            validStrategies.Should().Contain(optimization.Strategy);
+            Assert.Contains(optimization.Strategy, validStrategies);
         }
     }
 
@@ -408,9 +408,9 @@ public class AICodeOptimizerTests
         var result = await _optimizer.OptimizeAsync(path, strategies, riskLevel, backup, dryRun, confidenceThreshold);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use strategies parameter, so results are the same
-        result.AppliedOptimizations.Should().HaveCount(2);
-        result.OverallImprovement.Should().Be(0.35);
+        Assert.Equal(2, result.AppliedOptimizations.Length);
+        Assert.Equal(0.35, result.OverallImprovement);
     }
 }

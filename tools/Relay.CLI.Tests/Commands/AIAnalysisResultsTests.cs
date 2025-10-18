@@ -12,7 +12,7 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults { ProjectPath = "/path/to/project" };
 
         // Assert
-        results.ProjectPath.Should().Be("/path/to/project");
+        Assert.Equal("/path/to/project", results.ProjectPath);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults { FilesAnalyzed = 42 };
 
         // Assert
-        results.FilesAnalyzed.Should().Be(42);
+        Assert.Equal(42, results.FilesAnalyzed);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults { HandlersFound = 15 };
 
         // Assert
-        results.HandlersFound.Should().Be(15);
+        Assert.Equal(15, results.HandlersFound);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults { PerformanceScore = 85.7 };
 
         // Assert
-        results.PerformanceScore.Should().Be(85.7);
+        Assert.Equal(85.7, results.PerformanceScore);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults { AIConfidence = 0.92 };
 
         // Assert
-        results.AIConfidence.Should().Be(0.92);
+        Assert.Equal(0.92, results.AIConfidence);
     }
 
     [Fact]
@@ -69,9 +69,9 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults { PerformanceIssues = issues };
 
         // Assert
-        results.PerformanceIssues.Should().HaveCount(2);
-        results.PerformanceIssues[0].Severity.Should().Be("High");
-        results.PerformanceIssues[1].Description.Should().Be("Inefficient query");
+        Assert.Equal(2, results.PerformanceIssues.Length);
+        Assert.Equal("High", results.PerformanceIssues[0].Severity);
+        Assert.Equal("Inefficient query", results.PerformanceIssues[1].Description);
     }
 
     [Fact]
@@ -88,9 +88,9 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults { OptimizationOpportunities = opportunities };
 
         // Assert
-        results.OptimizationOpportunities.Should().HaveCount(2);
-        results.OptimizationOpportunities[0].Strategy.Should().Be("Caching");
-        results.OptimizationOpportunities[1].ExpectedImprovement.Should().Be(15.0);
+        Assert.Equal(2, results.OptimizationOpportunities.Length);
+        Assert.Equal("Caching", results.OptimizationOpportunities[0].Strategy);
+        Assert.Equal(15.0, results.OptimizationOpportunities[1].ExpectedImprovement);
     }
 
     [Fact]
@@ -100,13 +100,13 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults();
 
         // Assert
-        results.ProjectPath.Should().Be("");
-        results.FilesAnalyzed.Should().Be(0);
-        results.HandlersFound.Should().Be(0);
-        results.PerformanceScore.Should().Be(0.0);
-        results.AIConfidence.Should().Be(0.0);
-        results.PerformanceIssues.Should().BeEmpty();
-        results.OptimizationOpportunities.Should().BeEmpty();
+        Assert.Equal("", results.ProjectPath);
+        Assert.Equal(0, results.FilesAnalyzed);
+        Assert.Equal(0, results.HandlersFound);
+        Assert.Equal(0.0, results.PerformanceScore);
+        Assert.Equal(0.0, results.AIConfidence);
+        Assert.Empty(results.PerformanceIssues);
+        Assert.Empty(results.OptimizationOpportunities);
     }
 
     [Fact]
@@ -149,13 +149,13 @@ public class AIAnalysisResultsTests
         };
 
         // Assert
-        results.ProjectPath.Should().Be("/src/MyProject");
-        results.FilesAnalyzed.Should().Be(150);
-        results.HandlersFound.Should().Be(25);
-        results.PerformanceScore.Should().Be(78.5);
-        results.AIConfidence.Should().Be(0.87);
-        results.PerformanceIssues.Should().HaveCount(1);
-        results.OptimizationOpportunities.Should().HaveCount(1);
+        Assert.Equal("/src/MyProject", results.ProjectPath);
+        Assert.Equal(150, results.FilesAnalyzed);
+        Assert.Equal(25, results.HandlersFound);
+        Assert.Equal(78.5, results.PerformanceScore);
+        Assert.Equal(0.87, results.AIConfidence);
+        Assert.Equal(1, results.PerformanceIssues.Length);
+        Assert.Equal(1, results.OptimizationOpportunities.Length);
     }
 
     [Fact]
@@ -171,10 +171,10 @@ public class AIAnalysisResultsTests
         };
 
         // Assert
-        results.FilesAnalyzed.Should().Be(0);
-        results.HandlersFound.Should().Be(0);
-        results.PerformanceScore.Should().Be(0.0);
-        results.AIConfidence.Should().Be(0.0);
+        Assert.Equal(0, results.FilesAnalyzed);
+        Assert.Equal(0, results.HandlersFound);
+        Assert.Equal(0.0, results.PerformanceScore);
+        Assert.Equal(0.0, results.AIConfidence);
     }
 
     [Fact]
@@ -190,10 +190,10 @@ public class AIAnalysisResultsTests
         };
 
         // Assert
-        results.FilesAnalyzed.Should().Be(10000);
-        results.HandlersFound.Should().Be(5000);
-        results.PerformanceScore.Should().Be(100.0);
-        results.AIConfidence.Should().Be(1.0);
+        Assert.Equal(10000, results.FilesAnalyzed);
+        Assert.Equal(5000, results.HandlersFound);
+        Assert.Equal(100.0, results.PerformanceScore);
+        Assert.Equal(1.0, results.AIConfidence);
     }
 
     [Fact]
@@ -222,14 +222,14 @@ public class AIAnalysisResultsTests
         var deserialized = JsonSerializer.Deserialize<AIAnalysisResults>(json);
 
         // Assert
-        deserialized.Should().NotBeNull();
-        deserialized!.ProjectPath.Should().Be("/project");
-        deserialized.FilesAnalyzed.Should().Be(100);
-        deserialized.HandlersFound.Should().Be(20);
-        deserialized.PerformanceScore.Should().Be(85.0);
-        deserialized.AIConfidence.Should().Be(0.9);
-        deserialized.PerformanceIssues.Should().HaveCount(1);
-        deserialized.OptimizationOpportunities.Should().HaveCount(1);
+        Assert.NotNull(deserialized);
+        Assert.Equal("/project", deserialized.ProjectPath);
+        Assert.Equal(100, deserialized.FilesAnalyzed);
+        Assert.Equal(20, deserialized.HandlersFound);
+        Assert.Equal(85.0, deserialized.PerformanceScore);
+        Assert.Equal(0.9, deserialized.AIConfidence);
+        Assert.Equal(1, deserialized.PerformanceIssues.Length);
+        Assert.Equal(1, deserialized.OptimizationOpportunities.Length);
     }
 
     [Fact]
@@ -266,14 +266,14 @@ public class AIAnalysisResultsTests
         var results = JsonSerializer.Deserialize<AIAnalysisResults>(json);
 
         // Assert
-        results.Should().NotBeNull();
-        results!.ProjectPath.Should().Be("/test/project");
-        results.FilesAnalyzed.Should().Be(75);
-        results.HandlersFound.Should().Be(12);
-        results.PerformanceScore.Should().Be(92.3);
-        results.AIConfidence.Should().Be(0.85);
-        results.PerformanceIssues.Should().HaveCount(1);
-        results.OptimizationOpportunities.Should().HaveCount(1);
+        Assert.NotNull(results);
+        Assert.Equal("/test/project", results.ProjectPath);
+        Assert.Equal(75, results.FilesAnalyzed);
+        Assert.Equal(12, results.HandlersFound);
+        Assert.Equal(92.3, results.PerformanceScore);
+        Assert.Equal(0.85, results.AIConfidence);
+        Assert.Equal(1, results.PerformanceIssues.Length);
+        Assert.Equal(1, results.OptimizationOpportunities.Length);
     }
 
     [Fact]
@@ -287,8 +287,8 @@ public class AIAnalysisResultsTests
         };
 
         // Assert
-        results.PerformanceIssues.Should().BeEmpty();
-        results.OptimizationOpportunities.Should().BeEmpty();
+        Assert.Empty(results.PerformanceIssues);
+        Assert.Empty(results.OptimizationOpportunities);
     }
 
     [Fact]
@@ -298,9 +298,9 @@ public class AIAnalysisResultsTests
         var results = new AIAnalysisResults();
 
         // Assert - Default initialization should provide empty arrays
-        results.PerformanceIssues.Should().NotBeNull();
-        results.OptimizationOpportunities.Should().NotBeNull();
-        results.PerformanceIssues.Should().BeEmpty();
-        results.OptimizationOpportunities.Should().BeEmpty();
+        Assert.NotNull(results.PerformanceIssues);
+        Assert.NotNull(results.OptimizationOpportunities);
+        Assert.Empty(results.PerformanceIssues);
+        Assert.Empty(results.OptimizationOpportunities);
     }
 }

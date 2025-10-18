@@ -1,7 +1,4 @@
 using Relay.CLI.Commands;
-using FluentAssertions;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -27,8 +24,8 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeOfType<AIAnalysisResults>();
+        Assert.NotNull(result);
+        Assert.IsType<AIAnalysisResults>(result);
     }
 
     [Fact]
@@ -44,7 +41,7 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(expectedPath, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.ProjectPath.Should().Be(expectedPath);
+        Assert.Equal(expectedPath, result.ProjectPath);
     }
 
     [Fact]
@@ -60,7 +57,7 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.FilesAnalyzed.Should().Be(42);
+        Assert.Equal(42, result.FilesAnalyzed);
     }
 
     [Fact]
@@ -76,7 +73,7 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.HandlersFound.Should().Be(15);
+        Assert.Equal(15, result.HandlersFound);
     }
 
     [Fact]
@@ -92,9 +89,9 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.PerformanceScore.Should().BeGreaterThanOrEqualTo(0);
-        result.PerformanceScore.Should().BeLessThanOrEqualTo(10);
-        result.PerformanceScore.Should().Be(7.8);
+        Assert.True(result.PerformanceScore >= 0);
+        Assert.True(result.PerformanceScore <= 10);
+        Assert.Equal(7.8, result.PerformanceScore);
     }
 
     [Fact]
@@ -110,9 +107,9 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.AIConfidence.Should().BeGreaterThanOrEqualTo(0);
-        result.AIConfidence.Should().BeLessThanOrEqualTo(1);
-        result.AIConfidence.Should().Be(0.87);
+        Assert.True(result.AIConfidence >= 0);
+        Assert.True(result.AIConfidence <= 1);
+        Assert.Equal(0.87, result.AIConfidence);
     }
 
     [Fact]
@@ -128,20 +125,20 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.PerformanceIssues.Should().NotBeNull();
-        result.PerformanceIssues.Should().HaveCount(2);
+        Assert.NotNull(result.PerformanceIssues);
+        Assert.Equal(2, result.PerformanceIssues.Length);
 
         var firstIssue = result.PerformanceIssues[0];
-        firstIssue.Severity.Should().Be("High");
-        firstIssue.Description.Should().Be("Handler without caching for repeated queries");
-        firstIssue.Location.Should().Be("UserService.GetUser");
-        firstIssue.Impact.Should().Be("High");
+        Assert.Equal("High", firstIssue.Severity);
+        Assert.Equal("Handler without caching for repeated queries", firstIssue.Description);
+        Assert.Equal("UserService.GetUser", firstIssue.Location);
+        Assert.Equal("High", firstIssue.Impact);
 
         var secondIssue = result.PerformanceIssues[1];
-        secondIssue.Severity.Should().Be("Medium");
-        secondIssue.Description.Should().Be("Multiple database calls in single handler");
-        secondIssue.Location.Should().Be("OrderService.ProcessOrder");
-        secondIssue.Impact.Should().Be("Medium");
+        Assert.Equal("Medium", secondIssue.Severity);
+        Assert.Equal("Multiple database calls in single handler", secondIssue.Description);
+        Assert.Equal("OrderService.ProcessOrder", secondIssue.Location);
+        Assert.Equal("Medium", secondIssue.Impact);
     }
 
     [Fact]
@@ -157,22 +154,22 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.OptimizationOpportunities.Should().NotBeNull();
-        result.OptimizationOpportunities.Should().HaveCount(2);
+        Assert.NotNull(result.OptimizationOpportunities);
+        Assert.Equal(2, result.OptimizationOpportunities.Length);
 
         var firstOpportunity = result.OptimizationOpportunities[0];
-        firstOpportunity.Strategy.Should().Be("Caching");
-        firstOpportunity.Description.Should().Be("Enable distributed caching for user queries");
-        firstOpportunity.ExpectedImprovement.Should().Be(0.6);
-        firstOpportunity.Confidence.Should().Be(0.9);
-        firstOpportunity.RiskLevel.Should().Be("Low");
+        Assert.Equal("Caching", firstOpportunity.Strategy);
+        Assert.Equal("Enable distributed caching for user queries", firstOpportunity.Description);
+        Assert.Equal(0.6, firstOpportunity.ExpectedImprovement);
+        Assert.Equal(0.9, firstOpportunity.Confidence);
+        Assert.Equal("Low", firstOpportunity.RiskLevel);
 
         var secondOpportunity = result.OptimizationOpportunities[1];
-        secondOpportunity.Strategy.Should().Be("Batching");
-        secondOpportunity.Description.Should().Be("Batch database operations in order processing");
-        secondOpportunity.ExpectedImprovement.Should().Be(0.3);
-        secondOpportunity.Confidence.Should().Be(0.8);
-        secondOpportunity.RiskLevel.Should().Be("Medium");
+        Assert.Equal("Batching", secondOpportunity.Strategy);
+        Assert.Equal("Batch database operations in order processing", secondOpportunity.Description);
+        Assert.Equal(0.3, secondOpportunity.ExpectedImprovement);
+        Assert.Equal(0.8, secondOpportunity.Confidence);
+        Assert.Equal("Medium", secondOpportunity.RiskLevel);
     }
 
     [Fact]
@@ -188,9 +185,9 @@ public class AICodeAnalyzerTests
         foreach (var depth in depths)
         {
             var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
-            result.Should().NotBeNull();
-            result.ProjectPath.Should().Be(path);
-            result.FilesAnalyzed.Should().Be(42); // Currently hardcoded
+            Assert.NotNull(result);
+            Assert.Equal(path, result.ProjectPath);
+            Assert.Equal(42, result.FilesAnalyzed); // Currently hardcoded
         }
     }
 
@@ -207,9 +204,9 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use the flags, so results are the same
-        result.PerformanceScore.Should().Be(7.8);
+        Assert.Equal(7.8, result.PerformanceScore);
     }
 
     [Fact]
@@ -225,9 +222,9 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use the flags, so results are the same
-        result.OptimizationOpportunities.Should().HaveCount(2);
+        Assert.Equal(2, result.OptimizationOpportunities.Length);
     }
 
     [Fact]
@@ -246,8 +243,8 @@ public class AICodeAnalyzerTests
 
         // Assert
         // Should complete in less than 2 seconds (simulated delay is 1 second)
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(2000);
-        result.Should().NotBeNull();
+        Assert.True(stopwatch.ElapsedMilliseconds < 2000);
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -263,8 +260,8 @@ public class AICodeAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(path, depth, includeMetrics, suggestOptimizations);
 
         // Assert
-        result.PerformanceIssues.Should().NotBeEmpty();
-        result.OptimizationOpportunities.Should().NotBeEmpty();
+        Assert.NotEmpty(result.PerformanceIssues);
+        Assert.NotEmpty(result.OptimizationOpportunities);
     }
 
     [Fact]
@@ -282,10 +279,10 @@ public class AICodeAnalyzerTests
         // Assert
         foreach (var issue in result.PerformanceIssues)
         {
-            issue.Severity.Should().NotBeNullOrEmpty();
-            issue.Description.Should().NotBeNullOrEmpty();
-            issue.Location.Should().NotBeNullOrEmpty();
-            issue.Impact.Should().NotBeNullOrEmpty();
+            Assert.False(string.IsNullOrWhiteSpace(issue.Severity));
+            Assert.False(string.IsNullOrWhiteSpace(issue.Description));
+            Assert.False(string.IsNullOrWhiteSpace(issue.Location));
+            Assert.False(string.IsNullOrWhiteSpace(issue.Impact));
         }
     }
 
@@ -304,11 +301,11 @@ public class AICodeAnalyzerTests
         // Assert
         foreach (var opportunity in result.OptimizationOpportunities)
         {
-            opportunity.Strategy.Should().NotBeNullOrEmpty();
-            opportunity.Description.Should().NotBeNullOrEmpty();
-            opportunity.ExpectedImprovement.Should().BeGreaterThan(0);
-            opportunity.Confidence.Should().BeGreaterThan(0);
-            opportunity.RiskLevel.Should().NotBeNullOrEmpty();
+            Assert.False(string.IsNullOrWhiteSpace(opportunity.Strategy));
+            Assert.False(string.IsNullOrWhiteSpace(opportunity.Description));
+            Assert.True(opportunity.ExpectedImprovement > 0);
+            Assert.True(opportunity.Confidence > 0);
+            Assert.False(string.IsNullOrWhiteSpace(opportunity.RiskLevel));
         }
     }
 
@@ -327,8 +324,8 @@ public class AICodeAnalyzerTests
         // Assert
         foreach (var opportunity in result.OptimizationOpportunities)
         {
-            opportunity.ExpectedImprovement.Should().BeGreaterThanOrEqualTo(0);
-            opportunity.ExpectedImprovement.Should().BeLessThanOrEqualTo(1);
+            Assert.True(opportunity.ExpectedImprovement >= 0);
+            Assert.True(opportunity.ExpectedImprovement <= 1);
         }
     }
 
@@ -347,8 +344,8 @@ public class AICodeAnalyzerTests
         // Assert
         foreach (var opportunity in result.OptimizationOpportunities)
         {
-            opportunity.Confidence.Should().BeGreaterThanOrEqualTo(0);
-            opportunity.Confidence.Should().BeLessThanOrEqualTo(1);
+            Assert.True(opportunity.Confidence >= 0);
+            Assert.True(opportunity.Confidence <= 1);
         }
     }
 }

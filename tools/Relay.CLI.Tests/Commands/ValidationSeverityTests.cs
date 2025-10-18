@@ -11,8 +11,8 @@ public class ValidationSeverityTests
         var severity = ValidationSeverity.Info;
 
         // Assert
-        severity.Should().Be(ValidationSeverity.Info);
-        ((int)severity).Should().Be(0);
+        Assert.Equal(ValidationSeverity.Info, severity);
+        Assert.Equal(0, (int)severity);
     }
 
     [Fact]
@@ -22,8 +22,8 @@ public class ValidationSeverityTests
         var severity = ValidationSeverity.Low;
 
         // Assert
-        severity.Should().Be(ValidationSeverity.Low);
-        ((int)severity).Should().Be(1);
+        Assert.Equal(ValidationSeverity.Low, severity);
+        Assert.Equal(1, (int)severity);
     }
 
     [Fact]
@@ -33,8 +33,8 @@ public class ValidationSeverityTests
         var severity = ValidationSeverity.Medium;
 
         // Assert
-        severity.Should().Be(ValidationSeverity.Medium);
-        ((int)severity).Should().Be(2);
+        Assert.Equal(ValidationSeverity.Medium, severity);
+        Assert.Equal(2, (int)severity);
     }
 
     [Fact]
@@ -44,8 +44,8 @@ public class ValidationSeverityTests
         var severity = ValidationSeverity.High;
 
         // Assert
-        severity.Should().Be(ValidationSeverity.High);
-        ((int)severity).Should().Be(3);
+        Assert.Equal(ValidationSeverity.High, severity);
+        Assert.Equal(3, (int)severity);
     }
 
     [Fact]
@@ -55,8 +55,8 @@ public class ValidationSeverityTests
         var severity = ValidationSeverity.Critical;
 
         // Assert
-        severity.Should().Be(ValidationSeverity.Critical);
-        ((int)severity).Should().Be(4);
+        Assert.Equal(ValidationSeverity.Critical, severity);
+        Assert.Equal(4, (int)severity);
     }
 
     [Fact]
@@ -66,12 +66,12 @@ public class ValidationSeverityTests
         var values = Enum.GetValues(typeof(ValidationSeverity)).Cast<ValidationSeverity>().ToList();
 
         // Assert
-        values.Should().HaveCount(5);
-        values.Should().Contain(ValidationSeverity.Info);
-        values.Should().Contain(ValidationSeverity.Low);
-        values.Should().Contain(ValidationSeverity.Medium);
-        values.Should().Contain(ValidationSeverity.High);
-        values.Should().Contain(ValidationSeverity.Critical);
+        Assert.Equal(5, values.Count);
+        Assert.Contains(ValidationSeverity.Info, values);
+        Assert.Contains(ValidationSeverity.Low, values);
+        Assert.Contains(ValidationSeverity.Medium, values);
+        Assert.Contains(ValidationSeverity.High, values);
+        Assert.Contains(ValidationSeverity.Critical, values);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class ValidationSeverityTests
         // Assert
         for (int i = 0; i < ordered.Length - 1; i++)
         {
-            ((int)ordered[i]).Should().BeLessThan((int)ordered[i + 1]);
+            Assert.True((int)ordered[i] < (int)ordered[i + 1]);
         }
     }
 
@@ -101,30 +101,30 @@ public class ValidationSeverityTests
         var defaultSeverity = default(ValidationSeverity);
 
         // Assert
-        defaultSeverity.Should().Be(ValidationSeverity.Info);
-        ((int)defaultSeverity).Should().Be(0);
+        Assert.Equal(ValidationSeverity.Info, defaultSeverity);
+        Assert.Equal(0, (int)defaultSeverity);
     }
 
     [Fact]
     public void ValidationSeverity_CanBeParsedFromString()
     {
         // Act & Assert
-        Enum.Parse<ValidationSeverity>("Info").Should().Be(ValidationSeverity.Info);
-        Enum.Parse<ValidationSeverity>("Low").Should().Be(ValidationSeverity.Low);
-        Enum.Parse<ValidationSeverity>("Medium").Should().Be(ValidationSeverity.Medium);
-        Enum.Parse<ValidationSeverity>("High").Should().Be(ValidationSeverity.High);
-        Enum.Parse<ValidationSeverity>("Critical").Should().Be(ValidationSeverity.Critical);
+        Assert.Equal(ValidationSeverity.Info, Enum.Parse<ValidationSeverity>("Info"));
+        Assert.Equal(ValidationSeverity.Low, Enum.Parse<ValidationSeverity>("Low"));
+        Assert.Equal(ValidationSeverity.Medium, Enum.Parse<ValidationSeverity>("Medium"));
+        Assert.Equal(ValidationSeverity.High, Enum.Parse<ValidationSeverity>("High"));
+        Assert.Equal(ValidationSeverity.Critical, Enum.Parse<ValidationSeverity>("Critical"));
     }
 
     [Fact]
     public void ValidationSeverity_CanBeConvertedToString()
     {
         // Act & Assert
-        ValidationSeverity.Info.ToString().Should().Be("Info");
-        ValidationSeverity.Low.ToString().Should().Be("Low");
-        ValidationSeverity.Medium.ToString().Should().Be("Medium");
-        ValidationSeverity.High.ToString().Should().Be("High");
-        ValidationSeverity.Critical.ToString().Should().Be("Critical");
+        Assert.Equal("Info", ValidationSeverity.Info.ToString());
+        Assert.Equal("Low", ValidationSeverity.Low.ToString());
+        Assert.Equal("Medium", ValidationSeverity.Medium.ToString());
+        Assert.Equal("High", ValidationSeverity.High.ToString());
+        Assert.Equal("Critical", ValidationSeverity.Critical.ToString());
     }
 
     [Fact]
@@ -141,8 +141,8 @@ public class ValidationSeverityTests
         };
 
         // Assert
-        severities.Should().HaveCount(5);
-        severities.Distinct().Should().HaveCount(5);
+        Assert.Equal(5, severities.Count);
+        Assert.Equal(5, severities.Distinct().Count());
     }
 
     [Fact]
@@ -163,8 +163,8 @@ public class ValidationSeverityTests
         var grouped = items.GroupBy(i => i.Severity);
 
         // Assert
-        grouped.Should().HaveCount(5);
-        grouped.First(g => g.Key == ValidationSeverity.High).Should().HaveCount(2);
+        Assert.Equal(5, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == ValidationSeverity.High).Count());
     }
 
     [Fact]
@@ -184,11 +184,11 @@ public class ValidationSeverityTests
         var ordered = severities.OrderBy(s => s).ToList();
 
         // Assert
-        ordered[0].Should().Be(ValidationSeverity.Info);
-        ordered[1].Should().Be(ValidationSeverity.Low);
-        ordered[2].Should().Be(ValidationSeverity.Medium);
-        ordered[3].Should().Be(ValidationSeverity.High);
-        ordered[4].Should().Be(ValidationSeverity.Critical);
+        Assert.Equal(ValidationSeverity.Info, ordered[0]);
+        Assert.Equal(ValidationSeverity.Low, ordered[1]);
+        Assert.Equal(ValidationSeverity.Medium, ordered[2]);
+        Assert.Equal(ValidationSeverity.High, ordered[3]);
+        Assert.Equal(ValidationSeverity.Critical, ordered[4]);
     }
 
     [Fact]
@@ -204,14 +204,14 @@ public class ValidationSeverityTests
         var lowSeverity = severities.Where(s => (int)s <= (int)ValidationSeverity.Low).ToList();
 
         // Assert
-        highSeverity.Should().HaveCount(3);
-        highSeverity.Should().Contain(ValidationSeverity.Medium);
-        highSeverity.Should().Contain(ValidationSeverity.High);
-        highSeverity.Should().Contain(ValidationSeverity.Critical);
+        Assert.Equal(3, highSeverity.Count);
+        Assert.Contains(ValidationSeverity.Medium, highSeverity);
+        Assert.Contains(ValidationSeverity.High, highSeverity);
+        Assert.Contains(ValidationSeverity.Critical, highSeverity);
 
-        lowSeverity.Should().HaveCount(2);
-        lowSeverity.Should().Contain(ValidationSeverity.Info);
-        lowSeverity.Should().Contain(ValidationSeverity.Low);
+        Assert.Equal(2, lowSeverity.Count);
+        Assert.Contains(ValidationSeverity.Info, lowSeverity);
+        Assert.Contains(ValidationSeverity.Low, lowSeverity);
     }
 
     [Fact]
@@ -221,7 +221,7 @@ public class ValidationSeverityTests
         var type = typeof(ValidationSeverity);
 
         // Assert
-        type.IsEnum.Should().BeTrue();
+        Assert.True(type.IsEnum);
     }
 
     [Fact]
@@ -244,11 +244,11 @@ public class ValidationSeverityTests
             .ToDictionary(g => g.Key, g => g.Count());
 
         // Assert
-        severityCounts[ValidationSeverity.Info].Should().Be(2);
-        severityCounts[ValidationSeverity.Low].Should().Be(1);
-        severityCounts[ValidationSeverity.Medium].Should().Be(2);
-        severityCounts[ValidationSeverity.High].Should().Be(1);
-        severityCounts[ValidationSeverity.Critical].Should().Be(1);
+        Assert.Equal(2, severityCounts[ValidationSeverity.Info]);
+        Assert.Equal(1, severityCounts[ValidationSeverity.Low]);
+        Assert.Equal(2, severityCounts[ValidationSeverity.Medium]);
+        Assert.Equal(1, severityCounts[ValidationSeverity.High]);
+        Assert.Equal(1, severityCounts[ValidationSeverity.Critical]);
     }
 
     [Fact]
@@ -259,8 +259,8 @@ public class ValidationSeverityTests
         var severity2 = ValidationSeverity.High;
 
         // Act & Assert - Basic comparison operations
-        ((int)severity1).Should().BeLessThan((int)severity2);
-        ((int)severity2).Should().BeGreaterThan((int)severity1);
+        Assert.True((int)severity1 < (int)severity2);
+        Assert.True((int)severity2 > (int)severity1);
     }
 
     [Theory]
@@ -272,7 +272,7 @@ public class ValidationSeverityTests
     public void ValidationSeverity_ShouldHaveCorrectIntegerValues(ValidationSeverity severity, int expectedValue)
     {
         // Act & Assert
-        ((int)severity).Should().Be(expectedValue);
+        Assert.Equal(expectedValue, (int)severity);
     }
 
     [Fact]
@@ -282,13 +282,13 @@ public class ValidationSeverityTests
         var severity = ValidationSeverity.Medium;
 
         // Act & Assert
-        (severity == ValidationSeverity.Info).Should().BeFalse();
-        (severity == ValidationSeverity.Medium).Should().BeTrue();
-        (severity != ValidationSeverity.Critical).Should().BeTrue();
-        (severity >= ValidationSeverity.Medium).Should().BeTrue();
-        (severity <= ValidationSeverity.Critical).Should().BeTrue();
-        (severity > ValidationSeverity.Low).Should().BeTrue();
-        (severity < ValidationSeverity.Critical).Should().BeTrue();
+        Assert.False(severity == ValidationSeverity.Info);
+        Assert.True(severity == ValidationSeverity.Medium);
+        Assert.True(severity != ValidationSeverity.Critical);
+        Assert.True(severity >= ValidationSeverity.Medium);
+        Assert.True(severity <= ValidationSeverity.Critical);
+        Assert.True(severity > ValidationSeverity.Low);
+        Assert.True(severity < ValidationSeverity.Critical);
     }
 
     [Fact]
@@ -302,8 +302,8 @@ public class ValidationSeverityTests
         };
 
         // Assert
-        issue.Severity.Should().Be("Medium");
-        ValidationSeverity.Medium.ToString().Should().Be("Medium");
+        Assert.Equal("Medium", issue.Severity);
+        Assert.Equal("Medium", ValidationSeverity.Medium.ToString());
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public class ValidationSeverityTests
         var values = Enum.GetValues(typeof(ValidationSeverity)).Cast<int>().ToList();
 
         // Assert
-        values.Distinct().Should().HaveCount(5);
+        Assert.Equal(5, values.Distinct().Count());
     }
 
     [Fact]
@@ -330,8 +330,8 @@ public class ValidationSeverityTests
         };
 
         // Assert
-        severityDescriptions.Should().HaveCount(5);
-        severityDescriptions[ValidationSeverity.Critical].Should().Be("Critical issue requiring immediate attention");
+        Assert.Equal(5, severityDescriptions.Count);
+        Assert.Equal("Critical issue requiring immediate attention", severityDescriptions[ValidationSeverity.Critical]);
     }
 
     [Fact]
@@ -357,12 +357,12 @@ public class ValidationSeverityTests
         }).ToList();
 
         // Assert
-        report[0].Description.Should().Be("Info");
-        report[0].IsHighPriority.Should().BeFalse();
-        report[3].Description.Should().Be("High");
-        report[3].IsHighPriority.Should().BeTrue();
-        report[4].Description.Should().Be("Critical");
-        report[4].IsHighPriority.Should().BeTrue();
+        Assert.Equal("Info", report[0].Description);
+        Assert.False(report[0].IsHighPriority);
+        Assert.Equal("High", report[3].Description);
+        Assert.True(report[3].IsHighPriority);
+        Assert.Equal("Critical", report[4].Description);
+        Assert.True(report[4].IsHighPriority);
     }
 
     [Fact]
@@ -385,9 +385,9 @@ public class ValidationSeverityTests
         var mediumAndBelow = issues.Where(i => i.Severity <= ValidationSeverity.Medium).ToList();
 
         // Assert
-        criticalIssues.Should().HaveCount(1);
-        highAndAbove.Should().HaveCount(3);
-        mediumAndBelow.Should().HaveCount(3);
+        Assert.Single(criticalIssues);
+        Assert.Equal(3, highAndAbove.Count);
+        Assert.Equal(3, mediumAndBelow.Count);
     }
 
     [Fact]
@@ -418,7 +418,7 @@ public class ValidationSeverityTests
         }
 
         // Assert
-        priority.Should().Be("Medium");
+        Assert.Equal("Medium", priority);
     }
 
     [Fact]
@@ -440,8 +440,8 @@ public class ValidationSeverityTests
         var hasOnlyInfo = validationResults.All(s => s == ValidationSeverity.Info);
 
         // Assert
-        shouldBlockDeployment.Should().BeTrue();
-        shouldWarnUser.Should().BeTrue();
-        hasOnlyInfo.Should().BeFalse();
+        Assert.True(shouldBlockDeployment);
+        Assert.True(shouldWarnUser);
+        Assert.False(hasOnlyInfo);
     }
 }

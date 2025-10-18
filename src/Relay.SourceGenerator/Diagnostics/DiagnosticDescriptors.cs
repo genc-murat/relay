@@ -196,5 +196,21 @@ namespace Relay.SourceGenerator
             Category,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor PrivateHandler = new(
+            "RELAY_GEN_106",
+            "Private Handler",
+            "Handler method '{0}' is private. Private handlers may not be discoverable by the dependency injection container.",
+            Category,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InternalHandler = new(
+            "RELAY_GEN_107",
+            "Internal Handler",
+            "Handler method '{0}' is internal. This is a valid accessibility, but consider making it public if it needs to be accessed from other assemblies.",
+            Category,
+            DiagnosticSeverity.Info,
+            isEnabledByDefault: true);
     }
 }

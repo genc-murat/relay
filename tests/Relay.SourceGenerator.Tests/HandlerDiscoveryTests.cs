@@ -330,7 +330,7 @@ namespace TestProject
 
             // Assert
             Assert.Empty(result.Handlers);
-            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("public or internal"));
+            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_106");
         }
 
         [Fact]

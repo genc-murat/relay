@@ -293,12 +293,8 @@ namespace Relay.SourceGenerator
                 return false;
             }
 
-            if (!IsValidAccessibility(method))
+            if (!ValidateAccessibility(method, location, diagnosticReporter))
             {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
-                    "request handler",
-                    method.Name, "Request handlers must be public or internal");
-                diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
             }
 
@@ -330,12 +326,8 @@ namespace Relay.SourceGenerator
                 return false;
             }
 
-            if (!IsValidAccessibility(method))
+            if (!ValidateAccessibility(method, location, diagnosticReporter))
             {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
-                    "notification handler",
-                    method.Name, "Notification handlers must be public or internal");
-                diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
             }
 
@@ -367,12 +359,8 @@ namespace Relay.SourceGenerator
                 return false;
             }
 
-            if (!IsValidAccessibility(method))
+            if (!ValidateAccessibility(method, location, diagnosticReporter))
             {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
-                    "pipeline handler",
-                    method.Name, "Pipeline handlers must be public or internal");
-                diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
             }
 
@@ -385,10 +373,30 @@ namespace Relay.SourceGenerator
             return ValidateRequestHandlerSignature(method, location, diagnosticReporter);
         }
 
-        private bool IsValidAccessibility(IMethodSymbol method)
+        private bool ValidateAccessibility(IMethodSymbol method, Location location, IDiagnosticReporter diagnosticReporter)
         {
-            return method.DeclaredAccessibility == Accessibility.Public ||
-                   method.DeclaredAccessibility == Accessibility.Internal;
+            switch (method.DeclaredAccessibility)
+            {
+                case Accessibility.Private:
+                    var privateDiagnostic = Diagnostic.Create(DiagnosticDescriptors.PrivateHandler, location, method.Name);
+                    diagnosticReporter.ReportDiagnostic(privateDiagnostic);
+                    return false; // private handlers are not allowed
+
+                case Accessibility.Internal:
+                    var internalDiagnostic = Diagnostic.Create(DiagnosticDescriptors.InternalHandler, location, method.Name);
+                    diagnosticReporter.ReportDiagnostic(internalDiagnostic);
+                    return true; // internal handlers are allowed
+
+                case Accessibility.Public:
+                    return true; // public handlers are allowed
+
+                default:
+                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                        "handler",
+                        method.Name, "Handler methods must be public or internal.");
+                    diagnosticReporter.ReportDiagnostic(diagnostic);
+                    return false;
+            }
         }
 
         private bool IsValidReturnType(ITypeSymbol returnType)

@@ -47,7 +47,9 @@ namespace Relay.SourceGenerator
                 DiagnosticDescriptors.UnusedHandler,
                 DiagnosticDescriptors.PerformanceWarning,
                 DiagnosticDescriptors.MissingConfigureAwait,
-                DiagnosticDescriptors.SyncOverAsync
+                DiagnosticDescriptors.SyncOverAsync,
+                DiagnosticDescriptors.PrivateHandler,
+                DiagnosticDescriptors.InternalHandler
             );
 
         /// <summary>

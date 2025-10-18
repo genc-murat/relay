@@ -52,6 +52,7 @@
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
     <PackageReference Include="System.Text.Json" PrivateAssets="all" />
+    <PackageReference Include="System.Composition" />
   </ItemGroup>
 
   <!-- Runtime Dependency: Consumers need Relay.Core for BaseRequestDispatcher -->

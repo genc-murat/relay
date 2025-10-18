@@ -220,5 +220,13 @@ namespace Relay.SourceGenerator
             Category,
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor ConstructorValueTypeParameter = new(
+            "RELAY_GEN_109",
+            "Constructor Value Type Parameter",
+            "Handler class '{0}' has a constructor with a value type parameter '{1}'. Value types are not typically registered as services and may cause issues with dependency injection.",
+            Category,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
     }
 }

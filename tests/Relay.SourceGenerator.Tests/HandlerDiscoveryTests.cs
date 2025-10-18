@@ -449,6 +449,35 @@ namespace TestProject
             return result;
         }
 
+        [Fact]
+        public void DiscoverHandlers_Should_Warn_For_Constructor_With_Value_Type_Parameters()
+        {
+            // Arrange
+            var source = @"
+using Relay.Core;
+
+namespace TestProject
+{
+    public class TestHandler
+    {
+        public TestHandler(int value) { }
+
+        [Handle]
+        public string HandleTest(string request)
+        {
+            return request;
+        }
+    }
+}";
+
+            // Act
+            var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
+
+            // Assert
+            Assert.Single(result.Handlers);
+            Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_109");
+        }
+
         private (HandlerDiscoveryResult result, Diagnostic[] diagnostics) RunHandlerDiscoveryWithDiagnostics(string source)
         {
             var compilation = CreateTestCompilation(source);

@@ -131,4 +131,9 @@
     <!-- Relay packages (for inter-project dependencies) -->
     <PackageVersion Include="Relay.Core" Version="1.1.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Code Analysis and Fixes -->
+    <PackageVersion Include="System.Composition" Version="9.0.0" />
+  </ItemGroup>
 </Project>

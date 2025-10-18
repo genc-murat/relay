@@ -50,7 +50,8 @@ namespace Relay.SourceGenerator
                 DiagnosticDescriptors.SyncOverAsync,
                 DiagnosticDescriptors.PrivateHandler,
                 DiagnosticDescriptors.InternalHandler,
-                DiagnosticDescriptors.MultipleConstructors
+                DiagnosticDescriptors.MultipleConstructors,
+                DiagnosticDescriptors.ConstructorValueTypeParameter
             );
 
         /// <summary>

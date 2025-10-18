@@ -546,6 +546,23 @@ namespace Relay.SourceGenerator
                     diagnosticReporter.ReportDiagnostic(diagnostic);
                 }
             }
+
+            var constructor = constructors.FirstOrDefault();
+            if (constructor != null)
+            {
+                foreach (var param in constructor.Parameters)
+                {
+                    if (param.Type.IsValueType)
+                    {
+                        var location = param.Locations.FirstOrDefault();
+                        if (location != null)
+                        {
+                            var diagnostic = Diagnostic.Create(DiagnosticDescriptors.ConstructorValueTypeParameter, location, typeSymbol.Name, param.Name);
+                            diagnosticReporter.ReportDiagnostic(diagnostic);
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>

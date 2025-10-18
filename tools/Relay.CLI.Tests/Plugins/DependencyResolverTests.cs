@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-using Moq;
 using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
@@ -23,7 +21,7 @@ public class DependencyResolverTests
         var resolver = new DependencyResolver(logger.Object);
 
         // Assert
-        resolver.Should().NotBeNull();
+        Assert.NotNull(resolver);
     }
 
     [Fact]
@@ -36,7 +34,7 @@ public class DependencyResolverTests
         var result = await _dependencyResolver.ResolveDependenciesAsync(pluginPath);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
         _loggerMock.Verify(x => x.LogError(It.Is<string>(s => s.Contains("Error resolving dependencies")), It.IsAny<Exception>()), Times.Once);
     }
 
@@ -50,7 +48,7 @@ public class DependencyResolverTests
         var result = await _dependencyResolver.ResolveDependenciesAsync(pluginPath);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         _loggerMock.Verify(x => x.LogDebug(It.Is<string>(s => s.Contains("Resolved"))), Times.Once);
     }
 
@@ -67,7 +65,7 @@ public class DependencyResolverTests
 
         // Assert
         var sharedAssembly = _dependencyResolver.GetSharedAssembly(assemblyName);
-        sharedAssembly.Should().NotBeNull();
+        Assert.NotNull(sharedAssembly);
         _loggerMock.Verify(x => x.LogDebug(It.Is<string>(s => s.Contains("Registered shared assembly"))), Times.Once);
     }
 
@@ -83,7 +81,7 @@ public class DependencyResolverTests
 
         // Assert
         var sharedAssembly = _dependencyResolver.GetSharedAssembly(assemblyName);
-        sharedAssembly.Should().BeNull();
+        Assert.Null(sharedAssembly);
         _loggerMock.Verify(x => x.LogError(It.Is<string>(s => s.Contains("Failed to register shared assembly")), It.IsAny<Exception>()), Times.Once);
     }
 
@@ -101,8 +99,8 @@ public class DependencyResolverTests
 
         // Assert
         var sharedAssemblies = _dependencyResolver.GetSharedAssemblies();
-        sharedAssemblies.Should().ContainKey(assemblyName);
-        sharedAssemblies.Should().HaveCount(1);
+        Assert.Contains(assemblyName, sharedAssemblies);
+        Assert.Single(sharedAssemblies);
         _loggerMock.Verify(x => x.LogDebug(It.Is<string>(s => s.Contains("Registered shared assembly"))), Times.Once); // Only once
     }
 
@@ -119,7 +117,7 @@ public class DependencyResolverTests
         var result = _dependencyResolver.GetSharedAssembly(assemblyName);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -132,7 +130,7 @@ public class DependencyResolverTests
         var result = _dependencyResolver.GetSharedAssembly(assemblyName);
 
         // Assert
-        result.Should().BeNull();
+        Assert.Null(result);
     }
 
     [Fact]
@@ -150,9 +148,9 @@ public class DependencyResolverTests
         var result = _dependencyResolver.GetSharedAssemblies();
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().ContainKey(name1);
-        result.Should().ContainKey(name2);
+        Assert.Equal(2, result.Count);
+        Assert.Contains(name1, result);
+        Assert.Contains(name2, result);
     }
 
     [Fact]
@@ -166,8 +164,8 @@ public class DependencyResolverTests
         var result = _dependencyResolver.GetVersionConflicts();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeEmpty();
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -181,17 +179,17 @@ public class DependencyResolverTests
 
         // Verify data exists
         var sharedAssemblies = _dependencyResolver.GetSharedAssemblies();
-        sharedAssemblies.Should().HaveCount(1);
+        Assert.Single(sharedAssemblies);
 
         // Act
         _dependencyResolver.ClearCache();
 
         // Assert
         var clearedSharedAssemblies = _dependencyResolver.GetSharedAssemblies();
-        clearedSharedAssemblies.Should().BeEmpty();
+        Assert.Empty(clearedSharedAssemblies);
 
         var versionConflicts = _dependencyResolver.GetVersionConflicts();
-        versionConflicts.Should().BeEmpty();
+        Assert.Empty(versionConflicts);
     }
 
     [Fact]
@@ -214,7 +212,7 @@ public class DependencyResolverTests
         var result = await _dependencyResolver.ValidateDependenciesAsync(pluginPath);
 
         // Assert
-        result.Should().BeFalse();
+        Assert.False(result);
         _loggerMock.Verify(x => x.LogError(It.Is<string>(s => s.Contains("Error validating dependencies")), It.IsAny<Exception>()), Times.Once);
     }
 
@@ -232,8 +230,8 @@ public class DependencyResolverTests
         var result2 = _dependencyResolver.GetSharedAssemblies();
 
         // Assert
-        result1.Should().NotBeSameAs(result2); // Should be different instances
-        result1.Should().BeEquivalentTo(result2); // But should have same content
+        Assert.NotSame(result1, result2); // Should be different instances
+        Assert.Equal(result1, result2); // But should have same content
     }
 
     [Fact]
@@ -247,7 +245,7 @@ public class DependencyResolverTests
         var result2 = _dependencyResolver.GetVersionConflicts();
 
         // Assert
-        result1.Should().NotBeSameAs(result2); // Should be different instances
-        result1.Should().BeEquivalentTo(result2); // But should have same content
+        Assert.NotSame(result1, result2); // Should be different instances
+        Assert.Equal(result1, result2); // But should have same content
     }
 }

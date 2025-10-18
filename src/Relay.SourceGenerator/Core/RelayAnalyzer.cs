@@ -127,6 +127,7 @@ namespace Relay.SourceGenerator
                 var compilation = context.Compilation;
                 var handlerRegistry = new HandlerRegistry();
                 var pipelineRegistry = new List<PipelineInfo>();
+                var attributeCache = new Dictionary<IMethodSymbol, (AttributeData? handle, AttributeData? pipeline)>(SymbolEqualityComparer.Default);
 
                 // Collect all handler and pipeline methods across the compilation
                 foreach (var syntaxTree in compilation.SyntaxTrees)
@@ -147,13 +148,22 @@ namespace Relay.SourceGenerator
                             var methodSymbol = ValidationHelper.TryGetDeclaredSymbol(semanticModel, methodDeclaration);
                             if (methodSymbol == null) continue;
 
-                            var handleAttribute = ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Handle);
+                            if (!attributeCache.TryGetValue(methodSymbol, out var attributes))
+                            {
+                                attributes = (
+                                    ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Handle),
+                                    ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Pipeline)
+                                );
+                                attributeCache.Add(methodSymbol, attributes);
+                            }
+
+                            var (handleAttribute, pipelineAttribute) = attributes;
+
                             if (handleAttribute != null)
                             {
                                 handlerRegistry.AddHandler(methodSymbol, handleAttribute, methodDeclaration);
                             }
 
-                            var pipelineAttribute = ValidationHelper.GetAttribute(methodSymbol, AttributeNames.Pipeline);
                             if (pipelineAttribute != null)
                             {
                                 PipelineValidator.CollectPipelineInfo(pipelineRegistry, methodSymbol, pipelineAttribute, methodDeclaration);

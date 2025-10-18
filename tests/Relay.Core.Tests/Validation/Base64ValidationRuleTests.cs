@@ -1,5 +1,5 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -20,7 +20,7 @@ public class Base64ValidationRuleTests
         var result = await _rule.ValidateAsync(base64);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -37,13 +37,13 @@ public class Base64ValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(base64))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle().Which.Should().Match(s =>
-                s.Contains("Invalid Base64 format.") ||
-                s.Contains("Invalid Base64 data."));
+            Assert.Single(result);
+            Assert.True(result.First().Contains("Invalid Base64 format.") ||
+                       result.First().Contains("Invalid Base64 data."));
         }
     }
 }

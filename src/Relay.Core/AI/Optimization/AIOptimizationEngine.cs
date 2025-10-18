@@ -1,17 +1,15 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Relay.Core.AI.Analysis.Engines;
+using Relay.Core.AI.Optimization.Data;
+using Relay.Core.AI.Optimization.Models;
+using Relay.Core.AI.Optimization.Strategies;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Relay.Core.AI.Optimization.Models;
-using Relay.Core.AI.Optimization.Strategies;
-using Relay.Core.AI.Optimization.Data;
-using Relay.Core.AI.Optimization.Contexts;
-using Relay.Core.AI.Analysis.TimeSeries;
-using Relay.Core.AI.Analysis.Engines;
 
 namespace Relay.Core.AI
 {

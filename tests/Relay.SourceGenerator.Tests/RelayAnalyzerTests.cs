@@ -2665,6 +2665,144 @@ public class TestHandler
         }
 
         /// <summary>
+        /// Tests that handlers in file-scoped namespaces work correctly.
+        /// </summary>
+        [Fact]
+        public async Task HandlerFileScopedNamespaces_NoDiagnostics()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace MyNamespace;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""file scoped"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that handlers in deeply nested classes work correctly.
+        /// </summary>
+        [Fact]
+        public async Task HandlerDeeplyNestedClasses_NoDiagnostics()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class OuterClass
+{
+    public class MiddleClass
+    {
+        public class InnerClass
+        {
+            public class TestRequest : IRequest<string> { }
+
+            public class TestHandler
+            {
+                [Handle]
+                public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+                {
+                    return ValueTask.FromResult(""deeply nested"");
+                }
+            }
+        }
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that handlers with named tuple return types work correctly.
+        /// </summary>
+        [Fact]
+        public async Task HandlerNamedTupleReturnTypes_NoDiagnostics()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest<(string Name, int Value)> { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask<(string Name, int Value)> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult((""test"", 42));
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that handlers in classes implementing multiple interfaces work correctly.
+        /// </summary>
+        [Fact]
+        public async Task HandlerMultipleInterfaceInheritance_NoDiagnostics()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public interface IAuditable { }
+public interface IVersionable { }
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler : IAuditable, IVersionable
+{
+    [Handle]
+    public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""multiple interfaces"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
+        /// Tests that handlers with complex generic constraints work correctly.
+        /// </summary>
+        [Fact]
+        public async Task HandlerComplexGenericConstraints_NoDiagnostics()
+        {
+            var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class GenericRequest<T> : IRequest<T> where T : class, new() { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask<string> HandleAsync(GenericRequest<string> request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""complex generics"");
+    }
+}";
+
+            await VerifyAnalyzerAsync(source);
+        }
+
+        /// <summary>
         /// Helper method to verify analyzer diagnostics.
         /// </summary>
         private static async Task VerifyAnalyzerAsync(string source)

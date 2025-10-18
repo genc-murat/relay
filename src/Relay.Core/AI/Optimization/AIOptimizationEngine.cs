@@ -11,6 +11,7 @@ using Relay.Core.AI.Optimization.Strategies;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Contexts;
 using Relay.Core.AI.Analysis.TimeSeries;
+using Relay.Core.AI.Analysis.Engines;
 
 namespace Relay.Core.AI
 {
@@ -92,7 +93,21 @@ namespace Relay.Core.AI
             _trendAnalyzer = new TrendAnalyzer(trendLogger);
 
             var patternLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<PatternRecognitionEngine>.Instance;
-            _patternRecognition = new PatternRecognitionEngine(patternLogger);
+            var analyzerLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<DefaultPatternAnalyzer>.Instance;
+            var analyzer = new DefaultPatternAnalyzer(analyzerLogger, new PatternRecognitionConfig());
+            var updaters = new List<IPatternUpdater>
+            {
+                new RequestTypePatternUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<RequestTypePatternUpdater>.Instance, new PatternRecognitionConfig()),
+                new StrategyEffectivenessPatternUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<StrategyEffectivenessPatternUpdater>.Instance),
+                new TemporalPatternUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<TemporalPatternUpdater>.Instance),
+                new LoadBasedPatternUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<LoadBasedPatternUpdater>.Instance, new PatternRecognitionConfig()),
+                new FeatureImportancePatternUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureImportancePatternUpdater>.Instance, new PatternRecognitionConfig()),
+                new CorrelationPatternUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<CorrelationPatternUpdater>.Instance, new PatternRecognitionConfig()),
+                new DecisionBoundaryOptimizer(Microsoft.Extensions.Logging.Abstractions.NullLogger<DecisionBoundaryOptimizer>.Instance, new PatternRecognitionConfig()),
+                new EnsembleWeightsUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<EnsembleWeightsUpdater>.Instance, new PatternRecognitionConfig()),
+                new PatternValidator(Microsoft.Extensions.Logging.Abstractions.NullLogger<PatternValidator>.Instance, new PatternRecognitionConfig())
+            };
+            _patternRecognition = new PatternRecognitionEngine(patternLogger, analyzer, updaters, new PatternRecognitionConfig());
 
             var metricsLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<SystemMetricsCalculator>.Instance;
             _systemMetrics = new SystemMetricsCalculator(metricsLogger, _requestAnalytics);

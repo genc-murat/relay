@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.Engines;
 using Xunit;
 
 namespace Relay.Core.Tests.AI
@@ -13,16 +16,35 @@ namespace Relay.Core.Tests.AI
 
         public PatternRecognitionEngineTests()
         {
-            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            _logger = loggerFactory.CreateLogger<PatternRecognitionEngine>();
-            _engine = new PatternRecognitionEngine(_logger);
+            var services = new ServiceCollection();
+            services.AddLogging(builder => builder.AddConsole());
+            services.AddPatternRecognition();
+
+            var serviceProvider = services.BuildServiceProvider();
+            _logger = serviceProvider.GetRequiredService<ILogger<PatternRecognitionEngine>>();
+            _engine = serviceProvider.GetRequiredService<PatternRecognitionEngine>();
+        }
+
+        private IServiceProvider CreateServiceProvider()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging(builder => builder.AddConsole());
+            services.AddPatternRecognition();
+            return services.BuildServiceProvider();
         }
 
         [Fact]
         public void Constructor_Should_Throw_When_Logger_Is_Null()
         {
+            // Arrange
+            var serviceProvider = CreateServiceProvider();
+            var analyzer = serviceProvider.GetRequiredService<IPatternAnalyzer>();
+            var updaters = serviceProvider.GetRequiredService<IEnumerable<IPatternUpdater>>();
+            var config = serviceProvider.GetRequiredService<PatternRecognitionConfig>();
+
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new PatternRecognitionEngine(null!));
+            var ex = Assert.Throws<ArgumentNullException>(() => new PatternRecognitionEngine(null!, analyzer, updaters, config));
+            Assert.Equal("logger", ex.ParamName);
         }
 
         [Fact]

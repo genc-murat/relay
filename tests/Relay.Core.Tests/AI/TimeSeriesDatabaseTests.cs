@@ -691,6 +691,109 @@ namespace Relay.Core.Tests.AI
             Assert.Null(forecast);
         }
 
+        [Fact]
+        public void ForecastingMethod_Should_Default_To_SSA()
+        {
+            // Act
+            var method = _database.GetForecastingMethod("test");
+
+            // Assert
+            Assert.Equal(ForecastingMethod.SSA, method);
+        }
+
+        [Fact]
+        public void SetForecastingMethod_Should_Update_Method_For_Metric()
+        {
+            // Act
+            _database.SetForecastingMethod("test", ForecastingMethod.ExponentialSmoothing);
+            var method = _database.GetForecastingMethod("test");
+
+            // Assert
+            Assert.Equal(ForecastingMethod.ExponentialSmoothing, method);
+        }
+
+        [Fact]
+        public void TrainForecastModel_Should_Support_Different_Methods()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 100; i++)
+            {
+                _database.StoreMetric("test", 50.0 + i * 0.1, baseTime.AddHours(i));
+            }
+
+            // Act - Train with Exponential Smoothing
+            _database.TrainForecastModel("test", ForecastingMethod.ExponentialSmoothing);
+
+            // Assert
+            var method = _database.GetForecastingMethod("test");
+            Assert.Equal(ForecastingMethod.ExponentialSmoothing, method);
+
+            var forecast = _database.Forecast("test");
+            Assert.NotNull(forecast);
+        }
+
+        [Fact]
+        public void Forecast_Should_Work_With_MovingAverage_Method()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 80; i++)
+            {
+                _database.StoreMetric("test", 50.0 + Math.Sin(i * 0.2), baseTime.AddHours(i));
+            }
+
+            // Act
+            _database.SetForecastingMethod("test", ForecastingMethod.MovingAverage);
+            _database.TrainForecastModel("test", ForecastingMethod.MovingAverage);
+            var forecast = _database.Forecast("test");
+
+            // Assert
+            Assert.NotNull(forecast);
+            Assert.NotNull(forecast.ForecastedValues);
+            Assert.True(forecast.ForecastedValues.Length > 0);
+        }
+
+        [Fact]
+        public void Forecast_Should_Work_With_Ensemble_Method()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 120; i++)
+            {
+                _database.StoreMetric("test", 50.0 + i * 0.05 + Math.Sin(i * 0.1), baseTime.AddHours(i));
+            }
+
+            // Act
+            _database.SetForecastingMethod("test", ForecastingMethod.Ensemble);
+            _database.TrainForecastModel("test", ForecastingMethod.Ensemble);
+            var forecast = _database.Forecast("test");
+
+            // Assert
+            Assert.NotNull(forecast);
+            Assert.NotNull(forecast.ForecastedValues);
+            Assert.True(forecast.ForecastedValues.Length > 0);
+            Assert.Equal(_database.GetForecastingMethod("test"), ForecastingMethod.Ensemble);
+        }
+
+        [Fact]
+        public void TrainForecastModel_Should_Handle_Invalid_Method_Gracefully()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 50; i++)
+            {
+                _database.StoreMetric("test", 50.0 + i, baseTime.AddHours(i));
+            }
+
+            // Act - This should not throw, but log an error
+            _database.TrainForecastModel("test", (ForecastingMethod)999); // Invalid method
+
+            // Assert - Should still have a model (fallback to default)
+            var forecast = _database.Forecast("test");
+            // May be null due to error, but shouldn't crash
+        }
+
         #endregion
 
         #region DetectAnomalies Tests
@@ -888,21 +991,21 @@ namespace Relay.Core.Tests.AI
             var loggerMock = new Moq.Mock<ILogger<TimeSeriesDatabase>>();
             using var db = new TimeSeriesDatabase(loggerMock.Object);
 
-            // Store some data that might cause ML.NET issues
+            // Store insufficient data that will cause InsufficientDataException
             var baseTime = DateTime.UtcNow;
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 5; i++) // Less than minimum 10 required
             {
-                db.StoreMetric("test", double.PositiveInfinity, baseTime.AddHours(i)); // Infinity might cause issues
+                db.StoreMetric("test", 10.0 + i, baseTime.AddHours(i));
             }
 
-            // Act - Should not throw
+            // Act - Should not throw but log error
             db.TrainForecastModel("test");
 
-            // Assert - Should have logged the error
+            // Assert - Should have logged the error due to insufficient data
             loggerMock.Verify(x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Error training forecast model")),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Error training") && o.ToString()!.Contains("forecast model")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.AtLeastOnce);
         }

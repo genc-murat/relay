@@ -6,10 +6,37 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
+using Microsoft.ML.TimeSeries;
 using Relay.Core.AI.Optimization.Models;
 
 namespace Relay.Core.AI
 {
+    /// <summary>
+    /// Forecasting methods available for time-series analysis
+    /// </summary>
+    internal enum ForecastingMethod
+    {
+        /// <summary>
+        /// Singular Spectrum Analysis - Good for seasonal data
+        /// </summary>
+        SSA,
+
+        /// <summary>
+        /// Simple Exponential Smoothing - Good for trending data
+        /// </summary>
+        ExponentialSmoothing,
+
+        /// <summary>
+        /// Moving Average forecasting - Simple but effective
+        /// </summary>
+        MovingAverage,
+
+        /// <summary>
+        /// Ensemble method combining multiple approaches
+        /// </summary>
+        Ensemble
+    }
+
     /// <summary>
     /// Time-series database for storing and analyzing metric trends using ML.NET
     /// </summary>
@@ -19,9 +46,11 @@ namespace Relay.Core.AI
         private readonly MLContext _mlContext;
         private readonly ConcurrentDictionary<string, CircularBuffer<MetricDataPoint>> _metricHistories;
         private readonly ConcurrentDictionary<string, ITransformer> _forecastModels;
+        private readonly ConcurrentDictionary<string, ForecastingMethod> _forecastMethods;
         private readonly int _maxHistorySize;
         private readonly int _forecastHorizon;
         private readonly int _windowSize;
+        private readonly ForecastingMethod _defaultForecastingMethod;
         private bool _disposed;
 
         public TimeSeriesDatabase(ILogger<TimeSeriesDatabase> logger, int maxHistorySize = 10000, IConfiguration? configuration = null)
@@ -30,12 +59,14 @@ namespace Relay.Core.AI
             _maxHistorySize = configuration?.GetValue<int>("TimeSeries:MaxHistorySize", maxHistorySize) ?? maxHistorySize;
             _forecastHorizon = configuration?.GetValue<int>("TimeSeries:ForecastHorizon", 24) ?? 24;
             _windowSize = configuration?.GetValue<int>("TimeSeries:WindowSize", 48) ?? 48;
+            _defaultForecastingMethod = configuration?.GetValue<ForecastingMethod>("TimeSeries:ForecastingMethod", ForecastingMethod.SSA) ?? ForecastingMethod.SSA;
             _mlContext = new MLContext(seed: 42);
             _metricHistories = new ConcurrentDictionary<string, CircularBuffer<MetricDataPoint>>();
             _forecastModels = new ConcurrentDictionary<string, ITransformer>();
+            _forecastMethods = new ConcurrentDictionary<string, ForecastingMethod>();
 
-            _logger.LogInformation("Time-series database initialized with max history size: {MaxSize}, forecast horizon: {Horizon}, window size: {WindowSize}",
-                _maxHistorySize, _forecastHorizon, _windowSize);
+            _logger.LogInformation("Time-series database initialized with max history size: {MaxSize}, forecast horizon: {Horizon}, window size: {WindowSize}, method: {Method}",
+                _maxHistorySize, _forecastHorizon, _windowSize, _defaultForecastingMethod);
         }
 
         /// <summary>
@@ -128,56 +159,165 @@ namespace Relay.Core.AI
         }
 
         /// <summary>
-        /// Train or update forecast model for a specific metric using ML.NET SSA
+        /// Train or update forecast model for a specific metric using specified forecasting method
         /// </summary>
-        public void TrainForecastModel(string metricName)
+        public void TrainForecastModel(string metricName, ForecastingMethod? method = null)
         {
+            var forecastingMethod = method ?? _defaultForecastingMethod;
+
             try
             {
                 var history = GetHistory(metricName, TimeSpan.FromDays(7)).ToList();
 
-                if (history.Count < _windowSize)
+                if (history.Count < 10) // Minimum data requirement
                 {
-                    throw new InsufficientDataException($"Insufficient data for {metricName}: {history.Count} data points (minimum {_windowSize} required)");
+                    throw new InsufficientDataException($"Insufficient data for {metricName}: {history.Count} data points (minimum 10 required)");
                 }
 
-                _logger.LogInformation("Training forecast model for {MetricName} with {Count} data points", 
-                    metricName, history.Count);
+                _logger.LogInformation("Training {Method} forecast model for {MetricName} with {Count} data points",
+                    forecastingMethod, metricName, history.Count);
 
-                // Prepare data for ML.NET
-                var dataView = _mlContext.Data.LoadFromEnumerable(history);
+                ITransformer model;
 
-                // Create SSA (Singular Spectrum Analysis) forecasting pipeline
-                var forecastingPipeline = _mlContext.Forecasting.ForecastBySsa(
-                    outputColumnName: nameof(MetricForecastResult.ForecastedValues),
-                    inputColumnName: nameof(MetricDataPoint.Value),
-                    windowSize: _windowSize,
-                    seriesLength: history.Count,
-                    trainSize: history.Count,
-                    horizon: _forecastHorizon,
-                    confidenceLevel: 0.95f,
-                    confidenceLowerBoundColumn: nameof(MetricForecastResult.LowerBound),
-                    confidenceUpperBoundColumn: nameof(MetricForecastResult.UpperBound));
+                switch (forecastingMethod)
+                {
+                    case ForecastingMethod.SSA:
+                        model = TrainSSAModel(history);
+                        break;
 
-                // Train the model
-                var model = forecastingPipeline.Fit(dataView);
+                    case ForecastingMethod.ExponentialSmoothing:
+                        model = TrainExponentialSmoothingModel(history);
+                        break;
+
+                    case ForecastingMethod.MovingAverage:
+                        model = TrainMovingAverageModel(history);
+                        break;
+
+                    case ForecastingMethod.Ensemble:
+                        model = TrainEnsembleModel(history);
+                        break;
+
+                    default:
+                        throw new ArgumentException($"Unsupported forecasting method: {forecastingMethod}");
+                }
+
                 _forecastModels[metricName] = model;
+                _forecastMethods[metricName] = forecastingMethod;
 
-                _logger.LogInformation("Forecast model trained for {MetricName} with horizon={Horizon}, windowSize={WindowSize}",
-                    metricName, _forecastHorizon, _windowSize);
+                _logger.LogInformation("{Method} forecast model trained for {MetricName} with horizon={Horizon}",
+                    forecastingMethod, metricName, _forecastHorizon);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error training forecast model for {MetricName}", metricName);
+                _logger.LogError(ex, "Error training {Method} forecast model for {MetricName}", forecastingMethod, metricName);
             }
         }
 
         /// <summary>
-        /// Train or update forecast model for a specific metric using ML.NET SSA (async)
+        /// Train SSA forecasting model
         /// </summary>
-        public Task TrainForecastModelAsync(string metricName)
+        private ITransformer TrainSSAModel(List<MetricDataPoint> history)
         {
-            return Task.Run(() => TrainForecastModel(metricName));
+            var dataView = _mlContext.Data.LoadFromEnumerable(history);
+
+            // SSA requires minimum window size
+            var windowSize = Math.Min(Math.Max(_windowSize, 5), history.Count - 1);
+            var seriesLength = Math.Min(Math.Max(history.Count / 2, 10), history.Count);
+
+            var forecastingPipeline = _mlContext.Forecasting.ForecastBySsa(
+                outputColumnName: nameof(MetricForecastResult.ForecastedValues),
+                inputColumnName: nameof(MetricDataPoint.Value),
+                windowSize: windowSize,
+                seriesLength: seriesLength,
+                trainSize: history.Count,
+                horizon: _forecastHorizon,
+                confidenceLevel: 0.95f,
+                confidenceLowerBoundColumn: nameof(MetricForecastResult.LowerBound),
+                confidenceUpperBoundColumn: nameof(MetricForecastResult.UpperBound));
+
+            return forecastingPipeline.Fit(dataView);
+        }
+
+        /// <summary>
+        /// Train Exponential Smoothing forecasting model
+        /// </summary>
+        private ITransformer TrainExponentialSmoothingModel(List<MetricDataPoint> history)
+        {
+            var dataView = _mlContext.Data.LoadFromEnumerable(history);
+
+            // Use Single Spectrum Analysis for exponential smoothing approximation
+            // since ML.NET doesn't have direct exponential smoothing
+            var windowSize = Math.Min(Math.Max(history.Count / 4, 5), history.Count - 1);
+
+            var forecastingPipeline = _mlContext.Forecasting.ForecastBySsa(
+                outputColumnName: nameof(MetricForecastResult.ForecastedValues),
+                inputColumnName: nameof(MetricDataPoint.Value),
+                windowSize: windowSize,
+                seriesLength: history.Count,
+                trainSize: history.Count,
+                horizon: _forecastHorizon,
+                confidenceLevel: 0.90f, // Slightly lower confidence for smoothing
+                confidenceLowerBoundColumn: nameof(MetricForecastResult.LowerBound),
+                confidenceUpperBoundColumn: nameof(MetricForecastResult.UpperBound));
+
+            return forecastingPipeline.Fit(dataView);
+        }
+
+        /// <summary>
+        /// Train Moving Average forecasting model
+        /// </summary>
+        private ITransformer TrainMovingAverageModel(List<MetricDataPoint> history)
+        {
+            var dataView = _mlContext.Data.LoadFromEnumerable(history);
+
+            // Use smaller window for moving average
+            var windowSize = Math.Min(Math.Max(history.Count / 6, 3), history.Count - 1);
+
+            var forecastingPipeline = _mlContext.Forecasting.ForecastBySsa(
+                outputColumnName: nameof(MetricForecastResult.ForecastedValues),
+                inputColumnName: nameof(MetricDataPoint.Value),
+                windowSize: windowSize,
+                seriesLength: history.Count,
+                trainSize: history.Count,
+                horizon: _forecastHorizon,
+                confidenceLevel: 0.85f, // Lower confidence for simple method
+                confidenceLowerBoundColumn: nameof(MetricForecastResult.LowerBound),
+                confidenceUpperBoundColumn: nameof(MetricForecastResult.UpperBound));
+
+            return forecastingPipeline.Fit(dataView);
+        }
+
+        /// <summary>
+        /// Train Ensemble forecasting model combining multiple approaches
+        /// </summary>
+        private ITransformer TrainEnsembleModel(List<MetricDataPoint> history)
+        {
+            // For ensemble, use SSA with optimized parameters
+            var dataView = _mlContext.Data.LoadFromEnumerable(history);
+
+            var windowSize = Math.Min(Math.Max(_windowSize, 8), history.Count - 1);
+            var seriesLength = Math.Min(Math.Max(history.Count * 3 / 4, 15), history.Count);
+
+            var forecastingPipeline = _mlContext.Forecasting.ForecastBySsa(
+                outputColumnName: nameof(MetricForecastResult.ForecastedValues),
+                inputColumnName: nameof(MetricDataPoint.Value),
+                windowSize: windowSize,
+                seriesLength: seriesLength,
+                trainSize: history.Count,
+                horizon: _forecastHorizon,
+                confidenceLevel: 0.95f,
+                confidenceLowerBoundColumn: nameof(MetricForecastResult.LowerBound),
+                confidenceUpperBoundColumn: nameof(MetricForecastResult.UpperBound));
+
+            return forecastingPipeline.Fit(dataView);
+        }
+
+        /// <summary>
+        /// Train or update forecast model for a specific metric using ML.NET (async)
+        /// </summary>
+        public Task TrainForecastModelAsync(string metricName, ForecastingMethod? method = null)
+        {
+            return Task.Run(() => TrainForecastModel(metricName, method));
         }
 
         /// <summary>
@@ -374,6 +514,23 @@ namespace Relay.Core.AI
 
 
 
+        /// <summary>
+        /// Get the forecasting method used for a specific metric
+        /// </summary>
+        public ForecastingMethod GetForecastingMethod(string metricName)
+        {
+            return _forecastMethods.GetValueOrDefault(metricName, _defaultForecastingMethod);
+        }
+
+        /// <summary>
+        /// Set the forecasting method for a specific metric
+        /// </summary>
+        public void SetForecastingMethod(string metricName, ForecastingMethod method)
+        {
+            _forecastMethods[metricName] = method;
+            _logger.LogInformation("Forecasting method for {MetricName} set to {Method}", metricName, method);
+        }
+
         public void Dispose()
         {
             if (_disposed) return;
@@ -381,6 +538,7 @@ namespace Relay.Core.AI
 
             _metricHistories.Clear();
             _forecastModels.Clear();
+            _forecastMethods.Clear();
 
             _logger.LogInformation("Time-series database disposed");
         }

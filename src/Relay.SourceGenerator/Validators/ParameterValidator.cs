@@ -60,17 +60,58 @@ namespace Relay.SourceGenerator.Validators
             for (int i = 1; i < parameters.Length; i++)
             {
                 var param = parameters[i];
-                if (param.Type.Name != "CancellationToken")
+                if (param.Type.Name == "CancellationToken")
                 {
-                    // For now, only allow CancellationToken as additional parameters
-                    // Future versions might allow dependency injection parameters
+                    continue;
+                }
+
+                if (param.RefKind == RefKind.Ref || param.RefKind == RefKind.Out)
+                {
                     ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                         methodDeclaration.ParameterList.Parameters[i].GetLocation(),
                         "handler",
                         methodSymbol.Name,
-                        $"Unexpected parameter type '{param.Type.ToDisplayString()}'. Only CancellationToken is allowed as an additional parameter.");
+                        "Handler methods cannot have ref or out parameters.");
+                    continue;
                 }
+
+                if (param.IsParams)
+                {
+                    ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
+                        methodDeclaration.ParameterList.Parameters[i].GetLocation(),
+                        "handler",
+                        methodSymbol.Name,
+                        "Handler methods cannot have params parameters.");
+                    continue;
+                }
+
+                if (param.IsOptional)
+                {
+                    ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
+                        methodDeclaration.ParameterList.Parameters[i].GetLocation(),
+                        "handler",
+                        methodSymbol.Name,
+                        "Handler methods cannot have optional parameters.");
+                    continue;
+                }
+
+                ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
+                    methodDeclaration.ParameterList.Parameters[i].GetLocation(),
+                    "handler",
+                    methodSymbol.Name,
+                    $"Unexpected parameter type '{param.Type.ToDisplayString()}'. Only CancellationToken is allowed as an additional parameter.");
             }
+
+            if (methodSymbol.IsGenericMethod)
+            {
+                ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
+                    methodDeclaration.Identifier.GetLocation(),
+                    "handler",
+                    methodSymbol.Name,
+                    "Handler methods cannot be generic.");
+            }
+
+
         }
 
         /// <summary>

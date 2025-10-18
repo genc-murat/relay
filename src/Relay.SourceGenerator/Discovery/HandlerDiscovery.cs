@@ -174,6 +174,8 @@ namespace Relay.SourceGenerator
                 }
             }
 
+            ValidateConstructor(handlerInfo.HandlerTypeSymbol, diagnosticReporter);
+
             return handlerInfo;
         }
 
@@ -528,6 +530,22 @@ namespace Relay.SourceGenerator
                 return method.Parameters[0].Type.ToDisplayString();
             }
             return "Unknown";
+        }
+
+        private void ValidateConstructor(ITypeSymbol typeSymbol, IDiagnosticReporter diagnosticReporter)
+        {
+            var constructors = typeSymbol.GetMembers().OfType<IMethodSymbol>().Where(m => m.MethodKind == MethodKind.Constructor).ToList();
+
+            if (constructors.Count > 1)
+            {
+                // report diagnostic on the class
+                var location = typeSymbol.Locations.FirstOrDefault();
+                if (location != null)
+                {
+                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.MultipleConstructors, location, typeSymbol.Name);
+                    diagnosticReporter.ReportDiagnostic(diagnostic);
+                }
+            }
         }
 
         /// <summary>

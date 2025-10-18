@@ -212,5 +212,13 @@ namespace Relay.SourceGenerator
             Category,
             DiagnosticSeverity.Info,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor MultipleConstructors = new(
+            "RELAY_GEN_108",
+            "Multiple Constructors",
+            "Handler class '{0}' has multiple constructors. The dependency injection container may not be able to resolve the correct one. Consider using a single constructor.",
+            Category,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
     }
 }

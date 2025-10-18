@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -25,7 +25,7 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
 
@@ -40,7 +40,7 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -56,7 +56,8 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().ContainSingle(expectedError);
+        Assert.Single(result);
+        Assert.Equal(expectedError, result.First());
     }
 
     [Theory]
@@ -69,7 +70,8 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().ContainSingle("Invalid IPv6 address format.");
+        Assert.Single(result);
+        Assert.Equal("Invalid IPv6 address format.", result.First());
     }
 
     [Theory]
@@ -81,7 +83,8 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().ContainSingle("Invalid IPv6 address format.");
+        Assert.Single(result);
+        Assert.Equal("Invalid IPv6 address format.", result.First());
     }
 
     [Theory]
@@ -93,7 +96,7 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -109,16 +112,17 @@ public class Ipv6ValidationRuleTests
         if (ipv6.StartsWith("::ffff:") && (ipv6.Contains(".") || ipv6.EndsWith(":192.168.1.1")))
         {
             // Valid IPv4 mapped should pass
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else if (ipv6.Contains("192.168.1.1") && !ipv6.StartsWith("::ffff:"))
         {
             // Invalid mapping should fail
-        result.Should().ContainSingle().Which.Should().Contain("Invalid IPv6 address format");
+            Assert.Single(result);
+            Assert.Contains("Invalid IPv6 address format", result.First());
         }
         else
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
     }
 
@@ -132,7 +136,7 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -146,7 +150,7 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -159,7 +163,8 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().ContainSingle("Invalid IPv6 address format.");
+        Assert.Single(result);
+        Assert.Equal("Invalid IPv6 address format.", result.First());
     }
 
     [Fact]
@@ -172,7 +177,7 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -185,6 +190,6 @@ public class Ipv6ValidationRuleTests
         var result = await _rule.ValidateAsync(ipv6);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 }

@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -21,7 +21,7 @@ public class IsbnValidationRuleTests
         var result = await _rule.ValidateAsync(isbn);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -40,11 +40,12 @@ public class IsbnValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(isbn))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Invalid ISBN format.");
+            Assert.Single(result);
+            Assert.Equal("Invalid ISBN format.", result.First());
         }
     }
 }

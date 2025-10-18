@@ -1,9 +1,8 @@
-using System.Threading;
+using Relay.Core.Validation.Rules;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
 using Xunit;
 
 namespace Relay.Core.Tests.Validation;
@@ -25,7 +24,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -42,7 +41,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -60,7 +59,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -72,7 +71,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -87,7 +86,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -101,7 +100,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -114,7 +113,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -127,7 +126,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -140,7 +139,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -154,7 +153,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -168,7 +167,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -181,7 +180,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -194,7 +193,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Fact]
@@ -219,7 +218,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -232,7 +231,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -247,7 +246,7 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 
     [Theory]
@@ -260,6 +259,6 @@ public class IsLowerCaseValidationRuleTests
         var result = await _rule.ValidateAsync(input);
 
         // Assert
-        result.Should().ContainSingle("Value must consist only of lowercase letters.");
+        Assert.Single(result); Assert.Equal("Value must consist only of lowercase letters.", result.First());
     }
 }

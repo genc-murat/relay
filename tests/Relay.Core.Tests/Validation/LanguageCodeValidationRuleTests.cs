@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -26,7 +26,7 @@ public class LanguageCodeValidationRuleTests
         var result = await _rule.ValidateAsync(languageCode);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -45,11 +45,12 @@ public class LanguageCodeValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(languageCode))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Invalid ISO 639 language code.");
+            Assert.Single(result);
+            Assert.Equal("Invalid ISO 639 language code.", result.First());
         }
     }
 }

@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -22,7 +22,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -38,7 +38,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -70,7 +70,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -85,7 +85,8 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid time format");
+        Assert.Single(result);
+        Assert.Contains("Invalid time format", result.First());
     }
 
     [Theory]
@@ -100,7 +101,8 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid");
+        Assert.Single(result);
+        Assert.Contains("Invalid", result.First());
     }
 
     [Theory]
@@ -112,7 +114,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -125,7 +127,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -140,7 +142,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -154,7 +156,8 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid");
+        Assert.Single(result);
+        Assert.Contains("Invalid", result.First());
     }
 
     [Theory]
@@ -168,7 +171,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -182,7 +185,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -199,7 +202,8 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().ContainSingle("Invalid time format. Expected formats: HH:MM, HH:MM:SS, HH:MM AM/PM, or HH:MM:SS AM/PM");
+        Assert.Single(result);
+        Assert.Equal("Invalid time format. Expected formats: HH:MM, HH:MM:SS, HH:MM AM/PM, or HH:MM:SS AM/PM", result.First());
     }
 
     [Theory]
@@ -212,6 +216,7 @@ public class TimeValidationRuleTests
         var result = await _rule.ValidateAsync(time);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid");
+        Assert.Single(result);
+        Assert.Contains("Invalid", result.First());
     }
 }

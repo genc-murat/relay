@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -26,7 +26,7 @@ public class HexColorValidationRuleTests
         var result = await _rule.ValidateAsync(hexColor);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -46,11 +46,12 @@ public class HexColorValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(hexColor))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Invalid hexadecimal color format. Use #RGB, #RRGGBB, or #RRGGBBAA.");
+            Assert.Single(result);
+            Assert.Equal("Invalid hexadecimal color format. Use #RGB, #RRGGBB, or #RRGGBBAA.", result.First());
         }
     }
 }

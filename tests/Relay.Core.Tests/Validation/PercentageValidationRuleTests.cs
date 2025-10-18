@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -23,7 +23,7 @@ public class PercentageValidationRuleTests
         var result = await rule.ValidateAsync(percentage);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -39,7 +39,8 @@ public class PercentageValidationRuleTests
         var result = await rule.ValidateAsync(percentage);
 
         // Assert
-        result.Should().ContainSingle("Percentage must be a valid number.");
+        Assert.Single(result);
+        Assert.Equal("Percentage must be a valid number.", result.First());
     }
 
     [Theory]
@@ -56,9 +57,9 @@ public class PercentageValidationRuleTests
 
         // Assert
         // Negative percentages trigger both negative check and min percentage check
-        result.Should().HaveCount(2)
-            .And.Contain("Percentage cannot be negative.")
-            .And.Contain("Percentage cannot be less than 0%.");
+        Assert.Equal(2, result.Count());
+        Assert.Contains("Percentage cannot be negative.", result);
+        Assert.Contains("Percentage cannot be less than 0%.", result);
     }
 
     [Fact]
@@ -71,7 +72,8 @@ public class PercentageValidationRuleTests
         var result = await rule.ValidateAsync(150.0);
 
         // Assert
-        result.Should().ContainSingle("Percentage cannot exceed 100%.");
+        Assert.Single(result);
+        Assert.Equal("Percentage cannot exceed 100%.", result.First());
     }
 
     [Fact]
@@ -84,9 +86,9 @@ public class PercentageValidationRuleTests
         var result = await rule.ValidateAsync(-10.0);
 
         // Assert
-        result.Should().HaveCount(2)
-            .And.Contain("Percentage cannot be negative.")
-            .And.Contain("Percentage cannot be less than 0%.");
+        Assert.Equal(2, result.Count());
+        Assert.Contains("Percentage cannot be negative.", result);
+        Assert.Contains("Percentage cannot be less than 0%.", result);
     }
 
     [Fact]
@@ -96,9 +98,9 @@ public class PercentageValidationRuleTests
         var rule = new PercentageValidationRule(minPercentage: 10, maxPercentage: 90);
 
         // Act & Assert
-        (await rule.ValidateAsync(10.0)).Should().BeEmpty();
-        (await rule.ValidateAsync(50.0)).Should().BeEmpty();
-        (await rule.ValidateAsync(90.0)).Should().BeEmpty();
+        Assert.Empty(await rule.ValidateAsync(10.0));
+        Assert.Empty(await rule.ValidateAsync(50.0));
+        Assert.Empty(await rule.ValidateAsync(90.0));
     }
 
     [Fact]
@@ -108,8 +110,16 @@ public class PercentageValidationRuleTests
         var rule = new PercentageValidationRule(minPercentage: 10, maxPercentage: 90);
 
         // Act & Assert
-        (await rule.ValidateAsync(5.0)).Should().ContainSingle("Percentage cannot be less than 10%.");
-        (await rule.ValidateAsync(95.0)).Should().ContainSingle("Percentage cannot exceed 90%.");
+        {
+            var result = await rule.ValidateAsync(5.0);
+            Assert.Single(result);
+            Assert.Equal("Percentage cannot be less than 10%.", result.First());
+        }
+        {
+            var result = await rule.ValidateAsync(95.0);
+            Assert.Single(result);
+            Assert.Equal("Percentage cannot exceed 90%.", result.First());
+        }
     }
 
     [Fact]
@@ -119,9 +129,9 @@ public class PercentageValidationRuleTests
         var rule = PercentageValidationRule.WithNegative();
 
         // Act & Assert
-        (await rule.ValidateAsync(-50.0)).Should().BeEmpty();
-        (await rule.ValidateAsync(-100.0)).Should().BeEmpty();
-        (await rule.ValidateAsync(100.0)).Should().BeEmpty();
+        Assert.Empty(await rule.ValidateAsync(-50.0));
+        Assert.Empty(await rule.ValidateAsync(-100.0));
+        Assert.Empty(await rule.ValidateAsync(100.0));
     }
 
     [Fact]
@@ -131,11 +141,19 @@ public class PercentageValidationRuleTests
         var rule = PercentageValidationRule.WithNegative(-50, 150);
 
         // Act & Assert
-        (await rule.ValidateAsync(-50.0)).Should().BeEmpty();
-        (await rule.ValidateAsync(0.0)).Should().BeEmpty();
-        (await rule.ValidateAsync(150.0)).Should().BeEmpty();
-        (await rule.ValidateAsync(-60.0)).Should().ContainSingle("Percentage cannot be less than -50%.");
-        (await rule.ValidateAsync(160.0)).Should().ContainSingle("Percentage cannot exceed 150%.");
+        Assert.Empty(await rule.ValidateAsync(-50.0));
+        Assert.Empty(await rule.ValidateAsync(0.0));
+        Assert.Empty(await rule.ValidateAsync(150.0));
+        {
+            var result = await rule.ValidateAsync(-60.0);
+            Assert.Single(result);
+            Assert.Equal("Percentage cannot be less than -50%.", result.First());
+        }
+        {
+            var result = await rule.ValidateAsync(160.0);
+            Assert.Single(result);
+            Assert.Equal("Percentage cannot exceed 150%.", result.First());
+        }
     }
 
     [Fact]
@@ -145,13 +163,20 @@ public class PercentageValidationRuleTests
         var rule = PercentageValidationRule.Standard();
 
         // Act & Assert
-        (await rule.ValidateAsync(0.0)).Should().BeEmpty();
-        (await rule.ValidateAsync(100.0)).Should().BeEmpty();
+        Assert.Empty(await rule.ValidateAsync(0.0));
+        Assert.Empty(await rule.ValidateAsync(100.0));
         // Negative values trigger both negative check and min percentage check
-        (await rule.ValidateAsync(-1.0)).Should().HaveCount(2)
-            .And.Contain("Percentage cannot be negative.")
-            .And.Contain("Percentage cannot be less than 0%.");
-        (await rule.ValidateAsync(101.0)).Should().ContainSingle("Percentage cannot exceed 100%.");
+        {
+            var result = await rule.ValidateAsync(-1.0);
+            Assert.Equal(2, result.Count());
+            Assert.Contains("Percentage cannot be negative.", result);
+            Assert.Contains("Percentage cannot be less than 0%.", result);
+        }
+        {
+            var result = await rule.ValidateAsync(101.0);
+            Assert.Single(result);
+            Assert.Equal("Percentage cannot exceed 100%.", result.First());
+        }
     }
 
     [Theory]
@@ -167,7 +192,8 @@ public class PercentageValidationRuleTests
         var result = await rule.ValidateAsync(percentage);
 
         // Assert
-        result.Should().ContainSingle("Percentage has too many decimal places (maximum 4 allowed).");
+        Assert.Single(result);
+        Assert.Equal("Percentage has too many decimal places (maximum 4 allowed).", result.First());
     }
 
     [Theory]
@@ -187,11 +213,12 @@ public class PercentageValidationRuleTests
         // Assert
         if (expectedDecimalPlaces <= 4)
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Percentage has too many decimal places (maximum 4 allowed).");
+            Assert.Single(result);
+            Assert.Equal("Percentage has too many decimal places (maximum 4 allowed).", result.First());
         }
     }
 
@@ -209,7 +236,7 @@ public class PercentageValidationRuleTests
         var result = await rule.ValidateAsync(percentage);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -222,8 +249,8 @@ public class PercentageValidationRuleTests
         var result = await rule.ValidateAsync(1.123456); // Below min, too many decimals
 
         // Assert
-        result.Should().HaveCount(2)
-            .And.Contain("Percentage cannot be less than 10%.")
-            .And.Contain("Percentage has too many decimal places (maximum 4 allowed).");
+        Assert.Equal(2, result.Count());
+        Assert.Contains("Percentage cannot be less than 10%.", result);
+        Assert.Contains("Percentage has too many decimal places (maximum 4 allowed).", result);
     }
 }

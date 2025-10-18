@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -25,7 +25,7 @@ public class SemVerValidationRuleTests
         var result = await _rule.ValidateAsync(version);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -50,11 +50,12 @@ public class SemVerValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(version))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Invalid Semantic Version format.");
+            Assert.Single(result);
+            Assert.Equal("Invalid Semantic Version format.", result.First());
         }
     }
 }

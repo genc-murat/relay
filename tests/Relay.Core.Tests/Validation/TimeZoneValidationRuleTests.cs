@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -22,7 +22,7 @@ public class TimeZoneValidationRuleTests
         var result = await _rule.ValidateAsync(timeZone);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -40,11 +40,12 @@ public class TimeZoneValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(timeZone))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Invalid IANA time zone identifier.");
+            Assert.Single(result);
+            Assert.Equal("Invalid IANA time zone identifier.", result.First());
         }
     }
 }

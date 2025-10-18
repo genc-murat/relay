@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -20,7 +20,7 @@ public class IbanValidationRuleTests
         var result = await _rule.ValidateAsync(iban);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -38,15 +38,15 @@ public class IbanValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(iban))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle().Which.Should().Match(s =>
-                s.Contains("IBAN length is invalid.") ||
-                s.Contains("IBAN must start with a valid country code.") ||
-                s.Contains("IBAN check digits are invalid.") ||
-                s.Contains("IBAN checksum is invalid."));
+            Assert.Single(result);
+            Assert.True(result.First().Contains("IBAN length is invalid.") ||
+                result.First().Contains("IBAN must start with a valid country code.") ||
+                result.First().Contains("IBAN check digits are invalid.") ||
+                result.First().Contains("IBAN checksum is invalid."));
         }
     }
 }

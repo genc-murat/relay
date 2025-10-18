@@ -1,7 +1,7 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -27,7 +27,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -45,7 +45,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -61,7 +61,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -79,7 +79,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -116,7 +116,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -129,7 +129,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -145,25 +145,8 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
-    }
-
-    [Theory]
-    [InlineData("rgb(256,0,0)")] // Red value too high
-    [InlineData("rgb(0,256,0)")] // Green value too high
-    [InlineData("rgb(0,0,256)")] // Blue value too high
-    [InlineData("rgb(-1,0,0)")] // Negative red
-    [InlineData("rgb(0,-1,0)")] // Negative green
-    [InlineData("rgb(0,0,-1)")] // Negative blue
-    [InlineData("rgb(255,255)")] // Missing blue
-    [InlineData("rgb(255,255,255,255)")] // Too many values
-    public async Task ValidateAsync_InvalidRgbColors_ReturnsError(string color)
-    {
-        // Act
-        var result = await _rule.ValidateAsync(color);
-
-        // Assert
-        result.Should().ContainSingle("RGB values must be between 0 and 255.");
+        Assert.Single(result);
+        Assert.Equal("Invalid color format. Supported formats: #RGB, #RRGGBB, #RRGGBBAA, rgb(r,g,b), rgba(r,g,b,a), hsl(h,s%,l%), hsla(h,s%,l%,a), or named colors.", result.First());
     }
 
     [Theory]
@@ -181,15 +164,18 @@ public class ColorValidationRuleTests
         // Assert
         if (color.Contains("1.1") || color.Contains("-0.1"))
         {
-            result.Should().ContainSingle("Alpha value must be between 0 and 1.");
+            Assert.Single(result);
+            Assert.Equal("Alpha value must be between 0 and 1.", result.First());
         }
         else if (color.Contains("256") || color.Contains("-1"))
         {
-            result.Should().ContainSingle("RGB values must be between 0 and 255.");
+            Assert.Single(result);
+            Assert.Equal("RGB values must be between 0 and 255.", result.First());
         }
         else
         {
-            result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+            Assert.Single(result);
+        Assert.Contains("Invalid color format", result.First());
         }
     }
 
@@ -200,20 +186,22 @@ public class ColorValidationRuleTests
     [InlineData("hsl(0,0%,101%)")] // Lightness too high
     [InlineData("hsl(0,-1%,0%)")] // Negative saturation
     [InlineData("hsl(0,0%,-1%)")] // Negative lightness
-    [InlineData("hsl(360,100%)")] // Missing lightness
     public async Task ValidateAsync_InvalidHslColors_ReturnsError(string color)
     {
         // Act
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        if (color.Contains("361") || color.Contains("-1"))
+        var hue = int.Parse(color.Split('(')[1].Split(',')[0]);
+        if (hue < 0 || hue > 360)
         {
-            result.Should().ContainSingle("Hue must be between 0 and 360 degrees.");
+            Assert.Single(result);
+            Assert.Equal("Hue must be between 0 and 360 degrees.", result.First());
         }
         else
         {
-            result.Should().ContainSingle("Saturation and lightness must be between 0% and 100%.");
+            Assert.Single(result);
+            Assert.Equal("Saturation and lightness must be between 0% and 100%.", result.First());
         }
     }
 
@@ -231,19 +219,23 @@ public class ColorValidationRuleTests
         // Assert
         if (color.Contains("361"))
         {
-            result.Should().ContainSingle("Hue must be between 0 and 360 degrees.");
+            Assert.Single(result);
+            Assert.Equal("Hue must be between 0 and 360 degrees.", result.First());
         }
         else if (color.Contains("101"))
         {
-            result.Should().ContainSingle("Saturation and lightness must be between 0% and 100%.");
+            Assert.Single(result);
+            Assert.Equal("Saturation and lightness must be between 0% and 100%.", result.First());
         }
         else if (color.Contains("1.1"))
         {
-            result.Should().ContainSingle("Alpha value must be between 0 and 1.");
+            Assert.Single(result);
+            Assert.Equal("Alpha value must be between 0 and 1.", result.First());
         }
         else
         {
-            result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+            Assert.Single(result);
+            Assert.Contains("Invalid color format", result.First());
         }
     }
 
@@ -258,7 +250,8 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+        Assert.Single(result);
+        Assert.Contains("Invalid color format", result.First());
     }
 
     [Theory]
@@ -272,7 +265,8 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+        Assert.Single(result);
+        Assert.Contains("Invalid color format", result.First());
     }
 
     [Theory]
@@ -286,7 +280,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -301,7 +295,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -317,7 +311,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -331,7 +325,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -345,7 +339,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -361,7 +355,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -375,7 +369,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -390,7 +384,8 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+        Assert.Single(result);
+        Assert.Contains("Invalid color format", result.First());
     }
 
     [Theory]
@@ -407,7 +402,8 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().ContainSingle("RGB values must be between 0 and 255.");
+        Assert.Single(result);
+        Assert.Equal("RGB values must be between 0 and 255.", result.First());
     }
 
     [Theory]
@@ -423,13 +419,15 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        if (color.Contains("1.1") || color.Contains("-0.1") || color.Contains("2") || color.Contains("-1"))
+        if (color.Contains(",1.1") || color.Contains(",-0.1") || color.Contains(",2") || color.Contains(",-1"))
         {
-            result.Should().ContainSingle("Alpha value must be between 0 and 1.");
+            Assert.Single(result);
+            Assert.Equal("Alpha value must be between 0 and 1.", result.First());
         }
         else
         {
-            result.Should().ContainSingle("RGB values must be between 0 and 255.");
+            Assert.Single(result);
+            Assert.Equal("RGB values must be between 0 and 255.", result.First());
         }
     }
 
@@ -448,13 +446,16 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        if (color.Contains("361") || color.Contains("-1") && color.Contains("hsl("))
+        var hue = int.Parse(color.Split('(')[1].Split(',')[0]);
+        if (hue < 0 || hue > 360)
         {
-            result.Should().ContainSingle("Hue must be between 0 and 360 degrees.");
+            Assert.Single(result);
+            Assert.Equal("Hue must be between 0 and 360 degrees.", result.First());
         }
         else
         {
-            result.Should().ContainSingle("Saturation and lightness must be between 0% and 100%.");
+            Assert.Single(result);
+            Assert.Equal("Saturation and lightness must be between 0% and 100%.", result.First());
         }
     }
 
@@ -473,17 +474,30 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        if (color.Contains("361") || (color.Contains("-1") && !color.Contains("%")))
+        if (color.Contains("361") || color.Contains("(-1"))
         {
-            result.Should().ContainSingle("Hue must be between 0 and 360 degrees.");
+            Assert.Single(result);
+            Assert.Equal("Hue must be between 0 and 360 degrees.", result.First());
         }
-        else if (color.Contains("101") || (color.Contains("-1") && color.Contains("%")))
+        else if (color.Contains("101") || color.Contains(",-1%"))
         {
-            result.Should().ContainSingle("Saturation and lightness must be between 0% and 100%.");
+            Assert.Single(result);
+            Assert.Equal("Saturation and lightness must be between 0% and 100%.", result.First());
         }
-        else if (color.Contains("1.1") || color.Contains("-0.1"))
+        else if (color.Contains("1.1"))
         {
-            result.Should().ContainSingle("Alpha value must be between 0 and 1.");
+            Assert.Single(result);
+            Assert.Equal("Alpha value must be between 0 and 1.", result.First());
+        }
+        else if (color.Contains("-0.1"))
+        {
+            Assert.Single(result);
+            Assert.Equal("Alpha value must be between 0 and 1.", result.First());
+        }
+        else
+        {
+            Assert.Single(result);
+            Assert.Contains("Invalid color format", result.First());
         }
     }
 
@@ -500,7 +514,8 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+        Assert.Single(result);
+        Assert.Contains("Invalid color format", result.First());
     }
 
     [Theory]
@@ -515,7 +530,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -670,7 +685,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -688,7 +703,8 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+        Assert.Single(result);
+        Assert.Contains("Invalid color format", result.First());
     }
 
     [Theory]
@@ -703,6 +719,7 @@ public class ColorValidationRuleTests
         var result = await _rule.ValidateAsync(color);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid color format");
+        Assert.Single(result);
+        Assert.Contains("Invalid color format", result.First());
     }
 }

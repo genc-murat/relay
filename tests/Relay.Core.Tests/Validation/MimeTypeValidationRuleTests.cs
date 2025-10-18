@@ -1,7 +1,6 @@
-using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using System.Threading.Tasks;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -27,7 +26,7 @@ public class MimeTypeValidationRuleTests
         var result = await _rule.ValidateAsync(mimeType);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -49,11 +48,11 @@ public class MimeTypeValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(mimeType))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().NotBeEmpty();
+            Assert.NotEmpty(result);
         }
     }
 }

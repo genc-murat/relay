@@ -18,19 +18,19 @@ namespace Relay.Core.Validation.Rules
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex RgbColorRegex = new Regex(
-            @"^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$",
+            @"^rgb\(\s*(-?\d{1,3})\s*,\s*(-?\d{1,3})\s*,\s*(-?\d{1,3})\s*\)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex RgbaColorRegex = new Regex(
-            @"^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(0|1|0?\.\d+)\s*\)$",
+            @"^rgba\(\s*(-?\d{1,3})\s*,\s*(-?\d{1,3})\s*,\s*(-?\d{1,3})\s*,\s*(-?\d*\.?\d+)\s*\)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex HslColorRegex = new Regex(
-            @"^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$",
+            @"^hsl\(\s*(-?\d{1,3})\s*,\s*(-?\d{1,3})%\s*,\s*(-?\d{1,3})%\s*\)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex HslaColorRegex = new Regex(
-            @"^hsla\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*,\s*(0|1|0?\.\d+)\s*\)$",
+            @"^hsla\(\s*(-?\d{1,3})\s*,\s*(-?\d{1,3})%\s*,\s*(-?\d{1,3})%\s*,\s*(-?\d*\.?\d+)\s*\)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly HashSet<string> NamedColors = new HashSet<string>(StringComparer.OrdinalIgnoreCase)

@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -21,7 +21,7 @@ public class XmlValidationRuleTests
         var result = await _rule.ValidateAsync(xml);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -39,11 +39,12 @@ public class XmlValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(xml))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Invalid XML format.");
+            Assert.Single(result);
+            Assert.Equal("Invalid XML format.", result.First());
         }
     }
 }

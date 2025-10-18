@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -25,7 +25,7 @@ public class UsernameValidationRuleTests
         var result = await _rule.ValidateAsync(username);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -41,11 +41,12 @@ public class UsernameValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(username))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Username must be at least 3 characters long.");
+            Assert.Single(result);
+            Assert.Equal("Username must be at least 3 characters long.", result.First());
         }
     }
 
@@ -59,7 +60,8 @@ public class UsernameValidationRuleTests
         var result = await _rule.ValidateAsync(longUsername);
 
         // Assert
-        result.Should().ContainSingle("Username cannot exceed 32 characters.");
+        Assert.Single(result);
+        Assert.Equal("Username cannot exceed 32 characters.", result.First());
     }
 
     [Theory]
@@ -78,7 +80,8 @@ public class UsernameValidationRuleTests
         var result = await _rule.ValidateAsync(username);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Username can only contain letters, numbers, underscores, hyphens, and dots");
+        Assert.Single(result);
+        Assert.Contains("Username can only contain letters, numbers, underscores, hyphens, and dots", result.First());
     }
 
     [Theory]
@@ -103,7 +106,8 @@ public class UsernameValidationRuleTests
         var result = await _rule.ValidateAsync(username);
 
         // Assert
-        result.Should().ContainSingle("This username is reserved and cannot be used.");
+        Assert.Single(result);
+        Assert.Equal("This username is reserved and cannot be used.", result.First());
     }
 
     [Theory]
@@ -117,7 +121,8 @@ public class UsernameValidationRuleTests
         var result = await _rule.ValidateAsync(username);
 
         // Assert
-        result.Should().ContainSingle("Username cannot contain consecutive special characters.");
+        Assert.Single(result);
+        Assert.Equal("Username cannot contain consecutive special characters.", result.First());
     }
 
     [Theory]
@@ -131,6 +136,6 @@ public class UsernameValidationRuleTests
         var result = await _rule.ValidateAsync(username);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 }

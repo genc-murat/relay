@@ -11,8 +11,8 @@ public class ValidationStatusTests
         var status = ValidationStatus.Pass;
 
         // Assert
-        status.Should().Be(ValidationStatus.Pass);
-        ((int)status).Should().Be(0);
+        Assert.Equal(ValidationStatus.Pass, status);
+        Assert.Equal(0, (int)status);
     }
 
     [Fact]
@@ -22,8 +22,8 @@ public class ValidationStatusTests
         var status = ValidationStatus.Warning;
 
         // Assert
-        status.Should().Be(ValidationStatus.Warning);
-        ((int)status).Should().Be(1);
+        Assert.Equal(ValidationStatus.Warning, status);
+        Assert.Equal(1, (int)status);
     }
 
     [Fact]
@@ -33,8 +33,8 @@ public class ValidationStatusTests
         var status = ValidationStatus.Fail;
 
         // Assert
-        status.Should().Be(ValidationStatus.Fail);
-        ((int)status).Should().Be(2);
+        Assert.Equal(ValidationStatus.Fail, status);
+        Assert.Equal(2, (int)status);
     }
 
     [Fact]
@@ -44,10 +44,10 @@ public class ValidationStatusTests
         var values = Enum.GetValues(typeof(ValidationStatus)).Cast<ValidationStatus>().ToList();
 
         // Assert
-        values.Should().HaveCount(3);
-        values.Should().Contain(ValidationStatus.Pass);
-        values.Should().Contain(ValidationStatus.Warning);
-        values.Should().Contain(ValidationStatus.Fail);
+        Assert.Equal(3, values.Count);
+        Assert.Contains(ValidationStatus.Pass, values);
+        Assert.Contains(ValidationStatus.Warning, values);
+        Assert.Contains(ValidationStatus.Fail, values);
     }
 
     [Fact]
@@ -62,8 +62,8 @@ public class ValidationStatusTests
         };
 
         // Assert
-        ((int)ordered[0]).Should().BeLessThan((int)ordered[1]);
-        ((int)ordered[1]).Should().BeLessThan((int)ordered[2]);
+        Assert.True((int)ordered[0] < (int)ordered[1]);
+        Assert.True((int)ordered[1] < (int)ordered[2]);
     }
 
     [Fact]
@@ -73,26 +73,26 @@ public class ValidationStatusTests
         var defaultStatus = default(ValidationStatus);
 
         // Assert
-        defaultStatus.Should().Be(ValidationStatus.Pass);
-        ((int)defaultStatus).Should().Be(0);
+        Assert.Equal(ValidationStatus.Pass, defaultStatus);
+        Assert.Equal(0, (int)defaultStatus);
     }
 
     [Fact]
     public void ValidationStatus_CanBeParsedFromString()
     {
         // Act & Assert
-        Enum.Parse<ValidationStatus>("Pass").Should().Be(ValidationStatus.Pass);
-        Enum.Parse<ValidationStatus>("Warning").Should().Be(ValidationStatus.Warning);
-        Enum.Parse<ValidationStatus>("Fail").Should().Be(ValidationStatus.Fail);
+        Assert.Equal(ValidationStatus.Pass, Enum.Parse<ValidationStatus>("Pass"));
+        Assert.Equal(ValidationStatus.Warning, Enum.Parse<ValidationStatus>("Warning"));
+        Assert.Equal(ValidationStatus.Fail, Enum.Parse<ValidationStatus>("Fail"));
     }
 
     [Fact]
     public void ValidationStatus_CanBeConvertedToString()
     {
         // Act & Assert
-        ValidationStatus.Pass.ToString().Should().Be("Pass");
-        ValidationStatus.Warning.ToString().Should().Be("Warning");
-        ValidationStatus.Fail.ToString().Should().Be("Fail");
+        Assert.Equal("Pass", ValidationStatus.Pass.ToString());
+        Assert.Equal("Warning", ValidationStatus.Warning.ToString());
+        Assert.Equal("Fail", ValidationStatus.Fail.ToString());
     }
 
     [Fact]
@@ -107,8 +107,8 @@ public class ValidationStatusTests
         };
 
         // Assert
-        statuses.Should().HaveCount(3);
-        statuses.Distinct().Should().HaveCount(3);
+        Assert.Equal(3, statuses.Count);
+        Assert.Equal(3, statuses.Distinct().Count());
     }
 
     [Fact]
@@ -128,9 +128,9 @@ public class ValidationStatusTests
         var grouped = items.GroupBy(i => i.Status);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == ValidationStatus.Warning).Should().HaveCount(2);
-        grouped.First(g => g.Key == ValidationStatus.Pass).Should().HaveCount(2);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == ValidationStatus.Warning).Count());
+        Assert.Equal(2, grouped.First(g => g.Key == ValidationStatus.Pass).Count());
     }
 
     [Fact]
@@ -148,9 +148,9 @@ public class ValidationStatusTests
         var ordered = statuses.OrderBy(s => s).ToList();
 
         // Assert
-        ordered[0].Should().Be(ValidationStatus.Pass);
-        ordered[1].Should().Be(ValidationStatus.Warning);
-        ordered[2].Should().Be(ValidationStatus.Fail);
+        Assert.Equal(ValidationStatus.Pass, ordered[0]);
+        Assert.Equal(ValidationStatus.Warning, ordered[1]);
+        Assert.Equal(ValidationStatus.Fail, ordered[2]);
     }
 
     [Fact]
@@ -166,12 +166,12 @@ public class ValidationStatusTests
         var nonPassingStatuses = statuses.Where(s => s != ValidationStatus.Pass).ToList();
 
         // Assert
-        passingStatuses.Should().HaveCount(1);
-        passingStatuses[0].Should().Be(ValidationStatus.Pass);
+        Assert.Single(passingStatuses);
+        Assert.Equal(ValidationStatus.Pass, passingStatuses[0]);
 
-        nonPassingStatuses.Should().HaveCount(2);
-        nonPassingStatuses.Should().Contain(ValidationStatus.Warning);
-        nonPassingStatuses.Should().Contain(ValidationStatus.Fail);
+        Assert.Equal(2, nonPassingStatuses.Count);
+        Assert.Contains(ValidationStatus.Warning, nonPassingStatuses);
+        Assert.Contains(ValidationStatus.Fail, nonPassingStatuses);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class ValidationStatusTests
         var type = typeof(ValidationStatus);
 
         // Assert
-        type.IsEnum.Should().BeTrue();
+        Assert.True(type.IsEnum);
     }
 
     [Fact]
@@ -202,9 +202,9 @@ public class ValidationStatusTests
             .ToDictionary(g => g.Key, g => g.Count());
 
         // Assert
-        statusCounts[ValidationStatus.Pass].Should().Be(2);
-        statusCounts[ValidationStatus.Warning].Should().Be(2);
-        statusCounts[ValidationStatus.Fail].Should().Be(1);
+        Assert.Equal(2, statusCounts[ValidationStatus.Pass]);
+        Assert.Equal(2, statusCounts[ValidationStatus.Warning]);
+        Assert.Equal(1, statusCounts[ValidationStatus.Fail]);
     }
 
     [Fact]
@@ -215,8 +215,8 @@ public class ValidationStatusTests
         var status2 = ValidationStatus.Fail;
 
         // Act & Assert - Basic comparison operations
-        ((int)status1).Should().BeLessThan((int)status2);
-        ((int)status2).Should().BeGreaterThan((int)status1);
+        Assert.True((int)status1 < (int)status2);
+        Assert.True((int)status2 > (int)status1);
     }
 
     [Theory]
@@ -226,7 +226,7 @@ public class ValidationStatusTests
     public void ValidationStatus_ShouldHaveCorrectIntegerValues(ValidationStatus status, int expectedValue)
     {
         // Act & Assert
-        ((int)status).Should().Be(expectedValue);
+        Assert.Equal(expectedValue, (int)status);
     }
 
     [Fact]
@@ -236,13 +236,13 @@ public class ValidationStatusTests
         var status = ValidationStatus.Warning;
 
         // Act & Assert
-        (status == ValidationStatus.Pass).Should().BeFalse();
-        (status == ValidationStatus.Warning).Should().BeTrue();
-        (status != ValidationStatus.Fail).Should().BeTrue();
-        (status >= ValidationStatus.Warning).Should().BeTrue();
-        (status <= ValidationStatus.Fail).Should().BeTrue();
-        (status > ValidationStatus.Pass).Should().BeTrue();
-        (status < ValidationStatus.Fail).Should().BeTrue();
+        Assert.False(status == ValidationStatus.Pass);
+        Assert.True(status == ValidationStatus.Warning);
+        Assert.True(status != ValidationStatus.Fail);
+        Assert.True(status >= ValidationStatus.Warning);
+        Assert.True(status <= ValidationStatus.Fail);
+        Assert.True(status > ValidationStatus.Pass);
+        Assert.True(status < ValidationStatus.Fail);
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public class ValidationStatusTests
         };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Warning);
+        Assert.Equal(ValidationStatus.Warning, result.Status);
     }
 
     [Fact]
@@ -266,7 +266,7 @@ public class ValidationStatusTests
         var values = Enum.GetValues(typeof(ValidationStatus)).Cast<int>().ToList();
 
         // Assert
-        values.Distinct().Should().HaveCount(3);
+        Assert.Equal(3, values.Distinct().Count());
     }
 
     [Fact]
@@ -281,8 +281,8 @@ public class ValidationStatusTests
         };
 
         // Assert
-        statusDescriptions.Should().HaveCount(3);
-        statusDescriptions[ValidationStatus.Fail].Should().Be("Validation failed");
+        Assert.Equal(3, statusDescriptions.Count);
+        Assert.Equal("Validation failed", statusDescriptions[ValidationStatus.Fail]);
     }
 
     [Fact]
@@ -307,17 +307,17 @@ public class ValidationStatusTests
         }).ToList();
 
         // Assert
-        report[0].Description.Should().Be("Pass");
-        report[0].IsSuccessful.Should().BeTrue();
-        report[0].RequiresAttention.Should().BeFalse();
+        Assert.Equal("Pass", report[0].Description);
+        Assert.True(report[0].IsSuccessful);
+        Assert.False(report[0].RequiresAttention);
 
-        report[1].Description.Should().Be("Warning");
-        report[1].IsSuccessful.Should().BeTrue();
-        report[1].RequiresAttention.Should().BeTrue();
+        Assert.Equal("Warning", report[1].Description);
+        Assert.True(report[1].IsSuccessful);
+        Assert.True(report[1].RequiresAttention);
 
-        report[2].Description.Should().Be("Fail");
-        report[2].IsSuccessful.Should().BeFalse();
-        report[2].RequiresAttention.Should().BeTrue();
+        Assert.Equal("Fail", report[2].Description);
+        Assert.False(report[2].IsSuccessful);
+        Assert.True(report[2].RequiresAttention);
     }
 
     [Fact]
@@ -339,9 +339,9 @@ public class ValidationStatusTests
         var testsRequiringAttention = results.Where(r => r.Status != ValidationStatus.Pass).ToList();
 
         // Assert
-        passedTests.Should().HaveCount(2);
-        failedTests.Should().HaveCount(1);
-        testsRequiringAttention.Should().HaveCount(3);
+        Assert.Equal(2, passedTests.Count);
+        Assert.Single(failedTests);
+        Assert.Equal(3, testsRequiringAttention.Count);
     }
 
     [Fact]
@@ -366,7 +366,7 @@ public class ValidationStatusTests
         }
 
         // Assert
-        action.Should().Be("Review");
+        Assert.Equal("Review", action);
     }
 
     [Fact]
@@ -390,9 +390,9 @@ public class ValidationStatusTests
         var hasWarnings = validationResults.Contains(ValidationStatus.Warning);
 
         // Assert
-        overallStatus.Should().Be(ValidationStatus.Fail);
-        canProceed.Should().BeFalse();
-        hasWarnings.Should().BeTrue();
+        Assert.Equal(ValidationStatus.Fail, overallStatus);
+        Assert.False(canProceed);
+        Assert.True(hasWarnings);
     }
 
     [Fact]
@@ -419,8 +419,8 @@ public class ValidationStatusTests
             var canBuild = overallStatus != ValidationStatus.Fail;
 
             // Assert
-            overallStatus.Should().Be(testCase.ExpectedOverall);
-            canBuild.Should().Be(testCase.CanBuild);
+            Assert.Equal(testCase.ExpectedOverall, overallStatus);
+            Assert.Equal(testCase.CanBuild, canBuild);
         }
     }
 
@@ -452,13 +452,13 @@ public class ValidationStatusTests
         }).ToList();
 
         // Assert
-        progressReport[0].Icon.Should().Be("✅");
-        progressReport[0].BlocksProgress.Should().BeFalse();
+        Assert.Equal("✅", progressReport[0].Icon);
+        Assert.False(progressReport[0].BlocksProgress);
 
-        progressReport[1].Icon.Should().Be("⚠️");
-        progressReport[1].BlocksProgress.Should().BeFalse();
+        Assert.Equal("⚠️", progressReport[1].Icon);
+        Assert.False(progressReport[1].BlocksProgress);
 
-        progressReport[3].Icon.Should().Be("❌");
-        progressReport[3].BlocksProgress.Should().BeTrue();
+        Assert.Equal("❌", progressReport[3].Icon);
+        Assert.True(progressReport[3].BlocksProgress);
     }
 }

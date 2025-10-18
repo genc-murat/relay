@@ -205,16 +205,25 @@ namespace Relay.Core.AI
                 }
 
                 var dataView = _mlContext.Data.LoadFromEnumerable(history);
-                
-                // Create forecast using the model
-                // Note: For production, you would need to properly handle time-series prediction
-                // This is a simplified version
-                _logger.LogInformation("Forecast model available for {MetricName}. " +
-                    "Note: Full forecasting requires CreateTimeSeriesEngine which is version-specific.", metricName);
-                
-                // Full forecasting implementation would use TimeSeriesPredictionEngine
-                // For now, return null as placeholder
-                return null;
+
+                // For SSA forecasting, transform the historical data to get forecasts
+                // The model outputs forecast columns to the data view
+                var transformedData = model.Transform(dataView);
+                var forecastRows = _mlContext.Data.CreateEnumerable<MetricForecastResult>(transformedData, reuseRowObject: false).ToList();
+
+                // Use the forecast from the last data point (most recent)
+                if (forecastRows.Count > 0)
+                {
+                    var forecast = forecastRows.Last();
+                    _logger.LogInformation("Forecasted {Count} values for {MetricName} with horizon {Horizon}",
+                        forecast.ForecastedValues.Length, metricName, horizon);
+                    return forecast;
+                }
+                else
+                {
+                    _logger.LogWarning("No forecast data generated for {MetricName}", metricName);
+                    return null;
+                }
             }
             catch (Exception ex)
             {

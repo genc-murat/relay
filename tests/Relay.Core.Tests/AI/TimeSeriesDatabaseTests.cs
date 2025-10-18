@@ -556,7 +556,11 @@ namespace Relay.Core.Tests.AI
             // Act - Should not throw
             _database.TrainForecastModel("test");
 
-            // Assert - Model should be trained (verified by Forecast method)
+            // Assert - Model should be trained and forecast should work
+            var forecast = _database.Forecast("test");
+            Assert.NotNull(forecast);
+            Assert.NotNull(forecast.ForecastedValues);
+            Assert.True(forecast.ForecastedValues.Length > 0);
         }
 
         #endregion
@@ -582,6 +586,106 @@ namespace Relay.Core.Tests.AI
 
             // Act
             var forecast = _database.Forecast("test");
+
+            // Assert
+            Assert.Null(forecast);
+        }
+
+        [Fact]
+        public void Forecast_Should_Return_Valid_Result_After_Model_Training()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 100; i++)
+            {
+                _database.StoreMetric("test", 50.0 + i * 0.1, baseTime.AddHours(i));
+            }
+
+            // Train the model first
+            _database.TrainForecastModel("test");
+
+            // Act
+            var forecast = _database.Forecast("test");
+
+            // Assert
+            Assert.NotNull(forecast);
+            Assert.NotNull(forecast.ForecastedValues);
+            Assert.NotNull(forecast.LowerBound);
+            Assert.NotNull(forecast.UpperBound);
+            Assert.True(forecast.ForecastedValues.Length > 0);
+            Assert.Equal(forecast.ForecastedValues.Length, forecast.LowerBound.Length);
+            Assert.Equal(forecast.ForecastedValues.Length, forecast.UpperBound.Length);
+        }
+
+        [Fact]
+        public void Forecast_Should_Auto_Train_Model_When_None_Exists()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 100; i++)
+            {
+                _database.StoreMetric("test", 50.0 + Math.Sin(i * 0.1), baseTime.AddHours(i));
+            }
+
+            // Act - Should auto-train model
+            var forecast = _database.Forecast("test");
+
+            // Assert
+            Assert.NotNull(forecast);
+            Assert.NotNull(forecast.ForecastedValues);
+            Assert.True(forecast.ForecastedValues.Length > 0);
+        }
+
+        [Fact]
+        public void Forecast_Should_Handle_Different_Horizons()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 100; i++)
+            {
+                _database.StoreMetric("test", 50.0 + i * 0.1, baseTime.AddHours(i));
+            }
+
+            // Act
+            var forecast12 = _database.Forecast("test", 12);
+            var forecast24 = _database.Forecast("test", 24);
+
+            // Assert - Both should work (horizon is currently fixed in model training)
+            Assert.NotNull(forecast12);
+            Assert.NotNull(forecast24);
+            Assert.True(forecast12.ForecastedValues.Length > 0);
+            Assert.True(forecast24.ForecastedValues.Length > 0);
+        }
+
+        [Fact]
+        public void Forecast_Should_Return_Consistent_Results_For_Same_Data()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 100; i++)
+            {
+                _database.StoreMetric("test", 50.0 + i * 0.1, baseTime.AddHours(i));
+            }
+
+            // Act
+            var forecast1 = _database.Forecast("test");
+            var forecast2 = _database.Forecast("test");
+
+            // Assert
+            Assert.NotNull(forecast1);
+            Assert.NotNull(forecast2);
+            Assert.Equal(forecast1.ForecastedValues.Length, forecast2.ForecastedValues.Length);
+            Assert.Equal(forecast1.LowerBound.Length, forecast2.LowerBound.Length);
+            Assert.Equal(forecast1.UpperBound.Length, forecast2.UpperBound.Length);
+        }
+
+        [Fact]
+        public void Forecast_Should_Handle_Empty_History_Gracefully()
+        {
+            // Arrange - No data stored
+
+            // Act
+            var forecast = _database.Forecast("nonexistent");
 
             // Assert
             Assert.Null(forecast);

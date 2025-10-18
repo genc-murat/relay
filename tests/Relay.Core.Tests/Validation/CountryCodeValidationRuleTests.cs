@@ -1,5 +1,5 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -26,7 +26,7 @@ public class CountryCodeValidationRuleTests
         var result = await _rule.ValidateAsync(countryCode);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -45,11 +45,12 @@ public class CountryCodeValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(countryCode))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Invalid ISO 3166 country code.");
+            Assert.Single(result);
+            Assert.Equal("Invalid ISO 3166 country code.", result.Single());
         }
     }
 }

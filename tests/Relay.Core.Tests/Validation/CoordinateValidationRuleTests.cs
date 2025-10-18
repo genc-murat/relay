@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using FluentAssertions;
 using Relay.Core.Validation.Rules;
 using Xunit;
 
@@ -24,7 +23,7 @@ public class CoordinateValidationRuleTests
         var result = await _rule.ValidateAsync(coordinates);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -48,11 +47,11 @@ public class CoordinateValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(coordinates))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().NotBeEmpty();
+            Assert.NotEmpty(result);
         }
     }
 }

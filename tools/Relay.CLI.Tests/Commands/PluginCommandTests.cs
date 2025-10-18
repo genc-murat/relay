@@ -1,9 +1,6 @@
 using Relay.CLI.Commands;
-using Relay.CLI.Plugins;
-using System.CommandLine;
-using Moq;
 using Spectre.Console;
-using Spectre.Console.Testing;
+using System.CommandLine;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -16,8 +13,8 @@ public class PluginCommandTests
         var command = PluginCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Should().BeOfType<Command>();
+        Assert.NotNull(command);
+        Assert.IsType<Command>(command);
     }
 
     [Fact]
@@ -27,7 +24,7 @@ public class PluginCommandTests
         var command = PluginCommand.Create();
 
         // Assert
-        command.Name.Should().Be("plugin");
+        Assert.Equal("plugin", command.Name);
     }
 
     [Fact]
@@ -37,7 +34,7 @@ public class PluginCommandTests
         var command = PluginCommand.Create();
 
         // Assert
-        command.Description.Should().Be("Manage Relay CLI plugins");
+        Assert.Equal("Manage Relay CLI plugins", command.Description);
     }
 
     [Fact]
@@ -48,13 +45,13 @@ public class PluginCommandTests
         var subcommandNames = command.Subcommands.Select(s => s.Name).ToList();
 
         // Assert
-        subcommandNames.Should().Contain("list");
-        subcommandNames.Should().Contain("search");
-        subcommandNames.Should().Contain("install");
-        subcommandNames.Should().Contain("uninstall");
-        subcommandNames.Should().Contain("update");
-        subcommandNames.Should().Contain("info");
-        subcommandNames.Should().Contain("create");
+        Assert.Contains("list", subcommandNames);
+        Assert.Contains("search", subcommandNames);
+        Assert.Contains("install", subcommandNames);
+        Assert.Contains("uninstall", subcommandNames);
+        Assert.Contains("update", subcommandNames);
+        Assert.Contains("info", subcommandNames);
+        Assert.Contains("create", subcommandNames);
     }
 
     [Fact]
@@ -64,7 +61,7 @@ public class PluginCommandTests
         var command = PluginCommand.Create();
 
         // Assert
-        command.Subcommands.Should().HaveCount(7);
+        Assert.Equal(7, command.Subcommands.Count());
     }
 
     [Fact]
@@ -75,8 +72,8 @@ public class PluginCommandTests
         var listCommand = command.Subcommands.First(c => c.Name == "list");
 
         // Assert
-        listCommand.Name.Should().Be("list");
-        listCommand.Description.Should().Be("List installed plugins");
+        Assert.Equal("list", listCommand.Name);
+        Assert.Equal("List installed plugins", listCommand.Description);
     }
 
     [Fact]
@@ -88,9 +85,9 @@ public class PluginCommandTests
         var allOption = listCommand.Options.FirstOrDefault(o => o.Name == "all");
 
         // Assert
-        allOption.Should().NotBeNull();
-        allOption!.Name.Should().Be("all");
-        allOption.Description.Should().Be("Include disabled plugins");
+        Assert.NotNull(allOption);
+        Assert.Equal("all", allOption.Name);
+        Assert.Equal("Include disabled plugins", allOption.Description);
     }
 
     [Fact]
@@ -101,10 +98,10 @@ public class PluginCommandTests
         var searchCommand = command.Subcommands.First(c => c.Name == "search");
 
         // Assert
-        searchCommand.Name.Should().Be("search");
-        searchCommand.Description.Should().Be("Search for plugins in the marketplace");
-        searchCommand.Arguments.Should().HaveCount(1);
-        searchCommand.Arguments.First().Name.Should().Be("query");
+        Assert.Equal("search", searchCommand.Name);
+        Assert.Equal("Search for plugins in the marketplace", searchCommand.Description);
+        Assert.Equal(1, searchCommand.Arguments.Count());
+        Assert.Equal("query", searchCommand.Arguments.First().Name);
     }
 
     [Fact]
@@ -117,13 +114,13 @@ public class PluginCommandTests
         var authorOption = searchCommand.Options.FirstOrDefault(o => o.Name == "author");
 
         // Assert
-        tagOption.Should().NotBeNull();
-        tagOption!.Name.Should().Be("tag");
-        tagOption.Description.Should().Be("Filter by tag");
+        Assert.NotNull(tagOption);
+        Assert.Equal("tag", tagOption.Name);
+        Assert.Equal("Filter by tag", tagOption.Description);
 
-        authorOption.Should().NotBeNull();
-        authorOption!.Name.Should().Be("author");
-        authorOption.Description.Should().Be("Filter by author");
+        Assert.NotNull(authorOption);
+        Assert.Equal("author", authorOption.Name);
+        Assert.Equal("Filter by author", authorOption.Description);
     }
 
     [Fact]
@@ -134,21 +131,21 @@ public class PluginCommandTests
         var installCommand = command.Subcommands.First(c => c.Name == "install");
 
         // Assert
-        installCommand.Name.Should().Be("install");
-        installCommand.Description.Should().Be("Install a plugin");
-        installCommand.Arguments.Should().HaveCount(1);
-        installCommand.Arguments.First().Name.Should().Be("name");
+        Assert.Equal("install", installCommand.Name);
+        Assert.Equal("Install a plugin", installCommand.Description);
+        Assert.Equal(1, installCommand.Arguments.Count());
+        Assert.Equal("name", installCommand.Arguments.First().Name);
 
         var versionOption = installCommand.Options.FirstOrDefault(o => o.Name == "version");
         var globalOption = installCommand.Options.FirstOrDefault(o => o.Name == "global");
 
-        versionOption.Should().NotBeNull();
-        versionOption!.Name.Should().Be("version");
-        versionOption.Description.Should().Be("Specific version to install");
+        Assert.NotNull(versionOption);
+        Assert.Equal("version", versionOption.Name);
+        Assert.Equal("Specific version to install", versionOption.Description);
 
-        globalOption.Should().NotBeNull();
-        globalOption!.Name.Should().Be("global");
-        globalOption.Description.Should().Be("Install globally");
+        Assert.NotNull(globalOption);
+        Assert.Equal("global", globalOption.Name);
+        Assert.Equal("Install globally", globalOption.Description);
     }
 
     [Fact]
@@ -159,15 +156,15 @@ public class PluginCommandTests
         var uninstallCommand = command.Subcommands.First(c => c.Name == "uninstall");
 
         // Assert
-        uninstallCommand.Name.Should().Be("uninstall");
-        uninstallCommand.Description.Should().Be("Uninstall a plugin");
-        uninstallCommand.Arguments.Should().HaveCount(1);
-        uninstallCommand.Arguments.First().Name.Should().Be("name");
+        Assert.Equal("uninstall", uninstallCommand.Name);
+        Assert.Equal("Uninstall a plugin", uninstallCommand.Description);
+        Assert.Equal(1, uninstallCommand.Arguments.Count());
+        Assert.Equal("name", uninstallCommand.Arguments.First().Name);
 
         var globalOption = uninstallCommand.Options.FirstOrDefault(o => o.Name == "global");
-        globalOption.Should().NotBeNull();
-        globalOption!.Name.Should().Be("global");
-        globalOption.Description.Should().Be("Uninstall from global location");
+        Assert.NotNull(globalOption);
+        Assert.Equal("global", globalOption.Name);
+        Assert.Equal("Uninstall from global location", globalOption.Description);
     }
 
     [Fact]
@@ -178,10 +175,10 @@ public class PluginCommandTests
         var updateCommand = command.Subcommands.First(c => c.Name == "update");
 
         // Assert
-        updateCommand.Name.Should().Be("update");
-        updateCommand.Description.Should().Be("Update installed plugins");
-        updateCommand.Arguments.Should().HaveCount(1);
-        updateCommand.Arguments.First().Name.Should().Be("name");
+        Assert.Equal("update", updateCommand.Name);
+        Assert.Equal("Update installed plugins", updateCommand.Description);
+        Assert.Equal(1, updateCommand.Arguments.Count());
+        Assert.Equal("name", updateCommand.Arguments.First().Name);
     }
 
     [Fact]
@@ -192,10 +189,10 @@ public class PluginCommandTests
         var infoCommand = command.Subcommands.First(c => c.Name == "info");
 
         // Assert
-        infoCommand.Name.Should().Be("info");
-        infoCommand.Description.Should().Be("Show detailed information about a plugin");
-        infoCommand.Arguments.Should().HaveCount(1);
-        infoCommand.Arguments.First().Name.Should().Be("name");
+        Assert.Equal("info", infoCommand.Name);
+        Assert.Equal("Show detailed information about a plugin", infoCommand.Description);
+        Assert.Equal(1, infoCommand.Arguments.Count());
+        Assert.Equal("name", infoCommand.Arguments.First().Name);
     }
 
     [Fact]
@@ -206,22 +203,22 @@ public class PluginCommandTests
         var createCommand = command.Subcommands.First(c => c.Name == "create");
 
         // Assert
-        createCommand.Name.Should().Be("create");
-        createCommand.Description.Should().Be("Create a new plugin from template");
+        Assert.Equal("create", createCommand.Name);
+        Assert.Equal("Create a new plugin from template", createCommand.Description);
 
         var nameOption = createCommand.Options.FirstOrDefault(o => o.Name == "name");
         var outputOption = createCommand.Options.FirstOrDefault(o => o.Name == "output");
         var templateOption = createCommand.Options.FirstOrDefault(o => o.Name == "template");
 
-        nameOption.Should().NotBeNull();
-        nameOption!.Name.Should().Be("name");
-        nameOption.IsRequired.Should().BeTrue();
+        Assert.NotNull(nameOption);
+        Assert.Equal("name", nameOption.Name);
+        Assert.True(nameOption.IsRequired);
 
-        outputOption.Should().NotBeNull();
-        outputOption!.Name.Should().Be("output");
+        Assert.NotNull(outputOption);
+        Assert.Equal("output", outputOption.Name);
 
-        templateOption.Should().NotBeNull();
-        templateOption!.Name.Should().Be("template");
+        Assert.NotNull(templateOption);
+        Assert.Equal("template", templateOption.Name);
     }
 
     [Fact]
@@ -232,7 +229,7 @@ public class PluginCommandTests
         var subcommandNames = command.Subcommands.Select(s => s.Name).ToList();
 
         // Assert
-        subcommandNames.Should().OnlyHaveUniqueItems();
+        Assert.Equal(subcommandNames.Count, subcommandNames.Distinct().Count());
     }
 
     [Fact]
@@ -242,7 +239,7 @@ public class PluginCommandTests
         var command = PluginCommand.Create();
 
         // Assert
-        command.Options.Should().BeEmpty();
+        Assert.Empty(command.Options);
     }
 
     [Fact]
@@ -254,7 +251,7 @@ public class PluginCommandTests
         // Assert
         foreach (var subcommand in command.Subcommands)
         {
-            subcommand.Subcommands.Should().BeEmpty();
+            Assert.Empty(subcommand.Subcommands);
         }
     }
 
@@ -266,7 +263,7 @@ public class PluginCommandTests
         var listCommand = command.Subcommands.First(c => c.Name == "list");
 
         // Assert
-        listCommand.Handler.Should().NotBeNull();
+        Assert.NotNull(listCommand.Handler);
     }
 
     [Fact]
@@ -277,7 +274,7 @@ public class PluginCommandTests
         var searchCommand = command.Subcommands.First(c => c.Name == "search");
 
         // Assert
-        searchCommand.Handler.Should().NotBeNull();
+        Assert.NotNull(searchCommand.Handler);
     }
 
     [Fact]
@@ -288,7 +285,7 @@ public class PluginCommandTests
         var installCommand = command.Subcommands.First(c => c.Name == "install");
 
         // Assert
-        installCommand.Handler.Should().NotBeNull();
+        Assert.NotNull(installCommand.Handler);
     }
 
     [Fact]
@@ -299,7 +296,7 @@ public class PluginCommandTests
         var uninstallCommand = command.Subcommands.First(c => c.Name == "uninstall");
 
         // Assert
-        uninstallCommand.Handler.Should().NotBeNull();
+        Assert.NotNull(uninstallCommand.Handler);
     }
 
     [Fact]
@@ -310,7 +307,7 @@ public class PluginCommandTests
         var updateCommand = command.Subcommands.First(c => c.Name == "update");
 
         // Assert
-        updateCommand.Handler.Should().NotBeNull();
+        Assert.NotNull(updateCommand.Handler);
     }
 
     [Fact]
@@ -321,7 +318,7 @@ public class PluginCommandTests
         var infoCommand = command.Subcommands.First(c => c.Name == "info");
 
         // Assert
-        infoCommand.Handler.Should().NotBeNull();
+        Assert.NotNull(infoCommand.Handler);
     }
 
     [Fact]
@@ -332,7 +329,7 @@ public class PluginCommandTests
         var createCommand = command.Subcommands.First(c => c.Name == "create");
 
         // Assert
-        createCommand.Handler.Should().NotBeNull();
+        Assert.NotNull(createCommand.Handler);
     }
 
     [Fact]
@@ -344,7 +341,7 @@ public class PluginCommandTests
         // Assert
         foreach (var subcommand in command.Subcommands)
         {
-            subcommand.Handler.Should().NotBeNull($"{subcommand.Name} should have a handler");
+            Assert.NotNull(subcommand.Handler);
         }
     }
 
@@ -358,7 +355,7 @@ public class PluginCommandTests
 
         // Assert
         // Note: We can't easily test the default value without parsing, but we can verify the option exists
-        globalOption.Should().NotBeNull();
+        Assert.NotNull(globalOption);
     }
 
     [Fact]
@@ -370,7 +367,7 @@ public class PluginCommandTests
         var templateOption = createCommand.Options.First(o => o.Name == "template");
 
         // Assert
-        templateOption.Should().NotBeNull();
+        Assert.NotNull(templateOption);
         // The default value "basic" is set in the option creation
     }
 
@@ -383,7 +380,7 @@ public class PluginCommandTests
         var outputOption = createCommand.Options.First(o => o.Name == "output");
 
         // Assert
-        outputOption.Should().NotBeNull();
+        Assert.NotNull(outputOption);
         // The default value "." is set in the option creation
     }
 
@@ -398,9 +395,9 @@ public class PluginCommandTests
         var originalCount = command1.Subcommands.Count;
 
         // Assert
-        command1.Subcommands.Count.Should().Be(originalCount);
-        command2.Subcommands.Count.Should().Be(originalCount);
-        command1.Should().NotBeSameAs(command2); // Different instances
+        Assert.Equal(originalCount, command1.Subcommands.Count);
+        Assert.Equal(originalCount, command2.Subcommands.Count);
+        Assert.NotSame(command1, command2); // Different instances
     }
 
     [Fact]
@@ -412,7 +409,7 @@ public class PluginCommandTests
         // Assert
         foreach (var subcommand in command.Subcommands)
         {
-            subcommand.Description.Should().NotBeNullOrEmpty($"{subcommand.Name} should have a description");
+            Assert.False(string.IsNullOrEmpty(subcommand.Description));
         }
     }
 
@@ -427,7 +424,7 @@ public class PluginCommandTests
         {
             foreach (var argument in subcommand.Arguments)
             {
-                argument.Description.Should().NotBeNullOrEmpty($"{subcommand.Name}.{argument.Name} should have a description");
+                Assert.False(string.IsNullOrEmpty(argument.Description));
             }
         }
     }
@@ -443,7 +440,7 @@ public class PluginCommandTests
         {
             foreach (var option in subcommand.Options)
             {
-                option.Description.Should().NotBeNullOrEmpty($"{subcommand.Name}.{option.Name} should have a description");
+                Assert.False(string.IsNullOrEmpty(option.Description));
             }
         }
     }
@@ -456,13 +453,13 @@ public class PluginCommandTests
         var command2 = PluginCommand.Create();
 
         // Assert
-        command1.Name.Should().Be(command2.Name);
-        command1.Description.Should().Be(command2.Description);
-        command1.Subcommands.Count.Should().Be(command2.Subcommands.Count);
+        Assert.Equal(command2.Name, command1.Name);
+        Assert.Equal(command2.Description, command1.Description);
+        Assert.Equal(command2.Subcommands.Count, command1.Subcommands.Count);
 
         var subcommandNames1 = command1.Subcommands.Select(s => s.Name).OrderBy(n => n).ToList();
         var subcommandNames2 = command2.Subcommands.Select(s => s.Name).OrderBy(n => n).ToList();
-        subcommandNames1.Should().BeEquivalentTo(subcommandNames2);
+        Assert.Equal(subcommandNames1, subcommandNames2);
     }
 
     [Fact]
@@ -473,13 +470,13 @@ public class PluginCommandTests
         var subcommandNames = command.Subcommands.Select(s => s.Name).ToList();
 
         // Assert - Verify all essential plugin management operations are supported
-        subcommandNames.Should().Contain("list", "Should support listing plugins");
-        subcommandNames.Should().Contain("install", "Should support installing plugins");
-        subcommandNames.Should().Contain("uninstall", "Should support uninstalling plugins");
-        subcommandNames.Should().Contain("update", "Should support updating plugins");
-        subcommandNames.Should().Contain("search", "Should support searching plugins");
-        subcommandNames.Should().Contain("info", "Should support getting plugin info");
-        subcommandNames.Should().Contain("create", "Should support creating plugins");
+        Assert.Contains("list", subcommandNames);
+        Assert.Contains("install", subcommandNames);
+        Assert.Contains("uninstall", subcommandNames);
+        Assert.Contains("update", subcommandNames);
+        Assert.Contains("search", subcommandNames);
+        Assert.Contains("info", subcommandNames);
+        Assert.Contains("create", subcommandNames);
     }
 
     [Fact]
@@ -489,18 +486,17 @@ public class PluginCommandTests
         var command = PluginCommand.Create();
 
         // Assert
-        command.Name.Should().NotBeNullOrEmpty();
-        command.Description.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(command.Name));
+        Assert.False(string.IsNullOrEmpty(command.Description));
 
         foreach (var subcommand in command.Subcommands)
         {
-            subcommand.Name.Should().NotBeNullOrEmpty();
-            subcommand.Description.Should().NotBeNullOrEmpty();
-            subcommand.Handler.Should().NotBeNull();
+            Assert.False(string.IsNullOrEmpty(subcommand.Name));
+            Assert.False(string.IsNullOrEmpty(subcommand.Description));
+            Assert.NotNull(subcommand.Handler);
 
             // Each subcommand should have either arguments or options, but not necessarily both
-            (subcommand.Arguments.Any() || subcommand.Options.Any()).Should().BeTrue(
-                $"{subcommand.Name} should have arguments or options");
+            Assert.True(subcommand.Arguments.Any() || subcommand.Options.Any());
         }
     }
 
@@ -515,7 +511,7 @@ public class PluginCommandTests
         {
             foreach (var argument in subcommand.Arguments)
             {
-                argument.Name.Should().NotBeNullOrEmpty($"{subcommand.Name} should have named arguments");
+                Assert.False(string.IsNullOrEmpty(argument.Name));
             }
         }
     }
@@ -528,8 +524,8 @@ public class PluginCommandTests
         var updateCommand = command.Subcommands.First(c => c.Name == "update");
 
         // Assert
-        updateCommand.Arguments.Should().HaveCount(1);
-        updateCommand.Arguments.First().Name.Should().Be("name");
+        Assert.Equal(1, updateCommand.Arguments.Count());
+        Assert.Equal("name", updateCommand.Arguments.First().Name);
     }
 
     [Fact]
@@ -542,11 +538,11 @@ public class PluginCommandTests
         var installCommand = command.Subcommands.First(c => c.Name == "install");
         var globalOption = installCommand.Options.First(o => o.Name == "global");
         // Boolean options typically default to false
-        globalOption.Should().NotBeNull();
+        Assert.NotNull(globalOption);
 
         var listCommand = command.Subcommands.First(c => c.Name == "list");
         var allOption = listCommand.Options.First(o => o.Name == "all");
-        allOption.Should().NotBeNull();
+        Assert.NotNull(allOption);
     }
 
     [Fact]
@@ -558,8 +554,8 @@ public class PluginCommandTests
         // Assert
         foreach (var subcommand in command.Subcommands)
         {
-            subcommand.Name.Should().MatchRegex("^[a-z]+$", $"{subcommand.Name} should be lowercase");
-            subcommand.Name.Length.Should().BeGreaterThan(2, $"{subcommand.Name} should be descriptive");
+            Assert.Matches("^[a-z]+$", subcommand.Name);
+            Assert.True(subcommand.Name.Length > 2);
         }
     }
 
@@ -571,10 +567,10 @@ public class PluginCommandTests
         var subcommandNames = command.Subcommands.Select(s => s.Name).ToList();
 
         // Assert - Plugin lifecycle operations
-        subcommandNames.Should().Contain("install", "Installation is part of plugin lifecycle");
-        subcommandNames.Should().Contain("uninstall", "Uninstallation is part of plugin lifecycle");
-        subcommandNames.Should().Contain("update", "Updates are part of plugin lifecycle");
-        subcommandNames.Should().Contain("list", "Listing shows current lifecycle state");
+        Assert.Contains("install", subcommandNames);
+        Assert.Contains("uninstall", subcommandNames);
+        Assert.Contains("update", subcommandNames);
+        Assert.Contains("list", subcommandNames);
     }
 
     [Fact]
@@ -585,9 +581,9 @@ public class PluginCommandTests
         var subcommandNames = command.Subcommands.Select(s => s.Name).ToList();
 
         // Assert - Plugin discovery operations
-        subcommandNames.Should().Contain("search", "Search enables plugin discovery");
-        subcommandNames.Should().Contain("info", "Info provides detailed plugin discovery");
-        subcommandNames.Should().Contain("list", "List shows discovered/installed plugins");
+        Assert.Contains("search", subcommandNames);
+        Assert.Contains("info", subcommandNames);
+        Assert.Contains("list", subcommandNames);
     }
 
     [Fact]
@@ -598,8 +594,8 @@ public class PluginCommandTests
         var subcommandNames = command.Subcommands.Select(s => s.Name).ToList();
 
         // Assert - Plugin development operations
-        subcommandNames.Should().Contain("create", "Create enables plugin development");
-        subcommandNames.Should().Contain("info", "Info helps with plugin development");
+        Assert.Contains("create", subcommandNames);
+        Assert.Contains("info", subcommandNames);
     }
 
     [Fact]
@@ -646,7 +642,7 @@ public class PluginCommandTests
         }
 
         // Assert
-        testConsole.Output.Should().Contain("📦 Installed Plugins");
+        Assert.Contains("📦 Installed Plugins", testConsole.Output);
     }
 
     [Fact]
@@ -669,7 +665,7 @@ public class PluginCommandTests
         }
 
         // Assert
-        testConsole.Output.Should().Contain("🔍 Searching for: test");
+        Assert.Contains("🔍 Searching for: test", testConsole.Output);
     }
 
     [Fact]
@@ -692,7 +688,7 @@ public class PluginCommandTests
         }
 
         // Assert
-        testConsole.Output.Should().Contain("📥 Installing plugin: test-plugin (1.0.0)");
+        Assert.Contains("📥 Installing plugin: test-plugin (1.0.0)", testConsole.Output);
     }
 
     [Fact]
@@ -738,7 +734,7 @@ public class PluginCommandTests
         }
 
         // Assert
-        testConsole.Output.Should().Contain("🗑️  Uninstalling plugin: test-plugin");
+        Assert.Contains("🗑️  Uninstalling plugin: test-plugin", testConsole.Output);
     }
 
     [Fact]
@@ -761,7 +757,7 @@ public class PluginCommandTests
         }
 
         // Assert
-        testConsole.Output.Should().Contain("🗑️  Uninstalling plugin: test-plugin");
+        Assert.Contains("🗑️  Uninstalling plugin: test-plugin", testConsole.Output);
     }
 
     [Fact]
@@ -784,7 +780,7 @@ public class PluginCommandTests
         }
 
         // Assert
-        testConsole.Output.Should().Contain("🔄 Updating all plugins");
+        Assert.Contains("🔄 Updating all plugins", testConsole.Output);
     }
 
     [Fact]
@@ -807,7 +803,7 @@ public class PluginCommandTests
         }
 
         // Assert
-        testConsole.Output.Should().Contain("🔄 Updating test-plugin");
+        Assert.Contains("🔄 Updating test-plugin", testConsole.Output);
     }
 
     [Fact]
@@ -834,21 +830,21 @@ public class PluginCommandTests
 
             // Assert
             var pluginDir = Path.Combine(tempDir, "test-plugin");
-            Directory.Exists(pluginDir).Should().BeTrue();
+            Assert.True(Directory.Exists(pluginDir));
 
             var csprojFile = Path.Combine(pluginDir, "test-plugin.csproj");
-            File.Exists(csprojFile).Should().BeTrue();
+            Assert.True(File.Exists(csprojFile));
 
             var pluginClassFile = Path.Combine(pluginDir, "TestPluginPlugin.cs");
-            File.Exists(pluginClassFile).Should().BeTrue();
+            Assert.True(File.Exists(pluginClassFile));
 
             var manifestFile = Path.Combine(pluginDir, "plugin.json");
-            File.Exists(manifestFile).Should().BeTrue();
+            Assert.True(File.Exists(manifestFile));
 
             var readmeFile = Path.Combine(pluginDir, "README.md");
-            File.Exists(readmeFile).Should().BeTrue();
+            Assert.True(File.Exists(readmeFile));
 
-            testConsole.Output.Should().Contain("🎨 Creating plugin: test-plugin");
+            Assert.Contains("🎨 Creating plugin: test-plugin", testConsole.Output);
         }
         finally
         {
@@ -884,11 +880,11 @@ public class PluginCommandTests
 
             // Assert
             var pluginDir = Path.Combine(tempDir, "test-plugin");
-            Directory.Exists(pluginDir).Should().BeTrue();
+            Assert.True(Directory.Exists(pluginDir));
 
             // In quiet mode, should not display progress messages
-            testConsole.Output.Should().NotContain("🎨 Creating plugin:");
-            testConsole.Output.Should().NotContain("✅ Plugin created:");
+            Assert.DoesNotContain("🎨 Creating plugin:", testConsole.Output);
+            Assert.DoesNotContain("✅ Plugin created:", testConsole.Output);
         }
         finally
         {
@@ -914,13 +910,13 @@ public class PluginCommandTests
 
             // Assert
             var csprojFile = Path.Combine(tempDir, "test-plugin.csproj");
-            File.Exists(csprojFile).Should().BeTrue();
+            Assert.True(File.Exists(csprojFile));
 
             var content = await File.ReadAllTextAsync(csprojFile);
-            content.Should().Contain("<Project Sdk=\"Microsoft.NET.Sdk\">");
-            content.Should().Contain("<TargetFramework>net8.0</TargetFramework>");
-            content.Should().Contain("<PackageReference Include=\"Relay.CLI.Sdk\" Version=\"2.1.0\" />");
-            content.Should().Contain("<Nullable>enable</Nullable>");
+            Assert.Contains("<Project Sdk=\"Microsoft.NET.Sdk\">", content);
+            Assert.Contains("<TargetFramework>net8.0</TargetFramework>", content);
+            Assert.Contains("<PackageReference Include=\"Relay.CLI.Sdk\" Version=\"2.1.0\" />", content);
+            Assert.Contains("<Nullable>enable</Nullable>", content);
         }
         finally
         {
@@ -946,17 +942,17 @@ public class PluginCommandTests
 
             // Assert
             var classFile = Path.Combine(tempDir, "testPlugin.cs");
-            File.Exists(classFile).Should().BeTrue();
+            Assert.True(File.Exists(classFile));
 
             var content = await File.ReadAllTextAsync(classFile);
-            content.Should().Contain("using Relay.CLI.Plugins;");
-            content.Should().Contain("[RelayPlugin(\"relay-plugin-test\", \"1.0.0\")]");
-            content.Should().Contain("public class testPlugin : IRelayPlugin");
-            content.Should().Contain("public string Name => \"relay-plugin-test\";");
-            content.Should().Contain("public async Task<bool> InitializeAsync");
-            content.Should().Contain("public async Task<int> ExecuteAsync");
-            content.Should().Contain("public async Task CleanupAsync");
-            content.Should().Contain("public string GetHelp()");
+            Assert.Contains("using Relay.CLI.Plugins;", content);
+            Assert.Contains("[RelayPlugin(\"relay-plugin-test\", \"1.0.0\")]", content);
+            Assert.Contains("public class testPlugin : IRelayPlugin", content);
+            Assert.Contains("public string Name => \"relay-plugin-test\";", content);
+            Assert.Contains("public async Task<bool> InitializeAsync", content);
+            Assert.Contains("public async Task<int> ExecuteAsync", content);
+            Assert.Contains("public async Task CleanupAsync", content);
+            Assert.Contains("public string GetHelp()", content);
         }
         finally
         {
@@ -982,17 +978,17 @@ public class PluginCommandTests
 
             // Assert
             var manifestFile = Path.Combine(tempDir, "plugin.json");
-            File.Exists(manifestFile).Should().BeTrue();
+            Assert.True(File.Exists(manifestFile));
 
             var content = await File.ReadAllTextAsync(manifestFile);
-            content.Should().Contain("\"name\": \"test-plugin\"");
-            content.Should().Contain("\"version\": \"1.0.0\"");
-            content.Should().Contain("\"description\": \"My awesome Relay plugin\"");
-            content.Should().Contain("\"authors\": [\"Your Name\"]");
-            content.Should().Contain("\"tags\": [\"utility\"]");
-            content.Should().Contain("\"minimumRelayVersion\": \"2.1.0\"");
-            content.Should().Contain("\"dependencies\": {}");
-            content.Should().Contain("\"repository\": \"https://github.com/youruser/test-plugin\"");
+            Assert.Contains("\"name\": \"test-plugin\"", content);
+            Assert.Contains("\"version\": \"1.0.0\"", content);
+            Assert.Contains("\"description\": \"My awesome Relay plugin\"", content);
+            Assert.Contains("\"authors\": [\"Your Name\"]", content);
+            Assert.Contains("\"tags\": [\"utility\"]", content);
+            Assert.Contains("\"minimumRelayVersion\": \"2.1.0\"", content);
+            Assert.Contains("\"dependencies\": {}", content);
+            Assert.Contains("\"repository\": \"https://github.com/youruser/test-plugin\"", content);
         }
         finally
         {
@@ -1018,20 +1014,20 @@ public class PluginCommandTests
 
             // Assert
             var readmeFile = Path.Combine(tempDir, "README.md");
-            File.Exists(readmeFile).Should().BeTrue();
+            Assert.True(File.Exists(readmeFile));
 
             var content = await File.ReadAllTextAsync(readmeFile);
-            content.Should().Contain("# test-plugin");
-            content.Should().Contain("My awesome Relay CLI plugin.");
-            content.Should().Contain("## Installation");
-            content.Should().Contain("relay plugin install test-plugin");
-            content.Should().Contain("## Usage");
-            content.Should().Contain("relay plugin run test-plugin");
-            content.Should().Contain("## Development");
-            content.Should().Contain("dotnet build");
-            content.Should().Contain("relay plugin install .");
-            content.Should().Contain("## License");
-            content.Should().Contain("MIT");
+            Assert.Contains("# test-plugin", content);
+            Assert.Contains("My awesome Relay CLI plugin.", content);
+            Assert.Contains("## Installation", content);
+            Assert.Contains("relay plugin install test-plugin", content);
+            Assert.Contains("## Usage", content);
+            Assert.Contains("relay plugin run test-plugin", content);
+            Assert.Contains("## Development", content);
+            Assert.Contains("dotnet build", content);
+            Assert.Contains("relay plugin install .", content);
+            Assert.Contains("## License", content);
+            Assert.Contains("MIT", content);
         }
         finally
         {
@@ -1043,3 +1039,4 @@ public class PluginCommandTests
         }
     }
 }
+

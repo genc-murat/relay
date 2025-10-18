@@ -28,11 +28,11 @@ public class ScaffoldCommandTests : IDisposable
             console);
 
         // Assert
-        result.Should().Be(0);
-        File.Exists(Path.Combine(_testPath, "CreateUserRequest.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(_testPath, "CreateUserHandler.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(_testPath, "CreateUserHandlerTests.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(_testPath, "CreateUserHandlerIntegrationTests.cs")).Should().BeTrue();
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(Path.Combine(_testPath, "CreateUserRequest.cs")));
+        Assert.True(File.Exists(Path.Combine(_testPath, "CreateUserHandler.cs")));
+        Assert.True(File.Exists(Path.Combine(_testPath, "CreateUserHandlerTests.cs")));
+        Assert.True(File.Exists(Path.Combine(_testPath, "CreateUserHandlerIntegrationTests.cs")));
     }
 
     [Fact]
@@ -49,13 +49,13 @@ public class ScaffoldCommandTests : IDisposable
 
         // Assert
         var requestFile = Path.Combine(_testPath, "TestRequest.cs");
-        File.Exists(requestFile).Should().BeTrue();
+        Assert.True(File.Exists(requestFile));
 
         var content = await File.ReadAllTextAsync(requestFile);
-        content.Should().Contain("namespace MyApp");
-        content.Should().Contain("public record TestRequest");
-        content.Should().Contain("IRequest<TestResponse>");
-        content.Should().Contain("ExampleParameter");
+        Assert.Contains("namespace MyApp", content);
+        Assert.Contains("public record TestRequest", content);
+        Assert.Contains("IRequest<TestResponse>", content);
+        Assert.Contains("ExampleParameter", content);
     }
 
     [Fact]
@@ -77,9 +77,9 @@ public class ScaffoldCommandTests : IDisposable
         var requestContent = await File.ReadAllTextAsync(requestFile);
         var handlerContent = await File.ReadAllTextAsync(handlerFile);
 
-        requestContent.Should().Contain("using Relay.Core;");
-        requestContent.Should().NotContain("System.ComponentModel.DataAnnotations");
-        handlerContent.Should().NotContain("ILogger");
+        Assert.Contains("using Relay.Core;", requestContent);
+        Assert.DoesNotContain("System.ComponentModel.DataAnnotations", requestContent);
+        Assert.DoesNotContain("ILogger", handlerContent);
     }
 
     [Fact]
@@ -101,11 +101,11 @@ public class ScaffoldCommandTests : IDisposable
         var requestContent = await File.ReadAllTextAsync(requestFile);
         var handlerContent = await File.ReadAllTextAsync(handlerFile);
 
-        requestContent.Should().Contain("[Cacheable");
-        requestContent.Should().Contain("[Authorize");
-        requestContent.Should().Contain("CorrelationId");
-        handlerContent.Should().Contain("ILogger<EnterpriseHandler>");
-        handlerContent.Should().Contain("PERFORMANCE TIPS");
+        Assert.Contains("[Cacheable", requestContent);
+        Assert.Contains("[Authorize", requestContent);
+        Assert.Contains("CorrelationId", requestContent);
+        Assert.Contains("ILogger<EnterpriseHandler>", handlerContent);
+        Assert.Contains("PERFORMANCE TIPS", handlerContent);
     }
 
     [Fact]
@@ -124,8 +124,8 @@ public class ScaffoldCommandTests : IDisposable
         var requestFile = Path.Combine(_testPath, "ValidatedRequest.cs");
         var content = await File.ReadAllTextAsync(requestFile);
 
-        content.Should().Contain("[Required");
-        content.Should().Contain("[StringLength");
+        Assert.Contains("[Required", content);
+        Assert.Contains("[StringLength", content);
     }
 
     [Fact]
@@ -147,8 +147,8 @@ public class ScaffoldCommandTests : IDisposable
         var requestContent = await File.ReadAllTextAsync(requestFile);
         var handlerContent = await File.ReadAllTextAsync(handlerFile);
 
-        requestContent.Should().Contain(": IRequest;");
-        handlerContent.Should().Contain("public async ValueTask Handle");
+        Assert.Contains(": IRequest;", requestContent);
+        Assert.Contains("public async ValueTask Handle", handlerContent);
     }
 
     [Fact]
@@ -167,8 +167,8 @@ public class ScaffoldCommandTests : IDisposable
         var handlerFile = Path.Combine(_testPath, "TestHandler.cs");
         var content = await File.ReadAllTextAsync(handlerFile);
 
-        content.Should().Contain("[Handle]");
-        content.Should().Contain("CancellationToken cancellationToken = default");
+        Assert.Contains("[Handle]", content);
+        Assert.Contains("CancellationToken cancellationToken = default", content);
     }
 
     [Fact]
@@ -187,12 +187,12 @@ public class ScaffoldCommandTests : IDisposable
         var testFile = Path.Combine(_testPath, "UserHandlerTests.cs");
         var content = await File.ReadAllTextAsync(testFile);
 
-        content.Should().Contain("public class UserHandlerTests");
-        content.Should().Contain("[Fact]");
-        content.Should().Contain("WithValidRequest_ShouldReturnExpectedResult");
-        content.Should().Contain("WithCancellation_ShouldRespectCancellationToken");
-        content.Should().Contain("[Theory]");
-        content.Should().Contain("Mock<ILogger<UserHandler>>");
+        Assert.Contains("public class UserHandlerTests", content);
+        Assert.Contains("[Fact]", content);
+        Assert.Contains("WithValidRequest_ShouldReturnExpectedResult", content);
+        Assert.Contains("WithCancellation_ShouldRespectCancellationToken", content);
+        Assert.Contains("[Theory]", content);
+        Assert.Contains("Mock<ILogger<UserHandler>>", content);
     }
 
     [Fact]
@@ -211,9 +211,9 @@ public class ScaffoldCommandTests : IDisposable
         var testFile = Path.Combine(_testPath, "PerfHandlerTests.cs");
         var content = await File.ReadAllTextAsync(testFile);
 
-        content.Should().Contain("Performance_ShouldBeFast");
-        content.Should().Contain("Stopwatch");
-        content.Should().Contain("avgTime < 10");
+        Assert.Contains("Performance_ShouldBeFast", content);
+        Assert.Contains("Stopwatch", content);
+        Assert.Contains("avgTime < 10", content);
     }
 
     [Fact]
@@ -232,11 +232,11 @@ public class ScaffoldCommandTests : IDisposable
         var testFile = Path.Combine(_testPath, "IntHandlerIntegrationTests.cs");
         var content = await File.ReadAllTextAsync(testFile);
 
-        content.Should().Contain("public class IntHandlerIntegrationTests");
-        content.Should().Contain("ThroughRelay_ShouldWorkEndToEnd");
-        content.Should().Contain("WithTestHarness_ShouldProvideTestingUtilities");
-        content.Should().Contain("IRelay");
-        content.Should().Contain("RelayTestHarness");
+        Assert.Contains("public class IntHandlerIntegrationTests", content);
+        Assert.Contains("ThroughRelay_ShouldWorkEndToEnd", content);
+        Assert.Contains("WithTestHarness_ShouldProvideTestingUtilities", content);
+        Assert.Contains("IRelay", content);
+        Assert.Contains("RelayTestHarness", content);
     }
 
     [Fact]
@@ -252,8 +252,8 @@ public class ScaffoldCommandTests : IDisposable
             console);
 
         // Assert
-        File.Exists(Path.Combine(_testPath, "NoTestHandlerTests.cs")).Should().BeFalse();
-        File.Exists(Path.Combine(_testPath, "NoTestHandlerIntegrationTests.cs")).Should().BeFalse();
+        Assert.False(File.Exists(Path.Combine(_testPath, "NoTestHandlerTests.cs")));
+        Assert.False(File.Exists(Path.Combine(_testPath, "NoTestHandlerIntegrationTests.cs")));
     }
 
     [Fact]
@@ -272,10 +272,10 @@ public class ScaffoldCommandTests : IDisposable
         var requestFile = Path.Combine(_testPath, "RespRequest.cs");
         var content = await File.ReadAllTextAsync(requestFile);
 
-        content.Should().Contain("public record RespResponse");
-        content.Should().Contain("ExampleResult");
-        content.Should().Contain("IsSuccess");
-        content.Should().Contain("ErrorMessage");
+        Assert.Contains("public record RespResponse", content);
+        Assert.Contains("ExampleResult", content);
+        Assert.Contains("IsSuccess", content);
+        Assert.Contains("ErrorMessage", content);
     }
 
     [Theory]
@@ -296,9 +296,9 @@ public class ScaffoldCommandTests : IDisposable
             console);
 
         // Assert
-        result.Should().Be(0);
-        File.Exists(Path.Combine(_testPath, $"{requestName}.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(_testPath, $"{handlerName}.cs")).Should().BeTrue();
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(Path.Combine(_testPath, $"{requestName}.cs")));
+        Assert.True(File.Exists(Path.Combine(_testPath, $"{handlerName}.cs")));
     }
 
     [Fact]
@@ -318,7 +318,7 @@ public class ScaffoldCommandTests : IDisposable
         var requestFile = Path.Combine(_testPath, "CreateUserRequest.cs");
         var content = await File.ReadAllTextAsync(requestFile);
 
-        content.Should().Contain($"namespace {customNamespace}");
+        Assert.Contains($"namespace {customNamespace}", content);
     }
 
     [Fact]
@@ -337,7 +337,7 @@ public class ScaffoldCommandTests : IDisposable
         var requestFile = Path.Combine(_testPath, "DefaultRequest.cs");
         var content = await File.ReadAllTextAsync(requestFile);
 
-        content.Should().Contain("namespace YourApp");
+        Assert.Contains("namespace YourApp", content);
     }
 
     [Fact]
@@ -356,8 +356,8 @@ public class ScaffoldCommandTests : IDisposable
         var handlerFile = Path.Combine(_testPath, "DependentHandler.cs");
         var content = await File.ReadAllTextAsync(handlerFile);
 
-        content.Should().Contain("private readonly ILogger<DependentHandler> _logger");
-        content.Should().Contain("public DependentHandler(ILogger<DependentHandler> logger)");
+        Assert.Contains("private readonly ILogger<DependentHandler> _logger", content);
+        Assert.Contains("public DependentHandler(ILogger<DependentHandler> logger)", content);
     }
 
     [Fact]
@@ -376,7 +376,7 @@ public class ScaffoldCommandTests : IDisposable
         var requestFile = Path.Combine(_testPath, "GetDataQuery.cs");
         var content = await File.ReadAllTextAsync(requestFile);
 
-        content.Should().Contain(": IRequest<DataResult>");
+        Assert.Contains(": IRequest<DataResult>", content);
     }
 
     [Fact]
@@ -395,9 +395,9 @@ public class ScaffoldCommandTests : IDisposable
         var testFile = Path.Combine(_testPath, "MockHandlerTests.cs");
         var content = await File.ReadAllTextAsync(testFile);
 
-        content.Should().Contain("CreateHandler");
-        content.Should().Contain("new Mock<ILogger<MockHandler>>()");
-        content.Should().Contain("mockLogger.Object");
+        Assert.Contains("CreateHandler", content);
+        Assert.Contains("new Mock<ILogger<MockHandler>>()", content);
+        Assert.Contains("mockLogger.Object", content);
     }
 
     [Fact]
@@ -416,8 +416,8 @@ public class ScaffoldCommandTests : IDisposable
         var handlerFile = Path.Combine(_testPath, "CommandOnlyHandler.cs");
         var content = await File.ReadAllTextAsync(handlerFile);
 
-        content.Should().Contain("public async ValueTask Handle");
-        content.Should().NotContain("ValueTask<");
+        Assert.Contains("public async ValueTask Handle", content);
+        Assert.DoesNotContain("ValueTask<", content);
     }
 
     [Fact]
@@ -436,8 +436,8 @@ public class ScaffoldCommandTests : IDisposable
         var integrationTestFile = Path.Combine(_testPath, "TestHarnessHandlerIntegrationTests.cs");
         var content = await File.ReadAllTextAsync(integrationTestFile);
 
-        content.Should().Contain("RelayTestHarness.CreateTestRelay");
-        content.Should().Contain("Relay.Core.Testing");
+        Assert.Contains("RelayTestHarness.CreateTestRelay", content);
+        Assert.Contains("Relay.Core.Testing", content);
     }
 
     public void Dispose()
@@ -448,3 +448,5 @@ public class ScaffoldCommandTests : IDisposable
         }
     }
 }
+
+

@@ -1,7 +1,7 @@
 using Relay.CLI.Commands;
 using System.CommandLine;
 using Xunit;
-using FluentAssertions;
+
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -976,53 +976,53 @@ public class MyExceptionHandler : IRequestExceptionHandler<MyRequest, MyResponse
         var command = MigrateCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("migrate");
-        command.Description.Should().Be("Migrate from MediatR to Relay with automated transformation");
+        Assert.NotNull(command);
+        Assert.Equal("migrate", command.Name);
+        Assert.Equal("Migrate from MediatR to Relay with automated transformation", command.Description);
 
         var fromOption = command.Options.FirstOrDefault(o => o.Name == "from");
-        fromOption.Should().NotBeNull();
-        fromOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(fromOption);
+        Assert.False(fromOption.IsRequired);
 
         var toOption = command.Options.FirstOrDefault(o => o.Name == "to");
-        toOption.Should().NotBeNull();
-        toOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(toOption);
+        Assert.False(toOption.IsRequired);
 
         var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
-        pathOption.Should().NotBeNull();
-        pathOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(pathOption);
+        Assert.False(pathOption.IsRequired);
 
         var analyzeOnlyOption = command.Options.FirstOrDefault(o => o.Name == "analyze-only");
-        analyzeOnlyOption.Should().NotBeNull();
-        analyzeOnlyOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(analyzeOnlyOption);
+        Assert.False(analyzeOnlyOption.IsRequired);
 
         var dryRunOption = command.Options.FirstOrDefault(o => o.Name == "dry-run");
-        dryRunOption.Should().NotBeNull();
-        dryRunOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(dryRunOption);
+        Assert.False(dryRunOption.IsRequired);
 
         var previewOption = command.Options.FirstOrDefault(o => o.Name == "preview");
-        previewOption.Should().NotBeNull();
-        previewOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(previewOption);
+        Assert.False(previewOption.IsRequired);
 
         var backupOption = command.Options.FirstOrDefault(o => o.Name == "backup");
-        backupOption.Should().NotBeNull();
-        backupOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(backupOption);
+        Assert.False(backupOption.IsRequired);
 
         var outputOption = command.Options.FirstOrDefault(o => o.Name == "output");
-        outputOption.Should().NotBeNull();
-        outputOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(outputOption);
+        Assert.False(outputOption.IsRequired);
 
         var formatOption = command.Options.FirstOrDefault(o => o.Name == "format");
-        formatOption.Should().NotBeNull();
-        formatOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(formatOption);
+        Assert.False(formatOption.IsRequired);
 
         var aggressiveOption = command.Options.FirstOrDefault(o => o.Name == "aggressive");
-        aggressiveOption.Should().NotBeNull();
-        aggressiveOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(aggressiveOption);
+        Assert.False(aggressiveOption.IsRequired);
 
         var interactiveOption = command.Options.FirstOrDefault(o => o.Name == "interactive");
-        interactiveOption.Should().NotBeNull();
-        interactiveOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(interactiveOption);
+        Assert.False(interactiveOption.IsRequired);
     }
 
     [Fact]
@@ -1116,7 +1116,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 
             // Assert - File should remain unchanged
             var contentAfter = await File.ReadAllTextAsync(handlerFile);
-            contentAfter.Should().Be(originalContent);
+            Assert.Equal(originalContent, contentAfter);
         }
         finally
         {
@@ -1166,7 +1166,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 
             // Assert - File should remain unchanged
             var contentAfter = await File.ReadAllTextAsync(handlerFile);
-            contentAfter.Should().Be(originalContent);
+            Assert.Equal(originalContent, contentAfter);
         }
         finally
         {
@@ -1490,7 +1490,7 @@ public class OrderCreatedHandler : INotificationHandler<OrderCreatedEvent> {
             // The files should still exist and be unchanged (since we used analyzeOnly: true)
             foreach (var (fileName, _) in handlers)
             {
-                File.Exists(Path.Combine(srcPath, fileName)).Should().BeTrue();
+                Assert.True(File.Exists(Path.Combine(srcPath, fileName)));
             }
         }
         finally
@@ -1596,7 +1596,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 
             // Assert - File should remain unchanged (dry run)
             var contentAfter = await File.ReadAllTextAsync(handlerFile);
-            contentAfter.Should().Be(originalContent);
+            Assert.Equal(originalContent, contentAfter);
         }
         finally
         {
@@ -1646,7 +1646,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 
             // Assert - File should remain unchanged (dry run)
             var contentAfter = await File.ReadAllTextAsync(handlerFile);
-            contentAfter.Should().Be(originalContent);
+            Assert.Equal(originalContent, contentAfter);
         }
         finally
         {
@@ -1697,7 +1697,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 
             // Assert - File should remain unchanged (dry run)
             var contentAfter = await File.ReadAllTextAsync(handlerFile);
-            contentAfter.Should().Be(originalContent);
+            Assert.Equal(originalContent, contentAfter);
         }
         finally
         {
@@ -1750,7 +1750,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
 
             // Assert - File should remain unchanged (dry run)
             var contentAfter = await File.ReadAllTextAsync(handlerFile);
-            contentAfter.Should().Be(originalContent);
+            Assert.Equal(originalContent, contentAfter);
         }
         finally
         {
@@ -1922,14 +1922,14 @@ public class UserHandlerTests
                 interactive: false);
 
             // Assert - Files should still exist and be unchanged (analyze only)
-            File.Exists(mainHandler).Should().BeTrue();
-            File.Exists(testHandler).Should().BeTrue();
+            Assert.True(File.Exists(mainHandler));
+            Assert.True(File.Exists(testHandler));
 
             var mainContentAfter = await File.ReadAllTextAsync(mainHandler);
             var testContentAfter = await File.ReadAllTextAsync(testHandler);
 
-            mainContentAfter.Should().Be(mainContent);
-            testContentAfter.Should().Be(testContent);
+            Assert.Equal(mainContent, mainContentAfter);
+            Assert.Equal(testContent, testContentAfter);
         }
         finally
         {
@@ -1984,7 +1984,7 @@ public class Handler{i} : IRequestHandler<Query{i}, Result{i}>
             for (int i = 0; i < 10; i++)
             {
                 var handlerFile = Path.Combine(tempPath, $"Handler{i}.cs");
-                File.Exists(handlerFile).Should().BeTrue();
+                Assert.True(File.Exists(handlerFile));
             }
         }
         finally
@@ -2065,7 +2065,7 @@ public class Handler{i} : IRequestHandler<Query{i}, Result{i}>
                 interactive: false);
 
             // Assert - Should complete without issues
-            File.Exists(csprojFile).Should().BeTrue();
+            Assert.True(File.Exists(csprojFile));
         }
         finally
         {
@@ -2074,3 +2074,5 @@ public class Handler{i} : IRequestHandler<Query{i}, Result{i}>
         }
     }
 }
+
+

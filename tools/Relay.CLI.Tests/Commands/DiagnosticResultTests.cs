@@ -1,4 +1,5 @@
 using Relay.CLI.Commands.Models.Diagnostic;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -11,7 +12,7 @@ public class DiagnosticResultTests
         var result = new DiagnosticResult { Category = "Project Structure" };
 
         // Assert
-        result.Category.Should().Be("Project Structure");
+        Assert.Equal("Project Structure", result.Category);
     }
 
     [Fact]
@@ -21,7 +22,7 @@ public class DiagnosticResultTests
         var result = new DiagnosticResult { Status = "Pass" };
 
         // Assert
-        result.Status.Should().Be("Pass");
+        Assert.Equal("Pass", result.Status);
     }
 
     [Fact]
@@ -31,7 +32,7 @@ public class DiagnosticResultTests
         var result = new DiagnosticResult { Message = "Project structure is valid" };
 
         // Assert
-        result.Message.Should().Be("Project structure is valid");
+        Assert.Equal("Project structure is valid", result.Message);
     }
 
     [Fact]
@@ -41,9 +42,9 @@ public class DiagnosticResultTests
         var result = new DiagnosticResult();
 
         // Assert
-        result.Category.Should().Be("");
-        result.Status.Should().Be("");
-        result.Message.Should().Be("");
+        Assert.Equal("", result.Category);
+        Assert.Equal("", result.Status);
+        Assert.Equal("", result.Message);
     }
 
     [Fact]
@@ -58,9 +59,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Category.Should().Be("Dependencies");
-        result.Status.Should().Be("Warning");
-        result.Message.Should().Contain("Outdated");
+        Assert.Equal("Dependencies", result.Category);
+        Assert.Equal("Warning", result.Status);
+        Assert.Contains("Outdated", result.Message);
     }
 
     [Theory]
@@ -74,7 +75,7 @@ public class DiagnosticResultTests
         var result = new DiagnosticResult { Status = status };
 
         // Assert
-        result.Status.Should().Be(status);
+        Assert.Equal(status, result.Status);
     }
 
     [Theory]
@@ -89,7 +90,7 @@ public class DiagnosticResultTests
         var result = new DiagnosticResult { Category = category };
 
         // Assert
-        result.Category.Should().Be(category);
+        Assert.Equal(category, result.Category);
     }
 
     [Fact]
@@ -104,8 +105,8 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Status.Should().Be("Pass");
-        result.Message.Should().Contain("properly structured");
+        Assert.Equal("Pass", result.Status);
+        Assert.Contains("properly structured", result.Message);
     }
 
     [Fact]
@@ -120,8 +121,8 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Status.Should().Be("Warning");
-        result.Message.Should().Contain("version mismatch");
+        Assert.Equal("Warning", result.Status);
+        Assert.Contains("version mismatch", result.Message);
     }
 
     [Fact]
@@ -136,8 +137,8 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Status.Should().Be("Error");
-        result.Message.Should().Contain("No handlers");
+        Assert.Equal("Error", result.Status);
+        Assert.Contains("No handlers", result.Message);
     }
 
     [Fact]
@@ -151,7 +152,7 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Message.Should().Be("");
+        Assert.Equal("", result.Message);
     }
 
     [Fact]
@@ -164,9 +165,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Message.Should().Contain("5 handlers");
-        result.Message.Should().Contain("Handlers/");
-        result.Message.Should().Contain("naming conventions");
+        Assert.Contains("5 handlers", result.Message);
+        Assert.Contains("Handlers/", result.Message);
+        Assert.Contains("naming conventions", result.Message);
     }
 
     [Fact]
@@ -190,7 +191,7 @@ public class DiagnosticResultTests
             var result = new DiagnosticResult { Category = category };
 
             // Assert
-            result.Category.Should().Be(category);
+            Assert.Equal(category, result.Category);
         }
     }
 
@@ -201,8 +202,8 @@ public class DiagnosticResultTests
         var result = new DiagnosticResult();
 
         // Assert
-        result.Should().NotBeNull();
-        result.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(result);
+        Assert.True(result.GetType().IsClass);
     }
 
     [Fact]
@@ -217,10 +218,10 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        results.Should().HaveCount(3);
-        results.Count(r => r.Status == "Pass").Should().Be(1);
-        results.Count(r => r.Status == "Warning").Should().Be(1);
-        results.Count(r => r.Status == "Error").Should().Be(1);
+        Assert.Equal(3, results.Count());
+        Assert.Equal(1, results.Count(r => r.Status == "Pass"));
+        Assert.Equal(1, results.Count(r => r.Status == "Warning"));
+        Assert.Equal(1, results.Count(r => r.Status == "Error"));
     }
 
     [Fact]
@@ -239,7 +240,7 @@ public class DiagnosticResultTests
         var errors = results.Where(r => r.Status == "Error").ToList();
 
         // Assert
-        errors.Should().HaveCount(1);
+        Assert.Equal(1, errors.Count());
     }
 
     [Fact]
@@ -258,7 +259,7 @@ public class DiagnosticResultTests
         var handlerResults = results.Where(r => r.Category == "Handlers").ToList();
 
         // Assert
-        handlerResults.Should().HaveCount(2);
+        Assert.Equal(2, handlerResults.Count());
     }
 
     [Fact]
@@ -278,9 +279,9 @@ public class DiagnosticResultTests
         result.Message = "Modified message";
 
         // Assert
-        result.Category.Should().Be("Modified");
-        result.Status.Should().Be("Error");
-        result.Message.Should().Be("Modified message");
+        Assert.Equal("Modified", result.Category);
+        Assert.Equal("Error", result.Status);
+        Assert.Equal("Modified message", result.Message);
     }
 
     [Fact]
@@ -295,9 +296,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Category.Should().Be("Project Structure");
-        result.Status.Should().Be("Pass");
-        result.Message.Should().Contain("directories");
+        Assert.Equal("Project Structure", result.Category);
+        Assert.Equal("Pass", result.Status);
+        Assert.Contains("directories", result.Message);
     }
 
     [Fact]
@@ -312,9 +313,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Category.Should().Be("Dependencies");
-        result.Status.Should().Be("Warning");
-        result.Message.Should().Contain("Relay.Core");
+        Assert.Equal("Dependencies", result.Category);
+        Assert.Equal("Warning", result.Status);
+        Assert.Contains("Relay.Core", result.Message);
     }
 
     [Fact]
@@ -329,9 +330,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Category.Should().Be("Handlers");
-        result.Status.Should().Be("Error");
-        result.Message.Should().Contain("handler classes");
+        Assert.Equal("Handlers", result.Category);
+        Assert.Equal("Error", result.Status);
+        Assert.Contains("handler classes", result.Message);
     }
 
     [Fact]
@@ -346,9 +347,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Category.Should().Be("Performance");
-        result.Status.Should().Be("Info");
-        result.Message.Should().Contain("optimally configured");
+        Assert.Equal("Performance", result.Category);
+        Assert.Equal("Info", result.Status);
+        Assert.Contains("optimally configured", result.Message);
     }
 
     [Fact]
@@ -363,9 +364,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Category.Should().Be("Best Practices");
-        result.Status.Should().Be("Pass");
-        result.Message.Should().Contain("best practice");
+        Assert.Equal("Best Practices", result.Category);
+        Assert.Equal("Pass", result.Status);
+        Assert.Contains("best practice", result.Message);
     }
 
     [Fact]
@@ -378,9 +379,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Message.Should().Contain("Dependency check results");
-        result.Message.Should().Contain("Relay.Core: OK");
-        result.Message.Should().Contain("Relay.MessageBroker: Outdated");
+        Assert.Contains("Dependency check results", result.Message);
+        Assert.Contains("Relay.Core: OK", result.Message);
+        Assert.Contains("Relay.MessageBroker: Outdated", result.Message);
     }
 
     [Theory]
@@ -401,9 +402,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Category.Should().Be(category);
-        result.Status.Should().Be(status);
-        result.Message.Should().Be(message);
+        Assert.Equal(category, result.Category);
+        Assert.Equal(status, result.Status);
+        Assert.Equal(message, result.Message);
     }
 
     [Fact]
@@ -422,8 +423,8 @@ public class DiagnosticResultTests
         var grouped = results.GroupBy(r => r.Category);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == "Handlers").Should().HaveCount(2);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Handlers").Count());
     }
 
     [Fact]
@@ -441,9 +442,9 @@ public class DiagnosticResultTests
         var ordered = results.OrderBy(r => r.Category).ToList();
 
         // Assert
-        ordered[0].Category.Should().Be("Dependencies");
-        ordered[1].Category.Should().Be("Handlers");
-        ordered[2].Category.Should().Be("Performance");
+        Assert.Equal("Dependencies", ordered[0].Category);
+        Assert.Equal("Handlers", ordered[1].Category);
+        Assert.Equal("Performance", ordered[2].Category);
     }
 
     [Fact]
@@ -456,7 +457,7 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Category.Should().Be("Best Practices Violation");
+        Assert.Equal("Best Practices Violation", result.Category);
     }
 
     [Fact]
@@ -469,9 +470,9 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Message.Should().Contain("'CreateUserHandler'");
-        result.Message.Should().Contain("->");
-        result.Message.Should().Contain("[Handle]");
+        Assert.Contains("'CreateUserHandler'", result.Message);
+        Assert.Contains("->", result.Message);
+        Assert.Contains("[Handle]", result.Message);
     }
 
     [Fact]
@@ -484,7 +485,7 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Status.Should().Be("Pass (with warnings)");
+        Assert.Equal("Pass (with warnings)", result.Status);
     }
 
     [Fact]
@@ -499,7 +500,7 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Status.Should().Be("Pass");
+        Assert.Equal("Pass", result.Status);
     }
 
     [Fact]
@@ -514,8 +515,8 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Status.Should().Be("Warning");
-        result.Message.Should().Contain("updates");
+        Assert.Equal("Warning", result.Status);
+        Assert.Contains("updates", result.Message);
     }
 
     [Fact]
@@ -530,8 +531,8 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Status.Should().Be("Error");
-        result.Message.Should().Contain("missing");
+        Assert.Equal("Error", result.Status);
+        Assert.Contains("missing", result.Message);
     }
 
     [Fact]
@@ -546,7 +547,8 @@ public class DiagnosticResultTests
         };
 
         // Assert
-        result.Status.Should().Be("Info");
-        result.Message.Should().Contain("completed");
+        Assert.Equal("Info", result.Status);
+        Assert.Contains("completed", result.Message);
     }
 }
+

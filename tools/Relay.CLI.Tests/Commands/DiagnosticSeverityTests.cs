@@ -1,4 +1,5 @@
 using Relay.CLI.Commands.Models.Diagnostic;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -11,8 +12,8 @@ public class DiagnosticSeverityTests
         var severity = DiagnosticSeverity.Success;
 
         // Assert
-        severity.Should().Be(DiagnosticSeverity.Success);
-        ((int)severity).Should().Be(0);
+        Assert.Equal(DiagnosticSeverity.Success, severity);
+        Assert.Equal(0, (int)severity);
     }
 
     [Fact]
@@ -22,8 +23,8 @@ public class DiagnosticSeverityTests
         var severity = DiagnosticSeverity.Info;
 
         // Assert
-        severity.Should().Be(DiagnosticSeverity.Info);
-        ((int)severity).Should().Be(1);
+        Assert.Equal(DiagnosticSeverity.Info, severity);
+        Assert.Equal(1, (int)severity);
     }
 
     [Fact]
@@ -33,8 +34,8 @@ public class DiagnosticSeverityTests
         var severity = DiagnosticSeverity.Warning;
 
         // Assert
-        severity.Should().Be(DiagnosticSeverity.Warning);
-        ((int)severity).Should().Be(2);
+        Assert.Equal(DiagnosticSeverity.Warning, severity);
+        Assert.Equal(2, (int)severity);
     }
 
     [Fact]
@@ -44,8 +45,8 @@ public class DiagnosticSeverityTests
         var severity = DiagnosticSeverity.Error;
 
         // Assert
-        severity.Should().Be(DiagnosticSeverity.Error);
-        ((int)severity).Should().Be(3);
+        Assert.Equal(DiagnosticSeverity.Error, severity);
+        Assert.Equal(3, (int)severity);
     }
 
     [Fact]
@@ -55,11 +56,11 @@ public class DiagnosticSeverityTests
         var values = Enum.GetValues(typeof(DiagnosticSeverity)).Cast<DiagnosticSeverity>().ToList();
 
         // Assert
-        values.Should().HaveCount(4);
-        values.Should().Contain(DiagnosticSeverity.Success);
-        values.Should().Contain(DiagnosticSeverity.Info);
-        values.Should().Contain(DiagnosticSeverity.Warning);
-        values.Should().Contain(DiagnosticSeverity.Error);
+        Assert.Equal(4, values.Count());
+        Assert.Contains(DiagnosticSeverity.Success, values);
+        Assert.Contains(DiagnosticSeverity.Info, values);
+        Assert.Contains(DiagnosticSeverity.Warning, values);
+        Assert.Contains(DiagnosticSeverity.Error, values);
     }
 
     [Fact]
@@ -75,9 +76,9 @@ public class DiagnosticSeverityTests
         };
 
         // Assert
-        ((int)ordered[0]).Should().BeLessThan((int)ordered[1]);
-        ((int)ordered[1]).Should().BeLessThan((int)ordered[2]);
-        ((int)ordered[2]).Should().BeLessThan((int)ordered[3]);
+        Assert.True((int)ordered[0] < (int)ordered[1]);
+        Assert.True((int)ordered[1] < (int)ordered[2]);
+        Assert.True((int)ordered[2] < (int)ordered[3]);
     }
 
     [Fact]
@@ -87,8 +88,8 @@ public class DiagnosticSeverityTests
         var defaultSeverity = default(DiagnosticSeverity);
 
         // Assert
-        defaultSeverity.Should().Be(DiagnosticSeverity.Success);
-        ((int)defaultSeverity).Should().Be(0);
+        Assert.Equal(DiagnosticSeverity.Success, defaultSeverity);
+        Assert.Equal(0, (int)defaultSeverity);
     }
 
     [Fact]
@@ -116,27 +117,27 @@ public class DiagnosticSeverityTests
         }
 
         // Assert
-        result.Should().Be("Warning");
+        Assert.Equal("Warning", result);
     }
 
     [Fact]
     public void DiagnosticSeverity_CanBeParsedFromString()
     {
         // Act & Assert
-        Enum.Parse<DiagnosticSeverity>("Success").Should().Be(DiagnosticSeverity.Success);
-        Enum.Parse<DiagnosticSeverity>("Info").Should().Be(DiagnosticSeverity.Info);
-        Enum.Parse<DiagnosticSeverity>("Warning").Should().Be(DiagnosticSeverity.Warning);
-        Enum.Parse<DiagnosticSeverity>("Error").Should().Be(DiagnosticSeverity.Error);
+        Assert.Equal(DiagnosticSeverity.Success, Enum.Parse<DiagnosticSeverity>("Success"));
+        Assert.Equal(DiagnosticSeverity.Info, Enum.Parse<DiagnosticSeverity>("Info"));
+        Assert.Equal(DiagnosticSeverity.Warning, Enum.Parse<DiagnosticSeverity>("Warning"));
+        Assert.Equal(DiagnosticSeverity.Error, Enum.Parse<DiagnosticSeverity>("Error"));
     }
 
     [Fact]
     public void DiagnosticSeverity_CanBeConvertedToString()
     {
         // Act & Assert
-        DiagnosticSeverity.Success.ToString().Should().Be("Success");
-        DiagnosticSeverity.Info.ToString().Should().Be("Info");
-        DiagnosticSeverity.Warning.ToString().Should().Be("Warning");
-        DiagnosticSeverity.Error.ToString().Should().Be("Error");
+        Assert.Equal("Success", DiagnosticSeverity.Success.ToString());
+        Assert.Equal("Info", DiagnosticSeverity.Info.ToString());
+        Assert.Equal("Warning", DiagnosticSeverity.Warning.ToString());
+        Assert.Equal("Error", DiagnosticSeverity.Error.ToString());
     }
 
     [Fact]
@@ -152,8 +153,8 @@ public class DiagnosticSeverityTests
         };
 
         // Assert
-        severities.Should().HaveCount(4);
-        severities.Distinct().Should().HaveCount(4);
+        Assert.Equal(4, severities.Count());
+        Assert.Equal(4, severities.Distinct().Count());
     }
 
     [Fact]
@@ -173,8 +174,8 @@ public class DiagnosticSeverityTests
         var grouped = items.GroupBy(i => i.Severity);
 
         // Assert
-        grouped.Should().HaveCount(4);
-        grouped.First(g => g.Key == DiagnosticSeverity.Warning).Should().HaveCount(2);
+        Assert.Equal(4, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == DiagnosticSeverity.Warning).Count());
     }
 
     [Fact]
@@ -193,10 +194,10 @@ public class DiagnosticSeverityTests
         var ordered = severities.OrderBy(s => s).ToList();
 
         // Assert
-        ordered[0].Should().Be(DiagnosticSeverity.Success);
-        ordered[1].Should().Be(DiagnosticSeverity.Info);
-        ordered[2].Should().Be(DiagnosticSeverity.Warning);
-        ordered[3].Should().Be(DiagnosticSeverity.Error);
+        Assert.Equal(DiagnosticSeverity.Success, ordered[0]);
+        Assert.Equal(DiagnosticSeverity.Info, ordered[1]);
+        Assert.Equal(DiagnosticSeverity.Warning, ordered[2]);
+        Assert.Equal(DiagnosticSeverity.Error, ordered[3]);
     }
 
     [Fact]
@@ -211,9 +212,9 @@ public class DiagnosticSeverityTests
         var highSeverity = severities.Where(s => (int)s >= (int)DiagnosticSeverity.Warning).ToList();
 
         // Assert
-        highSeverity.Should().HaveCount(2);
-        highSeverity.Should().Contain(DiagnosticSeverity.Warning);
-        highSeverity.Should().Contain(DiagnosticSeverity.Error);
+        Assert.Equal(2, highSeverity.Count());
+        Assert.Contains(DiagnosticSeverity.Warning, highSeverity);
+        Assert.Contains(DiagnosticSeverity.Error, highSeverity);
     }
 
     [Fact]
@@ -223,7 +224,7 @@ public class DiagnosticSeverityTests
         var type = typeof(DiagnosticSeverity);
 
         // Assert
-        type.IsEnum.Should().BeTrue();
+        Assert.True(type.IsEnum);
     }
 
     [Fact]
@@ -245,10 +246,10 @@ public class DiagnosticSeverityTests
             .ToDictionary(g => g.Key, g => g.Count());
 
         // Assert
-        severityCounts[DiagnosticSeverity.Success].Should().Be(2);
-        severityCounts[DiagnosticSeverity.Info].Should().Be(1);
-        severityCounts[DiagnosticSeverity.Warning].Should().Be(2);
-        severityCounts[DiagnosticSeverity.Error].Should().Be(1);
+        Assert.Equal(2, severityCounts[DiagnosticSeverity.Success]);
+        Assert.Equal(1, severityCounts[DiagnosticSeverity.Info]);
+        Assert.Equal(2, severityCounts[DiagnosticSeverity.Warning]);
+        Assert.Equal(1, severityCounts[DiagnosticSeverity.Error]);
     }
 
     [Fact]
@@ -259,8 +260,8 @@ public class DiagnosticSeverityTests
         var severity2 = DiagnosticSeverity.Error;
 
         // Act & Assert - Basic comparison operations
-        ((int)severity1).Should().BeLessThan((int)severity2);
-        ((int)severity2).Should().BeGreaterThan((int)severity1);
+        Assert.True((int)severity1 < (int)severity2);
+        Assert.True((int)severity2 > (int)severity1);
     }
 
     [Theory]
@@ -271,7 +272,7 @@ public class DiagnosticSeverityTests
     public void DiagnosticSeverity_ShouldHaveCorrectIntegerValues(DiagnosticSeverity severity, int expectedValue)
     {
         // Act & Assert
-        ((int)severity).Should().Be(expectedValue);
+        Assert.Equal(expectedValue, (int)severity);
     }
 
     [Fact]
@@ -281,11 +282,11 @@ public class DiagnosticSeverityTests
         var severity = DiagnosticSeverity.Warning;
 
         // Act & Assert
-        (severity == DiagnosticSeverity.Success).Should().BeFalse();
-        (severity == DiagnosticSeverity.Warning).Should().BeTrue();
-        (severity != DiagnosticSeverity.Error).Should().BeTrue();
-        (severity >= DiagnosticSeverity.Info).Should().BeTrue();
-        (severity <= DiagnosticSeverity.Error).Should().BeTrue();
+        Assert.False(severity == DiagnosticSeverity.Success);
+        Assert.True(severity == DiagnosticSeverity.Warning);
+        Assert.True(severity != DiagnosticSeverity.Error);
+        Assert.True(severity >= DiagnosticSeverity.Info);
+        Assert.True(severity <= DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -300,7 +301,7 @@ public class DiagnosticSeverityTests
         };
 
         // Assert
-        issue.Severity.Should().Be(DiagnosticSeverity.Warning);
+        Assert.Equal(DiagnosticSeverity.Warning, issue.Severity);
     }
 
     [Fact]
@@ -310,7 +311,7 @@ public class DiagnosticSeverityTests
         var values = Enum.GetValues(typeof(DiagnosticSeverity)).Cast<int>().ToList();
 
         // Assert
-        values.Distinct().Should().HaveCount(4);
+        Assert.Equal(4, values.Distinct().Count());
     }
 
     [Fact]
@@ -326,8 +327,8 @@ public class DiagnosticSeverityTests
         };
 
         // Assert
-        severityDescriptions.Should().HaveCount(4);
-        severityDescriptions[DiagnosticSeverity.Error].Should().Be("Error that needs to be fixed");
+        Assert.Equal(4, severityDescriptions.Count());
+        Assert.Equal("Error that needs to be fixed", severityDescriptions[DiagnosticSeverity.Error]);
     }
 
     [Fact]
@@ -351,9 +352,10 @@ public class DiagnosticSeverityTests
         }).ToList();
 
         // Assert
-        report[0].Description.Should().Be("Success");
-        report[1].Description.Should().Be("Info");
-        report[2].Description.Should().Be("Warning");
-        report[3].Description.Should().Be("Error");
+        Assert.Equal("Success", report[0].Description);
+        Assert.Equal("Info", report[1].Description);
+        Assert.Equal("Warning", report[2].Description);
+        Assert.Equal("Error", report[3].Description);
     }
 }
+

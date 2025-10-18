@@ -12,7 +12,7 @@ public class TemplateInfoTests
         var template = new TemplateInfo { Id = "test-template" };
 
         // Assert
-        template.Id.Should().Be("test-template");
+        Assert.Equal("test-template", template.Id);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class TemplateInfoTests
         var template = new TemplateInfo { Name = "Test Template" };
 
         // Assert
-        template.Name.Should().Be("Test Template");
+        Assert.Equal("Test Template", template.Name);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Description.Should().Be("A test template for testing purposes");
+        Assert.Equal("A test template for testing purposes", template.Description);
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.BestFor.Should().Be("Testing and development");
+        Assert.Equal("Testing and development", template.BestFor);
     }
 
     [Fact]
@@ -61,10 +61,10 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Tags.Should().HaveCount(3);
-        template.Tags.Should().Contain("test");
-        template.Tags.Should().Contain("development");
-        template.Tags.Should().Contain("ci");
+        Assert.Equal(3, template.Tags.Count());
+        Assert.Contains("test", template.Tags);
+        Assert.Contains("development", template.Tags);
+        Assert.Contains("ci", template.Tags);
     }
 
     [Fact]
@@ -77,10 +77,10 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Features.Should().HaveCount(3);
-        template.Features.Should().Contain("auth");
-        template.Features.Should().Contain("swagger");
-        template.Features.Should().Contain("docker");
+        Assert.Equal(3, template.Features.Count());
+        Assert.Contains("auth", template.Features);
+        Assert.Contains("swagger", template.Features);
+        Assert.Contains("docker", template.Features);
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Structure.Should().Be("clean-architecture");
+        Assert.Equal("clean-architecture", template.Structure);
     }
 
     [Fact]
@@ -103,13 +103,13 @@ public class TemplateInfoTests
         var template = new TemplateInfo();
 
         // Assert
-        template.Id.Should().BeEmpty();
-        template.Name.Should().BeEmpty();
-        template.Description.Should().BeEmpty();
-        template.BestFor.Should().BeEmpty();
-        template.Tags.Should().BeEmpty();
-        template.Features.Should().BeEmpty();
-        template.Structure.Should().BeEmpty();
+        Assert.Empty(template.Id);
+        Assert.Empty(template.Name);
+        Assert.Empty(template.Description);
+        Assert.Empty(template.BestFor);
+        Assert.Empty(template.Tags);
+        Assert.Empty(template.Features);
+        Assert.Empty(template.Structure);
     }
 
     [Fact]
@@ -128,13 +128,13 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-webapi");
-        template.Name.Should().Be("Clean Architecture Web API");
-        template.Description.Should().Be("Production-ready REST API");
-        template.BestFor.Should().Be("Enterprise REST APIs");
-        template.Tags.Should().HaveCount(3);
-        template.Features.Should().HaveCount(2);
-        template.Structure.Should().Be("clean-architecture");
+        Assert.Equal("relay-webapi", template.Id);
+        Assert.Equal("Clean Architecture Web API", template.Name);
+        Assert.Equal("Production-ready REST API", template.Description);
+        Assert.Equal("Enterprise REST APIs", template.BestFor);
+        Assert.Equal(3, template.Tags.Count());
+        Assert.Equal(2, template.Features.Count());
+        Assert.Equal("clean-architecture", template.Structure);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Tags.Should().BeEmpty();
+        Assert.Empty(template.Tags);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Features.Should().BeEmpty();
+        Assert.Empty(template.Features);
     }
 
     [Fact]
@@ -180,9 +180,9 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Tags.Should().HaveCount(5);
-        template.Tags.Should().Contain("microservice");
-        template.Tags.Should().Contain("kafka");
+        Assert.Equal(5, template.Tags.Count());
+        Assert.Contains("microservice", template.Tags);
+        Assert.Contains("kafka", template.Tags);
     }
 
     [Fact]
@@ -204,9 +204,9 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Features.Should().HaveCount(7);
-        template.Features.Should().Contain("healthchecks");
-        template.Features.Should().Contain("monitoring");
+        Assert.Equal(7, template.Features.Count());
+        Assert.Contains("healthchecks", template.Features);
+        Assert.Contains("monitoring", template.Features);
     }
 
     [Fact]
@@ -220,7 +220,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Structure.Should().Be("clean-architecture");
+        Assert.Equal("clean-architecture", template.Structure);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Structure.Should().Be("microservice");
+        Assert.Equal("microservice", template.Structure);
     }
 
     [Fact]
@@ -248,7 +248,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Structure.Should().Be("modular");
+        Assert.Equal("modular", template.Structure);
     }
 
     [Fact]
@@ -267,11 +267,11 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-webapi");
-        template.Tags.Should().Contain("web");
-        template.Tags.Should().Contain("api");
-        template.Features.Should().Contain("swagger");
-        template.Structure.Should().Be("clean-architecture");
+        Assert.Equal("relay-webapi", template.Id);
+        Assert.Contains("web", template.Tags);
+        Assert.Contains("api", template.Tags);
+        Assert.Contains("swagger", template.Features);
+        Assert.Equal("clean-architecture", template.Structure);
     }
 
     [Fact]
@@ -290,11 +290,11 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-microservice");
-        template.Tags.Should().Contain("microservice");
-        template.Features.Should().Contain("rabbitmq");
-        template.Features.Should().Contain("kafka");
-        template.Structure.Should().Be("microservice");
+        Assert.Equal("relay-microservice", template.Id);
+        Assert.Contains("microservice", template.Tags);
+        Assert.Contains("rabbitmq", template.Features);
+        Assert.Contains("kafka", template.Features);
+        Assert.Equal("microservice", template.Structure);
     }
 
     [Fact]
@@ -313,9 +313,9 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-ddd");
-        template.Tags.Should().Contain("ddd");
-        template.Features.Should().Contain("aggregates");
+        Assert.Equal("relay-ddd", template.Id);
+        Assert.Contains("ddd", template.Tags);
+        Assert.Contains("aggregates", template.Features);
     }
 
     [Fact]
@@ -334,10 +334,10 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-cqrs-es");
-        template.Tags.Should().Contain("cqrs");
-        template.Tags.Should().Contain("event-sourcing");
-        template.Features.Should().Contain("eventstore");
+        Assert.Equal("relay-cqrs-es", template.Id);
+        Assert.Contains("cqrs", template.Tags);
+        Assert.Contains("event-sourcing", template.Tags);
+        Assert.Contains("eventstore", template.Features);
     }
 
     [Fact]
@@ -356,9 +356,9 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-graphql");
-        template.Tags.Should().Contain("graphql");
-        template.Features.Should().Contain("subscriptions");
+        Assert.Equal("relay-graphql", template.Id);
+        Assert.Contains("graphql", template.Tags);
+        Assert.Contains("subscriptions", template.Features);
     }
 
     [Fact]
@@ -377,9 +377,9 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-grpc");
-        template.Tags.Should().Contain("grpc");
-        template.Features.Should().Contain("streaming");
+        Assert.Equal("relay-grpc", template.Id);
+        Assert.Contains("grpc", template.Tags);
+        Assert.Contains("streaming", template.Features);
     }
 
     [Fact]
@@ -398,10 +398,10 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-serverless");
-        template.Tags.Should().Contain("serverless");
-        template.Features.Should().Contain("aws");
-        template.Structure.Should().Be("simple");
+        Assert.Equal("relay-serverless", template.Id);
+        Assert.Contains("serverless", template.Tags);
+        Assert.Contains("aws", template.Features);
+        Assert.Equal("simple", template.Structure);
     }
 
     [Fact]
@@ -420,9 +420,9 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-blazor");
-        template.Tags.Should().Contain("blazor");
-        template.Features.Should().Contain("wasm");
+        Assert.Equal("relay-blazor", template.Id);
+        Assert.Contains("blazor", template.Tags);
+        Assert.Contains("wasm", template.Features);
     }
 
     [Fact]
@@ -441,11 +441,11 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Id.Should().Be("relay-maui");
-        template.Tags.Should().Contain("mobile");
-        template.Features.Should().Contain("ios");
-        template.Features.Should().Contain("android");
-        template.Structure.Should().Be("mvvm");
+        Assert.Equal("relay-maui", template.Id);
+        Assert.Contains("mobile", template.Tags);
+        Assert.Contains("ios", template.Features);
+        Assert.Contains("android", template.Features);
+        Assert.Equal("mvvm", template.Structure);
     }
 
     [Fact]
@@ -457,7 +457,7 @@ public class TemplateInfoTests
         template2.Id = "modified";
 
         // Assert
-        template1.Id.Should().Be("modified");
+        Assert.Equal("modified", template1.Id);
     }
 
     [Fact]
@@ -467,8 +467,8 @@ public class TemplateInfoTests
         var template = new TemplateInfo();
 
         // Assert
-        template.Tags.Should().NotBeNull();
-        template.Features.Should().NotBeNull();
+        Assert.NotNull(template.Tags);
+        Assert.NotNull(template.Features);
     }
 
     [Fact]
@@ -485,8 +485,8 @@ public class TemplateInfoTests
         var hasGraphQL = template.Features.Contains("graphql");
 
         // Assert
-        hasAuth.Should().BeTrue();
-        hasGraphQL.Should().BeFalse();
+        Assert.True(hasAuth);
+        Assert.False(hasGraphQL);
     }
 
     [Fact]
@@ -503,8 +503,8 @@ public class TemplateInfoTests
         var isMobile = template.Tags.Contains("mobile");
 
         // Assert
-        isWeb.Should().BeTrue();
-        isMobile.Should().BeFalse();
+        Assert.True(isWeb);
+        Assert.False(isMobile);
     }
 
     [Fact]
@@ -518,8 +518,8 @@ public class TemplateInfoTests
         };
 
         // Assert
-        template.Features.Should().BeEmpty();
-        template.Features.Any().Should().BeFalse();
+        Assert.Empty(template.Features);
+        Assert.False(template.Features.Any());
     }
 
     [Fact]
@@ -534,8 +534,8 @@ And explain the template in detail."
         };
 
         // Assert
-        template.Description.Should().Contain("multi-line");
-        template.Description.Should().Contain("multiple sentences");
+        Assert.Contains("multi-line", template.Description);
+        Assert.Contains("multiple sentences", template.Description);
     }
 
     [Fact]
@@ -548,8 +548,8 @@ And explain the template in detail."
         };
 
         // Assert
-        template.BestFor.Should().Contain("Enterprise REST APIs");
-        template.BestFor.Should().Contain("Backend services");
-        template.BestFor.Should().Contain("Microservices");
+        Assert.Contains("Enterprise REST APIs", template.BestFor);
+        Assert.Contains("Backend services", template.BestFor);
+        Assert.Contains("Microservices", template.BestFor);
     }
 }

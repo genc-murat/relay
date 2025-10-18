@@ -1,4 +1,4 @@
-using FluentAssertions;
+
 using Relay.CLI.Commands;
 using System.CommandLine;
 using Xunit;
@@ -27,9 +27,9 @@ public class OptimizeCommandExtendedTests : IDisposable
         var command = OptimizeCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("optimize");
-        command.Description.Should().Contain("optimization");
+        Assert.NotNull(command);
+        Assert.Equal("optimize", command.Name);
+        Assert.Contains("optimization", command.Description);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
 
         // Assert
-        pathOption.Should().NotBeNull();
+        Assert.NotNull(pathOption);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var dryRunOption = command.Options.FirstOrDefault(o => o.Name == "dry-run");
 
         // Assert
-        dryRunOption.Should().NotBeNull();
+        Assert.NotNull(dryRunOption);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var targetOption = command.Options.FirstOrDefault(o => o.Name == "target");
 
         // Assert
-        targetOption.Should().NotBeNull();
+        Assert.NotNull(targetOption);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var aggressiveOption = command.Options.FirstOrDefault(o => o.Name == "aggressive");
 
         // Assert
-        aggressiveOption.Should().NotBeNull();
+        Assert.NotNull(aggressiveOption);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var backupOption = command.Options.FirstOrDefault(o => o.Name == "backup");
 
         // Assert
-        backupOption.Should().NotBeNull();
+        Assert.NotNull(backupOption);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var command = OptimizeCommand.Create();
 
         // Assert
-        command.Options.Should().HaveCount(5);
+        Assert.Equal(5, command.Options.Count());
     }
 
     #endregion
@@ -108,7 +108,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var defaultPath = ".";
 
         // Assert
-        defaultPath.Should().Be(".");
+        Assert.Equal(".", defaultPath);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var defaultDryRun = false;
 
         // Assert
-        defaultDryRun.Should().BeFalse();
+        Assert.False(defaultDryRun);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var defaultTarget = "all";
 
         // Assert
-        defaultTarget.Should().Be("all");
+        Assert.Equal("all", defaultTarget);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var defaultAggressive = false;
 
         // Assert
-        defaultAggressive.Should().BeFalse();
+        Assert.False(defaultAggressive);
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var defaultBackup = true;
 
         // Assert
-        defaultBackup.Should().BeTrue();
+        Assert.True(defaultBackup);
     }
 
     #endregion
@@ -166,7 +166,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var validTargets = new[] { "all", "handlers", "requests", "config" };
 
         // Assert
-        validTargets.Should().Contain(target);
+        Assert.Contains(target, validTargets);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var target = "all";
 
         // Assert
-        target.Should().Be("all");
+        Assert.Equal("all", target);
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var target = "handlers";
 
         // Assert
-        target.Should().Be("handlers");
+        Assert.Equal("handlers", target);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var target = "requests";
 
         // Assert
-        target.Should().Be("requests");
+        Assert.Equal("requests", target);
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var target = "config";
 
         // Assert
-        target.Should().Be("config");
+        Assert.Equal("config", target);
     }
 
     #endregion
@@ -223,8 +223,8 @@ public class OptimizeCommandExtendedTests : IDisposable
         var transformed = original.Replace("Task<", "ValueTask<");
 
         // Assert
-        transformed.Should().Contain("ValueTask<Result>");
-        transformed.Should().NotContain("async Task<");
+        Assert.Contains("ValueTask<Result>", transformed);
+        Assert.DoesNotContain("async Task<", transformed);
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var withAttribute = $"{attribute}\n    {method}";
 
         // Assert
-        withAttribute.Should().Contain("[Handle]");
+        Assert.Contains("[Handle]", withAttribute);
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var optimized = original.Replace("GetAsync()", "GetAsync().ConfigureAwait(false)");
 
         // Assert
-        optimized.Should().Contain("ConfigureAwait(false)");
+        Assert.Contains("ConfigureAwait(false)", optimized);
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var optimized = "var result = string.Concat(str1, str2, str3);";
 
         // Assert
-        optimized.Should().Contain("string.Concat");
+        Assert.Contains("string.Concat", optimized);
     }
 
     #endregion
@@ -282,7 +282,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var csFiles = Directory.GetFiles(_testPath, "*.cs", SearchOption.AllDirectories);
 
         // Assert
-        csFiles.Should().HaveCount(2);
+        Assert.Equal(2, csFiles.Count());
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public class OptimizeCommandExtendedTests : IDisposable
             .Where(f => !f.Contains("bin")).ToList();
 
         // Assert
-        csFiles.Should().HaveCount(1);
+        Assert.Equal(1, csFiles.Count());
     }
 
     [Fact]
@@ -316,7 +316,7 @@ public class OptimizeCommandExtendedTests : IDisposable
             .Where(f => !f.Contains("obj")).ToList();
 
         // Assert
-        csFiles.Should().HaveCount(1);
+        Assert.Equal(1, csFiles.Count());
     }
 
     #endregion
@@ -330,7 +330,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var code = "public class GetUserHandler : IRequestHandler<GetUserQuery, User>";
 
         // Assert
-        code.Should().Contain("IRequestHandler");
+        Assert.Contains("IRequestHandler", code);
     }
 
     [Fact]
@@ -340,7 +340,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var code = "public record GetUserQuery : IRequest<User>";
 
         // Assert
-        code.Should().Contain("IRequest");
+        Assert.Contains("IRequest", code);
     }
 
     [Fact]
@@ -350,8 +350,8 @@ public class OptimizeCommandExtendedTests : IDisposable
         var code = "public async Task<Result> HandleAsync(";
 
         // Assert
-        code.Should().Contain("async");
-        code.Should().Contain("Task<");
+        Assert.Contains("async", code);
+        Assert.Contains("Task<", code);
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var code = "return await repository.GetAsync();";
 
         // Assert
-        code.Should().Contain("await");
+        Assert.Contains("await", code);
     }
 
     #endregion
@@ -378,7 +378,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         Directory.CreateDirectory(backupDir);
 
         // Assert
-        Directory.Exists(backupDir).Should().BeTrue();
+        Assert.True(Directory.Exists(backupDir));
     }
 
     [Fact]
@@ -396,9 +396,9 @@ public class OptimizeCommandExtendedTests : IDisposable
         File.Copy(sourceFile, backupFile);
 
         // Assert
-        File.Exists(backupFile).Should().BeTrue();
+        Assert.True(File.Exists(backupFile));
         var content = await File.ReadAllTextAsync(backupFile);
-        content.Should().Be("original content");
+        Assert.Equal("original content", content);
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var backupName = $".backup_{timestamp}";
 
         // Assert
-        backupName.Should().MatchRegex(@"\.backup_\d{8}_\d{6}");
+        Assert.Matches(@"\.backup_\d{8}_\d{6}", backupName);
     }
 
     #endregion
@@ -430,7 +430,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         }
 
         // Assert
-        filesModified.Should().Be(0);
+        Assert.Equal(0, filesModified);
     }
 
     [Fact]
@@ -447,7 +447,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         }
 
         // Assert
-        previewShown.Should().BeTrue();
+        Assert.True(previewShown);
     }
 
     [Fact]
@@ -464,7 +464,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         }
 
         // Assert
-        backupCreated.Should().BeFalse();
+        Assert.False(backupCreated);
     }
 
     #endregion
@@ -489,7 +489,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         }
 
         // Assert
-        optimizationCount.Should().Be(10);
+        Assert.Equal(10, optimizationCount);
     }
 
     [Fact]
@@ -506,7 +506,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         }
 
         // Assert
-        safeMode.Should().BeTrue();
+        Assert.True(safeMode);
     }
 
     #endregion
@@ -523,7 +523,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         filesProcessed = 15;
 
         // Assert
-        filesProcessed.Should().Be(15);
+        Assert.Equal(15, filesProcessed);
     }
 
     [Fact]
@@ -536,7 +536,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         optimizationsApplied = 45;
 
         // Assert
-        optimizationsApplied.Should().Be(45);
+        Assert.Equal(45, optimizationsApplied);
     }
 
     [Fact]
@@ -550,7 +550,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var successRate = (successfulFiles / (double)totalFiles) * 100;
 
         // Assert
-        successRate.Should().Be(80.0);
+        Assert.Equal(80.0, successRate);
     }
 
     #endregion
@@ -564,7 +564,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var optimizationType = "Task -> ValueTask";
 
         // Assert
-        optimizationType.Should().Contain("ValueTask");
+        Assert.Contains("ValueTask", optimizationType);
     }
 
     [Fact]
@@ -574,7 +574,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var optimizationType = "Add [Handle] attribute";
 
         // Assert
-        optimizationType.Should().Contain("[Handle]");
+        Assert.Contains("[Handle]", optimizationType);
     }
 
     [Fact]
@@ -584,7 +584,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var optimizationType = "Add ConfigureAwait(false)";
 
         // Assert
-        optimizationType.Should().Contain("ConfigureAwait");
+        Assert.Contains("ConfigureAwait", optimizationType);
     }
 
     [Fact]
@@ -594,7 +594,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var optimizationType = "Optimize string concatenation";
 
         // Assert
-        optimizationType.Should().Contain("string");
+        Assert.Contains("string", optimizationType);
     }
 
     #endregion
@@ -611,7 +611,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var exists = Directory.Exists(invalidPath);
 
         // Assert
-        exists.Should().BeFalse();
+        Assert.False(exists);
     }
 
     [Fact]
@@ -625,7 +625,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var files = Directory.GetFiles(emptyDir, "*.cs");
 
         // Assert
-        files.Should().BeEmpty();
+        Assert.Empty(files);
     }
 
     [Fact]
@@ -639,7 +639,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var isValid = validTargets.Contains(target);
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     #endregion
@@ -662,7 +662,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var hasTaskReturn = content.Contains("Task<");
 
         // Assert
-        hasTaskReturn.Should().BeTrue();
+        Assert.True(hasTaskReturn);
     }
 
     [Fact]
@@ -675,7 +675,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var hasMissingAttribute = !code.Contains("[Handle]");
 
         // Assert
-        hasMissingAttribute.Should().BeTrue();
+        Assert.True(hasMissingAttribute);
     }
 
     #endregion
@@ -689,7 +689,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var code = "public record GetUserRequest : IRequest<User>;";
 
         // Assert
-        code.Should().Contain("record");
+        Assert.Contains("record", code);
     }
 
     [Fact]
@@ -699,7 +699,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var code = "public record GetUserRequest : IRequest<User>;";
 
         // Assert
-        code.Should().Contain("IRequest");
+        Assert.Contains("IRequest", code);
     }
 
     #endregion
@@ -722,7 +722,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var content = await File.ReadAllTextAsync(configPath);
 
         // Assert
-        content.Should().Contain("EnableCaching");
+        Assert.Contains("EnableCaching", content);
     }
 
     #endregion
@@ -740,7 +740,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var progress = (processedFiles / (double)totalFiles) * 100;
 
         // Assert
-        progress.Should().Be(50.0);
+        Assert.Equal(50.0, progress);
     }
 
     [Fact]
@@ -755,7 +755,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         };
 
         // Assert
-        optimizations.Should().HaveCount(3);
+        Assert.Equal(3, optimizations.Count());
     }
 
     #endregion
@@ -774,9 +774,9 @@ public class OptimizeCommandExtendedTests : IDisposable
         };
 
         // Assert
-        summary.FilesProcessed.Should().Be(10);
-        summary.OptimizationsApplied.Should().Be(25);
-        summary.SuccessRate.Should().Be(90.0);
+        Assert.Equal(10, summary.FilesProcessed);
+        Assert.Equal(25, summary.OptimizationsApplied);
+        Assert.Equal(90.0, summary.SuccessRate);
     }
 
     [Fact]
@@ -791,8 +791,8 @@ public class OptimizeCommandExtendedTests : IDisposable
         };
 
         // Assert
-        details.Should().HaveCount(3);
-        details[0].Should().Contain("Handler.cs");
+        Assert.Equal(3, details.Count());
+        Assert.Contains("Handler.cs", details[0]);
     }
 
     #endregion
@@ -811,7 +811,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var files = Directory.GetFiles(_testPath, "*.cs");
 
         // Assert
-        files.Should().HaveCount(3);
+        Assert.Equal(3, files.Count());
     }
 
     [Fact]
@@ -827,7 +827,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var newContent = await File.ReadAllTextAsync(filePath);
 
         // Assert
-        originalContent.Should().NotBe(newContent);
+        Assert.NotEqual(newContent, originalContent);
     }
 
     #endregion
@@ -844,8 +844,8 @@ public class OptimizeCommandExtendedTests : IDisposable
         var absolutePath = Path.GetFullPath(relativePath);
 
         // Assert
-        absolutePath.Should().NotBeNullOrEmpty();
-        Path.IsPathRooted(absolutePath).Should().BeTrue();
+        Assert.False(string.IsNullOrEmpty(absolutePath));
+        Assert.True(Path.IsPathRooted(absolutePath));
     }
 
     [Fact]
@@ -858,7 +858,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var isAbsolute = Path.IsPathRooted(absolutePath);
 
         // Assert
-        isAbsolute.Should().BeTrue();
+        Assert.True(isAbsolute);
     }
 
     #endregion
@@ -872,7 +872,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var content = "";
 
         // Assert
-        content.Should().BeEmpty();
+        Assert.Empty(content);
     }
 
     [Fact]
@@ -887,7 +887,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var content = await File.ReadAllTextAsync(filePath);
 
         // Assert
-        content.Length.Should().Be(100000);
+        Assert.Equal(100000, content.Length);
     }
 
     [Fact]
@@ -897,7 +897,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var pathWithSpaces = Path.Combine(_testPath, "My Handler.cs");
 
         // Assert
-        pathWithSpaces.Should().Contain(" ");
+        Assert.Contains(" ", pathWithSpaces);
     }
 
     #endregion
@@ -917,3 +917,5 @@ public class OptimizeCommandExtendedTests : IDisposable
         }
     }
 }
+
+

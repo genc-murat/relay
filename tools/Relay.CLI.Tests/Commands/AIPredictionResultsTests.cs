@@ -12,7 +12,7 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults { ExpectedThroughput = 1500.5 };
 
         // Assert
-        results.ExpectedThroughput.Should().Be(1500.5);
+        Assert.Equal(1500.5, results.ExpectedThroughput);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults { ExpectedResponseTime = 250.75 };
 
         // Assert
-        results.ExpectedResponseTime.Should().Be(250.75);
+        Assert.Equal(250.75, results.ExpectedResponseTime);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults { ExpectedErrorRate = 0.02 };
 
         // Assert
-        results.ExpectedErrorRate.Should().Be(0.02);
+        Assert.Equal(0.02, results.ExpectedErrorRate);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults { ExpectedCpuUsage = 75.3 };
 
         // Assert
-        results.ExpectedCpuUsage.Should().Be(75.3);
+        Assert.Equal(75.3, results.ExpectedCpuUsage);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults { ExpectedMemoryUsage = 85.7 };
 
         // Assert
-        results.ExpectedMemoryUsage.Should().Be(85.7);
+        Assert.Equal(85.7, results.ExpectedMemoryUsage);
     }
 
     [Fact]
@@ -69,9 +69,9 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults { Bottlenecks = bottlenecks };
 
         // Assert
-        results.Bottlenecks.Should().HaveCount(2);
-        results.Bottlenecks[0].Component.Should().Be("Database");
-        results.Bottlenecks[1].Component.Should().Be("Cache");
+        Assert.Equal(2, results.Bottlenecks.Count());
+        Assert.Equal("Database", results.Bottlenecks[0].Component);
+        Assert.Equal("Cache", results.Bottlenecks[1].Component);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults { Recommendations = recommendations };
 
         // Assert
-        results.Recommendations.Should().BeEquivalentTo(recommendations);
+        Assert.Equal(recommendations, results.Recommendations);
     }
 
     [Fact]
@@ -94,13 +94,13 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults();
 
         // Assert
-        results.ExpectedThroughput.Should().Be(0.0);
-        results.ExpectedResponseTime.Should().Be(0.0);
-        results.ExpectedErrorRate.Should().Be(0.0);
-        results.ExpectedCpuUsage.Should().Be(0.0);
-        results.ExpectedMemoryUsage.Should().Be(0.0);
-        results.Bottlenecks.Should().BeEmpty();
-        results.Recommendations.Should().BeEmpty();
+        Assert.Equal(0.0, results.ExpectedThroughput);
+        Assert.Equal(0.0, results.ExpectedResponseTime);
+        Assert.Equal(0.0, results.ExpectedErrorRate);
+        Assert.Equal(0.0, results.ExpectedCpuUsage);
+        Assert.Equal(0.0, results.ExpectedMemoryUsage);
+        Assert.Empty(results.Bottlenecks);
+        Assert.Empty(results.Recommendations);
     }
 
     [Fact]
@@ -132,13 +132,13 @@ public class AIPredictionResultsTests
         };
 
         // Assert
-        results.ExpectedThroughput.Should().Be(2000.0);
-        results.ExpectedResponseTime.Should().Be(150.5);
-        results.ExpectedErrorRate.Should().Be(0.01);
-        results.ExpectedCpuUsage.Should().Be(65.2);
-        results.ExpectedMemoryUsage.Should().Be(78.9);
-        results.Bottlenecks.Should().HaveCount(1);
-        results.Recommendations.Should().BeEquivalentTo(recommendations);
+        Assert.Equal(2000.0, results.ExpectedThroughput);
+        Assert.Equal(150.5, results.ExpectedResponseTime);
+        Assert.Equal(0.01, results.ExpectedErrorRate);
+        Assert.Equal(65.2, results.ExpectedCpuUsage);
+        Assert.Equal(78.9, results.ExpectedMemoryUsage);
+        Assert.Equal(1, results.Bottlenecks.Count());
+        Assert.Equal(recommendations, results.Recommendations);
     }
 
     [Fact]
@@ -155,11 +155,11 @@ public class AIPredictionResultsTests
         };
 
         // Assert
-        results.ExpectedThroughput.Should().Be(0.0);
-        results.ExpectedResponseTime.Should().Be(0.0);
-        results.ExpectedErrorRate.Should().Be(0.0);
-        results.ExpectedCpuUsage.Should().Be(0.0);
-        results.ExpectedMemoryUsage.Should().Be(0.0);
+        Assert.Equal(0.0, results.ExpectedThroughput);
+        Assert.Equal(0.0, results.ExpectedResponseTime);
+        Assert.Equal(0.0, results.ExpectedErrorRate);
+        Assert.Equal(0.0, results.ExpectedCpuUsage);
+        Assert.Equal(0.0, results.ExpectedMemoryUsage);
     }
 
     [Fact]
@@ -176,11 +176,11 @@ public class AIPredictionResultsTests
         };
 
         // Assert
-        results.ExpectedThroughput.Should().Be(10000.0);
-        results.ExpectedResponseTime.Should().Be(5000.0);
-        results.ExpectedErrorRate.Should().Be(1.0);
-        results.ExpectedCpuUsage.Should().Be(100.0);
-        results.ExpectedMemoryUsage.Should().Be(100.0);
+        Assert.Equal(10000.0, results.ExpectedThroughput);
+        Assert.Equal(5000.0, results.ExpectedResponseTime);
+        Assert.Equal(1.0, results.ExpectedErrorRate);
+        Assert.Equal(100.0, results.ExpectedCpuUsage);
+        Assert.Equal(100.0, results.ExpectedMemoryUsage);
     }
 
     [Fact]
@@ -206,14 +206,14 @@ public class AIPredictionResultsTests
         var deserialized = JsonSerializer.Deserialize<AIPredictionResults>(json);
 
         // Assert
-        deserialized.Should().NotBeNull();
-        deserialized!.ExpectedThroughput.Should().Be(1500.0);
-        deserialized.ExpectedResponseTime.Should().Be(200.0);
-        deserialized.ExpectedErrorRate.Should().Be(0.05);
-        deserialized.ExpectedCpuUsage.Should().Be(70.0);
-        deserialized.ExpectedMemoryUsage.Should().Be(80.0);
-        deserialized.Bottlenecks.Should().HaveCount(1);
-        deserialized.Recommendations.Should().Contain("Optimize queries");
+        Assert.NotNull(deserialized);
+        Assert.Equal(1500.0, deserialized!.ExpectedThroughput);
+        Assert.Equal(200.0, deserialized.ExpectedResponseTime);
+        Assert.Equal(0.05, deserialized.ExpectedErrorRate);
+        Assert.Equal(70.0, deserialized.ExpectedCpuUsage);
+        Assert.Equal(80.0, deserialized.ExpectedMemoryUsage);
+        Assert.Equal(1, deserialized.Bottlenecks.Count());
+        Assert.Contains("Optimize queries", deserialized.Recommendations);
     }
 
     [Fact]
@@ -241,15 +241,15 @@ public class AIPredictionResultsTests
         var results = JsonSerializer.Deserialize<AIPredictionResults>(json);
 
         // Assert
-        results.Should().NotBeNull();
-        results!.ExpectedThroughput.Should().Be(1200.5);
-        results.ExpectedResponseTime.Should().Be(300.25);
-        results.ExpectedErrorRate.Should().Be(0.03);
-        results.ExpectedCpuUsage.Should().Be(85.5);
-        results.ExpectedMemoryUsage.Should().Be(90.2);
-        results.Bottlenecks.Should().HaveCount(1);
-        results.Bottlenecks[0].Component.Should().Be("Network");
-        results.Recommendations.Should().Contain("Upgrade network infrastructure");
+        Assert.NotNull(results);
+        Assert.Equal(1200.5, results!.ExpectedThroughput);
+        Assert.Equal(300.25, results.ExpectedResponseTime);
+        Assert.Equal(0.03, results.ExpectedErrorRate);
+        Assert.Equal(85.5, results.ExpectedCpuUsage);
+        Assert.Equal(90.2, results.ExpectedMemoryUsage);
+        Assert.Equal(1, results.Bottlenecks.Count());
+        Assert.Equal("Network", results.Bottlenecks[0].Component);
+        Assert.Contains("Upgrade network infrastructure", results.Recommendations);
     }
 
     [Fact]
@@ -263,8 +263,8 @@ public class AIPredictionResultsTests
         };
 
         // Assert
-        results.Bottlenecks.Should().BeEmpty();
-        results.Recommendations.Should().BeEmpty();
+        Assert.Empty(results.Bottlenecks);
+        Assert.Empty(results.Recommendations);
     }
 
     [Fact]
@@ -274,9 +274,9 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults();
 
         // Assert - Default initialization should provide empty arrays
-        results.Bottlenecks.Should().NotBeNull();
-        results.Recommendations.Should().NotBeNull();
-        results.Bottlenecks.Should().BeEmpty();
-        results.Recommendations.Should().BeEmpty();
+        Assert.NotNull(results.Bottlenecks);
+        Assert.NotNull(results.Recommendations);
+        Assert.Empty(results.Bottlenecks);
+        Assert.Empty(results.Recommendations);
     }
 }

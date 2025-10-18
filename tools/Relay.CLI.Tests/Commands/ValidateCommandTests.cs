@@ -50,8 +50,8 @@ public class ValidateCommandTests : IDisposable
         }
 
         // Assert
-        projectFiles.Should().NotBeEmpty();
-        hasRelayPackage.Should().BeTrue();
+        Assert.NotEmpty(projectFiles);
+        Assert.True(hasRelayPackage);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public record TestRequest : IRequest<string>;";
         var hasHandleAttribute = content.Contains("[Handle]");
 
         // Assert - Handler doesn't have the Handle attribute which is a validation issue
-        hasHandleAttribute.Should().BeFalse("we intentionally created a handler without the Handle attribute to test validation");
+        Assert.False(hasHandleAttribute, "we intentionally created a handler without the Handle attribute to test validation");
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public record TestRequest(string Name);"; // Missing IRequest<T>
         var content = await File.ReadAllTextAsync(Path.Combine(_testPath, "InvalidRequest.cs"));
 
         // Assert
-        content.Should().NotContain("IRequest");
+        Assert.DoesNotContain("IRequest", content);
     }
 
     [Fact]
@@ -122,8 +122,8 @@ public record TestRequest;";
         var hasAsync = content.Contains("async");
 
         // Assert - This handler has issues that should be detected
-        hasValueTask.Should().BeFalse("handler should use ValueTask but doesn't");
-        hasAsync.Should().BeFalse("handler should be async but isn't");
+        Assert.False(hasValueTask, "handler should use ValueTask but doesn't");
+        Assert.False(hasAsync, "handler should be async but isn't");
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public record TestRequest;";
         var hasHandleAsync = content.Contains("HandleAsync");
 
         // Assert - Method should be named HandleAsync, not Handle
-        hasHandleAsync.Should().BeFalse("method is incorrectly named 'Handle' instead of 'HandleAsync'");
+        Assert.False(hasHandleAsync, "method is incorrectly named 'Handle' instead of 'HandleAsync'");
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class GetUserQuery : IRequest<string>
         await (Task)method!.Invoke(null, new object[] { testPath, results, true })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Request Pattern" && r.Status == ValidationStatus.Warning);
+        Assert.True(results.Any(r => r.Type == "Request Pattern" && r.Status == ValidationStatus.Warning));
     }
 
     [Theory]
@@ -190,7 +190,7 @@ public class GetUserQuery : IRequest<string>
         var followsConvention = className.EndsWith("Handler");
 
         // Assert
-        followsConvention.Should().Be(isValid);
+        Assert.Equal(isValid, followsConvention);
     }
 
     [Theory]
@@ -208,7 +208,7 @@ public class GetUserQuery : IRequest<string>
                                className.EndsWith("Command");
 
         // Assert
-        followsConvention.Should().Be(isValid);
+        Assert.Equal(isValid, followsConvention);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public record TestRequest : IRequest<string>;";
         var content = await File.ReadAllTextAsync(Path.Combine(_testPath, "NoCancellationToken.cs"));
 
         // Assert
-        content.Should().NotContain("CancellationToken");
+        Assert.DoesNotContain("CancellationToken", content);
     }
 
     [Fact]
@@ -264,8 +264,8 @@ public record TestRequest : IRequest<string>;";
         var hasAwaitInCode = lines.Any(line => line.Trim().StartsWith("await ") || line.Contains(" await "));
 
         // Assert
-        hasAsync.Should().BeTrue();
-        hasAwaitInCode.Should().BeFalse("async method should use the await keyword explicitly");
+        Assert.True(hasAsync);
+        Assert.False(hasAwaitInCode, "async method should use the await keyword explicitly");
     }
 
     [Fact]
@@ -280,8 +280,8 @@ public record TestRequest : IRequest<string>;";
             .ToList();
 
         // Assert
-        files.Should().NotBeEmpty();
-        files.Should().OnlyContain(f => f.EndsWith(".cs"));
+        Assert.NotEmpty(files);
+        Assert.True(files.All(f => f.EndsWith(".cs")));
     }
 
     private async Task CreateValidProject()
@@ -332,7 +332,7 @@ public record TestRequest : IRequest<string>;";
         var issues = new List<string> { "Missing CancellationToken", "Wrong return type", "No Handle attribute" };
 
         // Assert
-        issues.Should().HaveCount(3);
+        Assert.Equal(3, issues.Count());
     }
 
     [Fact]
@@ -347,8 +347,8 @@ public record TestRequest : IRequest<string>;";
         var isRecordType = response.Contains("record");
 
         // Assert
-        hasRequestInterface.Should().BeTrue();
-        isRecordType.Should().BeTrue();
+        Assert.True(hasRequestInterface);
+        Assert.True(isRecordType);
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public record TestRequest : IRequest<string>;";
         var hasRelayRegistration = code.Contains("AddRelay");
 
         // Assert
-        hasRelayRegistration.Should().BeTrue();
+        Assert.True(hasRelayRegistration);
     }
 
     [Fact]
@@ -377,7 +377,7 @@ public record TestRequest : IRequest<string>;";
         // Assert - In strict mode, this should be flagged
         if (strictMode && !hasNullable)
         {
-            true.Should().BeTrue("Strict mode should flag missing nullable");
+            Assert.True(true, "Strict mode should flag missing nullable");
         }
     }
 
@@ -391,7 +391,7 @@ public record TestRequest : IRequest<string>;";
         var isJson = format == "json";
 
         // Assert
-        isJson.Should().BeTrue();
+        Assert.True(isJson);
     }
 
     [Fact]
@@ -404,7 +404,7 @@ public record TestRequest : IRequest<string>;";
         var isMarkdown = format == "markdown";
 
         // Assert
-        isMarkdown.Should().BeTrue();
+        Assert.True(isMarkdown);
     }
 
     [Fact]
@@ -417,7 +417,7 @@ public record TestRequest : IRequest<string>;";
         var isConsole = format == "console";
 
         // Assert
-        isConsole.Should().BeTrue();
+        Assert.True(isConsole);
     }
 
     [Fact]
@@ -431,8 +431,8 @@ public record TestRequest : IRequest<string>;";
         var hasTaskUsing = code.Contains("using System.Threading.Tasks");
 
         // Assert
-        hasRelayUsing.Should().BeFalse();
-        hasTaskUsing.Should().BeFalse();
+        Assert.False(hasRelayUsing);
+        Assert.False(hasTaskUsing);
     }
 
     [Fact]
@@ -445,7 +445,7 @@ public record TestRequest : IRequest<string>;";
         var implementsInterface = handler.Contains("IRequestHandler");
 
         // Assert
-        implementsInterface.Should().BeTrue();
+        Assert.True(implementsInterface);
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public record TestRequest : IRequest<string>;";
         var isAsyncVoid = method.Contains("async void");
 
         // Assert - async void should be flagged
-        isAsyncVoid.Should().BeTrue("async void should be detected as invalid");
+        Assert.True(isAsyncVoid, "async void should be detected as invalid");
     }
 
     [Fact]
@@ -473,8 +473,8 @@ public record TestRequest : IRequest<string>;";
         var hasMutableProperty = invalidClass.Contains("{ get; set; }");
 
         // Assert
-        isRecord.Should().BeTrue();
-        hasMutableProperty.Should().BeTrue();
+        Assert.True(isRecord);
+        Assert.True(hasMutableProperty);
     }
 
     [Fact]
@@ -491,7 +491,7 @@ public record TestRequest : IRequest<string>;";
         var hasHandleAttribute = handler.Contains("[Handle]");
 
         // Assert
-        hasHandleAttribute.Should().BeTrue();
+        Assert.True(hasHandleAttribute);
     }
 
     [Fact]
@@ -504,7 +504,7 @@ public record TestRequest : IRequest<string>;";
         var isNotificationHandler = notificationHandler.Contains("INotificationHandler");
 
         // Assert
-        isNotificationHandler.Should().BeTrue();
+        Assert.True(isNotificationHandler);
     }
 
     [Fact]
@@ -517,7 +517,7 @@ public record TestRequest : IRequest<string>;";
         var hasConstraint = handler.Contains("where T :");
 
         // Assert
-        hasConstraint.Should().BeTrue();
+        Assert.True(hasConstraint);
     }
 
     [Fact]
@@ -530,7 +530,7 @@ public record TestRequest : IRequest<string>;";
         var nullableEnabled = csproj.Contains("<Nullable>enable</Nullable>");
 
         // Assert
-        nullableEnabled.Should().BeTrue();
+        Assert.True(nullableEnabled);
     }
 
     [Fact]
@@ -545,8 +545,8 @@ public record TestRequest : IRequest<string>;";
         var usesTask = wrongHandler.Contains("Task<") && !wrongHandler.Contains("ValueTask");
 
         // Assert
-        usesValueTask.Should().BeTrue();
-        usesTask.Should().BeTrue();
+        Assert.True(usesValueTask);
+        Assert.True(usesTask);
     }
 
     [Fact]
@@ -559,7 +559,7 @@ public record TestRequest : IRequest<string>;";
         var exitCode = failCount > 0 ? 2 : 0;
 
         // Assert
-        exitCode.Should().Be(0);
+        Assert.Equal(0, exitCode);
     }
 
     [Fact]
@@ -572,7 +572,7 @@ public record TestRequest : IRequest<string>;";
         var exitCode = failCount > 0 ? 2 : 0;
 
         // Assert
-        exitCode.Should().Be(2);
+        Assert.Equal(2, exitCode);
     }
 
     [Fact]
@@ -585,7 +585,7 @@ public record TestRequest : IRequest<string>;";
         var hasRelayConfig = config.Contains("relay");
 
         // Assert
-        hasRelayConfig.Should().BeTrue();
+        Assert.True(hasRelayConfig);
     }
 
     [Fact]
@@ -595,7 +595,7 @@ public record TestRequest : IRequest<string>;";
         var hasCircularDep = false;
 
         // Assert
-        hasCircularDep.Should().BeFalse();
+        Assert.False(hasCircularDep);
     }
 
     [Fact]
@@ -609,7 +609,7 @@ public record TestRequest : IRequest<string>;";
             name.EndsWith("Query") || name.EndsWith("Command") || name.EndsWith("Request"));
 
         // Assert
-        allValid.Should().BeTrue();
+        Assert.True(allValid);
     }
 
     [Fact]
@@ -622,7 +622,7 @@ public record TestRequest : IRequest<string>;";
         var allValid = validNames.All(name => name.Contains("Handler"));
 
         // Assert
-        allValid.Should().BeTrue();
+        Assert.True(allValid);
     }
 
     [Fact]
@@ -640,7 +640,7 @@ public record TestRequest : IRequest<string>;";
         // Assert
         foreach (var folder in expectedFolders)
         {
-            Directory.Exists(Path.Combine(_testPath, folder)).Should().BeTrue();
+            Assert.True(Directory.Exists(Path.Combine(_testPath, folder)));
         }
     }
 
@@ -655,8 +655,8 @@ public record TestRequest : IRequest<string>;";
         var hasProperties = response.Contains("(") && response.Contains(")");
 
         // Assert
-        isRecord.Should().BeTrue();
-        hasProperties.Should().BeTrue();
+        Assert.True(isRecord);
+        Assert.True(hasProperties);
     }
 
     [Fact]
@@ -671,9 +671,9 @@ public record TestRequest : IRequest<string>;";
         var hasCancellationToken = validSignature.Contains("CancellationToken");
 
         // Assert
-        hasAsync.Should().BeTrue();
-        hasValueTask.Should().BeTrue();
-        hasCancellationToken.Should().BeTrue();
+        Assert.True(hasAsync);
+        Assert.True(hasValueTask);
+        Assert.True(hasCancellationToken);
     }
 
     [Theory]
@@ -687,7 +687,7 @@ public record TestRequest : IRequest<string>;";
         var isValid = requestName.StartsWith(action) && requestName.EndsWith(type);
 
         // Assert
-        isValid.Should().BeTrue();
+        Assert.True(isValid);
     }
 
     [Fact]
@@ -703,7 +703,7 @@ public record TestRequest : IRequest<string>;";
         var hasAttribute = handlerWithoutAttribute.Contains("[Handle]");
 
         // Assert
-        hasAttribute.Should().BeFalse("Handler is missing [Handle] attribute");
+        Assert.False(hasAttribute, "Handler is missing [Handle] attribute");
     }
 
     [Fact]
@@ -719,7 +719,7 @@ public record TestRequest : IRequest<string>;";
         var handlerCount = multipleHandlers.Split("IRequestHandler").Length - 1;
 
         // Assert
-        handlerCount.Should().Be(2);
+        Assert.Equal(2, handlerCount);
     }
 
     [Fact]
@@ -732,7 +732,7 @@ public record TestRequest : IRequest<string>;";
         var hasSuggestion = !string.IsNullOrEmpty(suggestion);
 
         // Assert
-        hasSuggestion.Should().BeTrue();
+        Assert.True(hasSuggestion);
     }
 
     [Fact]
@@ -745,7 +745,7 @@ public record TestRequest : IRequest<string>;";
         var isCritical = severity == "Critical";
 
         // Assert
-        isCritical.Should().BeTrue();
+        Assert.True(isCritical);
     }
 
     [Fact]
@@ -758,7 +758,7 @@ public record TestRequest : IRequest<string>;";
         var isMedium = severity == "Medium";
 
         // Assert
-        isMedium.Should().BeTrue();
+        Assert.True(isMedium);
     }
 
     [Fact]
@@ -771,7 +771,7 @@ public record TestRequest : IRequest<string>;";
         var isInfo = severity == "Info";
 
         // Assert
-        isInfo.Should().BeTrue();
+        Assert.True(isInfo);
     }
 
     [Fact]
@@ -781,8 +781,8 @@ public record TestRequest : IRequest<string>;";
         var command = ValidateCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Should().BeOfType<Command>();
+        Assert.NotNull(command);
+        Assert.IsType<Command>(command);
     }
 
     [Fact]
@@ -792,7 +792,7 @@ public record TestRequest : IRequest<string>;";
         var command = ValidateCommand.Create();
 
         // Assert
-        command.Name.Should().Be("validate");
+        Assert.Equal("validate", command.Name);
     }
 
     [Fact]
@@ -802,7 +802,7 @@ public record TestRequest : IRequest<string>;";
         var command = ValidateCommand.Create();
 
         // Assert
-        command.Description.Should().Be("Validate project structure and configuration");
+        Assert.Equal("Validate project structure and configuration", command.Description);
     }
 
     [Fact]
@@ -813,10 +813,10 @@ public record TestRequest : IRequest<string>;";
         var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
 
         // Assert
-        pathOption.Should().NotBeNull();
-        pathOption!.Name.Should().Be("path");
-        pathOption.Description.Should().Be("Project path to validate");
-        pathOption.Should().BeOfType<Option<string>>();
+        Assert.NotNull(pathOption);
+        Assert.Equal("path", pathOption.Name);
+        Assert.Equal("Project path to validate", pathOption.Description);
+        Assert.IsType<Option<string>>(pathOption);
     }
 
     [Fact]
@@ -827,10 +827,10 @@ public record TestRequest : IRequest<string>;";
         var option = command.Options.FirstOrDefault(o => o.Name == "strict");
 
         // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("strict");
-        option.Description.Should().Be("Use strict validation rules");
-        option.Should().BeOfType<Option<bool>>();
+        Assert.NotNull(option);
+        Assert.Equal("strict", option.Name);
+        Assert.Equal("Use strict validation rules", option.Description);
+        Assert.IsType<Option<bool>>(option);
     }
 
     [Fact]
@@ -841,10 +841,10 @@ public record TestRequest : IRequest<string>;";
         var option = command.Options.FirstOrDefault(o => o.Name == "output");
 
         // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("output");
-        option.Description.Should().Be("Output validation report to file");
-        option.Should().BeOfType<Option<string?>>();
+        Assert.NotNull(option);
+        Assert.Equal("output", option.Name);
+        Assert.Equal("Output validation report to file", option.Description);
+        Assert.IsType<Option<string?>>(option);
     }
 
     [Fact]
@@ -855,10 +855,10 @@ public record TestRequest : IRequest<string>;";
         var option = command.Options.FirstOrDefault(o => o.Name == "format");
 
         // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("format");
-        option.Description.Should().Be("Output format (console, json, markdown)");
-        option.Should().BeOfType<Option<string>>();
+        Assert.NotNull(option);
+        Assert.Equal("format", option.Name);
+        Assert.Equal("Output format (console, json, markdown)", option.Description);
+        Assert.IsType<Option<string>>(option);
     }
 
     [Fact]
@@ -868,7 +868,7 @@ public record TestRequest : IRequest<string>;";
         var command = ValidateCommand.Create();
 
         // Assert
-        command.Options.Should().HaveCount(4);
+        Assert.Equal(4, command.Options.Count());
     }
 
     [Fact]
@@ -878,7 +878,7 @@ public record TestRequest : IRequest<string>;";
         var command = ValidateCommand.Create();
 
         // Assert
-        command.Handler.Should().NotBeNull();
+        Assert.NotNull(command.Handler);
     }
 
     [Fact]
@@ -892,7 +892,7 @@ public record TestRequest : IRequest<string>;";
         await ValidateCommand.ExecuteValidate(_testPath, false, null, "console");
 
         // Verify exit code was set to 0 (success)
-        Environment.ExitCode.Should().Be(0);
+        Assert.Equal(0, Environment.ExitCode);
     }
 
     [Fact]
@@ -904,7 +904,7 @@ public record TestRequest : IRequest<string>;";
         await ValidateCommand.ExecuteValidate(_testPath, false, null, "console");
 
         // Should set exit code to 2 (failure)
-        Environment.ExitCode.Should().Be(2);
+        Assert.Equal(2, Environment.ExitCode);
     }
 
     [Fact]
@@ -917,7 +917,7 @@ public record TestRequest : IRequest<string>;";
         await ValidateCommand.ExecuteValidate(_testPath, true, null, "console");
 
         // Assert - Exit code should still be 0 for valid project, but strict mode may add warnings
-        Environment.ExitCode.Should().Be(0);
+        Assert.Equal(0, Environment.ExitCode);
     }
 
     [Fact]
@@ -931,11 +931,11 @@ public record TestRequest : IRequest<string>;";
         await ValidateCommand.ExecuteValidate(_testPath, false, outputFile, "json");
 
         // Assert
-        File.Exists(outputFile).Should().BeTrue();
+        Assert.True(File.Exists(outputFile));
         var content = await File.ReadAllTextAsync(outputFile);
-        content.Should().Contain("\"Status\": 0"); // Should contain validation results (0 = Pass)
-        content.Should().Contain("Package Reference");
-        content.Should().Contain("Handlers");
+        Assert.Contains("\"Status\": 0", content); // Should contain validation results (0 = Pass)
+        Assert.Contains("Package Reference", content);
+        Assert.Contains("Handlers", content);
     }
 
     [Fact]
@@ -949,9 +949,9 @@ public record TestRequest : IRequest<string>;";
         await ValidateCommand.ExecuteValidate(_testPath, false, outputFile, "markdown");
 
         // Assert
-        File.Exists(outputFile).Should().BeTrue();
+        Assert.True(File.Exists(outputFile));
         var content = await File.ReadAllTextAsync(outputFile);
-        content.Should().Contain("# Validation Report");
+        Assert.Contains("# Validation Report", content);
     }
 
     [Fact]
@@ -965,7 +965,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Project Files" && r.Status == ValidationStatus.Fail);
+        Assert.True(results.Any(r => r.Type == "Project Files" && r.Status == ValidationStatus.Fail));
     }
 
     [Fact]
@@ -985,7 +985,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Package Reference" && r.Status == ValidationStatus.Pass);
+        Assert.True(results.Any(r => r.Type == "Package Reference" && r.Status == ValidationStatus.Pass));
     }
 
     [Fact]
@@ -1005,7 +1005,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, true })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Code Quality" && r.Status == ValidationStatus.Warning);
+        Assert.True(results.Any(r => r.Type == "Code Quality" && r.Status == ValidationStatus.Warning));
     }
 
     [Fact]
@@ -1025,7 +1025,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Message.Contains("Latest C# features enabled"));
+        Assert.True(results.Any(r => r.Message.Contains("Latest C# features enabled")));
     }
 
     [Fact]
@@ -1054,7 +1054,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Handlers" && r.Status == ValidationStatus.Pass);
+        Assert.True(results.Any(r => r.Type == "Handlers" && r.Status == ValidationStatus.Pass));
     }
 
     [Fact]
@@ -1083,7 +1083,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Handler Pattern" && r.Status == ValidationStatus.Warning);
+        Assert.True(results.Any(r => r.Type == "Handler Pattern" && r.Status == ValidationStatus.Warning));
     }
 
     [Fact]
@@ -1111,7 +1111,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Handler Pattern" && r.Message.Contains("missing CancellationToken"));
+        Assert.True(results.Any(r => r.Type == "Handler Pattern" && r.Message.Contains("missing CancellationToken")));
     }
 
     [Fact]
@@ -1125,7 +1125,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Handlers" && r.Status == ValidationStatus.Warning);
+        Assert.True(results.Any(r => r.Type == "Handlers" && r.Status == ValidationStatus.Warning));
     }
 
     [Fact]
@@ -1146,7 +1146,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { testPath, results, true })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Fail);
+        Assert.True(results.Any(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Fail));
     }
 
     [Fact]
@@ -1167,7 +1167,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Warning);
+        Assert.True(results.Any(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Warning));
     }
 
     [Fact]
@@ -1189,7 +1189,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Configuration" && r.Status == ValidationStatus.Pass);
+        Assert.True(results.Any(r => r.Type == "Configuration" && r.Status == ValidationStatus.Pass));
     }
 
     [Fact]
@@ -1209,7 +1209,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Configuration" && r.Message.Contains("Relay CLI configuration found"));
+        Assert.True(results.Any(r => r.Type == "Configuration" && r.Message.Contains("Relay CLI configuration found")));
     }
 
     [Fact]
@@ -1229,7 +1229,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "Configuration" && r.Status == ValidationStatus.Fail);
+        Assert.True(results.Any(r => r.Type == "Configuration" && r.Status == ValidationStatus.Fail));
     }
 
     [Fact]
@@ -1250,7 +1250,7 @@ var app = builder.Build();";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        results.Should().Contain(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Pass);
+        Assert.True(results.Any(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Pass));
     }
 
 
@@ -1286,10 +1286,10 @@ var app = builder.Build();";
         await (Task)method!.Invoke(null, new object[] { results, outputFile, "json" })!;
 
         // Assert
-        File.Exists(outputFile).Should().BeTrue();
+        Assert.True(File.Exists(outputFile));
         var content = await File.ReadAllTextAsync(outputFile);
-        content.Should().Contain("\"Status\": 0"); // 0 = Pass enum value
-        content.Should().Contain("\"Type\": \"Test\"");
+        Assert.Contains("\"Status\": 0", content); // 0 = Pass enum value
+        Assert.Contains("\"Type\": \"Test\"", content);
     }
 
     [Fact]
@@ -1307,12 +1307,12 @@ var app = builder.Build();";
         await (Task)method!.Invoke(null, new object[] { results, outputFile, "markdown" })!;
 
         // Assert
-        File.Exists(outputFile).Should().BeTrue();
+        Assert.True(File.Exists(outputFile));
         var content = await File.ReadAllTextAsync(outputFile);
-        content.Should().Contain("# Validation Report");
-        content.Should().Contain("✅ Test");
-        content.Should().Contain("**Status:** Pass");
-        content.Should().Contain("**Suggestion:** Optional suggestion");
+        Assert.Contains("# Validation Report", content);
+        Assert.Contains("✅ Test", content);
+        Assert.Contains("**Status:** Pass", content);
+        Assert.Contains("**Suggestion:** Optional suggestion", content);
     }
 
     public void Dispose()
@@ -1325,3 +1325,5 @@ var app = builder.Build();";
         catch { }
     }
 }
+
+

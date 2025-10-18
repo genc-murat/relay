@@ -1,4 +1,4 @@
-using FluentAssertions;
+
 using Relay.CLI.Commands;
 using Xunit;
 
@@ -16,8 +16,8 @@ public class ImprovementAreaTests
         var improvementArea = new ImprovementArea();
 
         // Assert
-        improvementArea.Area.Should().BeEmpty();
-        improvementArea.Improvement.Should().Be(0.0);
+        Assert.Empty(improvementArea.Area);
+        Assert.Equal(0.0, improvementArea.Improvement);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class ImprovementAreaTests
         var improvementArea = new ImprovementArea { Area = expectedArea };
 
         // Assert
-        improvementArea.Area.Should().Be(expectedArea);
+        Assert.Equal(expectedArea, improvementArea.Area);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class ImprovementAreaTests
         var improvementArea = new ImprovementArea { Improvement = expectedImprovement };
 
         // Assert
-        improvementArea.Improvement.Should().Be(expectedImprovement);
+        Assert.Equal(expectedImprovement, improvementArea.Improvement);
     }
 
     [Fact]
@@ -61,8 +61,8 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().Be(expectedArea);
-        improvementArea.Improvement.Should().Be(expectedImprovement);
+        Assert.Equal(expectedArea, improvementArea.Area);
+        Assert.Equal(expectedImprovement, improvementArea.Improvement);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Improvement.Should().Be(0.0);
+        Assert.Equal(0.0, improvementArea.Improvement);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Improvement.Should().Be(-0.05);
+        Assert.Equal(-0.05, improvementArea.Improvement);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Improvement.Should().Be(10.5);
+        Assert.Equal(10.5, improvementArea.Improvement);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().BeEmpty();
+        Assert.Empty(improvementArea.Area);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().HaveLength(500);
+        Assert.Equal(500, improvementArea.Area.Length);
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().Be(specialArea);
+        Assert.Equal(specialArea, improvementArea.Area);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().Be(unicodeArea);
+        Assert.Equal(unicodeArea, improvementArea.Area);
     }
 
     [Fact]
@@ -183,8 +183,8 @@ public class ImprovementAreaTests
         improvementArea.Improvement = 0.2;
 
         // Assert
-        improvementArea.Area.Should().Be("Updated");
-        improvementArea.Improvement.Should().Be(0.2);
+        Assert.Equal("Updated", improvementArea.Area);
+        Assert.Equal(0.2, improvementArea.Improvement);
     }
 
     [Fact]
@@ -199,9 +199,9 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        areas.Should().HaveCount(3);
-        areas[0].Area.Should().Be("Area 1");
-        areas[1].Improvement.Should().Be(0.2);
+        Assert.Equal(3, areas.Count());
+        Assert.Equal("Area 1", areas[0].Area);
+        Assert.Equal(0.2, areas[1].Improvement);
     }
 
     [Fact]
@@ -220,8 +220,8 @@ public class ImprovementAreaTests
         var orderedAreas = areas.OrderByDescending(a => a.Improvement).ToList();
 
         // Assert
-        maxImprovement.Should().Be(0.25);
-        orderedAreas[0].Area.Should().Be("Database Indexing");
+        Assert.Equal(0.25, maxImprovement);
+        Assert.Equal("Database Indexing", orderedAreas[0].Area);
     }
 
     [Fact]
@@ -235,8 +235,8 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().Be("Caching Predictions");
-        improvementArea.Improvement.Should().Be(0.12);
+        Assert.Equal("Caching Predictions", improvementArea.Area);
+        Assert.Equal(0.12, improvementArea.Improvement);
     }
 
     [Fact]
@@ -250,8 +250,8 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().Be("Batch Size Optimization");
-        improvementArea.Improvement.Should().Be(0.08);
+        Assert.Equal("Batch Size Optimization", improvementArea.Area);
+        Assert.Equal(0.08, improvementArea.Improvement);
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public class ImprovementAreaTests
         var isArea2Better = area2.Improvement > area1.Improvement;
 
         // Assert
-        isArea2Better.Should().BeTrue();
+        Assert.True(isArea2Better);
     }
 
     [Fact]
@@ -282,8 +282,8 @@ public class ImprovementAreaTests
         var percentageString = improvementArea.Improvement.ToString("P");
 
         // Assert
-        improvementArea.Improvement.Should().Be(0.12);
-        percentageString.Should().Contain("12");
+        Assert.Equal(0.12, improvementArea.Improvement);
+        Assert.Contains("12", percentageString);
     }
 
     [Fact]
@@ -301,8 +301,8 @@ public class ImprovementAreaTests
         var significantImprovements = areas.Where(a => a.Improvement >= 0.10).ToList();
 
         // Assert
-        significantImprovements.Should().HaveCount(1);
-        significantImprovements[0].Area.Should().Be("High Impact");
+        Assert.Equal(1, significantImprovements.Count());
+        Assert.Equal("High Impact", significantImprovements[0].Area);
     }
 
     [Fact]
@@ -320,7 +320,7 @@ public class ImprovementAreaTests
         var totalImprovement = areas.Sum(a => a.Improvement);
 
         // Assert
-        totalImprovement.Should().BeApproximately(0.30, 0.0001);
+        Assert.Equal(0.30, totalImprovement, 0.0001);
     }
 
     [Fact]
@@ -338,7 +338,7 @@ public class ImprovementAreaTests
         var averageImprovement = areas.Average(a => a.Improvement);
 
         // Assert
-        averageImprovement.Should().BeApproximately(0.20, 0.0001);
+        Assert.Equal(0.20, averageImprovement, 0.0001);
     }
 
     [Fact]
@@ -352,7 +352,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().BeNull();
+        Assert.Null(improvementArea.Area);
     }
 
     [Fact]
@@ -370,8 +370,8 @@ public class ImprovementAreaTests
         var grouped = areas.GroupBy(a => a.Area).ToList();
 
         // Assert
-        grouped.Should().HaveCount(2);
-        grouped.First(g => g.Key == "Caching").Should().HaveCount(2);
+        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Caching").Count());
     }
 
     [Fact]
@@ -389,12 +389,12 @@ public class ImprovementAreaTests
         var improvementProperty = typeof(ImprovementArea).GetProperty(nameof(ImprovementArea.Improvement));
 
         // Assert
-        areaProperty.Should().NotBeNull();
-        improvementProperty.Should().NotBeNull();
-        areaProperty!.CanRead.Should().BeTrue();
-        areaProperty.CanWrite.Should().BeTrue();
-        improvementProperty!.CanRead.Should().BeTrue();
-        improvementProperty.CanWrite.Should().BeTrue();
+        Assert.NotNull(areaProperty);
+        Assert.NotNull(improvementProperty);
+        Assert.True(areaProperty!.CanRead);
+        Assert.True(areaProperty.CanWrite);
+        Assert.True(improvementProperty!.CanRead);
+        Assert.True(improvementProperty.CanWrite);
     }
 
     [Fact]
@@ -408,7 +408,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Improvement.Should().Be(0.001);
+        Assert.Equal(0.001, improvementArea.Improvement);
     }
 
     [Fact]
@@ -422,7 +422,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Improvement.Should().Be(100.0);
+        Assert.Equal(100.0, improvementArea.Improvement);
     }
 
     [Fact]
@@ -435,8 +435,8 @@ public class ImprovementAreaTests
         area1.Area = "Modified Area 1";
 
         // Assert
-        area1.Area.Should().Be("Modified Area 1");
-        area2.Area.Should().Be("Area 2");
+        Assert.Equal("Modified Area 1", area1.Area);
+        Assert.Equal("Area 2", area2.Area);
     }
 
     [Theory]
@@ -455,8 +455,8 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().Be(area);
-        improvementArea.Improvement.Should().Be(improvement);
+        Assert.Equal(area, improvementArea.Area);
+        Assert.Equal(improvement, improvementArea.Improvement);
     }
 
     [Theory]
@@ -477,7 +477,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Improvement.Should().Be(improvement);
+        Assert.Equal(improvement, improvementArea.Improvement);
     }
 
     [Fact]
@@ -495,9 +495,9 @@ public class ImprovementAreaTests
         var ranked = areas.OrderByDescending(a => a.Improvement).ToList();
 
         // Assert
-        ranked[0].Area.Should().Be("First");
-        ranked[1].Area.Should().Be("Second");
-        ranked[2].Area.Should().Be("Third");
+        Assert.Equal("First", ranked[0].Area);
+        Assert.Equal("Second", ranked[1].Area);
+        Assert.Equal("Third", ranked[2].Area);
     }
 
     [Fact]
@@ -517,10 +517,10 @@ public class ImprovementAreaTests
         var topThree = areas.OrderByDescending(a => a.Improvement).Take(3).ToList();
 
         // Assert
-        topThree.Should().HaveCount(3);
-        topThree[0].Improvement.Should().Be(0.20);
-        topThree[1].Improvement.Should().Be(0.15);
-        topThree[2].Improvement.Should().Be(0.10);
+        Assert.Equal(3, topThree.Count());
+        Assert.Equal(0.20, topThree[0].Improvement);
+        Assert.Equal(0.15, topThree[1].Improvement);
+        Assert.Equal(0.10, topThree[2].Improvement);
     }
 
     [Fact]
@@ -538,7 +538,7 @@ public class ImprovementAreaTests
         var cacheRelated = areas.Where(a => a.Area.Contains("Cach")).ToList();
 
         // Assert
-        cacheRelated.Should().HaveCount(2);
+        Assert.Equal(2, cacheRelated.Count());
     }
 
     [Fact]
@@ -556,8 +556,8 @@ public class ImprovementAreaTests
         var totalImprovement = improvementAreas.Sum(a => a.Improvement);
 
         // Assert
-        hasAnyImprovements.Should().BeTrue();
-        totalImprovement.Should().Be(0.20);
+        Assert.True(hasAnyImprovements);
+        Assert.Equal(0.20, totalImprovement);
     }
 
     [Fact]
@@ -567,8 +567,8 @@ public class ImprovementAreaTests
         var areas = Array.Empty<ImprovementArea>();
 
         // Assert
-        areas.Should().BeEmpty();
-        areas.Any().Should().BeFalse();
+        Assert.Empty(areas);
+        Assert.False(areas.Any());
     }
 
     [Fact]
@@ -582,7 +582,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        improvementArea.Area.Should().Be("   ");
+        Assert.Equal("   ", improvementArea.Area);
     }
 
     [Fact]
@@ -599,8 +599,10 @@ public class ImprovementAreaTests
         foreach (var area in areas)
         {
             var formatted = $"{area.Area}: {area.Improvement:P} improvement";
-            formatted.Should().Contain(area.Area);
-            formatted.Should().Contain("%");
+            Assert.Contains(area.Area, formatted);
+            Assert.Contains("%", formatted);
         }
     }
 }
+
+

@@ -13,7 +13,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Iterations = 100000 };
 
         // Assert
-        config.Iterations.Should().Be(100000);
+        Assert.Equal(100000, config.Iterations);
     }
 
     [Fact]
@@ -23,7 +23,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { WarmupIterations = 1000 };
 
         // Assert
-        config.WarmupIterations.Should().Be(1000);
+        Assert.Equal(1000, config.WarmupIterations);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Threads = 4 };
 
         // Assert
-        config.Threads.Should().Be(4);
+        Assert.Equal(4, config.Threads);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Timestamp = timestamp };
 
         // Assert
-        config.Timestamp.Should().Be(timestamp);
+        Assert.Equal(timestamp, config.Timestamp);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { MachineName = "TestMachine" };
 
         // Assert
-        config.MachineName.Should().Be("TestMachine");
+        Assert.Equal("TestMachine", config.MachineName);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { ProcessorCount = 8 };
 
         // Assert
-        config.ProcessorCount.Should().Be(8);
+        Assert.Equal(8, config.ProcessorCount);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { RuntimeVersion = "8.0.0" };
 
         // Assert
-        config.RuntimeVersion.Should().Be("8.0.0");
+        Assert.Equal("8.0.0", config.RuntimeVersion);
     }
 
     [Fact]
@@ -84,13 +84,13 @@ public class TestConfigurationTests
         var config = new TestConfiguration();
 
         // Assert
-        config.Iterations.Should().Be(0);
-        config.WarmupIterations.Should().Be(0);
-        config.Threads.Should().Be(0);
-        config.Timestamp.Should().Be(default(DateTime));
-        config.MachineName.Should().BeEmpty();
-        config.ProcessorCount.Should().Be(0);
-        config.RuntimeVersion.Should().BeEmpty();
+        Assert.Equal(0, config.Iterations);
+        Assert.Equal(0, config.WarmupIterations);
+        Assert.Equal(0, config.Threads);
+        Assert.Equal(default(DateTime), config.Timestamp);
+        Assert.Empty(config.MachineName);
+        Assert.Equal(0, config.ProcessorCount);
+        Assert.Empty(config.RuntimeVersion);
     }
 
     [Fact]
@@ -109,13 +109,13 @@ public class TestConfigurationTests
         };
 
         // Assert
-        config.Iterations.Should().Be(100000);
-        config.WarmupIterations.Should().Be(1000);
-        config.Threads.Should().Be(4);
-        config.Timestamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        config.MachineName.Should().Be("TestMachine");
-        config.ProcessorCount.Should().Be(8);
-        config.RuntimeVersion.Should().Be("8.0.0");
+        Assert.Equal(100000, config.Iterations);
+        Assert.Equal(1000, config.WarmupIterations);
+        Assert.Equal(4, config.Threads);
+        Assert.True(Math.Abs((config.Timestamp - DateTime.UtcNow).TotalSeconds) < 1);
+        Assert.Equal("TestMachine", config.MachineName);
+        Assert.Equal(8, config.ProcessorCount);
+        Assert.Equal("8.0.0", config.RuntimeVersion);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Iterations = 0 };
 
         // Assert
-        config.Iterations.Should().Be(0);
+        Assert.Equal(0, config.Iterations);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Iterations = 1000000 };
 
         // Assert
-        config.Iterations.Should().Be(1000000);
+        Assert.Equal(1000000, config.Iterations);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { WarmupIterations = 0 };
 
         // Assert
-        config.WarmupIterations.Should().Be(0);
+        Assert.Equal(0, config.WarmupIterations);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Threads = 1 };
 
         // Assert
-        config.Threads.Should().Be(1);
+        Assert.Equal(1, config.Threads);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Threads = 16 };
 
         // Assert
-        config.Threads.Should().Be(16);
+        Assert.Equal(16, config.Threads);
     }
 
     [Fact]
@@ -176,10 +176,10 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Timestamp = specificDate };
 
         // Assert
-        config.Timestamp.Should().Be(specificDate);
-        config.Timestamp.Year.Should().Be(2024);
-        config.Timestamp.Month.Should().Be(1);
-        config.Timestamp.Day.Should().Be(1);
+        Assert.Equal(specificDate, config.Timestamp);
+        Assert.Equal(2024, config.Timestamp.Year);
+        Assert.Equal(1, config.Timestamp.Month);
+        Assert.Equal(1, config.Timestamp.Day);
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { MachineName = "" };
 
         // Assert
-        config.MachineName.Should().BeEmpty();
+        Assert.Empty(config.MachineName);
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { MachineName = "DESKTOP-ABC123" };
 
         // Assert
-        config.MachineName.Should().Be("DESKTOP-ABC123");
+        Assert.Equal("DESKTOP-ABC123", config.MachineName);
     }
 
     [Fact]
@@ -212,8 +212,8 @@ public class TestConfigurationTests
         };
 
         // Assert
-        config.ProcessorCount.Should().BeGreaterThan(0);
-        config.ProcessorCount.Should().Be(Environment.ProcessorCount);
+        Assert.True(config.ProcessorCount > 0);
+        Assert.Equal(Environment.ProcessorCount, config.ProcessorCount);
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { RuntimeVersion = "" };
 
         // Assert
-        config.RuntimeVersion.Should().BeEmpty();
+        Assert.Empty(config.RuntimeVersion);
     }
 
     [Fact]
@@ -233,8 +233,8 @@ public class TestConfigurationTests
         var config = new TestConfiguration { RuntimeVersion = Environment.Version.ToString() };
 
         // Assert
-        config.RuntimeVersion.Should().NotBeNullOrEmpty();
-        config.RuntimeVersion.Should().Contain(".");
+        Assert.False(string.IsNullOrEmpty(config.RuntimeVersion));
+        Assert.Contains(".", config.RuntimeVersion);
     }
 
     [Fact]
@@ -246,7 +246,7 @@ public class TestConfigurationTests
         config2.Iterations = 2000;
 
         // Assert
-        config1.Iterations.Should().Be(2000);
+        Assert.Equal(2000, config1.Iterations);
     }
 
     [Fact]
@@ -267,8 +267,8 @@ public class TestConfigurationTests
         };
 
         // Assert
-        results.TestConfiguration.Should().Be(config);
-        results.TestConfiguration.Iterations.Should().Be(100000);
+        Assert.Equal(config, results.TestConfiguration);
+        Assert.Equal(100000, results.TestConfiguration.Iterations);
     }
 
     [Fact]
@@ -287,12 +287,12 @@ public class TestConfigurationTests
         };
 
         // Assert
-        config.Iterations.Should().Be(100000);
-        config.WarmupIterations.Should().Be(1000);
-        config.Threads.Should().Be(1);
-        config.MachineName.Should().NotBeEmpty();
-        config.ProcessorCount.Should().BeGreaterThan(0);
-        config.RuntimeVersion.Should().NotBeEmpty();
+        Assert.Equal(100000, config.Iterations);
+        Assert.Equal(1000, config.WarmupIterations);
+        Assert.Equal(1, config.Threads);
+        Assert.NotEmpty(config.MachineName);
+        Assert.True(config.ProcessorCount > 0);
+        Assert.NotEmpty(config.RuntimeVersion);
     }
 
     [Fact]
@@ -307,9 +307,9 @@ public class TestConfigurationTests
         };
 
         // Assert
-        config.Iterations.Should().Be(1000000);
-        config.WarmupIterations.Should().Be(10000);
-        config.Threads.Should().BeGreaterThan(0);
+        Assert.Equal(1000000, config.Iterations);
+        Assert.Equal(10000, config.WarmupIterations);
+        Assert.True(config.Threads > 0);
     }
 
     [Fact]
@@ -324,9 +324,9 @@ public class TestConfigurationTests
         };
 
         // Assert
-        config.Iterations.Should().Be(1000);
-        config.WarmupIterations.Should().Be(100);
-        config.Threads.Should().Be(1);
+        Assert.Equal(1000, config.Iterations);
+        Assert.Equal(100, config.WarmupIterations);
+        Assert.Equal(1, config.Threads);
     }
 
     [Fact]
@@ -337,7 +337,7 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Timestamp = utcNow };
 
         // Assert
-        config.Timestamp.Should().BeCloseTo(utcNow, TimeSpan.FromMilliseconds(100));
+        Assert.True(Math.Abs((config.Timestamp - utcNow).TotalMilliseconds) < 100);
     }
 
     [Fact]
@@ -351,8 +351,8 @@ public class TestConfigurationTests
         };
 
         // Assert
-        config.Threads.Should().Be(8);
-        (config.Iterations / config.Threads).Should().Be(12500); // Iterations per thread
+        Assert.Equal(8, config.Threads);
+        Assert.Equal(12500, config.Iterations / config.Threads); // Iterations per thread
     }
 
     [Fact]
@@ -367,7 +367,7 @@ public class TestConfigurationTests
 
         // Assert
         var warmupRatio = (double)config.WarmupIterations / config.Iterations;
-        warmupRatio.Should().BeLessThan(0.1); // Warmup should be < 10% of total
+        Assert.True(warmupRatio < 0.1); // Warmup should be < 10% of total
     }
 
     [Theory]
@@ -386,9 +386,9 @@ public class TestConfigurationTests
         };
 
         // Assert
-        config.Iterations.Should().Be(iterations);
-        config.WarmupIterations.Should().Be(warmup);
-        config.WarmupIterations.Should().BeLessThanOrEqualTo(config.Iterations);
+        Assert.Equal(iterations, config.Iterations);
+        Assert.Equal(warmup, config.WarmupIterations);
+        Assert.True(config.WarmupIterations <= config.Iterations);
     }
 
     [Theory]
@@ -403,8 +403,8 @@ public class TestConfigurationTests
         var config = new TestConfiguration { Threads = threads };
 
         // Assert
-        config.Threads.Should().Be(threads);
-        config.Threads.Should().BeGreaterThan(0);
+        Assert.Equal(threads, config.Threads);
+        Assert.True(config.Threads > 0);
     }
 
     [Fact]
@@ -414,8 +414,8 @@ public class TestConfigurationTests
         var config = new TestConfiguration();
 
         // Assert
-        config.MachineName.Should().NotBeNull();
-        config.RuntimeVersion.Should().NotBeNull();
+        Assert.NotNull(config.MachineName);
+        Assert.NotNull(config.RuntimeVersion);
     }
 
     [Fact]
@@ -437,10 +437,10 @@ public class TestConfigurationTests
         var json = System.Text.Json.JsonSerializer.Serialize(config);
 
         // Assert
-        json.Should().Contain("100000");
-        json.Should().Contain("1000");
-        json.Should().Contain("TestMachine");
-        json.Should().Contain("8.0.0");
+        Assert.Contains("100000", json);
+        Assert.Contains("1000", json);
+        Assert.Contains("TestMachine", json);
+        Assert.Contains("8.0.0", json);
     }
 
     [Fact]
@@ -461,13 +461,13 @@ public class TestConfigurationTests
         var config = System.Text.Json.JsonSerializer.Deserialize<TestConfiguration>(json);
 
         // Assert
-        config.Should().NotBeNull();
-        config!.Iterations.Should().Be(100000);
-        config.WarmupIterations.Should().Be(1000);
-        config.Threads.Should().Be(4);
-        config.MachineName.Should().Be("TestMachine");
-        config.ProcessorCount.Should().Be(8);
-        config.RuntimeVersion.Should().Be("8.0.0");
+        Assert.NotNull(config);
+        Assert.Equal(100000, config.Iterations);
+        Assert.Equal(1000, config.WarmupIterations);
+        Assert.Equal(4, config.Threads);
+        Assert.Equal("TestMachine", config.MachineName);
+        Assert.Equal(8, config.ProcessorCount);
+        Assert.Equal("8.0.0", config.RuntimeVersion);
     }
 
     [Fact]
@@ -483,7 +483,7 @@ public class TestConfigurationTests
         var totalExecutions = config.Iterations + config.WarmupIterations;
 
         // Assert
-        totalExecutions.Should().Be(101000);
+        Assert.Equal(101000, totalExecutions);
     }
 
     [Fact]
@@ -499,9 +499,11 @@ public class TestConfigurationTests
         };
 
         // Assert
-        config.MachineName.Should().NotBeNullOrEmpty();
-        config.ProcessorCount.Should().BeGreaterThan(0);
-        config.RuntimeVersion.Should().NotBeNullOrEmpty();
-        config.Timestamp.Kind.Should().Be(DateTimeKind.Utc);
+        Assert.False(string.IsNullOrEmpty(config.MachineName));
+        Assert.True(config.ProcessorCount > 0);
+        Assert.False(string.IsNullOrEmpty(config.RuntimeVersion));
+        Assert.Equal(DateTimeKind.Utc, config.Timestamp.Kind);
     }
 }
+
+

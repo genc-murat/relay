@@ -1,5 +1,6 @@
 using Relay.CLI.Commands;
-using FluentAssertions;
+
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -27,8 +28,8 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeOfType<AILearningResults>();
+        Assert.NotNull(result);
+        Assert.IsType<AILearningResults>(result);
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.TrainingSamples.Should().Be(15420);
+        Assert.Equal(15420, result.TrainingSamples);
     }
 
     [Fact]
@@ -60,7 +61,7 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.ModelAccuracy.Should().Be(0.94);
+        Assert.Equal(0.94, result.ModelAccuracy);
     }
 
     [Fact]
@@ -76,7 +77,7 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.TrainingTime.Should().Be(2.3);
+        Assert.Equal(2.3, result.TrainingTime);
     }
 
     [Fact]
@@ -92,18 +93,18 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.ImprovementAreas.Should().NotBeNull();
-        result.ImprovementAreas.Should().HaveCount(2);
+        Assert.NotNull(result.ImprovementAreas);
+        Assert.Equal(2, result.ImprovementAreas.Count());
 
         var cachingArea = result.ImprovementAreas.FirstOrDefault(a => a.Area == "Caching Predictions");
-        cachingArea.Should().NotBeNull();
-        cachingArea.Area.Should().Be("Caching Predictions");
-        cachingArea.Improvement.Should().Be(0.12);
+        Assert.NotNull(cachingArea);
+        Assert.Equal("Caching Predictions", cachingArea.Area);
+        Assert.Equal(0.12, cachingArea.Improvement);
 
         var batchArea = result.ImprovementAreas.FirstOrDefault(a => a.Area == "Batch Size Optimization");
-        batchArea.Should().NotBeNull();
-        batchArea.Area.Should().Be("Batch Size Optimization");
-        batchArea.Improvement.Should().Be(0.08);
+        Assert.NotNull(batchArea);
+        Assert.Equal("Batch Size Optimization", batchArea.Area);
+        Assert.Equal(0.08, batchArea.Improvement);
     }
 
     [Fact]
@@ -119,8 +120,8 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.ModelAccuracy.Should().BeGreaterThanOrEqualTo(0);
-        result.ModelAccuracy.Should().BeLessThanOrEqualTo(1);
+        Assert.True(result.ModelAccuracy >= 0);
+        Assert.True(result.ModelAccuracy <= 1);
     }
 
     [Fact]
@@ -136,7 +137,7 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.TrainingTime.Should().BeGreaterThan(0);
+        Assert.True(result.TrainingTime > 0);
     }
 
     [Fact]
@@ -152,7 +153,7 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.TrainingSamples.Should().BeGreaterThan(0);
+        Assert.True(result.TrainingSamples > 0);
     }
 
     [Fact]
@@ -170,8 +171,8 @@ public class AIModelLearnerTests
         // Assert
         foreach (var area in result.ImprovementAreas)
         {
-            area.Improvement.Should().BeGreaterThan(0);
-            area.Improvement.Should().BeLessThanOrEqualTo(1);
+            Assert.True(area.Improvement > 0);
+            Assert.True(area.Improvement <= 1);
         }
     }
 
@@ -194,10 +195,10 @@ public class AIModelLearnerTests
 
         // Assert
         // Currently implementation doesn't use the parameters, so results are the same
-        result1.TrainingSamples.Should().Be(result2.TrainingSamples);
-        result1.ModelAccuracy.Should().Be(result2.ModelAccuracy);
-        result1.TrainingTime.Should().Be(result2.TrainingTime);
-        result1.ImprovementAreas.Should().HaveCount(result2.ImprovementAreas.Length);
+        Assert.Equal(result2.TrainingSamples, result1.TrainingSamples);
+        Assert.Equal(result2.ModelAccuracy, result1.ModelAccuracy);
+        Assert.Equal(result2.TrainingTime, result1.TrainingTime);
+        Assert.Equal(result2.ImprovementAreas.Length, result1.ImprovementAreas.Count());
     }
 
     [Fact]
@@ -213,9 +214,9 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use metricsPath parameter, so results are the same
-        result.TrainingSamples.Should().Be(15420);
+        Assert.Equal(15420, result.TrainingSamples);
     }
 
     [Fact]
@@ -231,9 +232,9 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use path parameter, so results are the same
-        result.TrainingSamples.Should().Be(15420);
+        Assert.Equal(15420, result.TrainingSamples);
     }
 
     [Fact]
@@ -252,8 +253,8 @@ public class AIModelLearnerTests
 
         // Assert
         // Should complete in less than 5 seconds (simulated delay is 4.5 seconds)
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(5000);
-        result.Should().NotBeNull();
+        Assert.True(stopwatch.ElapsedMilliseconds < 5000);
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -269,7 +270,7 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.ImprovementAreas.Should().NotBeEmpty();
+        Assert.NotEmpty(result.ImprovementAreas);
     }
 
     [Fact]
@@ -287,7 +288,7 @@ public class AIModelLearnerTests
         // Assert
         foreach (var area in result.ImprovementAreas)
         {
-            area.Area.Should().NotBeNullOrEmpty();
+            Assert.False(string.IsNullOrEmpty(area.Area));
         }
     }
 
@@ -305,8 +306,8 @@ public class AIModelLearnerTests
 
         // Assert
         var areaNames = result.ImprovementAreas.Select(a => a.Area).ToArray();
-        areaNames.Should().Contain("Caching Predictions");
-        areaNames.Should().Contain("Batch Size Optimization");
+        Assert.Contains("Caching Predictions", areaNames);
+        Assert.Contains("Batch Size Optimization", areaNames);
     }
 
     [Fact]
@@ -323,9 +324,9 @@ public class AIModelLearnerTests
         var result2 = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result1.ImprovementAreas[0].Should().NotBeSameAs(result2.ImprovementAreas[0]);
-        result1.ImprovementAreas[0].Area.Should().Be(result2.ImprovementAreas[0].Area);
-        result1.ImprovementAreas[0].Improvement.Should().Be(result2.ImprovementAreas[0].Improvement);
+        Assert.NotSame(result1.ImprovementAreas[0], result2.ImprovementAreas[0]);
+        Assert.Equal(result1.ImprovementAreas[0].Area, result2.ImprovementAreas[0].Area);
+        Assert.Equal(result1.ImprovementAreas[0].Improvement, result2.ImprovementAreas[0].Improvement);
     }
 
     [Fact]
@@ -341,9 +342,9 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use updateModel parameter, so results are the same
-        result.TrainingSamples.Should().Be(15420);
+        Assert.Equal(15420, result.TrainingSamples);
     }
 
     [Fact]
@@ -359,8 +360,9 @@ public class AIModelLearnerTests
         var result = await _learner.LearnAsync(path, metricsPath, updateModel, validate);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use validate parameter, so results are the same
-        result.ModelAccuracy.Should().Be(0.94);
+        Assert.Equal(0.94, result.ModelAccuracy);
     }
 }
+

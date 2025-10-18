@@ -1808,7 +1808,7 @@ public class PipelineCommandTests
         try
         {
             // Act
-            await ExecuteWithMockedConsole(() => PipelineCommand.ExecutePipeline(
+            await PipelineCommand.ExecutePipeline(
                 path: path,
                 projectName: null,
                 template: "standard",
@@ -1817,7 +1817,7 @@ public class PipelineCommandTests
                 autoFix: false,
                 reportPath: reportPath,
                 ciMode: true,
-                cancellationToken: CancellationToken.None));
+                cancellationToken: CancellationToken.None);
 
             // Assert
             Assert.True(File.Exists(reportPath));

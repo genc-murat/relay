@@ -11,7 +11,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Type = "Memory Leak" };
 
         // Assert
-        issue.Type.Should().Be("Memory Leak");
+        Assert.Equal("Memory Leak", issue.Type);
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Severity = "High" };
 
         // Assert
-        issue.Severity.Should().Be("High");
+        Assert.Equal("High", issue.Severity);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Count = 5 };
 
         // Assert
-        issue.Count.Should().Be(5);
+        Assert.Equal(5, issue.Count);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Description = "Memory usage is growing over time" };
 
         // Assert
-        issue.Description.Should().Be("Memory usage is growing over time");
+        Assert.Equal("Memory usage is growing over time", issue.Description);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Recommendation = "Implement proper disposal of resources" };
 
         // Assert
-        issue.Recommendation.Should().Be("Implement proper disposal of resources");
+        Assert.Equal("Implement proper disposal of resources", issue.Recommendation);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { PotentialImprovement = "50% reduction in memory usage" };
 
         // Assert
-        issue.PotentialImprovement.Should().Be("50% reduction in memory usage");
+        Assert.Equal("50% reduction in memory usage", issue.PotentialImprovement);
     }
 
     [Fact]
@@ -71,12 +71,12 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue();
 
         // Assert
-        issue.Type.Should().Be("");
-        issue.Severity.Should().Be("");
-        issue.Count.Should().Be(0);
-        issue.Description.Should().Be("");
-        issue.Recommendation.Should().Be("");
-        issue.PotentialImprovement.Should().Be("");
+        Assert.Equal("", issue.Type);
+        Assert.Equal("", issue.Severity);
+        Assert.Equal(0, issue.Count);
+        Assert.Equal("", issue.Description);
+        Assert.Equal("", issue.Recommendation);
+        Assert.Equal("", issue.PotentialImprovement);
     }
 
     [Fact]
@@ -94,12 +94,12 @@ public class PerformanceIssueTests
         };
 
         // Assert
-        issue.Type.Should().Be("CPU Bottleneck");
-        issue.Severity.Should().Be("Medium");
-        issue.Count.Should().Be(3);
-        issue.Description.Should().Be("High CPU usage detected in main thread");
-        issue.Recommendation.Should().Be("Consider using async operations");
-        issue.PotentialImprovement.Should().Be("30% improvement in response time");
+        Assert.Equal("CPU Bottleneck", issue.Type);
+        Assert.Equal("Medium", issue.Severity);
+        Assert.Equal(3, issue.Count);
+        Assert.Equal("High CPU usage detected in main thread", issue.Description);
+        Assert.Equal("Consider using async operations", issue.Recommendation);
+        Assert.Equal("30% improvement in response time", issue.PotentialImprovement);
     }
 
     [Theory]
@@ -113,7 +113,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Count = count };
 
         // Assert
-        issue.Count.Should().Be(count);
+        Assert.Equal(count, issue.Count);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Type = "" };
 
         // Assert
-        issue.Type.Should().BeEmpty();
+        Assert.Empty(issue.Type);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Type = "Memory/CPU-Issue_123" };
 
         // Assert
-        issue.Type.Should().Be("Memory/CPU-Issue_123");
+        Assert.Equal("Memory/CPU-Issue_123", issue.Type);
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Severity = "" };
 
         // Assert
-        issue.Severity.Should().BeEmpty();
+        Assert.Empty(issue.Severity);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class PerformanceIssueTests
         foreach (var severity in severities)
         {
             var issue = new PerformanceIssue { Severity = severity };
-            issue.Severity.Should().Be(severity);
+            Assert.Equal(severity, issue.Severity);
         }
     }
 
@@ -166,7 +166,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Description = "" };
 
         // Assert
-        issue.Description.Should().BeEmpty();
+        Assert.Empty(issue.Description);
     }
 
     [Fact]
@@ -179,8 +179,8 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Description = longDescription };
 
         // Assert
-        issue.Description.Should().Be(longDescription);
-        issue.Description.Length.Should().Be(1000);
+        Assert.Equal(longDescription, issue.Description);
+        Assert.Equal(1000, issue.Description.Length);
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Recommendation = "" };
 
         // Assert
-        issue.Recommendation.Should().BeEmpty();
+        Assert.Empty(issue.Recommendation);
     }
 
     [Fact]
@@ -203,8 +203,8 @@ public class PerformanceIssueTests
         };
 
         // Assert
-        issue.Recommendation.Should().Contain("StringBuilder");
-        issue.Recommendation.Should().Contain("caching");
+        Assert.Contains("StringBuilder", issue.Recommendation);
+        Assert.Contains("caching", issue.Recommendation);
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { PotentialImprovement = "" };
 
         // Assert
-        issue.PotentialImprovement.Should().BeEmpty();
+        Assert.Empty(issue.PotentialImprovement);
     }
 
     [Fact]
@@ -227,8 +227,8 @@ public class PerformanceIssueTests
         };
 
         // Assert
-        issue.PotentialImprovement.Should().Contain("40%");
-        issue.PotentialImprovement.Should().Contain("60%");
+        Assert.Contains("40%", issue.PotentialImprovement);
+        Assert.Contains("60%", issue.PotentialImprovement);
     }
 
     [Fact]
@@ -243,8 +243,8 @@ public class PerformanceIssueTests
         };
 
         // Assert
-        issues.Should().HaveCount(3);
-        issues.Sum(i => i.Count).Should().Be(9);
+        Assert.Equal(3, issues.Count);
+        Assert.Equal(9, issues.Sum(i => i.Count));
     }
 
     [Fact]
@@ -263,8 +263,8 @@ public class PerformanceIssueTests
         var memoryIssues = issues.Where(i => i.Type == "Memory").ToList();
 
         // Assert
-        memoryIssues.Should().HaveCount(2);
-        memoryIssues.All(i => i.Type == "Memory").Should().BeTrue();
+        Assert.Equal(2, memoryIssues.Count);
+        Assert.True(memoryIssues.All(i => i.Type == "Memory"));
     }
 
     [Fact]
@@ -283,8 +283,8 @@ public class PerformanceIssueTests
         var highSeverityIssues = issues.Where(i => i.Severity == "High").ToList();
 
         // Assert
-        highSeverityIssues.Should().HaveCount(2);
-        highSeverityIssues.All(i => i.Severity == "High").Should().BeTrue();
+        Assert.Equal(2, highSeverityIssues.Count);
+        Assert.True(highSeverityIssues.All(i => i.Severity == "High"));
     }
 
     [Fact]
@@ -302,9 +302,9 @@ public class PerformanceIssueTests
         var ordered = issues.OrderByDescending(i => i.Count).ToList();
 
         // Assert
-        ordered[0].Count.Should().Be(10);
-        ordered[1].Count.Should().Be(5);
-        ordered[2].Count.Should().Be(1);
+        Assert.Equal(10, ordered[0].Count);
+        Assert.Equal(5, ordered[1].Count);
+        Assert.Equal(1, ordered[2].Count);
     }
 
     [Fact]
@@ -323,9 +323,9 @@ public class PerformanceIssueTests
         var grouped = issues.GroupBy(i => i.Type);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == "Memory").Sum(i => i.Count).Should().Be(6);
-        grouped.First(g => g.Key == "CPU").Sum(i => i.Count).Should().Be(3);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(6, grouped.First(g => g.Key == "Memory").Sum(i => i.Count));
+        Assert.Equal(3, grouped.First(g => g.Key == "CPU").Sum(i => i.Count));
     }
 
     [Fact]
@@ -351,12 +351,12 @@ public class PerformanceIssueTests
         issue.PotentialImprovement = "Modified improvement";
 
         // Assert
-        issue.Type.Should().Be("Modified");
-        issue.Severity.Should().Be("High");
-        issue.Count.Should().Be(10);
-        issue.Description.Should().Be("Modified description");
-        issue.Recommendation.Should().Be("Modified recommendation");
-        issue.PotentialImprovement.Should().Be("Modified improvement");
+        Assert.Equal("Modified", issue.Type);
+        Assert.Equal("High", issue.Severity);
+        Assert.Equal(10, issue.Count);
+        Assert.Equal("Modified description", issue.Description);
+        Assert.Equal("Modified recommendation", issue.Recommendation);
+        Assert.Equal("Modified improvement", issue.PotentialImprovement);
     }
 
     [Fact]
@@ -366,8 +366,8 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue();
 
         // Assert
-        issue.Should().NotBeNull();
-        issue.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(issue);
+        Assert.True(issue.GetType().IsClass);
     }
 
     [Fact]
@@ -385,12 +385,12 @@ public class PerformanceIssueTests
         };
 
         // Assert
-        issue.Type.Should().Be("N+1 Query Problem");
-        issue.Severity.Should().Be("High");
-        issue.Count.Should().Be(15);
-        issue.Description.Should().Contain("N+1 query pattern");
-        issue.Recommendation.Should().Contain("Include()");
-        issue.PotentialImprovement.Should().Contain("70%");
+        Assert.Equal("N+1 Query Problem", issue.Type);
+        Assert.Equal("High", issue.Severity);
+        Assert.Equal(15, issue.Count);
+        Assert.Contains("N+1 query pattern", issue.Description);
+        Assert.Contains("Include()", issue.Recommendation);
+        Assert.Contains("70%", issue.PotentialImprovement);
     }
 
     [Fact]
@@ -408,10 +408,10 @@ public class PerformanceIssueTests
         };
 
         // Assert
-        issue.Type.Should().Be("Memory Leak");
-        issue.Severity.Should().Be("Critical");
-        issue.Description.Should().Contain("Event handler");
-        issue.Recommendation.Should().Contain("IDisposable");
+        Assert.Equal("Memory Leak", issue.Type);
+        Assert.Equal("Critical", issue.Severity);
+        Assert.Contains("Event handler", issue.Description);
+        Assert.Contains("IDisposable", issue.Recommendation);
     }
 
     [Fact]
@@ -429,10 +429,10 @@ public class PerformanceIssueTests
         };
 
         // Assert
-        issue.Type.Should().Be("Blocking Call");
-        issue.Severity.Should().Be("Medium");
-        issue.Count.Should().Be(8);
-        issue.Recommendation.Should().Contain("async/await");
+        Assert.Equal("Blocking Call", issue.Type);
+        Assert.Equal("Medium", issue.Severity);
+        Assert.Equal(8, issue.Count);
+        Assert.Contains("async/await", issue.Recommendation);
     }
 
     [Fact]
@@ -442,7 +442,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Count = 0 };
 
         // Assert
-        issue.Count.Should().Be(0);
+        Assert.Equal(0, issue.Count);
     }
 
     [Fact]
@@ -452,7 +452,7 @@ public class PerformanceIssueTests
         var issue = new PerformanceIssue { Count = int.MaxValue };
 
         // Assert
-        issue.Count.Should().Be(int.MaxValue);
+        Assert.Equal(int.MaxValue, issue.Count);
     }
 
     [Fact]
@@ -472,9 +472,9 @@ public class PerformanceIssueTests
         var highSeverityCount = issues.Count(i => i.Severity == "High");
 
         // Assert
-        totalCount.Should().Be(10);
-        memoryIssues.Sum(i => i.Count).Should().Be(7);
-        highSeverityCount.Should().Be(1);
+        Assert.Equal(10, totalCount);
+        Assert.Equal(7, memoryIssues.Sum(i => i.Count));
+        Assert.Equal(1, highSeverityCount);
     }
 
     [Fact]
@@ -492,11 +492,11 @@ public class PerformanceIssueTests
         };
 
         // Assert - Basic serialization check
-        issue.Type.Should().Be("Complex Performance Issue");
-        issue.Count.Should().Be(25);
-        issue.Recommendation.Should().Contain("1.");
-        issue.Recommendation.Should().Contain("2.");
-        issue.Recommendation.Should().Contain("3.");
+        Assert.Equal("Complex Performance Issue", issue.Type);
+        Assert.Equal(25, issue.Count);
+        Assert.Contains("1.", issue.Recommendation);
+        Assert.Contains("2.", issue.Recommendation);
+        Assert.Contains("3.", issue.Recommendation);
     }
 
     [Fact]
@@ -535,10 +535,11 @@ public class PerformanceIssueTests
         }).ToList();
 
         // Assert
-        report.Should().HaveCount(2);
-        report[0].IssueType.Should().Be("Memory Leak");
-        report[0].Occurrences.Should().Be(1);
-        report[1].IssueType.Should().Be("Slow Query");
-        report[1].Occurrences.Should().Be(5);
+        Assert.Equal(2, report.Count);
+        Assert.Equal("Memory Leak", report[0].IssueType);
+        Assert.Equal(1, report[0].Occurrences);
+        Assert.Equal("Slow Query", report[1].IssueType);
+        Assert.Equal(5, report[1].Occurrences);
     }
 }
+

@@ -1,6 +1,7 @@
-using FluentAssertions;
+
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Optimization;
+using System;
 using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
@@ -19,17 +20,17 @@ public class OptimizationContextTests
         var context = new OptimizationContext();
 
         // Assert
-        context.ProjectPath.Should().BeEmpty();
-        context.IsDryRun.Should().BeFalse();
-        context.Target.Should().BeEmpty();
-        context.IsAggressive.Should().BeFalse();
-        context.CreateBackup.Should().BeFalse();
-        context.Timestamp.Should().Be(default(DateTime));
-        context.BackupPath.Should().BeEmpty();
-        context.SourceFiles.Should().NotBeNull();
-        context.SourceFiles.Should().BeEmpty();
-        context.OptimizationActions.Should().NotBeNull();
-        context.OptimizationActions.Should().BeEmpty();
+        Assert.Empty(context.ProjectPath);
+        Assert.False(context.IsDryRun);
+        Assert.Empty(context.Target);
+        Assert.False(context.IsAggressive);
+        Assert.False(context.CreateBackup);
+        Assert.Equal(default(DateTime), context.Timestamp);
+        Assert.Empty(context.BackupPath);
+        Assert.NotNull(context.SourceFiles);
+        Assert.Empty(context.SourceFiles);
+        Assert.NotNull(context.OptimizationActions);
+        Assert.Empty(context.OptimizationActions);
     }
 
     [Fact]
@@ -39,8 +40,10 @@ public class OptimizationContextTests
         var context = new OptimizationContext();
 
         // Assert
-        context.SourceFiles.Should().NotBeNull().And.BeEmpty();
-        context.OptimizationActions.Should().NotBeNull().And.BeEmpty();
+        Assert.NotNull(context.SourceFiles);
+        Assert.Empty(context.SourceFiles);
+        Assert.NotNull(context.OptimizationActions);
+        Assert.Empty(context.OptimizationActions);
     }
 
     #endregion
@@ -58,7 +61,7 @@ public class OptimizationContextTests
         context.ProjectPath = expectedPath;
 
         // Assert
-        context.ProjectPath.Should().Be(expectedPath);
+        Assert.Equal(expectedPath, context.ProjectPath);
     }
 
     [Fact]
@@ -71,7 +74,7 @@ public class OptimizationContextTests
         context.IsDryRun = true;
 
         // Assert
-        context.IsDryRun.Should().BeTrue();
+        Assert.True(context.IsDryRun);
     }
 
     [Fact]
@@ -84,7 +87,7 @@ public class OptimizationContextTests
         context.Target = "handlers";
 
         // Assert
-        context.Target.Should().Be("handlers");
+        Assert.Equal("handlers", context.Target);
     }
 
     [Fact]
@@ -97,7 +100,7 @@ public class OptimizationContextTests
         context.IsAggressive = true;
 
         // Assert
-        context.IsAggressive.Should().BeTrue();
+        Assert.True(context.IsAggressive);
     }
 
     [Fact]
@@ -110,7 +113,7 @@ public class OptimizationContextTests
         context.CreateBackup = true;
 
         // Assert
-        context.CreateBackup.Should().BeTrue();
+        Assert.True(context.CreateBackup);
     }
 
     [Fact]
@@ -124,7 +127,7 @@ public class OptimizationContextTests
         context.Timestamp = timestamp;
 
         // Assert
-        context.Timestamp.Should().Be(timestamp);
+        Assert.Equal(timestamp, context.Timestamp);
     }
 
     [Fact]
@@ -138,7 +141,7 @@ public class OptimizationContextTests
         context.BackupPath = backupPath;
 
         // Assert
-        context.BackupPath.Should().Be(backupPath);
+        Assert.Equal(backupPath, context.BackupPath);
     }
 
     [Fact]
@@ -152,7 +155,7 @@ public class OptimizationContextTests
         context.SourceFiles = files;
 
         // Assert
-        context.SourceFiles.Should().BeEquivalentTo(files);
+        Assert.Equal(files, context.SourceFiles);
     }
 
     [Fact]
@@ -169,7 +172,7 @@ public class OptimizationContextTests
         context.OptimizationActions = actions;
 
         // Assert
-        context.OptimizationActions.Should().HaveCount(1);
+        Assert.Equal(1, context.OptimizationActions.Count());
     }
 
     #endregion
@@ -198,15 +201,15 @@ public class OptimizationContextTests
         };
 
         // Assert
-        context.ProjectPath.Should().Be(@"C:\Projects\MyRelay");
-        context.IsDryRun.Should().BeTrue();
-        context.Target.Should().Be("handlers");
-        context.IsAggressive.Should().BeTrue();
-        context.CreateBackup.Should().BeTrue();
-        context.Timestamp.Should().Be(timestamp);
-        context.BackupPath.Should().Be(@"C:\Projects\.backup");
-        context.SourceFiles.Should().HaveCount(2);
-        context.OptimizationActions.Should().HaveCount(1);
+        Assert.Equal(@"C:\Projects\MyRelay", context.ProjectPath);
+        Assert.True(context.IsDryRun);
+        Assert.Equal("handlers", context.Target);
+        Assert.True(context.IsAggressive);
+        Assert.True(context.CreateBackup);
+        Assert.Equal(timestamp, context.Timestamp);
+        Assert.Equal(@"C:\Projects\.backup", context.BackupPath);
+        Assert.Equal(2, context.SourceFiles.Count());
+        Assert.Equal(1, context.OptimizationActions.Count());
     }
 
     #endregion
@@ -224,7 +227,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { Target = target };
 
         // Assert
-        context.Target.Should().Be(target);
+        Assert.Equal(target, context.Target);
     }
 
     [Fact]
@@ -234,7 +237,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { Target = "all" };
 
         // Assert
-        context.Target.Should().Be("all");
+        Assert.Equal("all", context.Target);
     }
 
     [Fact]
@@ -244,7 +247,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { Target = "handlers" };
 
         // Assert
-        context.Target.Should().Be("handlers");
+        Assert.Equal("handlers", context.Target);
     }
 
     [Fact]
@@ -255,7 +258,7 @@ public class OptimizationContextTests
         var normalized = context.Target.ToLowerInvariant();
 
         // Assert
-        normalized.Should().Be("handlers");
+        Assert.Equal("handlers", normalized);
     }
 
     #endregion
@@ -273,7 +276,7 @@ public class OptimizationContextTests
         context.SourceFiles.Add("Handler2.cs");
 
         // Assert
-        context.SourceFiles.Should().HaveCount(2);
+        Assert.Equal(2, context.SourceFiles.Count());
     }
 
     [Fact]
@@ -287,7 +290,7 @@ public class OptimizationContextTests
         context.SourceFiles.AddRange(files);
 
         // Assert
-        context.SourceFiles.Should().HaveCount(3);
+        Assert.Equal(3, context.SourceFiles.Count());
     }
 
     [Fact]
@@ -301,7 +304,7 @@ public class OptimizationContextTests
         context.SourceFiles.Clear();
 
         // Assert
-        context.SourceFiles.Should().BeEmpty();
+        Assert.Empty(context.SourceFiles);
     }
 
     [Fact]
@@ -315,7 +318,7 @@ public class OptimizationContextTests
         var contains = context.SourceFiles.Contains("Handler.cs");
 
         // Assert
-        contains.Should().BeTrue();
+        Assert.True(contains);
     }
 
     [Fact]
@@ -329,8 +332,8 @@ public class OptimizationContextTests
         context.SourceFiles.Remove("File1.cs");
 
         // Assert
-        context.SourceFiles.Should().HaveCount(1);
-        context.SourceFiles.Should().NotContain("File1.cs");
+        Assert.Equal(1, context.SourceFiles.Count());
+        Assert.DoesNotContain("File1.cs", context.SourceFiles);
     }
 
     [Fact]
@@ -349,7 +352,7 @@ public class OptimizationContextTests
         var handlers = context.SourceFiles.Where(f => f.Contains("Handler")).ToList();
 
         // Assert
-        handlers.Should().HaveCount(2);
+        Assert.Equal(2, handlers.Count());
     }
 
     #endregion
@@ -367,7 +370,7 @@ public class OptimizationContextTests
         context.OptimizationActions.Add(new OptimizationAction { Type = "Request" });
 
         // Assert
-        context.OptimizationActions.Should().HaveCount(2);
+        Assert.Equal(2, context.OptimizationActions.Count());
     }
 
     [Fact]
@@ -386,7 +389,7 @@ public class OptimizationContextTests
         context.OptimizationActions.AddRange(actions);
 
         // Assert
-        context.OptimizationActions.Should().HaveCount(3);
+        Assert.Equal(3, context.OptimizationActions.Count());
     }
 
     [Fact]
@@ -400,7 +403,7 @@ public class OptimizationContextTests
         context.OptimizationActions.Clear();
 
         // Assert
-        context.OptimizationActions.Should().BeEmpty();
+        Assert.Empty(context.OptimizationActions);
     }
 
     [Fact]
@@ -419,8 +422,8 @@ public class OptimizationContextTests
         var grouped = context.OptimizationActions.GroupBy(a => a.Type).ToList();
 
         // Assert
-        grouped.Should().HaveCount(2);
-        grouped.First(g => g.Key == "Handler").Should().HaveCount(2);
+        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Handler").Count());
     }
 
     [Fact]
@@ -438,7 +441,7 @@ public class OptimizationContextTests
         var totalMods = context.OptimizationActions.Sum(a => a.Modifications.Count);
 
         // Assert
-        totalMods.Should().Be(3);
+        Assert.Equal(3, totalMods);
     }
 
     #endregion
@@ -456,7 +459,7 @@ public class OptimizationContextTests
         context.Timestamp = now;
 
         // Assert
-        context.Timestamp.Should().BeCloseTo(now, TimeSpan.FromSeconds(1));
+        Assert.True(Math.Abs((context.Timestamp - now).TotalSeconds) <= 1);
     }
 
     [Fact]
@@ -472,7 +475,7 @@ public class OptimizationContextTests
         var backupName = $".backup_{context.Timestamp:yyyyMMdd_HHmmss}";
 
         // Assert
-        backupName.Should().Be(".backup_20240115_103000");
+        Assert.Equal(".backup_20240115_103000", backupName);
     }
 
     [Fact]
@@ -488,7 +491,7 @@ public class OptimizationContextTests
         var elapsed = DateTime.UtcNow - context.Timestamp;
 
         // Assert
-        elapsed.TotalMinutes.Should().BeGreaterThanOrEqualTo(4.9);
+        Assert.True(elapsed.TotalMinutes >= 4.9);
     }
 
     #endregion
@@ -502,7 +505,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { IsDryRun = true };
 
         // Assert
-        context.IsDryRun.Should().BeTrue();
+        Assert.True(context.IsDryRun);
     }
 
     [Fact]
@@ -512,7 +515,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { IsDryRun = false };
 
         // Assert
-        context.IsDryRun.Should().BeFalse();
+        Assert.False(context.IsDryRun);
     }
 
     [Fact]
@@ -522,7 +525,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { IsAggressive = true };
 
         // Assert
-        context.IsAggressive.Should().BeTrue();
+        Assert.True(context.IsAggressive);
     }
 
     [Fact]
@@ -532,7 +535,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { IsAggressive = false };
 
         // Assert
-        context.IsAggressive.Should().BeFalse();
+        Assert.False(context.IsAggressive);
     }
 
     [Fact]
@@ -546,8 +549,8 @@ public class OptimizationContextTests
         };
 
         // Assert
-        context.IsDryRun.Should().BeTrue();
-        context.IsAggressive.Should().BeTrue();
+        Assert.True(context.IsDryRun);
+        Assert.True(context.IsAggressive);
     }
 
     #endregion
@@ -561,7 +564,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { CreateBackup = true };
 
         // Assert
-        context.CreateBackup.Should().BeTrue();
+        Assert.True(context.CreateBackup);
     }
 
     [Fact]
@@ -571,7 +574,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { CreateBackup = false };
 
         // Assert
-        context.CreateBackup.Should().BeFalse();
+        Assert.False(context.CreateBackup);
     }
 
     [Fact]
@@ -581,7 +584,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { BackupPath = ".backup" };
 
         // Assert
-        context.BackupPath.Should().Be(".backup");
+        Assert.Equal(".backup", context.BackupPath);
     }
 
     [Fact]
@@ -595,7 +598,7 @@ public class OptimizationContextTests
         };
 
         // Assert
-        Path.IsPathRooted(context.BackupPath).Should().BeTrue();
+        Assert.True(Path.IsPathRooted(context.BackupPath));
     }
 
     [Fact]
@@ -611,8 +614,8 @@ public class OptimizationContextTests
         context.BackupPath = $".backup_{context.Timestamp:yyyyMMdd_HHmmss}";
 
         // Assert
-        context.BackupPath.Should().StartWith(".backup_");
-        context.BackupPath.Should().MatchRegex(@"\.backup_\d{8}_\d{6}");
+        Assert.StartsWith(".backup_", context.BackupPath);
+        Assert.Matches(@"\.backup_\d{8}_\d{6}", context.BackupPath);
     }
 
     #endregion
@@ -626,7 +629,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { ProjectPath = "./MyProject" };
 
         // Assert
-        context.ProjectPath.Should().Be("./MyProject");
+        Assert.Equal("./MyProject", context.ProjectPath);
     }
 
     [Fact]
@@ -640,7 +643,7 @@ public class OptimizationContextTests
         };
 
         // Assert
-        Path.IsPathRooted(context.ProjectPath).Should().BeTrue();
+        Assert.True(Path.IsPathRooted(context.ProjectPath));
     }
 
     [Fact]
@@ -656,7 +659,7 @@ public class OptimizationContextTests
         var normalized = context.ProjectPath.Replace('\\', '/');
 
         // Assert
-        normalized.Should().Contain("/");
+        Assert.Contains("/", normalized);
     }
 
     #endregion
@@ -674,7 +677,7 @@ public class OptimizationContextTests
         var count = context.SourceFiles.Count;
 
         // Assert
-        count.Should().Be(3);
+        Assert.Equal(3, count);
     }
 
     [Fact]
@@ -692,7 +695,7 @@ public class OptimizationContextTests
         var count = context.OptimizationActions.Count;
 
         // Assert
-        count.Should().Be(2);
+        Assert.Equal(2, count);
     }
 
     [Fact]
@@ -716,7 +719,7 @@ public class OptimizationContextTests
         var total = context.OptimizationActions.Sum(a => a.Modifications.Count);
 
         // Assert
-        total.Should().Be(5);
+        Assert.Equal(5, total);
     }
 
     #endregion
@@ -734,9 +737,9 @@ public class OptimizationContextTests
         context2.SourceFiles.Add("File2.cs");
 
         // Assert
-        context1.Target.Should().NotBe(context2.Target);
-        context1.SourceFiles.Should().NotContain("File2.cs");
-        context2.SourceFiles.Should().NotContain("File1.cs");
+        Assert.NotEqual(context1.Target, context2.Target);
+        Assert.DoesNotContain("File2.cs", context1.SourceFiles);
+        Assert.DoesNotContain("File1.cs", context2.SourceFiles);
     }
 
     #endregion
@@ -777,12 +780,12 @@ public class OptimizationContextTests
         context.BackupPath = $"{context.ProjectPath}\\.backup_{context.Timestamp:yyyyMMdd_HHmmss}";
 
         // Assert
-        context.ProjectPath.Should().NotBeNullOrEmpty();
-        context.Target.Should().Be("handlers");
-        context.SourceFiles.Should().HaveCount(2);
-        context.OptimizationActions.Should().HaveCount(1);
-        context.CreateBackup.Should().BeTrue();
-        context.BackupPath.Should().Contain(".backup_");
+        Assert.False(string.IsNullOrEmpty(context.ProjectPath));
+        Assert.Equal("handlers", context.Target);
+        Assert.Equal(2, context.SourceFiles.Count());
+        Assert.Equal(1, context.OptimizationActions.Count());
+        Assert.True(context.CreateBackup);
+        Assert.Contains(".backup_", context.BackupPath);
     }
 
     [Fact]
@@ -822,11 +825,11 @@ public class OptimizationContextTests
         });
 
         // Assert
-        context.IsDryRun.Should().BeTrue();
-        context.CreateBackup.Should().BeFalse();
-        context.IsAggressive.Should().BeTrue();
-        context.SourceFiles.Should().HaveCount(4);
-        context.OptimizationActions.Should().HaveCount(2);
+        Assert.True(context.IsDryRun);
+        Assert.False(context.CreateBackup);
+        Assert.True(context.IsAggressive);
+        Assert.Equal(4, context.SourceFiles.Count());
+        Assert.Equal(2, context.OptimizationActions.Count());
     }
 
     #endregion
@@ -840,7 +843,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { ProjectPath = "" };
 
         // Assert
-        context.ProjectPath.Should().BeEmpty();
+        Assert.Empty(context.ProjectPath);
     }
 
     [Fact]
@@ -850,7 +853,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { Target = "" };
 
         // Assert
-        context.Target.Should().BeEmpty();
+        Assert.Empty(context.Target);
     }
 
     [Fact]
@@ -863,7 +866,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext { ProjectPath = longPath };
 
         // Assert
-        context.ProjectPath.Length.Should().BeGreaterThan(100);
+        Assert.True(context.ProjectPath.Length > 100);
     }
 
     [Fact]
@@ -879,7 +882,7 @@ public class OptimizationContextTests
         }
 
         // Assert
-        context.SourceFiles.Should().HaveCount(1000);
+        Assert.Equal(1000, context.SourceFiles.Count());
     }
 
     [Fact]
@@ -899,7 +902,7 @@ public class OptimizationContextTests
         }
 
         // Assert
-        context.OptimizationActions.Should().HaveCount(100);
+        Assert.Equal(100, context.OptimizationActions.Count());
     }
 
     #endregion
@@ -918,12 +921,12 @@ public class OptimizationContextTests
         var targetProp = type.GetProperty(nameof(OptimizationContext.Target));
 
         // Assert
-        projectPathProp.Should().NotBeNull();
-        isDryRunProp.Should().NotBeNull();
-        targetProp.Should().NotBeNull();
-        projectPathProp!.CanRead.Should().BeTrue();
-        isDryRunProp!.CanRead.Should().BeTrue();
-        targetProp!.CanRead.Should().BeTrue();
+        Assert.NotNull(projectPathProp);
+        Assert.NotNull(isDryRunProp);
+        Assert.NotNull(targetProp);
+        Assert.True(projectPathProp.CanRead);
+        Assert.True(isDryRunProp.CanRead);
+        Assert.True(targetProp.CanRead);
     }
 
     [Fact]
@@ -937,8 +940,8 @@ public class OptimizationContextTests
         var targetProp = type.GetProperty(nameof(OptimizationContext.Target));
 
         // Assert
-        projectPathProp!.CanWrite.Should().BeTrue();
-        targetProp!.CanWrite.Should().BeTrue();
+        Assert.True(projectPathProp.CanWrite);
+        Assert.True(targetProp.CanWrite);
     }
 
     #endregion
@@ -956,7 +959,7 @@ public class OptimizationContextTests
         };
 
         // Assert
-        act.Should().NotThrow();
+        act();
     }
 
     [Fact]
@@ -970,8 +973,10 @@ public class OptimizationContextTests
         };
 
         // Assert
-        act.Should().NotThrow();
+        act();
     }
 
     #endregion
 }
+
+

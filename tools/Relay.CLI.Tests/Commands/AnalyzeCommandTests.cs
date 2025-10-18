@@ -4,6 +4,7 @@ using Relay.CLI.Commands.Models.Performance;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using Microsoft.CodeAnalysis.CSharp;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -1207,8 +1208,8 @@ public record SecondRequest(string Value) : IRequest<string>;";
             await AnalyzeCommand.AnalyzeDependencies(analysis, null, null);
 
             // Assert
-            analysis.ProjectFiles.Should().HaveCount(1);
-            analysis.HasRelayCore.Should().BeTrue();
+            Assert.Equal(1, analysis.ProjectFiles.Count());
+            Assert.True(analysis.HasRelayCore);
         }
         finally
         {
@@ -1250,10 +1251,10 @@ public class RegularHandler : INotificationHandler<TestNotification>
             await AnalyzeCommand.AnalyzeHandlers(analysis, null, null);
 
             // Assert
-            analysis.Handlers.Should().HaveCount(2);
-            analysis.Handlers.Count(h => h.Name.Contains("Optimized")).Should().Be(1);
-            analysis.Handlers.Count(h => h.UsesValueTask).Should().Be(2);
-            analysis.Handlers.Count(h => h.HasCancellationToken).Should().Be(2);
+            Assert.Equal(2, analysis.Handlers.Count());
+            Assert.Equal(1, analysis.Handlers.Count(h => h.Name.Contains("Optimized")));
+            Assert.Equal(2, analysis.Handlers.Count(h => h.UsesValueTask));
+            Assert.Equal(2, analysis.Handlers.Count(h => h.HasCancellationToken));
         }
         finally
         {
@@ -1287,10 +1288,10 @@ public record UserDto(int Id, string Name, string Email);";
             await AnalyzeCommand.AnalyzeRequests(analysis, null, null);
 
             // Assert
-            analysis.Requests.Should().HaveCount(2);
-            analysis.Requests.Count(r => r.IsRecord).Should().Be(2);
-            analysis.Requests.Count(r => r.HasAuthorization).Should().Be(1);
-            analysis.Requests.Count(r => r.HasCaching).Should().Be(1);
+            Assert.Equal(2, analysis.Requests.Count());
+            Assert.Equal(2, analysis.Requests.Count(r => r.IsRecord));
+            Assert.Equal(1, analysis.Requests.Count(r => r.HasAuthorization));
+            Assert.Equal(1, analysis.Requests.Count(r => r.HasCaching));
         }
         finally
         {
@@ -1319,11 +1320,11 @@ public record UserDto(int Id, string Name, string Email);";
         await AnalyzeCommand.CheckPerformanceOpportunities(analysis, null, null);
 
         // Assert
-        analysis.PerformanceIssues.Should().NotBeEmpty();
-        analysis.PerformanceIssues.Should().Contain(i => i.Type.Contains("Task Usage"));
-        analysis.PerformanceIssues.Should().Contain(i => i.Type.Contains("Cancellation Support"));
-        analysis.PerformanceIssues.Should().Contain(i => i.Type.Contains("Handler Complexity"));
-        analysis.PerformanceIssues.Should().Contain(i => i.Type.Contains("Caching Opportunity"));
+        Assert.NotEmpty(analysis.PerformanceIssues);
+            Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Task Usage"));
+            Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Cancellation Support"));
+            Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Handler Complexity"));
+            Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Caching Opportunity"));
     }
 
     [Fact]
@@ -1348,10 +1349,10 @@ public record UserDto(int Id, string Name, string Email);";
         await AnalyzeCommand.CheckReliabilityPatterns(analysis, null, null);
 
         // Assert
-        analysis.ReliabilityIssues.Should().NotBeEmpty();
-        analysis.ReliabilityIssues.Should().Contain(i => i.Type.Contains("Logging"));
-        analysis.ReliabilityIssues.Should().Contain(i => i.Type.Contains("Validation"));
-        analysis.ReliabilityIssues.Should().Contain(i => i.Type.Contains("Authorization"));
+        Assert.NotEmpty(analysis.ReliabilityIssues);
+            Assert.Contains(analysis.ReliabilityIssues, i => i.Type.Contains("Logging"));
+            Assert.Contains(analysis.ReliabilityIssues, i => i.Type.Contains("Validation"));
+            Assert.Contains(analysis.ReliabilityIssues, i => i.Type.Contains("Authorization"));
     }
 
     [Fact]
@@ -1382,10 +1383,10 @@ public record UserDto(int Id, string Name, string Email);";
             await AnalyzeCommand.AnalyzeDependencies(analysis, null, null);
 
             // Assert
-            analysis.HasRelayCore.Should().BeTrue();
-            analysis.HasLogging.Should().BeTrue();
-            analysis.HasValidation.Should().BeTrue();
-            analysis.HasCaching.Should().BeTrue();
+            Assert.True(analysis.HasRelayCore);
+            Assert.True(analysis.HasLogging);
+            Assert.True(analysis.HasValidation);
+            Assert.True(analysis.HasCaching);
         }
         finally
         {
@@ -1415,11 +1416,11 @@ public record UserDto(int Id, string Name, string Email);";
         await AnalyzeCommand.GenerateRecommendations(analysis, null, null);
 
         // Assert
-        analysis.Recommendations.Should().NotBeEmpty();
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("Performance"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("Reliability"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("Framework"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("Architecture"));
+        Assert.NotEmpty(analysis.Recommendations);
+            Assert.Contains(analysis.Recommendations, r => r.Title.Contains("Performance"));
+            Assert.Contains(analysis.Recommendations, r => r.Title.Contains("Reliability"));
+            Assert.Contains(analysis.Recommendations, r => r.Title.Contains("Framework"));
+            Assert.Contains(analysis.Recommendations, r => r.Title.Contains("Architecture"));
     }
 
     [Fact]
@@ -1477,10 +1478,10 @@ public record UserDto(int Id, string Name, string Email);";
             await AnalyzeCommand.SaveAnalysisResults(analysis, testPath, "json");
 
             // Assert
-            File.Exists(testPath).Should().BeTrue();
+            Assert.True(File.Exists(testPath));
             var content = await File.ReadAllTextAsync(testPath);
-            content.Should().Contain("ProjectPath");
-            content.Should().Contain("TestHandler");
+            Assert.Contains("ProjectPath", content);
+            Assert.Contains("TestHandler", content);
         }
         finally
         {
@@ -1509,9 +1510,9 @@ public record UserDto(int Id, string Name, string Email);";
             await AnalyzeCommand.SaveAnalysisResults(analysis, testPath, "markdown");
 
             // Assert
-            File.Exists(testPath).Should().BeTrue();
+            Assert.True(File.Exists(testPath));
             var content = await File.ReadAllTextAsync(testPath);
-            content.Should().Contain("# 🔍 Relay Project Analysis Report");
+            Assert.Contains("# 🔍 Relay Project Analysis Report", content);
         }
         finally
         {
@@ -1540,10 +1541,10 @@ public record UserDto(int Id, string Name, string Email);";
             await AnalyzeCommand.SaveAnalysisResults(analysis, testPath, "html");
 
             // Assert
-            File.Exists(testPath).Should().BeTrue();
+            Assert.True(File.Exists(testPath));
             var content = await File.ReadAllTextAsync(testPath);
-            content.Should().Contain("<html>");
-            content.Should().Contain("Relay Project Analysis Report");
+            Assert.Contains("<html>", content);
+            Assert.Contains("Relay Project Analysis Report", content);
         }
         finally
         {
@@ -1567,7 +1568,7 @@ public record UserDto(int Id, string Name, string Email);";
         var result = AnalyzeCommand.IsHandler(classDecl, content);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -1585,7 +1586,7 @@ public record UserDto(int Id, string Name, string Email);";
         var result = AnalyzeCommand.IsRequest(classDecl, content);
 
         // Assert
-        result.Should().Be(expected);
+        Assert.Equal(expected, result);
     }
 
     [Fact]
@@ -1606,7 +1607,7 @@ public record UserDto(int Id, string Name, string Email);";
         var score = AnalyzeCommand.CalculateOverallScore(analysis);
 
         // Assert
-        score.Should().Be(10.0);
+        Assert.Equal(10.0, score);
     }
 
     [Fact]
@@ -1630,7 +1631,7 @@ public record UserDto(int Id, string Name, string Email);";
         var score = AnalyzeCommand.CalculateOverallScore(analysis);
 
         // Assert - Should deduct: 2.0 + 1.0 + 1.5 = 4.5 points
-        score.Should().BeLessThan(6.0);
+        Assert.True(score < 6.0);
     }
 
     public void Dispose()
@@ -1643,3 +1644,5 @@ public record UserDto(int Id, string Name, string Email);";
         catch { }
     }
 }
+
+

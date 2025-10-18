@@ -1,5 +1,6 @@
 using Relay.CLI.Commands.Models.Optimization;
 using System.Reflection;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -25,7 +26,7 @@ public class ValidationIssueTests
         var value = typeProperty.GetValue(instance);
 
         // Assert
-        value.Should().Be("Handler Issue");
+        Assert.Equal("Handler Issue", value);
     }
 
     [Fact]
@@ -41,7 +42,7 @@ public class ValidationIssueTests
         var value = severityProperty.GetValue(instance);
 
         // Assert
-        value.Should().Be("High");
+        Assert.Equal("High", value);
     }
 
     [Fact]
@@ -57,7 +58,7 @@ public class ValidationIssueTests
         var value = messageProperty.GetValue(instance);
 
         // Assert
-        value.Should().Be("Missing CancellationToken");
+        Assert.Equal("Missing CancellationToken", value);
     }
 
     [Fact]
@@ -72,9 +73,9 @@ public class ValidationIssueTests
         var severityValue = type.GetProperty("Severity")!.GetValue(instance);
         var messageValue = type.GetProperty("Message")!.GetValue(instance);
 
-        typeValue.Should().Be("");
-        severityValue.Should().Be("");
-        messageValue.Should().Be("");
+        Assert.Equal("", typeValue);
+        Assert.Equal("", severityValue);
+        Assert.Equal("", messageValue);
     }
 
     [Fact]
@@ -90,9 +91,9 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, "Handler should use ValueTask");
 
         // Assert
-        type.GetProperty("Type")!.GetValue(instance).Should().Be("Handler Pattern");
-        type.GetProperty("Severity")!.GetValue(instance).Should().Be("Medium");
-        type.GetProperty("Message")!.GetValue(instance).Should().Be("Handler should use ValueTask");
+        Assert.Equal("Handler Pattern", type.GetProperty("Type")!.GetValue(instance));
+        Assert.Equal("Medium", type.GetProperty("Severity")!.GetValue(instance));
+        Assert.Equal("Handler should use ValueTask", type.GetProperty("Message")!.GetValue(instance));
     }
 
     [Fact]
@@ -106,7 +107,7 @@ public class ValidationIssueTests
         type.GetProperty("Type")!.SetValue(instance, "");
 
         // Assert
-        type.GetProperty("Type")!.GetValue(instance).Should().Be("");
+        Assert.Equal("", type.GetProperty("Type")!.GetValue(instance));
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public class ValidationIssueTests
             type.GetProperty("Severity")!.SetValue(instance, severity);
 
             // Assert
-            type.GetProperty("Severity")!.GetValue(instance).Should().Be(severity);
+            Assert.Equal(severity, type.GetProperty("Severity")!.GetValue(instance));
         }
     }
 
@@ -139,7 +140,7 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, detailedMessage);
 
         // Assert
-        type.GetProperty("Message")!.GetValue(instance).Should().Be(detailedMessage);
+        Assert.Equal(detailedMessage, type.GetProperty("Message")!.GetValue(instance));
     }
 
     [Fact]
@@ -149,7 +150,7 @@ public class ValidationIssueTests
         var type = GetValidationIssueType();
 
         // Assert
-        type.IsClass.Should().BeTrue();
+        Assert.True(type.IsClass);
     }
 
     [Fact]
@@ -159,7 +160,7 @@ public class ValidationIssueTests
         var type = GetValidationIssueType();
 
         // Assert
-        type.IsNotPublic.Should().BeTrue();
+        Assert.True(type.IsNotPublic);
     }
 
     [Fact]
@@ -170,10 +171,10 @@ public class ValidationIssueTests
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
         // Assert
-        properties.Should().HaveCount(3);
-        properties.Should().Contain(p => p.Name == "Type");
-        properties.Should().Contain(p => p.Name == "Severity");
-        properties.Should().Contain(p => p.Name == "Message");
+        Assert.Equal(3, properties.Length);
+        Assert.Contains(properties, p => p.Name == "Type");
+        Assert.Contains(properties, p => p.Name == "Severity");
+        Assert.Contains(properties, p => p.Name == "Message");
     }
 
     [Fact]
@@ -184,7 +185,7 @@ public class ValidationIssueTests
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
         // Assert
-        properties.All(p => p.PropertyType == typeof(string)).Should().BeTrue();
+        Assert.True(properties.All(p => p.PropertyType == typeof(string)));
     }
 
     [Fact]
@@ -197,8 +198,8 @@ public class ValidationIssueTests
         // Assert
         foreach (var property in properties)
         {
-            property.CanRead.Should().BeTrue($"{property.Name} should have a getter");
-            property.CanWrite.Should().BeTrue($"{property.Name} should have a setter");
+            Assert.True(property.CanRead, $"{property.Name} should have a getter");
+            Assert.True(property.CanWrite, $"{property.Name} should have a setter");
         }
     }
 
@@ -219,9 +220,9 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, message);
 
         // Assert
-        type.GetProperty("Type")!.GetValue(instance).Should().Be(issueType);
-        type.GetProperty("Severity")!.GetValue(instance).Should().Be(severity);
-        type.GetProperty("Message")!.GetValue(instance).Should().Be(message);
+        Assert.Equal(issueType, type.GetProperty("Type")!.GetValue(instance));
+        Assert.Equal(severity, type.GetProperty("Severity")!.GetValue(instance));
+        Assert.Equal(message, type.GetProperty("Message")!.GetValue(instance));
     }
 
     [Fact]
@@ -246,7 +247,7 @@ public class ValidationIssueTests
             type.GetProperty("Type")!.SetValue(instance, issueType);
 
             // Assert
-            type.GetProperty("Type")!.GetValue(instance).Should().Be(issueType);
+            Assert.Equal(issueType, type.GetProperty("Type")!.GetValue(instance));
         }
     }
 
@@ -261,7 +262,7 @@ public class ValidationIssueTests
         type.GetProperty("Severity")!.SetValue(instance, "Critical");
 
         // Assert
-        type.GetProperty("Severity")!.GetValue(instance).Should().Be("Critical");
+        Assert.Equal("Critical", type.GetProperty("Severity")!.GetValue(instance));
     }
 
     [Fact]
@@ -276,7 +277,7 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, multilineMessage);
 
         // Assert
-        type.GetProperty("Message")!.GetValue(instance).Should().Be(multilineMessage);
+        Assert.Equal(multilineMessage, type.GetProperty("Message")!.GetValue(instance));
     }
 
     [Fact]
@@ -306,7 +307,7 @@ public class ValidationIssueTests
         var count = countProperty!.GetValue(list);
 
         // Assert
-        count.Should().Be(2);
+        Assert.Equal(2, count);
     }
 
     [Fact]
@@ -322,9 +323,9 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, "CreateUserHandler uses Task instead of ValueTask");
 
         // Assert
-        type.GetProperty("Type")!.GetValue(instance).Should().Be("Handler Pattern");
-        type.GetProperty("Severity")!.GetValue(instance).Should().Be("High");
-        ((string)type.GetProperty("Message")!.GetValue(instance)!).Should().Contain("ValueTask");
+        Assert.Equal("Handler Pattern", type.GetProperty("Type")!.GetValue(instance));
+        Assert.Equal("High", type.GetProperty("Severity")!.GetValue(instance));
+        Assert.Contains("ValueTask", (string)type.GetProperty("Message")!.GetValue(instance)!);
     }
 
     [Fact]
@@ -340,9 +341,9 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, "CreateUserRequest uses class instead of record");
 
         // Assert
-        type.GetProperty("Type")!.GetValue(instance).Should().Be("Request Pattern");
-        type.GetProperty("Severity")!.GetValue(instance).Should().Be("Medium");
-        ((string)type.GetProperty("Message")!.GetValue(instance)!).Should().Contain("record");
+        Assert.Equal("Request Pattern", type.GetProperty("Type")!.GetValue(instance));
+        Assert.Equal("Medium", type.GetProperty("Severity")!.GetValue(instance));
+        Assert.Contains("record", (string)type.GetProperty("Message")!.GetValue(instance)!);
     }
 
     [Fact]
@@ -358,9 +359,9 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, "Consider enabling nullable reference types");
 
         // Assert
-        type.GetProperty("Type")!.GetValue(instance).Should().Be("Code Quality");
-        type.GetProperty("Severity")!.GetValue(instance).Should().Be("Low");
-        ((string)type.GetProperty("Message")!.GetValue(instance)!).Should().Contain("nullable");
+        Assert.Equal("Code Quality", type.GetProperty("Type")!.GetValue(instance));
+        Assert.Equal("Low", type.GetProperty("Severity")!.GetValue(instance));
+        Assert.Contains("nullable", (string)type.GetProperty("Message")!.GetValue(instance)!);
     }
 
     [Fact]
@@ -381,9 +382,9 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, "Modified message");
 
         // Assert
-        type.GetProperty("Type")!.GetValue(instance).Should().Be("Modified Type");
-        type.GetProperty("Severity")!.GetValue(instance).Should().Be("Critical");
-        type.GetProperty("Message")!.GetValue(instance).Should().Be("Modified message");
+        Assert.Equal("Modified Type", type.GetProperty("Type")!.GetValue(instance));
+        Assert.Equal("Critical", type.GetProperty("Severity")!.GetValue(instance));
+        Assert.Equal("Modified message", type.GetProperty("Message")!.GetValue(instance));
     }
 
     [Fact]
@@ -398,7 +399,7 @@ public class ValidationIssueTests
         type.GetProperty("Message")!.SetValue(instance, messageWithSpecialChars);
 
         // Assert
-        type.GetProperty("Message")!.GetValue(instance).Should().Be(messageWithSpecialChars);
+        Assert.Equal(messageWithSpecialChars, type.GetProperty("Message")!.GetValue(instance));
     }
 
     [Fact]
@@ -412,7 +413,7 @@ public class ValidationIssueTests
         type.GetProperty("Type")!.SetValue(instance, "Handler Pattern Violation");
 
         // Assert
-        type.GetProperty("Type")!.GetValue(instance).Should().Be("Handler Pattern Violation");
+        Assert.Equal("Handler Pattern Violation", type.GetProperty("Type")!.GetValue(instance));
     }
 
     [Fact]
@@ -427,7 +428,7 @@ public class ValidationIssueTests
         {
             var instance = Activator.CreateInstance(type);
             type.GetProperty("Severity")!.SetValue(instance, severity);
-            type.GetProperty("Severity")!.GetValue(instance).Should().Be(severity);
+            Assert.Equal(severity, type.GetProperty("Severity")!.GetValue(instance));
         }
     }
 }

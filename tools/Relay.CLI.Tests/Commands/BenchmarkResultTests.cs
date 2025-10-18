@@ -1,4 +1,5 @@
 using Relay.CLI.Commands.Models.Benchmark;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -11,7 +12,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { Name = "Handler Performance Test" };
 
         // Assert
-        result.Name.Should().Be("Handler Performance Test");
+        Assert.Equal("Handler Performance Test", result.Name);
     }
 
     [Fact]
@@ -22,7 +23,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { TotalTime = totalTime };
 
         // Assert
-        result.TotalTime.Should().Be(totalTime);
+        Assert.Equal(totalTime, result.TotalTime);
     }
 
     [Fact]
@@ -32,7 +33,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { Iterations = 1000 };
 
         // Assert
-        result.Iterations.Should().Be(1000);
+        Assert.Equal(1000, result.Iterations);
     }
 
     [Fact]
@@ -42,7 +43,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { AverageTime = 5.5 };
 
         // Assert
-        result.AverageTime.Should().Be(5.5);
+        Assert.Equal(5.5, result.AverageTime);
     }
 
     [Fact]
@@ -52,7 +53,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { RequestsPerSecond = 181.82 };
 
         // Assert
-        result.RequestsPerSecond.Should().Be(181.82);
+        Assert.Equal(181.82, result.RequestsPerSecond);
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { MemoryAllocated = 1024000 };
 
         // Assert
-        result.MemoryAllocated.Should().Be(1024000);
+        Assert.Equal(1024000, result.MemoryAllocated);
     }
 
     [Fact]
@@ -72,7 +73,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { Threads = 4 };
 
         // Assert
-        result.Threads.Should().Be(4);
+        Assert.Equal(4, result.Threads);
     }
 
     [Fact]
@@ -82,13 +83,13 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult();
 
         // Assert
-        result.Name.Should().Be("");
-        result.TotalTime.Should().Be(TimeSpan.Zero);
-        result.Iterations.Should().Be(0);
-        result.AverageTime.Should().Be(0.0);
-        result.RequestsPerSecond.Should().Be(0.0);
-        result.MemoryAllocated.Should().Be(0);
-        result.Threads.Should().Be(0);
+        Assert.Equal("", result.Name);
+        Assert.Equal(TimeSpan.Zero, result.TotalTime);
+        Assert.Equal(0, result.Iterations);
+        Assert.Equal(0.0, result.AverageTime);
+        Assert.Equal(0.0, result.RequestsPerSecond);
+        Assert.Equal(0, result.MemoryAllocated);
+        Assert.Equal(0, result.Threads);
     }
 
     [Fact]
@@ -107,13 +108,13 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.Name.Should().Be("CreateUserHandler Benchmark");
-        result.TotalTime.Should().Be(TimeSpan.FromSeconds(10));
-        result.Iterations.Should().Be(2000);
-        result.AverageTime.Should().Be(5.0);
-        result.RequestsPerSecond.Should().Be(200.0);
-        result.MemoryAllocated.Should().Be(2048000);
-        result.Threads.Should().Be(8);
+        Assert.Equal("CreateUserHandler Benchmark", result.Name);
+        Assert.Equal(TimeSpan.FromSeconds(10), result.TotalTime);
+        Assert.Equal(2000, result.Iterations);
+        Assert.Equal(5.0, result.AverageTime);
+        Assert.Equal(200.0, result.RequestsPerSecond);
+        Assert.Equal(2048000, result.MemoryAllocated);
+        Assert.Equal(8, result.Threads);
     }
 
     [Theory]
@@ -126,7 +127,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { Iterations = iterations };
 
         // Assert
-        result.Iterations.Should().Be(iterations);
+        Assert.Equal(iterations, result.Iterations);
     }
 
     [Theory]
@@ -139,7 +140,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { Threads = threads };
 
         // Assert
-        result.Threads.Should().Be(threads);
+        Assert.Equal(threads, result.Threads);
     }
 
     [Fact]
@@ -158,13 +159,13 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.Name.Should().Be("UserCreationHandler");
-        result.TotalTime.Should().Be(TimeSpan.FromMilliseconds(2500));
-        result.Iterations.Should().Be(500);
-        result.AverageTime.Should().Be(5.0);
-        result.RequestsPerSecond.Should().Be(200.0);
-        result.MemoryAllocated.Should().Be(1024000);
-        result.Threads.Should().Be(4);
+        Assert.Equal("UserCreationHandler", result.Name);
+        Assert.Equal(TimeSpan.FromMilliseconds(2500), result.TotalTime);
+        Assert.Equal(500, result.Iterations);
+        Assert.Equal(5.0, result.AverageTime);
+        Assert.Equal(200.0, result.RequestsPerSecond);
+        Assert.Equal(1024000, result.MemoryAllocated);
+        Assert.Equal(4, result.Threads);
     }
 
     [Fact]
@@ -177,7 +178,7 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.Name.Should().Be("CreateUserHandler - Performance Test (Async)");
+        Assert.Equal("CreateUserHandler - Performance Test (Async)", result.Name);
     }
 
     [Fact]
@@ -187,7 +188,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { TotalTime = TimeSpan.Zero };
 
         // Assert
-        result.TotalTime.Should().Be(TimeSpan.Zero);
+        Assert.Equal(TimeSpan.Zero, result.TotalTime);
     }
 
     [Fact]
@@ -197,7 +198,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { TotalTime = TimeSpan.FromHours(1) };
 
         // Assert
-        result.TotalTime.Should().Be(TimeSpan.FromHours(1));
+        Assert.Equal(TimeSpan.FromHours(1), result.TotalTime);
     }
 
     [Fact]
@@ -207,7 +208,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { Iterations = 0 };
 
         // Assert
-        result.Iterations.Should().Be(0);
+        Assert.Equal(0, result.Iterations);
     }
 
     [Fact]
@@ -217,7 +218,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { AverageTime = 0.0 };
 
         // Assert
-        result.AverageTime.Should().Be(0.0);
+        Assert.Equal(0.0, result.AverageTime);
     }
 
     [Fact]
@@ -227,7 +228,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { AverageTime = 0.00123 };
 
         // Assert
-        result.AverageTime.Should().Be(0.00123);
+        Assert.Equal(0.00123, result.AverageTime);
     }
 
     [Fact]
@@ -237,7 +238,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { RequestsPerSecond = 0.0 };
 
         // Assert
-        result.RequestsPerSecond.Should().Be(0.0);
+        Assert.Equal(0.0, result.RequestsPerSecond);
     }
 
     [Fact]
@@ -247,7 +248,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { RequestsPerSecond = 10000.5 };
 
         // Assert
-        result.RequestsPerSecond.Should().Be(10000.5);
+        Assert.Equal(10000.5, result.RequestsPerSecond);
     }
 
     [Fact]
@@ -257,7 +258,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { MemoryAllocated = 0 };
 
         // Assert
-        result.MemoryAllocated.Should().Be(0);
+        Assert.Equal(0, result.MemoryAllocated);
     }
 
     [Fact]
@@ -267,7 +268,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { MemoryAllocated = long.MaxValue };
 
         // Assert
-        result.MemoryAllocated.Should().Be(long.MaxValue);
+        Assert.Equal(long.MaxValue, result.MemoryAllocated);
     }
 
     [Fact]
@@ -277,7 +278,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { Threads = 0 };
 
         // Assert
-        result.Threads.Should().Be(0);
+        Assert.Equal(0, result.Threads);
     }
 
     [Fact]
@@ -287,8 +288,8 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult();
 
         // Assert
-        result.Should().NotBeNull();
-        result.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(result);
+        Assert.True(result.GetType().IsClass);
     }
 
     [Fact]
@@ -303,8 +304,8 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        results.Should().HaveCount(3);
-        results.Sum(r => r.Iterations).Should().Be(600);
+        Assert.Equal(3, results.Count());
+        Assert.Equal(600, results.Sum(r => r.Iterations));
     }
 
     [Fact]
@@ -322,8 +323,8 @@ public class BenchmarkResultTests
         var handler1Results = results.Where(r => r.Name == "Handler1").ToList();
 
         // Assert
-        handler1Results.Should().HaveCount(2);
-        handler1Results.Sum(r => r.Iterations).Should().Be(250);
+        Assert.Equal(2, handler1Results.Count());
+        Assert.Equal(250, handler1Results.Sum(r => r.Iterations));
     }
 
     [Fact]
@@ -341,9 +342,9 @@ public class BenchmarkResultTests
         var ordered = results.OrderBy(r => r.AverageTime).ToList();
 
         // Assert
-        ordered[0].Name.Should().Be("Fast");
-        ordered[1].Name.Should().Be("Medium");
-        ordered[2].Name.Should().Be("Slow");
+        Assert.Equal("Fast", ordered[0].Name);
+        Assert.Equal("Medium", ordered[1].Name);
+        Assert.Equal("Slow", ordered[2].Name);
     }
 
     [Fact]
@@ -362,10 +363,10 @@ public class BenchmarkResultTests
         var grouped = results.GroupBy(r => r.Threads);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == 1).Should().HaveCount(2);
-        grouped.First(g => g.Key == 2).Should().HaveCount(1);
-        grouped.First(g => g.Key == 4).Should().HaveCount(1);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == 1).Count());
+        Assert.Equal(1, grouped.First(g => g.Key == 2).Count());
+        Assert.Equal(1, grouped.First(g => g.Key == 4).Count());
     }
 
     [Fact]
@@ -385,9 +386,9 @@ public class BenchmarkResultTests
         result.AverageTime = 10.0;
 
         // Assert
-        result.Name.Should().Be("Modified");
-        result.Iterations.Should().Be(200);
-        result.AverageTime.Should().Be(10.0);
+        Assert.Equal("Modified", result.Name);
+        Assert.Equal(200, result.Iterations);
+        Assert.Equal(10.0, result.AverageTime);
     }
 
     [Fact]
@@ -406,13 +407,13 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.Name.Should().Be("OptimizedHandler");
-        result.TotalTime.Should().Be(TimeSpan.FromMilliseconds(100));
-        result.Iterations.Should().Be(10000);
-        result.AverageTime.Should().Be(0.01);
-        result.RequestsPerSecond.Should().Be(100000.0);
-        result.MemoryAllocated.Should().Be(512000);
-        result.Threads.Should().Be(16);
+        Assert.Equal("OptimizedHandler", result.Name);
+        Assert.Equal(TimeSpan.FromMilliseconds(100), result.TotalTime);
+        Assert.Equal(10000, result.Iterations);
+        Assert.Equal(0.01, result.AverageTime);
+        Assert.Equal(100000.0, result.RequestsPerSecond);
+        Assert.Equal(512000, result.MemoryAllocated);
+        Assert.Equal(16, result.Threads);
     }
 
     [Fact]
@@ -431,13 +432,13 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.Name.Should().Be("SlowHandler");
-        result.TotalTime.Should().Be(TimeSpan.FromSeconds(30));
-        result.Iterations.Should().Be(10);
-        result.AverageTime.Should().Be(3000.0);
-        result.RequestsPerSecond.Should().Be(0.33);
-        result.MemoryAllocated.Should().Be(10485760);
-        result.Threads.Should().Be(1);
+        Assert.Equal("SlowHandler", result.Name);
+        Assert.Equal(TimeSpan.FromSeconds(30), result.TotalTime);
+        Assert.Equal(10, result.Iterations);
+        Assert.Equal(3000.0, result.AverageTime);
+        Assert.Equal(0.33, result.RequestsPerSecond);
+        Assert.Equal(10485760, result.MemoryAllocated);
+        Assert.Equal(1, result.Threads);
     }
 
     [Fact]
@@ -447,7 +448,7 @@ public class BenchmarkResultTests
         var result = new BenchmarkResult { Name = "" };
 
         // Assert
-        result.Name.Should().BeEmpty();
+        Assert.Empty(result.Name);
     }
 
     [Fact]
@@ -463,10 +464,10 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.TotalTime.TotalMilliseconds.Should().Be(10000);
-        result.Iterations.Should().Be(100);
-        result.AverageTime.Should().Be(100.0);
-        result.RequestsPerSecond.Should().Be(10.0);
+        Assert.Equal(10000, result.TotalTime.TotalMilliseconds);
+        Assert.Equal(100, result.Iterations);
+        Assert.Equal(100.0, result.AverageTime);
+        Assert.Equal(10.0, result.RequestsPerSecond);
     }
 
     [Fact]
@@ -485,9 +486,9 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.Name.Should().Be("MemoryIntensiveHandler");
-        result.MemoryAllocated.Should().Be(1073741824);
-        result.Threads.Should().Be(2);
+        Assert.Equal("MemoryIntensiveHandler", result.Name);
+        Assert.Equal(1073741824, result.MemoryAllocated);
+        Assert.Equal(2, result.Threads);
     }
 
     [Fact]
@@ -506,9 +507,9 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.Name.Should().Be("SingleThreadedHandler");
-        result.Threads.Should().Be(1);
-        result.RequestsPerSecond.Should().Be(50.0);
+        Assert.Equal("SingleThreadedHandler", result.Name);
+        Assert.Equal(1, result.Threads);
+        Assert.Equal(50.0, result.RequestsPerSecond);
     }
 
     [Fact]
@@ -527,8 +528,9 @@ public class BenchmarkResultTests
         };
 
         // Assert
-        result.Name.Should().Be("MultiThreadedHandler");
-        result.Threads.Should().Be(8);
-        result.RequestsPerSecond.Should().Be(1000.0);
+        Assert.Equal("MultiThreadedHandler", result.Name);
+        Assert.Equal(8, result.Threads);
+        Assert.Equal(1000.0, result.RequestsPerSecond);
     }
 }
+

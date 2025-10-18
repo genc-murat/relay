@@ -11,7 +11,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Category = "Performance" };
 
         // Assert
-        recommendation.Category.Should().Be("Performance");
+        Assert.Equal("Performance", recommendation.Category);
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Priority = "High" };
 
         // Assert
-        recommendation.Priority.Should().Be("High");
+        Assert.Equal("High", recommendation.Priority);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Title = "Add Caching" };
 
         // Assert
-        recommendation.Title.Should().Be("Add Caching");
+        Assert.Equal("Add Caching", recommendation.Title);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Description = "Implement caching to improve performance" };
 
         // Assert
-        recommendation.Description.Should().Be("Implement caching to improve performance");
+        Assert.Equal("Implement caching to improve performance", recommendation.Description);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class RecommendationTests
         recommendation.Actions = actions;
 
         // Assert
-        recommendation.Actions.Should().BeEquivalentTo(actions);
+        Assert.Equal(actions, recommendation.Actions);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { EstimatedImpact = "50% performance improvement" };
 
         // Assert
-        recommendation.EstimatedImpact.Should().Be("50% performance improvement");
+        Assert.Equal("50% performance improvement", recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -75,13 +75,13 @@ public class RecommendationTests
         var recommendation = new Recommendation();
 
         // Assert
-        recommendation.Category.Should().Be("");
-        recommendation.Priority.Should().Be("");
-        recommendation.Title.Should().Be("");
-        recommendation.Description.Should().Be("");
-        recommendation.Actions.Should().NotBeNull();
-        recommendation.Actions.Should().BeEmpty();
-        recommendation.EstimatedImpact.Should().Be("");
+        Assert.Equal("", recommendation.Category);
+        Assert.Equal("", recommendation.Priority);
+        Assert.Equal("", recommendation.Title);
+        Assert.Equal("", recommendation.Description);
+        Assert.NotNull(recommendation.Actions);
+        Assert.Empty(recommendation.Actions);
+        Assert.Equal("", recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -99,12 +99,12 @@ public class RecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Security");
-        recommendation.Priority.Should().Be("Critical");
-        recommendation.Title.Should().Be("Implement HTTPS");
-        recommendation.Description.Should().Be("Enable HTTPS to secure data transmission");
-        recommendation.Actions.Should().HaveCount(3);
-        recommendation.EstimatedImpact.Should().Be("Prevents man-in-the-middle attacks");
+        Assert.Equal("Security", recommendation.Category);
+        Assert.Equal("Critical", recommendation.Priority);
+        Assert.Equal("Implement HTTPS", recommendation.Title);
+        Assert.Equal("Enable HTTPS to secure data transmission", recommendation.Description);
+        Assert.Equal(3, recommendation.Actions.Count());
+        Assert.Equal("Prevents man-in-the-middle attacks", recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Category = "" };
 
         // Assert
-        recommendation.Category.Should().BeEmpty();
+        Assert.Equal("", recommendation.Category);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Category = "Performance & Scalability" };
 
         // Assert
-        recommendation.Category.Should().Be("Performance & Scalability");
+        Assert.Equal("Performance & Scalability", recommendation.Category);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Priority = "" };
 
         // Assert
-        recommendation.Priority.Should().BeEmpty();
+        Assert.Equal("", recommendation.Priority);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class RecommendationTests
         foreach (var priority in priorities)
         {
             var recommendation = new Recommendation { Priority = priority };
-            recommendation.Priority.Should().Be(priority);
+            Assert.Equal(priority, recommendation.Priority);
         }
     }
 
@@ -157,7 +157,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Title = "" };
 
         // Assert
-        recommendation.Title.Should().BeEmpty();
+        Assert.Equal("", recommendation.Title);
     }
 
     [Fact]
@@ -170,8 +170,8 @@ public class RecommendationTests
         var recommendation = new Recommendation { Title = longTitle };
 
         // Assert
-        recommendation.Title.Should().Be(longTitle);
-        recommendation.Title.Length.Should().Be(200);
+        Assert.Equal(longTitle, recommendation.Title);
+        Assert.Equal(200, recommendation.Title.Length);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { Description = "" };
 
         // Assert
-        recommendation.Description.Should().BeEmpty();
+        Assert.Equal("", recommendation.Description);
     }
 
     [Fact]
@@ -194,8 +194,8 @@ public class RecommendationTests
         };
 
         // Assert
-        recommendation.Description.Should().Contain("\n");
-        recommendation.Description.Split('\n').Should().HaveCount(3);
+        Assert.Contains("\n", recommendation.Description);
+        Assert.Equal(3, recommendation.Description.Split('\n').Length);
     }
 
     [Fact]
@@ -210,10 +210,10 @@ public class RecommendationTests
         recommendation.Actions.Add("Step 3: Implement the changes");
 
         // Assert
-        recommendation.Actions.Should().HaveCount(3);
-        recommendation.Actions[0].Should().StartWith("Step 1");
-        recommendation.Actions[1].Should().StartWith("Step 2");
-        recommendation.Actions[2].Should().StartWith("Step 3");
+        Assert.Equal(3, recommendation.Actions.Count());
+        Assert.StartsWith("Step 1", recommendation.Actions[0]);
+        Assert.StartsWith("Step 2", recommendation.Actions[1]);
+        Assert.StartsWith("Step 3", recommendation.Actions[2]);
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public class RecommendationTests
         var recommendation = new Recommendation();
 
         // Assert
-        recommendation.Actions.Should().BeEmpty();
+        Assert.Empty(recommendation.Actions);
     }
 
     [Fact]
@@ -243,8 +243,8 @@ public class RecommendationTests
         };
 
         // Assert
-        recommendation.Actions.Should().HaveCount(5);
-        recommendation.Actions.All(a => a.Length > 0).Should().BeTrue();
+        Assert.Equal(5, recommendation.Actions.Count());
+        Assert.True(recommendation.Actions.All(a => a.Length > 0));
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public class RecommendationTests
         var recommendation = new Recommendation { EstimatedImpact = "" };
 
         // Assert
-        recommendation.EstimatedImpact.Should().BeEmpty();
+        Assert.Equal("", recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -267,9 +267,9 @@ public class RecommendationTests
         };
 
         // Assert
-        recommendation.EstimatedImpact.Should().Contain("40%");
-        recommendation.EstimatedImpact.Should().Contain("60%");
-        recommendation.EstimatedImpact.Should().Contain("25%");
+        Assert.Contains("40%", recommendation.EstimatedImpact);
+        Assert.Contains("60%", recommendation.EstimatedImpact);
+        Assert.Contains("25%", recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -284,9 +284,9 @@ public class RecommendationTests
         };
 
         // Assert
-        recommendations.Should().HaveCount(3);
-        recommendations.Count(r => r.Priority == "High").Should().Be(2);
-        recommendations.Count(r => r.Category == "Performance").Should().Be(1);
+        Assert.Equal(3, recommendations.Count());
+        Assert.Equal(2, recommendations.Count(r => r.Priority == "High"));
+        Assert.Equal(1, recommendations.Count(r => r.Category == "Performance"));
     }
 
     [Fact]
@@ -307,8 +307,8 @@ public class RecommendationTests
         var criticalPriority = recommendations.Where(r => r.Priority == "Critical").ToList();
 
         // Assert
-        highPriority.Should().HaveCount(2);
-        criticalPriority.Should().HaveCount(1);
+        Assert.Equal(2, highPriority.Count());
+        Assert.Equal(1, criticalPriority.Count());
     }
 
     [Fact]
@@ -327,8 +327,8 @@ public class RecommendationTests
         var performanceRecommendations = recommendations.Where(r => r.Category == "Performance").ToList();
 
         // Assert
-        performanceRecommendations.Should().HaveCount(2);
-        performanceRecommendations.All(r => r.Category == "Performance").Should().BeTrue();
+        Assert.Equal(2, performanceRecommendations.Count());
+        Assert.True(performanceRecommendations.All(r => r.Category == "Performance"));
     }
 
     [Fact]
@@ -357,10 +357,10 @@ public class RecommendationTests
         }).ToList();
 
         // Assert
-        ordered[0].Priority.Should().Be("Critical");
-        ordered[1].Priority.Should().Be("High");
-        ordered[2].Priority.Should().Be("Medium");
-        ordered[3].Priority.Should().Be("Low");
+        Assert.Equal("Critical", ordered[0].Priority);
+        Assert.Equal("High", ordered[1].Priority);
+        Assert.Equal("Medium", ordered[2].Priority);
+        Assert.Equal("Low", ordered[3].Priority);
     }
 
     [Fact]
@@ -379,9 +379,9 @@ public class RecommendationTests
         var grouped = recommendations.GroupBy(r => r.Category);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == "Performance").Should().HaveCount(2);
-        grouped.First(g => g.Key == "Performance").Sum(r => r.Actions.Count).Should().Be(5);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Performance").Count());
+        Assert.Equal(5, grouped.First(g => g.Key == "Performance").Sum(r => r.Actions.Count));
     }
 
     [Fact]
@@ -405,11 +405,11 @@ public class RecommendationTests
         recommendation.EstimatedImpact = "Modified impact";
 
         // Assert
-        recommendation.Category.Should().Be("Modified");
-        recommendation.Priority.Should().Be("High");
-        recommendation.Title.Should().Be("Modified Title");
-        recommendation.Description.Should().Be("Modified description");
-        recommendation.EstimatedImpact.Should().Be("Modified impact");
+        Assert.Equal("Modified", recommendation.Category);
+        Assert.Equal("High", recommendation.Priority);
+        Assert.Equal("Modified Title", recommendation.Title);
+        Assert.Equal("Modified description", recommendation.Description);
+        Assert.Equal("Modified impact", recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -419,8 +419,8 @@ public class RecommendationTests
         var recommendation = new Recommendation();
 
         // Assert
-        recommendation.Should().NotBeNull();
-        recommendation.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(recommendation);
+        Assert.True(recommendation.GetType().IsClass);
     }
 
     [Fact]
@@ -445,13 +445,13 @@ public class RecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Database Optimization");
-        recommendation.Priority.Should().Be("High");
-        recommendation.Title.Should().Be("Implement Query Result Caching");
-        recommendation.Description.Should().Contain("Database queries");
-        recommendation.Actions.Should().HaveCount(5);
-        recommendation.Actions[0].Should().Contain("Install");
-        recommendation.EstimatedImpact.Should().Contain("70%");
+        Assert.Equal("Database Optimization", recommendation.Category);
+        Assert.Equal("High", recommendation.Priority);
+        Assert.Equal("Implement Query Result Caching", recommendation.Title);
+        Assert.Contains("Database queries", recommendation.Description);
+        Assert.Equal(5, recommendation.Actions.Count());
+        Assert.Contains("Install", recommendation.Actions[0]);
+        Assert.Contains("70%", recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -476,10 +476,10 @@ public class RecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Security");
-        recommendation.Priority.Should().Be("Critical");
-        recommendation.Actions.Should().HaveCount(5);
-        recommendation.EstimatedImpact.Should().Contain("SQL injection");
+        Assert.Equal("Security", recommendation.Category);
+        Assert.Equal("Critical", recommendation.Priority);
+        Assert.Equal(5, recommendation.Actions.Count());
+        Assert.Contains("SQL injection", recommendation.EstimatedImpact);
     }
 
     [Fact]
@@ -498,8 +498,8 @@ public class RecommendationTests
         var averageActions = recommendations.Average(r => r.Actions.Count);
 
         // Assert
-        totalActions.Should().Be(6);
-        averageActions.Should().Be(2.0);
+        Assert.Equal(6, totalActions);
+        Assert.Equal(2.0, averageActions);
     }
 
     [Fact]
@@ -517,7 +517,7 @@ public class RecommendationTests
         var highImpact = recommendations.Where(r => r.EstimatedImpact.Contains("50%") || r.EstimatedImpact.Contains("80%")).ToList();
 
         // Assert
-        highImpact.Should().HaveCount(2);
+        Assert.Equal(2, highImpact.Count());
     }
 
     [Fact]
@@ -555,11 +555,11 @@ public class RecommendationTests
         }).ToList();
 
         // Assert
-        report.Should().HaveCount(2);
-        report[0].ActionCount.Should().Be(3);
-        report[0].HasImpactEstimate.Should().BeTrue();
-        report[1].ActionCount.Should().Be(3);
-        report[1].HasImpactEstimate.Should().BeTrue();
+        Assert.Equal(2, report.Count());
+        Assert.Equal(3, report[0].ActionCount);
+        Assert.True(report[0].HasImpactEstimate);
+        Assert.Equal(3, report[1].ActionCount);
+        Assert.True(report[1].HasImpactEstimate);
     }
 
     [Fact]
@@ -586,9 +586,10 @@ public class RecommendationTests
         };
 
         // Assert - Basic serialization check
-        recommendation.Category.Should().Be("Architecture");
-        recommendation.Actions.Should().HaveCount(7);
-        recommendation.Description.Should().Contain("Clean Architecture");
-        recommendation.EstimatedImpact.Should().Contain("20-30%");
+        Assert.Equal("Architecture", recommendation.Category);
+        Assert.Equal(7, recommendation.Actions.Count());
+        Assert.Contains("Clean Architecture", recommendation.Description);
+        Assert.Contains("20-30%", recommendation.EstimatedImpact);
     }
 }
+

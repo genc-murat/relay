@@ -1,4 +1,4 @@
-using FluentAssertions;
+
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Optimization;
 using Xunit;
@@ -19,12 +19,12 @@ public class OptimizationActionTests
         var action = new OptimizationAction();
 
         // Assert
-        action.FilePath.Should().BeEmpty();
-        action.Type.Should().BeEmpty();
-        action.Modifications.Should().NotBeNull();
-        action.Modifications.Should().BeEmpty();
-        action.OriginalContent.Should().BeEmpty();
-        action.OptimizedContent.Should().BeEmpty();
+        Assert.Equal("", action.FilePath);
+        Assert.Equal("", action.Type);
+        Assert.NotNull(action.Modifications);
+        Assert.Empty(action.Modifications);
+        Assert.Equal("", action.OriginalContent);
+        Assert.Equal("", action.OptimizedContent);
     }
 
     [Fact]
@@ -34,8 +34,8 @@ public class OptimizationActionTests
         var action = new OptimizationAction();
 
         // Assert
-        action.Modifications.Should().NotBeNull();
-        action.Modifications.Should().HaveCount(0);
+        Assert.NotNull(action.Modifications);
+        Assert.Equal(0, action.Modifications.Count());
     }
 
     #endregion
@@ -53,7 +53,7 @@ public class OptimizationActionTests
         action.FilePath = expectedPath;
 
         // Assert
-        action.FilePath.Should().Be(expectedPath);
+        Assert.Equal(expectedPath, action.FilePath);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class OptimizationActionTests
         action.Type = expectedType;
 
         // Assert
-        action.Type.Should().Be(expectedType);
+        Assert.Equal(expectedType, action.Type);
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public class OptimizationActionTests
         action.Modifications = modifications;
 
         // Assert
-        action.Modifications.Should().BeEquivalentTo(modifications);
-        action.Modifications.Should().HaveCount(2);
+        Assert.Equal(modifications, action.Modifications);
+        Assert.Equal(2, action.Modifications.Count());
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class OptimizationActionTests
         action.OriginalContent = originalContent;
 
         // Assert
-        action.OriginalContent.Should().Be(originalContent);
+        Assert.Equal(originalContent, action.OriginalContent);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class OptimizationActionTests
         action.OptimizedContent = optimizedContent;
 
         // Assert
-        action.OptimizedContent.Should().Be(optimizedContent);
+        Assert.Equal(optimizedContent, action.OptimizedContent);
     }
 
     #endregion
@@ -131,11 +131,11 @@ public class OptimizationActionTests
         };
 
         // Assert
-        action.FilePath.Should().Be(@"C:\Projects\Handler.cs");
-        action.Type.Should().Be("Handler");
-        action.Modifications.Should().HaveCount(1);
-        action.OriginalContent.Should().NotBeEmpty();
-        action.OptimizedContent.Should().NotBeEmpty();
+        Assert.Equal(@"C:\Projects\Handler.cs", action.FilePath);
+        Assert.Equal("Handler", action.Type);
+        Assert.Equal(1, action.Modifications.Count());
+        Assert.NotEmpty(action.OriginalContent);
+        Assert.NotEmpty(action.OptimizedContent);
     }
 
     #endregion
@@ -152,8 +152,8 @@ public class OptimizationActionTests
         action.Modifications.Add("Task -> ValueTask");
 
         // Assert
-        action.Modifications.Should().HaveCount(1);
-        action.Modifications.Should().Contain("Task -> ValueTask");
+        Assert.Equal(1, action.Modifications.Count());
+        Assert.Contains("Task -> ValueTask", action.Modifications);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class OptimizationActionTests
         action.Modifications.Add("Handle -> HandleAsync");
 
         // Assert
-        action.Modifications.Should().HaveCount(3);
+        Assert.Equal(3, action.Modifications.Count());
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public class OptimizationActionTests
         action.Modifications.Clear();
 
         // Assert
-        action.Modifications.Should().BeEmpty();
+        Assert.Empty(action.Modifications);
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class OptimizationActionTests
         var contains = action.Modifications.Contains("Task -> ValueTask");
 
         // Assert
-        contains.Should().BeTrue();
+        Assert.True(contains);
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public class OptimizationActionTests
         action.Modifications.Remove("Task -> ValueTask");
 
         // Assert
-        action.Modifications.Should().HaveCount(1);
-        action.Modifications.Should().NotContain("Task -> ValueTask");
+        Assert.Equal(1, action.Modifications.Count());
+        Assert.DoesNotContain("Task -> ValueTask", action.Modifications);
     }
 
     #endregion
@@ -233,7 +233,7 @@ public class OptimizationActionTests
         var action = new OptimizationAction { Type = type };
 
         // Assert
-        action.Type.Should().Be(type);
+        Assert.Equal(type, action.Type);
     }
 
     [Fact]
@@ -243,7 +243,7 @@ public class OptimizationActionTests
         var action = new OptimizationAction { Type = "Handler" };
 
         // Assert
-        action.Type.Should().Be("Handler");
+        Assert.Equal("Handler", action.Type);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class OptimizationActionTests
         var action = new OptimizationAction { Type = "Request" };
 
         // Assert
-        action.Type.Should().Be("Request");
+        Assert.Equal("Request", action.Type);
     }
 
     [Fact]
@@ -263,7 +263,7 @@ public class OptimizationActionTests
         var action = new OptimizationAction { Type = "Config" };
 
         // Assert
-        action.Type.Should().Be("Config");
+        Assert.Equal("Config", action.Type);
     }
 
     #endregion
@@ -281,8 +281,8 @@ public class OptimizationActionTests
         };
 
         // Assert
-        action.FilePath.Should().Contain("GetUserHandler.cs");
-        Path.IsPathRooted(action.FilePath).Should().BeTrue();
+        Assert.Contains("GetUserHandler.cs", action.FilePath);
+        Assert.True(Path.IsPathRooted(action.FilePath));
     }
 
     [Fact]
@@ -295,7 +295,7 @@ public class OptimizationActionTests
         };
 
         // Assert
-        action.FilePath.Should().Contain("GetUserHandler.cs");
+        Assert.Contains("GetUserHandler.cs", action.FilePath);
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public class OptimizationActionTests
         };
 
         // Assert
-        action.FilePath.Should().Contain("GetUserHandler.cs");
+        Assert.Contains("GetUserHandler.cs", action.FilePath);
     }
 
     [Fact]
@@ -325,7 +325,7 @@ public class OptimizationActionTests
         var fileName = Path.GetFileName(action.FilePath);
 
         // Assert
-        fileName.Should().Be("Handler.cs");
+        Assert.Equal("Handler.cs", fileName);
     }
 
     [Fact]
@@ -342,7 +342,7 @@ public class OptimizationActionTests
         var directory = Path.GetDirectoryName(action.FilePath);
 
         // Assert
-        directory.Should().Contain("Handlers");
+        Assert.Contains("Handlers", directory);
     }
 
     #endregion
@@ -363,7 +363,7 @@ public class OptimizationActionTests
         var isDifferent = action.OriginalContent != action.OptimizedContent;
 
         // Assert
-        isDifferent.Should().BeTrue();
+        Assert.True(isDifferent);
     }
 
     [Fact]
@@ -381,7 +381,7 @@ public class OptimizationActionTests
         var isSame = action.OriginalContent == action.OptimizedContent;
 
         // Assert
-        isSame.Should().BeTrue();
+        Assert.True(isSame);
     }
 
     [Fact]
@@ -395,7 +395,7 @@ public class OptimizationActionTests
         };
 
         // Assert
-        action.OriginalContent.Length.Should().BeLessThan(action.OptimizedContent.Length);
+        Assert.True(action.OriginalContent.Length < action.OptimizedContent.Length);
     }
 
     #endregion
@@ -410,7 +410,7 @@ public class OptimizationActionTests
         action.Modifications.Add("Replaced Task<T> with ValueTask<T>");
 
         // Assert
-        action.Modifications.Should().Contain(m => m.Contains("ValueTask"));
+        Assert.Contains(action.Modifications, m => m.Contains("ValueTask"));
     }
 
     [Fact]
@@ -421,7 +421,7 @@ public class OptimizationActionTests
         action.Modifications.Add("Added [Handle] attribute");
 
         // Assert
-        action.Modifications.Should().Contain(m => m.Contains("[Handle]"));
+        Assert.Contains(action.Modifications, m => m.Contains("[Handle]"));
     }
 
     [Fact]
@@ -432,7 +432,7 @@ public class OptimizationActionTests
         action.Modifications.Add("Renamed Handle() to HandleAsync()");
 
         // Assert
-        action.Modifications.Should().Contain(m => m.Contains("HandleAsync"));
+        Assert.Contains(action.Modifications, m => m.Contains("HandleAsync"));
     }
 
     [Fact]
@@ -443,7 +443,7 @@ public class OptimizationActionTests
         action.Modifications.Add("Added CancellationToken parameter");
 
         // Assert
-        action.Modifications.Should().Contain(m => m.Contains("CancellationToken"));
+        Assert.Contains(action.Modifications, m => m.Contains("CancellationToken"));
     }
 
     [Fact]
@@ -454,7 +454,7 @@ public class OptimizationActionTests
         action.Modifications.Add("Added ConfigureAwait(false)");
 
         // Assert
-        action.Modifications.Should().Contain(m => m.Contains("ConfigureAwait"));
+        Assert.Contains(action.Modifications, m => m.Contains("ConfigureAwait"));
     }
 
     #endregion
@@ -474,7 +474,7 @@ public class OptimizationActionTests
         var taskRelated = action.Modifications.Where(m => m.Contains("Task")).ToList();
 
         // Assert
-        taskRelated.Should().HaveCount(1);
+        Assert.Equal(1, taskRelated.Count());
     }
 
     [Fact]
@@ -494,7 +494,7 @@ public class OptimizationActionTests
         }
 
         // Assert
-        count.Should().Be(3);
+        Assert.Equal(3, count);
     }
 
     [Fact]
@@ -510,8 +510,8 @@ public class OptimizationActionTests
         var second = action.Modifications[1];
 
         // Assert
-        first.Should().Be("First");
-        second.Should().Be("Second");
+        Assert.Equal("First", first);
+        Assert.Equal("Second", second);
     }
 
     #endregion
@@ -529,9 +529,9 @@ public class OptimizationActionTests
         action2.Modifications.Add("Mod2");
 
         // Assert
-        action1.Type.Should().NotBe(action2.Type);
-        action1.Modifications.Should().NotContain("Mod2");
-        action2.Modifications.Should().NotContain("Mod1");
+        Assert.NotEqual(action2.Type, action1.Type);
+        Assert.DoesNotContain("Mod2", action1.Modifications);
+        Assert.DoesNotContain("Mod1", action2.Modifications);
     }
 
     [Fact]
@@ -549,8 +549,8 @@ public class OptimizationActionTests
         var grouped = actions.GroupBy(a => a.Type).ToList();
 
         // Assert
-        grouped.Should().HaveCount(2);
-        grouped.First(g => g.Key == "Handler").Should().HaveCount(2);
+        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Handler").Count());
     }
 
     [Fact]
@@ -568,7 +568,7 @@ public class OptimizationActionTests
         var handlers = actions.Where(a => a.Type == "Handler").ToList();
 
         // Assert
-        handlers.Should().HaveCount(2);
+        Assert.Equal(2, handlers.Count());
     }
 
     [Fact]
@@ -585,7 +585,7 @@ public class OptimizationActionTests
         var totalMods = actions.Sum(a => a.Modifications.Count);
 
         // Assert
-        totalMods.Should().Be(3);
+        Assert.Equal(3, totalMods);
     }
 
     #endregion
@@ -625,11 +625,11 @@ public class OptimizationActionTests
         };
 
         // Assert
-        action.FilePath.Should().EndWith("GetUserHandler.cs");
-        action.Type.Should().Be("Handler");
-        action.Modifications.Should().HaveCount(4);
-        action.OptimizedContent.Should().Contain("ValueTask");
-        action.OptimizedContent.Should().Contain("[Handle]");
+        Assert.EndsWith("GetUserHandler.cs", action.FilePath);
+        Assert.Equal("Handler", action.Type);
+        Assert.Equal(4, action.Modifications.Count());
+        Assert.Contains("ValueTask", action.OptimizedContent);
+        Assert.Contains("[Handle]", action.OptimizedContent);
     }
 
     [Fact]
@@ -659,9 +659,9 @@ public class OptimizationActionTests
         };
 
         // Assert
-        action.Type.Should().Be("Config");
-        action.Modifications.Should().HaveCount(2);
-        action.OptimizedContent.Should().Contain("\"EnableCaching\": true");
+        Assert.Equal("Config", action.Type);
+        Assert.Equal(2, action.Modifications.Count());
+        Assert.Contains("\"EnableCaching\": true", action.OptimizedContent);
     }
 
     #endregion
@@ -675,7 +675,7 @@ public class OptimizationActionTests
         var action = new OptimizationAction { FilePath = "" };
 
         // Assert
-        action.FilePath.Should().BeEmpty();
+        Assert.Equal("", action.FilePath);
     }
 
     [Fact]
@@ -685,7 +685,7 @@ public class OptimizationActionTests
         var action = new OptimizationAction { Type = "" };
 
         // Assert
-        action.Type.Should().BeEmpty();
+        Assert.Equal("", action.Type);
     }
 
     [Fact]
@@ -701,8 +701,8 @@ public class OptimizationActionTests
         action.Modifications = new List<string>();
 
         // Assert
-        action.Modifications.Should().NotBeNull();
-        action.Modifications.Should().BeEmpty();
+        Assert.NotNull(action.Modifications);
+        Assert.Empty(action.Modifications);
     }
 
     [Fact]
@@ -715,8 +715,8 @@ public class OptimizationActionTests
         var action = new OptimizationAction { FilePath = longPath };
 
         // Assert
-        action.FilePath.Should().Contain("File.cs");
-        action.FilePath.Length.Should().BeGreaterThan(100);
+        Assert.Contains("File.cs", action.FilePath);
+        Assert.True(action.FilePath.Length > 100);
     }
 
     [Fact]
@@ -733,8 +733,8 @@ public class OptimizationActionTests
         };
 
         // Assert
-        action.OriginalContent.Length.Should().Be(10000);
-        action.OptimizedContent.Length.Should().Be(10000);
+        Assert.Equal(10000, action.OriginalContent.Length);
+        Assert.Equal(10000, action.OptimizedContent.Length);
     }
 
     [Fact]
@@ -750,7 +750,7 @@ public class OptimizationActionTests
         }
 
         // Assert
-        action.Modifications.Should().HaveCount(100);
+        Assert.Equal(100, action.Modifications.Count());
     }
 
     #endregion
@@ -769,12 +769,12 @@ public class OptimizationActionTests
         var modsProperty = type.GetProperty(nameof(OptimizationAction.Modifications));
 
         // Assert
-        filePathProperty.Should().NotBeNull();
-        typeProperty.Should().NotBeNull();
-        modsProperty.Should().NotBeNull();
-        filePathProperty!.CanRead.Should().BeTrue();
-        typeProperty!.CanRead.Should().BeTrue();
-        modsProperty!.CanRead.Should().BeTrue();
+        Assert.NotNull(filePathProperty);
+        Assert.NotNull(typeProperty);
+        Assert.NotNull(modsProperty);
+        Assert.True(filePathProperty!.CanRead);
+        Assert.True(typeProperty!.CanRead);
+        Assert.True(modsProperty!.CanRead);
     }
 
     [Fact]
@@ -788,8 +788,8 @@ public class OptimizationActionTests
         var typeProperty = type.GetProperty(nameof(OptimizationAction.Type));
 
         // Assert
-        filePathProperty!.CanWrite.Should().BeTrue();
-        typeProperty!.CanWrite.Should().BeTrue();
+        Assert.True(filePathProperty!.CanWrite);
+        Assert.True(typeProperty!.CanWrite);
     }
 
     #endregion
@@ -809,7 +809,7 @@ public class OptimizationActionTests
         var count = action.Modifications.Count;
 
         // Assert
-        count.Should().Be(3);
+        Assert.Equal(3, count);
     }
 
     [Fact]
@@ -828,7 +828,7 @@ public class OptimizationActionTests
         var diff = optimizedLength - originalLength;
 
         // Assert
-        diff.Should().BeGreaterThan(0);
+        Assert.True(diff > 0);
     }
 
     #endregion
@@ -848,7 +848,7 @@ public class OptimizationActionTests
         var normalized = action.FilePath.Replace('\\', '/');
 
         // Assert
-        normalized.Should().Contain("/");
+        Assert.Contains("/", normalized);
     }
 
     [Fact]
@@ -862,9 +862,11 @@ public class OptimizationActionTests
         var upper = action.Type.ToUpperInvariant();
 
         // Assert
-        lower.Should().Be("handler");
-        upper.Should().Be("HANDLER");
+        Assert.Equal("handler", lower);
+        Assert.Equal("HANDLER", upper);
     }
 
     #endregion
 }
+
+

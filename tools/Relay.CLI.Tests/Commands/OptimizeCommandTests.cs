@@ -3,6 +3,7 @@ using Relay.CLI.Commands.Models.Optimization;
 using System.CommandLine;
 using Spectre.Console;
 using Spectre.Console.Testing;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -64,8 +65,8 @@ public record TestRequest : IRequest<string>;";
         var newContent = await File.ReadAllTextAsync(Path.Combine(_testPath, "TestHandler.cs"));
 
         // Assert
-        newContent.Should().Contain("ValueTask<string>");
-        newContent.Should().NotContain("async Task<string>");
+        Assert.Contains("ValueTask<string>", newContent);
+        Assert.DoesNotContain("async Task<string>", newContent);
     }
 
     [Fact]
@@ -93,7 +94,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var newContent = await File.ReadAllTextAsync(Path.Combine(_testPath, "TestHandler.cs"));
 
         // Assert
-        newContent.Should().Contain("CancellationToken ct");
+        Assert.Contains("CancellationToken ct", newContent);
     }
 
     [Fact]
@@ -111,7 +112,7 @@ return list.ToArray();";
 return new[] { ""item1"", ""item2"" };";
 
         // Assert
-        optimized.Length.Should().BeLessThan(originalCode.Length);
+        Assert.True(optimized.Length < originalCode.Length);
     }
 
     [Fact]
@@ -122,8 +123,8 @@ return new[] { ""item1"", ""item2"" };";
         var afterOptimization = "Span<string> items = stackalloc string[10];";
 
         // Assert
-        afterOptimization.Should().Contain("Span");
-        afterOptimization.Should().Contain("stackalloc");
+        Assert.Contains("Span", afterOptimization);
+        Assert.Contains("stackalloc", afterOptimization);
     }
 
     [Fact]
@@ -140,7 +141,7 @@ for (int i = 0; i < items.Count(); i++) // Count() is inefficient
         var hasLinqInLoop = codeWithLinq.Contains("Count()");
 
         // Assert
-        hasLinqInLoop.Should().BeTrue();
+        Assert.True(hasLinqInLoop);
     }
 
     [Fact]
@@ -162,8 +163,8 @@ public readonly struct Point
 }";
 
         // Assert
-        optimized.Should().Contain("struct");
-        optimized.Should().Contain("readonly");
+        Assert.Contains("struct", optimized);
+        Assert.Contains("readonly", optimized);
     }
 
     [Fact]
@@ -174,7 +175,7 @@ public readonly struct Point
         var immutableField = "private readonly List<string> _items;";
 
         // Assert
-        immutableField.Should().Contain("readonly");
+        Assert.Contains("readonly", immutableField);
     }
 
     [Fact]
@@ -197,8 +198,8 @@ for (int i = 0; i < 100; i++)
 string result = sb.ToString();";
 
         // Assert
-        inefficient.Should().Contain("+=");
-        efficient.Should().Contain("StringBuilder");
+        Assert.Contains("+=", inefficient);
+        Assert.Contains("StringBuilder", efficient);
     }
 
     [Fact]
@@ -218,9 +219,9 @@ finally
 }";
 
         // Assert
-        withPool.Should().Contain("ArrayPool");
-        withPool.Should().Contain("Rent");
-        withPool.Should().Contain("Return");
+        Assert.Contains("ArrayPool", withPool);
+        Assert.Contains("Rent", withPool);
+        Assert.Contains("Return", withPool);
     }
 
     [Fact]
@@ -237,7 +238,7 @@ public async void ProcessData() // Should return Task
         var hasAsyncVoid = asyncVoid.Contains("async void");
 
         // Assert
-        hasAsyncVoid.Should().BeTrue(); // This is a problem
+        Assert.True(hasAsyncVoid); // This is a problem
     }
 
     [Fact]
@@ -248,7 +249,7 @@ public async void ProcessData() // Should return Task
         var with = "await someTask.ConfigureAwait(false);";
 
         // Assert
-        with.Should().Contain("ConfigureAwait(false)");
+        Assert.Contains("ConfigureAwait(false)", with);
     }
 
     [Fact]
@@ -264,7 +265,7 @@ Console.WriteLine(obj); // Uses boxed value";
         var hasBoxing = boxing.Contains("object obj = value");
 
         // Assert
-        hasBoxing.Should().BeTrue();
+        Assert.True(hasBoxing);
     }
 
     [Theory]
@@ -280,7 +281,7 @@ Console.WriteLine(obj); // Uses boxed value";
         // Assert
         if (shouldOptimize)
         {
-            optimized.Should().Contain("ValueTask");
+            Assert.Contains("ValueTask", optimized);
         }
     }
 
@@ -295,7 +296,7 @@ Console.WriteLine(obj); // Uses boxed value";
         File.Copy(Path.Combine(_testPath, "Original.cs"), backupPath);
 
         // Assert
-        File.Exists(backupPath).Should().BeTrue();
+        Assert.True(File.Exists(backupPath));
     }
 
     [Fact]
@@ -311,9 +312,9 @@ Console.WriteLine(obj); // Uses boxed value";
         };
 
         // Assert
-        report.FilesOptimized.Should().BeLessThanOrEqualTo(report.FilesAnalyzed);
-        report.OptimizationsApplied.Should().BeGreaterThan(0);
-        report.EstimatedImprovement.Should().NotBeNullOrEmpty();
+        Assert.True(report.FilesOptimized <= report.FilesAnalyzed);
+        Assert.True(report.OptimizationsApplied > 0);
+        Assert.False(string.IsNullOrEmpty(report.EstimatedImprovement));
     }
 
     [Fact]
@@ -333,7 +334,7 @@ public async ValueTask<int> Calculate(int x, int y)
 }";
 
         // Assert - Only return type changed, logic preserved
-        optimizedCode.Should().Contain("return x + y");
+        Assert.Contains("return x + y", optimizedCode);
     }
 
     [Fact]
@@ -353,8 +354,8 @@ public async ValueTask<int> Calculate(int x, int y)
         var speedImprovement = (metrics.ExecutionTimeBefore - metrics.ExecutionTimeAfter).TotalMilliseconds * 100 / metrics.ExecutionTimeBefore.TotalMilliseconds;
 
         // Assert
-        allocationReduction.Should().Be(80.0); // 80% reduction
-        speedImprovement.Should().Be(33.0); // 33% faster
+        Assert.Equal(80.0, allocationReduction); // 80% reduction
+        Assert.Equal(33.0, speedImprovement); // 33% faster
     }
 
     [Fact]
@@ -365,7 +366,7 @@ public async ValueTask<int> Calculate(int x, int y)
         var after = "public void Process(ReadOnlyMemory<byte> data)";
 
         // Assert
-        after.Should().Contain("ReadOnlyMemory");
+        Assert.Contains("ReadOnlyMemory", after);
     }
 
     [Fact]
@@ -373,11 +374,11 @@ public async ValueTask<int> Calculate(int x, int y)
     {
         // Arrange
         var closure = @"
-var items = new List<int>();
-items.ForEach(x => Console.WriteLine(x)); // Creates closure";
+ var items = new List<int>();
+ items.ForEach(x => Console.WriteLine(x)); // Creates closure";
 
         // Assert
-        closure.Should().Contain("=>");
+        Assert.Contains("=>", closure);
     }
 
     [Fact]
@@ -388,7 +389,7 @@ items.ForEach(x => Console.WriteLine(x)); // Creates closure";
         var staticLambda = "list.Where(static x => x > 0)";
 
         // Assert
-        staticLambda.Should().Contain("static");
+        Assert.Contains("static", staticLambda);
     }
 
     [Fact]
@@ -399,7 +400,7 @@ items.ForEach(x => Console.WriteLine(x)); // Creates closure";
         var noTracking = "context.Users.AsNoTracking().ToList()";
 
         // Assert
-        noTracking.Should().Contain("AsNoTracking");
+        Assert.Contains("AsNoTracking", noTracking);
     }
 
     [Fact]
@@ -410,7 +411,7 @@ items.ForEach(x => Console.WriteLine(x)); // Creates closure";
         var compiled = "CompiledQuery.Compile((MyContext ctx, int age) => ctx.Users.Where(u => u.Age > age).ToList())";
 
         // Assert
-        compiled.Should().Contain("CompiledQuery");
+        Assert.Contains("CompiledQuery", compiled);
     }
 
     [Fact]
@@ -424,7 +425,7 @@ foreach (var user in users)
 }";
 
         // Assert
-        nPlusOne.Should().Contain("foreach");
+        Assert.Contains("foreach", nPlusOne);
     }
 
     [Fact]
@@ -435,7 +436,7 @@ foreach (var user in users)
         var withInclude = "context.Users.Include(u => u.Orders).ToList()";
 
         // Assert
-        withInclude.Should().Contain("Include");
+        Assert.Contains("Include", withInclude);
     }
 
     [Fact]
@@ -448,7 +449,7 @@ foreach (var user in users)
         var chainCount = excessive.Split('.').Length - 1;
 
         // Assert
-        chainCount.Should().BeGreaterThan(3);
+        Assert.True(chainCount > 3);
     }
 
     [Fact]
@@ -469,7 +470,7 @@ for (int i = 0; i < array.Length; i++)
 }";
 
         // Assert
-        efficient.Should().Contain("var precomputed");
+        Assert.Contains("var precomputed", efficient);
     }
 
     [Fact]
@@ -480,8 +481,8 @@ for (int i = 0; i < array.Length; i++)
         var necessary = "foreach (var item in items)";
 
         // Assert
-        unnecessary.Should().Contain("ToList()");
-        necessary.Should().NotContain("ToList()");
+        Assert.Contains("ToList()", unnecessary);
+        Assert.DoesNotContain("ToList()", necessary);
     }
 
     [Fact]
@@ -492,7 +493,7 @@ for (int i = 0; i < array.Length; i++)
         var indexed = "dictionary[id]";
 
         // Assert
-        indexed.Should().Contain("dictionary[");
+        Assert.Contains("dictionary[", indexed);
     }
 
     [Fact]
@@ -503,7 +504,7 @@ for (int i = 0; i < array.Length; i++)
         var format = "string.Format(\"Hello {0}\", name)";
 
         // Assert
-        interpolation.Should().Contain("$\"");
+        Assert.Contains("$\"", interpolation);
     }
 
     [Fact]
@@ -514,7 +515,7 @@ for (int i = 0; i < array.Length; i++)
         var parallel = "items.AsParallel().Select(x => ExpensiveOperation(x)).ToList()";
 
         // Assert
-        parallel.Should().Contain("AsParallel");
+        Assert.Contains("AsParallel", parallel);
     }
 
     [Fact]
@@ -528,7 +529,7 @@ public class MyClass
 }";
 
         // Assert
-        leak.Should().Contain("event");
+        Assert.Contains("event", leak);
     }
 
     [Fact]
@@ -542,7 +543,7 @@ using (var stream = File.OpenRead(""file.txt""))
 }";
 
         // Assert
-        withUsing.Should().Contain("using");
+        Assert.Contains("using", withUsing);
     }
 
     [Fact]
@@ -552,7 +553,7 @@ using (var stream = File.OpenRead(""file.txt""))
         var largeArray = "var buffer = new byte[100000];"; // > 85KB
 
         // Assert
-        largeArray.Should().Contain("100000");
+        Assert.Contains("100000", largeArray);
     }
 
     [Theory]
@@ -567,7 +568,7 @@ using (var stream = File.OpenRead(""file.txt""))
         // Assert
         if (shouldPreallocate)
         {
-            withCapacity.Should().Contain($"({size})");
+            Assert.Contains($"({size})", withCapacity);
         }
     }
 
@@ -578,7 +579,7 @@ using (var stream = File.OpenRead(""file.txt""))
         var recommendation = "Use StringBuilder for multiple concatenations";
 
         // Assert
-        recommendation.Should().Contain("StringBuilder");
+        Assert.Contains("StringBuilder", recommendation);
     }
 
     [Fact]
@@ -593,7 +594,7 @@ public int Factorial(int n)
 }";
 
         // Assert
-        recursive.Should().Contain("Factorial(n - 1)");
+        Assert.Contains("Factorial(n - 1)", recursive);
     }
 
     [Fact]
@@ -610,8 +611,8 @@ public int Calculate(int n)
 }";
 
         // Assert
-        iterative.Should().Contain("for");
-        iterative.Should().NotContain("Calculate(n"); // Should not have recursive call
+        Assert.Contains("for", iterative);
+        Assert.DoesNotContain("Calculate(n", iterative); // Should not have recursive call
     }
 
     [Fact]
@@ -621,7 +622,7 @@ public int Calculate(int n)
         var compiled = "new Regex(pattern, RegexOptions.Compiled)";
 
         // Assert
-        compiled.Should().Contain("RegexOptions.Compiled");
+        Assert.Contains("RegexOptions.Compiled", compiled);
     }
 
     [Fact]
@@ -633,7 +634,7 @@ public int Calculate(int n)
 private static partial Regex MyRegex();";
 
         // Assert
-        generated.Should().Contain("[GeneratedRegex");
+        Assert.Contains("[GeneratedRegex", generated);
     }
 
     [Fact]
@@ -643,8 +644,8 @@ private static partial Regex MyRegex();";
         var reflection = "type.GetMethod(\"MethodName\").Invoke(obj, args)";
 
         // Assert
-        reflection.Should().Contain("GetMethod");
-        reflection.Should().Contain("Invoke");
+        Assert.Contains("GetMethod", reflection);
+        Assert.Contains("Invoke", reflection);
     }
 
     [Fact]
@@ -654,7 +655,7 @@ private static partial Regex MyRegex();";
         var expression = "Expression.Lambda<Func<int, int>>(body, param).Compile()";
 
         // Assert
-        expression.Should().Contain("Compile()");
+        Assert.Contains("Compile()", expression);
     }
 
     [Fact]
@@ -664,7 +665,7 @@ private static partial Regex MyRegex();";
         var utcNow = "DateTime.UtcNow";
 
         // Assert
-        utcNow.Should().Contain("UtcNow");
+        Assert.Contains("UtcNow", utcNow);
     }
 
     [Fact]
@@ -674,7 +675,7 @@ private static partial Regex MyRegex();";
         var better = "DateTimeOffset.UtcNow";
 
         // Assert
-        better.Should().Contain("DateTimeOffset");
+        Assert.Contains("DateTimeOffset", better);
     }
 
     [Fact]
@@ -684,7 +685,7 @@ private static partial Regex MyRegex();";
         var standard = "Guid.NewGuid()";
 
         // Assert
-        standard.Should().Contain("NewGuid");
+        Assert.Contains("NewGuid", standard);
     }
 
     [Fact]
@@ -694,7 +695,7 @@ private static partial Regex MyRegex();";
         var sequential = "// Consider sequential GUID for database";
 
         // Assert
-        sequential.Should().Contain("sequential");
+        Assert.Contains("sequential", sequential);
     }
 
     [Fact]
@@ -705,8 +706,8 @@ private static partial Regex MyRegex();";
         var proper = "result = await asyncMethod;";
 
         // Assert
-        syncOverAsync.Should().Contain(".Result");
-        proper.Should().Contain("await");
+        Assert.Contains(".Result", syncOverAsync);
+        Assert.Contains("await", proper);
     }
 
     [Fact]
@@ -718,8 +719,8 @@ private static readonly ConcurrentDictionary<string, object> _cache = new();
 var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
 
         // Assert
-        withCache.Should().Contain("ConcurrentDictionary");
-        withCache.Should().Contain("GetOrAdd");
+        Assert.Contains("ConcurrentDictionary", withCache);
+        Assert.Contains("GetOrAdd", withCache);
     }
 
     [Fact]
@@ -729,7 +730,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var lazy = "private readonly Lazy<ExpensiveObject> _obj = new(() => new ExpensiveObject());";
 
         // Assert
-        lazy.Should().Contain("Lazy<");
+        Assert.Contains("Lazy<", lazy);
     }
 
     [Fact]
@@ -739,7 +740,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var pooled = "var obj = ObjectPool<MyObject>.Shared.Get();";
 
         // Assert
-        pooled.Should().Contain("ObjectPool");
+        Assert.Contains("ObjectPool", pooled);
     }
 
     [Fact]
@@ -749,7 +750,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var immutable = "ImmutableList<int>.Create(1, 2, 3)";
 
         // Assert
-        immutable.Should().Contain("ImmutableList");
+        Assert.Contains("ImmutableList", immutable);
     }
 
     [Fact]
@@ -759,7 +760,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var frozen = "FrozenDictionary.ToFrozenDictionary(items)";
 
         // Assert
-        frozen.Should().Contain("Frozen");
+        Assert.Contains("Frozen", frozen);
     }
 
     [Fact]
@@ -778,7 +779,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var totalScore = optimizations.Sum(o => o.Item2);
 
         // Assert
-        totalScore.Should().Be(50);
+        Assert.Equal(50, totalScore);
     }
 
     [Fact]
@@ -797,8 +798,8 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var ordered = priorities.OrderByDescending(p => p.Item2).ToArray();
 
         // Assert
-        ordered[0].Item1.Should().Contain("Critical");
-        ordered[^1].Item1.Should().Contain("Low");
+        Assert.Contains("Critical", ordered[0].Item1);
+        Assert.Contains("Low", ordered[^1].Item1);
     }
 
     [Fact]
@@ -814,8 +815,8 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         };
 
         // Assert
-        comparison.Before.Should().NotBe(comparison.After);
-        comparison.Impact.Should().Be("High");
+        Assert.NotEqual(comparison.After, comparison.Before);
+        Assert.Equal("High", comparison.Impact);
     }
 
     [Fact]
@@ -828,7 +829,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var shouldApplyChanges = !dryRun;
 
         // Assert
-        shouldApplyChanges.Should().BeFalse();
+        Assert.False(shouldApplyChanges);
     }
 
     [Fact]
@@ -838,7 +839,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var validationPassed = true;
 
         // Assert
-        validationPassed.Should().BeTrue();
+        Assert.True(validationPassed);
     }
 
     [Fact]
@@ -849,7 +850,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var optimizationCount = aggressiveMode ? 20 : 10;
 
         // Assert
-        optimizationCount.Should().Be(20);
+        Assert.Equal(20, optimizationCount);
     }
 
     #region Command Creation Tests
@@ -861,9 +862,9 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var command = OptimizeCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("optimize");
-        command.Description.Should().Contain("optimization");
+        Assert.NotNull(command);
+        Assert.Equal("optimize", command.Name);
+        Assert.Contains("optimization", command.Description);
     }
 
     [Fact]
@@ -874,9 +875,9 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
 
         // Assert
-        pathOption.Should().NotBeNull();
-        pathOption!.Name.Should().Be("path");
-        pathOption!.Description.Should().Be("Project path to optimize");
+        Assert.NotNull(pathOption);
+        Assert.Equal("path", pathOption.Name);
+        Assert.Equal("Project path to optimize", pathOption.Description);
     }
 
     [Fact]
@@ -887,9 +888,9 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var dryRunOption = command.Options.FirstOrDefault(o => o.Name == "dry-run");
 
         // Assert
-        dryRunOption.Should().NotBeNull();
-        dryRunOption!.Name.Should().Be("dry-run");
-        dryRunOption!.Description.Should().Be("Show what would be optimized without applying changes");
+        Assert.NotNull(dryRunOption);
+        Assert.Equal("dry-run", dryRunOption.Name);
+        Assert.Equal("Show what would be optimized without applying changes", dryRunOption.Description);
     }
 
     [Fact]
@@ -900,9 +901,9 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var targetOption = command.Options.FirstOrDefault(o => o.Name == "target");
 
         // Assert
-        targetOption.Should().NotBeNull();
-        targetOption!.Name.Should().Be("target");
-        targetOption!.Description.Should().Be("Optimization target (all, handlers, requests, config)");
+        Assert.NotNull(targetOption);
+        Assert.Equal("target", targetOption.Name);
+        Assert.Equal("Optimization target (all, handlers, requests, config)", targetOption.Description);
     }
 
     [Fact]
@@ -913,9 +914,9 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var aggressiveOption = command.Options.FirstOrDefault(o => o.Name == "aggressive");
 
         // Assert
-        aggressiveOption.Should().NotBeNull();
-        aggressiveOption!.Name.Should().Be("aggressive");
-        aggressiveOption!.Description.Should().Be("Apply aggressive optimizations");
+        Assert.NotNull(aggressiveOption);
+        Assert.Equal("aggressive", aggressiveOption.Name);
+        Assert.Equal("Apply aggressive optimizations", aggressiveOption.Description);
     }
 
     [Fact]
@@ -926,9 +927,9 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var backupOption = command.Options.FirstOrDefault(o => o.Name == "backup");
 
         // Assert
-        backupOption.Should().NotBeNull();
-        backupOption!.Name.Should().Be("backup");
-        backupOption!.Description.Should().Be("Create backup before applying changes");
+        Assert.NotNull(backupOption);
+        Assert.Equal("backup", backupOption.Name);
+        Assert.Equal("Create backup before applying changes", backupOption.Description);
     }
 
     [Fact]
@@ -938,7 +939,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var command = OptimizeCommand.Create();
 
         // Assert
-        command.Options.Should().HaveCount(5);
+        Assert.Equal(5, command.Options.Count());
     }
 
     #endregion
@@ -968,7 +969,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(testFile);
-        finalContent.Should().Be(originalContent); // Should not be modified in dry run
+        Assert.Equal(originalContent, finalContent); // Should not be modified in dry run
     }
 
     [Fact]
@@ -994,7 +995,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(testFile);
-        finalContent.Should().Contain("ValueTask<string>"); // Should be optimized
+        Assert.Contains("ValueTask<string>", finalContent); // Should be optimized
     }
 
     [Fact]
@@ -1035,8 +1036,8 @@ public class TestService
         var handlerFinalContent = await File.ReadAllTextAsync(handlerFile);
         var serviceFinalContent = await File.ReadAllTextAsync(otherFile);
 
-        handlerFinalContent.Should().Contain("ValueTask<string>");
-        serviceFinalContent.Should().Be(serviceContent); // Should not be modified
+        Assert.Contains("ValueTask<string>", handlerFinalContent);
+        Assert.Equal(serviceContent, serviceFinalContent); // Should not be modified
     }
 
     [Fact]
@@ -1062,7 +1063,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(testFile);
-        finalContent.Should().Contain("ValueTask<string>");
+        Assert.Contains("ValueTask<string>", finalContent);
     }
 
     #endregion
@@ -1090,10 +1091,10 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await OptimizeCommand.DiscoverFiles(context, null, null);
 
         // Assert
-        context.SourceFiles.Should().HaveCount(2);
-        context.SourceFiles.Should().Contain(f => f.EndsWith("File1.cs"));
-        context.SourceFiles.Should().Contain(f => f.EndsWith("File2.cs"));
-        context.SourceFiles.Should().NotContain(f => f.EndsWith("File.txt"));
+        Assert.Equal(2, context.SourceFiles.Count());
+        Assert.Contains(context.SourceFiles, f => f.EndsWith("File1.cs"));
+        Assert.Contains(context.SourceFiles, f => f.EndsWith("File2.cs"));
+        Assert.DoesNotContain(context.SourceFiles, f => f.EndsWith("File.txt"));
     }
 
     [Fact]
@@ -1120,8 +1121,8 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await OptimizeCommand.DiscoverFiles(context, null, null);
 
         // Assert
-        context.SourceFiles.Should().HaveCount(1);
-        context.SourceFiles[0].Should().EndWith("Valid.cs");
+        Assert.Equal(1, context.SourceFiles.Count());
+        Assert.EndsWith("Valid.cs", context.SourceFiles[0]);
     }
 
     #endregion
@@ -1159,13 +1160,13 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await OptimizeCommand.OptimizeHandlers(context, null, null);
 
         // Assert
-        context.OptimizationActions.Should().HaveCount(1);
+        Assert.Equal(1, context.OptimizationActions.Count());
         var action = context.OptimizationActions[0];
-        action.Type.Should().Be("Handler Optimization");
-        action.Modifications.Should().Contain("Replaced Task<T> with ValueTask<T> for better performance");
+        Assert.Equal("Handler Optimization", action.Type);
+        Assert.Contains("Replaced Task<T> with ValueTask<T> for better performance", action.Modifications);
 
         var finalContent = await File.ReadAllTextAsync(testFile);
-        finalContent.Should().Contain("ValueTask<string>");
+        Assert.Contains("ValueTask<string>", finalContent);
     }
 
     [Fact]
@@ -1198,9 +1199,9 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await OptimizeCommand.OptimizeHandlers(context, null, null);
 
         // Assert
-        context.OptimizationActions.Should().HaveCount(1);
+        Assert.Equal(1, context.OptimizationActions.Count());
         var finalContent = await File.ReadAllTextAsync(testFile);
-        finalContent.Should().Be(originalContent); // Should not be modified
+        Assert.Equal(originalContent, finalContent); // Should not be modified
     }
 
     [Fact]
@@ -1232,7 +1233,7 @@ public class TestService
         await OptimizeCommand.OptimizeHandlers(context, null, null);
 
         // Assert
-        context.OptimizationActions.Should().BeEmpty();
+        Assert.Empty(context.OptimizationActions);
     }
 
     #endregion
@@ -1262,7 +1263,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(handlerFile);
-        finalContent.Should().Contain("ValueTask<string>");
+        Assert.Contains("ValueTask<string>", finalContent);
     }
 
     [Fact]
@@ -1288,7 +1289,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
 
         // Assert
         var finalContent = await File.ReadAllTextAsync(handlerFile);
-        finalContent.Should().Contain("ValueTask<string>");
+        Assert.Contains("ValueTask<string>", finalContent);
     }
 
     [Fact]
@@ -1314,7 +1315,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
 
         // Assert - Should still run optimizations as if target was "all"
         var finalContent = await File.ReadAllTextAsync(handlerFile);
-        finalContent.Should().Contain("ValueTask<string>");
+        Assert.Contains("ValueTask<string>", finalContent);
     }
 
     #endregion
@@ -1344,7 +1345,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
 
         // Assert
         var backupFiles = Directory.GetFiles(_testPath, "*.bak", SearchOption.AllDirectories);
-        backupFiles.Should().HaveCountGreaterThan(0);
+        Assert.True(backupFiles.Length > 0);
     }
 
     [Fact]
@@ -1370,7 +1371,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
 
         // Assert
         var backupFiles = Directory.GetFiles(_testPath, "*.bak", SearchOption.AllDirectories);
-        backupFiles.Should().BeEmpty();
+        Assert.Empty(backupFiles);
     }
 
     #endregion
@@ -1498,7 +1499,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var steps = OptimizeCommand.GetOptimizationSteps("all");
 
         // Assert
-        steps.Should().Be(2);
+        Assert.Equal(2, steps);
     }
 
     [Fact]
@@ -1508,7 +1509,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var steps = OptimizeCommand.GetOptimizationSteps("handlers");
 
         // Assert
-        steps.Should().Be(2);
+        Assert.Equal(2, steps);
     }
 
     [Fact]
@@ -1518,7 +1519,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var steps = OptimizeCommand.GetOptimizationSteps("other");
 
         // Assert
-        steps.Should().Be(1);
+        Assert.Equal(1, steps);
     }
 
     #endregion

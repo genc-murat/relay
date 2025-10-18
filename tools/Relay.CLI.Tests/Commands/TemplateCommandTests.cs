@@ -22,7 +22,7 @@ public class TemplateCommandTests : IDisposable
         var command = new TemplateCommand();
 
         // Assert
-        command.Name.Should().Be("template");
+        Assert.Equal("template", command.Name);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class TemplateCommandTests : IDisposable
         var command = new TemplateCommand();
 
         // Assert
-        command.Description.Should().Contain("template");
+        Assert.Contains("template", command.Description);
     }
 
     [Fact]
@@ -43,11 +43,11 @@ public class TemplateCommandTests : IDisposable
         var subcommandNames = command.Subcommands.Select(s => s.Name).ToList();
 
         // Assert
-        subcommandNames.Should().Contain("validate");
-        subcommandNames.Should().Contain("pack");
-        subcommandNames.Should().Contain("publish");
-        subcommandNames.Should().Contain("list");
-        subcommandNames.Should().Contain("create");
+        Assert.Contains("validate", subcommandNames);
+        Assert.Contains("pack", subcommandNames);
+        Assert.Contains("publish", subcommandNames);
+        Assert.Contains("list", subcommandNames);
+        Assert.Contains("create", subcommandNames);
     }
 
     [Fact]
@@ -61,8 +61,8 @@ public class TemplateCommandTests : IDisposable
         var pathOption = validateCommand.Options.FirstOrDefault(o => o.Name == "path");
 
         // Assert
-        pathOption.Should().NotBeNull();
-        pathOption!.IsRequired.Should().BeTrue();
+        Assert.NotNull(pathOption);
+        Assert.True(pathOption!.IsRequired);
     }
 
     [Fact]
@@ -76,8 +76,8 @@ public class TemplateCommandTests : IDisposable
         var options = packCommand.Options.Select(o => o.Name).ToList();
 
         // Assert
-        options.Should().Contain("path");
-        options.Should().Contain("output");
+        Assert.Contains("path", options);
+        Assert.Contains("output", options);
     }
 
     [Fact]
@@ -91,8 +91,8 @@ public class TemplateCommandTests : IDisposable
         var options = publishCommand.Options.Select(o => o.Name).ToList();
 
         // Assert
-        options.Should().Contain("package");
-        options.Should().Contain("registry");
+        Assert.Contains("package", options);
+        Assert.Contains("registry", options);
     }
 
     [Fact]
@@ -106,9 +106,9 @@ public class TemplateCommandTests : IDisposable
         var options = createCommand.Options.Select(o => o.Name).ToList();
 
         // Assert
-        options.Should().Contain("name");
-        options.Should().Contain("from");
-        options.Should().Contain("output");
+        Assert.Contains("name", options);
+        Assert.Contains("from", options);
+        Assert.Contains("output", options);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class TemplateCommandTests : IDisposable
         var result = await validateCommand.InvokeAsync($"--path {templatePath}");
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class TemplateCommandTests : IDisposable
         var result = await validateCommand.InvokeAsync($"--path {invalidPath}");
 
         // Assert - Command executes without throwing
-        result.Should().BeGreaterThanOrEqualTo(0);
+        Assert.True(result >= 0);
     }
 
     [Fact]
@@ -156,13 +156,13 @@ public class TemplateCommandTests : IDisposable
         var result = await createCommand.InvokeAsync($"--name {templateName} --from {sourcePath} --output {outputPath}");
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
 
         var templatePath = Path.Combine(outputPath, templateName);
-        Directory.Exists(templatePath).Should().BeTrue();
-        Directory.Exists(Path.Combine(templatePath, ".template.config")).Should().BeTrue();
-        Directory.Exists(Path.Combine(templatePath, "content")).Should().BeTrue();
-        File.Exists(Path.Combine(templatePath, ".template.config", "template.json")).Should().BeTrue();
+        Assert.True(Directory.Exists(templatePath));
+        Assert.True(Directory.Exists(Path.Combine(templatePath, ".template.config")));
+        Assert.True(Directory.Exists(Path.Combine(templatePath, "content")));
+        Assert.True(File.Exists(Path.Combine(templatePath, ".template.config", "template.json")));
     }
 
     [Fact]
@@ -181,14 +181,14 @@ public class TemplateCommandTests : IDisposable
 
         // Assert
         var templateJsonPath = Path.Combine(outputPath, templateName, ".template.config", "template.json");
-        File.Exists(templateJsonPath).Should().BeTrue();
+        Assert.True(File.Exists(templateJsonPath));
 
         var json = await File.ReadAllTextAsync(templateJsonPath);
         var templateConfig = JsonSerializer.Deserialize<JsonElement>(json);
 
-        templateConfig.GetProperty("name").GetString().Should().Contain(templateName);
-        templateConfig.GetProperty("shortName").GetString().Should().Be(templateName.ToLower());
-        templateConfig.GetProperty("identity").GetString().Should().Contain(templateName);
+        Assert.Contains(templateName, templateConfig.GetProperty("name").GetString());
+        Assert.Equal(templateName.ToLower(), templateConfig.GetProperty("shortName").GetString());
+        Assert.Contains(templateName, templateConfig.GetProperty("identity").GetString());
     }
 
     [Fact]
@@ -210,10 +210,10 @@ public class TemplateCommandTests : IDisposable
 
         // Assert
         var copiedFile = Path.Combine(outputPath, templateName, "content", "TestFile.cs");
-        File.Exists(copiedFile).Should().BeTrue();
+        Assert.True(File.Exists(copiedFile));
 
         var content = await File.ReadAllTextAsync(copiedFile);
-        content.Should().Contain("TestFile");
+        Assert.Contains("TestFile", content);
     }
 
     [Fact]
@@ -237,8 +237,8 @@ public class TemplateCommandTests : IDisposable
 
         // Assert
         var contentPath = Path.Combine(outputPath, templateName, "content");
-        Directory.Exists(Path.Combine(contentPath, "bin")).Should().BeFalse();
-        Directory.Exists(Path.Combine(contentPath, "obj")).Should().BeFalse();
+        Assert.False(Directory.Exists(Path.Combine(contentPath, "bin")));
+        Assert.False(Directory.Exists(Path.Combine(contentPath, "obj")));
     }
 
     [Fact]
@@ -259,10 +259,10 @@ public class TemplateCommandTests : IDisposable
         var result = await createCommand.InvokeAsync($"--name {templateName} --from {sourcePath} --output {outputPath}");
 
         // Assert - Command executes and handles the conflict gracefully
-        result.Should().BeGreaterThanOrEqualTo(0);
+        Assert.True(result >= 0);
 
         // Template directory should still exist
-        Directory.Exists(Path.Combine(outputPath, templateName)).Should().BeTrue();
+        Assert.True(Directory.Exists(Path.Combine(outputPath, templateName)));
     }
 
     [Fact]
@@ -280,7 +280,7 @@ public class TemplateCommandTests : IDisposable
         var result = await createCommand.InvokeAsync($"--name {templateName} --from {sourcePath} --output {outputPath}");
 
         // Assert - Command executes without throwing
-        result.Should().BeGreaterThanOrEqualTo(0);
+        Assert.True(result >= 0);
     }
 
     [Fact]
@@ -298,7 +298,7 @@ public class TemplateCommandTests : IDisposable
         var result = await packCommand.InvokeAsync($"--path {templatePath} --output {outputPath}");
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -312,7 +312,7 @@ public class TemplateCommandTests : IDisposable
         var result = await listCommand.InvokeAsync("");
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
     }
 
     [Fact]
@@ -410,8 +410,8 @@ public class TemplateCommandTests : IDisposable
         var pathOption = validateCommand.Options.FirstOrDefault(o => o.Name == "path");
 
         // Assert
-        pathOption.Should().NotBeNull();
-        pathOption!.IsRequired.Should().BeTrue();
+        Assert.NotNull(pathOption);
+        Assert.True(pathOption!.IsRequired);
     }
 
     [Fact]
@@ -423,8 +423,8 @@ public class TemplateCommandTests : IDisposable
         var pathOption = packCommand.Options.FirstOrDefault(o => o.Name == "path");
 
         // Assert
-        pathOption.Should().NotBeNull();
-        pathOption!.IsRequired.Should().BeTrue();
+        Assert.NotNull(pathOption);
+        Assert.True(pathOption!.IsRequired);
     }
 
     [Fact]
@@ -436,8 +436,8 @@ public class TemplateCommandTests : IDisposable
         var packageOption = publishCommand.Options.FirstOrDefault(o => o.Name == "package");
 
         // Assert
-        packageOption.Should().NotBeNull();
-        packageOption!.IsRequired.Should().BeTrue();
+        Assert.NotNull(packageOption);
+        Assert.True(packageOption!.IsRequired);
     }
 
     [Fact]
@@ -449,8 +449,8 @@ public class TemplateCommandTests : IDisposable
         var nameOption = createCommand.Options.FirstOrDefault(o => o.Name == "name");
 
         // Assert
-        nameOption.Should().NotBeNull();
-        nameOption!.IsRequired.Should().BeTrue();
+        Assert.NotNull(nameOption);
+        Assert.True(nameOption!.IsRequired);
     }
 
     [Fact]
@@ -462,8 +462,8 @@ public class TemplateCommandTests : IDisposable
         var fromOption = createCommand.Options.FirstOrDefault(o => o.Name == "from");
 
         // Assert
-        fromOption.Should().NotBeNull();
-        fromOption!.IsRequired.Should().BeTrue();
+        Assert.NotNull(fromOption);
+        Assert.True(fromOption!.IsRequired);
     }
 
     [Fact]
@@ -485,9 +485,9 @@ public class TemplateCommandTests : IDisposable
         var json = await File.ReadAllTextAsync(templateJsonPath);
         var templateConfig = JsonSerializer.Deserialize<JsonElement>(json);
 
-        templateConfig.TryGetProperty("symbols", out var symbols).Should().BeTrue();
-        symbols.TryGetProperty("ProjectName", out var projectNameSymbol).Should().BeTrue();
-        projectNameSymbol.GetProperty("type").GetString().Should().Be("parameter");
+        Assert.True(templateConfig.TryGetProperty("symbols", out var symbols));
+        Assert.True(symbols.TryGetProperty("ProjectName", out var projectNameSymbol));
+        Assert.Equal("parameter", projectNameSymbol.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -509,7 +509,7 @@ public class TemplateCommandTests : IDisposable
         var json = await File.ReadAllTextAsync(templateJsonPath);
         var templateConfig = JsonSerializer.Deserialize<JsonElement>(json);
 
-        templateConfig.GetProperty("author").GetString().Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(templateConfig.GetProperty("author").GetString()));
     }
 
     [Fact]
@@ -532,10 +532,10 @@ public class TemplateCommandTests : IDisposable
         var templateConfig = JsonSerializer.Deserialize<JsonElement>(json);
 
         var classifications = templateConfig.GetProperty("classifications");
-        classifications.GetArrayLength().Should().BeGreaterThan(0);
+        Assert.True(classifications.GetArrayLength() > 0);
 
         var classArray = classifications.EnumerateArray().Select(e => e.GetString()).ToList();
-        classArray.Should().Contain("Relay");
+        Assert.Contains("Relay", classArray);
     }
 
     [Fact]
@@ -558,7 +558,7 @@ public class TemplateCommandTests : IDisposable
 
         // Assert
         var nestedFile = Path.Combine(outputPath, templateName, "content", "SubFolder", "Nested", "Nested.cs");
-        File.Exists(nestedFile).Should().BeTrue();
+        Assert.True(File.Exists(nestedFile));
     }
 
     [Fact]
@@ -581,7 +581,7 @@ public class TemplateCommandTests : IDisposable
 
         // Assert
         var contentPath = Path.Combine(outputPath, templateName, "content");
-        Directory.Exists(Path.Combine(contentPath, ".git")).Should().BeFalse();
+        Assert.False(Directory.Exists(Path.Combine(contentPath, ".git")));
     }
 
     private string CreateValidTemplate(string name)
@@ -678,3 +678,5 @@ public class TemplateCommandTests : IDisposable
         }
     }
 }
+
+

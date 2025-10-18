@@ -1,5 +1,6 @@
 using Relay.CLI.Commands;
 using System.Diagnostics;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -22,10 +23,10 @@ public class AIIntegrationTests
         var predictionResults = await predictor.PredictAsync(projectPath, scenario, load, timeHorizon);
 
         // Assert - Verify prediction results
-        predictionResults.Should().NotBeNull();
-        predictionResults.ExpectedThroughput.Should().Be(1250);
-        predictionResults.Bottlenecks.Should().HaveCount(1);
-        predictionResults.Recommendations.Should().HaveCount(3);
+        Assert.NotNull(predictionResults);
+        Assert.Equal(1250, predictionResults.ExpectedThroughput);
+        Assert.Single(predictionResults.Bottlenecks);
+        Assert.Equal(3, predictionResults.Recommendations.Length);
     }
 
     [Fact]
@@ -45,12 +46,12 @@ public class AIIntegrationTests
         var learningResults = await learningTask;
 
         // Assert - Verify both return valid results
-        predictionResults.Should().NotBeNull();
-        predictionResults.ExpectedThroughput.Should().BeGreaterThan(0);
+        Assert.NotNull(predictionResults);
+        Assert.True(predictionResults.ExpectedThroughput > 0);
 
-        learningResults.Should().NotBeNull();
-        learningResults.ModelAccuracy.Should().BeGreaterThan(0);
-        learningResults.TrainingSamples.Should().BeGreaterThan(0);
+        Assert.NotNull(learningResults);
+        Assert.True(learningResults.ModelAccuracy > 0);
+        Assert.True(learningResults.TrainingSamples > 0);
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public class AIIntegrationTests
         stopwatch.Stop();
 
         // Assert - Should complete within reasonable time (less than 10 seconds total)
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(10000);
+        Assert.True(stopwatch.ElapsedMilliseconds < 10000);
     }
 
     [Fact]
@@ -96,11 +97,11 @@ public class AIIntegrationTests
         var deserializedLearning = System.Text.Json.JsonSerializer.Deserialize<AILearningResults>(learningJson);
 
         // Assert - Verify deserialized objects match originals
-        deserializedPrediction.Should().NotBeNull();
-        deserializedPrediction!.ExpectedThroughput.Should().Be(predictionResults.ExpectedThroughput);
+        Assert.NotNull(deserializedPrediction);
+        Assert.Equal(predictionResults.ExpectedThroughput, deserializedPrediction!.ExpectedThroughput);
 
-        deserializedLearning.Should().NotBeNull();
-        deserializedLearning!.ModelAccuracy.Should().Be(learningResults.ModelAccuracy);
+        Assert.NotNull(deserializedLearning);
+        Assert.Equal(learningResults.ModelAccuracy, deserializedLearning!.ModelAccuracy);
     }
 
     [Fact]
@@ -120,9 +121,9 @@ public class AIIntegrationTests
         var results = await Task.WhenAll(predictionTasks);
 
         // Assert - All tasks should complete successfully
-        results.Should().HaveCount(3);
-        results.All(r => r != null).Should().BeTrue();
-        results.All(r => r.ExpectedThroughput == 1250).Should().BeTrue();
+        Assert.Equal(3, results.Length);
+        Assert.True(results.All(r => r != null));
+        Assert.True(results.All(r => r.ExpectedThroughput == 1250));
     }
 
     [Fact]
@@ -141,15 +142,14 @@ public class AIIntegrationTests
 
         // Assert - All results should be identical
         var firstResult = results[0];
-        results.All(r =>
+        Assert.True(results.All(r =>
             r.ExpectedThroughput == firstResult.ExpectedThroughput &&
             r.ExpectedResponseTime == firstResult.ExpectedResponseTime &&
             r.ExpectedErrorRate == firstResult.ExpectedErrorRate &&
             r.ExpectedCpuUsage == firstResult.ExpectedCpuUsage &&
             r.ExpectedMemoryUsage == firstResult.ExpectedMemoryUsage &&
             r.Bottlenecks[0].Component == firstResult.Bottlenecks[0].Component &&
-            r.Recommendations.SequenceEqual(firstResult.Recommendations))
-            .Should().BeTrue();
+            r.Recommendations.SequenceEqual(firstResult.Recommendations)));
     }
 
     [Fact]
@@ -176,10 +176,10 @@ public class AIIntegrationTests
         var learningResults = await learningTask;
 
         // Assert
-        predictionResults.Should().NotBeNull();
-        learningResults.Should().NotBeNull();
-        stopwatch.ElapsedMilliseconds.Should().BeGreaterThanOrEqualTo(4400); // At least 4.4 seconds total
-        stopwatch.ElapsedMilliseconds.Should().BeLessThanOrEqualTo(6000); // But not too long
+        Assert.NotNull(predictionResults);
+        Assert.NotNull(learningResults);
+        Assert.True(stopwatch.ElapsedMilliseconds >= 4400); // At least 4.4 seconds total
+        Assert.True(stopwatch.ElapsedMilliseconds <= 6000); // But not too long
     }
 
 
@@ -196,21 +196,21 @@ public class AIIntegrationTests
         var learningResults = await learner.LearnAsync("/integrity/test", null, false, false);
 
         // Assert - Verify all data is valid and within expected ranges
-        predictionResults.ExpectedThroughput.Should().BeGreaterThan(0);
-        predictionResults.ExpectedResponseTime.Should().BeGreaterThan(0);
-        predictionResults.ExpectedErrorRate.Should().BeGreaterThanOrEqualTo(0);
-        predictionResults.ExpectedErrorRate.Should().BeLessThanOrEqualTo(1);
-        predictionResults.ExpectedCpuUsage.Should().BeGreaterThanOrEqualTo(0);
-        predictionResults.ExpectedCpuUsage.Should().BeLessThanOrEqualTo(1);
-        predictionResults.ExpectedMemoryUsage.Should().BeGreaterThanOrEqualTo(0);
-        predictionResults.ExpectedMemoryUsage.Should().BeLessThanOrEqualTo(1);
+        Assert.True(predictionResults.ExpectedThroughput > 0);
+        Assert.True(predictionResults.ExpectedResponseTime > 0);
+        Assert.True(predictionResults.ExpectedErrorRate >= 0);
+        Assert.True(predictionResults.ExpectedErrorRate <= 1);
+        Assert.True(predictionResults.ExpectedCpuUsage >= 0);
+        Assert.True(predictionResults.ExpectedCpuUsage <= 1);
+        Assert.True(predictionResults.ExpectedMemoryUsage >= 0);
+        Assert.True(predictionResults.ExpectedMemoryUsage <= 1);
 
-        learningResults.ModelAccuracy.Should().BeGreaterThan(0);
-        learningResults.ModelAccuracy.Should().BeLessThanOrEqualTo(1);
-        learningResults.TrainingSamples.Should().BeGreaterThan(0);
-        learningResults.TrainingTime.Should().BeGreaterThan(0);
-        learningResults.ImprovementAreas.Should().NotBeEmpty();
-        learningResults.ImprovementAreas.All(area => area.Improvement >= 0).Should().BeTrue();
+        Assert.True(learningResults.ModelAccuracy > 0);
+        Assert.True(learningResults.ModelAccuracy <= 1);
+        Assert.True(learningResults.TrainingSamples > 0);
+        Assert.True(learningResults.TrainingTime > 0);
+        Assert.NotEmpty(learningResults.ImprovementAreas);
+        Assert.True(learningResults.ImprovementAreas.All(area => area.Improvement >= 0));
     }
 
     [Fact]
@@ -234,8 +234,8 @@ public class AIIntegrationTests
         {
             var results = await predictor.PredictAsync(path, scenario, load, timeHorizon);
 
-            results.Should().NotBeNull();
-            results.Should().BeOfType<AIPredictionResults>();
+            Assert.NotNull(results);
+            Assert.IsType<AIPredictionResults>(results);
         }
     }
 }

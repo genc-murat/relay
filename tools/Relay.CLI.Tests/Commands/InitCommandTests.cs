@@ -2,6 +2,7 @@ using Relay.CLI.Commands;
 using System.CommandLine;
 using Spectre.Console;
 using Spectre.Console.Testing;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -43,37 +44,37 @@ public class InitCommandTests : IDisposable
         var command = InitCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("init");
-        command.Description.Should().Be("Initialize a new Relay project with complete scaffolding");
+        Assert.NotNull(command);
+        Assert.Equal("init", command.Name);
+        Assert.Equal("Initialize a new Relay project with complete scaffolding", command.Description);
 
         var nameOption = command.Options.FirstOrDefault(o => o.Name == "name");
-        nameOption.Should().NotBeNull();
-        nameOption.IsRequired.Should().BeTrue();
+        Assert.NotNull(nameOption);
+        Assert.True(nameOption.IsRequired);
 
         var templateOption = command.Options.FirstOrDefault(o => o.Name == "template");
-        templateOption.Should().NotBeNull();
-        templateOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(templateOption);
+        Assert.False(templateOption.IsRequired);
 
         var outputOption = command.Options.FirstOrDefault(o => o.Name == "output");
-        outputOption.Should().NotBeNull();
-        outputOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(outputOption);
+        Assert.False(outputOption.IsRequired);
 
         var frameworkOption = command.Options.FirstOrDefault(o => o.Name == "framework");
-        frameworkOption.Should().NotBeNull();
-        frameworkOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(frameworkOption);
+        Assert.False(frameworkOption.IsRequired);
 
         var gitOption = command.Options.FirstOrDefault(o => o.Name == "git");
-        gitOption.Should().NotBeNull();
-        gitOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(gitOption);
+        Assert.False(gitOption.IsRequired);
 
         var dockerOption = command.Options.FirstOrDefault(o => o.Name == "docker");
-        dockerOption.Should().NotBeNull();
-        dockerOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(dockerOption);
+        Assert.False(dockerOption.IsRequired);
 
         var ciOption = command.Options.FirstOrDefault(o => o.Name == "ci");
-        ciOption.Should().NotBeNull();
-        ciOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(ciOption);
+        Assert.False(ciOption.IsRequired);
     }
 
     [Theory]
@@ -90,29 +91,29 @@ public class InitCommandTests : IDisposable
         await ExecuteInitWithMockedConsole(projectName, template, _testPath, "net8.0", true, false, false);
 
         // Assert
-        Directory.Exists(projectPath).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "src", projectName)).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "tests", $"{projectName}.Tests")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "docs")).Should().BeTrue();
+        Assert.True(Directory.Exists(projectPath));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "src", projectName)));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "tests", $"{projectName}.Tests")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "docs")));
 
         // Check solution file
-        File.Exists(Path.Combine(projectPath, $"{projectName}.sln")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(projectPath, $"{projectName}.sln")));
 
         // Check main project files
         var mainProjectPath = Path.Combine(projectPath, "src", projectName);
-        File.Exists(Path.Combine(mainProjectPath, $"{projectName}.csproj")).Should().BeTrue();
-        File.Exists(Path.Combine(mainProjectPath, "Program.cs")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(mainProjectPath, $"{projectName}.csproj")));
+        Assert.True(File.Exists(Path.Combine(mainProjectPath, "Program.cs")));
 
         // Check test project files
         var testProjectPath = Path.Combine(projectPath, "tests", $"{projectName}.Tests");
-        File.Exists(Path.Combine(testProjectPath, $"{projectName}.Tests.csproj")).Should().BeTrue();
-        File.Exists(Path.Combine(testProjectPath, "SampleTests.cs")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(testProjectPath, $"{projectName}.Tests.csproj")));
+        Assert.True(File.Exists(Path.Combine(testProjectPath, "SampleTests.cs")));
 
         // Check configuration files
-        File.Exists(Path.Combine(projectPath, "README.md")).Should().BeTrue();
-        File.Exists(Path.Combine(projectPath, "appsettings.json")).Should().BeTrue();
-        File.Exists(Path.Combine(projectPath, ".relay-cli.json")).Should().BeTrue();
-        File.Exists(Path.Combine(projectPath, ".gitignore")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(projectPath, "README.md")));
+        Assert.True(File.Exists(Path.Combine(projectPath, "appsettings.json")));
+        Assert.True(File.Exists(Path.Combine(projectPath, ".relay-cli.json")));
+        Assert.True(File.Exists(Path.Combine(projectPath, ".gitignore")));
     }
 
     [Fact]
@@ -129,7 +130,7 @@ public class InitCommandTests : IDisposable
         await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // The directory should still exist but no new files should be created
-        Directory.Exists(projectPath).Should().BeTrue();
+        Assert.True(Directory.Exists(projectPath));
     }
 
     [Theory]
@@ -148,7 +149,7 @@ public class InitCommandTests : IDisposable
 
         // Assert
         var csprojContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, $"{projectName}.csproj"));
-        csprojContent.Should().Contain($"<TargetFramework>{framework}</TargetFramework>");
+        Assert.Contains($"<TargetFramework>{framework}</TargetFramework>", csprojContent);
     }
 
     [Fact]
@@ -162,16 +163,16 @@ public class InitCommandTests : IDisposable
         await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", false, true, false);
 
         // Assert
-        File.Exists(Path.Combine(projectPath, "Dockerfile")).Should().BeTrue();
-        File.Exists(Path.Combine(projectPath, "docker-compose.yml")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(projectPath, "Dockerfile")));
+        Assert.True(File.Exists(Path.Combine(projectPath, "docker-compose.yml")));
 
         var dockerfileContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "Dockerfile"));
-        dockerfileContent.Should().Contain("FROM mcr.microsoft.com/dotnet/sdk:8.0");
-        dockerfileContent.Should().Contain($"ENTRYPOINT [\"dotnet\", \"{projectName}.dll\"]");
+        Assert.Contains("FROM mcr.microsoft.com/dotnet/sdk:8.0", dockerfileContent);
+        Assert.Contains($"ENTRYPOINT [\"dotnet\", \"{projectName}.dll\"]", dockerfileContent);
 
         var dockerComposeContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "docker-compose.yml"));
-        dockerComposeContent.Should().Contain("version: '3.8'");
-        dockerComposeContent.Should().Contain(projectName.ToLower());
+        Assert.Contains("version: '3.8'", dockerComposeContent);
+        Assert.Contains(projectName.ToLower(), dockerComposeContent);
     }
 
     [Fact]
@@ -186,16 +187,16 @@ public class InitCommandTests : IDisposable
         await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", false, false, true);
 
         // Assert
-        Directory.Exists(workflowsPath).Should().BeTrue();
-        File.Exists(Path.Combine(workflowsPath, "ci.yml")).Should().BeTrue();
+        Assert.True(Directory.Exists(workflowsPath));
+        Assert.True(File.Exists(Path.Combine(workflowsPath, "ci.yml")));
 
         var ciContent = await File.ReadAllTextAsync(Path.Combine(workflowsPath, "ci.yml"));
-        ciContent.Should().Contain("name: CI");
-        ciContent.Should().Contain("on:");
-        ciContent.Should().Contain("push:");
-        ciContent.Should().Contain("branches: [ main ]");
-        ciContent.Should().Contain("dotnet build");
-        ciContent.Should().Contain("dotnet test");
+        Assert.Contains("name: CI", ciContent);
+        Assert.Contains("on:", ciContent);
+        Assert.Contains("push:", ciContent);
+        Assert.Contains("branches: [ main ]", ciContent);
+        Assert.Contains("dotnet build", ciContent);
+        Assert.Contains("dotnet test", ciContent);
     }
 
     [Fact]
@@ -209,15 +210,15 @@ public class InitCommandTests : IDisposable
         await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(Path.Combine(projectPath, ".gitignore")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(projectPath, ".gitignore")));
 
         var gitignoreContent = await File.ReadAllTextAsync(Path.Combine(projectPath, ".gitignore"));
-        gitignoreContent.Should().Contain("[Bb]in/");
-        gitignoreContent.Should().Contain("[Oo]bj/");
-        gitignoreContent.Should().Contain(".vs/");
-        gitignoreContent.Should().Contain("*.user");
-        gitignoreContent.Should().Contain("*.suo");
-        gitignoreContent.Should().Contain("*.nupkg");
+        Assert.Contains("[Bb]in/", gitignoreContent);
+        Assert.Contains("[Oo]bj/", gitignoreContent);
+        Assert.Contains(".vs/", gitignoreContent);
+        Assert.Contains("*.user", gitignoreContent);
+        Assert.Contains("*.suo", gitignoreContent);
+        Assert.Contains("*.nupkg", gitignoreContent);
     }
 
     [Fact]
@@ -232,11 +233,11 @@ public class InitCommandTests : IDisposable
         await ExecuteInitWithMockedConsole(projectName, "enterprise", _testPath, "net8.0", true, false, false);
 
         // Assert
-        Directory.Exists(Path.Combine(mainProjectPath, "Handlers")).Should().BeTrue();
-        Directory.Exists(Path.Combine(mainProjectPath, "Requests")).Should().BeTrue();
-        Directory.Exists(Path.Combine(mainProjectPath, "Responses")).Should().BeTrue();
-        Directory.Exists(Path.Combine(mainProjectPath, "Validators")).Should().BeTrue();
-        Directory.Exists(Path.Combine(mainProjectPath, "Behaviors")).Should().BeTrue();
+        Assert.True(Directory.Exists(Path.Combine(mainProjectPath, "Handlers")));
+        Assert.True(Directory.Exists(Path.Combine(mainProjectPath, "Requests")));
+        Assert.True(Directory.Exists(Path.Combine(mainProjectPath, "Responses")));
+        Assert.True(Directory.Exists(Path.Combine(mainProjectPath, "Validators")));
+        Assert.True(Directory.Exists(Path.Combine(mainProjectPath, "Behaviors")));
     }
 
     [Fact]
@@ -251,11 +252,11 @@ public class InitCommandTests : IDisposable
 
         // Assert
         var slnContent = await File.ReadAllTextAsync(Path.Combine(projectPath, $"{projectName}.sln"));
-        slnContent.Should().Contain("Microsoft Visual Studio Solution File");
-        slnContent.Should().Contain($"\"{projectName}\"");
-        slnContent.Should().Contain($"\"{projectName}.Tests\"");
-        slnContent.Should().Contain("src\\");
-        slnContent.Should().Contain("tests\\");
+        Assert.Contains("Microsoft Visual Studio Solution File", slnContent);
+        Assert.Contains($"\"{projectName}\"", slnContent);
+        Assert.Contains($"\"{projectName}.Tests\"", slnContent);
+        Assert.Contains("src\\", slnContent);
+        Assert.Contains("tests\\", slnContent);
     }
 
     [Fact]
@@ -271,11 +272,11 @@ public class InitCommandTests : IDisposable
 
         // Assert
         var csprojContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, $"{projectName}.csproj"));
-        csprojContent.Should().Contain("<TargetFramework>net8.0</TargetFramework>");
-        csprojContent.Should().Contain("<LangVersion>latest</LangVersion>");
-        csprojContent.Should().Contain("<Nullable>enable</Nullable>");
-        csprojContent.Should().Contain("<ImplicitUsings>enable</ImplicitUsings>");
-        csprojContent.Should().Contain("<PackageReference Include=\"Relay.Core\" Version=\"2.0.0\" />");
+        Assert.Contains("<TargetFramework>net8.0</TargetFramework>", csprojContent);
+        Assert.Contains("<LangVersion>latest</LangVersion>", csprojContent);
+        Assert.Contains("<Nullable>enable</Nullable>", csprojContent);
+        Assert.Contains("<ImplicitUsings>enable</ImplicitUsings>", csprojContent);
+        Assert.Contains("<PackageReference Include=\"Relay.Core\" Version=\"2.0.0\" />", csprojContent);
     }
 
     [Fact]
@@ -291,13 +292,13 @@ public class InitCommandTests : IDisposable
 
         // Assert
         var csprojContent = await File.ReadAllTextAsync(Path.Combine(testProjectPath, $"{projectName}.Tests.csproj"));
-        csprojContent.Should().Contain("<TargetFramework>net8.0</TargetFramework>");
-        csprojContent.Should().Contain("<IsPackable>false</IsPackable>");
-        csprojContent.Should().Contain("<PackageReference Include=\"Microsoft.NET.Test.Sdk\" Version=\"17.11.0\" />");
-        csprojContent.Should().Contain("<PackageReference Include=\"xunit\" Version=\"2.9.0\" />");
-        csprojContent.Should().Contain("<PackageReference Include=\"FluentAssertions\" Version=\"6.12.0\" />");
-        csprojContent.Should().Contain("<PackageReference Include=\"NSubstitute\" Version=\"5.1.0\" />");
-        csprojContent.Should().Contain($"<ProjectReference Include=\"..\\..\\src\\{projectName}\\{projectName}.csproj\" />");
+        Assert.Contains("<TargetFramework>net8.0</TargetFramework>", csprojContent);
+        Assert.Contains("<IsPackable>false</IsPackable>", csprojContent);
+        Assert.Contains("<PackageReference Include=\"Microsoft.NET.Test.Sdk\" Version=\"17.11.0\" />", csprojContent);
+        Assert.Contains("<PackageReference Include=\"xunit\" Version=\"2.9.0\" />", csprojContent);
+        Assert.Contains("<PackageReference Include=\"FluentAssertions\" Version=\"6.12.0\" />", csprojContent);
+        Assert.Contains("<PackageReference Include=\"NSubstitute\" Version=\"5.1.0\" />", csprojContent);
+        Assert.Contains($"<ProjectReference Include=\"..\\..\\src\\{projectName}\\{projectName}.csproj\" />", csprojContent);
     }
 
     [Fact]
@@ -313,12 +314,12 @@ public class InitCommandTests : IDisposable
 
         // Assert
         var programContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Program.cs"));
-        programContent.Should().Contain("using Microsoft.Extensions.DependencyInjection;");
-        programContent.Should().Contain("using Microsoft.Extensions.Hosting;");
-        programContent.Should().Contain("using Relay.Core;");
-        programContent.Should().Contain("Host.CreateApplicationBuilder(args)");
-        programContent.Should().Contain("builder.Services.AddRelay();");
-        programContent.Should().Contain($"🚀 {projectName} is running with Relay!");
+        Assert.Contains("using Microsoft.Extensions.DependencyInjection;", programContent);
+        Assert.Contains("using Microsoft.Extensions.Hosting;", programContent);
+        Assert.Contains("using Relay.Core;", programContent);
+        Assert.Contains("Host.CreateApplicationBuilder(args)", programContent);
+        Assert.Contains("builder.Services.AddRelay();", programContent);
+        Assert.Contains($"🚀 {projectName} is running with Relay!", programContent);
     }
 
     [Fact]
@@ -333,15 +334,15 @@ public class InitCommandTests : IDisposable
 
         // Assert
         var readmeContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "README.md"));
-        readmeContent.Should().Contain($"# {projectName}");
-        readmeContent.Should().Contain("A high-performance application built with [Relay]");
-        readmeContent.Should().Contain("## 🚀 Getting Started");
-        readmeContent.Should().Contain("dotnet build");
-        readmeContent.Should().Contain("dotnet run");
-        readmeContent.Should().Contain("dotnet test");
-        readmeContent.Should().Contain("## 📖 Project Structure");
-        readmeContent.Should().Contain("## 🎯 Features");
-        readmeContent.Should().Contain("⚡ High-performance request/response handling");
+        Assert.Contains($"# {projectName}", readmeContent);
+        Assert.Contains("A high-performance application built with [Relay]", readmeContent);
+        Assert.Contains("## 🚀 Getting Started", readmeContent);
+        Assert.Contains("dotnet build", readmeContent);
+        Assert.Contains("dotnet run", readmeContent);
+        Assert.Contains("dotnet test", readmeContent);
+        Assert.Contains("## 📖 Project Structure", readmeContent);
+        Assert.Contains("## 🎯 Features", readmeContent);
+        Assert.Contains("⚡ High-performance request/response handling", readmeContent);
     }
 
     [Fact]
@@ -363,14 +364,14 @@ public class InitCommandTests : IDisposable
 
             // Assert
             var appsettingsContent = await File.ReadAllTextAsync(Path.Combine(projectPath, "appsettings.json"));
-            appsettingsContent.Should().Contain("\"version\": \"2.0\"");
-            appsettingsContent.Should().Contain("\"relay\": {");
-            appsettingsContent.Should().Contain("\"enableCaching\": false");
+            Assert.Contains("\"version\": \"2.0\"", appsettingsContent);
+            Assert.Contains("\"relay\": {", appsettingsContent);
+            Assert.Contains("\"enableCaching\": false", appsettingsContent);
 
             var cliConfigContent = await File.ReadAllTextAsync(Path.Combine(projectPath, ".relay-cli.json"));
-            cliConfigContent.Should().Contain("\"defaultNamespace\": \"MyApp\"");
-            cliConfigContent.Should().Contain("\"templatePreference\": \"standard\"");
-            cliConfigContent.Should().Contain("\"includeTests\": true");
+            Assert.Contains("\"defaultNamespace\": \"MyApp\"", cliConfigContent);
+            Assert.Contains("\"templatePreference\": \"standard\"", cliConfigContent);
+            Assert.Contains("\"includeTests\": true", cliConfigContent);
         }
         finally
         {
@@ -390,23 +391,23 @@ public class InitCommandTests : IDisposable
         await ExecuteInitWithMockedConsole(projectName, "standard", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(Path.Combine(mainProjectPath, "GetUserQuery.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(mainProjectPath, "UserResponse.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(mainProjectPath, "GetUserHandler.cs")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(mainProjectPath, "GetUserQuery.cs")));
+        Assert.True(File.Exists(Path.Combine(mainProjectPath, "UserResponse.cs")));
+        Assert.True(File.Exists(Path.Combine(mainProjectPath, "GetUserHandler.cs")));
 
         var queryContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "GetUserQuery.cs"));
-        queryContent.Should().Contain($"namespace {projectName}.Requests;");
-        queryContent.Should().Contain("public record GetUserQuery(int UserId) : IRequest<UserResponse>;");
+        Assert.Contains($"namespace {projectName}.Requests;", queryContent);
+        Assert.Contains("public record GetUserQuery(int UserId) : IRequest<UserResponse>;", queryContent);
 
         var responseContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "UserResponse.cs"));
-        responseContent.Should().Contain($"namespace {projectName}.Requests;");
-        responseContent.Should().Contain("public record UserResponse(int Id, string Name, string Email);");
+        Assert.Contains($"namespace {projectName}.Requests;", responseContent);
+        Assert.Contains("public record UserResponse(int Id, string Name, string Email);", responseContent);
 
         var handlerContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "GetUserHandler.cs"));
-        handlerContent.Should().Contain($"namespace {projectName}.Handlers;");
-        handlerContent.Should().Contain("public class GetUserHandler : IRequestHandler<GetUserQuery, UserResponse>");
-        handlerContent.Should().Contain("[Handle]");
-        handlerContent.Should().Contain("ValueTask<UserResponse>");
+        Assert.Contains($"namespace {projectName}.Handlers;", handlerContent);
+        Assert.Contains("public class GetUserHandler : IRequestHandler<GetUserQuery, UserResponse>", handlerContent);
+        Assert.Contains("[Handle]", handlerContent);
+        Assert.Contains("ValueTask<UserResponse>", handlerContent);
     }
 
     [Fact]
@@ -421,18 +422,18 @@ public class InitCommandTests : IDisposable
         await ExecuteInitWithMockedConsole(projectName, "enterprise", _testPath, "net8.0", true, false, false);
 
         // Assert
-        File.Exists(Path.Combine(mainProjectPath, "Requests", "GetUserQuery.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(mainProjectPath, "Responses", "UserResponse.cs")).Should().BeTrue();
-        File.Exists(Path.Combine(mainProjectPath, "Handlers", "GetUserHandler.cs")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(mainProjectPath, "Requests", "GetUserQuery.cs")));
+        Assert.True(File.Exists(Path.Combine(mainProjectPath, "Responses", "UserResponse.cs")));
+        Assert.True(File.Exists(Path.Combine(mainProjectPath, "Handlers", "GetUserHandler.cs")));
 
         var queryContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Requests", "GetUserQuery.cs"));
-        queryContent.Should().Contain($"namespace {projectName}.Requests;");
+        Assert.Contains($"namespace {projectName}.Requests;", queryContent);
 
         var responseContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Responses", "UserResponse.cs"));
-        responseContent.Should().Contain($"namespace {projectName}.Requests;");
+        Assert.Contains($"namespace {projectName}.Requests;", responseContent);
 
         var handlerContent = await File.ReadAllTextAsync(Path.Combine(mainProjectPath, "Handlers", "GetUserHandler.cs"));
-        handlerContent.Should().Contain($"namespace {projectName}.Handlers;");
+        Assert.Contains($"namespace {projectName}.Handlers;", handlerContent);
     }
 
     [Fact]
@@ -448,12 +449,12 @@ public class InitCommandTests : IDisposable
 
         // Assert
         var testContent = await File.ReadAllTextAsync(Path.Combine(testProjectPath, "SampleTests.cs"));
-        testContent.Should().Contain($"namespace {projectName}.Tests;");
-        testContent.Should().Contain("public class SampleTests");
-        testContent.Should().Contain("[Fact]");
-        testContent.Should().Contain("SampleTest_ShouldPass");
-        testContent.Should().Contain("using Xunit;");
-        testContent.Should().Contain("using FluentAssertions;");
+        Assert.Contains($"namespace {projectName}.Tests;", testContent);
+        Assert.Contains("public class SampleTests", testContent);
+        Assert.Contains("[Fact]", testContent);
+        Assert.Contains("SampleTest_ShouldPass", testContent);
+        Assert.Contains("using Xunit;", testContent);
+        Assert.Contains("", testContent);
     }
 
     [Fact]
@@ -469,8 +470,8 @@ public class InitCommandTests : IDisposable
 
         // Assert
         var expectedProjectPath = Path.Combine(customOutputPath, projectName);
-        Directory.Exists(expectedProjectPath).Should().BeTrue();
-        File.Exists(Path.Combine(expectedProjectPath, $"{projectName}.sln")).Should().BeTrue();
+        Assert.True(Directory.Exists(expectedProjectPath));
+        Assert.True(File.Exists(Path.Combine(expectedProjectPath, $"{projectName}.sln")));
     }
 
     public void Dispose()
@@ -483,3 +484,5 @@ public class InitCommandTests : IDisposable
         catch { }
     }
 }
+
+

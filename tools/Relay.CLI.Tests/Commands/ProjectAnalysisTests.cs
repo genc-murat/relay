@@ -12,7 +12,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { ProjectPath = "/path/to/project" };
 
         // Assert
-        analysis.ProjectPath.Should().Be("/path/to/project");
+        Assert.Equal("/path/to/project", analysis.ProjectPath);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { AnalysisDepth = "Full" };
 
         // Assert
-        analysis.AnalysisDepth.Should().Be("Full");
+        Assert.Equal("Full", analysis.AnalysisDepth);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { IncludeTests = true };
 
         // Assert
-        analysis.IncludeTests.Should().BeTrue();
+        Assert.True(analysis.IncludeTests);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { Timestamp = timestamp };
 
         // Assert
-        analysis.Timestamp.Should().Be(timestamp);
+        Assert.Equal(timestamp, analysis.Timestamp);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class ProjectAnalysisTests
         analysis.ProjectFiles = files;
 
         // Assert
-        analysis.ProjectFiles.Should().BeEquivalentTo(files);
+        Assert.Equal(files, analysis.ProjectFiles);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class ProjectAnalysisTests
         analysis.SourceFiles = files;
 
         // Assert
-        analysis.SourceFiles.Should().BeEquivalentTo(files);
+        Assert.Equal(files, analysis.SourceFiles);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class ProjectAnalysisTests
         analysis.Handlers = handlers;
 
         // Assert
-        analysis.Handlers.Should().BeEquivalentTo(handlers);
+        Assert.Equal(handlers, analysis.Handlers);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class ProjectAnalysisTests
         analysis.Requests = requests;
 
         // Assert
-        analysis.Requests.Should().BeEquivalentTo(requests);
+        Assert.Equal(requests, analysis.Requests);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class ProjectAnalysisTests
         analysis.PerformanceIssues = issues;
 
         // Assert
-        analysis.PerformanceIssues.Should().BeEquivalentTo(issues);
+        Assert.Equal(issues, analysis.PerformanceIssues);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class ProjectAnalysisTests
         analysis.ReliabilityIssues = issues;
 
         // Assert
-        analysis.ReliabilityIssues.Should().BeEquivalentTo(issues);
+        Assert.Equal(issues, analysis.ReliabilityIssues);
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class ProjectAnalysisTests
         analysis.Recommendations = recommendations;
 
         // Assert
-        analysis.Recommendations.Should().BeEquivalentTo(recommendations);
+        Assert.Equal(recommendations, analysis.Recommendations);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { HasRelayCore = true };
 
         // Assert
-        analysis.HasRelayCore.Should().BeTrue();
+        Assert.True(analysis.HasRelayCore);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { HasMediatR = true };
 
         // Assert
-        analysis.HasMediatR.Should().BeTrue();
+        Assert.True(analysis.HasMediatR);
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { HasLogging = true };
 
         // Assert
-        analysis.HasLogging.Should().BeTrue();
+        Assert.True(analysis.HasLogging);
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { HasValidation = true };
 
         // Assert
-        analysis.HasValidation.Should().BeTrue();
+        Assert.True(analysis.HasValidation);
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis { HasCaching = true };
 
         // Assert
-        analysis.HasCaching.Should().BeTrue();
+        Assert.True(analysis.HasCaching);
     }
 
     [Fact]
@@ -203,29 +203,29 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis();
 
         // Assert
-        analysis.ProjectPath.Should().Be("");
-        analysis.AnalysisDepth.Should().Be("");
-        analysis.IncludeTests.Should().BeFalse();
-        analysis.Timestamp.Should().Be(DateTime.MinValue);
-        analysis.ProjectFiles.Should().NotBeNull();
-        analysis.ProjectFiles.Should().BeEmpty();
-        analysis.SourceFiles.Should().NotBeNull();
-        analysis.SourceFiles.Should().BeEmpty();
-        analysis.Handlers.Should().NotBeNull();
-        analysis.Handlers.Should().BeEmpty();
-        analysis.Requests.Should().NotBeNull();
-        analysis.Requests.Should().BeEmpty();
-        analysis.PerformanceIssues.Should().NotBeNull();
-        analysis.PerformanceIssues.Should().BeEmpty();
-        analysis.ReliabilityIssues.Should().NotBeNull();
-        analysis.ReliabilityIssues.Should().BeEmpty();
-        analysis.Recommendations.Should().NotBeNull();
-        analysis.Recommendations.Should().BeEmpty();
-        analysis.HasRelayCore.Should().BeFalse();
-        analysis.HasMediatR.Should().BeFalse();
-        analysis.HasLogging.Should().BeFalse();
-        analysis.HasValidation.Should().BeFalse();
-        analysis.HasCaching.Should().BeFalse();
+        Assert.Equal("", analysis.ProjectPath);
+        Assert.Equal("", analysis.AnalysisDepth);
+        Assert.False(analysis.IncludeTests);
+        Assert.Equal(DateTime.MinValue, analysis.Timestamp);
+        Assert.NotNull(analysis.ProjectFiles);
+        Assert.Empty(analysis.ProjectFiles);
+        Assert.NotNull(analysis.SourceFiles);
+        Assert.Empty(analysis.SourceFiles);
+        Assert.NotNull(analysis.Handlers);
+        Assert.Empty(analysis.Handlers);
+        Assert.NotNull(analysis.Requests);
+        Assert.Empty(analysis.Requests);
+        Assert.NotNull(analysis.PerformanceIssues);
+        Assert.Empty(analysis.PerformanceIssues);
+        Assert.NotNull(analysis.ReliabilityIssues);
+        Assert.Empty(analysis.ReliabilityIssues);
+        Assert.NotNull(analysis.Recommendations);
+        Assert.Empty(analysis.Recommendations);
+        Assert.False(analysis.HasRelayCore);
+        Assert.False(analysis.HasMediatR);
+        Assert.False(analysis.HasLogging);
+        Assert.False(analysis.HasValidation);
+        Assert.False(analysis.HasCaching);
     }
 
     [Fact]
@@ -256,22 +256,22 @@ public class ProjectAnalysisTests
         };
 
         // Assert
-        analysis.ProjectPath.Should().Be("/home/user/myproject");
-        analysis.AnalysisDepth.Should().Be("Comprehensive");
-        analysis.IncludeTests.Should().BeTrue();
-        analysis.Timestamp.Should().Be(timestamp);
-        analysis.ProjectFiles.Should().HaveCount(2);
-        analysis.SourceFiles.Should().HaveCount(2);
-        analysis.Handlers.Should().HaveCount(1);
-        analysis.Requests.Should().HaveCount(1);
-        analysis.PerformanceIssues.Should().HaveCount(1);
-        analysis.ReliabilityIssues.Should().HaveCount(1);
-        analysis.Recommendations.Should().HaveCount(1);
-        analysis.HasRelayCore.Should().BeTrue();
-        analysis.HasMediatR.Should().BeTrue();
-        analysis.HasLogging.Should().BeTrue();
-        analysis.HasValidation.Should().BeTrue();
-        analysis.HasCaching.Should().BeFalse();
+        Assert.Equal("/home/user/myproject", analysis.ProjectPath);
+        Assert.Equal("Comprehensive", analysis.AnalysisDepth);
+        Assert.True(analysis.IncludeTests);
+        Assert.Equal(timestamp, analysis.Timestamp);
+        Assert.Equal(2, analysis.ProjectFiles.Count());
+        Assert.Equal(2, analysis.SourceFiles.Count());
+        Assert.Equal(1, analysis.Handlers.Count());
+        Assert.Equal(1, analysis.Requests.Count());
+        Assert.Equal(1, analysis.PerformanceIssues.Count());
+        Assert.Equal(1, analysis.ReliabilityIssues.Count());
+        Assert.Equal(1, analysis.Recommendations.Count());
+        Assert.True(analysis.HasRelayCore);
+        Assert.True(analysis.HasMediatR);
+        Assert.True(analysis.HasLogging);
+        Assert.True(analysis.HasValidation);
+        Assert.False(analysis.HasCaching);
     }
 
     [Fact]
@@ -285,9 +285,9 @@ public class ProjectAnalysisTests
         analysis.ProjectFiles.Add("appsettings.json");
 
         // Assert
-        analysis.ProjectFiles.Should().HaveCount(2);
-        analysis.ProjectFiles.Should().Contain("MyProject.csproj");
-        analysis.ProjectFiles.Should().Contain("appsettings.json");
+        Assert.Equal(2, analysis.ProjectFiles.Count());
+        Assert.Contains("MyProject.csproj", analysis.ProjectFiles);
+        Assert.Contains("appsettings.json", analysis.ProjectFiles);
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public class ProjectAnalysisTests
         analysis.SourceFiles.Add("Controllers/HomeController.cs");
 
         // Assert
-        analysis.SourceFiles.Should().HaveCount(2);
+        Assert.Equal(2, analysis.SourceFiles.Count());
     }
 
     [Fact]
@@ -315,8 +315,8 @@ public class ProjectAnalysisTests
         analysis.Handlers.Add(new HandlerInfo { Name = "UpdateUserHandler", IsAsync = false });
 
         // Assert
-        analysis.Handlers.Should().HaveCount(2);
-        analysis.Handlers.Count(h => h.IsAsync).Should().Be(1);
+        Assert.Equal(2, analysis.Handlers.Count());
+        Assert.Equal(1, analysis.Handlers.Count(h => h.IsAsync));
     }
 
     [Fact]
@@ -330,8 +330,8 @@ public class ProjectAnalysisTests
         analysis.PerformanceIssues.Add(new PerformanceIssue { Type = "CPU Bottleneck", Severity = "Medium" });
 
         // Assert
-        analysis.PerformanceIssues.Should().HaveCount(2);
-        analysis.PerformanceIssues.Count(i => i.Severity == "High").Should().Be(1);
+        Assert.Equal(2, analysis.PerformanceIssues.Count());
+        Assert.Equal(1, analysis.PerformanceIssues.Count(i => i.Severity == "High"));
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class ProjectAnalysisTests
         analysis.Recommendations.Add(new Recommendation { Title = "Optimize Queries", Priority = "Medium" });
 
         // Assert
-        analysis.Recommendations.Should().HaveCount(2);
+        Assert.Equal(2, analysis.Recommendations.Count());
     }
 
     [Fact]
@@ -362,12 +362,12 @@ public class ProjectAnalysisTests
             HasCaching = true
         };
 
-        analysisTrue.IncludeTests.Should().BeTrue();
-        analysisTrue.HasRelayCore.Should().BeTrue();
-        analysisTrue.HasMediatR.Should().BeTrue();
-        analysisTrue.HasLogging.Should().BeTrue();
-        analysisTrue.HasValidation.Should().BeTrue();
-        analysisTrue.HasCaching.Should().BeTrue();
+        Assert.True(analysisTrue.IncludeTests);
+        Assert.True(analysisTrue.HasRelayCore);
+        Assert.True(analysisTrue.HasMediatR);
+        Assert.True(analysisTrue.HasLogging);
+        Assert.True(analysisTrue.HasValidation);
+        Assert.True(analysisTrue.HasCaching);
 
         // Test all boolean properties can be set to false
         var analysisFalse = new ProjectAnalysis
@@ -380,12 +380,12 @@ public class ProjectAnalysisTests
             HasCaching = false
         };
 
-        analysisFalse.IncludeTests.Should().BeFalse();
-        analysisFalse.HasRelayCore.Should().BeFalse();
-        analysisFalse.HasMediatR.Should().BeFalse();
-        analysisFalse.HasLogging.Should().BeFalse();
-        analysisFalse.HasValidation.Should().BeFalse();
-        analysisFalse.HasCaching.Should().BeFalse();
+        Assert.False(analysisFalse.IncludeTests);
+        Assert.False(analysisFalse.HasRelayCore);
+        Assert.False(analysisFalse.HasMediatR);
+        Assert.False(analysisFalse.HasLogging);
+        Assert.False(analysisFalse.HasValidation);
+        Assert.False(analysisFalse.HasCaching);
     }
 
     [Fact]
@@ -400,8 +400,8 @@ public class ProjectAnalysisTests
         };
 
         // Assert
-        analyses.Should().HaveCount(3);
-        analyses.Count(a => a.HasRelayCore).Should().Be(2);
+        Assert.Equal(3, analyses.Count());
+        Assert.Equal(2, analyses.Count(a => a.HasRelayCore));
     }
 
     [Fact]
@@ -421,9 +421,9 @@ public class ProjectAnalysisTests
         var projectsWithAllFeatures = analyses.Where(a => a.HasRelayCore && a.HasLogging && a.HasValidation).ToList();
 
         // Assert
-        relayProjects.Should().HaveCount(2);
-        projectsWithLogging.Should().HaveCount(2);
-        projectsWithAllFeatures.Should().HaveCount(1);
+        Assert.Equal(2, relayProjects.Count());
+        Assert.Equal(2, projectsWithLogging.Count());
+        Assert.Equal(1, projectsWithAllFeatures.Count());
     }
 
     [Fact]
@@ -457,10 +457,10 @@ public class ProjectAnalysisTests
         var highPriorityRecommendations = analysis.Recommendations.Count(r => r.Priority == "High");
 
         // Assert
-        totalHandlerLines.Should().Be(300);
-        asyncHandlers.Should().Be(2);
-        totalIssues.Should().Be(8);
-        highPriorityRecommendations.Should().Be(1);
+        Assert.Equal(300, totalHandlerLines);
+        Assert.Equal(2, asyncHandlers);
+        Assert.Equal(8, totalIssues);
+        Assert.Equal(1, highPriorityRecommendations);
     }
 
     [Fact]
@@ -470,8 +470,8 @@ public class ProjectAnalysisTests
         var analysis = new ProjectAnalysis();
 
         // Assert
-        analysis.Should().NotBeNull();
-        analysis.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(analysis);
+        Assert.True(analysis.GetType().IsClass);
     }
 
     [Fact]
@@ -507,19 +507,19 @@ public class ProjectAnalysisTests
         };
 
         // Assert
-        analysis.ProjectPath.Should().Be("C:\\Projects\\MyRelayApp");
-        analysis.AnalysisDepth.Should().Be("Full");
-        analysis.IncludeTests.Should().BeTrue();
-        analysis.ProjectFiles.Should().HaveCount(3);
-        analysis.SourceFiles.Should().HaveCount(3);
-        analysis.Handlers.Should().HaveCount(2);
-        analysis.PerformanceIssues.Should().HaveCount(1);
-        analysis.Recommendations.Should().HaveCount(1);
-        analysis.HasRelayCore.Should().BeTrue();
-        analysis.HasMediatR.Should().BeTrue();
-        analysis.HasLogging.Should().BeTrue();
-        analysis.HasValidation.Should().BeTrue();
-        analysis.HasCaching.Should().BeFalse();
+        Assert.Equal("C:\\Projects\\MyRelayApp", analysis.ProjectPath);
+        Assert.Equal("Full", analysis.AnalysisDepth);
+        Assert.True(analysis.IncludeTests);
+        Assert.Equal(3, analysis.ProjectFiles.Count());
+        Assert.Equal(3, analysis.SourceFiles.Count());
+        Assert.Equal(2, analysis.Handlers.Count());
+        Assert.Equal(1, analysis.PerformanceIssues.Count());
+        Assert.Equal(1, analysis.Recommendations.Count());
+        Assert.True(analysis.HasRelayCore);
+        Assert.True(analysis.HasMediatR);
+        Assert.True(analysis.HasLogging);
+        Assert.True(analysis.HasValidation);
+        Assert.False(analysis.HasCaching);
     }
 
     [Fact]
@@ -539,9 +539,9 @@ public class ProjectAnalysisTests
         analysis.IncludeTests = true;
 
         // Assert
-        analysis.ProjectPath.Should().Be("ModifiedPath");
-        analysis.AnalysisDepth.Should().Be("Comprehensive");
-        analysis.IncludeTests.Should().BeTrue();
+        Assert.Equal("ModifiedPath", analysis.ProjectPath);
+        Assert.Equal("Comprehensive", analysis.AnalysisDepth);
+        Assert.True(analysis.IncludeTests);
     }
 
     [Fact]
@@ -559,8 +559,8 @@ public class ProjectAnalysisTests
         var recentAnalyses = analyses.Where(a => a.Timestamp > new DateTime(2023, 5, 1)).ToList();
 
         // Assert
-        recentAnalyses.Should().HaveCount(2);
-        recentAnalyses.All(a => a.Timestamp > new DateTime(2023, 5, 1)).Should().BeTrue();
+        Assert.Equal(2, recentAnalyses.Count());
+        Assert.True(recentAnalyses.All(a => a.Timestamp > new DateTime(2023, 5, 1)));
     }
 
     [Fact]
@@ -578,9 +578,9 @@ public class ProjectAnalysisTests
         var grouped = analyses.GroupBy(a => a.AnalysisDepth);
 
         // Assert
-        grouped.Should().HaveCount(2);
-        grouped.First(g => g.Key == "Basic").Should().HaveCount(2);
-        grouped.First(g => g.Key == "Full").Should().HaveCount(1);
+        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Basic").Count());
+        Assert.Equal(1, grouped.First(g => g.Key == "Full").Count());
     }
 
     [Fact]
@@ -619,9 +619,9 @@ public class ProjectAnalysisTests
         var healthScore = Math.Max(0, featureScore - issuePenalty);
 
         // Assert
-        featureScore.Should().Be(70); // 20 + 20 + 15 + 15 + 0
-        issuePenalty.Should().Be(12); // 10 + 1*2
-        healthScore.Should().Be(58);
+        Assert.Equal(70, featureScore); // 20 + 20 + 15 + 15 + 0
+        Assert.Equal(12, issuePenalty); // 10 + 1*2
+        Assert.Equal(58, healthScore);
     }
 
     [Fact]
@@ -672,12 +672,13 @@ public class ProjectAnalysisTests
         };
 
         // Assert
-        summary.Project.Should().Be("/path/to/project");
-        summary.FilesAnalyzed.Should().Be(3);
-        summary.HandlersFound.Should().Be(3);
-        summary.AsyncHandlers.Should().Be(2);
-        summary.IssuesFound.Should().Be(2);
-        summary.RecommendationsCount.Should().Be(2);
-        summary.FeaturesEnabled.Should().Be(4);
+        Assert.Equal("/path/to/project", summary.Project);
+        Assert.Equal(3, summary.FilesAnalyzed);
+        Assert.Equal(3, summary.HandlersFound);
+        Assert.Equal(2, summary.AsyncHandlers);
+        Assert.Equal(2, summary.IssuesFound);
+        Assert.Equal(2, summary.RecommendationsCount);
+        Assert.Equal(4, summary.FeaturesEnabled);
     }
 }
+

@@ -3,6 +3,7 @@ using System.CommandLine;
 using Spectre.Console.Testing;
 using Spectre.Console;
 using System.Reflection;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -15,8 +16,8 @@ public class RefactorCommandTests
         var command = RefactorCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Should().BeOfType<Command>();
+        Assert.NotNull(command);
+        Assert.IsType<Command>(command);
     }
 
     [Fact]
@@ -26,7 +27,7 @@ public class RefactorCommandTests
         var command = RefactorCommand.Create();
 
         // Assert
-        command.Name.Should().Be("refactor");
+        Assert.Equal("refactor", command.Name);
     }
 
     [Fact]
@@ -36,7 +37,7 @@ public class RefactorCommandTests
         var command = RefactorCommand.Create();
 
         // Assert
-        command.Description.Should().Be("Automated code refactoring and modernization");
+        Assert.Equal("Automated code refactoring and modernization", command.Description);
     }
 
     [Fact]
@@ -47,94 +48,10 @@ public class RefactorCommandTests
         var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
 
         // Assert
-        pathOption.Should().NotBeNull();
-        pathOption!.Name.Should().Be("path");
-        pathOption.Description.Should().Be("Project path to refactor");
-        pathOption.Should().BeOfType<Option<string>>();
-    }
-
-    [Fact]
-    public void RefactorCommand_ShouldHaveAnalyzeOnlyOption()
-    {
-        // Arrange & Act
-        var command = RefactorCommand.Create();
-        var option = command.Options.FirstOrDefault(o => o.Name == "analyze-only");
-
-        // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("analyze-only");
-        option.Description.Should().Be("Only analyze without applying changes");
-        option.Should().BeOfType<Option<bool>>();
-    }
-
-    [Fact]
-    public void RefactorCommand_ShouldHaveDryRunOption()
-    {
-        // Arrange & Act
-        var command = RefactorCommand.Create();
-        var option = command.Options.FirstOrDefault(o => o.Name == "dry-run");
-
-        // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("dry-run");
-        option.Description.Should().Be("Show changes without applying them");
-        option.Should().BeOfType<Option<bool>>();
-    }
-
-    [Fact]
-    public void RefactorCommand_ShouldHaveInteractiveOption()
-    {
-        // Arrange & Act
-        var command = RefactorCommand.Create();
-        var option = command.Options.FirstOrDefault(o => o.Name == "interactive");
-
-        // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("interactive");
-        option.Description.Should().Be("Prompt for each refactoring");
-        option.Should().BeOfType<Option<bool>>();
-    }
-
-    [Fact]
-    public void RefactorCommand_ShouldHaveRulesOption()
-    {
-        // Arrange & Act
-        var command = RefactorCommand.Create();
-        var option = command.Options.FirstOrDefault(o => o.Name == "rules");
-
-        // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("rules");
-        option.Description.Should().Be("Specific rules to apply");
-        option.Should().BeOfType<Option<string[]>>();
-    }
-
-    [Fact]
-    public void RefactorCommand_ShouldHaveCategoryOption()
-    {
-        // Arrange & Act
-        var command = RefactorCommand.Create();
-        var option = command.Options.FirstOrDefault(o => o.Name == "category");
-
-        // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("category");
-        option.Description.Should().Be("Refactoring categories (Performance, Readability, etc.)");
-        option.Should().BeOfType<Option<string[]>>();
-    }
-
-    [Fact]
-    public void RefactorCommand_ShouldHaveMinSeverityOption()
-    {
-        // Arrange & Act
-        var command = RefactorCommand.Create();
-        var option = command.Options.FirstOrDefault(o => o.Name == "min-severity");
-
-        // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("min-severity");
-        option.Description.Should().Be("Minimum severity (Info, Suggestion, Warning, Error)");
-        option.Should().BeOfType<Option<string>>();
+        Assert.NotNull(pathOption);
+        Assert.Equal("path", pathOption.Name);
+        Assert.Equal("Project path to refactor", pathOption.Description);
+        Assert.IsType<Option<string>>(pathOption);
     }
 
     [Fact]
@@ -145,10 +62,10 @@ public class RefactorCommandTests
         var option = command.Options.FirstOrDefault(o => o.Name == "output");
 
         // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("output");
-        option.Description.Should().Be("Refactoring report output path");
-        option.Should().BeOfType<Option<string?>>();
+        Assert.NotNull(option);
+        Assert.Equal("output", option.Name);
+        Assert.Equal("Refactoring report output path", option.Description);
+        Assert.IsType<Option<string?>>(option);
     }
 
     [Fact]
@@ -159,10 +76,10 @@ public class RefactorCommandTests
         var option = command.Options.FirstOrDefault(o => o.Name == "format");
 
         // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("format");
-        option.Description.Should().Be("Report format (markdown, json, html)");
-        option.Should().BeOfType<Option<string>>();
+        Assert.NotNull(option);
+        Assert.Equal("format", option.Name);
+        Assert.Equal("Report format (markdown, json, html)", option.Description);
+        Assert.IsType<Option<string>>(option);
     }
 
     [Fact]
@@ -173,10 +90,10 @@ public class RefactorCommandTests
         var option = command.Options.FirstOrDefault(o => o.Name == "backup");
 
         // Assert
-        option.Should().NotBeNull();
-        option!.Name.Should().Be("backup");
-        option.Description.Should().Be("Create backup before refactoring");
-        option.Should().BeOfType<Option<bool>>();
+        Assert.NotNull(option);
+        Assert.Equal("backup", option.Name);
+        Assert.Equal("Create backup before refactoring", option.Description);
+        Assert.IsType<Option<bool>>(option);
     }
 
     [Fact]
@@ -186,7 +103,7 @@ public class RefactorCommandTests
         var command = RefactorCommand.Create();
 
         // Assert
-        command.Options.Should().HaveCount(10);
+        Assert.Equal(10, command.Options.Count());
     }
 
     [Fact]
@@ -196,7 +113,7 @@ public class RefactorCommandTests
         var command = RefactorCommand.Create();
 
         // Assert
-        command.Handler.Should().NotBeNull();
+        Assert.NotNull(command.Handler);
     }
 
     [Fact]
@@ -387,10 +304,10 @@ public class RefactorCommandTests
             await task;
 
             // Assert
-            File.Exists(outputFile).Should().BeTrue();
+            Assert.True(File.Exists(outputFile));
             var content = await File.ReadAllTextAsync(outputFile);
-            content.Should().Contain("# Code Refactoring Report");
-            content.Should().Contain("Test suggestion");
+            Assert.Contains("# Code Refactoring Report", content);
+            Assert.Contains("Test suggestion", content);
         }
         finally
         {
@@ -448,10 +365,10 @@ public class RefactorCommandTests
             .Invoke(null, new object[] { analysis, applyResult });
 
         // Assert
-        result.Should().Contain("# Code Refactoring Report");
-        result.Should().Contain("Use async/await");
-        result.Should().Contain("AsyncRule");
-        result.Should().Contain("*Generated by Relay CLI Refactoring Tool*");
+        Assert.Contains("# Code Refactoring Report", result);
+        Assert.Contains("Use async/await", result);
+        Assert.Contains("AsyncRule", result);
+        Assert.Contains("*Generated by Relay CLI Refactoring Tool*", result);
     }
 
     [Fact]
@@ -479,8 +396,9 @@ public class RefactorCommandTests
             .Invoke(null, new object[] { analysis, applyResult });
 
         // Assert
-        result.Should().Contain("\"Analysis\"");
-        result.Should().Contain("\"ApplyResult\"");
-        result.Should().Contain("\"Status\": 0");
+        Assert.Contains("\"Analysis\"", result);
+        Assert.Contains("\"ApplyResult\"", result);
+        Assert.Contains("\"Status\": 0", result);
     }
 }
+

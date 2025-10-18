@@ -1,4 +1,5 @@
 using Relay.CLI.Commands.Models;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -11,7 +12,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Type = "Timeout" };
 
         // Assert
-        issue.Type.Should().Be("Timeout");
+        Assert.Equal("Timeout", issue.Type);
     }
 
     [Fact]
@@ -21,7 +22,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Severity = "High" };
 
         // Assert
-        issue.Severity.Should().Be("High");
+        Assert.Equal("High", issue.Severity);
     }
 
     [Fact]
@@ -31,7 +32,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Count = 5 };
 
         // Assert
-        issue.Count.Should().Be(5);
+        Assert.Equal(5, issue.Count);
     }
 
     [Fact]
@@ -41,7 +42,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Description = "Database connection timeouts occurring frequently" };
 
         // Assert
-        issue.Description.Should().Be("Database connection timeouts occurring frequently");
+        Assert.Equal("Database connection timeouts occurring frequently", issue.Description);
     }
 
     [Fact]
@@ -51,7 +52,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Recommendation = "Implement connection pooling and retry logic" };
 
         // Assert
-        issue.Recommendation.Should().Be("Implement connection pooling and retry logic");
+        Assert.Equal("Implement connection pooling and retry logic", issue.Recommendation);
     }
 
     [Fact]
@@ -61,7 +62,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Impact = "Service unavailability and poor user experience" };
 
         // Assert
-        issue.Impact.Should().Be("Service unavailability and poor user experience");
+        Assert.Equal("Service unavailability and poor user experience", issue.Impact);
     }
 
     [Fact]
@@ -71,12 +72,12 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue();
 
         // Assert
-        issue.Type.Should().Be("");
-        issue.Severity.Should().Be("");
-        issue.Count.Should().Be(0);
-        issue.Description.Should().Be("");
-        issue.Recommendation.Should().Be("");
-        issue.Impact.Should().Be("");
+        Assert.Equal("", issue.Type);
+        Assert.Equal("", issue.Severity);
+        Assert.Equal(0, issue.Count);
+        Assert.Equal("", issue.Description);
+        Assert.Equal("", issue.Recommendation);
+        Assert.Equal("", issue.Impact);
     }
 
     [Fact]
@@ -94,12 +95,12 @@ public class ReliabilityIssueTests
         };
 
         // Assert
-        issue.Type.Should().Be("Circuit Breaker");
-        issue.Severity.Should().Be("Critical");
-        issue.Count.Should().Be(12);
-        issue.Description.Should().Be("Circuit breaker tripped multiple times due to downstream service failures");
-        issue.Recommendation.Should().Be("Implement exponential backoff and circuit breaker pattern");
-        issue.Impact.Should().Be("Complete service degradation during peak hours");
+        Assert.Equal("Circuit Breaker", issue.Type);
+        Assert.Equal("Critical", issue.Severity);
+        Assert.Equal(12, issue.Count);
+        Assert.Equal("Circuit breaker tripped multiple times due to downstream service failures", issue.Description);
+        Assert.Equal("Implement exponential backoff and circuit breaker pattern", issue.Recommendation);
+        Assert.Equal("Complete service degradation during peak hours", issue.Impact);
     }
 
     [Theory]
@@ -113,7 +114,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Count = count };
 
         // Assert
-        issue.Count.Should().Be(count);
+        Assert.Equal(count, issue.Count);
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Type = "" };
 
         // Assert
-        issue.Type.Should().BeEmpty();
+        Assert.Empty(issue.Type);
     }
 
     [Fact]
@@ -133,7 +134,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Type = "Network/Timeout" };
 
         // Assert
-        issue.Type.Should().Be("Network/Timeout");
+        Assert.Equal("Network/Timeout", issue.Type);
     }
 
     [Fact]
@@ -143,7 +144,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Severity = "" };
 
         // Assert
-        issue.Severity.Should().BeEmpty();
+        Assert.Empty(issue.Severity);
     }
 
     [Fact]
@@ -155,7 +156,7 @@ public class ReliabilityIssueTests
         foreach (var severity in severities)
         {
             var issue = new ReliabilityIssue { Severity = severity };
-            issue.Severity.Should().Be(severity);
+            Assert.Equal(severity, issue.Severity);
         }
     }
 
@@ -166,7 +167,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Description = "" };
 
         // Assert
-        issue.Description.Should().BeEmpty();
+        Assert.Empty(issue.Description);
     }
 
     [Fact]
@@ -179,8 +180,8 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Description = longDescription };
 
         // Assert
-        issue.Description.Should().Be(longDescription);
-        issue.Description.Length.Should().Be(1000);
+        Assert.Equal(longDescription, issue.Description);
+        Assert.Equal(1000, issue.Description.Length);
     }
 
     [Fact]
@@ -190,7 +191,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Recommendation = "" };
 
         // Assert
-        issue.Recommendation.Should().BeEmpty();
+        Assert.Empty(issue.Recommendation);
     }
 
     [Fact]
@@ -203,8 +204,8 @@ public class ReliabilityIssueTests
         };
 
         // Assert
-        issue.Recommendation.Should().Contain("1.");
-        issue.Recommendation.Should().Contain("retry logic");
+        Assert.Contains("1.", issue.Recommendation);
+        Assert.Contains("retry logic", issue.Recommendation);
     }
 
     [Fact]
@@ -214,7 +215,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Impact = "" };
 
         // Assert
-        issue.Impact.Should().BeEmpty();
+        Assert.Empty(issue.Impact);
     }
 
     [Fact]
@@ -227,8 +228,8 @@ public class ReliabilityIssueTests
         };
 
         // Assert
-        issue.Impact.Should().Contain("$10K");
-        issue.Impact.Should().Contain("15%");
+        Assert.Contains("$10K", issue.Impact);
+        Assert.Contains("15%", issue.Impact);
     }
 
     [Fact]
@@ -243,8 +244,8 @@ public class ReliabilityIssueTests
         };
 
         // Assert
-        issues.Should().HaveCount(3);
-        issues.Sum(i => i.Count).Should().Be(17);
+        Assert.Equal(3, issues.Count());
+        Assert.Equal(17, issues.Sum(i => i.Count));
     }
 
     [Fact]
@@ -263,8 +264,8 @@ public class ReliabilityIssueTests
         var timeoutIssues = issues.Where(i => i.Type == "Timeout").ToList();
 
         // Assert
-        timeoutIssues.Should().HaveCount(2);
-        timeoutIssues.All(i => i.Type == "Timeout").Should().BeTrue();
+        Assert.Equal(2, timeoutIssues.Count());
+        Assert.True(timeoutIssues.All(i => i.Type == "Timeout"));
     }
 
     [Fact]
@@ -283,8 +284,8 @@ public class ReliabilityIssueTests
         var highSeverityIssues = issues.Where(i => i.Severity == "High").ToList();
 
         // Assert
-        highSeverityIssues.Should().HaveCount(2);
-        highSeverityIssues.All(i => i.Severity == "High").Should().BeTrue();
+        Assert.Equal(2, highSeverityIssues.Count());
+        Assert.True(highSeverityIssues.All(i => i.Severity == "High"));
     }
 
     [Fact]
@@ -302,9 +303,9 @@ public class ReliabilityIssueTests
         var orderedByCount = issues.OrderByDescending(i => i.Count).ToList();
 
         // Assert
-        orderedByCount[0].Count.Should().Be(50);
-        orderedByCount[1].Count.Should().Be(10);
-        orderedByCount[2].Count.Should().Be(1);
+        Assert.Equal(50, orderedByCount[0].Count);
+        Assert.Equal(10, orderedByCount[1].Count);
+        Assert.Equal(1, orderedByCount[2].Count);
     }
 
     [Fact]
@@ -323,9 +324,9 @@ public class ReliabilityIssueTests
         var grouped = issues.GroupBy(i => i.Type);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == "Timeout").Sum(i => i.Count).Should().Be(12);
-        grouped.First(g => g.Key == "Exception").Sum(i => i.Count).Should().Be(3);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(12, grouped.First(g => g.Key == "Timeout").Sum(i => i.Count));
+        Assert.Equal(3, grouped.First(g => g.Key == "Exception").Sum(i => i.Count));
     }
 
     [Fact]
@@ -351,12 +352,12 @@ public class ReliabilityIssueTests
         issue.Impact = "Modified impact";
 
         // Assert
-        issue.Type.Should().Be("Modified");
-        issue.Severity.Should().Be("High");
-        issue.Count.Should().Be(10);
-        issue.Description.Should().Be("Modified description");
-        issue.Recommendation.Should().Be("Modified recommendation");
-        issue.Impact.Should().Be("Modified impact");
+        Assert.Equal("Modified", issue.Type);
+        Assert.Equal("High", issue.Severity);
+        Assert.Equal(10, issue.Count);
+        Assert.Equal("Modified description", issue.Description);
+        Assert.Equal("Modified recommendation", issue.Recommendation);
+        Assert.Equal("Modified impact", issue.Impact);
     }
 
     [Fact]
@@ -366,8 +367,8 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue();
 
         // Assert
-        issue.Should().NotBeNull();
-        issue.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(issue);
+        Assert.True(issue.GetType().IsClass);
     }
 
     [Fact]
@@ -385,12 +386,12 @@ public class ReliabilityIssueTests
         };
 
         // Assert
-        issue.Type.Should().Be("Database Connection Pool Exhaustion");
-        issue.Severity.Should().Be("Critical");
-        issue.Count.Should().Be(25);
-        issue.Description.Should().Contain("connection pool");
-        issue.Recommendation.Should().Contain("Increase connection pool");
-        issue.Impact.Should().Contain("25%");
+        Assert.Equal("Database Connection Pool Exhaustion", issue.Type);
+        Assert.Equal("Critical", issue.Severity);
+        Assert.Equal(25, issue.Count);
+        Assert.Contains("connection pool", issue.Description);
+        Assert.Contains("Increase connection pool", issue.Recommendation);
+        Assert.Contains("25%", issue.Impact);
     }
 
     [Fact]
@@ -408,10 +409,10 @@ public class ReliabilityIssueTests
         };
 
         // Assert
-        issue.Type.Should().Be("HTTP Timeout");
-        issue.Severity.Should().Be("High");
-        issue.Count.Should().Be(150);
-        issue.Recommendation.Should().Contain("circuit breaker");
+        Assert.Equal("HTTP Timeout", issue.Type);
+        Assert.Equal("High", issue.Severity);
+        Assert.Equal(150, issue.Count);
+        Assert.Contains("circuit breaker", issue.Recommendation);
     }
 
     [Fact]
@@ -429,11 +430,11 @@ public class ReliabilityIssueTests
         };
 
         // Assert
-        issue.Type.Should().Be("Unhandled Exception");
-        issue.Severity.Should().Be("Medium");
-        issue.Count.Should().Be(45);
-        issue.Description.Should().Contain("NullReferenceException");
-        issue.Impact.Should().Contain("Users unable to log in");
+        Assert.Equal("Unhandled Exception", issue.Type);
+        Assert.Equal("Medium", issue.Severity);
+        Assert.Equal(45, issue.Count);
+        Assert.Contains("NullReferenceException", issue.Description);
+        Assert.Contains("Users unable to log in", issue.Impact);
     }
 
     [Fact]
@@ -453,9 +454,9 @@ public class ReliabilityIssueTests
         var averageCount = issues.Average(i => i.Count);
 
         // Assert
-        totalCount.Should().Be(40);
-        criticalIssues.Should().HaveCount(1);
-        averageCount.Should().BeApproximately(13.33, 0.01);
+        Assert.Equal(40, totalCount);
+        Assert.Equal(1, criticalIssues.Count());
+        Assert.Equal(13.33, averageCount, 0.01);
     }
 
     [Fact]
@@ -465,7 +466,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Count = 0 };
 
         // Assert
-        issue.Count.Should().Be(0);
+        Assert.Equal(0, issue.Count);
     }
 
     [Fact]
@@ -475,7 +476,7 @@ public class ReliabilityIssueTests
         var issue = new ReliabilityIssue { Count = int.MaxValue };
 
         // Assert
-        issue.Count.Should().Be(int.MaxValue);
+        Assert.Equal(int.MaxValue, issue.Count);
     }
 
     [Fact]
@@ -493,8 +494,8 @@ public class ReliabilityIssueTests
         var highImpactIssues = issues.Where(i => i.Severity == "High" || i.Severity == "Critical").ToList();
 
         // Assert
-        highImpactIssues.Should().HaveCount(2);
-        highImpactIssues.All(i => i.Severity != "Low").Should().BeTrue();
+        Assert.Equal(2, highImpactIssues.Count());
+        Assert.True(highImpactIssues.All(i => i.Severity != "Low"));
     }
 
     [Fact]
@@ -533,11 +534,11 @@ public class ReliabilityIssueTests
         }).ToList();
 
         // Assert
-        report.Should().HaveCount(2);
-        report[0].Occurrences.Should().Be(50);
-        report[0].BusinessImpact.Should().Be("Medium");
-        report[1].Occurrences.Should().Be(1);
-        report[1].BusinessImpact.Should().Be("High");
+        Assert.Equal(2, report.Count());
+        Assert.Equal(50, report[0].Occurrences);
+        Assert.Equal("Medium", report[0].BusinessImpact);
+        Assert.Equal(1, report[1].Occurrences);
+        Assert.Equal("High", report[1].BusinessImpact);
     }
 
     [Fact]
@@ -555,9 +556,10 @@ public class ReliabilityIssueTests
         };
 
         // Assert - Basic serialization check
-        issue.Type.Should().Be("Distributed System Failure Cascade");
-        issue.Count.Should().Be(3);
-        issue.Recommendation.Should().Contain("circuit breakers");
-        issue.Impact.Should().Contain("$50K");
+        Assert.Equal("Distributed System Failure Cascade", issue.Type);
+        Assert.Equal(3, issue.Count);
+        Assert.Contains("circuit breakers", issue.Recommendation);
+        Assert.Contains("$50K", issue.Impact);
     }
 }
+

@@ -1,5 +1,7 @@
 using Relay.CLI.Commands.Models.Diagnostic;
 
+using Xunit;
+
 namespace Relay.CLI.Tests.Commands;
 
 public class DiagnosticIssueTests
@@ -11,7 +13,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Message = "Test message" };
 
         // Assert
-        issue.Message.Should().Be("Test message");
+        Assert.Equal("Test message", issue.Message);
     }
 
     [Fact]
@@ -21,7 +23,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Severity = DiagnosticSeverity.Warning };
 
         // Assert
-        issue.Severity.Should().Be(DiagnosticSeverity.Warning);
+        Assert.Equal(DiagnosticSeverity.Warning, issue.Severity);
     }
 
     [Fact]
@@ -31,7 +33,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Code = "TEST001" };
 
         // Assert
-        issue.Code.Should().Be("TEST001");
+        Assert.Equal("TEST001", issue.Code);
     }
 
     [Fact]
@@ -41,7 +43,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { IsFixable = true };
 
         // Assert
-        issue.IsFixable.Should().BeTrue();
+        Assert.True(issue.IsFixable);
     }
 
     [Fact]
@@ -51,10 +53,10 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue();
 
         // Assert
-        issue.Message.Should().Be("");
-        issue.Severity.Should().Be(DiagnosticSeverity.Success); // Default enum value
-        issue.Code.Should().Be("");
-        issue.IsFixable.Should().BeFalse();
+        Assert.Equal("", issue.Message);
+        Assert.Equal(DiagnosticSeverity.Success, issue.Severity); // Default enum value
+        Assert.Equal("", issue.Code);
+        Assert.False(issue.IsFixable);
     }
 
     [Fact]
@@ -70,10 +72,10 @@ public class DiagnosticIssueTests
         };
 
         // Assert
-        issue.Message.Should().Be("Database connection failed");
-        issue.Severity.Should().Be(DiagnosticSeverity.Error);
-        issue.Code.Should().Be("DB_CONN_001");
-        issue.IsFixable.Should().BeTrue();
+        Assert.Equal("Database connection failed", issue.Message);
+        Assert.Equal(DiagnosticSeverity.Error, issue.Severity);
+        Assert.Equal("DB_CONN_001", issue.Code);
+        Assert.True(issue.IsFixable);
     }
 
     [Theory]
@@ -87,7 +89,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Severity = severity };
 
         // Assert
-        issue.Severity.Should().Be(severity);
+        Assert.Equal(severity, issue.Severity);
     }
 
     [Fact]
@@ -97,7 +99,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Message = "" };
 
         // Assert
-        issue.Message.Should().BeEmpty();
+        Assert.Empty(issue.Message);
     }
 
     [Fact]
@@ -107,7 +109,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Message = "Error: @#$%^&*()_+-=[]{}|;:,.<>?" };
 
         // Assert
-        issue.Message.Should().Be("Error: @#$%^&*()_+-=[]{}|;:,.<>?");
+        Assert.Equal("Error: @#$%^&*()_+-=[]{}|;:,.<>?", issue.Message);
     }
 
     [Fact]
@@ -120,8 +122,8 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Message = longMessage };
 
         // Assert
-        issue.Message.Should().Be(longMessage);
-        issue.Message.Length.Should().Be(2000);
+        Assert.Equal(longMessage, issue.Message);
+        Assert.Equal(2000, issue.Message.Length);
     }
 
     [Fact]
@@ -131,7 +133,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Code = "" };
 
         // Assert
-        issue.Code.Should().BeEmpty();
+        Assert.Empty(issue.Code);
     }
 
     [Fact]
@@ -141,7 +143,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Code = "ERR_001_DB" };
 
         // Assert
-        issue.Code.Should().Be("ERR_001_DB");
+        Assert.Equal("ERR_001_DB", issue.Code);
     }
 
     [Fact]
@@ -151,7 +153,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { Code = "ERR-001.DB" };
 
         // Assert
-        issue.Code.Should().Be("ERR-001.DB");
+        Assert.Equal("ERR-001.DB", issue.Code);
     }
 
     [Fact]
@@ -161,7 +163,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { IsFixable = true };
 
         // Assert
-        issue.IsFixable.Should().BeTrue();
+        Assert.True(issue.IsFixable);
     }
 
     [Fact]
@@ -171,7 +173,7 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue { IsFixable = false };
 
         // Assert
-        issue.IsFixable.Should().BeFalse();
+        Assert.False(issue.IsFixable);
     }
 
     [Fact]
@@ -186,10 +188,10 @@ public class DiagnosticIssueTests
         };
 
         // Assert
-        issues.Should().HaveCount(3);
-        issues.Count(i => i.Severity == DiagnosticSeverity.Error).Should().Be(1);
-        issues.Count(i => i.Severity == DiagnosticSeverity.Warning).Should().Be(1);
-        issues.Count(i => i.Severity == DiagnosticSeverity.Info).Should().Be(1);
+        Assert.Equal(3, issues.Count());
+        Assert.Equal(1, issues.Count(i => i.Severity == DiagnosticSeverity.Error));
+        Assert.Equal(1, issues.Count(i => i.Severity == DiagnosticSeverity.Warning));
+        Assert.Equal(1, issues.Count(i => i.Severity == DiagnosticSeverity.Info));
     }
 
     [Fact]
@@ -209,8 +211,8 @@ public class DiagnosticIssueTests
         var warnings = issues.Where(i => i.Severity == DiagnosticSeverity.Warning).ToList();
 
         // Assert
-        errors.Should().HaveCount(1);
-        warnings.Should().HaveCount(1);
+        Assert.Equal(1, errors.Count());
+        Assert.Equal(1, warnings.Count());
     }
 
     [Fact]
@@ -228,8 +230,8 @@ public class DiagnosticIssueTests
         var fixableIssues = issues.Where(i => i.IsFixable).ToList();
 
         // Assert
-        fixableIssues.Should().HaveCount(2);
-        fixableIssues.All(i => i.IsFixable).Should().BeTrue();
+        Assert.Equal(2, fixableIssues.Count());
+        Assert.All(fixableIssues, i => Assert.True(i.IsFixable));
     }
 
     [Fact]
@@ -249,10 +251,10 @@ public class DiagnosticIssueTests
         var grouped = issues.GroupBy(i => i.Severity);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == DiagnosticSeverity.Error).Should().HaveCount(2);
-        grouped.First(g => g.Key == DiagnosticSeverity.Warning).Should().HaveCount(1);
-        grouped.First(g => g.Key == DiagnosticSeverity.Info).Should().HaveCount(2);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == DiagnosticSeverity.Error).Count());
+        Assert.Equal(1, grouped.First(g => g.Key == DiagnosticSeverity.Warning).Count());
+        Assert.Equal(2, grouped.First(g => g.Key == DiagnosticSeverity.Info).Count());
     }
 
     [Fact]
@@ -271,10 +273,10 @@ public class DiagnosticIssueTests
         var ordered = issues.OrderBy(i => i.Severity).ToList();
 
         // Assert
-        ordered[0].Severity.Should().Be(DiagnosticSeverity.Success);
-        ordered[1].Severity.Should().Be(DiagnosticSeverity.Info);
-        ordered[2].Severity.Should().Be(DiagnosticSeverity.Warning);
-        ordered[3].Severity.Should().Be(DiagnosticSeverity.Error);
+        Assert.Equal(DiagnosticSeverity.Success, ordered[0].Severity);
+        Assert.Equal(DiagnosticSeverity.Info, ordered[1].Severity);
+        Assert.Equal(DiagnosticSeverity.Warning, ordered[2].Severity);
+        Assert.Equal(DiagnosticSeverity.Error, ordered[3].Severity);
     }
 
     [Fact]
@@ -296,10 +298,10 @@ public class DiagnosticIssueTests
         issue.IsFixable = true;
 
         // Assert
-        issue.Message.Should().Be("Modified");
-        issue.Severity.Should().Be(DiagnosticSeverity.Error);
-        issue.Code.Should().Be("MOD");
-        issue.IsFixable.Should().BeTrue();
+        Assert.Equal("Modified", issue.Message);
+        Assert.Equal(DiagnosticSeverity.Error, issue.Severity);
+        Assert.Equal("MOD", issue.Code);
+        Assert.True(issue.IsFixable);
     }
 
     [Fact]
@@ -309,8 +311,8 @@ public class DiagnosticIssueTests
         var issue = new DiagnosticIssue();
 
         // Assert
-        issue.Should().NotBeNull();
-        issue.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(issue);
+        Assert.True(issue.GetType().IsClass);
     }
 
     [Fact]
@@ -326,10 +328,10 @@ public class DiagnosticIssueTests
         };
 
         // Assert
-        issue.Message.Should().Be("Database connection timeout after 30 seconds");
-        issue.Severity.Should().Be(DiagnosticSeverity.Error);
-        issue.Code.Should().Be("DB_TIMEOUT");
-        issue.IsFixable.Should().BeTrue();
+        Assert.Equal("Database connection timeout after 30 seconds", issue.Message);
+        Assert.Equal(DiagnosticSeverity.Error, issue.Severity);
+        Assert.Equal("DB_TIMEOUT", issue.Code);
+        Assert.True(issue.IsFixable);
     }
 
     [Fact]
@@ -345,10 +347,10 @@ public class DiagnosticIssueTests
         };
 
         // Assert
-        issue.Message.Should().Be("High memory usage detected: 85% of available RAM");
-        issue.Severity.Should().Be(DiagnosticSeverity.Warning);
-        issue.Code.Should().Be("MEM_HIGH");
-        issue.IsFixable.Should().BeTrue();
+        Assert.Equal("High memory usage detected: 85% of available RAM", issue.Message);
+        Assert.Equal(DiagnosticSeverity.Warning, issue.Severity);
+        Assert.Equal("MEM_HIGH", issue.Code);
+        Assert.True(issue.IsFixable);
     }
 
     [Fact]
@@ -364,10 +366,10 @@ public class DiagnosticIssueTests
         };
 
         // Assert
-        issue.Message.Should().Be("System uptime: 15 days, 4 hours");
-        issue.Severity.Should().Be(DiagnosticSeverity.Info);
-        issue.Code.Should().Be("SYS_UPTIME");
-        issue.IsFixable.Should().BeFalse();
+        Assert.Equal("System uptime: 15 days, 4 hours", issue.Message);
+        Assert.Equal(DiagnosticSeverity.Info, issue.Severity);
+        Assert.Equal("SYS_UPTIME", issue.Code);
+        Assert.False(issue.IsFixable);
     }
 
     [Fact]
@@ -383,10 +385,10 @@ public class DiagnosticIssueTests
         };
 
         // Assert
-        issue.Message.Should().Be("All security checks passed");
-        issue.Severity.Should().Be(DiagnosticSeverity.Success);
-        issue.Code.Should().Be("SEC_OK");
-        issue.IsFixable.Should().BeFalse();
+        Assert.Equal("All security checks passed", issue.Message);
+        Assert.Equal(DiagnosticSeverity.Success, issue.Severity);
+        Assert.Equal("SEC_OK", issue.Code);
+        Assert.False(issue.IsFixable);
     }
 
     [Fact]
@@ -402,10 +404,10 @@ public class DiagnosticIssueTests
         };
 
         // Assert - Basic serialization check
-        issue.Message.Should().Contain("Complex issue");
-        issue.Severity.Should().Be(DiagnosticSeverity.Error);
-        issue.Code.Should().Be("SYS_PERF_001");
-        issue.IsFixable.Should().BeTrue();
+        Assert.Contains("Complex issue", issue.Message);
+        Assert.Equal(DiagnosticSeverity.Error, issue.Severity);
+        Assert.Equal("SYS_PERF_001", issue.Code);
+        Assert.True(issue.IsFixable);
     }
 
     [Fact]
@@ -424,8 +426,8 @@ public class DiagnosticIssueTests
         var dbIssues = issues.Where(i => i.Code.StartsWith("DB_")).ToList();
 
         // Assert
-        dbIssues.Should().HaveCount(3);
-        dbIssues.Count(i => i.Code == "DB_001").Should().Be(2);
+        Assert.Equal(3, dbIssues.Count());
+        Assert.Equal(2, dbIssues.Count(i => i.Code == "DB_001"));
     }
 
     [Fact]
@@ -449,10 +451,10 @@ public class DiagnosticIssueTests
             .ToDictionary(g => g.Key, g => g.Count());
 
         // Assert
-        severityCounts[DiagnosticSeverity.Success].Should().Be(1);
-        severityCounts[DiagnosticSeverity.Info].Should().Be(2);
-        severityCounts[DiagnosticSeverity.Warning].Should().Be(3);
-        severityCounts[DiagnosticSeverity.Error].Should().Be(2);
+        Assert.Equal(1, severityCounts[DiagnosticSeverity.Success]);
+        Assert.Equal(2, severityCounts[DiagnosticSeverity.Info]);
+        Assert.Equal(3, severityCounts[DiagnosticSeverity.Warning]);
+        Assert.Equal(2, severityCounts[DiagnosticSeverity.Error]);
     }
 
     [Fact]
@@ -473,7 +475,8 @@ public class DiagnosticIssueTests
         var fixableCriticalIssues = criticalIssues.Where(i => i.IsFixable).ToList();
 
         // Assert
-        criticalIssues.Should().HaveCount(2);
-        fixableCriticalIssues.Should().HaveCount(1);
+        Assert.Equal(2, criticalIssues.Count());
+        Assert.Equal(1, fixableCriticalIssues.Count());
     }
 }
+

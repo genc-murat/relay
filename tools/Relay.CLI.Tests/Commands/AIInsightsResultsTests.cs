@@ -1,5 +1,6 @@
 using Relay.CLI.Commands;
 using System.Text.Json;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -12,7 +13,7 @@ public class AIInsightsResultsTests
         var results = new AIInsightsResults { HealthScore = 85.7 };
 
         // Assert
-        results.HealthScore.Should().Be(85.7);
+        Assert.Equal(85.7, results.HealthScore);
     }
 
     [Fact]
@@ -22,7 +23,7 @@ public class AIInsightsResultsTests
         var results = new AIInsightsResults { PerformanceGrade = 'A' };
 
         // Assert
-        results.PerformanceGrade.Should().Be('A');
+        Assert.Equal('A', results.PerformanceGrade);
     }
 
     [Fact]
@@ -32,7 +33,7 @@ public class AIInsightsResultsTests
         var results = new AIInsightsResults { ReliabilityScore = 92.3 };
 
         // Assert
-        results.ReliabilityScore.Should().Be(92.3);
+        Assert.Equal(92.3, results.ReliabilityScore);
     }
 
     [Fact]
@@ -45,7 +46,7 @@ public class AIInsightsResultsTests
         var results = new AIInsightsResults { CriticalIssues = issues };
 
         // Assert
-        results.CriticalIssues.Should().BeEquivalentTo(issues);
+        Assert.Equal(issues, results.CriticalIssues);
     }
 
     [Fact]
@@ -62,9 +63,9 @@ public class AIInsightsResultsTests
         var results = new AIInsightsResults { OptimizationOpportunities = opportunities };
 
         // Assert
-        results.OptimizationOpportunities.Should().HaveCount(2);
-        results.OptimizationOpportunities[0].Strategy.Should().Be("Caching");
-        results.OptimizationOpportunities[1].ExpectedImprovement.Should().Be(15.0);
+        Assert.Equal(2, results.OptimizationOpportunities.Length);
+        Assert.Equal("Caching", results.OptimizationOpportunities[0].Strategy);
+        Assert.Equal(15.0, results.OptimizationOpportunities[1].ExpectedImprovement);
     }
 
     [Fact]
@@ -81,9 +82,9 @@ public class AIInsightsResultsTests
         var results = new AIInsightsResults { Predictions = predictions };
 
         // Assert
-        results.Predictions.Should().HaveCount(2);
-        results.Predictions[0].Metric.Should().Be("Throughput");
-        results.Predictions[1].PredictedValue.Should().Be("95ms");
+        Assert.Equal(2, results.Predictions.Length);
+        Assert.Equal("Throughput", results.Predictions[0].Metric);
+        Assert.Equal("95ms", results.Predictions[1].PredictedValue);
     }
 
     [Fact]
@@ -93,12 +94,12 @@ public class AIInsightsResultsTests
         var results = new AIInsightsResults();
 
         // Assert
-        results.HealthScore.Should().Be(0.0);
-        results.PerformanceGrade.Should().Be('\0');
-        results.ReliabilityScore.Should().Be(0.0);
-        results.CriticalIssues.Should().BeEmpty();
-        results.OptimizationOpportunities.Should().BeEmpty();
-        results.Predictions.Should().BeEmpty();
+        Assert.Equal(0.0, results.HealthScore);
+        Assert.Equal('\0', results.PerformanceGrade);
+        Assert.Equal(0.0, results.ReliabilityScore);
+        Assert.Empty(results.CriticalIssues);
+        Assert.Empty(results.OptimizationOpportunities);
+        Assert.Empty(results.Predictions);
     }
 
     [Fact]
@@ -135,12 +136,12 @@ public class AIInsightsResultsTests
         };
 
         // Assert
-        results.HealthScore.Should().Be(78.5);
-        results.PerformanceGrade.Should().Be('B');
-        results.ReliabilityScore.Should().Be(89.2);
-        results.CriticalIssues.Should().BeEquivalentTo(issues);
-        results.OptimizationOpportunities.Should().HaveCount(1);
-        results.Predictions.Should().HaveCount(1);
+        Assert.Equal(78.5, results.HealthScore);
+        Assert.Equal('B', results.PerformanceGrade);
+        Assert.Equal(89.2, results.ReliabilityScore);
+        Assert.Equal(issues, results.CriticalIssues);
+        Assert.Single(results.OptimizationOpportunities);
+        Assert.Single(results.Predictions);
     }
 
     [Fact]
@@ -154,8 +155,8 @@ public class AIInsightsResultsTests
         };
 
         // Assert
-        results.HealthScore.Should().Be(0.0);
-        results.ReliabilityScore.Should().Be(0.0);
+        Assert.Equal(0.0, results.HealthScore);
+        Assert.Equal(0.0, results.ReliabilityScore);
     }
 
     [Fact]
@@ -169,8 +170,8 @@ public class AIInsightsResultsTests
         };
 
         // Assert
-        results.HealthScore.Should().Be(100.0);
-        results.ReliabilityScore.Should().Be(100.0);
+        Assert.Equal(100.0, results.HealthScore);
+        Assert.Equal(100.0, results.ReliabilityScore);
     }
 
     [Fact]
@@ -185,7 +186,7 @@ public class AIInsightsResultsTests
             var results = new AIInsightsResults { PerformanceGrade = grade };
 
             // Assert
-            results.PerformanceGrade.Should().Be(grade);
+            Assert.Equal(grade, results.PerformanceGrade);
         }
     }
 
@@ -214,13 +215,13 @@ public class AIInsightsResultsTests
         var deserialized = JsonSerializer.Deserialize<AIInsightsResults>(json);
 
         // Assert
-        deserialized.Should().NotBeNull();
-        deserialized!.HealthScore.Should().Be(85.0);
-        deserialized.PerformanceGrade.Should().Be('A');
-        deserialized.ReliabilityScore.Should().Be(90.5);
-        deserialized.CriticalIssues.Should().HaveCount(2);
-        deserialized.OptimizationOpportunities.Should().HaveCount(1);
-        deserialized.Predictions.Should().HaveCount(1);
+        Assert.NotNull(deserialized);
+        Assert.Equal(85.0, deserialized!.HealthScore);
+        Assert.Equal('A', deserialized.PerformanceGrade);
+        Assert.Equal(90.5, deserialized.ReliabilityScore);
+        Assert.Equal(2, deserialized.CriticalIssues.Length);
+        Assert.Single(deserialized.OptimizationOpportunities);
+        Assert.Single(deserialized.Predictions);
     }
 
     [Fact]
@@ -255,13 +256,13 @@ public class AIInsightsResultsTests
         var results = JsonSerializer.Deserialize<AIInsightsResults>(json);
 
         // Assert
-        results.Should().NotBeNull();
-        results!.HealthScore.Should().Be(92.3);
-        results.PerformanceGrade.Should().Be('B');
-        results.ReliabilityScore.Should().Be(87.6);
-        results.CriticalIssues.Should().HaveCount(2);
-        results.OptimizationOpportunities.Should().HaveCount(1);
-        results.Predictions.Should().HaveCount(1);
+        Assert.NotNull(results);
+        Assert.Equal(92.3, results!.HealthScore);
+        Assert.Equal('B', results.PerformanceGrade);
+        Assert.Equal(87.6, results.ReliabilityScore);
+        Assert.Equal(2, results.CriticalIssues.Length);
+        Assert.Single(results.OptimizationOpportunities);
+        Assert.Single(results.Predictions);
     }
 
     [Fact]
@@ -276,9 +277,9 @@ public class AIInsightsResultsTests
         };
 
         // Assert
-        results.CriticalIssues.Should().BeEmpty();
-        results.OptimizationOpportunities.Should().BeEmpty();
-        results.Predictions.Should().BeEmpty();
+        Assert.Empty(results.CriticalIssues);
+        Assert.Empty(results.OptimizationOpportunities);
+        Assert.Empty(results.Predictions);
     }
 
     [Fact]
@@ -288,11 +289,11 @@ public class AIInsightsResultsTests
         var results = new AIInsightsResults();
 
         // Assert - Default initialization should provide empty arrays
-        results.CriticalIssues.Should().NotBeNull();
-        results.OptimizationOpportunities.Should().NotBeNull();
-        results.Predictions.Should().NotBeNull();
-        results.CriticalIssues.Should().BeEmpty();
-        results.OptimizationOpportunities.Should().BeEmpty();
-        results.Predictions.Should().BeEmpty();
+        Assert.NotNull(results.CriticalIssues);
+        Assert.NotNull(results.OptimizationOpportunities);
+        Assert.NotNull(results.Predictions);
+        Assert.Empty(results.CriticalIssues);
+        Assert.Empty(results.OptimizationOpportunities);
+        Assert.Empty(results.Predictions);
     }
 }

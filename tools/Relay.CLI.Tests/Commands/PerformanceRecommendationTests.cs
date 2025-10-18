@@ -11,7 +11,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Category = "Async" };
 
         // Assert
-        recommendation.Category.Should().Be("Async");
+        Assert.Equal("Async", recommendation.Category);
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Priority = "High" };
 
         // Assert
-        recommendation.Priority.Should().Be("High");
+        Assert.Equal("High", recommendation.Priority);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Title = "Use ValueTask" };
 
         // Assert
-        recommendation.Title.Should().Be("Use ValueTask");
+        Assert.Equal("Use ValueTask", recommendation.Title);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Description = "Replace Task with ValueTask for better performance" };
 
         // Assert
-        recommendation.Description.Should().Be("Replace Task with ValueTask for better performance");
+        Assert.Equal("Replace Task with ValueTask for better performance", recommendation.Description);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Impact = "Medium" };
 
         // Assert
-        recommendation.Impact.Should().Be("Medium");
+        Assert.Equal("Medium", recommendation.Impact);
     }
 
     [Fact]
@@ -61,11 +61,11 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation();
 
         // Assert
-        recommendation.Category.Should().Be("");
-        recommendation.Priority.Should().Be("");
-        recommendation.Title.Should().Be("");
-        recommendation.Description.Should().Be("");
-        recommendation.Impact.Should().Be("");
+        Assert.Equal("", recommendation.Category);
+        Assert.Equal("", recommendation.Priority);
+        Assert.Equal("", recommendation.Title);
+        Assert.Equal("", recommendation.Description);
+        Assert.Equal("", recommendation.Impact);
     }
 
     [Fact]
@@ -82,11 +82,11 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Memory");
-        recommendation.Priority.Should().Be("High");
-        recommendation.Title.Should().Be("Use StringBuilder");
-        recommendation.Description.Should().Be("Replace string concatenation with StringBuilder in loops");
-        recommendation.Impact.Should().Be("High");
+        Assert.Equal("Memory", recommendation.Category);
+        Assert.Equal("High", recommendation.Priority);
+        Assert.Equal("Use StringBuilder", recommendation.Title);
+        Assert.Equal("Replace string concatenation with StringBuilder in loops", recommendation.Description);
+        Assert.Equal("High", recommendation.Impact);
     }
 
     [Theory]
@@ -100,7 +100,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Category = category };
 
         // Assert
-        recommendation.Category.Should().Be(category);
+        Assert.Equal(category, recommendation.Category);
     }
 
     [Theory]
@@ -114,7 +114,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Priority = priority };
 
         // Assert
-        recommendation.Priority.Should().Be(priority);
+        Assert.Equal(priority, recommendation.Priority);
     }
 
     [Theory]
@@ -127,7 +127,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Impact = impact };
 
         // Assert
-        recommendation.Impact.Should().Be(impact);
+        Assert.Equal(impact, recommendation.Impact);
     }
 
     [Fact]
@@ -144,11 +144,11 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Async");
-        recommendation.Priority.Should().Be("High");
-        recommendation.Title.Should().Contain("ValueTask");
-        recommendation.Description.Should().Contain("synchronously");
-        recommendation.Impact.Should().Be("Medium");
+        Assert.Equal("Async", recommendation.Category);
+        Assert.Equal("High", recommendation.Priority);
+        Assert.Contains("ValueTask", recommendation.Title);
+        Assert.Contains("synchronously", recommendation.Description);
+        Assert.Equal("Medium", recommendation.Impact);
     }
 
     [Fact]
@@ -165,11 +165,11 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Memory");
-        recommendation.Priority.Should().Be("Medium");
-        recommendation.Title.Should().Contain("StringBuilder");
-        recommendation.Description.Should().Contain("memory allocations");
-        recommendation.Impact.Should().Be("High");
+        Assert.Equal("Memory", recommendation.Category);
+        Assert.Equal("Medium", recommendation.Priority);
+        Assert.Contains("StringBuilder", recommendation.Title);
+        Assert.Contains("memory allocations", recommendation.Description);
+        Assert.Equal("High", recommendation.Impact);
     }
 
     [Fact]
@@ -186,11 +186,11 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Caching");
-        recommendation.Priority.Should().Be("High");
-        recommendation.Title.Should().Contain("caching");
-        recommendation.Description.Should().Contain("response times");
-        recommendation.Impact.Should().Be("High");
+        Assert.Equal("Caching", recommendation.Category);
+        Assert.Equal("High", recommendation.Priority);
+        Assert.Contains("caching", recommendation.Title);
+        Assert.Contains("response times", recommendation.Description);
+        Assert.Equal("High", recommendation.Impact);
     }
 
     [Fact]
@@ -207,11 +207,11 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("LINQ");
-        recommendation.Priority.Should().Be("Low");
-        recommendation.Title.Should().Contain("ToList");
-        recommendation.Description.Should().Contain("enumerations");
-        recommendation.Impact.Should().Be("Low");
+        Assert.Equal("LINQ", recommendation.Category);
+        Assert.Equal("Low", recommendation.Priority);
+        Assert.Contains("ToList", recommendation.Title);
+        Assert.Contains("enumerations", recommendation.Description);
+        Assert.Equal("Low", recommendation.Impact);
     }
 
     [Fact]
@@ -224,8 +224,8 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Title.Should().Contain("async/await");
-        recommendation.Title.Should().Contain("Task.Wait()");
+        Assert.Contains("async/await", recommendation.Title);
+        Assert.Contains("Task.Wait()", recommendation.Title);
     }
 
     [Fact]
@@ -238,10 +238,10 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Description.Should().Contain("multiline");
-        recommendation.Description.Should().Contain("Point 1");
-        recommendation.Description.Should().Contain("Point 2");
-        recommendation.Description.Should().Contain("Point 3");
+        Assert.Contains("multiline", recommendation.Description);
+        Assert.Contains("Point 1", recommendation.Description);
+        Assert.Contains("Point 2", recommendation.Description);
+        Assert.Contains("Point 3", recommendation.Description);
     }
 
     [Fact]
@@ -251,8 +251,8 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation();
 
         // Assert
-        recommendation.Should().NotBeNull();
-        recommendation.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(recommendation);
+        Assert.True(recommendation.GetType().IsClass);
     }
 
     [Fact]
@@ -267,10 +267,10 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendations.Should().HaveCount(3);
-        recommendations.Count(r => r.Category == "Async").Should().Be(1);
-        recommendations.Count(r => r.Category == "Memory").Should().Be(1);
-        recommendations.Count(r => r.Category == "Caching").Should().Be(1);
+        Assert.Equal(3, recommendations.Count());
+        Assert.Equal(1, recommendations.Count(r => r.Category == "Async"));
+        Assert.Equal(1, recommendations.Count(r => r.Category == "Memory"));
+        Assert.Equal(1, recommendations.Count(r => r.Category == "Caching"));
     }
 
     [Fact]
@@ -289,8 +289,8 @@ public class PerformanceRecommendationTests
         var asyncRecommendations = recommendations.Where(r => r.Category == "Async").ToList();
 
         // Assert
-        asyncRecommendations.Should().HaveCount(2);
-        asyncRecommendations.All(r => r.Category == "Async").Should().BeTrue();
+        Assert.Equal(2, asyncRecommendations.Count());
+        Assert.True(asyncRecommendations.All(r => r.Category == "Async"));
     }
 
     [Fact]
@@ -309,8 +309,8 @@ public class PerformanceRecommendationTests
         var highPriority = recommendations.Where(r => r.Priority == "High").ToList();
 
         // Assert
-        highPriority.Should().HaveCount(2);
-        highPriority.All(r => r.Priority == "High").Should().BeTrue();
+        Assert.Equal(2, highPriority.Count());
+        Assert.True(highPriority.All(r => r.Priority == "High"));
     }
 
     [Fact]
@@ -328,9 +328,9 @@ public class PerformanceRecommendationTests
         var ordered = recommendations.OrderByDescending(r => r.Priority.Length).ToList();
 
         // Assert
-        ordered[0].Priority.Should().Be("Medium");
-        ordered[1].Priority.Should().Be("High");
-        ordered[2].Priority.Should().Be("Low");
+        Assert.Equal("Medium", ordered[0].Priority);
+        Assert.Equal("High", ordered[1].Priority);
+        Assert.Equal("Low", ordered[2].Priority);
     }
 
     [Fact]
@@ -350,10 +350,10 @@ public class PerformanceRecommendationTests
         var grouped = recommendations.GroupBy(r => r.Category);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == "Async").Should().HaveCount(2);
-        grouped.First(g => g.Key == "Memory").Should().HaveCount(2);
-        grouped.First(g => g.Key == "Caching").Should().HaveCount(1);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Async").Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Memory").Count());
+        Assert.Equal(1, grouped.First(g => g.Key == "Caching").Count());
     }
 
     [Fact]
@@ -373,9 +373,9 @@ public class PerformanceRecommendationTests
         recommendation.Title = "Modified title";
 
         // Assert
-        recommendation.Category.Should().Be("Modified");
-        recommendation.Priority.Should().Be("High");
-        recommendation.Title.Should().Be("Modified title");
+        Assert.Equal("Modified", recommendation.Category);
+        Assert.Equal("High", recommendation.Priority);
+        Assert.Equal("Modified title", recommendation.Title);
     }
 
     [Fact]
@@ -385,7 +385,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Category = "" };
 
         // Assert
-        recommendation.Category.Should().BeEmpty();
+        Assert.Empty(recommendation.Category);
     }
 
     [Fact]
@@ -395,7 +395,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Priority = "" };
 
         // Assert
-        recommendation.Priority.Should().BeEmpty();
+        Assert.Empty(recommendation.Priority);
     }
 
     [Fact]
@@ -405,7 +405,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Title = "" };
 
         // Assert
-        recommendation.Title.Should().BeEmpty();
+        Assert.Empty(recommendation.Title);
     }
 
     [Fact]
@@ -415,7 +415,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Description = "" };
 
         // Assert
-        recommendation.Description.Should().BeEmpty();
+        Assert.Empty(recommendation.Description);
     }
 
     [Fact]
@@ -425,7 +425,7 @@ public class PerformanceRecommendationTests
         var recommendation = new PerformanceRecommendation { Impact = "" };
 
         // Assert
-        recommendation.Impact.Should().BeEmpty();
+        Assert.Empty(recommendation.Impact);
     }
 
     [Fact]
@@ -442,12 +442,12 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Performance");
-        recommendation.Priority.Should().Be("Critical");
-        recommendation.Title.Should().Contain("database queries");
-        recommendation.Description.Should().Contain("bottlenecks");
-        recommendation.Description.Should().Contain("indexes");
-        recommendation.Impact.Should().Be("Critical");
+        Assert.Equal("Performance", recommendation.Category);
+        Assert.Equal("Critical", recommendation.Priority);
+        Assert.Contains("database queries", recommendation.Title);
+        Assert.Contains("bottlenecks", recommendation.Description);
+        Assert.Contains("indexes", recommendation.Description);
+        Assert.Equal("Critical", recommendation.Impact);
     }
 
     [Fact]
@@ -464,11 +464,11 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Code Quality");
-        recommendation.Priority.Should().Be("Low");
-        recommendation.Title.Should().Contain("unused variables");
-        recommendation.Description.Should().Contain("readability");
-        recommendation.Impact.Should().Be("Low");
+        Assert.Equal("Code Quality", recommendation.Category);
+        Assert.Equal("Low", recommendation.Priority);
+        Assert.Contains("unused variables", recommendation.Title);
+        Assert.Contains("readability", recommendation.Description);
+        Assert.Equal("Low", recommendation.Impact);
     }
 
     [Fact]
@@ -481,7 +481,7 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Category.Should().Be("Code Quality");
+        Assert.Equal("Code Quality", recommendation.Category);
     }
 
     [Fact]
@@ -494,7 +494,7 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Title.Should().Be("Use .NET 8 features");
+        Assert.Equal("Use .NET 8 features", recommendation.Title);
     }
 
     [Fact]
@@ -507,7 +507,8 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        recommendation.Description.Should().Contain("'await using'");
-        recommendation.Description.Should().Contain("'using'");
+        Assert.Contains("'await using'", recommendation.Description);
+        Assert.Contains("'using'", recommendation.Description);
     }
 }
+

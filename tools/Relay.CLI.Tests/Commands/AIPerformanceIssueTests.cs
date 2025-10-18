@@ -12,7 +12,7 @@ public class AIPerformanceIssueTests
         var issue = new AIPerformanceIssue { Severity = "High" };
 
         // Assert
-        issue.Severity.Should().Be("High");
+        Assert.Equal("High", issue.Severity);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class AIPerformanceIssueTests
         var issue = new AIPerformanceIssue { Description = "Memory leak detected" };
 
         // Assert
-        issue.Description.Should().Be("Memory leak detected");
+        Assert.Equal("Memory leak detected", issue.Description);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class AIPerformanceIssueTests
         var issue = new AIPerformanceIssue { Location = "Service.cs:45" };
 
         // Assert
-        issue.Location.Should().Be("Service.cs:45");
+        Assert.Equal("Service.cs:45", issue.Location);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class AIPerformanceIssueTests
         var issue = new AIPerformanceIssue { Impact = "Critical" };
 
         // Assert
-        issue.Impact.Should().Be("Critical");
+        Assert.Equal("Critical", issue.Impact);
     }
 
     [Fact]
@@ -52,10 +52,10 @@ public class AIPerformanceIssueTests
         var issue = new AIPerformanceIssue();
 
         // Assert
-        issue.Severity.Should().Be("");
-        issue.Description.Should().Be("");
-        issue.Location.Should().Be("");
-        issue.Impact.Should().Be("");
+        Assert.Equal("", issue.Severity);
+        Assert.Equal("", issue.Description);
+        Assert.Equal("", issue.Location);
+        Assert.Equal("", issue.Impact);
     }
 
     [Fact]
@@ -71,10 +71,10 @@ public class AIPerformanceIssueTests
         };
 
         // Assert
-        issue.Severity.Should().Be("Critical");
-        issue.Description.Should().Be("Database connection pool exhaustion");
-        issue.Location.Should().Be("DatabaseService.cs:127");
-        issue.Impact.Should().Be("High");
+        Assert.Equal("Critical", issue.Severity);
+        Assert.Equal("Database connection pool exhaustion", issue.Description);
+        Assert.Equal("DatabaseService.cs:127", issue.Location);
+        Assert.Equal("High", issue.Impact);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class AIPerformanceIssueTests
             var issue = new AIPerformanceIssue { Severity = severity };
 
             // Assert
-            issue.Severity.Should().Be(severity);
+            Assert.Equal(severity, issue.Severity);
         }
     }
 
@@ -105,7 +105,7 @@ public class AIPerformanceIssueTests
             var issue = new AIPerformanceIssue { Impact = impact };
 
             // Assert
-            issue.Impact.Should().Be(impact);
+            Assert.Equal(impact, issue.Impact);
         }
     }
 
@@ -127,7 +127,7 @@ public class AIPerformanceIssueTests
             var issue = new AIPerformanceIssue { Location = location };
 
             // Assert
-            issue.Location.Should().Be(location);
+            Assert.Equal(location, issue.Location);
         }
     }
 
@@ -141,7 +141,7 @@ public class AIPerformanceIssueTests
         var issue = new AIPerformanceIssue { Description = longDescription };
 
         // Assert
-        issue.Description.Should().Be(longDescription);
+        Assert.Equal(longDescription, issue.Description);
     }
 
     [Fact]
@@ -161,11 +161,11 @@ public class AIPerformanceIssueTests
         var deserialized = JsonSerializer.Deserialize<AIPerformanceIssue>(json);
 
         // Assert
-        deserialized.Should().NotBeNull();
-        deserialized!.Severity.Should().Be("High");
-        deserialized.Description.Should().Be("Inefficient database query");
-        deserialized.Location.Should().Be("Repository.cs:78");
-        deserialized.Impact.Should().Be("Medium");
+        Assert.NotNull(deserialized);
+        Assert.Equal("High", deserialized.Severity);
+        Assert.Equal("Inefficient database query", deserialized.Description);
+        Assert.Equal("Repository.cs:78", deserialized.Location);
+        Assert.Equal("Medium", deserialized.Impact);
     }
 
     [Fact]
@@ -183,11 +183,11 @@ public class AIPerformanceIssueTests
         var issue = JsonSerializer.Deserialize<AIPerformanceIssue>(json);
 
         // Assert
-        issue.Should().NotBeNull();
-        issue!.Severity.Should().Be("Critical");
-        issue.Description.Should().Be("Memory leak in background service");
-        issue.Location.Should().Be("BackgroundWorker.cs:234");
-        issue.Impact.Should().Be("High");
+        Assert.NotNull(issue);
+        Assert.Equal("Critical", issue.Severity);
+        Assert.Equal("Memory leak in background service", issue.Description);
+        Assert.Equal("BackgroundWorker.cs:234", issue.Location);
+        Assert.Equal("High", issue.Impact);
     }
 
     [Fact]
@@ -203,10 +203,10 @@ public class AIPerformanceIssueTests
         };
 
         // Assert
-        issue.Severity.Should().Be("");
-        issue.Description.Should().Be("");
-        issue.Location.Should().Be("");
-        issue.Impact.Should().Be("");
+        Assert.Equal("", issue.Severity);
+        Assert.Equal("", issue.Description);
+        Assert.Equal("", issue.Location);
+        Assert.Equal("", issue.Impact);
     }
 
     [Fact]
@@ -216,13 +216,13 @@ public class AIPerformanceIssueTests
         var issue = new AIPerformanceIssue();
 
         // Assert - Default initialization should provide empty strings
-        issue.Severity.Should().NotBeNull();
-        issue.Description.Should().NotBeNull();
-        issue.Location.Should().NotBeNull();
-        issue.Impact.Should().NotBeNull();
-        issue.Severity.Should().Be("");
-        issue.Description.Should().Be("");
-        issue.Location.Should().Be("");
-        issue.Impact.Should().Be("");
+        Assert.NotNull(issue.Severity);
+        Assert.NotNull(issue.Description);
+        Assert.NotNull(issue.Location);
+        Assert.NotNull(issue.Impact);
+        Assert.Equal("", issue.Severity);
+        Assert.Equal("", issue.Description);
+        Assert.Equal("", issue.Location);
+        Assert.Equal("", issue.Impact);
     }
 }

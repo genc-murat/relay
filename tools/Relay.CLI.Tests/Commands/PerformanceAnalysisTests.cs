@@ -11,7 +11,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { ProjectCount = 5 };
 
         // Assert
-        analysis.ProjectCount.Should().Be(5);
+        Assert.Equal(5, analysis.ProjectCount);
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { HandlerCount = 25 };
 
         // Assert
-        analysis.HandlerCount.Should().Be(25);
+        Assert.Equal(25, analysis.HandlerCount);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { OptimizedHandlerCount = 15 };
 
         // Assert
-        analysis.OptimizedHandlerCount.Should().Be(15);
+        Assert.Equal(15, analysis.OptimizedHandlerCount);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { CachedHandlerCount = 10 };
 
         // Assert
-        analysis.CachedHandlerCount.Should().Be(10);
+        Assert.Equal(10, analysis.CachedHandlerCount);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { AsyncMethodCount = 30 };
 
         // Assert
-        analysis.AsyncMethodCount.Should().Be(30);
+        Assert.Equal(30, analysis.AsyncMethodCount);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { ValueTaskCount = 20 };
 
         // Assert
-        analysis.ValueTaskCount.Should().Be(20);
+        Assert.Equal(20, analysis.ValueTaskCount);
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { TaskCount = 10 };
 
         // Assert
-        analysis.TaskCount.Should().Be(10);
+        Assert.Equal(10, analysis.TaskCount);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { CancellationTokenCount = 18 };
 
         // Assert
-        analysis.CancellationTokenCount.Should().Be(18);
+        Assert.Equal(18, analysis.CancellationTokenCount);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { ConfigureAwaitCount = 12 };
 
         // Assert
-        analysis.ConfigureAwaitCount.Should().Be(12);
+        Assert.Equal(12, analysis.ConfigureAwaitCount);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { RecordCount = 8 };
 
         // Assert
-        analysis.RecordCount.Should().Be(8);
+        Assert.Equal(8, analysis.RecordCount);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { StructCount = 15 };
 
         // Assert
-        analysis.StructCount.Should().Be(15);
+        Assert.Equal(15, analysis.StructCount);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { LinqUsageCount = 22 };
 
         // Assert
-        analysis.LinqUsageCount.Should().Be(22);
+        Assert.Equal(22, analysis.LinqUsageCount);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { StringBuilderCount = 7 };
 
         // Assert
-        analysis.StringBuilderCount.Should().Be(7);
+        Assert.Equal(7, analysis.StringBuilderCount);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { StringConcatInLoopCount = 3 };
 
         // Assert
-        analysis.StringConcatInLoopCount.Should().Be(3);
+        Assert.Equal(3, analysis.StringConcatInLoopCount);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { HasRelay = true };
 
         // Assert
-        analysis.HasRelay.Should().BeTrue();
+        Assert.True(analysis.HasRelay);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { ModernFramework = true };
 
         // Assert
-        analysis.ModernFramework.Should().BeTrue();
+        Assert.True(analysis.ModernFramework);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { HasPGO = true };
 
         // Assert
-        analysis.HasPGO.Should().BeTrue();
+        Assert.True(analysis.HasPGO);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { HasOptimizations = true };
 
         // Assert
-        analysis.HasOptimizations.Should().BeTrue();
+        Assert.True(analysis.HasOptimizations);
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { PerformanceScore = 85 };
 
         // Assert
-        analysis.PerformanceScore.Should().Be(85);
+        Assert.Equal(85, analysis.PerformanceScore);
     }
 
     [Fact]
@@ -201,8 +201,8 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis();
 
         // Assert
-        analysis.Recommendations.Should().NotBeNull();
-        analysis.Recommendations.Should().BeEmpty();
+        Assert.NotNull(analysis.Recommendations);
+        Assert.Empty(analysis.Recommendations);
     }
 
     [Fact]
@@ -212,26 +212,26 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis();
 
         // Assert
-        analysis.ProjectCount.Should().Be(0);
-        analysis.HandlerCount.Should().Be(0);
-        analysis.OptimizedHandlerCount.Should().Be(0);
-        analysis.CachedHandlerCount.Should().Be(0);
-        analysis.AsyncMethodCount.Should().Be(0);
-        analysis.ValueTaskCount.Should().Be(0);
-        analysis.TaskCount.Should().Be(0);
-        analysis.CancellationTokenCount.Should().Be(0);
-        analysis.ConfigureAwaitCount.Should().Be(0);
-        analysis.RecordCount.Should().Be(0);
-        analysis.StructCount.Should().Be(0);
-        analysis.LinqUsageCount.Should().Be(0);
-        analysis.StringBuilderCount.Should().Be(0);
-        analysis.StringConcatInLoopCount.Should().Be(0);
-        analysis.HasRelay.Should().BeFalse();
-        analysis.ModernFramework.Should().BeFalse();
-        analysis.HasPGO.Should().BeFalse();
-        analysis.HasOptimizations.Should().BeFalse();
-        analysis.PerformanceScore.Should().Be(0);
-        analysis.Recommendations.Should().BeEmpty();
+        Assert.Equal(0, analysis.ProjectCount);
+        Assert.Equal(0, analysis.HandlerCount);
+        Assert.Equal(0, analysis.OptimizedHandlerCount);
+        Assert.Equal(0, analysis.CachedHandlerCount);
+        Assert.Equal(0, analysis.AsyncMethodCount);
+        Assert.Equal(0, analysis.ValueTaskCount);
+        Assert.Equal(0, analysis.TaskCount);
+        Assert.Equal(0, analysis.CancellationTokenCount);
+        Assert.Equal(0, analysis.ConfigureAwaitCount);
+        Assert.Equal(0, analysis.RecordCount);
+        Assert.Equal(0, analysis.StructCount);
+        Assert.Equal(0, analysis.LinqUsageCount);
+        Assert.Equal(0, analysis.StringBuilderCount);
+        Assert.Equal(0, analysis.StringConcatInLoopCount);
+        Assert.False(analysis.HasRelay);
+        Assert.False(analysis.ModernFramework);
+        Assert.False(analysis.HasPGO);
+        Assert.False(analysis.HasOptimizations);
+        Assert.Equal(0, analysis.PerformanceScore);
+        Assert.Empty(analysis.Recommendations);
     }
 
     [Fact]
@@ -262,25 +262,25 @@ public class PerformanceAnalysisTests
         };
 
         // Assert
-        analysis.ProjectCount.Should().Be(3);
-        analysis.HandlerCount.Should().Be(45);
-        analysis.OptimizedHandlerCount.Should().Be(30);
-        analysis.CachedHandlerCount.Should().Be(15);
-        analysis.AsyncMethodCount.Should().Be(40);
-        analysis.ValueTaskCount.Should().Be(25);
-        analysis.TaskCount.Should().Be(15);
-        analysis.CancellationTokenCount.Should().Be(35);
-        analysis.ConfigureAwaitCount.Should().Be(20);
-        analysis.RecordCount.Should().Be(12);
-        analysis.StructCount.Should().Be(8);
-        analysis.LinqUsageCount.Should().Be(18);
-        analysis.StringBuilderCount.Should().Be(5);
-        analysis.StringConcatInLoopCount.Should().Be(2);
-        analysis.HasRelay.Should().BeTrue();
-        analysis.ModernFramework.Should().BeTrue();
-        analysis.HasPGO.Should().BeFalse();
-        analysis.HasOptimizations.Should().BeTrue();
-        analysis.PerformanceScore.Should().Be(92);
+        Assert.Equal(3, analysis.ProjectCount);
+        Assert.Equal(45, analysis.HandlerCount);
+        Assert.Equal(30, analysis.OptimizedHandlerCount);
+        Assert.Equal(15, analysis.CachedHandlerCount);
+        Assert.Equal(40, analysis.AsyncMethodCount);
+        Assert.Equal(25, analysis.ValueTaskCount);
+        Assert.Equal(15, analysis.TaskCount);
+        Assert.Equal(35, analysis.CancellationTokenCount);
+        Assert.Equal(20, analysis.ConfigureAwaitCount);
+        Assert.Equal(12, analysis.RecordCount);
+        Assert.Equal(8, analysis.StructCount);
+        Assert.Equal(18, analysis.LinqUsageCount);
+        Assert.Equal(5, analysis.StringBuilderCount);
+        Assert.Equal(2, analysis.StringConcatInLoopCount);
+        Assert.True(analysis.HasRelay);
+        Assert.True(analysis.ModernFramework);
+        Assert.False(analysis.HasPGO);
+        Assert.True(analysis.HasOptimizations);
+        Assert.Equal(92, analysis.PerformanceScore);
     }
 
     [Fact]
@@ -311,25 +311,25 @@ public class PerformanceAnalysisTests
         };
 
         // Assert
-        analysis.ProjectCount.Should().Be(2);
-        analysis.HandlerCount.Should().Be(20);
-        analysis.OptimizedHandlerCount.Should().Be(12);
-        analysis.CachedHandlerCount.Should().Be(8);
-        analysis.AsyncMethodCount.Should().Be(25);
-        analysis.ValueTaskCount.Should().Be(15);
-        analysis.TaskCount.Should().Be(10);
-        analysis.CancellationTokenCount.Should().Be(18);
-        analysis.ConfigureAwaitCount.Should().Be(12);
-        analysis.RecordCount.Should().Be(6);
-        analysis.StructCount.Should().Be(4);
-        analysis.LinqUsageCount.Should().Be(14);
-        analysis.StringBuilderCount.Should().Be(3);
-        analysis.StringConcatInLoopCount.Should().Be(1);
-        analysis.HasRelay.Should().BeTrue();
-        analysis.ModernFramework.Should().BeTrue();
-        analysis.HasPGO.Should().BeFalse();
-        analysis.HasOptimizations.Should().BeTrue();
-        analysis.PerformanceScore.Should().Be(78);
+        Assert.Equal(2, analysis.ProjectCount);
+        Assert.Equal(20, analysis.HandlerCount);
+        Assert.Equal(12, analysis.OptimizedHandlerCount);
+        Assert.Equal(8, analysis.CachedHandlerCount);
+        Assert.Equal(25, analysis.AsyncMethodCount);
+        Assert.Equal(15, analysis.ValueTaskCount);
+        Assert.Equal(10, analysis.TaskCount);
+        Assert.Equal(18, analysis.CancellationTokenCount);
+        Assert.Equal(12, analysis.ConfigureAwaitCount);
+        Assert.Equal(6, analysis.RecordCount);
+        Assert.Equal(4, analysis.StructCount);
+        Assert.Equal(14, analysis.LinqUsageCount);
+        Assert.Equal(3, analysis.StringBuilderCount);
+        Assert.Equal(1, analysis.StringConcatInLoopCount);
+        Assert.True(analysis.HasRelay);
+        Assert.True(analysis.ModernFramework);
+        Assert.False(analysis.HasPGO);
+        Assert.True(analysis.HasOptimizations);
+        Assert.Equal(78, analysis.PerformanceScore);
     }
 
     [Fact]
@@ -350,8 +350,8 @@ public class PerformanceAnalysisTests
         analysis.Recommendations.Add(recommendation);
 
         // Assert
-        analysis.Recommendations.Should().HaveCount(1);
-        analysis.Recommendations[0].Should().Be(recommendation);
+        Assert.Equal(1, analysis.Recommendations.Count());
+        Assert.Equal(recommendation, analysis.Recommendations[0]);
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis();
 
         // Assert
-        analysis.Recommendations.Should().BeEmpty();
+        Assert.Empty(analysis.Recommendations);
     }
 
     [Fact]
@@ -377,8 +377,10 @@ public class PerformanceAnalysisTests
         analysis.Recommendations.AddRange(new[] { rec1, rec2, rec3 });
 
         // Assert
-        analysis.Recommendations.Should().HaveCount(3);
-        analysis.Recommendations.Select(r => r.Category).Should().Contain(new[] { "Memory", "Async", "Caching" });
+        Assert.Equal(3, analysis.Recommendations.Count());
+        Assert.Contains("Memory", analysis.Recommendations.Select(r => r.Category));
+        Assert.Contains("Async", analysis.Recommendations.Select(r => r.Category));
+        Assert.Contains("Caching", analysis.Recommendations.Select(r => r.Category));
     }
 
     [Fact]
@@ -388,8 +390,8 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis();
 
         // Assert
-        analysis.Should().NotBeNull();
-        analysis.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(analysis);
+        Assert.True(analysis.GetType().IsClass);
     }
 
     [Fact]
@@ -404,9 +406,9 @@ public class PerformanceAnalysisTests
         };
 
         // Assert
-        analyses.Should().HaveCount(3);
-        analyses.Sum(a => a.ProjectCount).Should().Be(6);
-        analyses.Average(a => a.PerformanceScore).Should().Be(82.33333333333333);
+        Assert.Equal(3, analyses.Count());
+        Assert.Equal(6, analyses.Sum(a => a.ProjectCount));
+        Assert.Equal(82.33333333333333, analyses.Average(a => a.PerformanceScore));
     }
 
     [Fact]
@@ -424,8 +426,8 @@ public class PerformanceAnalysisTests
         var withRelay = analyses.Where(a => a.HasRelay).ToList();
 
         // Assert
-        withRelay.Should().HaveCount(2);
-        withRelay.All(a => a.HasRelay).Should().BeTrue();
+        Assert.Equal(2, withRelay.Count());
+        Assert.True(withRelay.All(a => a.HasRelay));
     }
 
     [Fact]
@@ -443,9 +445,9 @@ public class PerformanceAnalysisTests
         var ordered = analyses.OrderByDescending(a => a.PerformanceScore).ToList();
 
         // Assert
-        ordered[0].PerformanceScore.Should().Be(95);
-        ordered[1].PerformanceScore.Should().Be(80);
-        ordered[2].PerformanceScore.Should().Be(70);
+        Assert.Equal(95, ordered[0].PerformanceScore);
+        Assert.Equal(80, ordered[1].PerformanceScore);
+        Assert.Equal(70, ordered[2].PerformanceScore);
     }
 
     [Fact]
@@ -464,9 +466,9 @@ public class PerformanceAnalysisTests
         var grouped = analyses.GroupBy(a => a.ModernFramework);
 
         // Assert
-        grouped.Should().HaveCount(2);
-        grouped.First(g => g.Key == true).Sum(a => a.ProjectCount).Should().Be(4);
-        grouped.First(g => g.Key == false).Sum(a => a.ProjectCount).Should().Be(6);
+        Assert.Equal(2, grouped.Count());
+        Assert.Equal(4, grouped.First(g => g.Key == true).Sum(a => a.ProjectCount));
+        Assert.Equal(6, grouped.First(g => g.Key == false).Sum(a => a.ProjectCount));
     }
 
     [Fact]
@@ -486,9 +488,9 @@ public class PerformanceAnalysisTests
         analysis.PerformanceScore = 85;
 
         // Assert
-        analysis.ProjectCount.Should().Be(2);
-        analysis.HandlerCount.Should().Be(20);
-        analysis.PerformanceScore.Should().Be(85);
+        Assert.Equal(2, analysis.ProjectCount);
+        Assert.Equal(20, analysis.HandlerCount);
+        Assert.Equal(85, analysis.PerformanceScore);
     }
 
     [Fact]
@@ -519,11 +521,11 @@ public class PerformanceAnalysisTests
         };
 
         // Assert
-        analysis.OptimizedHandlerCount.Should().Be(45);
-        analysis.ValueTaskCount.Should().Be(40);
-        analysis.StringConcatInLoopCount.Should().Be(0);
-        analysis.HasPGO.Should().BeTrue();
-        analysis.PerformanceScore.Should().Be(98);
+        Assert.Equal(45, analysis.OptimizedHandlerCount);
+        Assert.Equal(40, analysis.ValueTaskCount);
+        Assert.Equal(0, analysis.StringConcatInLoopCount);
+        Assert.True(analysis.HasPGO);
+        Assert.Equal(98, analysis.PerformanceScore);
     }
 
     [Fact]
@@ -554,11 +556,11 @@ public class PerformanceAnalysisTests
         };
 
         // Assert
-        analysis.OptimizedHandlerCount.Should().Be(2);
-        analysis.ValueTaskCount.Should().Be(1);
-        analysis.StringConcatInLoopCount.Should().Be(5);
-        analysis.HasRelay.Should().BeFalse();
-        analysis.PerformanceScore.Should().Be(25);
+        Assert.Equal(2, analysis.OptimizedHandlerCount);
+        Assert.Equal(1, analysis.ValueTaskCount);
+        Assert.Equal(5, analysis.StringConcatInLoopCount);
+        Assert.False(analysis.HasRelay);
+        Assert.Equal(25, analysis.PerformanceScore);
     }
 
     [Fact]
@@ -568,7 +570,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { PerformanceScore = 0 };
 
         // Assert
-        analysis.PerformanceScore.Should().Be(0);
+        Assert.Equal(0, analysis.PerformanceScore);
     }
 
     [Fact]
@@ -578,7 +580,7 @@ public class PerformanceAnalysisTests
         var analysis = new PerformanceAnalysis { PerformanceScore = 100 };
 
         // Assert
-        analysis.PerformanceScore.Should().Be(100);
+        Assert.Equal(100, analysis.PerformanceScore);
     }
 
     [Fact]
@@ -604,20 +606,20 @@ public class PerformanceAnalysisTests
         };
 
         // Assert
-        analysis.ProjectCount.Should().Be(0);
-        analysis.HandlerCount.Should().Be(0);
-        analysis.OptimizedHandlerCount.Should().Be(0);
-        analysis.CachedHandlerCount.Should().Be(0);
-        analysis.AsyncMethodCount.Should().Be(0);
-        analysis.ValueTaskCount.Should().Be(0);
-        analysis.TaskCount.Should().Be(0);
-        analysis.CancellationTokenCount.Should().Be(0);
-        analysis.ConfigureAwaitCount.Should().Be(0);
-        analysis.RecordCount.Should().Be(0);
-        analysis.StructCount.Should().Be(0);
-        analysis.LinqUsageCount.Should().Be(0);
-        analysis.StringBuilderCount.Should().Be(0);
-        analysis.StringConcatInLoopCount.Should().Be(0);
+        Assert.Equal(0, analysis.ProjectCount);
+        Assert.Equal(0, analysis.HandlerCount);
+        Assert.Equal(0, analysis.OptimizedHandlerCount);
+        Assert.Equal(0, analysis.CachedHandlerCount);
+        Assert.Equal(0, analysis.AsyncMethodCount);
+        Assert.Equal(0, analysis.ValueTaskCount);
+        Assert.Equal(0, analysis.TaskCount);
+        Assert.Equal(0, analysis.CancellationTokenCount);
+        Assert.Equal(0, analysis.ConfigureAwaitCount);
+        Assert.Equal(0, analysis.RecordCount);
+        Assert.Equal(0, analysis.StructCount);
+        Assert.Equal(0, analysis.LinqUsageCount);
+        Assert.Equal(0, analysis.StringBuilderCount);
+        Assert.Equal(0, analysis.StringConcatInLoopCount);
     }
 
     [Fact]
@@ -633,10 +635,10 @@ public class PerformanceAnalysisTests
         };
 
         // Assert
-        analysis.HasRelay.Should().BeFalse();
-        analysis.ModernFramework.Should().BeFalse();
-        analysis.HasPGO.Should().BeFalse();
-        analysis.HasOptimizations.Should().BeFalse();
+        Assert.False(analysis.HasRelay);
+        Assert.False(analysis.ModernFramework);
+        Assert.False(analysis.HasPGO);
+        Assert.False(analysis.HasOptimizations);
     }
 
     [Fact]
@@ -652,9 +654,10 @@ public class PerformanceAnalysisTests
         };
 
         // Assert
-        analysis.HasRelay.Should().BeTrue();
-        analysis.ModernFramework.Should().BeTrue();
-        analysis.HasPGO.Should().BeTrue();
-        analysis.HasOptimizations.Should().BeTrue();
+        Assert.True(analysis.HasRelay);
+        Assert.True(analysis.ModernFramework);
+        Assert.True(analysis.HasPGO);
+        Assert.True(analysis.HasOptimizations);
     }
 }
+

@@ -1,5 +1,6 @@
 using Relay.CLI.Commands;
 using System.CommandLine;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -20,17 +21,17 @@ public class GenerateCommandTests : IDisposable
         var command = GenerateCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("generate");
-        command.Description.Should().Be("Generate additional components and utilities");
+        Assert.NotNull(command);
+        Assert.Equal("generate", command.Name);
+        Assert.Equal("Generate additional components and utilities", command.Description);
 
         var typeOption = command.Options.FirstOrDefault(o => o.Name == "type");
-        typeOption.Should().NotBeNull();
-        typeOption.IsRequired.Should().BeTrue();
+        Assert.NotNull(typeOption);
+        Assert.True(typeOption.IsRequired);
 
         var outputOption = command.Options.FirstOrDefault(o => o.Name == "output");
-        outputOption.Should().NotBeNull();
-        outputOption.IsRequired.Should().BeFalse();
+        Assert.NotNull(outputOption);
+        Assert.False(outputOption.IsRequired);
     }
 
     [Theory]
@@ -44,7 +45,7 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         var files = Directory.GetFiles(_testPath);
-        files.Should().HaveCount(1);
+        Assert.Equal(1, files.Count());
     }
 
     [Fact]
@@ -55,7 +56,7 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         var files = Directory.GetFiles(_testPath);
-        files.Should().BeEmpty();
+        Assert.Empty(files);
     }
 
     [Fact]
@@ -66,17 +67,17 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         var readmePath = Path.Combine(_testPath, "README.md");
-        File.Exists(readmePath).Should().BeTrue();
+        Assert.True(File.Exists(readmePath));
 
         var content = await File.ReadAllTextAsync(readmePath);
-        content.Should().Contain("# Project Documentation");
-        content.Should().Contain("## Overview");
-        content.Should().Contain("## Getting Started");
-        content.Should().Contain("## Performance");
-        content.Should().Contain("dotnet restore");
-        content.Should().Contain("dotnet run");
-        content.Should().Contain("dotnet test");
-        content.Should().Contain("80%+ better performance");
+        Assert.Contains("# Project Documentation", content);
+        Assert.Contains("## Overview", content);
+        Assert.Contains("## Getting Started", content);
+        Assert.Contains("## Performance", content);
+        Assert.Contains("dotnet restore", content);
+        Assert.Contains("dotnet run", content);
+        Assert.Contains("dotnet test", content);
+        Assert.Contains("80%+ better performance", content);
     }
 
     [Fact]
@@ -87,16 +88,16 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         var configPath = Path.Combine(_testPath, "appsettings.relay.json");
-        File.Exists(configPath).Should().BeTrue();
+        Assert.True(File.Exists(configPath));
 
         var content = await File.ReadAllTextAsync(configPath);
-        content.Should().Contain("\"Relay\"");
-        content.Should().Contain("\"EnablePerformanceOptimizations\"");
-        content.Should().Contain("\"UseValueTask\"");
-        content.Should().Contain("\"EnableSourceGeneration\"");
-        content.Should().Contain("\"Telemetry\"");
-        content.Should().Contain("\"Enabled\"");
-        content.Should().Contain("\"CollectMetrics\"");
+        Assert.Contains("\"Relay\"", content);
+        Assert.Contains("\"EnablePerformanceOptimizations\"", content);
+        Assert.Contains("\"UseValueTask\"", content);
+        Assert.Contains("\"EnableSourceGeneration\"", content);
+        Assert.Contains("\"Telemetry\"", content);
+        Assert.Contains("\"Enabled\"", content);
+        Assert.Contains("\"CollectMetrics\"", content);
     }
 
     [Fact]
@@ -107,19 +108,19 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         var benchmarkPath = Path.Combine(_testPath, "RelayBenchmark.cs");
-        File.Exists(benchmarkPath).Should().BeTrue();
+        Assert.True(File.Exists(benchmarkPath));
 
         var content = await File.ReadAllTextAsync(benchmarkPath);
-        content.Should().Contain("using BenchmarkDotNet.Attributes;");
-        content.Should().Contain("using BenchmarkDotNet.Running;");
-        content.Should().Contain("[MemoryDiagnoser]");
-        content.Should().Contain("[SimpleJob]");
-        content.Should().Contain("public class RelayBenchmark");
-        content.Should().Contain("[Benchmark]");
-        content.Should().Contain("public async Task SendRequest()");
-        content.Should().Contain("await Task.Delay(1);");
-        content.Should().Contain("public class Program");
-        content.Should().Contain("BenchmarkRunner.Run<RelayBenchmark>()");
+        Assert.Contains("using BenchmarkDotNet.Attributes;", content);
+        Assert.Contains("using BenchmarkDotNet.Running;", content);
+        Assert.Contains("[MemoryDiagnoser]", content);
+        Assert.Contains("[SimpleJob]", content);
+        Assert.Contains("public class RelayBenchmark", content);
+        Assert.Contains("[Benchmark]", content);
+        Assert.Contains("public async Task SendRequest()", content);
+        Assert.Contains("await Task.Delay(1);", content);
+        Assert.Contains("public class Program", content);
+        Assert.Contains("BenchmarkRunner.Run<RelayBenchmark>()", content);
     }
 
     [Fact]
@@ -134,7 +135,7 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         var readmePath = Path.Combine(subDir, "README.md");
-        File.Exists(readmePath).Should().BeTrue();
+        Assert.True(File.Exists(readmePath));
     }
 
     [Fact]
@@ -149,8 +150,8 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         var content = await File.ReadAllTextAsync(readmePath);
-        content.Should().NotBe("existing content");
-        content.Should().Contain("# Project Documentation");
+        Assert.NotEqual("existing content", content);
+        Assert.Contains("# Project Documentation", content);
     }
 
     public void Dispose()
@@ -163,3 +164,5 @@ public class GenerateCommandTests : IDisposable
         catch { }
     }
 }
+
+

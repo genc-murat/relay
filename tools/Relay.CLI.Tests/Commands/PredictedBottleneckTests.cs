@@ -11,8 +11,8 @@ public class PredictedBottleneckTests
         var bottleneck = new PredictedBottleneck();
 
         // Assert
-        bottleneck.Should().NotBeNull();
-        bottleneck.Should().BeOfType<PredictedBottleneck>();
+        Assert.NotNull(bottleneck);
+        Assert.IsType<PredictedBottleneck>(bottleneck);
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class PredictedBottleneckTests
         bottleneck.Component = "Database";
 
         // Assert
-        bottleneck.Component.Should().Be("Database");
+        Assert.Equal("Database", bottleneck.Component);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class PredictedBottleneckTests
         bottleneck.Description = "High query latency detected";
 
         // Assert
-        bottleneck.Description.Should().Be("High query latency detected");
+        Assert.Equal("High query latency detected", bottleneck.Description);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class PredictedBottleneckTests
         bottleneck.Probability = 0.85;
 
         // Assert
-        bottleneck.Probability.Should().Be(0.85);
+        Assert.Equal(0.85, bottleneck.Probability);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class PredictedBottleneckTests
         bottleneck.Impact = "High";
 
         // Assert
-        bottleneck.Impact.Should().Be("High");
+        Assert.Equal("High", bottleneck.Impact);
     }
 
     [Fact]
@@ -74,10 +74,10 @@ public class PredictedBottleneckTests
         var bottleneck = new PredictedBottleneck();
 
         // Assert
-        bottleneck.Component.Should().BeEmpty();
-        bottleneck.Description.Should().BeEmpty();
-        bottleneck.Probability.Should().Be(0.0);
-        bottleneck.Impact.Should().BeEmpty();
+        Assert.Empty(bottleneck.Component);
+        Assert.Empty(bottleneck.Description);
+        Assert.Equal(0.0, bottleneck.Probability);
+        Assert.Empty(bottleneck.Impact);
     }
 
     [Fact]
@@ -93,10 +93,10 @@ public class PredictedBottleneckTests
         };
 
         // Assert
-        bottleneck.Component.Should().Be("Cache");
-        bottleneck.Description.Should().Be("Cache miss rate too high");
-        bottleneck.Probability.Should().Be(0.92);
-        bottleneck.Impact.Should().Be("Medium");
+        Assert.Equal("Cache", bottleneck.Component);
+        Assert.Equal("Cache miss rate too high", bottleneck.Description);
+        Assert.Equal(0.92, bottleneck.Probability);
+        Assert.Equal("Medium", bottleneck.Impact);
     }
 
     [Fact]
@@ -110,9 +110,9 @@ public class PredictedBottleneckTests
         };
 
         // Act & Assert
-        bottlenecks.Should().HaveCount(2);
-        bottlenecks[0].Component.Should().Be("Database");
-        bottlenecks[1].Component.Should().Be("Network");
+        Assert.Equal(2, bottlenecks.Count());
+        Assert.Equal("Database", bottlenecks[0].Component);
+        Assert.Equal("Network", bottlenecks[1].Component);
     }
 
     [Fact]
@@ -130,8 +130,8 @@ public class PredictedBottleneckTests
         var highImpactBottlenecks = bottlenecks.Where(b => b.Impact == "High").ToList();
 
         // Assert
-        highImpactBottlenecks.Should().HaveCount(2);
-        highImpactBottlenecks.All(b => b.Impact == "High").Should().BeTrue();
+        Assert.Equal(2, highImpactBottlenecks.Count());
+        Assert.True(highImpactBottlenecks.All(b => b.Impact == "High"));
     }
 
     [Fact]
@@ -149,9 +149,9 @@ public class PredictedBottleneckTests
         var sortedBottlenecks = bottlenecks.OrderByDescending(b => b.Probability).ToList();
 
         // Assert
-        sortedBottlenecks[0].Probability.Should().Be(0.9);
-        sortedBottlenecks[1].Probability.Should().Be(0.8);
-        sortedBottlenecks[2].Probability.Should().Be(0.7);
+        Assert.Equal(0.9, sortedBottlenecks[0].Probability);
+        Assert.Equal(0.8, sortedBottlenecks[1].Probability);
+        Assert.Equal(0.7, sortedBottlenecks[2].Probability);
     }
 
     [Fact]
@@ -171,9 +171,9 @@ public class PredictedBottleneckTests
         var minProbability = bottlenecks.Min(b => b.Probability);
 
         // Assert
-        averageProbability.Should().BeApproximately(0.8, 0.01);
-        maxProbability.Should().Be(0.9);
-        minProbability.Should().Be(0.7);
+        Assert.Equal(0.8, averageProbability, 0.01);
+        Assert.Equal(0.9, maxProbability);
+        Assert.Equal(0.7, minProbability);
     }
 
     [Fact]
@@ -189,8 +189,8 @@ public class PredictedBottleneckTests
         };
 
         // Act & Assert
-        bottleneck.Probability.Should().BeGreaterThan(0.9);
-        bottleneck.Impact.Should().Be("Critical");
+        Assert.True(bottleneck.Probability > 0.9);
+        Assert.Equal("Critical", bottleneck.Impact);
     }
 
     [Fact]
@@ -206,8 +206,8 @@ public class PredictedBottleneckTests
         };
 
         // Act & Assert
-        bottleneck.Probability.Should().BeLessThan(0.5);
-        bottleneck.Impact.Should().Be("Low");
+        Assert.True(bottleneck.Probability < 0.5);
+        Assert.Equal("Low", bottleneck.Impact);
     }
 
     [Fact]
@@ -227,11 +227,11 @@ public class PredictedBottleneckTests
         var deserialized = System.Text.Json.JsonSerializer.Deserialize<PredictedBottleneck>(json);
 
         // Assert
-        deserialized.Should().NotBeNull();
-        deserialized!.Component.Should().Be(bottleneck.Component);
-        deserialized.Description.Should().Be(bottleneck.Description);
-        deserialized.Probability.Should().Be(bottleneck.Probability);
-        deserialized.Impact.Should().Be(bottleneck.Impact);
+        Assert.NotNull(deserialized);
+        Assert.Equal(bottleneck.Component, deserialized.Component);
+        Assert.Equal(bottleneck.Description, deserialized.Description);
+        Assert.Equal(bottleneck.Probability, deserialized.Probability);
+        Assert.Equal(bottleneck.Impact, deserialized.Impact);
     }
 
     [Fact]
@@ -247,10 +247,10 @@ public class PredictedBottleneckTests
         };
 
         // Assert
-        bottleneck.Component.Should().BeEmpty();
-        bottleneck.Description.Should().BeEmpty();
-        bottleneck.Probability.Should().Be(-1.0);
-        bottleneck.Impact.Should().BeEmpty();
+        Assert.Empty(bottleneck.Component);
+        Assert.Empty(bottleneck.Description);
+        Assert.Equal(-1.0, bottleneck.Probability);
+        Assert.Empty(bottleneck.Impact);
     }
 
     [Fact]
@@ -266,7 +266,7 @@ public class PredictedBottleneckTests
         };
 
         // Act & Assert
-        bottleneck.Probability.Should().Be(1.0);
+        Assert.Equal(1.0, bottleneck.Probability);
     }
 
     [Fact]
@@ -282,7 +282,7 @@ public class PredictedBottleneckTests
         };
 
         // Act & Assert
-        bottleneck.Probability.Should().Be(0.0);
+        Assert.Equal(0.0, bottleneck.Probability);
     }
 
     [Fact]
@@ -301,10 +301,10 @@ public class PredictedBottleneckTests
         var groupedBottlenecks = bottlenecks.GroupBy(b => b.Impact).ToDictionary(g => g.Key, g => g.ToList());
 
         // Assert
-        groupedBottlenecks.Should().ContainKey("High");
-        groupedBottlenecks.Should().ContainKey("Medium");
-        groupedBottlenecks["High"].Should().HaveCount(2);
-        groupedBottlenecks["Medium"].Should().HaveCount(2);
+        Assert.Contains("High", groupedBottlenecks.Keys);
+        Assert.Contains("Medium", groupedBottlenecks.Keys);
+        Assert.Equal(2, groupedBottlenecks["High"].Count);
+        Assert.Equal(2, groupedBottlenecks["Medium"].Count);
     }
 
     [Fact]
@@ -326,9 +326,9 @@ public class PredictedBottleneckTests
                                              select b).ToList();
 
         // Assert
-        highImpactHighProbBottlenecks.Should().HaveCount(2);
-        highImpactHighProbBottlenecks[0].Component.Should().Be("CPU");
-        highImpactHighProbBottlenecks[1].Component.Should().Be("Memory");
+        Assert.Equal(2, highImpactHighProbBottlenecks.Count());
+        Assert.Equal("CPU", highImpactHighProbBottlenecks[0].Component);
+        Assert.Equal("Memory", highImpactHighProbBottlenecks[1].Component);
     }
 
     [Fact]
@@ -345,12 +345,12 @@ public class PredictedBottleneckTests
         };
 
         // Act & Assert
-        bottlenecks.Should().AllSatisfy(b =>
+        Assert.All(bottlenecks, b =>
         {
-            b.Component.Should().NotBeEmpty();
-            b.Description.Should().NotBeEmpty();
-            b.Probability.Should().BeInRange(0.0, 1.0);
-            b.Impact.Should().NotBeEmpty();
+            Assert.NotEmpty(b.Component);
+            Assert.NotEmpty(b.Description);
+            Assert.InRange(b.Probability, 0.0, 1.0);
+            Assert.NotEmpty(b.Impact);
         });
     }
 
@@ -376,11 +376,11 @@ public class PredictedBottleneckTests
         };
 
         // Assert
-        clone.Should().NotBeSameAs(original);
-        clone.Component.Should().Be(original.Component);
-        clone.Description.Should().Be(original.Description);
-        clone.Probability.Should().Be(original.Probability);
-        clone.Impact.Should().Be(original.Impact);
+        Assert.NotSame(original, clone);
+        Assert.Equal(original.Component, clone.Component);
+        Assert.Equal(original.Description, clone.Description);
+        Assert.Equal(original.Probability, clone.Probability);
+        Assert.Equal(original.Impact, clone.Impact);
     }
 
     [Fact]
@@ -390,7 +390,7 @@ public class PredictedBottleneckTests
         var bottlenecks = new List<PredictedBottleneck>();
 
         // Act & Assert
-        bottlenecks.Should().BeEmpty();
+        Assert.Empty(bottlenecks);
         Assert.Throws<InvalidOperationException>(() => bottlenecks.Average(b => b.Probability));
     }
 
@@ -417,8 +417,9 @@ public class PredictedBottleneckTests
         };
 
         // Assert
-        anonymous.Component.Should().Be("API");
-        anonymous.IsLikely.Should().BeTrue();
-        anonymous.Severity.Should().Be("Medium");
+        Assert.Equal("API", anonymous.Component);
+        Assert.True(anonymous.IsLikely);
+        Assert.Equal("Medium", anonymous.Severity);
     }
 }
+

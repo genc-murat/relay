@@ -1,5 +1,6 @@
-using Relay.CLI.Commands;
-using System.Diagnostics;
+ using Relay.CLI.Commands;
+ using System.Diagnostics;
+ using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -22,9 +23,9 @@ public class AIPerformancePredictorTests
         stopwatch.Stop();
 
         // Assert
-        results.Should().NotBeNull();
-        results.Should().BeOfType<AIPredictionResults>();
-        stopwatch.ElapsedMilliseconds.Should().BeGreaterThanOrEqualTo(1400); // Should take at least 1.5 seconds
+        Assert.NotNull(results);
+        Assert.IsType<AIPredictionResults>(results);
+        Assert.True(stopwatch.ElapsedMilliseconds >= 1400); // Should take at least 1.5 seconds
     }
 
     [Fact]
@@ -40,7 +41,7 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.ExpectedThroughput.Should().Be(1250);
+        Assert.Equal(1250, results.ExpectedThroughput);
     }
 
     [Fact]
@@ -56,7 +57,7 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.ExpectedResponseTime.Should().Be(85);
+        Assert.Equal(85, results.ExpectedResponseTime);
     }
 
     [Fact]
@@ -72,7 +73,7 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.ExpectedErrorRate.Should().Be(0.02);
+        Assert.Equal(0.02, results.ExpectedErrorRate);
     }
 
     [Fact]
@@ -88,7 +89,7 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.ExpectedCpuUsage.Should().Be(0.65);
+        Assert.Equal(0.65, results.ExpectedCpuUsage);
     }
 
     [Fact]
@@ -104,7 +105,7 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.ExpectedMemoryUsage.Should().Be(0.45);
+        Assert.Equal(0.45, results.ExpectedMemoryUsage);
     }
 
     [Fact]
@@ -120,12 +121,12 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.Bottlenecks.Should().NotBeNull();
-        results.Bottlenecks.Should().HaveCount(1);
-        results.Bottlenecks[0].Component.Should().Be("Database");
-        results.Bottlenecks[0].Description.Should().Be("Connection pool exhaustion");
-        results.Bottlenecks[0].Probability.Should().Be(0.3);
-        results.Bottlenecks[0].Impact.Should().Be("High");
+        Assert.NotNull(results.Bottlenecks);
+        Assert.Single(results.Bottlenecks);
+        Assert.Equal("Database", results.Bottlenecks[0].Component);
+        Assert.Equal("Connection pool exhaustion", results.Bottlenecks[0].Description);
+        Assert.Equal(0.3, results.Bottlenecks[0].Probability);
+        Assert.Equal("High", results.Bottlenecks[0].Impact);
     }
 
     [Fact]
@@ -141,11 +142,11 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.Recommendations.Should().NotBeNull();
-        results.Recommendations.Should().HaveCount(3);
-        results.Recommendations.Should().Contain("Consider increasing database connection pool size");
-        results.Recommendations.Should().Contain("Enable read replicas for read operations");
-        results.Recommendations.Should().Contain("Implement connection pooling optimization");
+        Assert.NotNull(results.Recommendations);
+        Assert.Equal(3, results.Recommendations.Count());
+        Assert.Contains("Consider increasing database connection pool size", results.Recommendations);
+        Assert.Contains("Enable read replicas for read operations", results.Recommendations);
+        Assert.Contains("Implement connection pooling optimization", results.Recommendations);
     }
 
     [Fact]
@@ -161,8 +162,8 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.Should().NotBeNull();
-        results.ExpectedThroughput.Should().Be(1250); // Should still return default values
+        Assert.NotNull(results);
+        Assert.Equal(1250, results.ExpectedThroughput); // Should still return default values
     }
 
     [Fact]
@@ -178,7 +179,7 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.Should().NotBeNull();
+        Assert.NotNull(results);
     }
 
     [Fact]
@@ -194,10 +195,10 @@ public class AIPerformancePredictorTests
         var task = _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        task.Should().NotBeNull();
-        task.IsCompleted.Should().BeFalse(); // Should not be completed immediately
+        Assert.NotNull(task);
+        Assert.False(task.IsCompleted); // Should not be completed immediately
         await task; // Wait for completion
-        task.IsCompleted.Should().BeTrue();
+        Assert.True(task.IsCompleted);
     }
 
     [Fact]
@@ -214,13 +215,13 @@ public class AIPerformancePredictorTests
         var results2 = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results1.ExpectedThroughput.Should().Be(results2.ExpectedThroughput);
-        results1.ExpectedResponseTime.Should().Be(results2.ExpectedResponseTime);
-        results1.ExpectedErrorRate.Should().Be(results2.ExpectedErrorRate);
-        results1.ExpectedCpuUsage.Should().Be(results2.ExpectedCpuUsage);
-        results1.ExpectedMemoryUsage.Should().Be(results2.ExpectedMemoryUsage);
-        results1.Bottlenecks[0].Component.Should().Be(results2.Bottlenecks[0].Component);
-        results1.Recommendations.Should().BeEquivalentTo(results2.Recommendations);
+        Assert.Equal(results1.ExpectedThroughput, results2.ExpectedThroughput);
+        Assert.Equal(results1.ExpectedResponseTime, results2.ExpectedResponseTime);
+        Assert.Equal(results1.ExpectedErrorRate, results2.ExpectedErrorRate);
+        Assert.Equal(results1.ExpectedCpuUsage, results2.ExpectedCpuUsage);
+        Assert.Equal(results1.ExpectedMemoryUsage, results2.ExpectedMemoryUsage);
+        Assert.Equal(results1.Bottlenecks[0].Component, results2.Bottlenecks[0].Component);
+        Assert.Equal(results1.Recommendations, results2.Recommendations);
     }
 
     [Fact]
@@ -238,9 +239,9 @@ public class AIPerformancePredictorTests
         stopwatch.Stop();
 
         // Assert
-        results.Should().NotBeNull();
-        stopwatch.ElapsedMilliseconds.Should().BeGreaterThanOrEqualTo(1400);
-        stopwatch.ElapsedMilliseconds.Should().BeLessThanOrEqualTo(2000); // Should not take too long
+        Assert.NotNull(results);
+        Assert.True(stopwatch.ElapsedMilliseconds >= 1400);
+        Assert.True(stopwatch.ElapsedMilliseconds <= 2000); // Should not take too long
     }
 
     [Fact]
@@ -256,13 +257,13 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        results.Should().BeAssignableTo<AIPredictionResults>();
-        results.ExpectedThroughput.Should().BeGreaterThan(0);
-        results.ExpectedResponseTime.Should().BeGreaterThan(0);
-        results.ExpectedErrorRate.Should().BeGreaterThanOrEqualTo(0);
-        results.ExpectedCpuUsage.Should().BeGreaterThanOrEqualTo(0);
-        results.ExpectedMemoryUsage.Should().BeGreaterThanOrEqualTo(0);
-        results.Bottlenecks.Should().NotBeNull();
-        results.Recommendations.Should().NotBeNull();
+        Assert.IsAssignableFrom<AIPredictionResults>(results);
+        Assert.True(results.ExpectedThroughput > 0);
+        Assert.True(results.ExpectedResponseTime > 0);
+        Assert.True(results.ExpectedErrorRate >= 0);
+        Assert.True(results.ExpectedCpuUsage >= 0);
+        Assert.True(results.ExpectedMemoryUsage >= 0);
+        Assert.NotNull(results.Bottlenecks);
+        Assert.NotNull(results.Recommendations);
     }
 }

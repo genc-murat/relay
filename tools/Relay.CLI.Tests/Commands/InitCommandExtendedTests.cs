@@ -1,4 +1,4 @@
-using FluentAssertions;
+
 using Relay.CLI.Commands;
 using System.CommandLine;
 using System.Text.Json;
@@ -27,9 +27,9 @@ public class InitCommandExtendedTests : IDisposable
         var command = InitCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("init");
-        command.Description.Should().Contain("Initialize");
+        Assert.NotNull(command);
+        Assert.Equal("init", command.Name);
+        Assert.Contains("Initialize", command.Description);
     }
 
     [Fact]
@@ -40,8 +40,8 @@ public class InitCommandExtendedTests : IDisposable
         var nameOption = command.Options.FirstOrDefault(o => o.Name == "name");
 
         // Assert
-        nameOption.Should().NotBeNull();
-        nameOption!.IsRequired.Should().BeTrue();
+        Assert.NotNull(nameOption);
+        Assert.True(nameOption!.IsRequired);
     }
 
     [Fact]
@@ -52,8 +52,8 @@ public class InitCommandExtendedTests : IDisposable
         var templateOption = command.Options.FirstOrDefault(o => o.Name == "template");
 
         // Assert
-        templateOption.Should().NotBeNull();
-        templateOption!.IsRequired.Should().BeFalse();
+        Assert.NotNull(templateOption);
+        Assert.False(templateOption!.IsRequired);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class InitCommandExtendedTests : IDisposable
         var outputOption = command.Options.FirstOrDefault(o => o.Name == "output");
 
         // Assert
-        outputOption.Should().NotBeNull();
+        Assert.NotNull(outputOption);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class InitCommandExtendedTests : IDisposable
         var frameworkOption = command.Options.FirstOrDefault(o => o.Name == "framework");
 
         // Assert
-        frameworkOption.Should().NotBeNull();
+        Assert.NotNull(frameworkOption);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class InitCommandExtendedTests : IDisposable
         var gitOption = command.Options.FirstOrDefault(o => o.Name == "git");
 
         // Assert
-        gitOption.Should().NotBeNull();
+        Assert.NotNull(gitOption);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class InitCommandExtendedTests : IDisposable
         var dockerOption = command.Options.FirstOrDefault(o => o.Name == "docker");
 
         // Assert
-        dockerOption.Should().NotBeNull();
+        Assert.NotNull(dockerOption);
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class InitCommandExtendedTests : IDisposable
         var ciOption = command.Options.FirstOrDefault(o => o.Name == "ci");
 
         // Assert
-        ciOption.Should().NotBeNull();
+        Assert.NotNull(ciOption);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class InitCommandExtendedTests : IDisposable
         var command = InitCommand.Create();
 
         // Assert
-        command.Options.Should().HaveCount(7); // name, template, output, framework, git, docker, ci
+        Assert.Equal(7, command.Options.Count()); // name, template, output, framework, git, docker, ci
     }
 
     [Fact]
@@ -128,8 +128,8 @@ public class InitCommandExtendedTests : IDisposable
         var command = InitCommand.Create();
 
         // Assert
-        command.Description.Should().Contain("Initialize");
-        command.Description.Should().Contain("project");
+        Assert.Contains("Initialize", command.Description);
+        Assert.Contains("project", command.Description);
     }
 
     #endregion
@@ -146,7 +146,7 @@ public class InitCommandExtendedTests : IDisposable
         var validTemplates = new[] { "minimal", "standard", "enterprise" };
 
         // Assert
-        validTemplates.Should().Contain(template);
+        Assert.Contains(template, validTemplates);
     }
 
     [Theory]
@@ -159,7 +159,7 @@ public class InitCommandExtendedTests : IDisposable
         var normalizedTemplate = template.ToLowerInvariant();
 
         // Assert
-        new[] { "minimal", "standard", "enterprise" }.Should().Contain(normalizedTemplate);
+        Assert.Contains(normalizedTemplate, new[] { "minimal", "standard", "enterprise" });
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class InitCommandExtendedTests : IDisposable
         var defaultTemplate = "standard";
 
         // Assert
-        defaultTemplate.Should().Be("standard");
+        Assert.Equal("standard", defaultTemplate);
     }
 
     [Theory]
@@ -182,7 +182,7 @@ public class InitCommandExtendedTests : IDisposable
         var validTemplates = new[] { "minimal", "standard", "enterprise" };
 
         // Assert
-        validTemplates.Should().NotContain(template);
+        Assert.DoesNotContain(template, validTemplates);
     }
 
     #endregion
@@ -199,7 +199,7 @@ public class InitCommandExtendedTests : IDisposable
         var validFrameworks = new[] { "net6.0", "net8.0", "net9.0" };
 
         // Assert
-        validFrameworks.Should().Contain(framework);
+        Assert.Contains(framework, validFrameworks);
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public class InitCommandExtendedTests : IDisposable
         var defaultFramework = "net8.0";
 
         // Assert
-        defaultFramework.Should().Be("net8.0");
+        Assert.Equal("net8.0", defaultFramework);
     }
 
     [Theory]
@@ -223,7 +223,7 @@ public class InitCommandExtendedTests : IDisposable
         var supportedFrameworks = new[] { "net6.0", "net8.0", "net9.0" };
 
         // Assert
-        supportedFrameworks.Should().NotContain(framework);
+        Assert.DoesNotContain(framework, supportedFrameworks);
     }
 
     #endregion
@@ -242,7 +242,7 @@ public class InitCommandExtendedTests : IDisposable
         Directory.CreateDirectory(srcPath);
 
         // Assert
-        Directory.Exists(srcPath).Should().BeTrue();
+        Assert.True(Directory.Exists(srcPath));
     }
 
     [Fact]
@@ -257,7 +257,7 @@ public class InitCommandExtendedTests : IDisposable
         Directory.CreateDirectory(testsPath);
 
         // Assert
-        Directory.Exists(testsPath).Should().BeTrue();
+        Assert.True(Directory.Exists(testsPath));
     }
 
     [Fact]
@@ -272,7 +272,7 @@ public class InitCommandExtendedTests : IDisposable
         Directory.CreateDirectory(docsPath);
 
         // Assert
-        Directory.Exists(docsPath).Should().BeTrue();
+        Assert.True(Directory.Exists(docsPath));
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public class InitCommandExtendedTests : IDisposable
         Directory.CreateDirectory(handlersPath);
 
         // Assert
-        Directory.Exists(handlersPath).Should().BeTrue();
+        Assert.True(Directory.Exists(handlersPath));
     }
 
     [Fact]
@@ -302,7 +302,7 @@ public class InitCommandExtendedTests : IDisposable
         Directory.CreateDirectory(requestsPath);
 
         // Assert
-        Directory.Exists(requestsPath).Should().BeTrue();
+        Assert.True(Directory.Exists(requestsPath));
     }
 
     [Fact]
@@ -317,7 +317,7 @@ public class InitCommandExtendedTests : IDisposable
         Directory.CreateDirectory(responsesPath);
 
         // Assert
-        Directory.Exists(responsesPath).Should().BeTrue();
+        Assert.True(Directory.Exists(responsesPath));
     }
 
     [Fact]
@@ -332,7 +332,7 @@ public class InitCommandExtendedTests : IDisposable
         Directory.CreateDirectory(validatorsPath);
 
         // Assert
-        Directory.Exists(validatorsPath).Should().BeTrue();
+        Assert.True(Directory.Exists(validatorsPath));
     }
 
     [Fact]
@@ -347,7 +347,7 @@ public class InitCommandExtendedTests : IDisposable
         Directory.CreateDirectory(behaviorsPath);
 
         // Assert
-        Directory.Exists(behaviorsPath).Should().BeTrue();
+        Assert.True(Directory.Exists(behaviorsPath));
     }
 
     #endregion
@@ -362,7 +362,7 @@ public class InitCommandExtendedTests : IDisposable
         var solutionFile = $"{projectName}.sln";
 
         // Assert
-        Path.GetExtension(solutionFile).Should().Be(".sln");
+        Assert.Equal(".sln", Path.GetExtension(solutionFile));
     }
 
     [Fact]
@@ -379,7 +379,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(slnPath);
 
         // Assert
-        content.Should().Contain("Microsoft Visual Studio Solution File");
+        Assert.Contains("Microsoft Visual Studio Solution File", content);
     }
 
     [Fact]
@@ -396,8 +396,8 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(slnPath);
 
         // Assert
-        content.Should().Contain(projectName);
-        content.Should().Contain(".csproj");
+        Assert.Contains(projectName, content);
+        Assert.Contains(".csproj", content);
     }
 
     [Fact]
@@ -414,7 +414,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(slnPath);
 
         // Assert
-        content.Should().Contain($"{projectName}.Tests");
+        Assert.Contains($"{projectName}.Tests", content);
     }
 
     #endregion
@@ -435,7 +435,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain(framework);
+        Assert.Contains(framework, content);
     }
 
     [Fact]
@@ -451,7 +451,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("<Nullable>enable</Nullable>");
+        Assert.Contains("<Nullable>enable</Nullable>", content);
     }
 
     [Fact]
@@ -467,7 +467,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("<ImplicitUsings>enable</ImplicitUsings>");
+        Assert.Contains("<ImplicitUsings>enable</ImplicitUsings>", content);
     }
 
     [Fact]
@@ -483,7 +483,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("<LangVersion>latest</LangVersion>");
+        Assert.Contains("<LangVersion>latest</LangVersion>", content);
     }
 
     [Fact]
@@ -499,8 +499,8 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("Relay.Core");
-        content.Should().Contain("2.0.0");
+        Assert.Contains("Relay.Core", content);
+        Assert.Contains("2.0.0", content);
     }
 
     #endregion
@@ -520,7 +520,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("xunit");
+        Assert.Contains("xunit", content);
     }
 
     [Fact]
@@ -536,7 +536,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("FluentAssertions");
+        Assert.Contains("FluentAssertions", content);
     }
 
     [Fact]
@@ -552,7 +552,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("NSubstitute");
+        Assert.Contains("NSubstitute", content);
     }
 
     [Fact]
@@ -569,8 +569,8 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("ProjectReference");
-        content.Should().Contain($"{projectName}.csproj");
+        Assert.Contains("ProjectReference", content);
+        Assert.Contains($"{projectName}.csproj", content);
     }
 
     [Fact]
@@ -586,7 +586,7 @@ public class InitCommandExtendedTests : IDisposable
         var content = File.ReadAllText(csprojPath);
 
         // Assert
-        content.Should().Contain("<IsPackable>false</IsPackable>");
+        Assert.Contains("<IsPackable>false</IsPackable>", content);
     }
 
     #endregion
@@ -608,9 +608,9 @@ using Relay.Core;";
         var content = File.ReadAllText(programPath);
 
         // Assert
-        content.Should().Contain("Microsoft.Extensions.DependencyInjection");
-        content.Should().Contain("Microsoft.Extensions.Hosting");
-        content.Should().Contain("Relay.Core");
+        Assert.Contains("Microsoft.Extensions.DependencyInjection", content);
+        Assert.Contains("Microsoft.Extensions.Hosting", content);
+        Assert.Contains("Relay.Core", content);
     }
 
     [Fact]
@@ -626,7 +626,7 @@ using Relay.Core;";
         var content = File.ReadAllText(programPath);
 
         // Assert
-        content.Should().Contain("AddRelay");
+        Assert.Contains("AddRelay", content);
     }
 
     [Fact]
@@ -643,7 +643,7 @@ using Relay.Core;";
         var content = File.ReadAllText(programPath);
 
         // Assert
-        content.Should().Contain(projectName);
+        Assert.Contains(projectName, content);
     }
 
     #endregion
@@ -663,9 +663,9 @@ using Relay.Core;";
         var content = File.ReadAllText(queryPath);
 
         // Assert
-        content.Should().Contain("GetUserQuery");
-        content.Should().Contain("IRequest");
-        content.Should().Contain("UserResponse");
+        Assert.Contains("GetUserQuery", content);
+        Assert.Contains("IRequest", content);
+        Assert.Contains("UserResponse", content);
     }
 
     [Fact]
@@ -681,8 +681,8 @@ using Relay.Core;";
         var content = File.ReadAllText(responsePath);
 
         // Assert
-        content.Should().Contain("UserResponse");
-        content.Should().Contain("record");
+        Assert.Contains("UserResponse", content);
+        Assert.Contains("record", content);
     }
 
     [Fact]
@@ -698,8 +698,8 @@ using Relay.Core;";
         var content = File.ReadAllText(handlerPath);
 
         // Assert
-        content.Should().Contain("GetUserHandler");
-        content.Should().Contain("IRequestHandler");
+        Assert.Contains("GetUserHandler", content);
+        Assert.Contains("IRequestHandler", content);
     }
 
     [Fact]
@@ -715,7 +715,7 @@ using Relay.Core;";
         var content = File.ReadAllText(handlerPath);
 
         // Assert
-        content.Should().Contain("[Handle]");
+        Assert.Contains("[Handle]", content);
     }
 
     [Fact]
@@ -731,7 +731,7 @@ using Relay.Core;";
         var content = File.ReadAllText(handlerPath);
 
         // Assert
-        content.Should().Contain("ValueTask");
+        Assert.Contains("ValueTask", content);
     }
 
     [Fact]
@@ -747,7 +747,7 @@ using Relay.Core;";
         var content = File.ReadAllText(handlerPath);
 
         // Assert
-        content.Should().Contain("CancellationToken");
+        Assert.Contains("CancellationToken", content);
     }
 
     #endregion
@@ -774,8 +774,8 @@ using Relay.Core;";
         var isValidJson = IsValidJson(content);
 
         // Assert
-        isValidJson.Should().BeTrue();
-        content.Should().Contain("relay");
+        Assert.True(isValidJson);
+        Assert.Contains("relay", content);
     }
 
     [Fact]
@@ -791,7 +791,7 @@ using Relay.Core;";
         var config = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(configContent);
 
         // Assert
-        config.Should().ContainKey("relay");
+        Assert.Contains("relay", config.Keys);
     }
 
     [Fact]
@@ -806,7 +806,7 @@ using Relay.Core;";
         File.WriteAllText(cliConfigPath, cliConfigContent);
 
         // Assert
-        File.Exists(cliConfigPath).Should().BeTrue();
+        Assert.True(File.Exists(cliConfigPath));
     }
 
     [Fact]
@@ -822,7 +822,7 @@ using Relay.Core;";
         var content = File.ReadAllText(cliConfigPath);
 
         // Assert
-        content.Should().Contain("defaultNamespace");
+        Assert.Contains("defaultNamespace", content);
     }
 
     #endregion
@@ -840,7 +840,7 @@ using Relay.Core;";
         File.WriteAllText(readmePath, "# Project");
 
         // Assert
-        File.Exists(readmePath).Should().BeTrue();
+        Assert.True(File.Exists(readmePath));
     }
 
     [Fact]
@@ -857,7 +857,7 @@ using Relay.Core;";
         var content = File.ReadAllText(readmePath);
 
         // Assert
-        content.Should().Contain(projectName);
+        Assert.Contains(projectName, content);
     }
 
     [Fact]
@@ -873,7 +873,7 @@ using Relay.Core;";
         var content = File.ReadAllText(readmePath);
 
         // Assert
-        content.Should().Contain("Getting Started");
+        Assert.Contains("Getting Started", content);
     }
 
     [Fact]
@@ -889,7 +889,7 @@ using Relay.Core;";
         var content = File.ReadAllText(readmePath);
 
         // Assert
-        content.Should().Contain("dotnet build");
+        Assert.Contains("dotnet build", content);
     }
 
     [Fact]
@@ -905,7 +905,7 @@ using Relay.Core;";
         var content = File.ReadAllText(readmePath);
 
         // Assert
-        content.Should().Contain("dotnet test");
+        Assert.Contains("dotnet test", content);
     }
 
     #endregion
@@ -923,7 +923,7 @@ using Relay.Core;";
         File.WriteAllText(dockerfilePath, "FROM mcr.microsoft.com/dotnet/sdk:8.0");
 
         // Assert
-        File.Exists(dockerfilePath).Should().BeTrue();
+        Assert.True(File.Exists(dockerfilePath));
     }
 
     [Fact]
@@ -940,8 +940,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var content = File.ReadAllText(dockerfilePath);
 
         // Assert
-        content.Should().Contain("AS build");
-        content.Should().Contain("AS final");
+        Assert.Contains("AS build", content);
+        Assert.Contains("AS final", content);
     }
 
     [Fact]
@@ -955,7 +955,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         File.WriteAllText(composePath, "version: '3.8'");
 
         // Assert
-        File.Exists(composePath).Should().BeTrue();
+        Assert.True(File.Exists(composePath));
     }
 
     [Fact]
@@ -971,7 +971,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var content = File.ReadAllText(composePath);
 
         // Assert
-        content.Should().Contain("services:");
+        Assert.Contains("services:", content);
     }
 
     #endregion
@@ -988,7 +988,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         Directory.CreateDirectory(workflowPath);
 
         // Assert
-        Directory.Exists(workflowPath).Should().BeTrue();
+        Assert.True(Directory.Exists(workflowPath));
     }
 
     [Fact]
@@ -1003,7 +1003,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         File.WriteAllText(ciPath, "name: CI");
 
         // Assert
-        File.Exists(ciPath).Should().BeTrue();
+        Assert.True(File.Exists(ciPath));
     }
 
     [Fact]
@@ -1019,7 +1019,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var content = File.ReadAllText(ciPath);
 
         // Assert
-        content.Should().Contain("build:");
+        Assert.Contains("build:", content);
     }
 
     [Fact]
@@ -1035,7 +1035,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var content = File.ReadAllText(ciPath);
 
         // Assert
-        content.Should().Contain("dotnet test");
+        Assert.Contains("dotnet test", content);
     }
 
     #endregion
@@ -1053,7 +1053,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         File.WriteAllText(gitignorePath, "bin/\nobj/");
 
         // Assert
-        File.Exists(gitignorePath).Should().BeTrue();
+        Assert.True(File.Exists(gitignorePath));
     }
 
     [Fact]
@@ -1069,7 +1069,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var content = File.ReadAllText(gitignorePath);
 
         // Assert
-        content.Should().Contain("[Bb]in");
+        Assert.Contains("[Bb]in", content);
     }
 
     [Fact]
@@ -1085,7 +1085,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var content = File.ReadAllText(gitignorePath);
 
         // Assert
-        content.Should().Contain("bj");
+        Assert.Contains("bj", content);
     }
 
     [Fact]
@@ -1101,7 +1101,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var content = File.ReadAllText(gitignorePath);
 
         // Assert
-        content.Should().Contain(".vs");
+        Assert.Contains(".vs", content);
     }
 
     #endregion
@@ -1119,7 +1119,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var isValid = !string.IsNullOrWhiteSpace(projectName);
 
         // Assert
-        isValid.Should().BeTrue();
+        Assert.True(isValid);
     }
 
     [Theory]
@@ -1132,7 +1132,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var isValid = !string.IsNullOrWhiteSpace(projectName);
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -1143,7 +1143,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var solutionName = $"{projectName}.sln";
 
         // Assert
-        solutionName.Should().StartWith(projectName);
+        Assert.StartsWith(projectName, solutionName);
     }
 
     #endregion
@@ -1157,7 +1157,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var defaultOutput = ".";
 
         // Assert
-        defaultOutput.Should().Be(".");
+        Assert.Equal(".", defaultOutput);
     }
 
     [Fact]
@@ -1168,7 +1168,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         Directory.CreateDirectory(customOutput);
 
         // Assert
-        Directory.Exists(customOutput).Should().BeTrue();
+        Assert.True(Directory.Exists(customOutput));
     }
 
     [Fact]
@@ -1180,7 +1180,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var fullPath = Path.Combine(outputPath, projectName);
 
         // Assert
-        Path.GetFileName(fullPath).Should().Be(projectName);
+        Assert.Equal(projectName, Path.GetFileName(fullPath));
     }
 
     #endregion
@@ -1198,7 +1198,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var exists = Directory.Exists(projectPath);
 
         // Assert
-        exists.Should().BeTrue();
+        Assert.True(exists);
     }
 
     [Fact]
@@ -1211,7 +1211,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var isReasonableLength = longName.Length > 0;
 
         // Assert
-        isReasonableLength.Should().BeTrue();
+        Assert.True(isReasonableLength);
     }
 
     [Fact]
@@ -1224,7 +1224,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var hasSpecialChars = projectName.Contains('-') || projectName.Contains('_');
 
         // Assert
-        hasSpecialChars.Should().BeTrue();
+        Assert.True(hasSpecialChars);
     }
 
     #endregion
@@ -1257,7 +1257,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         // Assert
         foreach (var file in essentialFiles)
         {
-            File.Exists(file).Should().BeTrue();
+            Assert.True(File.Exists(file));
         }
     }
 
@@ -1268,8 +1268,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var templates = new[] { "minimal", "standard", "enterprise" };
 
         // Assert
-        templates.Should().HaveCount(3);
-        templates.Should().AllSatisfy(t => t.Should().NotBeNullOrEmpty());
+        Assert.Equal(3, templates.Count());
+        Assert.All(templates, t => Assert.False(string.IsNullOrEmpty(t)));
     }
 
     [Fact]
@@ -1279,8 +1279,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var frameworks = new[] { "net6.0", "net8.0", "net9.0" };
 
         // Assert
-        frameworks.Should().HaveCount(3);
-        frameworks.Should().AllSatisfy(f => f.Should().StartWith("net"));
+        Assert.Equal(3, frameworks.Count());
+        Assert.All(frameworks, f => Assert.StartsWith("net", f));
     }
 
     #endregion
@@ -1317,3 +1317,5 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         }
     }
 }
+
+

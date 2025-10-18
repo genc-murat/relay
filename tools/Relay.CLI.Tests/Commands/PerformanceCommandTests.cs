@@ -1,6 +1,7 @@
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Performance;
 using System.Diagnostics;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -22,7 +23,7 @@ public class PerformanceCommandTests
 
         // Assert
         var opsPerSecond = iterations / stopwatch.Elapsed.TotalSeconds;
-        opsPerSecond.Should().BeGreaterThan(0);
+        Assert.True(opsPerSecond > 0);
     }
 
     [Fact]
@@ -42,7 +43,7 @@ public class PerformanceCommandTests
 
         // Assert
         var allocatedMemory = afterMemory - beforeMemory;
-        allocatedMemory.Should().BeGreaterThan(0);
+        Assert.True(allocatedMemory > 0);
     }
 
     [Fact]
@@ -56,7 +57,7 @@ public class PerformanceCommandTests
         var improvement = ((before - after).TotalMilliseconds / before.TotalMilliseconds) * 100;
 
         // Assert
-        improvement.Should().Be(50);
+        Assert.Equal(50, improvement);
     }
 
     [Fact]
@@ -72,8 +73,8 @@ public class PerformanceCommandTests
         var isRegression = percentageChange > threshold;
 
         // Assert
-        isRegression.Should().BeTrue();
-        percentageChange.Should().Be(50);
+        Assert.True(isRegression);
+        Assert.Equal(50, percentageChange);
     }
 
     [Fact]
@@ -89,9 +90,9 @@ public class PerformanceCommandTests
 
         // Assert - Verify that stopwatch measures time (basic functionality check)
         // Note: We don't assert exact timing due to CI environment variability
-        stopwatch.ElapsedMilliseconds.Should().BeGreaterThanOrEqualTo(0,
+        Assert.True(stopwatch.ElapsedMilliseconds >= 0,
             "stopwatch should measure elapsed time");
-        stopwatch.IsRunning.Should().BeFalse("stopwatch should be stopped");
+        Assert.False(stopwatch.IsRunning, "stopwatch should be stopped");
     }
 
     [Fact]
@@ -107,9 +108,9 @@ public class PerformanceCommandTests
         var p99 = sorted[(int)(sorted.Length * 0.99)];
 
         // Assert
-        p50.Should().Be(60);
-        p95.Should().Be(100);
-        p99.Should().Be(100);
+        Assert.Equal(60, p50);
+        Assert.Equal(100, p95);
+        Assert.Equal(100, p99);
     }
 
     [Fact]
@@ -135,9 +136,9 @@ Avg Latency: {results.AverageLatency.TotalMilliseconds:F2}ms
 P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
 
         // Assert
-        report.Should().Contain("Performance Report");
-        report.Should().Contain("10"); // Accept culture-invariant format
-        report.Should().Contain("ops/sec");
+        Assert.Contains("Performance Report", report);
+        Assert.Contains("10", report); // Accept culture-invariant format
+        Assert.Contains("ops/sec", report);
     }
 
     [Fact]
@@ -151,7 +152,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var speedup = mediatrTime.TotalMicroseconds / relayTime.TotalMicroseconds;
 
         // Assert
-        speedup.Should().Be(3);
+        Assert.Equal(3, speedup);
     }
 
     [Fact]
@@ -169,8 +170,8 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var json = System.Text.Json.JsonSerializer.Serialize(data);
 
         // Assert
-        json.Should().Contain("Throughput");
-        json.Should().Contain("10000");
+        Assert.Contains("Throughput", json);
+        Assert.Contains("10000", json);
     }
 
     [Fact]
@@ -192,7 +193,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var gen1After = GC.CollectionCount(1);
 
         // Assert
-        (gen0After - gen0Before).Should().BeGreaterThan(0);
+        Assert.True((gen0After - gen0Before) > 0);
     }
 
     [Fact]
@@ -206,7 +207,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var allocationRate = allocations / duration.TotalSeconds;
 
         // Assert
-        allocationRate.Should().Be(100000); // 100KB/s
+        Assert.Equal(100000, allocationRate); // 100KB/s
     }
 
     [Fact]
@@ -220,7 +221,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var variance = times.Select(t => Math.Pow(t - mean, 2)).Average();
 
         // Assert
-        variance.Should().BeGreaterThan(0);
+        Assert.True(variance > 0);
     }
 
     [Fact]
@@ -235,7 +236,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var stdDev = Math.Sqrt(variance);
 
         // Assert
-        stdDev.Should().BeGreaterThan(0);
+        Assert.True(stdDev > 0);
     }
 
     [Fact]
@@ -249,7 +250,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var actualMeasurements = measurements.Skip(warmupThreshold).ToArray();
 
         // Assert
-        actualMeasurements.Should().HaveCount(3);
+        Assert.Equal(3, actualMeasurements.Count());
     }
 
     [Fact]
@@ -263,7 +264,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var median = sorted[sorted.Length / 2];
 
         // Assert
-        median.Should().Be(5.0);
+        Assert.Equal(5.0, median);
     }
 
     [Fact]
@@ -276,7 +277,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var mode = times.GroupBy(x => x).OrderByDescending(g => g.Count()).First().Key;
 
         // Assert
-        mode.Should().Be(5.0);
+        Assert.Equal(5.0, mode);
     }
 
     [Fact]
@@ -289,7 +290,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var range = times.Max() - times.Min();
 
         // Assert
-        range.Should().Be(8.0);
+        Assert.Equal(8.0, range);
     }
 
     [Fact]
@@ -304,7 +305,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var outliers = times.Where(t => t > threshold).ToArray();
 
         // Assert
-        outliers.Should().Contain(100.0);
+        Assert.Contains(100.0, outliers);
     }
 
     [Fact]
@@ -318,7 +319,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var cpuSavings = ((mediatrProcessTime - relayProcessTime).TotalMilliseconds / mediatrProcessTime.TotalMilliseconds) * 100;
 
         // Assert
-        cpuSavings.Should().BeApproximately(66.67, 0.1);
+        Assert.InRange(cpuSavings, 66.57, 66.77);
     }
 
     [Fact]
@@ -335,8 +336,8 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         };
 
         // Assert
-        threadPoolInfo.WorkerThreads.Should().BeGreaterThan(0);
-        threadPoolInfo.IOThreads.Should().BeGreaterThan(0);
+        Assert.True(threadPoolInfo.WorkerThreads > 0);
+        Assert.True(threadPoolInfo.IOThreads > 0);
     }
 
     [Fact]
@@ -356,7 +357,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         contentionTime = sw.Elapsed;
 
         // Assert
-        contentionTime.Should().BeGreaterThanOrEqualTo(TimeSpan.Zero);
+        Assert.True(contentionTime >= TimeSpan.Zero);
     }
 
     [Fact]
@@ -377,9 +378,9 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         };
 
         // Assert
-        distribution.Min.Should().Be(10);
-        distribution.Max.Should().Be(100);
-        distribution.Avg.Should().Be(55);
+        Assert.Equal(10, distribution.Min);
+        Assert.Equal(100, distribution.Max);
+        Assert.Equal(55, distribution.Avg);
     }
 
     [Fact]
@@ -392,8 +393,8 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var lines = csv.Split('\n');
 
         // Assert
-        lines.Should().HaveCount(3);
-        lines[0].Should().Contain("Operation");
+        Assert.Equal(3, lines.Count());
+        Assert.Contains("Operation", lines[0]);
     }
 
     [Fact]
@@ -407,7 +408,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var missRate = (cacheMisses * 100.0) / totalRequests;
 
         // Assert
-        missRate.Should().Be(20.0);
+        Assert.Equal(20.0, missRate);
     }
 
     [Fact]
@@ -421,7 +422,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var isAcceptable = queryTime < threshold;
 
         // Assert
-        isAcceptable.Should().BeTrue();
+        Assert.True(isAcceptable);
     }
 
     [Fact]
@@ -435,7 +436,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var rps = totalRequests / duration.TotalSeconds;
 
         // Assert
-        rps.Should().Be(1000); // 1000 requests per second
+        Assert.Equal(1000, rps); // 1000 requests per second
     }
 
     [Fact]
@@ -449,7 +450,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var overhead = (serializationTime.TotalMicroseconds / totalTime.TotalMicroseconds) * 100;
 
         // Assert
-        overhead.Should().Be(50.0);
+        Assert.Equal(50.0, overhead);
     }
 
     [Fact]
@@ -463,7 +464,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var overhead = asyncTime - syncTime;
 
         // Assert
-        overhead.Should().Be(TimeSpan.FromMicroseconds(10));
+        Assert.Equal(TimeSpan.FromMicroseconds(10), overhead);
     }
 
     [Fact]
@@ -479,7 +480,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var coefficientOfVariation = (stdDev / mean) * 100;
 
         // Assert
-        coefficientOfVariation.Should().BeLessThan(10); // Low variability
+        Assert.True(coefficientOfVariation < 10); // Low variability
     }
 
     [Fact]
@@ -509,11 +510,11 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var leakSize = afterLeakMemory - initialMemory;
 
         // Assert - Allocation should have increased memory significantly
-        leakSize.Should().BeGreaterThan(500 * 1024,
+        Assert.True(leakSize > 500 * 1024,
             "allocating 100 x 10KB should increase memory by at least 500KB");
 
         // Verify we can detect the allocation
-        leakyList.Count.Should().Be(100, "all items should be in the list");
+        Assert.Equal(100, leakyList.Count);
 
         // Clean up
         leakyList.Clear();
@@ -532,8 +533,8 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var isLOH = largeObjectSize > 85000;
 
         // Assert
-        isLOH.Should().BeFalse();
-        (largeObjectSize == 85000).Should().BeTrue();
+        Assert.False(isLOH);
+        Assert.True(largeObjectSize == 85000);
     }
 
     [Fact]
@@ -547,7 +548,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var speedup = 1 / ((1 - parallelPortion) + (parallelPortion / processors));
 
         // Assert
-        speedup.Should().BeApproximately(2.5, 0.1);
+        Assert.InRange(speedup, 2.4, 2.6);
     }
 
     [Fact]
@@ -561,7 +562,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var totalOverhead = TimeSpan.FromMicroseconds(contextSwitches * overheadPerSwitch.TotalMicroseconds);
 
         // Assert
-        totalOverhead.Should().Be(TimeSpan.FromMicroseconds(100));
+        Assert.Equal(TimeSpan.FromMicroseconds(100), totalOverhead);
     }
 
     [Fact]
@@ -579,7 +580,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var totalSamples = samples.Sum(s => s.Item2);
 
         // Assert
-        totalSamples.Should().Be(100);
+        Assert.Equal(100, totalSamples);
     }
 
     [Fact]
@@ -594,8 +595,8 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var latencyImprovement = ((baselineResults.Latency - currentResults.Latency) * 100.0) / baselineResults.Latency;
 
         // Assert
-        throughputImprovement.Should().Be(50.0);
-        latencyImprovement.Should().Be(30.0);
+        Assert.Equal(50.0, throughputImprovement);
+        Assert.Equal(30.0, latencyImprovement);
     }
 
     [Fact]
@@ -611,8 +612,9 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
             .ToArray();
 
         // Assert
-        histogram.Should().HaveCount(5);
-        histogram.First(h => h.Value == 4).Count.Should().Be(4);
+        Assert.Equal(5, histogram.Count());
+        var h = histogram.First(h => h.Value == 4);
+        Assert.Equal(4, h.Count);
     }
 
     [Theory]
@@ -625,7 +627,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var latency = totalMs / operations;
 
         // Assert
-        latency.Should().Be(expectedLatency);
+        Assert.Equal(expectedLatency, latency);
     }
 
     [Fact]
@@ -639,7 +641,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var totalOperations = concurrencyLevel * operationsPerThread;
 
         // Assert
-        totalOperations.Should().Be(10000);
+        Assert.Equal(10000, totalOperations);
     }
 
     [Fact]
@@ -653,7 +655,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var isAcceptable = startupTime < threshold;
 
         // Assert
-        isAcceptable.Should().BeTrue();
+        Assert.True(isAcceptable);
     }
 
     [Fact]
@@ -667,7 +669,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var jitPercentage = (jitTime.TotalMilliseconds / totalTime.TotalMilliseconds) * 100;
 
         // Assert
-        jitPercentage.Should().Be(10.0);
+        Assert.Equal(10.0, jitPercentage);
     }
 
     [Fact]
@@ -683,8 +685,9 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         };
 
         // Assert
-        matrix.Should().HaveCount(4);
-        matrix.First(m => m.Operation == "Read").Avg.Should().Be(1.0);
+        Assert.Equal(4, matrix.Count());
+        var m = matrix.First(m => m.Operation == "Read");
+        Assert.Equal(1.0, m.Avg);
     }
 
     [Fact]
@@ -697,7 +700,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var cpuTime = process.TotalProcessorTime;
 
         // Assert
-        cpuTime.Should().BeGreaterThan(TimeSpan.Zero);
+        Assert.True(cpuTime > TimeSpan.Zero);
     }
 
     [Fact]
@@ -715,9 +718,9 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         };
 
         // Assert
-        summary.TotalRuns.Should().Be(1000);
-        summary.SuccessRate.Should().BeGreaterThan(99.0);
-        summary.Throughput.Should().BeGreaterThan(0);
+        Assert.Equal(1000, summary.TotalRuns);
+        Assert.True(summary.SuccessRate > 99.0);
+        Assert.True(summary.Throughput > 0);
     }
 
     [Fact]
@@ -727,9 +730,9 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var command = PerformanceCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("performance");
-        command.Description.Should().Be("Performance analysis and recommendations");
+        Assert.NotNull(command);
+        Assert.Equal("performance", command.Name);
+        Assert.Equal("Performance analysis and recommendations", command.Description);
     }
 
     [Fact]
@@ -787,11 +790,11 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
             await PerformanceCommand.AnalyzeProjectStructure(testPath, analysis);
 
             // Assert
-            analysis.ProjectCount.Should().Be(1);
-            analysis.HasRelay.Should().BeTrue();
-            analysis.HasPGO.Should().BeTrue();
-            analysis.HasOptimizations.Should().BeTrue();
-            analysis.ModernFramework.Should().BeTrue();
+            Assert.Equal(1, analysis.ProjectCount);
+            Assert.True(analysis.HasRelay);
+            Assert.True(analysis.HasPGO);
+            Assert.True(analysis.HasOptimizations);
+            Assert.True(analysis.ModernFramework);
         }
         finally
         {
@@ -834,11 +837,11 @@ public class TestClass
             await PerformanceCommand.AnalyzeAsyncPatterns(testPath, analysis);
 
             // Assert
-            analysis.AsyncMethodCount.Should().Be(2);
-            analysis.ValueTaskCount.Should().Be(1);
-            analysis.TaskCount.Should().Be(1);
-            analysis.CancellationTokenCount.Should().Be(1);
-            analysis.ConfigureAwaitCount.Should().Be(1);
+            Assert.Equal(2, analysis.AsyncMethodCount);
+            Assert.Equal(1, analysis.ValueTaskCount);
+            Assert.Equal(1, analysis.TaskCount);
+            Assert.Equal(1, analysis.CancellationTokenCount);
+            Assert.Equal(1, analysis.ConfigureAwaitCount);
         }
         finally
         {
@@ -887,11 +890,11 @@ public class TestClass
             await PerformanceCommand.AnalyzeMemoryPatterns(testPath, analysis);
 
             // Assert
-            analysis.RecordCount.Should().Be(1);
-            analysis.StructCount.Should().Be(1);
-            analysis.LinqUsageCount.Should().Be(1);
-            analysis.StringBuilderCount.Should().Be(1);
-            analysis.StringConcatInLoopCount.Should().Be(1); // var str = "item" + i; is concatenation
+            Assert.Equal(1, analysis.RecordCount);
+            Assert.Equal(1, analysis.StructCount);
+            Assert.Equal(1, analysis.LinqUsageCount);
+            Assert.Equal(1, analysis.StringBuilderCount);
+            Assert.Equal(1, analysis.StringConcatInLoopCount); // var str = "item" + i; is concatenation
         }
         finally
         {
@@ -940,9 +943,9 @@ public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
             await PerformanceCommand.AnalyzeHandlerPerformance(testPath, analysis);
 
             // Assert
-            analysis.HandlerCount.Should().Be(3);
-            analysis.OptimizedHandlerCount.Should().Be(1);
-            analysis.CachedHandlerCount.Should().Be(1);
+            Assert.Equal(3, analysis.HandlerCount);
+            Assert.Equal(1, analysis.OptimizedHandlerCount);
+            Assert.Equal(1, analysis.CachedHandlerCount);
         }
         finally
         {
@@ -972,13 +975,13 @@ public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
         await PerformanceCommand.GenerateRecommendations(analysis);
 
         // Assert
-        analysis.PerformanceScore.Should().BeLessThan(100);
-        analysis.Recommendations.Should().NotBeEmpty();
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("PGO"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("ValueTask"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("string concatenation"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("[Handle]"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("caching"));
+        Assert.True(analysis.PerformanceScore < 100);
+        Assert.NotEmpty(analysis.Recommendations);
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("PGO"));
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("ValueTask"));
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("string concatenation"));
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("[Handle]"));
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("caching"));
     }
 
     [Fact]
@@ -1020,7 +1023,7 @@ public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
         var order = PerformanceCommand.GetPriorityOrder(priority);
 
         // Assert
-        order.Should().Be(expectedOrder);
+        Assert.Equal(expectedOrder, order);
     }
 
     [Fact]
@@ -1055,11 +1058,11 @@ public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
             await PerformanceCommand.GeneratePerformanceReport(analysis, testPath);
 
             // Assert
-            File.Exists(testPath).Should().BeTrue();
+            Assert.True(File.Exists(testPath));
             var content = await File.ReadAllTextAsync(testPath);
-            content.Should().Contain("# Performance Analysis Report");
-            content.Should().Contain("90/100");
-            content.Should().Contain("Test Rec");
+            Assert.Contains("# Performance Analysis Report", content);
+            Assert.Contains("90/100", content);
+            Assert.Contains("Test Rec", content);
         }
         finally
         {
@@ -1101,11 +1104,11 @@ public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
             await PerformanceCommand.AnalyzeProjectStructure(testPath, analysis);
 
             // Assert
-            analysis.ProjectCount.Should().Be(2);
-            analysis.HasRelay.Should().BeTrue();
-            analysis.HasPGO.Should().BeTrue();
-            analysis.HasOptimizations.Should().BeTrue();
-            analysis.ModernFramework.Should().BeTrue(); // net8.0 is modern
+            Assert.Equal(2, analysis.ProjectCount);
+            Assert.True(analysis.HasRelay);
+            Assert.True(analysis.HasPGO);
+            Assert.True(analysis.HasOptimizations);
+            Assert.True(analysis.ModernFramework); // net8.0 is modern
         }
         finally
         {
@@ -1134,8 +1137,8 @@ public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
             await PerformanceCommand.AnalyzeProjectStructure(testPath, analysis);
 
             // Assert
-            analysis.ProjectCount.Should().Be(1);
-            analysis.ModernFramework.Should().BeFalse();
+            Assert.Equal(1, analysis.ProjectCount);
+            Assert.False(analysis.ModernFramework);
         }
         finally
         {
@@ -1159,11 +1162,11 @@ public class CachedHandler : IRequestHandler<CachedRequest, string>, ICachable
             await PerformanceCommand.AnalyzeProjectStructure(testPath, analysis);
 
             // Assert
-            analysis.ProjectCount.Should().Be(0);
-            analysis.HasRelay.Should().BeFalse();
-            analysis.HasPGO.Should().BeFalse();
-            analysis.HasOptimizations.Should().BeFalse();
-            analysis.ModernFramework.Should().BeFalse();
+            Assert.Equal(0, analysis.ProjectCount);
+            Assert.False(analysis.HasRelay);
+            Assert.False(analysis.HasPGO);
+            Assert.False(analysis.HasOptimizations);
+            Assert.False(analysis.ModernFramework);
         }
         finally
         {
@@ -1217,11 +1220,11 @@ public class TestClass
             await PerformanceCommand.AnalyzeAsyncPatterns(testPath, analysis);
 
             // Assert
-            analysis.AsyncMethodCount.Should().Be(4);
-            analysis.ValueTaskCount.Should().Be(2);
-            analysis.TaskCount.Should().Be(2);
-            analysis.CancellationTokenCount.Should().Be(1);
-            analysis.ConfigureAwaitCount.Should().Be(2); // Two in MultipleConfigureAwait, HandleAsync might not be counted due to parsing
+            Assert.Equal(4, analysis.AsyncMethodCount);
+            Assert.Equal(2, analysis.ValueTaskCount);
+            Assert.Equal(2, analysis.TaskCount);
+            Assert.Equal(1, analysis.CancellationTokenCount);
+            Assert.Equal(2, analysis.ConfigureAwaitCount); // Two in MultipleConfigureAwait, HandleAsync might not be counted due to parsing
         }
         finally
         {
@@ -1256,11 +1259,11 @@ public class TestClass
             await PerformanceCommand.AnalyzeAsyncPatterns(testPath, analysis);
 
             // Assert
-            analysis.AsyncMethodCount.Should().Be(0);
-            analysis.ValueTaskCount.Should().Be(0);
-            analysis.TaskCount.Should().Be(0);
-            analysis.CancellationTokenCount.Should().Be(0);
-            analysis.ConfigureAwaitCount.Should().Be(0);
+            Assert.Equal(0, analysis.AsyncMethodCount);
+            Assert.Equal(0, analysis.ValueTaskCount);
+            Assert.Equal(0, analysis.TaskCount);
+            Assert.Equal(0, analysis.CancellationTokenCount);
+            Assert.Equal(0, analysis.ConfigureAwaitCount);
         }
         finally
         {
@@ -1317,11 +1320,11 @@ public class TestClass
             await PerformanceCommand.AnalyzeMemoryPatterns(testPath, analysis);
 
             // Assert
-            analysis.RecordCount.Should().Be(1);
-            analysis.StructCount.Should().Be(1);
-            analysis.LinqUsageCount.Should().Be(1);
-            analysis.StringBuilderCount.Should().Be(1);
-            analysis.StringConcatInLoopCount.Should().Be(1); // Only the += case
+            Assert.Equal(1, analysis.RecordCount);
+            Assert.Equal(1, analysis.StructCount);
+            Assert.Equal(1, analysis.LinqUsageCount);
+            Assert.Equal(1, analysis.StringBuilderCount);
+            Assert.Equal(1, analysis.StringConcatInLoopCount); // Only the += case
         }
         finally
         {
@@ -1353,11 +1356,11 @@ public class TestClass
             await PerformanceCommand.AnalyzeMemoryPatterns(testPath, analysis);
 
             // Assert
-            analysis.RecordCount.Should().Be(0);
-            analysis.StructCount.Should().Be(0);
-            analysis.LinqUsageCount.Should().Be(0);
-            analysis.StringBuilderCount.Should().Be(0);
-            analysis.StringConcatInLoopCount.Should().Be(0);
+            Assert.Equal(0, analysis.RecordCount);
+            Assert.Equal(0, analysis.StructCount);
+            Assert.Equal(0, analysis.LinqUsageCount);
+            Assert.Equal(0, analysis.StringBuilderCount);
+            Assert.Equal(0, analysis.StringConcatInLoopCount);
         }
         finally
         {
@@ -1413,9 +1416,9 @@ public class NonHandler
             await PerformanceCommand.AnalyzeHandlerPerformance(testPath, analysis);
 
             // Assert
-            analysis.HandlerCount.Should().Be(3);
-            analysis.OptimizedHandlerCount.Should().Be(1);
-            analysis.CachedHandlerCount.Should().Be(1);
+            Assert.Equal(3, analysis.HandlerCount);
+            Assert.Equal(1, analysis.OptimizedHandlerCount);
+            Assert.Equal(1, analysis.CachedHandlerCount);
         }
         finally
         {
@@ -1445,9 +1448,9 @@ public class NonHandler
             await PerformanceCommand.AnalyzeHandlerPerformance(testPath, analysis);
 
             // Assert
-            analysis.HandlerCount.Should().Be(0);
-            analysis.OptimizedHandlerCount.Should().Be(0);
-            analysis.CachedHandlerCount.Should().Be(0);
+            Assert.Equal(0, analysis.HandlerCount);
+            Assert.Equal(0, analysis.OptimizedHandlerCount);
+            Assert.Equal(0, analysis.CachedHandlerCount);
         }
         finally
         {
@@ -1479,8 +1482,8 @@ public class NonHandler
         await PerformanceCommand.GenerateRecommendations(analysis);
 
         // Assert
-        analysis.PerformanceScore.Should().Be(100);
-        analysis.Recommendations.Should().BeEmpty();
+        Assert.Equal(100, analysis.PerformanceScore);
+        Assert.Empty(analysis.Recommendations);
     }
 
     [Fact]
@@ -1507,13 +1510,13 @@ public class NonHandler
         await PerformanceCommand.GenerateRecommendations(analysis);
 
         // Assert
-        analysis.PerformanceScore.Should().BeLessThan(100);
-        analysis.Recommendations.Should().HaveCountGreaterThan(0);
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("PGO"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("ValueTask"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("string concatenation"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("[Handle]"));
-        analysis.Recommendations.Should().Contain(r => r.Title.Contains("caching"));
+        Assert.True(analysis.PerformanceScore < 100);
+        Assert.True(analysis.Recommendations.Count > 0);
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("PGO"));
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("ValueTask"));
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("string concatenation"));
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("[Handle]"));
+        Assert.Contains(analysis.Recommendations, r => r.Title.Contains("caching"));
     }
 
     [Fact]
@@ -1561,11 +1564,11 @@ public class NonHandler
             await PerformanceCommand.GeneratePerformanceReport(analysis, testPath);
 
             // Assert
-            File.Exists(testPath).Should().BeTrue();
+            Assert.True(File.Exists(testPath));
             var content = await File.ReadAllTextAsync(testPath);
-            content.Should().Contain("# Performance Analysis Report");
-            content.Should().Contain("0/100");
-            content.Should().NotContain("## Recommendations");
+            Assert.Contains("# Performance Analysis Report", content);
+            Assert.Contains("0/100", content);
+            Assert.DoesNotContain("## Recommendations", content);
         }
         finally
         {
@@ -1640,3 +1643,5 @@ public class TestService
         }
     }
 }
+
+

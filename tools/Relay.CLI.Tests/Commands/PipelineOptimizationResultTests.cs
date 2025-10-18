@@ -11,7 +11,7 @@ public class PipelineOptimizationResultTests
         var result = new PipelineOptimizationResult { Type = "Caching" };
 
         // Assert
-        result.Type.Should().Be("Caching");
+        Assert.Equal("Caching", result.Type);
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public class PipelineOptimizationResultTests
         var result = new PipelineOptimizationResult { Applied = true };
 
         // Assert
-        result.Applied.Should().BeTrue();
+        Assert.True(result.Applied);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class PipelineOptimizationResultTests
         var result = new PipelineOptimizationResult { Impact = "Performance improved by 15%" };
 
         // Assert
-        result.Impact.Should().Be("Performance improved by 15%");
+        Assert.Equal("Performance improved by 15%", result.Impact);
     }
 
     [Fact]
@@ -41,9 +41,9 @@ public class PipelineOptimizationResultTests
         var result = new PipelineOptimizationResult();
 
         // Assert
-        result.Type.Should().Be("");
-        result.Applied.Should().BeFalse();
-        result.Impact.Should().Be("");
+        Assert.Equal("", result.Type);
+        Assert.False(result.Applied);
+        Assert.Equal("", result.Impact);
     }
 
     [Fact]
@@ -58,9 +58,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Async Optimization");
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Contain("20ms");
+        Assert.Equal("Async Optimization", result.Type);
+        Assert.True(result.Applied);
+        Assert.Contains("20ms", result.Impact);
     }
 
     [Theory]
@@ -72,7 +72,7 @@ public class PipelineOptimizationResultTests
         var result = new PipelineOptimizationResult { Applied = applied };
 
         // Assert
-        result.Applied.Should().Be(applied);
+        Assert.Equal(applied, result.Applied);
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public class PipelineOptimizationResultTests
         var result = new PipelineOptimizationResult { Type = type };
 
         // Assert
-        result.Type.Should().Be(type);
+        Assert.Equal(type, result.Type);
     }
 
     [Fact]
@@ -102,8 +102,8 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Contain("95%");
+        Assert.True(result.Applied);
+        Assert.Contains("95%", result.Impact);
     }
 
     [Fact]
@@ -118,8 +118,8 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Applied.Should().BeFalse();
-        result.Impact.Should().Contain("Not applicable");
+        Assert.False(result.Applied);
+        Assert.Contains("Not applicable", result.Impact);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Impact.Should().Be("");
+        Assert.Equal("", result.Impact);
     }
 
     [Fact]
@@ -146,9 +146,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Impact.Should().Contain("512MB");
-        result.Impact.Should().Contain("256MB");
-        result.Impact.Should().Contain("30%");
+        Assert.Contains("512MB", result.Impact);
+        Assert.Contains("256MB", result.Impact);
+        Assert.Contains("30%", result.Impact);
     }
 
     [Fact]
@@ -172,7 +172,7 @@ public class PipelineOptimizationResultTests
             var result = new PipelineOptimizationResult { Type = type };
 
             // Assert
-            result.Type.Should().Be(type);
+            Assert.Equal(type, result.Type);
         }
     }
 
@@ -183,8 +183,8 @@ public class PipelineOptimizationResultTests
         var result = new PipelineOptimizationResult();
 
         // Assert
-        result.Should().NotBeNull();
-        result.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(result);
+        Assert.True(result.GetType().IsClass);
     }
 
     [Fact]
@@ -199,9 +199,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        results.Should().HaveCount(3);
-        results.Count(r => r.Applied).Should().Be(2);
-        results.Count(r => !r.Applied).Should().Be(1);
+        Assert.Equal(3, results.Count());
+        Assert.Equal(2, results.Count(r => r.Applied));
+        Assert.Equal(1, results.Count(r => !r.Applied));
     }
 
     [Fact]
@@ -220,7 +220,7 @@ public class PipelineOptimizationResultTests
         var appliedOptimizations = results.Where(r => r.Applied).ToList();
 
         // Assert
-        appliedOptimizations.Should().HaveCount(2);
+        Assert.Equal(2, appliedOptimizations.Count());
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class PipelineOptimizationResultTests
         var cachingResults = results.Where(r => r.Type == "Caching").ToList();
 
         // Assert
-        cachingResults.Should().HaveCount(2);
+        Assert.Equal(2, cachingResults.Count());
     }
 
     [Fact]
@@ -259,9 +259,9 @@ public class PipelineOptimizationResultTests
         result.Impact = "Modified impact";
 
         // Assert
-        result.Type.Should().Be("Modified");
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Be("Modified impact");
+        Assert.Equal("Modified", result.Type);
+        Assert.True(result.Applied);
+        Assert.Equal("Modified impact", result.Impact);
     }
 
     [Fact]
@@ -276,9 +276,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Caching");
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Contain("40%");
+        Assert.Equal("Caching", result.Type);
+        Assert.True(result.Applied);
+        Assert.Contains("40%", result.Impact);
     }
 
     [Fact]
@@ -293,9 +293,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Async Optimization");
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Contain("50");
+        Assert.Equal("Async Optimization", result.Type);
+        Assert.True(result.Applied);
+        Assert.Contains("50", result.Impact);
     }
 
     [Fact]
@@ -310,9 +310,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Memory Management");
-        result.Applied.Should().BeFalse();
-        result.Impact.Should().Contain("not needed");
+        Assert.Equal("Memory Management", result.Type);
+        Assert.False(result.Applied);
+        Assert.Contains("not needed", result.Impact);
     }
 
     [Fact]
@@ -327,9 +327,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Query Optimization");
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Contain("60%");
+        Assert.Equal("Query Optimization", result.Type);
+        Assert.True(result.Applied);
+        Assert.Contains("60%", result.Impact);
     }
 
     [Fact]
@@ -344,9 +344,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Connection Pooling");
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Contain("25%");
+        Assert.Equal("Connection Pooling", result.Type);
+        Assert.True(result.Applied);
+        Assert.Contains("25%", result.Impact);
     }
 
     [Fact]
@@ -359,10 +359,10 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Impact.Should().Contain("Optimization results");
-        result.Impact.Should().Contain("CPU usage: -15%");
-        result.Impact.Should().Contain("Memory usage: -10%");
-        result.Impact.Should().Contain("Response time: -20%");
+        Assert.Contains("Optimization results", result.Impact);
+        Assert.Contains("CPU usage: -15%", result.Impact);
+        Assert.Contains("Memory usage: -10%", result.Impact);
+        Assert.Contains("Response time: -20%", result.Impact);
     }
 
     [Theory]
@@ -383,9 +383,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be(type);
-        result.Applied.Should().Be(applied);
-        result.Impact.Should().Be(impact);
+        Assert.Equal(type, result.Type);
+        Assert.Equal(applied, result.Applied);
+        Assert.Equal(impact, result.Impact);
     }
 
     [Fact]
@@ -404,8 +404,8 @@ public class PipelineOptimizationResultTests
         var grouped = results.GroupBy(r => r.Type);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == "Caching").Should().HaveCount(2);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Caching").Count());
     }
 
     [Fact]
@@ -423,9 +423,9 @@ public class PipelineOptimizationResultTests
         var ordered = results.OrderBy(r => r.Type).ToList();
 
         // Assert
-        ordered[0].Type.Should().Be("Async");
-        ordered[1].Type.Should().Be("Caching");
-        ordered[2].Type.Should().Be("Memory");
+        Assert.Equal("Async", ordered[0].Type);
+        Assert.Equal("Caching", ordered[1].Type);
+        Assert.Equal("Memory", ordered[2].Type);
     }
 
     [Fact]
@@ -438,7 +438,7 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Advanced Caching Strategy");
+        Assert.Equal("Advanced Caching Strategy", result.Type);
     }
 
     [Fact]
@@ -451,9 +451,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Impact.Should().Contain("CPU ↓15%");
-        result.Impact.Should().Contain("Memory ↓10%");
-        result.Impact.Should().Contain("Latency ↓20ms");
+        Assert.Contains("CPU ↓15%", result.Impact);
+        Assert.Contains("Memory ↓10%", result.Impact);
+        Assert.Contains("Latency ↓20ms", result.Impact);
     }
 
     [Fact]
@@ -466,22 +466,17 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("I/O Optimization (Disk/Network)");
+        Assert.Equal("I/O Optimization (Disk/Network)", result.Type);
     }
 
     [Fact]
     public void PipelineOptimizationResult_CanRepresentSuccessfulOptimization()
     {
         // Arrange & Act
-        var result = new PipelineOptimizationResult
-        {
-            Type = "Load Balancing",
-            Applied = true,
-            Impact = "Request distribution improved across 3 servers"
-        };
+        var result = new PipelineOptimizationResult { Applied = true };
 
         // Assert
-        result.Applied.Should().BeTrue();
+        Assert.True(result.Applied);
     }
 
     [Fact]
@@ -496,8 +491,8 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Applied.Should().BeFalse();
-        result.Impact.Should().Contain("Skipped");
+        Assert.False(result.Applied);
+        Assert.Contains("Skipped", result.Impact);
     }
 
     [Fact]
@@ -512,9 +507,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Contain("75% → 60%");
-        result.Impact.Should().Contain("50 → 10");
+        Assert.True(result.Applied);
+        Assert.Contains("75% → 60%", result.Impact);
+        Assert.Contains("50 → 10", result.Impact);
     }
 
     [Fact]
@@ -529,9 +524,9 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        result.Applied.Should().BeTrue();
-        result.Impact.Should().Contain("150ms → 45ms");
-        result.Impact.Should().Contain("70% improvement");
+        Assert.True(result.Applied);
+        Assert.Contains("150ms → 45ms", result.Impact);
+        Assert.Contains("70% improvement", result.Impact);
     }
 
     [Fact]
@@ -550,9 +545,9 @@ public class PipelineOptimizationResultTests
         var appliedCaching = results.Where(r => r.Applied && r.Type == "Caching").ToList();
 
         // Assert
-        appliedCaching.Should().HaveCount(1);
-        appliedCaching[0].Type.Should().Be("Caching");
-        appliedCaching[0].Applied.Should().BeTrue();
+        Assert.Equal(1, appliedCaching.Count());
+        Assert.Equal("Caching", appliedCaching[0].Type);
+        Assert.True(appliedCaching[0].Applied);
     }
 
     [Fact]
@@ -573,9 +568,9 @@ public class PipelineOptimizationResultTests
         var appliedPercentage = (double)appliedCount / totalCount * 100;
 
         // Assert
-        appliedCount.Should().Be(3);
-        totalCount.Should().Be(4);
-        appliedPercentage.Should().Be(75.0);
+        Assert.Equal(3, appliedCount);
+        Assert.Equal(4, totalCount);
+        Assert.Equal(75.0, appliedPercentage);
     }
 
     [Fact]
@@ -593,8 +588,9 @@ public class PipelineOptimizationResultTests
         var jsonString = $"{{\"Type\":\"{result.Type}\",\"Applied\":{result.Applied.ToString().ToLower()},\"Impact\":\"{result.Impact}\"}}";
 
         // Assert
-        jsonString.Should().Contain("\"Type\":\"Test Optimization\"");
-        jsonString.Should().Contain("\"Applied\":true");
-        jsonString.Should().Contain("\"Impact\":\"Test impact\"");
+        Assert.Contains("\"Type\":\"Test Optimization\"", jsonString);
+        Assert.Contains("\"Applied\":true", jsonString);
+        Assert.Contains("\"Impact\":\"Test impact\"", jsonString);
     }
 }
+

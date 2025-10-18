@@ -1,4 +1,4 @@
-using FluentAssertions;
+
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Template;
 using System.CommandLine;
@@ -28,9 +28,9 @@ public class NewCommandTests : IDisposable
         var command = new NewCommand();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("new");
-        command.Description.Should().Contain("Create");
+        Assert.NotNull(command);
+        Assert.Equal("new", command.Name);
+        Assert.Contains("Create", command.Description);
     }
 
     [Fact]
@@ -41,8 +41,8 @@ public class NewCommandTests : IDisposable
         var nameOption = command.Options.FirstOrDefault(o => o.Name == "name");
 
         // Assert
-        nameOption.Should().NotBeNull();
-        nameOption!.IsRequired.Should().BeTrue();
+        Assert.NotNull(nameOption);
+        Assert.True(nameOption!.IsRequired);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class NewCommandTests : IDisposable
         var templateOption = command.Options.FirstOrDefault(o => o.Name == "template");
 
         // Assert
-        templateOption.Should().NotBeNull();
+        Assert.NotNull(templateOption);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class NewCommandTests : IDisposable
         var listOption = command.Options.FirstOrDefault(o => o.Name == "list");
 
         // Assert
-        listOption.Should().NotBeNull();
+        Assert.NotNull(listOption);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class NewCommandTests : IDisposable
         var featuresOption = command.Options.FirstOrDefault(o => o.Name == "features");
 
         // Assert
-        featuresOption.Should().NotBeNull();
+        Assert.NotNull(featuresOption);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class NewCommandTests : IDisposable
         var outputOption = command.Options.FirstOrDefault(o => o.Name == "output");
 
         // Assert
-        outputOption.Should().NotBeNull();
+        Assert.NotNull(outputOption);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class NewCommandTests : IDisposable
         var brokerOption = command.Options.FirstOrDefault(o => o.Name == "broker");
 
         // Assert
-        brokerOption.Should().NotBeNull();
+        Assert.NotNull(brokerOption);
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class NewCommandTests : IDisposable
         var databaseOption = command.Options.FirstOrDefault(o => o.Name == "database");
 
         // Assert
-        databaseOption.Should().NotBeNull();
+        Assert.NotNull(databaseOption);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class NewCommandTests : IDisposable
         var authOption = command.Options.FirstOrDefault(o => o.Name == "auth");
 
         // Assert
-        authOption.Should().NotBeNull();
+        Assert.NotNull(authOption);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class NewCommandTests : IDisposable
         var noRestoreOption = command.Options.FirstOrDefault(o => o.Name == "no-restore");
 
         // Assert
-        noRestoreOption.Should().NotBeNull();
+        Assert.NotNull(noRestoreOption);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class NewCommandTests : IDisposable
         var noBuildOption = command.Options.FirstOrDefault(o => o.Name == "no-build");
 
         // Assert
-        noBuildOption.Should().NotBeNull();
+        Assert.NotNull(noBuildOption);
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public class NewCommandTests : IDisposable
         var command = new NewCommand();
 
         // Assert
-        command.Options.Should().HaveCount(10);
+        Assert.Equal(10, command.Options.Count());
     }
 
     #endregion
@@ -180,7 +180,7 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        validTemplates.Should().Contain(templateId);
+        Assert.Contains(templateId, validTemplates);
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public class NewCommandTests : IDisposable
         var structure = "clean-architecture";
 
         // Assert
-        structure.Should().Be("clean-architecture");
+        Assert.Equal("clean-architecture", structure);
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public class NewCommandTests : IDisposable
         var structure = "microservice";
 
         // Assert
-        structure.Should().Be("microservice");
+        Assert.Equal("microservice", structure);
     }
 
     [Fact]
@@ -210,7 +210,7 @@ public class NewCommandTests : IDisposable
         var structure = "modular";
 
         // Assert
-        structure.Should().Be("modular");
+        Assert.Equal("modular", structure);
     }
 
     #endregion
@@ -229,7 +229,7 @@ public class NewCommandTests : IDisposable
         var supportedFeatures = new[] { "auth", "swagger", "docker", "tests", "healthchecks" };
 
         // Assert
-        supportedFeatures.Should().Contain(feature);
+        Assert.Contains(feature, supportedFeatures);
     }
 
     [Theory]
@@ -244,7 +244,7 @@ public class NewCommandTests : IDisposable
         var supportedFeatures = new[] { "rabbitmq", "kafka", "k8s", "docker", "tracing" };
 
         // Assert
-        supportedFeatures.Should().Contain(feature);
+        Assert.Contains(feature, supportedFeatures);
     }
 
     [Fact]
@@ -254,9 +254,9 @@ public class NewCommandTests : IDisposable
         var features = new[] { "auth", "swagger", "docker" };
 
         // Assert
-        features.Should().HaveCount(3);
-        features.Should().Contain("auth");
-        features.Should().Contain("swagger");
+        Assert.Equal(3, features.Count());
+        Assert.Contains("auth", features);
+        Assert.Contains("swagger", features);
     }
 
     [Fact]
@@ -266,7 +266,7 @@ public class NewCommandTests : IDisposable
         string[] features = Array.Empty<string>();
 
         // Assert
-        features.Should().BeEmpty();
+        Assert.Empty(features);
     }
 
     #endregion
@@ -283,7 +283,7 @@ public class NewCommandTests : IDisposable
         var supportedBrokers = new[] { "rabbitmq", "kafka", "azureservicebus" };
 
         // Assert
-        supportedBrokers.Should().Contain(broker);
+        Assert.Contains(broker, supportedBrokers);
     }
 
     [Fact]
@@ -293,7 +293,7 @@ public class NewCommandTests : IDisposable
         string? broker = null;
 
         // Assert
-        broker.Should().BeNull();
+        Assert.Null(broker);
     }
 
     #endregion
@@ -311,7 +311,7 @@ public class NewCommandTests : IDisposable
         var supportedDatabases = new[] { "sqlserver", "postgres", "mysql", "sqlite" };
 
         // Assert
-        supportedDatabases.Should().Contain(database);
+        Assert.Contains(database, supportedDatabases);
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class NewCommandTests : IDisposable
         string? database = null;
 
         // Assert
-        database.Should().BeNull();
+        Assert.Null(database);
     }
 
     #endregion
@@ -338,7 +338,7 @@ public class NewCommandTests : IDisposable
         var supportedAuth = new[] { "jwt", "identityserver", "auth0" };
 
         // Assert
-        supportedAuth.Should().Contain(auth);
+        Assert.Contains(auth, supportedAuth);
     }
 
     [Fact]
@@ -348,7 +348,7 @@ public class NewCommandTests : IDisposable
         string? auth = null;
 
         // Assert
-        auth.Should().BeNull();
+        Assert.Null(auth);
     }
 
     #endregion
@@ -363,7 +363,7 @@ public class NewCommandTests : IDisposable
         var expectedDir = $"src/{projectName}.Api";
 
         // Assert
-        expectedDir.Should().Contain(".Api");
+        Assert.Contains(".Api", expectedDir);
     }
 
     [Fact]
@@ -374,7 +374,7 @@ public class NewCommandTests : IDisposable
         var expectedDir = $"src/{projectName}.Application";
 
         // Assert
-        expectedDir.Should().Contain(".Application");
+        Assert.Contains(".Application", expectedDir);
     }
 
     [Fact]
@@ -385,7 +385,7 @@ public class NewCommandTests : IDisposable
         var expectedDir = $"src/{projectName}.Domain";
 
         // Assert
-        expectedDir.Should().Contain(".Domain");
+        Assert.Contains(".Domain", expectedDir);
     }
 
     [Fact]
@@ -396,7 +396,7 @@ public class NewCommandTests : IDisposable
         var expectedDir = $"src/{projectName}.Infrastructure";
 
         // Assert
-        expectedDir.Should().Contain(".Infrastructure");
+        Assert.Contains(".Infrastructure", expectedDir);
     }
 
     [Fact]
@@ -412,8 +412,8 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        testDirs.Should().HaveCount(3);
-        testDirs.Should().Contain(d => d.Contains("UnitTests"));
+        Assert.Equal(3, testDirs.Count());
+        Assert.Contains(testDirs, d => d.Contains("UnitTests"));
     }
 
     [Fact]
@@ -423,7 +423,7 @@ public class NewCommandTests : IDisposable
         var expectedDir = "k8s";
 
         // Assert
-        expectedDir.Should().Be("k8s");
+        Assert.Equal("k8s", expectedDir);
     }
 
     [Fact]
@@ -433,7 +433,7 @@ public class NewCommandTests : IDisposable
         var expectedDir = "helm";
 
         // Assert
-        expectedDir.Should().Be("helm");
+        Assert.Equal("helm", expectedDir);
     }
 
     [Fact]
@@ -443,7 +443,7 @@ public class NewCommandTests : IDisposable
         var expectedDir = "docs";
 
         // Assert
-        expectedDir.Should().Be("docs");
+        Assert.Equal("docs", expectedDir);
     }
 
     [Fact]
@@ -453,7 +453,7 @@ public class NewCommandTests : IDisposable
         var expectedDir = "tests";
 
         // Assert
-        expectedDir.Should().Be("tests");
+        Assert.Equal("tests", expectedDir);
     }
 
     #endregion
@@ -471,9 +471,9 @@ public class NewCommandTests : IDisposable
         await File.WriteAllTextAsync(readmePath, content);
 
         // Assert
-        File.Exists(readmePath).Should().BeTrue();
+        Assert.True(File.Exists(readmePath));
         var readmeContent = await File.ReadAllTextAsync(readmePath);
-        readmeContent.Should().Contain("# TestProject");
+        Assert.Contains("# TestProject", readmeContent);
     }
 
     [Fact]
@@ -487,9 +487,9 @@ public class NewCommandTests : IDisposable
         await File.WriteAllTextAsync(gitignorePath, content);
 
         // Assert
-        File.Exists(gitignorePath).Should().BeTrue();
+        Assert.True(File.Exists(gitignorePath));
         var gitignoreContent = await File.ReadAllTextAsync(gitignorePath);
-        gitignoreContent.Should().MatchRegex(@"\[Bb\]in");
+        Assert.Matches(@"\[Bb\]in", gitignoreContent);
     }
 
     [Fact]
@@ -503,7 +503,7 @@ public class NewCommandTests : IDisposable
         await File.WriteAllTextAsync(dockerfilePath, content);
 
         // Assert
-        File.Exists(dockerfilePath).Should().BeTrue();
+        Assert.True(File.Exists(dockerfilePath));
     }
 
     [Fact]
@@ -518,7 +518,7 @@ public class NewCommandTests : IDisposable
         await File.WriteAllTextAsync(ciPath, content);
 
         // Assert
-        File.Exists(ciPath).Should().BeTrue();
+        Assert.True(File.Exists(ciPath));
     }
 
     #endregion
@@ -536,7 +536,7 @@ public class NewCommandTests : IDisposable
         var isValid = !string.IsNullOrWhiteSpace(projectName);
 
         // Assert
-        isValid.Should().BeTrue();
+        Assert.True(isValid);
     }
 
     [Theory]
@@ -549,7 +549,7 @@ public class NewCommandTests : IDisposable
         var isValid = !string.IsNullOrWhiteSpace(projectName);
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -560,7 +560,7 @@ public class NewCommandTests : IDisposable
         var nameOption = command.Options.FirstOrDefault(o => o.Name == "name");
 
         // Assert
-        nameOption!.IsRequired.Should().BeTrue();
+        Assert.True(nameOption!.IsRequired);
     }
 
     #endregion
@@ -574,8 +574,8 @@ public class NewCommandTests : IDisposable
         var defaultOutput = Directory.GetCurrentDirectory();
 
         // Assert
-        defaultOutput.Should().NotBeNullOrEmpty();
-        Directory.Exists(defaultOutput).Should().BeTrue();
+        Assert.False(string.IsNullOrEmpty(defaultOutput));
+        Assert.True(Directory.Exists(defaultOutput));
     }
 
     [Fact]
@@ -590,7 +590,7 @@ public class NewCommandTests : IDisposable
         Directory.CreateDirectory(projectPath);
 
         // Assert
-        Directory.Exists(projectPath).Should().BeTrue();
+        Assert.True(Directory.Exists(projectPath));
     }
 
     [Fact]
@@ -604,7 +604,7 @@ public class NewCommandTests : IDisposable
         var exists = Directory.Exists(projectPath);
 
         // Assert
-        exists.Should().BeTrue();
+        Assert.True(exists);
     }
 
     #endregion
@@ -625,7 +625,7 @@ public class NewCommandTests : IDisposable
         }
 
         // Assert
-        shouldRestore.Should().BeFalse();
+        Assert.False(shouldRestore);
     }
 
     [Fact]
@@ -642,7 +642,7 @@ public class NewCommandTests : IDisposable
         }
 
         // Assert
-        shouldBuild.Should().BeFalse();
+        Assert.False(shouldBuild);
     }
 
     [Fact]
@@ -657,8 +657,8 @@ public class NewCommandTests : IDisposable
         var shouldBuild = !noBuild;
 
         // Assert
-        shouldRestore.Should().BeTrue();
-        shouldBuild.Should().BeTrue();
+        Assert.True(shouldRestore);
+        Assert.True(shouldBuild);
     }
 
     #endregion
@@ -681,9 +681,9 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        template.Id.Should().Be("relay-webapi");
-        template.Name.Should().Be("Web API");
-        template.Structure.Should().Be("clean-architecture");
+        Assert.Equal("relay-webapi", template.Id);
+        Assert.Equal("Web API", template.Name);
+        Assert.Equal("clean-architecture", template.Structure);
     }
 
     [Fact]
@@ -696,8 +696,8 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        template.Tags.Should().HaveCount(3);
-        template.Tags.Should().Contain("web");
+        Assert.Equal(3, template.Tags.Count());
+        Assert.Contains("web", template.Tags);
     }
 
     [Fact]
@@ -710,8 +710,8 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        template.Features.Should().HaveCount(3);
-        template.Features.Should().Contain("docker");
+        Assert.Equal(3, template.Features.Count());
+        Assert.Contains("docker", template.Features);
     }
 
     #endregion
@@ -725,7 +725,7 @@ public class NewCommandTests : IDisposable
         var totalTemplates = 10;
 
         // Assert
-        totalTemplates.Should().Be(10);
+        Assert.Equal(10, totalTemplates);
     }
 
     [Fact]
@@ -742,9 +742,9 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        template.Id.Should().NotBeNullOrEmpty();
-        template.Description.Should().NotBeNullOrEmpty();
-        template.BestFor.Should().NotBeNullOrEmpty();
+        Assert.False(string.IsNullOrEmpty(template.Id));
+        Assert.False(string.IsNullOrEmpty(template.Description));
+        Assert.False(string.IsNullOrEmpty(template.BestFor));
     }
 
     #endregion
@@ -759,7 +759,7 @@ public class NewCommandTests : IDisposable
         var readme = $"# {projectName}";
 
         // Assert
-        readme.Should().Contain(projectName);
+        Assert.Contains(projectName, readme);
     }
 
     [Fact]
@@ -769,8 +769,8 @@ public class NewCommandTests : IDisposable
         var readme = "## Getting Started\n\n### Prerequisites";
 
         // Assert
-        readme.Should().Contain("Getting Started");
-        readme.Should().Contain("Prerequisites");
+        Assert.Contains("Getting Started", readme);
+        Assert.Contains("Prerequisites", readme);
     }
 
     [Fact]
@@ -780,7 +780,7 @@ public class NewCommandTests : IDisposable
         var readme = "```bash\ndotnet run --project src/MyProject.Api\n```";
 
         // Assert
-        readme.Should().Contain("dotnet run");
+        Assert.Contains("dotnet run", readme);
     }
 
     [Fact]
@@ -790,7 +790,7 @@ public class NewCommandTests : IDisposable
         var readme = "```bash\ndotnet test\n```";
 
         // Assert
-        readme.Should().Contain("dotnet test");
+        Assert.Contains("dotnet test", readme);
     }
 
     [Fact]
@@ -801,8 +801,8 @@ public class NewCommandTests : IDisposable
         var featuresList = string.Join("\n", features.Select(f => $"- {f}"));
 
         // Assert
-        featuresList.Should().Contain("- auth");
-        featuresList.Should().Contain("- swagger");
+        Assert.Contains("- auth", featuresList);
+        Assert.Contains("- swagger", featuresList);
     }
 
     #endregion
@@ -816,7 +816,7 @@ public class NewCommandTests : IDisposable
         var gitignore = "[Bb]in/";
 
         // Assert
-        gitignore.Should().MatchRegex(@"\[Bb\]in");
+        Assert.Matches(@"\[Bb\]in", gitignore);
     }
 
     [Fact]
@@ -826,7 +826,7 @@ public class NewCommandTests : IDisposable
         var gitignore = "[Oo]bj/";
 
         // Assert
-        gitignore.Should().MatchRegex(@"\[Oo\]bj");
+        Assert.Matches(@"\[Oo\]bj", gitignore);
     }
 
     [Fact]
@@ -836,7 +836,7 @@ public class NewCommandTests : IDisposable
         var gitignore = ".vs/";
 
         // Assert
-        gitignore.Should().Contain(".vs");
+        Assert.Contains(".vs", gitignore);
     }
 
     [Fact]
@@ -846,7 +846,7 @@ public class NewCommandTests : IDisposable
         var gitignore = ".idea/";
 
         // Assert
-        gitignore.Should().Contain(".idea");
+        Assert.Contains(".idea", gitignore);
     }
 
     [Fact]
@@ -856,8 +856,8 @@ public class NewCommandTests : IDisposable
         var gitignore = "*.nupkg\npackages/";
 
         // Assert
-        gitignore.Should().Contain("nupkg");
-        gitignore.Should().Contain("packages");
+        Assert.Contains("nupkg", gitignore);
+        Assert.Contains("packages", gitignore);
     }
 
     #endregion
@@ -871,7 +871,7 @@ public class NewCommandTests : IDisposable
         var features = new[] { "auth", "swagger", "docker", "tests", "healthchecks" };
 
         // Assert
-        features.Should().Contain("swagger");
+        Assert.Contains("swagger", features);
     }
 
     [Fact]
@@ -881,7 +881,7 @@ public class NewCommandTests : IDisposable
         var features = new[] { "rabbitmq", "kafka", "k8s", "docker", "tracing" };
 
         // Assert
-        (features.Contains("rabbitmq") || features.Contains("kafka")).Should().BeTrue();
+        Assert.True(features.Contains("rabbitmq") || features.Contains("kafka"));
     }
 
     [Fact]
@@ -891,7 +891,7 @@ public class NewCommandTests : IDisposable
         var features = new[] { "aggregates", "events", "specifications" };
 
         // Assert
-        features.Should().Contain("aggregates");
+        Assert.Contains("aggregates", features);
     }
 
     [Fact]
@@ -901,8 +901,8 @@ public class NewCommandTests : IDisposable
         var features = new[] { "eventstore", "projections", "snapshots" };
 
         // Assert
-        features.Should().Contain("eventstore");
-        features.Should().Contain("projections");
+        Assert.Contains("eventstore", features);
+        Assert.Contains("projections", features);
     }
 
     [Fact]
@@ -912,7 +912,7 @@ public class NewCommandTests : IDisposable
         var features = new[] { "modules", "isolation", "migration-ready" };
 
         // Assert
-        features.Should().Contain("modules");
+        Assert.Contains("modules", features);
     }
 
     [Fact]
@@ -922,7 +922,7 @@ public class NewCommandTests : IDisposable
         var features = new[] { "subscriptions", "dataloader", "filtering" };
 
         // Assert
-        features.Should().Contain("subscriptions");
+        Assert.Contains("subscriptions", features);
     }
 
     [Fact]
@@ -932,7 +932,7 @@ public class NewCommandTests : IDisposable
         var features = new[] { "streaming", "tls", "discovery" };
 
         // Assert
-        features.Should().Contain("streaming");
+        Assert.Contains("streaming", features);
     }
 
     [Fact]
@@ -942,7 +942,7 @@ public class NewCommandTests : IDisposable
         var features = new[] { "aws", "azure", "api-gateway" };
 
         // Assert
-        (features.Contains("aws") || features.Contains("azure")).Should().BeTrue();
+        Assert.True(features.Contains("aws") || features.Contains("azure"));
     }
 
     [Fact]
@@ -952,8 +952,8 @@ public class NewCommandTests : IDisposable
         var features = new[] { "server", "wasm", "signalr", "pwa" };
 
         // Assert
-        features.Should().Contain("server");
-        features.Should().Contain("wasm");
+        Assert.Contains("server", features);
+        Assert.Contains("wasm", features);
     }
 
     [Fact]
@@ -963,8 +963,8 @@ public class NewCommandTests : IDisposable
         var features = new[] { "ios", "android", "offline", "sqlite" };
 
         // Assert
-        features.Should().Contain("ios");
-        features.Should().Contain("android");
+        Assert.Contains("ios", features);
+        Assert.Contains("android", features);
     }
 
     #endregion
@@ -1000,7 +1000,7 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        structureMap[templateId].Should().Be(expectedStructure);
+        Assert.Equal(expectedStructure, structureMap[templateId]);
     }
 
     #endregion
@@ -1017,7 +1017,7 @@ public class NewCommandTests : IDisposable
         var isValid = !string.IsNullOrEmpty(name);
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -1030,7 +1030,7 @@ public class NewCommandTests : IDisposable
         var isValid = !string.IsNullOrEmpty(template);
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -1044,7 +1044,7 @@ public class NewCommandTests : IDisposable
         var isValid = validTemplates.Contains(template);
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -1058,7 +1058,7 @@ public class NewCommandTests : IDisposable
         var exists = Directory.Exists(projectPath);
 
         // Assert
-        exists.Should().BeTrue();
+        Assert.True(exists);
     }
 
     #endregion
@@ -1092,10 +1092,10 @@ public class NewCommandTests : IDisposable
         // Assert
         foreach (var dir in expectedDirectories)
         {
-            Directory.Exists(Path.Combine(projectPath, dir)).Should().BeTrue();
+            Assert.True(Directory.Exists(Path.Combine(projectPath, dir)));
         }
-        File.Exists(Path.Combine(projectPath, "README.md")).Should().BeTrue();
-        File.Exists(Path.Combine(projectPath, ".gitignore")).Should().BeTrue();
+        Assert.True(File.Exists(Path.Combine(projectPath, "README.md")));
+        Assert.True(File.Exists(Path.Combine(projectPath, ".gitignore")));
     }
 
     [Fact]
@@ -1113,7 +1113,7 @@ public class NewCommandTests : IDisposable
         var uniqueIds = templateIds.Distinct().ToArray();
 
         // Assert
-        uniqueIds.Should().HaveCount(templateIds.Length);
+        Assert.Equal(templateIds.Length, uniqueIds.Count());
     }
 
     [Fact]
@@ -1127,7 +1127,7 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        templates.Should().AllSatisfy(t => t.Description.Should().NotBeNullOrEmpty());
+        foreach (var t in templates) Assert.False(string.IsNullOrEmpty(t.Description));
     }
 
     #endregion
@@ -1144,8 +1144,8 @@ public class NewCommandTests : IDisposable
         var absolutePath = Path.GetFullPath(relativePath);
 
         // Assert
-        absolutePath.Should().NotBeNullOrEmpty();
-        Path.IsPathRooted(absolutePath).Should().BeTrue();
+        Assert.False(string.IsNullOrEmpty(absolutePath));
+        Assert.True(Path.IsPathRooted(absolutePath));
     }
 
     [Fact]
@@ -1158,7 +1158,7 @@ public class NewCommandTests : IDisposable
         var isAbsolute = Path.IsPathRooted(absolutePath);
 
         // Assert
-        isAbsolute.Should().BeTrue();
+        Assert.True(isAbsolute);
     }
 
     [Fact]
@@ -1172,8 +1172,8 @@ public class NewCommandTests : IDisposable
         var projectPath = Path.Combine(output, projectName);
 
         // Assert
-        projectPath.Should().Contain(projectName);
-        projectPath.Should().StartWith(output);
+        Assert.Contains(projectName, projectPath);
+        Assert.StartsWith(output, projectPath);
     }
 
     #endregion
@@ -1187,8 +1187,8 @@ public class NewCommandTests : IDisposable
         var features = new[] { "docker", "ci" };
 
         // Assert
-        features.Should().Contain("docker");
-        features.Should().Contain("ci");
+        Assert.Contains("docker", features);
+        Assert.Contains("ci", features);
     }
 
     [Fact]
@@ -1198,8 +1198,8 @@ public class NewCommandTests : IDisposable
         var features = new[] { "auth", "swagger" };
 
         // Assert
-        features.Should().Contain("auth");
-        features.Should().Contain("swagger");
+        Assert.Contains("auth", features);
+        Assert.Contains("swagger", features);
     }
 
     [Fact]
@@ -1210,8 +1210,8 @@ public class NewCommandTests : IDisposable
         var database = "postgres";
 
         // Assert
-        broker.Should().Be("rabbitmq");
-        database.Should().Be("postgres");
+        Assert.Equal("rabbitmq", broker);
+        Assert.Equal("postgres", database);
     }
 
     #endregion
@@ -1233,10 +1233,10 @@ public class NewCommandTests : IDisposable
 
             // Assert
             var output = consoleOutput.ToString();
-            output.Should().Contain("Available Relay Templates");
-            output.Should().Contain("relay-webapi");
-            output.Should().Contain("Description:");
-            output.Should().Contain("Usage Examples:");
+            Assert.Contains("Available Relay Templates", output);
+            Assert.Contains("relay-webapi", output);
+            Assert.Contains("Description:", output);
+            Assert.Contains("Usage Examples:", output);
         }
         finally
         {
@@ -1260,7 +1260,7 @@ public class NewCommandTests : IDisposable
 
             // Assert
             var output = consoleOutput.ToString();
-            output.Should().Contain("Project name is required");
+            Assert.Contains("Project name is required", output);
         }
         finally
         {
@@ -1280,9 +1280,9 @@ public class NewCommandTests : IDisposable
         var result = await command.InvokeAsync("--name TestProject");
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var output = consoleOutput.ToString();
-        output.Should().Contain("Template is required");
+        Assert.Contains("Template is required", output);
     }
 
     [Fact]
@@ -1297,9 +1297,9 @@ public class NewCommandTests : IDisposable
         var result = await command.InvokeAsync("--name TestProject --template relay-webapi --output " + _testPath);
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var output = consoleOutput.ToString();
-        output.Should().Contain("Creating project 'TestProject'");
+        Assert.Contains("Creating project 'TestProject'", output);
     }
 
     [Fact]
@@ -1317,9 +1317,9 @@ public class NewCommandTests : IDisposable
         var result = await command.InvokeAsync($"--name ExistingProject --template relay-webapi --output {_testPath}");
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var output = consoleOutput.ToString();
-        output.Should().Contain("already exists");
+        Assert.Contains("already exists", output);
     }
 
     [Fact]
@@ -1334,9 +1334,9 @@ public class NewCommandTests : IDisposable
         var result = await command.InvokeAsync("--name TestProject --template invalid-template");
 
         // Assert
-        result.Should().Be(0);
+        Assert.Equal(0, result);
         var output = consoleOutput.ToString();
-        output.Should().Contain("Template 'invalid-template' not found");
+        Assert.Contains("Template 'invalid-template' not found", output);
     }
 
     #endregion
@@ -1355,14 +1355,14 @@ public class NewCommandTests : IDisposable
             _testPath, null, null, null, true, true);
 
         // Assert
-        Directory.Exists(projectPath).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "src")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Api")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Application")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Domain")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Infrastructure")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "tests")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "docs")).Should().BeTrue();
+        Assert.True(Directory.Exists(projectPath));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "src")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Api")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Application")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Domain")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, $"src/{projectName}.Infrastructure")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "tests")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "docs")));
     }
 
     [Fact]
@@ -1377,11 +1377,11 @@ public class NewCommandTests : IDisposable
             _testPath, null, null, null, true, true);
 
         // Assert
-        Directory.Exists(projectPath).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "src")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, $"src/{projectName}")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "k8s")).Should().BeTrue();
-        Directory.Exists(Path.Combine(projectPath, "helm")).Should().BeTrue();
+        Assert.True(Directory.Exists(projectPath));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "src")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, $"src/{projectName}")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "k8s")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "helm")));
     }
 
     [Fact]
@@ -1396,7 +1396,7 @@ public class NewCommandTests : IDisposable
             _testPath, null, null, null, true, true);
 
         // Assert
-        Directory.Exists(projectPath).Should().BeTrue();
+        Assert.True(Directory.Exists(projectPath));
         // Note: Actual Docker file generation is not implemented yet, but structure should be created
     }
 
@@ -1412,7 +1412,7 @@ public class NewCommandTests : IDisposable
             _testPath, "rabbitmq", null, null, true, true);
 
         // Assert
-        Directory.Exists(projectPath).Should().BeTrue();
+        Assert.True(Directory.Exists(projectPath));
         // Note: Specific broker integration testing would require more detailed implementation
     }
 
@@ -1432,17 +1432,17 @@ public class NewCommandTests : IDisposable
 
         // Assert
         var output = consoleOutput.ToString();
-        output.Should().Contain("Available Relay Templates");
-        output.Should().Contain("relay-webapi");
-        output.Should().Contain("relay-microservice");
-        output.Should().Contain("relay-ddd");
-        output.Should().Contain("relay-cqrs-es");
-        output.Should().Contain("relay-modular");
-        output.Should().Contain("relay-graphql");
-        output.Should().Contain("relay-grpc");
-        output.Should().Contain("relay-serverless");
-        output.Should().Contain("relay-blazor");
-        output.Should().Contain("relay-maui");
+        Assert.Contains("Available Relay Templates", output);
+        Assert.Contains("relay-webapi", output);
+        Assert.Contains("relay-microservice", output);
+        Assert.Contains("relay-ddd", output);
+        Assert.Contains("relay-cqrs-es", output);
+        Assert.Contains("relay-modular", output);
+        Assert.Contains("relay-graphql", output);
+        Assert.Contains("relay-grpc", output);
+        Assert.Contains("relay-serverless", output);
+        Assert.Contains("relay-blazor", output);
+        Assert.Contains("relay-maui", output);
     }
 
     [Fact]
@@ -1457,10 +1457,10 @@ public class NewCommandTests : IDisposable
 
         // Assert
         var output = consoleOutput.ToString();
-        output.Should().Contain("Description:");
-        output.Should().Contain("Best for:");
-        output.Should().Contain("Tags:");
-        output.Should().Contain("Available features:");
+        Assert.Contains("Description:", output);
+        Assert.Contains("Best for:", output);
+        Assert.Contains("Tags:", output);
+        Assert.Contains("Available features:", output);
     }
 
     [Fact]
@@ -1475,10 +1475,10 @@ public class NewCommandTests : IDisposable
 
         // Assert
         var output = consoleOutput.ToString();
-        output.Should().Contain("Usage Examples:");
-        output.Should().Contain("relay new --name MyApi --template relay-webapi");
-        output.Should().Contain("--features auth,swagger,docker");
-        output.Should().Contain("--broker rabbitmq");
+        Assert.Contains("Usage Examples:", output);
+        Assert.Contains("relay new --name MyApi --template relay-webapi", output);
+        Assert.Contains("--features auth,swagger,docker", output);
+        Assert.Contains("--broker rabbitmq", output);
     }
 
     #endregion
@@ -1504,10 +1504,10 @@ public class NewCommandTests : IDisposable
         var readme = NewCommand.GenerateReadme("TestProject", template, new[] { "auth", "swagger" });
 
         // Assert
-        readme.Should().Contain("# TestProject");
-        readme.Should().Contain("Test description");
-        readme.Should().Contain("- auth");
-        readme.Should().Contain("- swagger");
+        Assert.Contains("# TestProject", readme);
+        Assert.Contains("Test description", readme);
+        Assert.Contains("- auth", readme);
+        Assert.Contains("- swagger", readme);
     }
 
     [Fact]
@@ -1529,10 +1529,10 @@ public class NewCommandTests : IDisposable
         var readme = NewCommand.GenerateReadme("TestProject", template, Array.Empty<string>());
 
         // Assert
-        readme.Should().Contain("dotnet run --project src/TestProject.Api");
-        readme.Should().Contain("dotnet test");
-        readme.Should().Contain("## Getting Started");
-        readme.Should().Contain("### Prerequisites");
+        Assert.Contains("dotnet run --project src/TestProject.Api", readme);
+        Assert.Contains("dotnet test", readme);
+        Assert.Contains("## Getting Started", readme);
+        Assert.Contains("### Prerequisites", readme);
     }
 
     [Fact]
@@ -1545,14 +1545,14 @@ public class NewCommandTests : IDisposable
         await NewCommand.GenerateGitignore(_testPath);
 
         // Assert
-        File.Exists(gitignorePath).Should().BeTrue();
+        Assert.True(File.Exists(gitignorePath));
         var content = await File.ReadAllTextAsync(gitignorePath);
-        content.Should().Contain("[Bb]in/");
-        content.Should().Contain("[Oo]bj/");
-        content.Should().Contain(".vs/");
-        content.Should().Contain("*.nupkg");
-        content.Should().Contain("packages/");
-        content.Should().Contain("TestResults/");
+        Assert.Contains("[Bb]in/", content);
+        Assert.Contains("[Oo]bj/", content);
+        Assert.Contains(".vs/", content);
+        Assert.Contains("*.nupkg", content);
+        Assert.Contains("packages/", content);
+        Assert.Contains("TestResults/", content);
     }
 
     #endregion
@@ -1570,8 +1570,8 @@ public class NewCommandTests : IDisposable
         var absolutePath = Path.GetFullPath(relativePath);
 
         // Assert
-        absolutePath.Should().NotBeNullOrEmpty();
-        Path.IsPathRooted(absolutePath).Should().BeTrue();
+        Assert.False(string.IsNullOrEmpty(absolutePath));
+        Assert.True(Path.IsPathRooted(absolutePath));
     }
 
     [Fact]
@@ -1584,8 +1584,8 @@ public class NewCommandTests : IDisposable
         var expandedPath = pathWithTilde.Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
         // Assert
-        expandedPath.Should().NotBeNullOrEmpty();
-        expandedPath.Should().NotContain("~");
+        Assert.False(string.IsNullOrEmpty(expandedPath));
+        Assert.DoesNotContain("~", expandedPath);
     }
 
     [Fact]
@@ -1598,8 +1598,8 @@ public class NewCommandTests : IDisposable
         var canCreatePath = longPath.Length > 10; // Just verify we can construct long paths
 
         // Assert
-        canCreatePath.Should().BeTrue();
-        longPath.Should().Contain(new string('a', 200));
+        Assert.True(canCreatePath);
+        Assert.Contains(new string('a', 200), longPath);
     }
 
     #endregion
@@ -1619,7 +1619,7 @@ public class NewCommandTests : IDisposable
         // Assert
         foreach (var feature in features)
         {
-            supportedFeatures.Should().Contain(feature);
+        Assert.Contains(feature, supportedFeatures);
         }
     }
 
@@ -1633,7 +1633,7 @@ public class NewCommandTests : IDisposable
         var hasFeatures = features.Any();
 
         // Assert
-        hasFeatures.Should().BeFalse();
+        Assert.False(hasFeatures);
     }
 
     [Fact]
@@ -1646,7 +1646,7 @@ public class NewCommandTests : IDisposable
         var safeFeatures = features ?? Array.Empty<string>();
 
         // Assert
-        safeFeatures.Should().BeEmpty();
+        Assert.Empty(safeFeatures);
     }
 
     #endregion
@@ -1710,3 +1710,5 @@ public class NewCommandTests : IDisposable
         }
     }
 }
+
+

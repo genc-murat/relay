@@ -1,4 +1,5 @@
 using Relay.CLI.Commands.Models;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -11,7 +12,7 @@ public class RequestInfoTests
         var request = new RequestInfo { Name = "CreateUserRequest" };
 
         // Assert
-        request.Name.Should().Be("CreateUserRequest");
+        Assert.Equal("CreateUserRequest", request.Name);
     }
 
     [Fact]
@@ -21,7 +22,7 @@ public class RequestInfoTests
         var request = new RequestInfo { FilePath = "src/Requests/CreateUserRequest.cs" };
 
         // Assert
-        request.FilePath.Should().Be("src/Requests/CreateUserRequest.cs");
+        Assert.Equal("src/Requests/CreateUserRequest.cs", request.FilePath);
     }
 
     [Fact]
@@ -31,7 +32,7 @@ public class RequestInfoTests
         var request = new RequestInfo { IsRecord = true };
 
         // Assert
-        request.IsRecord.Should().BeTrue();
+        Assert.True(request.IsRecord);
     }
 
     [Fact]
@@ -41,7 +42,7 @@ public class RequestInfoTests
         var request = new RequestInfo { HasResponse = true };
 
         // Assert
-        request.HasResponse.Should().BeTrue();
+        Assert.True(request.HasResponse);
     }
 
     [Fact]
@@ -51,7 +52,7 @@ public class RequestInfoTests
         var request = new RequestInfo { HasValidation = true };
 
         // Assert
-        request.HasValidation.Should().BeTrue();
+        Assert.True(request.HasValidation);
     }
 
     [Fact]
@@ -61,7 +62,7 @@ public class RequestInfoTests
         var request = new RequestInfo { ParameterCount = 3 };
 
         // Assert
-        request.ParameterCount.Should().Be(3);
+        Assert.Equal(3, request.ParameterCount);
     }
 
     [Fact]
@@ -71,7 +72,7 @@ public class RequestInfoTests
         var request = new RequestInfo { HasCaching = true };
 
         // Assert
-        request.HasCaching.Should().BeTrue();
+        Assert.True(request.HasCaching);
     }
 
     [Fact]
@@ -81,7 +82,7 @@ public class RequestInfoTests
         var request = new RequestInfo { HasAuthorization = true };
 
         // Assert
-        request.HasAuthorization.Should().BeTrue();
+        Assert.True(request.HasAuthorization);
     }
 
     [Fact]
@@ -91,14 +92,14 @@ public class RequestInfoTests
         var request = new RequestInfo();
 
         // Assert
-        request.Name.Should().Be("");
-        request.FilePath.Should().Be("");
-        request.IsRecord.Should().BeFalse();
-        request.HasResponse.Should().BeFalse();
-        request.HasValidation.Should().BeFalse();
-        request.ParameterCount.Should().Be(0);
-        request.HasCaching.Should().BeFalse();
-        request.HasAuthorization.Should().BeFalse();
+        Assert.Equal("", request.Name);
+        Assert.Equal("", request.FilePath);
+        Assert.False(request.IsRecord);
+        Assert.False(request.HasResponse);
+        Assert.False(request.HasValidation);
+        Assert.Equal(0, request.ParameterCount);
+        Assert.False(request.HasCaching);
+        Assert.False(request.HasAuthorization);
     }
 
     [Fact]
@@ -118,14 +119,14 @@ public class RequestInfoTests
         };
 
         // Assert
-        request.Name.Should().Be("UpdateUserCommand");
-        request.FilePath.Should().Be("src/Commands/UpdateUserCommand.cs");
-        request.IsRecord.Should().BeTrue();
-        request.HasResponse.Should().BeFalse();
-        request.HasValidation.Should().BeTrue();
-        request.ParameterCount.Should().Be(5);
-        request.HasCaching.Should().BeFalse();
-        request.HasAuthorization.Should().BeTrue();
+        Assert.Equal("UpdateUserCommand", request.Name);
+        Assert.Equal("src/Commands/UpdateUserCommand.cs", request.FilePath);
+        Assert.True(request.IsRecord);
+        Assert.False(request.HasResponse);
+        Assert.True(request.HasValidation);
+        Assert.Equal(5, request.ParameterCount);
+        Assert.False(request.HasCaching);
+        Assert.True(request.HasAuthorization);
     }
 
     [Theory]
@@ -139,7 +140,7 @@ public class RequestInfoTests
         var request = new RequestInfo { ParameterCount = parameterCount };
 
         // Assert
-        request.ParameterCount.Should().Be(parameterCount);
+        Assert.Equal(parameterCount, request.ParameterCount);
     }
 
     [Fact]
@@ -149,7 +150,7 @@ public class RequestInfoTests
         var request = new RequestInfo { Name = "" };
 
         // Assert
-        request.Name.Should().BeEmpty();
+        Assert.Empty(request.Name);
     }
 
     [Fact]
@@ -159,7 +160,7 @@ public class RequestInfoTests
         var request = new RequestInfo { Name = "CreateUserRequest_v2" };
 
         // Assert
-        request.Name.Should().Be("CreateUserRequest_v2");
+        Assert.Equal("CreateUserRequest_v2", request.Name);
     }
 
     [Fact]
@@ -169,7 +170,7 @@ public class RequestInfoTests
         var request = new RequestInfo { FilePath = "" };
 
         // Assert
-        request.FilePath.Should().BeEmpty();
+        Assert.Empty(request.FilePath);
     }
 
     [Fact]
@@ -179,7 +180,7 @@ public class RequestInfoTests
         var request = new RequestInfo { FilePath = "src/Application/Users/Commands/CreateUserCommand.cs" };
 
         // Assert
-        request.FilePath.Should().Be("src/Application/Users/Commands/CreateUserCommand.cs");
+        Assert.Equal("src/Application/Users/Commands/CreateUserCommand.cs", request.FilePath);
     }
 
     [Fact]
@@ -195,11 +196,11 @@ public class RequestInfoTests
             HasAuthorization = true
         };
 
-        requestTrue.IsRecord.Should().BeTrue();
-        requestTrue.HasResponse.Should().BeTrue();
-        requestTrue.HasValidation.Should().BeTrue();
-        requestTrue.HasCaching.Should().BeTrue();
-        requestTrue.HasAuthorization.Should().BeTrue();
+        Assert.True(requestTrue.IsRecord);
+        Assert.True(requestTrue.HasResponse);
+        Assert.True(requestTrue.HasValidation);
+        Assert.True(requestTrue.HasCaching);
+        Assert.True(requestTrue.HasAuthorization);
 
         // Test all boolean properties can be set to false
         var requestFalse = new RequestInfo
@@ -211,11 +212,11 @@ public class RequestInfoTests
             HasAuthorization = false
         };
 
-        requestFalse.IsRecord.Should().BeFalse();
-        requestFalse.HasResponse.Should().BeFalse();
-        requestFalse.HasValidation.Should().BeFalse();
-        requestFalse.HasCaching.Should().BeFalse();
-        requestFalse.HasAuthorization.Should().BeFalse();
+        Assert.False(requestFalse.IsRecord);
+        Assert.False(requestFalse.HasResponse);
+        Assert.False(requestFalse.HasValidation);
+        Assert.False(requestFalse.HasCaching);
+        Assert.False(requestFalse.HasAuthorization);
     }
 
     [Fact]
@@ -230,9 +231,9 @@ public class RequestInfoTests
         };
 
         // Assert
-        requests.Should().HaveCount(3);
-        requests.Count(r => r.IsRecord).Should().Be(2);
-        requests.Sum(r => r.ParameterCount).Should().Be(8);
+        Assert.Equal(3, requests.Count());
+        Assert.Equal(2, requests.Count(r => r.IsRecord));
+        Assert.Equal(8, requests.Sum(r => r.ParameterCount));
     }
 
     [Fact]
@@ -252,10 +253,10 @@ public class RequestInfoTests
         var classRequests = requests.Where(r => !r.IsRecord).ToList();
 
         // Assert
-        recordRequests.Should().HaveCount(2);
-        classRequests.Should().HaveCount(2);
-        recordRequests.All(r => r.IsRecord).Should().BeTrue();
-        classRequests.All(r => !r.IsRecord).Should().BeTrue();
+        Assert.Equal(2, recordRequests.Count());
+        Assert.Equal(2, classRequests.Count());
+        Assert.True(recordRequests.All(r => r.IsRecord));
+        Assert.True(classRequests.All(r => !r.IsRecord));
     }
 
     [Fact]
@@ -276,9 +277,9 @@ public class RequestInfoTests
         var requestsWithCaching = requests.Where(r => r.HasCaching).ToList();
 
         // Assert
-        requestsWithValidation.Should().HaveCount(2);
-        requestsWithSecurity.Should().HaveCount(2);
-        requestsWithCaching.Should().HaveCount(2);
+        Assert.Equal(2, requestsWithValidation.Count());
+        Assert.Equal(2, requestsWithSecurity.Count());
+        Assert.Equal(2, requestsWithCaching.Count());
     }
 
     [Fact]
@@ -296,9 +297,9 @@ public class RequestInfoTests
         var orderedByComplexity = requests.OrderBy(r => r.ParameterCount).ToList();
 
         // Assert
-        orderedByComplexity[0].Name.Should().Be("Simple");
-        orderedByComplexity[1].Name.Should().Be("Medium");
-        orderedByComplexity[2].Name.Should().Be("Complex");
+        Assert.Equal("Simple", orderedByComplexity[0].Name);
+        Assert.Equal("Medium", orderedByComplexity[1].Name);
+        Assert.Equal("Complex", orderedByComplexity[2].Name);
     }
 
     [Fact]
@@ -317,12 +318,12 @@ public class RequestInfoTests
         var grouped = requests.GroupBy(r => r.HasResponse);
 
         // Assert
-        grouped.Should().HaveCount(2);
-        grouped.First(g => g.Key).Should().HaveCount(2); // Has response (queries)
-        grouped.First(g => !g.Key).Should().HaveCount(2); // No response (commands)
+        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key).Count()); // Has response (queries)
+        Assert.Equal(2, grouped.First(g => !g.Key).Count()); // No response (commands)
 
         var queries = grouped.First(g => g.Key);
-        queries.Sum(r => r.ParameterCount).Should().Be(3);
+        Assert.Equal(3, queries.Sum(r => r.ParameterCount));
     }
 
     [Fact]
@@ -344,10 +345,10 @@ public class RequestInfoTests
         request.ParameterCount = 5;
 
         // Assert
-        request.Name.Should().Be("ModifiedRequest");
-        request.FilePath.Should().Be("modified.cs");
-        request.IsRecord.Should().BeTrue();
-        request.ParameterCount.Should().Be(5);
+        Assert.Equal("ModifiedRequest", request.Name);
+        Assert.Equal("modified.cs", request.FilePath);
+        Assert.True(request.IsRecord);
+        Assert.Equal(5, request.ParameterCount);
     }
 
     [Fact]
@@ -357,8 +358,8 @@ public class RequestInfoTests
         var request = new RequestInfo();
 
         // Assert
-        request.Should().NotBeNull();
-        request.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(request);
+        Assert.True(request.GetType().IsClass);
     }
 
     [Fact]
@@ -378,14 +379,14 @@ public class RequestInfoTests
         };
 
         // Assert
-        request.Name.Should().Be("CreateUserCommand");
-        request.FilePath.Should().Contain("CreateUserCommand.cs");
-        request.IsRecord.Should().BeTrue();
-        request.HasResponse.Should().BeFalse();
-        request.HasValidation.Should().BeTrue();
-        request.ParameterCount.Should().Be(4);
-        request.HasCaching.Should().BeFalse();
-        request.HasAuthorization.Should().BeTrue();
+        Assert.Equal("CreateUserCommand", request.Name);
+        Assert.Contains("CreateUserCommand.cs", request.FilePath);
+        Assert.True(request.IsRecord);
+        Assert.False(request.HasResponse);
+        Assert.True(request.HasValidation);
+        Assert.Equal(4, request.ParameterCount);
+        Assert.False(request.HasCaching);
+        Assert.True(request.HasAuthorization);
     }
 
     [Fact]
@@ -405,13 +406,13 @@ public class RequestInfoTests
         };
 
         // Assert
-        request.Name.Should().Be("GetUserQuery");
-        request.IsRecord.Should().BeTrue();
-        request.HasResponse.Should().BeTrue();
-        request.HasValidation.Should().BeFalse();
-        request.ParameterCount.Should().Be(1);
-        request.HasCaching.Should().BeTrue();
-        request.HasAuthorization.Should().BeFalse();
+        Assert.Equal("GetUserQuery", request.Name);
+        Assert.True(request.IsRecord);
+        Assert.True(request.HasResponse);
+        Assert.False(request.HasValidation);
+        Assert.Equal(1, request.ParameterCount);
+        Assert.True(request.HasCaching);
+        Assert.False(request.HasAuthorization);
     }
 
     [Fact]
@@ -433,10 +434,10 @@ public class RequestInfoTests
         var averageParameters = requests.Average(r => r.ParameterCount);
 
         // Assert
-        totalParameters.Should().Be(11);
-        recordRequests.Should().Be(3);
-        requestsWithValidation.Should().Be(3);
-        averageParameters.Should().Be(2.75);
+        Assert.Equal(11, totalParameters);
+        Assert.Equal(3, recordRequests);
+        Assert.Equal(3, requestsWithValidation);
+        Assert.Equal(2.75, averageParameters);
     }
 
     [Fact]
@@ -455,8 +456,8 @@ public class RequestInfoTests
         var commandRequests = requests.Where(r => r.FilePath.Contains("Commands")).ToList();
 
         // Assert
-        userRequests.Should().HaveCount(1);
-        commandRequests.Should().HaveCount(2);
+        Assert.Equal(1, userRequests.Count());
+        Assert.Equal(2, commandRequests.Count());
     }
 
     [Fact]
@@ -475,10 +476,10 @@ public class RequestInfoTests
         var simpleRequests = requests.Where(r => !r.HasValidation && !r.HasAuthorization && !r.HasCaching).ToList();
 
         // Assert
-        complexRequests.Should().HaveCount(1);
-        complexRequests[0].Name.Should().Be("Complex");
-        simpleRequests.Should().HaveCount(1);
-        simpleRequests[0].Name.Should().Be("Simple");
+        Assert.Equal(1, complexRequests.Count());
+        Assert.Equal("Complex", complexRequests[0].Name);
+        Assert.Equal(1, simpleRequests.Count());
+        Assert.Equal("Simple", simpleRequests[0].Name);
     }
 
     [Fact]
@@ -488,7 +489,7 @@ public class RequestInfoTests
         var request = new RequestInfo { ParameterCount = 0 };
 
         // Assert
-        request.ParameterCount.Should().Be(0);
+        Assert.Equal(0, request.ParameterCount);
     }
 
     [Fact]
@@ -498,7 +499,7 @@ public class RequestInfoTests
         var request = new RequestInfo { ParameterCount = int.MaxValue };
 
         // Assert
-        request.ParameterCount.Should().Be(int.MaxValue);
+        Assert.Equal(int.MaxValue, request.ParameterCount);
     }
 
     [Fact]
@@ -541,16 +542,16 @@ public class RequestInfoTests
         }).ToList();
 
         // Assert
-        report.Should().HaveCount(2);
-        report[0].Type.Should().Be("Command");
-        report[0].Complexity.Should().Be(2);
-        report[0].Features.Should().Contain("Record");
-        report[0].Features.Should().Contain("4 parameters");
+        Assert.Equal(2, report.Count());
+        Assert.Equal("Command", report[0].Type);
+        Assert.Equal(2, report[0].Complexity);
+        Assert.Contains("Record", report[0].Features);
+        Assert.Contains("4 parameters", report[0].Features);
 
-        report[1].Type.Should().Be("Query");
-        report[1].Complexity.Should().Be(1);
-        report[1].Features.Should().Contain("Record");
-        report[1].Features.Should().Contain("1 parameters");
+        Assert.Equal("Query", report[1].Type);
+        Assert.Equal(1, report[1].Complexity);
+        Assert.Contains("Record", report[1].Features);
+        Assert.Contains("1 parameters", report[1].Features);
     }
 
     [Fact]
@@ -570,13 +571,14 @@ public class RequestInfoTests
         };
 
         // Assert - Basic serialization check
-        request.Name.Should().Be("ComplexBusinessOperationCommand");
-        request.FilePath.Should().Contain("ComplexBusinessOperationCommand.cs");
-        request.IsRecord.Should().BeTrue();
-        request.HasResponse.Should().BeFalse();
-        request.HasValidation.Should().BeTrue();
-        request.ParameterCount.Should().Be(12);
-        request.HasCaching.Should().BeFalse();
-        request.HasAuthorization.Should().BeTrue();
+        Assert.Equal("ComplexBusinessOperationCommand", request.Name);
+        Assert.Contains("ComplexBusinessOperationCommand.cs", request.FilePath);
+        Assert.True(request.IsRecord);
+        Assert.False(request.HasResponse);
+        Assert.True(request.HasValidation);
+        Assert.Equal(12, request.ParameterCount);
+        Assert.False(request.HasCaching);
+        Assert.True(request.HasAuthorization);
     }
 }
+

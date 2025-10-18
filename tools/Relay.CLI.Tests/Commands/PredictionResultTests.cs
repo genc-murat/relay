@@ -11,8 +11,8 @@ public class PredictionResultTests
         var result = new PredictionResult();
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeOfType<PredictionResult>();
+        Assert.NotNull(result);
+        Assert.IsType<PredictionResult>(result);
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class PredictionResultTests
         result.Metric = "ResponseTime";
 
         // Assert
-        result.Metric.Should().Be("ResponseTime");
+        Assert.Equal("ResponseTime", result.Metric);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class PredictionResultTests
         result.PredictedValue = "150ms";
 
         // Assert
-        result.PredictedValue.Should().Be("150ms");
+        Assert.Equal("150ms", result.PredictedValue);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class PredictionResultTests
         result.Confidence = 0.85;
 
         // Assert
-        result.Confidence.Should().Be(0.85);
+        Assert.Equal(0.85, result.Confidence);
     }
 
     [Fact]
@@ -61,9 +61,9 @@ public class PredictionResultTests
         var result = new PredictionResult();
 
         // Assert
-        result.Metric.Should().BeEmpty();
-        result.PredictedValue.Should().BeEmpty();
-        result.Confidence.Should().Be(0.0);
+        Assert.Equal("", result.Metric);
+        Assert.Equal("", result.PredictedValue);
+        Assert.Equal(0.0, result.Confidence);
     }
 
     [Fact]
@@ -78,9 +78,9 @@ public class PredictionResultTests
         };
 
         // Assert
-        result.Metric.Should().Be("Throughput");
-        result.PredictedValue.Should().Be("1000 req/sec");
-        result.Confidence.Should().Be(0.92);
+        Assert.Equal("Throughput", result.Metric);
+        Assert.Equal("1000 req/sec", result.PredictedValue);
+        Assert.Equal(0.92, result.Confidence);
     }
 
     [Fact]
@@ -94,9 +94,9 @@ public class PredictionResultTests
         };
 
         // Act & Assert
-        results.Should().HaveCount(2);
-        results[0].Metric.Should().Be("CPU");
-        results[1].Metric.Should().Be("Memory");
+        Assert.Equal(2, results.Count());
+        Assert.Equal("CPU", results[0].Metric);
+        Assert.Equal("Memory", results[1].Metric);
     }
 
     [Fact]
@@ -114,8 +114,8 @@ public class PredictionResultTests
         var cpuResults = results.Where(r => r.Metric == "CPU").ToList();
 
         // Assert
-        cpuResults.Should().HaveCount(2);
-        cpuResults.All(r => r.Metric == "CPU").Should().BeTrue();
+        Assert.Equal(2, cpuResults.Count());
+        Assert.True(cpuResults.All(r => r.Metric == "CPU"));
     }
 
     [Fact]
@@ -133,9 +133,9 @@ public class PredictionResultTests
         var sortedResults = results.OrderByDescending(r => r.Confidence).ToList();
 
         // Assert
-        sortedResults[0].Confidence.Should().Be(0.88);
-        sortedResults[1].Confidence.Should().Be(0.75);
-        sortedResults[2].Confidence.Should().Be(0.65);
+        Assert.Equal(0.88, sortedResults[0].Confidence);
+        Assert.Equal(0.75, sortedResults[1].Confidence);
+        Assert.Equal(0.65, sortedResults[2].Confidence);
     }
 
     [Fact]
@@ -155,9 +155,9 @@ public class PredictionResultTests
         var minConfidence = results.Min(r => r.Confidence);
 
         // Assert
-        averageConfidence.Should().BeApproximately(0.76, 0.01);
-        maxConfidence.Should().Be(0.88);
-        minConfidence.Should().Be(0.65);
+        Assert.Equal(0.76, averageConfidence, 0.01);
+        Assert.Equal(0.88, maxConfidence);
+        Assert.Equal(0.65, minConfidence);
     }
 
     [Fact]
@@ -172,9 +172,9 @@ public class PredictionResultTests
         };
 
         // Act & Assert
-        result.Confidence.Should().BeGreaterThan(0.9);
-        result.Metric.Should().NotBeEmpty();
-        result.PredictedValue.Should().NotBeEmpty();
+        Assert.True(result.Confidence > 0.9);
+        Assert.NotEmpty(result.Metric);
+        Assert.NotEmpty(result.PredictedValue);
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public class PredictionResultTests
         };
 
         // Act & Assert
-        result.Confidence.Should().BeLessThan(0.5);
+        Assert.True(result.Confidence < 0.5);
     }
 
     [Fact]
@@ -208,10 +208,10 @@ public class PredictionResultTests
         var deserialized = System.Text.Json.JsonSerializer.Deserialize<PredictionResult>(json);
 
         // Assert
-        deserialized.Should().NotBeNull();
-        deserialized!.Metric.Should().Be(result.Metric);
-        deserialized.PredictedValue.Should().Be(result.PredictedValue);
-        deserialized.Confidence.Should().Be(result.Confidence);
+        Assert.NotNull(deserialized);
+        Assert.Equal(result.Metric, deserialized.Metric);
+        Assert.Equal(result.PredictedValue, deserialized.PredictedValue);
+        Assert.Equal(result.Confidence, deserialized.Confidence);
     }
 
     [Fact]
@@ -226,9 +226,9 @@ public class PredictionResultTests
         };
 
         // Assert
-        result.Metric.Should().BeEmpty();
-        result.PredictedValue.Should().BeEmpty();
-        result.Confidence.Should().Be(-1.0);
+        Assert.Equal("", result.Metric);
+        Assert.Equal("", result.PredictedValue);
+        Assert.Equal(-1.0, result.Confidence);
     }
 
     [Fact]
@@ -243,7 +243,7 @@ public class PredictionResultTests
         };
 
         // Act & Assert
-        result.Confidence.Should().Be(1.0);
+        Assert.Equal(1.0, result.Confidence);
     }
 
     [Fact]
@@ -258,7 +258,7 @@ public class PredictionResultTests
         };
 
         // Act & Assert
-        result.Confidence.Should().Be(0.0);
+        Assert.Equal(0.0, result.Confidence);
     }
 
     [Fact]
@@ -277,10 +277,10 @@ public class PredictionResultTests
         var groupedResults = results.GroupBy(r => r.Metric).ToDictionary(g => g.Key, g => g.ToList());
 
         // Assert
-        groupedResults.Should().ContainKey("CPU");
-        groupedResults.Should().ContainKey("Memory");
-        groupedResults["CPU"].Should().HaveCount(2);
-        groupedResults["Memory"].Should().HaveCount(2);
+        Assert.Contains("CPU", groupedResults.Keys);
+        Assert.Contains("Memory", groupedResults.Keys);
+        Assert.Equal(2, groupedResults["CPU"].Count);
+        Assert.Equal(2, groupedResults["Memory"].Count);
     }
 
     [Fact]
@@ -302,9 +302,9 @@ public class PredictionResultTests
                                     select r).ToList();
 
         // Assert
-        highConfidenceResults.Should().HaveCount(2);
-        highConfidenceResults[0].Metric.Should().Be("Network");
-        highConfidenceResults[1].Metric.Should().Be("Memory");
+        Assert.Equal(2, highConfidenceResults.Count());
+        Assert.Equal("Network", highConfidenceResults[0].Metric);
+        Assert.Equal("Memory", highConfidenceResults[1].Metric);
     }
 
     [Fact]
@@ -321,12 +321,12 @@ public class PredictionResultTests
         };
 
         // Act & Assert
-        results.Should().AllSatisfy(r =>
+        foreach (var r in results)
         {
-            r.Metric.Should().NotBeEmpty();
-            r.PredictedValue.Should().NotBeEmpty();
-            r.Confidence.Should().BeInRange(0.0, 1.0);
-        });
+            Assert.NotEmpty(r.Metric);
+            Assert.NotEmpty(r.PredictedValue);
+            Assert.InRange(r.Confidence, 0.0, 1.0);
+        }
     }
 
     [Fact]
@@ -349,10 +349,10 @@ public class PredictionResultTests
         };
 
         // Assert
-        clone.Should().NotBeSameAs(original);
-        clone.Metric.Should().Be(original.Metric);
-        clone.PredictedValue.Should().Be(original.PredictedValue);
-        clone.Confidence.Should().Be(original.Confidence);
+        Assert.NotSame(original, clone);
+        Assert.Equal(original.Metric, clone.Metric);
+        Assert.Equal(original.PredictedValue, clone.PredictedValue);
+        Assert.Equal(original.Confidence, clone.Confidence);
     }
 
     [Fact]
@@ -362,7 +362,7 @@ public class PredictionResultTests
         var results = new List<PredictionResult>();
 
         // Act & Assert
-        results.Should().BeEmpty();
+        Assert.Empty(results);
         Assert.Throws<InvalidOperationException>(() => results.Average(r => r.Confidence));
     }
 
@@ -387,7 +387,8 @@ public class PredictionResultTests
         };
 
         // Assert
-        anonymous.Metric.Should().Be("Performance");
-        anonymous.IsHighConfidence.Should().BeTrue();
+        Assert.Equal("Performance", anonymous.Metric);
+        Assert.True(anonymous.IsHighConfidence);
     }
 }
+

@@ -1,5 +1,5 @@
 using Relay.CLI.Commands;
-using FluentAssertions;
+
 using System.Threading.Tasks;
 using Xunit;
 
@@ -27,8 +27,8 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Should().BeOfType<AIInsightsResults>();
+        Assert.NotNull(result);
+        Assert.IsType<AIInsightsResults>(result);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.HealthScore.Should().Be(8.2);
+        Assert.Equal(8.2, result.HealthScore);
     }
 
     [Fact]
@@ -60,8 +60,8 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.HealthScore.Should().BeGreaterThanOrEqualTo(0);
-        result.HealthScore.Should().BeLessThanOrEqualTo(10);
+        Assert.True(result.HealthScore >= 0);
+        Assert.True(result.HealthScore <= 10);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.PerformanceGrade.Should().Be('B');
+        Assert.Equal('B', result.PerformanceGrade);
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.ReliabilityScore.Should().Be(9.1);
+        Assert.Equal(9.1, result.ReliabilityScore);
     }
 
     [Fact]
@@ -109,8 +109,8 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.ReliabilityScore.Should().BeGreaterThanOrEqualTo(0);
-        result.ReliabilityScore.Should().BeLessThanOrEqualTo(10);
+        Assert.True(result.ReliabilityScore >= 0);
+        Assert.True(result.ReliabilityScore <= 10);
     }
 
     [Fact]
@@ -126,9 +126,9 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.CriticalIssues.Should().NotBeNull();
-        result.CriticalIssues.Should().HaveCount(1);
-        result.CriticalIssues[0].Should().Be("High memory usage detected in order processing");
+        Assert.NotNull(result.CriticalIssues);
+        Assert.Equal(1, result.CriticalIssues.Count());
+        Assert.Equal("High memory usage detected in order processing", result.CriticalIssues[0]);
     }
 
     [Fact]
@@ -144,18 +144,18 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.OptimizationOpportunities.Should().NotBeNull();
-        result.OptimizationOpportunities.Should().HaveCount(2);
+        Assert.NotNull(result.OptimizationOpportunities);
+        Assert.Equal(2, result.OptimizationOpportunities.Count());
 
         var cachingOpportunity = result.OptimizationOpportunities.FirstOrDefault(o => o.Title == "Enable Caching");
-        cachingOpportunity.Should().NotBeNull();
-        cachingOpportunity.Title.Should().Be("Enable Caching");
-        cachingOpportunity.ExpectedImprovement.Should().Be(0.4);
+        Assert.NotNull(cachingOpportunity);
+        Assert.Equal("Enable Caching", cachingOpportunity.Title);
+        Assert.Equal(0.4, cachingOpportunity.ExpectedImprovement);
 
         var queryOpportunity = result.OptimizationOpportunities.FirstOrDefault(o => o.Title == "Optimize Database Queries");
-        queryOpportunity.Should().NotBeNull();
-        queryOpportunity.Title.Should().Be("Optimize Database Queries");
-        queryOpportunity.ExpectedImprovement.Should().Be(0.25);
+        Assert.NotNull(queryOpportunity);
+        Assert.Equal("Optimize Database Queries", queryOpportunity.Title);
+        Assert.Equal(0.25, queryOpportunity.ExpectedImprovement);
     }
 
     [Fact]
@@ -171,20 +171,20 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.Predictions.Should().NotBeNull();
-        result.Predictions.Should().HaveCount(2);
+        Assert.NotNull(result.Predictions);
+        Assert.Equal(2, result.Predictions.Count());
 
         var throughputPrediction = result.Predictions.FirstOrDefault(p => p.Metric == "Throughput");
-        throughputPrediction.Should().NotBeNull();
-        throughputPrediction.Metric.Should().Be("Throughput");
-        throughputPrediction.PredictedValue.Should().Be("1,200 req/sec");
-        throughputPrediction.Confidence.Should().Be(0.89);
+        Assert.NotNull(throughputPrediction);
+        Assert.Equal("Throughput", throughputPrediction.Metric);
+        Assert.Equal("1,200 req/sec", throughputPrediction.PredictedValue);
+        Assert.Equal(0.89, throughputPrediction.Confidence);
 
         var responseTimePrediction = result.Predictions.FirstOrDefault(p => p.Metric == "Response Time");
-        responseTimePrediction.Should().NotBeNull();
-        responseTimePrediction.Metric.Should().Be("Response Time");
-        responseTimePrediction.PredictedValue.Should().Be("95ms avg");
-        responseTimePrediction.Confidence.Should().Be(0.92);
+        Assert.NotNull(responseTimePrediction);
+        Assert.Equal("Response Time", responseTimePrediction.Metric);
+        Assert.Equal("95ms avg", responseTimePrediction.PredictedValue);
+        Assert.Equal(0.92, responseTimePrediction.Confidence);
     }
 
     [Fact]
@@ -202,8 +202,8 @@ public class AIInsightsGeneratorTests
         // Assert
         foreach (var opportunity in result.OptimizationOpportunities)
         {
-            opportunity.ExpectedImprovement.Should().BeGreaterThan(0);
-            opportunity.ExpectedImprovement.Should().BeLessThanOrEqualTo(1);
+            Assert.True(opportunity.ExpectedImprovement > 0);
+            Assert.True(opportunity.ExpectedImprovement <= 1);
         }
     }
 
@@ -222,8 +222,8 @@ public class AIInsightsGeneratorTests
         // Assert
         foreach (var prediction in result.Predictions)
         {
-            prediction.Confidence.Should().BeGreaterThan(0);
-            prediction.Confidence.Should().BeLessThanOrEqualTo(1);
+            Assert.True(prediction.Confidence > 0);
+            Assert.True(prediction.Confidence <= 1);
         }
     }
 
@@ -240,10 +240,10 @@ public class AIInsightsGeneratorTests
         foreach (var timeWindow in timeWindows)
         {
             var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
-            result.Should().NotBeNull();
+            Assert.NotNull(result);
             // Currently implementation doesn't use timeWindow parameter, so results are the same
-            result.HealthScore.Should().Be(8.2);
-            result.PerformanceGrade.Should().Be('B');
+            Assert.Equal(8.2, result.HealthScore);
+            Assert.Equal('B', result.PerformanceGrade);
         }
     }
 
@@ -260,10 +260,10 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use includeHealth parameter, so results are the same
-        result.HealthScore.Should().Be(8.2);
-        result.ReliabilityScore.Should().Be(9.1);
+        Assert.Equal(8.2, result.HealthScore);
+        Assert.Equal(9.1, result.ReliabilityScore);
     }
 
     [Fact]
@@ -279,9 +279,9 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use includePredictions parameter, so results are the same
-        result.Predictions.Should().HaveCount(2);
+        Assert.Equal(2, result.Predictions.Count());
     }
 
     [Fact]
@@ -297,10 +297,10 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use the flags, so results are the same
-        result.HealthScore.Should().Be(8.2);
-        result.Predictions.Should().HaveCount(2);
+        Assert.Equal(8.2, result.HealthScore);
+        Assert.Equal(2, result.Predictions.Count());
     }
 
     [Fact]
@@ -319,8 +319,8 @@ public class AIInsightsGeneratorTests
 
         // Assert
         // Should complete in less than 3 seconds (simulated delay is 2.5 seconds)
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(3000);
-        result.Should().NotBeNull();
+        Assert.True(stopwatch.ElapsedMilliseconds < 3000);
+        Assert.NotNull(result);
     }
 
     [Fact]
@@ -336,9 +336,9 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.CriticalIssues.Should().NotBeEmpty();
-        result.OptimizationOpportunities.Should().NotBeEmpty();
-        result.Predictions.Should().NotBeEmpty();
+        Assert.NotEmpty(result.CriticalIssues);
+        Assert.NotEmpty(result.OptimizationOpportunities);
+        Assert.NotEmpty(result.Predictions);
     }
 
     [Fact]
@@ -356,7 +356,7 @@ public class AIInsightsGeneratorTests
         // Assert
         foreach (var issue in result.CriticalIssues)
         {
-            issue.Should().NotBeNullOrEmpty();
+            Assert.False(string.IsNullOrEmpty(issue));
         }
     }
 
@@ -375,8 +375,8 @@ public class AIInsightsGeneratorTests
         // Assert
         foreach (var opportunity in result.OptimizationOpportunities)
         {
-            opportunity.Title.Should().NotBeNullOrEmpty();
-            opportunity.ExpectedImprovement.Should().BeGreaterThan(0);
+            Assert.False(string.IsNullOrEmpty(opportunity.Title));
+            Assert.True(opportunity.ExpectedImprovement > 0);
         }
     }
 
@@ -395,9 +395,9 @@ public class AIInsightsGeneratorTests
         // Assert
         foreach (var prediction in result.Predictions)
         {
-            prediction.Metric.Should().NotBeNullOrEmpty();
-            prediction.PredictedValue.Should().NotBeNullOrEmpty();
-            prediction.Confidence.Should().BeGreaterThan(0);
+            Assert.False(string.IsNullOrEmpty(prediction.Metric));
+            Assert.False(string.IsNullOrEmpty(prediction.PredictedValue));
+            Assert.True(prediction.Confidence > 0);
         }
     }
 
@@ -415,7 +415,7 @@ public class AIInsightsGeneratorTests
 
         // Assert
         var validGrades = new[] { 'A', 'B', 'C', 'D', 'F' };
-        validGrades.Should().Contain(result.PerformanceGrade);
+        Assert.Contains(result.PerformanceGrade, validGrades);
     }
 
     [Fact]
@@ -431,8 +431,8 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.HealthScore.Should().BeInRange(0, 10);
-        result.ReliabilityScore.Should().BeInRange(0, 10);
+        Assert.InRange(result.HealthScore, 0, 10);
+        Assert.InRange(result.ReliabilityScore, 0, 10);
     }
 
     [Fact]
@@ -448,9 +448,9 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use path parameter, so results are the same
-        result.HealthScore.Should().Be(8.2);
+        Assert.Equal(8.2, result.HealthScore);
     }
 
     [Fact]
@@ -466,9 +466,9 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use path parameter, so results are the same
-        result.HealthScore.Should().Be(8.2);
+        Assert.Equal(8.2, result.HealthScore);
     }
 
     [Fact]
@@ -484,9 +484,9 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
         // Currently implementation doesn't use timeWindow parameter, so results are the same
-        result.HealthScore.Should().Be(8.2);
+        Assert.Equal(8.2, result.HealthScore);
     }
 
     [Fact]
@@ -503,8 +503,8 @@ public class AIInsightsGeneratorTests
 
         // Assert
         var titles = result.OptimizationOpportunities.Select(o => o.Title).ToArray();
-        titles.Should().Contain("Enable Caching");
-        titles.Should().Contain("Optimize Database Queries");
+        Assert.Contains("Enable Caching", titles);
+        Assert.Contains("Optimize Database Queries", titles);
     }
 
     [Fact]
@@ -521,8 +521,8 @@ public class AIInsightsGeneratorTests
 
         // Assert
         var metrics = result.Predictions.Select(p => p.Metric).ToArray();
-        metrics.Should().Contain("Throughput");
-        metrics.Should().Contain("Response Time");
+        Assert.Contains("Throughput", metrics);
+        Assert.Contains("Response Time", metrics);
     }
 
     [Fact]
@@ -538,8 +538,8 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        result.CriticalIssues.Should().Contain(issue => issue.Contains("memory usage"));
-        result.CriticalIssues.Should().Contain(issue => issue.Contains("order processing"));
+        Assert.True(result.CriticalIssues.Any(issue => issue.Contains("memory usage")));
+        Assert.True(result.CriticalIssues.Any(issue => issue.Contains("order processing")));
     }
 
     [Fact]
@@ -557,8 +557,11 @@ public class AIInsightsGeneratorTests
         // Assert
         foreach (var prediction in result.Predictions)
         {
-            prediction.PredictedValue.Should().NotBeNullOrEmpty();
-            prediction.PredictedValue.Should().Match(p => p.Contains("req/sec") || p.Contains("ms avg"));
+            Assert.False(string.IsNullOrEmpty(prediction.PredictedValue));
+            Assert.True(prediction.PredictedValue.Contains("req/sec") || prediction.PredictedValue.Contains("ms avg"));
         }
     }
 }
+
+
+

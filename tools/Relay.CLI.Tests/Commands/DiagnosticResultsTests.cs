@@ -1,4 +1,5 @@
 using Relay.CLI.Commands.Models.Diagnostic;
+using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -11,8 +12,8 @@ public class DiagnosticResultsTests
         var results = new DiagnosticResults();
 
         // Assert
-        results.Checks.Should().NotBeNull();
-        results.Checks.Should().BeEmpty();
+        Assert.NotNull(results.Checks);
+        Assert.Empty(results.Checks);
     }
 
     [Fact]
@@ -22,12 +23,12 @@ public class DiagnosticResultsTests
         var results = new DiagnosticResults();
 
         // Assert
-        results.Checks.Should().NotBeNull();
-        results.Checks.Should().BeEmpty();
-        results.SuccessCount.Should().Be(0);
-        results.InfoCount.Should().Be(0);
-        results.WarningCount.Should().Be(0);
-        results.ErrorCount.Should().Be(0);
+        Assert.NotNull(results.Checks);
+        Assert.Empty(results.Checks);
+        Assert.Equal(0, results.SuccessCount);
+        Assert.Equal(0, results.InfoCount);
+        Assert.Equal(0, results.WarningCount);
+        Assert.Equal(0, results.ErrorCount);
     }
 
     [Fact]
@@ -41,8 +42,8 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Assert
-        results.Checks.Should().HaveCount(1);
-        results.Checks[0].Should().Be(check);
+        Assert.Equal(1, results.Checks.Count());
+        Assert.Equal(check, results.Checks[0]);
     }
 
     [Fact]
@@ -60,8 +61,8 @@ public class DiagnosticResultsTests
         results.AddCheck(check3);
 
         // Assert
-        results.Checks.Should().HaveCount(3);
-        results.Checks.Select(c => c.Category).Should().BeEquivalentTo(new[] { "Check1", "Check2", "Check3" });
+        Assert.Equal(3, results.Checks.Count());
+        Assert.Equal(new[] { "Check1", "Check2", "Check3" }, results.Checks.Select(c => c.Category));
     }
 
     [Fact]
@@ -80,7 +81,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check2);
 
         // Act & Assert
-        results.SuccessCount.Should().Be(3);
+        Assert.Equal(3, results.SuccessCount);
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.InfoCount.Should().Be(2);
+        Assert.Equal(2, results.InfoCount);
     }
 
     [Fact]
@@ -115,7 +116,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check2);
 
         // Act & Assert
-        results.WarningCount.Should().Be(3);
+        Assert.Equal(3, results.WarningCount);
     }
 
     [Fact]
@@ -131,7 +132,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.ErrorCount.Should().Be(2);
+        Assert.Equal(2, results.ErrorCount);
     }
 
     [Fact]
@@ -162,10 +163,10 @@ public class DiagnosticResultsTests
         results.AddCheck(check3);
 
         // Act & Assert
-        results.SuccessCount.Should().Be(2);
-        results.InfoCount.Should().Be(2);
-        results.WarningCount.Should().Be(2);
-        results.ErrorCount.Should().Be(2);
+        Assert.Equal(2, results.SuccessCount);
+        Assert.Equal(2, results.InfoCount);
+        Assert.Equal(2, results.WarningCount);
+        Assert.Equal(2, results.ErrorCount);
     }
 
     [Fact]
@@ -180,7 +181,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.HasFixableIssues().Should().BeTrue();
+        Assert.True(results.HasFixableIssues());
     }
 
     [Fact]
@@ -196,7 +197,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.HasFixableIssues().Should().BeFalse();
+        Assert.False(results.HasFixableIssues());
     }
 
     [Fact]
@@ -209,7 +210,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.HasFixableIssues().Should().BeFalse();
+        Assert.False(results.HasFixableIssues());
     }
 
     [Fact]
@@ -224,7 +225,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.GetExitCode().Should().Be(2);
+        Assert.Equal(2, results.GetExitCode());
     }
 
     [Fact]
@@ -239,7 +240,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.GetExitCode().Should().Be(1);
+        Assert.Equal(1, results.GetExitCode());
     }
 
     [Fact]
@@ -255,7 +256,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.GetExitCode().Should().Be(0);
+        Assert.Equal(0, results.GetExitCode());
     }
 
     [Fact]
@@ -271,7 +272,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Act & Assert
-        results.GetExitCode().Should().Be(2);
+        Assert.Equal(2, results.GetExitCode());
     }
 
     [Fact]
@@ -281,10 +282,10 @@ public class DiagnosticResultsTests
         var results = new DiagnosticResults();
 
         // Act & Assert - Checks property should be read-only, but we can add via AddCheck method
-        results.Checks.Should().NotBeNull();
+        Assert.NotNull(results.Checks);
         // We can't directly assign to Checks, but we can add to it via AddCheck
         results.AddCheck(new DiagnosticCheck { Category = "Test" });
-        results.Checks.Should().HaveCount(1);
+        Assert.Equal(1, results.Checks.Count());
     }
 
     [Fact]
@@ -299,8 +300,8 @@ public class DiagnosticResultsTests
         };
 
         // Assert
-        resultsList.Should().HaveCount(3);
-        resultsList.All(r => r.Checks.Count == 0).Should().BeTrue();
+        Assert.Equal(3, resultsList.Count());
+        Assert.True(resultsList.All(r => r.Checks.Count == 0));
     }
 
     [Fact]
@@ -320,8 +321,8 @@ public class DiagnosticResultsTests
         var perfChecks = results.Checks.Where(c => c.Category == "Performance").ToList();
 
         // Assert
-        perfChecks.Should().HaveCount(1);
-        perfChecks[0].Category.Should().Be("Performance");
+        Assert.Equal(1, perfChecks.Count());
+        Assert.Equal("Performance", perfChecks[0].Category);
     }
 
     [Fact]
@@ -344,7 +345,7 @@ public class DiagnosticResultsTests
         var totalIssues = results.SuccessCount + results.InfoCount + results.WarningCount + results.ErrorCount;
 
         // Assert
-        totalIssues.Should().Be(4);
+        Assert.Equal(4, totalIssues);
     }
 
     [Fact]
@@ -354,13 +355,13 @@ public class DiagnosticResultsTests
         var results = new DiagnosticResults();
 
         // Act & Assert
-        results.Checks.Should().BeEmpty();
-        results.SuccessCount.Should().Be(0);
-        results.InfoCount.Should().Be(0);
-        results.WarningCount.Should().Be(0);
-        results.ErrorCount.Should().Be(0);
-        results.HasFixableIssues().Should().BeFalse();
-        results.GetExitCode().Should().Be(0);
+        Assert.Empty(results.Checks);
+        Assert.Equal(0, results.SuccessCount);
+        Assert.Equal(0, results.InfoCount);
+        Assert.Equal(0, results.WarningCount);
+        Assert.Equal(0, results.ErrorCount);
+        Assert.False(results.HasFixableIssues());
+        Assert.Equal(0, results.GetExitCode());
     }
 
     [Fact]
@@ -370,8 +371,8 @@ public class DiagnosticResultsTests
         var results = new DiagnosticResults();
 
         // Assert
-        results.Should().NotBeNull();
-        results.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(results);
+        Assert.True(results.GetType().IsClass);
     }
 
     [Fact]
@@ -403,12 +404,12 @@ public class DiagnosticResultsTests
         results.AddCheck(dbCheck);
 
         // Act & Assert
-        results.SuccessCount.Should().Be(3);
-        results.InfoCount.Should().Be(2);
-        results.WarningCount.Should().Be(3);
-        results.ErrorCount.Should().Be(1);
-        results.HasFixableIssues().Should().BeTrue();
-        results.GetExitCode().Should().Be(2); // Has errors
+        Assert.Equal(3, results.SuccessCount);
+        Assert.Equal(2, results.InfoCount);
+        Assert.Equal(3, results.WarningCount);
+        Assert.Equal(1, results.ErrorCount);
+        Assert.True(results.HasFixableIssues());
+        Assert.Equal(2, results.GetExitCode()); // Has errors
     }
 
     [Fact]
@@ -432,8 +433,8 @@ public class DiagnosticResultsTests
         var categoryAErrors = categoryAChecks.Sum(c => c.Issues.Count(i => i.Severity == DiagnosticSeverity.Error));
 
         // Assert
-        categoryAErrors.Should().Be(1);
-        results.ErrorCount.Should().Be(2); // Total across all categories
+        Assert.Equal(1, categoryAErrors);
+        Assert.Equal(2, results.ErrorCount); // Total across all categories
     }
 
     [Fact]
@@ -444,14 +445,14 @@ public class DiagnosticResultsTests
         var successCheck = new DiagnosticCheck { Category = "Success" };
         successCheck.AddSuccess("All good");
         successResults.AddCheck(successCheck);
-        successResults.GetExitCode().Should().Be(0);
+        Assert.Equal(0, successResults.GetExitCode());
 
         // Test with only infos
         var infoResults = new DiagnosticResults();
         var infoCheck = new DiagnosticCheck { Category = "Info" };
         infoCheck.AddInfo("Just info");
         infoResults.AddCheck(infoCheck);
-        infoResults.GetExitCode().Should().Be(0);
+        Assert.Equal(0, infoResults.GetExitCode());
 
         // Test with mixed warnings and errors
         var mixedResults = new DiagnosticResults();
@@ -459,7 +460,7 @@ public class DiagnosticResultsTests
         mixedCheck.AddIssue("Warning", DiagnosticSeverity.Warning, "W001");
         mixedCheck.AddIssue("Error", DiagnosticSeverity.Error, "E001");
         mixedResults.AddCheck(mixedCheck);
-        mixedResults.GetExitCode().Should().Be(2);
+        Assert.Equal(2, mixedResults.GetExitCode());
     }
 
     [Fact]
@@ -478,7 +479,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check2);
 
         // Act & Assert
-        results.HasFixableIssues().Should().BeTrue();
+        Assert.True(results.HasFixableIssues());
     }
 
     [Fact]
@@ -488,24 +489,24 @@ public class DiagnosticResultsTests
         var results = new DiagnosticResults();
 
         // Initially empty
-        results.SuccessCount.Should().Be(0);
-        results.ErrorCount.Should().Be(0);
+        Assert.Equal(0, results.SuccessCount);
+        Assert.Equal(0, results.ErrorCount);
 
         // Add first check
         var check1 = new DiagnosticCheck { Category = "Check1" };
         check1.AddSuccess("Success");
         results.AddCheck(check1);
 
-        results.SuccessCount.Should().Be(1);
-        results.ErrorCount.Should().Be(0);
+        Assert.Equal(1, results.SuccessCount);
+        Assert.Equal(0, results.ErrorCount);
 
         // Add second check
         var check2 = new DiagnosticCheck { Category = "Check2" };
         check2.AddIssue("Error", DiagnosticSeverity.Error, "E001");
         results.AddCheck(check2);
 
-        results.SuccessCount.Should().Be(1);
-        results.ErrorCount.Should().Be(1);
+        Assert.Equal(1, results.SuccessCount);
+        Assert.Equal(1, results.ErrorCount);
     }
 
     [Fact]
@@ -536,12 +537,13 @@ public class DiagnosticResultsTests
         };
 
         // Assert
-        report.TotalChecks.Should().Be(1);
-        report.Successes.Should().Be(2);
-        report.Infos.Should().Be(1);
-        report.Warnings.Should().Be(1);
-        report.Errors.Should().Be(1);
-        report.HasFixable.Should().BeTrue();
-        report.ExitCode.Should().Be(2);
+        Assert.Equal(1, report.TotalChecks);
+        Assert.Equal(2, report.Successes);
+        Assert.Equal(1, report.Infos);
+        Assert.Equal(1, report.Warnings);
+        Assert.Equal(1, report.Errors);
+        Assert.True(report.HasFixable);
+        Assert.Equal(2, report.ExitCode);
     }
 }
+

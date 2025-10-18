@@ -1,5 +1,4 @@
 using Relay.CLI.Commands;
-using FluentAssertions;
 using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
@@ -13,11 +12,11 @@ public class AILearningResultsTests
         var results = new AILearningResults();
 
         // Assert
-        results.TrainingSamples.Should().Be(0);
-        results.ModelAccuracy.Should().Be(0.0);
-        results.TrainingTime.Should().Be(0.0);
-        results.ImprovementAreas.Should().NotBeNull();
-        results.ImprovementAreas.Should().BeEmpty();
+        Assert.Equal(0L, results.TrainingSamples);
+        Assert.Equal(0.0, results.ModelAccuracy);
+        Assert.Equal(0.0, results.TrainingTime);
+        Assert.NotNull(results.ImprovementAreas);
+        Assert.Empty(results.ImprovementAreas);
     }
 
     [Fact]
@@ -31,7 +30,7 @@ public class AILearningResultsTests
         results.TrainingSamples = expectedSamples;
 
         // Assert
-        results.TrainingSamples.Should().Be(expectedSamples);
+        Assert.Equal(expectedSamples, results.TrainingSamples);
     }
 
     [Fact]
@@ -45,7 +44,7 @@ public class AILearningResultsTests
         results.ModelAccuracy = expectedAccuracy;
 
         // Assert
-        results.ModelAccuracy.Should().Be(expectedAccuracy);
+        Assert.Equal(expectedAccuracy, results.ModelAccuracy);
     }
 
     [Fact]
@@ -59,7 +58,7 @@ public class AILearningResultsTests
         results.TrainingTime = expectedTime;
 
         // Assert
-        results.TrainingTime.Should().Be(expectedTime);
+        Assert.Equal(expectedTime, results.TrainingTime);
     }
 
     [Fact]
@@ -77,8 +76,8 @@ public class AILearningResultsTests
         results.ImprovementAreas = expectedAreas;
 
         // Assert
-        results.ImprovementAreas.Should().BeEquivalentTo(expectedAreas);
-        results.ImprovementAreas.Should().HaveCount(2);
+        Assert.Equal(expectedAreas, results.ImprovementAreas);
+        Assert.Equal(2, results.ImprovementAreas.Length);
     }
 
     [Fact]
@@ -92,7 +91,7 @@ public class AILearningResultsTests
         results.TrainingSamples = largeValue;
 
         // Assert
-        results.TrainingSamples.Should().Be(largeValue);
+        Assert.Equal(largeValue, results.TrainingSamples);
     }
 
     [Fact]
@@ -103,13 +102,13 @@ public class AILearningResultsTests
 
         // Act & Assert
         results.ModelAccuracy = 0.0;
-        results.ModelAccuracy.Should().Be(0.0);
+        Assert.Equal(0.0, results.ModelAccuracy);
 
         results.ModelAccuracy = 1.0;
-        results.ModelAccuracy.Should().Be(1.0);
+        Assert.Equal(1.0, results.ModelAccuracy);
 
         results.ModelAccuracy = 0.5;
-        results.ModelAccuracy.Should().Be(0.5);
+        Assert.Equal(0.5, results.ModelAccuracy);
     }
 
     [Fact]
@@ -122,7 +121,7 @@ public class AILearningResultsTests
         results.TrainingTime = 2.345;
 
         // Assert
-        results.TrainingTime.Should().Be(2.345);
+        Assert.Equal(2.345, results.TrainingTime);
     }
 
     [Fact]
@@ -135,7 +134,7 @@ public class AILearningResultsTests
         results.ImprovementAreas = null!;
 
         // Assert
-        results.ImprovementAreas.Should().BeNull();
+        Assert.Null(results.ImprovementAreas);
     }
 
     [Fact]
@@ -155,14 +154,14 @@ public class AILearningResultsTests
         };
 
         // Assert
-        results.TrainingSamples.Should().Be(15420);
-        results.ModelAccuracy.Should().Be(0.94);
-        results.TrainingTime.Should().Be(2.3);
-        results.ImprovementAreas.Should().HaveCount(2);
-        results.ImprovementAreas[0].Area.Should().Be("Caching Predictions");
-        results.ImprovementAreas[0].Improvement.Should().Be(0.12);
-        results.ImprovementAreas[1].Area.Should().Be("Batch Size Optimization");
-        results.ImprovementAreas[1].Improvement.Should().Be(0.08);
+        Assert.Equal(15420L, results.TrainingSamples);
+        Assert.Equal(0.94, results.ModelAccuracy);
+        Assert.Equal(2.3, results.TrainingTime);
+        Assert.Equal(2, results.ImprovementAreas.Length);
+        Assert.Equal("Caching Predictions", results.ImprovementAreas[0].Area);
+        Assert.Equal(0.12, results.ImprovementAreas[0].Improvement);
+        Assert.Equal("Batch Size Optimization", results.ImprovementAreas[1].Area);
+        Assert.Equal(0.08, results.ImprovementAreas[1].Improvement);
     }
 
     [Fact]
@@ -186,9 +185,9 @@ public class AILearningResultsTests
         };
 
         // Act & Assert
-        results1.ImprovementAreas[0].Area.Should().Be("Test");
-        results2.ImprovementAreas[0].Area.Should().Be("Different");
-        results1.ImprovementAreas[0].Should().NotBeSameAs(results2.ImprovementAreas[0]);
+        Assert.Equal("Test", results1.ImprovementAreas[0].Area);
+        Assert.Equal("Different", results2.ImprovementAreas[0].Area);
+        Assert.NotSame(results1.ImprovementAreas[0], results2.ImprovementAreas[0]);
     }
 
     [Fact]
@@ -210,11 +209,11 @@ public class AILearningResultsTests
         var json = System.Text.Json.JsonSerializer.Serialize(results);
 
         // Assert
-        json.Should().Contain("15420");
-        json.Should().Contain("0.94");
-        json.Should().Contain("2.3");
-        json.Should().Contain("Caching Predictions");
-        json.Should().Contain("0.12");
+        Assert.Contains("15420", json);
+        Assert.Contains("0.94", json);
+        Assert.Contains("2.3", json);
+        Assert.Contains("Caching Predictions", json);
+        Assert.Contains("0.12", json);
     }
 
     [Fact]
@@ -237,13 +236,13 @@ public class AILearningResultsTests
         var results = System.Text.Json.JsonSerializer.Deserialize<AILearningResults>(json);
 
         // Assert
-        results.Should().NotBeNull();
-        results!.TrainingSamples.Should().Be(15420);
-        results.ModelAccuracy.Should().Be(0.94);
-        results.TrainingTime.Should().Be(2.3);
-        results.ImprovementAreas.Should().HaveCount(1);
-        results.ImprovementAreas[0].Area.Should().Be("Caching Predictions");
-        results.ImprovementAreas[0].Improvement.Should().Be(0.12);
+        Assert.NotNull(results);
+        Assert.Equal(15420L, results!.TrainingSamples);
+        Assert.Equal(0.94, results.ModelAccuracy);
+        Assert.Equal(2.3, results.TrainingTime);
+        Assert.Single(results.ImprovementAreas);
+        Assert.Equal("Caching Predictions", results.ImprovementAreas[0].Area);
+        Assert.Equal(0.12, results.ImprovementAreas[0].Improvement);
     }
 
     [Fact]
@@ -262,10 +261,10 @@ public class AILearningResultsTests
         var json = System.Text.Json.JsonSerializer.Serialize(results);
 
         // Assert
-        json.Should().Contain("1000");
-        json.Should().Contain("0.85");
-        json.Should().Contain("1.5");
-        json.Should().Contain("[]");
+        Assert.Contains("1000", json);
+        Assert.Contains("0.85", json);
+        Assert.Contains("1.5", json);
+        Assert.Contains("[]", json);
     }
 
     [Fact]
@@ -281,10 +280,10 @@ public class AILearningResultsTests
         };
 
         // Assert
-        results.TrainingSamples.Should().Be(0);
-        results.ModelAccuracy.Should().Be(0.0);
-        results.TrainingTime.Should().Be(0.0);
-        results.ImprovementAreas.Should().BeEmpty();
+        Assert.Equal(0L, results.TrainingSamples);
+        Assert.Equal(0.0, results.ModelAccuracy);
+        Assert.Equal(0.0, results.TrainingTime);
+        Assert.Empty(results.ImprovementAreas);
     }
 
     [Fact]
@@ -303,10 +302,10 @@ public class AILearningResultsTests
         };
 
         // Assert
-        results.TrainingSamples.Should().Be(long.MaxValue);
-        results.ModelAccuracy.Should().Be(1.0);
-        results.TrainingTime.Should().Be(double.MaxValue);
-        results.ImprovementAreas[0].Improvement.Should().Be(double.MaxValue);
+        Assert.Equal(long.MaxValue, results.TrainingSamples);
+        Assert.Equal(1.0, results.ModelAccuracy);
+        Assert.Equal(double.MaxValue, results.TrainingTime);
+        Assert.Equal(double.MaxValue, results.ImprovementAreas[0].Improvement);
     }
 
     [Fact]
@@ -325,11 +324,11 @@ public class AILearningResultsTests
         };
 
         // Act & Assert
-        results.ImprovementAreas.Should().HaveCount(100);
+        Assert.Equal(100, results.ImprovementAreas.Length);
         for (int i = 0; i < areas.Length; i++)
         {
-            results.ImprovementAreas[i].Area.Should().Be($"Area{i}");
-            results.ImprovementAreas[i].Improvement.Should().Be(i * 0.01);
+            Assert.Equal($"Area{i}", results.ImprovementAreas[i].Area);
+            Assert.Equal(i * 0.01, results.ImprovementAreas[i].Improvement);
         }
     }
 
@@ -341,7 +340,7 @@ public class AILearningResultsTests
         var results2 = results1;
 
         // Assert
-        results1.Should().BeSameAs(results2);
+        Assert.Same(results1, results2);
     }
 
     [Fact]
@@ -355,7 +354,7 @@ public class AILearningResultsTests
         results1.TrainingSamples = 300;
 
         // Assert
-        results1.TrainingSamples.Should().Be(300);
-        results2.TrainingSamples.Should().Be(200);
+        Assert.Equal(300L, results1.TrainingSamples);
+        Assert.Equal(200L, results2.TrainingSamples);
     }
 }

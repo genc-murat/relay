@@ -1,7 +1,8 @@
-using Relay.CLI.Commands.Models;
-using Relay.CLI.Commands.Models.Benchmark;
+ using Relay.CLI.Commands.Models;
+ using Relay.CLI.Commands.Models.Benchmark;
+ using Xunit;
 
-namespace Relay.CLI.Tests.Commands;
+ namespace Relay.CLI.Tests.Commands;
 
 public class BenchmarkResultsTests
 {
@@ -16,7 +17,7 @@ public class BenchmarkResultsTests
         results.TestConfiguration = config;
 
         // Assert
-        results.TestConfiguration.Should().Be(config);
+        Assert.Equal(config, results.TestConfiguration);
     }
 
     [Fact]
@@ -33,7 +34,7 @@ public class BenchmarkResultsTests
         results.RelayResults = relayResults;
 
         // Assert
-        results.RelayResults.Should().BeEquivalentTo(relayResults);
+        Assert.Equal(relayResults, results.RelayResults);
     }
 
     [Fact]
@@ -50,7 +51,7 @@ public class BenchmarkResultsTests
         results.ComparisonResults = comparisonResults;
 
         // Assert
-        results.ComparisonResults.Should().BeEquivalentTo(comparisonResults);
+        Assert.Equal(comparisonResults, results.ComparisonResults);
     }
 
     [Fact]
@@ -60,11 +61,11 @@ public class BenchmarkResultsTests
         var results = new BenchmarkResults();
 
         // Assert
-        results.TestConfiguration.Should().NotBeNull();
-        results.RelayResults.Should().NotBeNull();
-        results.RelayResults.Should().BeEmpty();
-        results.ComparisonResults.Should().NotBeNull();
-        results.ComparisonResults.Should().BeEmpty();
+        Assert.NotNull(results.TestConfiguration);
+        Assert.NotNull(results.RelayResults);
+        Assert.Empty(results.RelayResults);
+        Assert.NotNull(results.ComparisonResults);
+        Assert.Empty(results.ComparisonResults);
     }
 
     [Fact]
@@ -90,9 +91,9 @@ public class BenchmarkResultsTests
         };
 
         // Assert
-        results.TestConfiguration.Should().Be(config);
-        results.RelayResults.Should().BeEquivalentTo(relayResults);
-        results.ComparisonResults.Should().BeEquivalentTo(comparisonResults);
+        Assert.Equal(config, results.TestConfiguration);
+        Assert.Equal(relayResults, results.RelayResults);
+        Assert.Equal(comparisonResults, results.ComparisonResults);
     }
 
     [Fact]
@@ -111,8 +112,8 @@ public class BenchmarkResultsTests
         results.RelayResults["UserHandler"] = benchmarkResult;
 
         // Assert
-        results.RelayResults.Should().ContainKey("UserHandler");
-        results.RelayResults["UserHandler"].Should().Be(benchmarkResult);
+        Assert.Contains("UserHandler", results.RelayResults.Keys);
+        Assert.Equal(benchmarkResult, results.RelayResults["UserHandler"]);
     }
 
     [Fact]
@@ -131,8 +132,8 @@ public class BenchmarkResultsTests
         results.ComparisonResults["OldUserHandler"] = benchmarkResult;
 
         // Assert
-        results.ComparisonResults.Should().ContainKey("OldUserHandler");
-        results.ComparisonResults["OldUserHandler"].Should().Be(benchmarkResult);
+        Assert.Contains("OldUserHandler", results.ComparisonResults.Keys);
+        Assert.Equal(benchmarkResult, results.ComparisonResults["OldUserHandler"]);
     }
 
     [Fact]
@@ -150,8 +151,8 @@ public class BenchmarkResultsTests
         results.RelayResults["Handler3"] = result3;
 
         // Assert
-        results.RelayResults.Should().HaveCount(3);
-        results.RelayResults.Keys.Should().BeEquivalentTo(new[] { "Handler1", "Handler2", "Handler3" });
+        Assert.Equal(3, results.RelayResults.Count());
+        Assert.Equal(new[] { "Handler1", "Handler2", "Handler3" }.OrderBy(x => x), results.RelayResults.Keys.OrderBy(x => x));
     }
 
     [Fact]
@@ -167,8 +168,8 @@ public class BenchmarkResultsTests
         results.ComparisonResults["OldHandler2"] = result2;
 
         // Assert
-        results.ComparisonResults.Should().HaveCount(2);
-        results.ComparisonResults.Keys.Should().BeEquivalentTo(new[] { "OldHandler1", "OldHandler2" });
+        Assert.Equal(2, results.ComparisonResults.Count());
+        Assert.Equal(new[] { "OldHandler1", "OldHandler2" }.OrderBy(x => x), results.ComparisonResults.Keys.OrderBy(x => x));
     }
 
     [Fact]
@@ -178,7 +179,7 @@ public class BenchmarkResultsTests
         var results = new BenchmarkResults();
 
         // Assert
-        results.RelayResults.Should().BeEmpty();
+        Assert.Empty(results.RelayResults);
     }
 
     [Fact]
@@ -188,7 +189,7 @@ public class BenchmarkResultsTests
         var results = new BenchmarkResults();
 
         // Assert
-        results.ComparisonResults.Should().BeEmpty();
+        Assert.Empty(results.ComparisonResults);
     }
 
     [Fact]
@@ -208,9 +209,9 @@ public class BenchmarkResultsTests
         };
 
         // Act & Assert
-        results.RelayResults["UserHandler"].AverageTime.Should().BeLessThan(
+        Assert.True(results.RelayResults["UserHandler"].AverageTime <
             results.ComparisonResults["UserHandler"].AverageTime);
-        results.RelayResults["UserHandler"].Iterations.Should().BeGreaterThan(
+        Assert.True(results.RelayResults["UserHandler"].Iterations >
             results.ComparisonResults["UserHandler"].Iterations);
     }
 
@@ -232,9 +233,9 @@ public class BenchmarkResultsTests
         results.TestConfiguration.Threads = 8;
 
         // Assert
-        results.TestConfiguration.Iterations.Should().Be(2000);
-        results.TestConfiguration.Threads.Should().Be(8);
-        results.TestConfiguration.MachineName.Should().Be("TestMachine");
+        Assert.Equal(2000, results.TestConfiguration.Iterations);
+        Assert.Equal(8, results.TestConfiguration.Threads);
+        Assert.Equal("TestMachine", results.TestConfiguration.MachineName);
     }
 
     [Fact]
@@ -254,10 +255,10 @@ public class BenchmarkResultsTests
         results.RelayResults = newResults;
 
         // Assert
-        results.RelayResults.Should().HaveCount(2);
-        results.RelayResults.Should().ContainKey("Handler2");
-        results.RelayResults.Should().ContainKey("Handler3");
-        results.RelayResults.Should().NotContainKey("Handler1");
+        Assert.Equal(2, results.RelayResults.Count());
+        Assert.Contains("Handler2", results.RelayResults.Keys);
+        Assert.Contains("Handler3", results.RelayResults.Keys);
+        Assert.DoesNotContain("Handler1", results.RelayResults.Keys);
     }
 
     [Fact]
@@ -276,9 +277,9 @@ public class BenchmarkResultsTests
         results.ComparisonResults = newResults;
 
         // Assert
-        results.ComparisonResults.Should().HaveCount(1);
-        results.ComparisonResults.Should().ContainKey("NewOldHandler");
-        results.ComparisonResults.Should().NotContainKey("OldHandler");
+        Assert.Equal(1, results.ComparisonResults.Count());
+        Assert.Contains("NewOldHandler", results.ComparisonResults.Keys);
+        Assert.DoesNotContain("OldHandler", results.ComparisonResults.Keys);
     }
 
     [Fact]
@@ -297,10 +298,10 @@ public class BenchmarkResultsTests
         };
 
         // Act & Assert - Basic serialization check
-        results.TestConfiguration.Iterations.Should().Be(1000);
-        results.TestConfiguration.Threads.Should().Be(4);
-        results.TestConfiguration.Timestamp.Should().Be(new DateTime(2023, 1, 1));
-        results.TestConfiguration.MachineName.Should().Be("TestMachine");
+        Assert.Equal(1000, results.TestConfiguration.Iterations);
+        Assert.Equal(4, results.TestConfiguration.Threads);
+        Assert.Equal(new DateTime(2023, 1, 1), results.TestConfiguration.Timestamp);
+        Assert.Equal("TestMachine", results.TestConfiguration.MachineName);
     }
 
     [Fact]
@@ -365,16 +366,16 @@ public class BenchmarkResultsTests
         };
 
         // Assert
-        results.TestConfiguration.Should().Be(config);
-        results.RelayResults.Should().HaveCount(2);
-        results.ComparisonResults.Should().HaveCount(1);
+        Assert.Equal(config, results.TestConfiguration);
+        Assert.Equal(2, results.RelayResults.Count());
+        Assert.Equal(1, results.ComparisonResults.Count());
 
         // Verify relay results
-        results.RelayResults["CreateUserHandler"].RequestsPerSecond.Should().Be(2000.0);
-        results.RelayResults["GetUserHandler"].RequestsPerSecond.Should().Be(5000.0);
+        Assert.Equal(2000.0, results.RelayResults["CreateUserHandler"].RequestsPerSecond);
+        Assert.Equal(5000.0, results.RelayResults["GetUserHandler"].RequestsPerSecond);
 
         // Verify comparison results
-        results.ComparisonResults["OldCreateUserHandler"].RequestsPerSecond.Should().Be(500.0);
+        Assert.Equal(500.0, results.ComparisonResults["OldCreateUserHandler"].RequestsPerSecond);
     }
 
     [Fact]
@@ -384,8 +385,8 @@ public class BenchmarkResultsTests
         var results = new BenchmarkResults();
 
         // Assert
-        results.Should().NotBeNull();
-        results.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(results);
+        Assert.True(results.GetType().IsClass);
     }
 
     [Fact]
@@ -411,8 +412,8 @@ public class BenchmarkResultsTests
         };
 
         // Assert
-        resultsList.Should().HaveCount(2);
-        resultsList.Sum(r => r.RelayResults.Count).Should().Be(2);
+        Assert.Equal(2, resultsList.Count());
+        Assert.Equal(2, resultsList.Sum(r => r.RelayResults.Count));
     }
 
     [Fact]
@@ -427,7 +428,7 @@ public class BenchmarkResultsTests
         var totalIterations = results.RelayResults.Sum(r => r.Value.Iterations);
 
         // Assert
-        totalIterations.Should().Be(300);
+        Assert.Equal(300, totalIterations);
     }
 
     [Fact]
@@ -442,7 +443,7 @@ public class BenchmarkResultsTests
         var totalIterations = results.ComparisonResults.Sum(r => r.Value.Iterations);
 
         // Assert
-        totalIterations.Should().Be(125);
+        Assert.Equal(125, totalIterations);
     }
 
     [Fact]
@@ -458,8 +459,8 @@ public class BenchmarkResultsTests
         var userHandlers = results.RelayResults.Where(r => r.Key.Contains("User")).ToList();
 
         // Assert
-        userHandlers.Should().HaveCount(3);
-        userHandlers.Sum(r => r.Value.Iterations).Should().Be(450);
+        Assert.Equal(3, userHandlers.Count());
+        Assert.Equal(450, userHandlers.Sum(r => r.Value.Iterations));
     }
 
     [Fact]
@@ -476,8 +477,8 @@ public class BenchmarkResultsTests
         var averageTime = results.RelayResults.Average(r => r.Value.AverageTime);
 
         // Assert
-        totalIterations.Should().Be(450);
-        averageTime.Should().Be(7.5);
+        Assert.Equal(450, totalIterations);
+        Assert.Equal(7.5, averageTime);
     }
 
     [Fact]
@@ -487,8 +488,8 @@ public class BenchmarkResultsTests
         var results = new BenchmarkResults();
 
         // Act & Assert
-        results.RelayResults.Should().BeEmpty();
-        results.ComparisonResults.Should().BeEmpty();
+        Assert.Empty(results.RelayResults);
+        Assert.Empty(results.ComparisonResults);
     }
 
     [Fact]
@@ -502,9 +503,10 @@ public class BenchmarkResultsTests
         results.ComparisonResults["Handler"] = new BenchmarkResult { Name = "Handler", Iterations = 500, AverageTime = 2.0 };
 
         // Assert
-        results.RelayResults["Handler"].Iterations.Should().Be(1000);
-        results.ComparisonResults["Handler"].Iterations.Should().Be(500);
-        results.RelayResults["Handler"].AverageTime.Should().BeLessThan(
+        Assert.Equal(1000, results.RelayResults["Handler"].Iterations);
+        Assert.Equal(500, results.ComparisonResults["Handler"].Iterations);
+        Assert.True(results.RelayResults["Handler"].AverageTime <
             results.ComparisonResults["Handler"].AverageTime);
     }
 }
+

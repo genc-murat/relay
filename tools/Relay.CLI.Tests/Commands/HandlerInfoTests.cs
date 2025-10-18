@@ -1,5 +1,7 @@
 using Relay.CLI.Commands.Models;
 
+using Xunit;
+
 namespace Relay.CLI.Tests.Commands;
 
 public class HandlerInfoTests
@@ -11,7 +13,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { Name = "CreateUserHandler" };
 
         // Assert
-        handler.Name.Should().Be("CreateUserHandler");
+        Assert.Equal("CreateUserHandler", handler.Name);
     }
 
     [Fact]
@@ -21,7 +23,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { FilePath = "src/Handlers/CreateUserHandler.cs" };
 
         // Assert
-        handler.FilePath.Should().Be("src/Handlers/CreateUserHandler.cs");
+        Assert.Equal("src/Handlers/CreateUserHandler.cs", handler.FilePath);
     }
 
     [Fact]
@@ -31,7 +33,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { IsAsync = true };
 
         // Assert
-        handler.IsAsync.Should().BeTrue();
+        Assert.True(handler.IsAsync);
     }
 
     [Fact]
@@ -41,7 +43,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { HasDependencies = true };
 
         // Assert
-        handler.HasDependencies.Should().BeTrue();
+        Assert.True(handler.HasDependencies);
     }
 
     [Fact]
@@ -51,7 +53,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { UsesValueTask = true };
 
         // Assert
-        handler.UsesValueTask.Should().BeTrue();
+        Assert.True(handler.UsesValueTask);
     }
 
     [Fact]
@@ -61,7 +63,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { HasCancellationToken = true };
 
         // Assert
-        handler.HasCancellationToken.Should().BeTrue();
+        Assert.True(handler.HasCancellationToken);
     }
 
     [Fact]
@@ -71,7 +73,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { HasLogging = true };
 
         // Assert
-        handler.HasLogging.Should().BeTrue();
+        Assert.True(handler.HasLogging);
     }
 
     [Fact]
@@ -81,7 +83,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { HasValidation = true };
 
         // Assert
-        handler.HasValidation.Should().BeTrue();
+        Assert.True(handler.HasValidation);
     }
 
     [Fact]
@@ -91,7 +93,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { LineCount = 150 };
 
         // Assert
-        handler.LineCount.Should().Be(150);
+        Assert.Equal(150, handler.LineCount);
     }
 
     [Fact]
@@ -101,15 +103,15 @@ public class HandlerInfoTests
         var handler = new HandlerInfo();
 
         // Assert
-        handler.Name.Should().Be("");
-        handler.FilePath.Should().Be("");
-        handler.IsAsync.Should().BeFalse();
-        handler.HasDependencies.Should().BeFalse();
-        handler.UsesValueTask.Should().BeFalse();
-        handler.HasCancellationToken.Should().BeFalse();
-        handler.HasLogging.Should().BeFalse();
-        handler.HasValidation.Should().BeFalse();
-        handler.LineCount.Should().Be(0);
+        Assert.Equal("", handler.Name);
+        Assert.Equal("", handler.FilePath);
+        Assert.False(handler.IsAsync);
+        Assert.False(handler.HasDependencies);
+        Assert.False(handler.UsesValueTask);
+        Assert.False(handler.HasCancellationToken);
+        Assert.False(handler.HasLogging);
+        Assert.False(handler.HasValidation);
+        Assert.Equal(0, handler.LineCount);
     }
 
     [Fact]
@@ -130,15 +132,15 @@ public class HandlerInfoTests
         };
 
         // Assert
-        handler.Name.Should().Be("UpdateUserHandler");
-        handler.FilePath.Should().Be("src/Handlers/UpdateUserHandler.cs");
-        handler.IsAsync.Should().BeTrue();
-        handler.HasDependencies.Should().BeTrue();
-        handler.UsesValueTask.Should().BeFalse();
-        handler.HasCancellationToken.Should().BeTrue();
-        handler.HasLogging.Should().BeTrue();
-        handler.HasValidation.Should().BeFalse();
-        handler.LineCount.Should().Be(200);
+        Assert.Equal("UpdateUserHandler", handler.Name);
+        Assert.Equal("src/Handlers/UpdateUserHandler.cs", handler.FilePath);
+        Assert.True(handler.IsAsync);
+        Assert.True(handler.HasDependencies);
+        Assert.False(handler.UsesValueTask);
+        Assert.True(handler.HasCancellationToken);
+        Assert.True(handler.HasLogging);
+        Assert.False(handler.HasValidation);
+        Assert.Equal(200, handler.LineCount);
     }
 
     [Theory]
@@ -151,7 +153,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { LineCount = lineCount };
 
         // Assert
-        handler.LineCount.Should().Be(lineCount);
+        Assert.Equal(lineCount, handler.LineCount);
     }
 
     [Fact]
@@ -161,7 +163,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { Name = "" };
 
         // Assert
-        handler.Name.Should().BeEmpty();
+        Assert.Equal("", handler.Name);
     }
 
     [Fact]
@@ -171,7 +173,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { Name = "CreateUserHandler_v2" };
 
         // Assert
-        handler.Name.Should().Be("CreateUserHandler_v2");
+        Assert.Equal("CreateUserHandler_v2", handler.Name);
     }
 
     [Fact]
@@ -181,7 +183,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { FilePath = "" };
 
         // Assert
-        handler.FilePath.Should().BeEmpty();
+        Assert.Equal("", handler.FilePath);
     }
 
     [Fact]
@@ -191,7 +193,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { FilePath = "src/Handlers/User/CreateUserHandler.cs" };
 
         // Assert
-        handler.FilePath.Should().Be("src/Handlers/User/CreateUserHandler.cs");
+        Assert.Equal("src/Handlers/User/CreateUserHandler.cs", handler.FilePath);
     }
 
     [Fact]
@@ -208,12 +210,12 @@ public class HandlerInfoTests
             HasValidation = true
         };
 
-        handlerTrue.IsAsync.Should().BeTrue();
-        handlerTrue.HasDependencies.Should().BeTrue();
-        handlerTrue.UsesValueTask.Should().BeTrue();
-        handlerTrue.HasCancellationToken.Should().BeTrue();
-        handlerTrue.HasLogging.Should().BeTrue();
-        handlerTrue.HasValidation.Should().BeTrue();
+        Assert.True(handlerTrue.IsAsync);
+        Assert.True(handlerTrue.HasDependencies);
+        Assert.True(handlerTrue.UsesValueTask);
+        Assert.True(handlerTrue.HasCancellationToken);
+        Assert.True(handlerTrue.HasLogging);
+        Assert.True(handlerTrue.HasValidation);
 
         // Test all boolean properties can be set to false
         var handlerFalse = new HandlerInfo
@@ -226,12 +228,12 @@ public class HandlerInfoTests
             HasValidation = false
         };
 
-        handlerFalse.IsAsync.Should().BeFalse();
-        handlerFalse.HasDependencies.Should().BeFalse();
-        handlerFalse.UsesValueTask.Should().BeFalse();
-        handlerFalse.HasCancellationToken.Should().BeFalse();
-        handlerFalse.HasLogging.Should().BeFalse();
-        handlerFalse.HasValidation.Should().BeFalse();
+        Assert.False(handlerFalse.IsAsync);
+        Assert.False(handlerFalse.HasDependencies);
+        Assert.False(handlerFalse.UsesValueTask);
+        Assert.False(handlerFalse.HasCancellationToken);
+        Assert.False(handlerFalse.HasLogging);
+        Assert.False(handlerFalse.HasValidation);
     }
 
     [Fact]
@@ -246,9 +248,9 @@ public class HandlerInfoTests
         };
 
         // Assert
-        handlers.Should().HaveCount(3);
-        handlers.Count(h => h.IsAsync).Should().Be(2);
-        handlers.Sum(h => h.LineCount).Should().Be(240);
+        Assert.Equal(3, handlers.Count());
+        Assert.Equal(2, handlers.Count(h => h.IsAsync));
+        Assert.Equal(240, handlers.Sum(h => h.LineCount));
     }
 
     [Fact]
@@ -268,10 +270,10 @@ public class HandlerInfoTests
         var syncHandlers = handlers.Where(h => !h.IsAsync).ToList();
 
         // Assert
-        asyncHandlers.Should().HaveCount(2);
-        syncHandlers.Should().HaveCount(2);
-        asyncHandlers.All(h => h.IsAsync).Should().BeTrue();
-        syncHandlers.All(h => !h.IsAsync).Should().BeTrue();
+        Assert.Equal(2, asyncHandlers.Count());
+        Assert.Equal(2, syncHandlers.Count());
+        Assert.True(asyncHandlers.All(h => h.IsAsync));
+        Assert.True(syncHandlers.All(h => !h.IsAsync));
     }
 
     [Fact]
@@ -292,9 +294,9 @@ public class HandlerInfoTests
         var handlersWithBoth = handlers.Where(h => h.HasLogging && h.HasValidation).ToList();
 
         // Assert
-        handlersWithLogging.Should().HaveCount(2);
-        handlersWithValidation.Should().HaveCount(2);
-        handlersWithBoth.Should().HaveCount(1);
+        Assert.Equal(2, handlersWithLogging.Count());
+        Assert.Equal(2, handlersWithValidation.Count());
+        Assert.Equal(1, handlersWithBoth.Count());
     }
 
     [Fact]
@@ -312,9 +314,9 @@ public class HandlerInfoTests
         var orderedBySize = handlers.OrderBy(h => h.LineCount).ToList();
 
         // Assert
-        orderedBySize[0].Name.Should().Be("SmallHandler");
-        orderedBySize[1].Name.Should().Be("MediumHandler");
-        orderedBySize[2].Name.Should().Be("LargeHandler");
+        Assert.Equal("SmallHandler", orderedBySize[0].Name);
+        Assert.Equal("MediumHandler", orderedBySize[1].Name);
+        Assert.Equal("LargeHandler", orderedBySize[2].Name);
     }
 
     [Fact]
@@ -333,12 +335,12 @@ public class HandlerInfoTests
         var grouped = handlers.GroupBy(h => h.IsAsync);
 
         // Assert
-        grouped.Should().HaveCount(2);
-        grouped.First(g => g.Key).Should().HaveCount(2); // Async
-        grouped.First(g => !g.Key).Should().HaveCount(2); // Sync
+        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key).Count()); // Async
+        Assert.Equal(2, grouped.First(g => !g.Key).Count()); // Sync
 
         var asyncGroup = grouped.First(g => g.Key);
-        asyncGroup.Sum(h => h.LineCount).Should().Be(220);
+        Assert.Equal(220, asyncGroup.Sum(h => h.LineCount));
     }
 
     [Fact]
@@ -360,10 +362,10 @@ public class HandlerInfoTests
         handler.LineCount = 150;
 
         // Assert
-        handler.Name.Should().Be("ModifiedHandler");
-        handler.FilePath.Should().Be("modified.cs");
-        handler.IsAsync.Should().BeTrue();
-        handler.LineCount.Should().Be(150);
+        Assert.Equal("ModifiedHandler", handler.Name);
+        Assert.Equal("modified.cs", handler.FilePath);
+        Assert.True(handler.IsAsync);
+        Assert.Equal(150, handler.LineCount);
     }
 
     [Fact]
@@ -373,8 +375,8 @@ public class HandlerInfoTests
         var handler = new HandlerInfo();
 
         // Assert
-        handler.Should().NotBeNull();
-        handler.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(handler);
+        Assert.True(handler.GetType().IsClass);
     }
 
     [Fact]
@@ -395,14 +397,14 @@ public class HandlerInfoTests
         };
 
         // Assert
-        handler.Name.Should().Be("CreateUserCommandHandler");
-        handler.FilePath.Should().Contain("CreateUserCommandHandler.cs");
-        handler.IsAsync.Should().BeTrue();
-        handler.HasDependencies.Should().BeTrue();
-        handler.HasCancellationToken.Should().BeTrue();
-        handler.HasLogging.Should().BeTrue();
-        handler.HasValidation.Should().BeTrue();
-        handler.LineCount.Should().Be(87);
+        Assert.Equal("CreateUserCommandHandler", handler.Name);
+        Assert.Contains("CreateUserCommandHandler.cs", handler.FilePath);
+        Assert.True(handler.IsAsync);
+        Assert.True(handler.HasDependencies);
+        Assert.True(handler.HasCancellationToken);
+        Assert.True(handler.HasLogging);
+        Assert.True(handler.HasValidation);
+        Assert.Equal(87, handler.LineCount);
     }
 
     [Fact]
@@ -423,13 +425,13 @@ public class HandlerInfoTests
         };
 
         // Assert
-        handler.Name.Should().Be("GetUserQueryHandler");
-        handler.IsAsync.Should().BeTrue();
-        handler.HasDependencies.Should().BeFalse();
-        handler.HasCancellationToken.Should().BeFalse();
-        handler.HasLogging.Should().BeFalse();
-        handler.HasValidation.Should().BeFalse();
-        handler.LineCount.Should().Be(25);
+        Assert.Equal("GetUserQueryHandler", handler.Name);
+        Assert.True(handler.IsAsync);
+        Assert.False(handler.HasDependencies);
+        Assert.False(handler.HasCancellationToken);
+        Assert.False(handler.HasLogging);
+        Assert.False(handler.HasValidation);
+        Assert.Equal(25, handler.LineCount);
     }
 
     [Fact]
@@ -451,10 +453,10 @@ public class HandlerInfoTests
         var averageLines = handlers.Average(h => h.LineCount);
 
         // Assert
-        totalLines.Should().Be(390);
-        asyncHandlers.Should().Be(3);
-        handlersWithLogging.Should().Be(3);
-        averageLines.Should().Be(97.5);
+        Assert.Equal(390, totalLines);
+        Assert.Equal(3, asyncHandlers);
+        Assert.Equal(3, handlersWithLogging);
+        Assert.Equal(97.5, averageLines);
     }
 
     [Fact]
@@ -473,8 +475,8 @@ public class HandlerInfoTests
         var commandHandlers = handlers.Where(h => h.FilePath.Contains("Commands")).ToList();
 
         // Assert
-        userHandlers.Should().HaveCount(1);
-        commandHandlers.Should().HaveCount(3);
+        Assert.Equal(1, userHandlers.Count());
+        Assert.Equal(3, commandHandlers.Count());
     }
 
     [Fact]
@@ -493,10 +495,10 @@ public class HandlerInfoTests
         var simpleHandlers = handlers.Where(h => !h.HasDependencies && !h.HasLogging && !h.HasValidation).ToList();
 
         // Assert
-        complexHandlers.Should().HaveCount(1);
-        complexHandlers[0].Name.Should().Be("ComplexHandler");
-        simpleHandlers.Should().HaveCount(1);
-        simpleHandlers[0].Name.Should().Be("SimpleHandler");
+        Assert.Equal(1, complexHandlers.Count());
+        Assert.Equal("ComplexHandler", complexHandlers[0].Name);
+        Assert.Equal(1, simpleHandlers.Count());
+        Assert.Equal("SimpleHandler", simpleHandlers[0].Name);
     }
 
     [Fact]
@@ -506,7 +508,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { LineCount = 0 };
 
         // Assert
-        handler.LineCount.Should().Be(0);
+        Assert.Equal(0, handler.LineCount);
     }
 
     [Fact]
@@ -516,7 +518,7 @@ public class HandlerInfoTests
         var handler = new HandlerInfo { LineCount = int.MaxValue };
 
         // Assert
-        handler.LineCount.Should().Be(int.MaxValue);
+        Assert.Equal(int.MaxValue, handler.LineCount);
     }
 
     [Fact]
@@ -557,15 +559,15 @@ public class HandlerInfoTests
         }).ToList();
 
         // Assert
-        report[0].Complexity.Should().Be(3);
-        report[0].Size.Should().Be("Large");
-        report[0].Features.Should().Contain("Async");
-        report[0].Features.Should().Contain("DI");
+        Assert.Equal(3, report[0].Complexity);
+        Assert.Equal("Large", report[0].Size);
+        Assert.Contains("Async", report[0].Features);
+        Assert.Contains("DI", report[0].Features);
 
-        report[1].Complexity.Should().Be(0);
-        report[1].Size.Should().Be("Small");
-        report[1].Features.Should().Contain("Async");
-        report[1].Features.Should().Contain("No DI");
+        Assert.Equal(0, report[1].Complexity);
+        Assert.Equal("Small", report[1].Size);
+        Assert.Contains("Async", report[1].Features);
+        Assert.Contains("No DI", report[1].Features);
     }
 
     [Fact]
@@ -586,13 +588,13 @@ public class HandlerInfoTests
         };
 
         // Assert - Basic serialization check
-        handler.Name.Should().Be("ComplexBusinessLogicHandler");
-        handler.FilePath.Should().Contain("ComplexBusinessLogicHandler.cs");
-        handler.IsAsync.Should().BeTrue();
-        handler.HasDependencies.Should().BeTrue();
-        handler.HasCancellationToken.Should().BeTrue();
-        handler.HasLogging.Should().BeTrue();
-        handler.HasValidation.Should().BeTrue();
-        handler.LineCount.Should().Be(342);
+        Assert.Equal("ComplexBusinessLogicHandler", handler.Name);
+        Assert.Contains("ComplexBusinessLogicHandler.cs", handler.FilePath);
+        Assert.True(handler.IsAsync);
+        Assert.True(handler.HasDependencies);
+        Assert.True(handler.HasCancellationToken);
+        Assert.True(handler.HasLogging);
+        Assert.True(handler.HasValidation);
+        Assert.Equal(342, handler.LineCount);
     }
 }

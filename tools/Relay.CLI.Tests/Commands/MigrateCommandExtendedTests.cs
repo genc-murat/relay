@@ -1,4 +1,4 @@
-using FluentAssertions;
+
 using Relay.CLI.Commands;
 using System.CommandLine;
 using Xunit;
@@ -27,9 +27,9 @@ public class MigrateCommandExtendedTests : IDisposable
         var command = MigrateCommand.Create();
 
         // Assert
-        command.Should().NotBeNull();
-        command.Name.Should().Be("migrate");
-        command.Description.Should().Contain("Migrate");
+        Assert.NotNull(command);
+        Assert.Equal("migrate", command.Name);
+        Assert.Contains("Migrate", command.Description);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var fromOption = command.Options.FirstOrDefault(o => o.Name == "from");
 
         // Assert
-        fromOption.Should().NotBeNull();
+        Assert.NotNull(fromOption);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var toOption = command.Options.FirstOrDefault(o => o.Name == "to");
 
         // Assert
-        toOption.Should().NotBeNull();
+        Assert.NotNull(toOption);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var pathOption = command.Options.FirstOrDefault(o => o.Name == "path");
 
         // Assert
-        pathOption.Should().NotBeNull();
+        Assert.NotNull(pathOption);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var analyzeOption = command.Options.FirstOrDefault(o => o.Name == "analyze-only");
 
         // Assert
-        analyzeOption.Should().NotBeNull();
+        Assert.NotNull(analyzeOption);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var dryRunOption = command.Options.FirstOrDefault(o => o.Name == "dry-run");
 
         // Assert
-        dryRunOption.Should().NotBeNull();
+        Assert.NotNull(dryRunOption);
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var backupOption = command.Options.FirstOrDefault(o => o.Name == "backup");
 
         // Assert
-        backupOption.Should().NotBeNull();
+        Assert.NotNull(backupOption);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var previewOption = command.Options.FirstOrDefault(o => o.Name == "preview");
 
         // Assert
-        previewOption.Should().NotBeNull();
+        Assert.NotNull(previewOption);
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var outputOption = command.Options.FirstOrDefault(o => o.Name == "output");
 
         // Assert
-        outputOption.Should().NotBeNull();
+        Assert.NotNull(outputOption);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var formatOption = command.Options.FirstOrDefault(o => o.Name == "format");
 
         // Assert
-        formatOption.Should().NotBeNull();
+        Assert.NotNull(formatOption);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var aggressiveOption = command.Options.FirstOrDefault(o => o.Name == "aggressive");
 
         // Assert
-        aggressiveOption.Should().NotBeNull();
+        Assert.NotNull(aggressiveOption);
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var interactiveOption = command.Options.FirstOrDefault(o => o.Name == "interactive");
 
         // Assert
-        interactiveOption.Should().NotBeNull();
+        Assert.NotNull(interactiveOption);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var command = MigrateCommand.Create();
 
         // Assert
-        command.Options.Should().HaveCountGreaterThanOrEqualTo(12);
+        Assert.True(command.Options.Count >= 12);
     }
 
     #endregion
@@ -174,7 +174,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var defaultFrom = "MediatR";
 
         // Assert
-        defaultFrom.Should().Be("MediatR");
+        Assert.Equal("MediatR", defaultFrom);
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var defaultTo = "Relay";
 
         // Assert
-        defaultTo.Should().Be("Relay");
+        Assert.Equal("Relay", defaultTo);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var defaultPath = ".";
 
         // Assert
-        defaultPath.Should().Be(".");
+        Assert.Equal(".", defaultPath);
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var defaultBackup = true;
 
         // Assert
-        defaultBackup.Should().BeTrue();
+        Assert.True(defaultBackup);
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var defaultBackupPath = ".backup";
 
         // Assert
-        defaultBackupPath.Should().Be(".backup");
+        Assert.Equal(".backup", defaultBackupPath);
     }
 
     [Fact]
@@ -224,7 +224,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var defaultFormat = "markdown";
 
         // Assert
-        defaultFormat.Should().Be("markdown");
+        Assert.Equal("markdown", defaultFormat);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var defaultAnalyzeOnly = false;
 
         // Assert
-        defaultAnalyzeOnly.Should().BeFalse();
+        Assert.False(defaultAnalyzeOnly);
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var defaultDryRun = false;
 
         // Assert
-        defaultDryRun.Should().BeFalse();
+        Assert.False(defaultDryRun);
     }
 
     #endregion
@@ -262,8 +262,8 @@ public class MigrateCommandExtendedTests : IDisposable
         var toNormalized = to.ToLowerInvariant();
 
         // Assert
-        fromNormalized.Should().Be("mediatr");
-        toNormalized.Should().Be("relay");
+        Assert.Equal("mediatr", fromNormalized);
+        Assert.Equal("relay", toNormalized);
     }
 
     [Theory]
@@ -276,7 +276,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var supportedFrom = new[] { "mediatr" };
 
         // Assert
-        supportedFrom.Should().NotContain(framework.ToLower());
+        Assert.DoesNotContain(framework.ToLower(), supportedFrom);
     }
 
     #endregion
@@ -290,7 +290,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var code = "using MediatR;";
 
         // Assert
-        code.Should().Contain("MediatR");
+        Assert.Contains("MediatR", code);
     }
 
     [Fact]
@@ -300,7 +300,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var code = "public class Handler : IRequestHandler<Query, Response>";
 
         // Assert
-        code.Should().Contain("IRequestHandler");
+        Assert.Contains("IRequestHandler", code);
     }
 
     [Fact]
@@ -310,7 +310,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var code = "public class Handler : INotificationHandler<Event>";
 
         // Assert
-        code.Should().Contain("INotificationHandler");
+        Assert.Contains("INotificationHandler", code);
     }
 
     [Fact]
@@ -320,7 +320,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var code = "public class Behavior : IPipelineBehavior<TRequest, TResponse>";
 
         // Assert
-        code.Should().Contain("IPipelineBehavior");
+        Assert.Contains("IPipelineBehavior", code);
     }
 
     [Fact]
@@ -330,7 +330,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var code = "public record Query : IRequest<Response>";
 
         // Assert
-        code.Should().Contain("IRequest");
+        Assert.Contains("IRequest", code);
     }
 
     [Fact]
@@ -340,7 +340,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var code = "public record Event : INotification";
 
         // Assert
-        code.Should().Contain("INotification");
+        Assert.Contains("INotification", code);
     }
 
     [Fact]
@@ -350,7 +350,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var code = "public async Task<Response> Handle(Query request, CancellationToken ct)";
 
         // Assert
-        code.Should().Contain("Handle(");
+        Assert.Contains("Handle(", code);
     }
 
     [Fact]
@@ -360,7 +360,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var projectContent = "<PackageReference Include=\"MediatR\" Version=\"12.0.0\" />";
 
         // Assert
-        projectContent.Should().Contain("MediatR");
+        Assert.Contains("MediatR", projectContent);
     }
 
     #endregion
@@ -377,8 +377,8 @@ public class MigrateCommandExtendedTests : IDisposable
         var transformed = original.Replace("using MediatR;", "using Relay.Core;");
 
         // Assert
-        transformed.Should().Be("using Relay.Core;");
-        transformed.Should().NotContain("MediatR");
+        Assert.Equal("using Relay.Core;", transformed);
+        Assert.DoesNotContain("MediatR", transformed);
     }
 
     [Fact]
@@ -391,7 +391,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var transformed = original.Replace("Task<", "ValueTask<");
 
         // Assert
-        transformed.Should().Be("ValueTask<Response>");
+        Assert.Equal("ValueTask<Response>", transformed);
     }
 
     [Fact]
@@ -404,7 +404,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var transformed = original.Replace("Handle(", "HandleAsync(");
 
         // Assert
-        transformed.Should().Contain("HandleAsync(");
+        Assert.Contains("HandleAsync(", transformed);
     }
 
     [Fact]
@@ -418,8 +418,8 @@ public class MigrateCommandExtendedTests : IDisposable
         var withAttribute = $"{attribute}\n{method}";
 
         // Assert
-        withAttribute.Should().Contain("[Handle]");
-        withAttribute.Should().Contain("HandleAsync");
+        Assert.Contains("[Handle]", withAttribute);
+        Assert.Contains("HandleAsync", withAttribute);
     }
 
     [Fact]
@@ -432,7 +432,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var transformed = original; // Relay uses same interface name
 
         // Assert
-        transformed.Should().Be("IRequestHandler<Query, Response>");
+        Assert.Equal("IRequestHandler<Query, Response>", transformed);
     }
 
     [Fact]
@@ -445,7 +445,7 @@ public class MigrateCommandExtendedTests : IDisposable
         var transformed = original.Replace("RequestHandlerDelegate<TResponse>", "Func<ValueTask<TResponse>>");
 
         // Assert
-        transformed.Should().Contain("Func<ValueTask<TResponse>>");
+        Assert.Contains("Func<ValueTask<TResponse>>", transformed);
     }
 
     [Fact]
@@ -460,9 +460,9 @@ public class MigrateCommandExtendedTests : IDisposable
             .Replace("12.0.0", "2.0.0");
 
         // Assert
-        transformed.Should().Contain("Relay.Core");
-        transformed.Should().Contain("2.0.0");
-        transformed.Should().NotContain("MediatR");
+        Assert.Contains("Relay.Core", transformed);
+        Assert.Contains("2.0.0", transformed);
+        Assert.DoesNotContain("MediatR", transformed);
     }
 
     #endregion
@@ -479,7 +479,7 @@ public class MigrateCommandExtendedTests : IDisposable
         Directory.CreateDirectory(backupPath);
 
         // Assert
-        Directory.Exists(backupPath).Should().BeTrue();
+        Assert.True(Directory.Exists(backupPath));
     }
 
     [Fact]
@@ -497,9 +497,9 @@ public class MigrateCommandExtendedTests : IDisposable
         File.Copy(sourcePath, backupPath);
 
         // Assert
-        File.Exists(backupPath).Should().BeTrue();
+        Assert.True(File.Exists(backupPath));
         var content = await File.ReadAllTextAsync(backupPath);
-        content.Should().Be("original content");
+        Assert.Equal("original content", content);
     }
 
     [Fact]
@@ -519,7 +519,7 @@ public class MigrateCommandExtendedTests : IDisposable
         File.Copy(sourceFile, backupFile);
 
         // Assert
-        File.Exists(backupFile).Should().BeTrue();
+        Assert.True(File.Exists(backupFile));
     }
 
     [Fact]
@@ -530,8 +530,8 @@ public class MigrateCommandExtendedTests : IDisposable
         var backupName = $".backup_{timestamp}";
 
         // Assert
-        backupName.Should().Contain(".backup_");
-        backupName.Should().MatchRegex(@"\.backup_\d{8}_\d{6}");
+        Assert.Contains(".backup_", backupName);
+        Assert.Matches(@"\.backup_\d{8}_\d{6}", backupName);
     }
 
     #endregion
@@ -552,7 +552,7 @@ public class MigrateCommandExtendedTests : IDisposable
         }
 
         // Assert
-        changesApplied.Should().Be(0);
+        Assert.Equal(0, changesApplied);
     }
 
     [Fact]
@@ -569,7 +569,7 @@ public class MigrateCommandExtendedTests : IDisposable
         }
 
         // Assert
-        previewGenerated.Should().BeTrue();
+        Assert.True(previewGenerated);
     }
 
     [Fact]
@@ -586,7 +586,7 @@ public class MigrateCommandExtendedTests : IDisposable
         }
 
         // Assert
-        backupCreated.Should().BeFalse();
+        Assert.False(backupCreated);
     }
 
     #endregion
@@ -608,7 +608,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var handlerCount = System.Text.RegularExpressions.Regex.Matches(code, @"IRequestHandler<").Count;
 
         // Assert
-        handlerCount.Should().Be(2);
+        Assert.Equal(2, handlerCount);
     }
 
     [Fact]
@@ -623,7 +623,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var fileCount = Directory.GetFiles(_testPath, "*.cs").Length;
 
         // Assert
-        fileCount.Should().Be(3);
+        Assert.Equal(3, fileCount);
     }
 
     [Fact]
@@ -641,7 +641,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var criticalIssues = issues.Where(i => i.Contains("Unsupported")).ToList();
 
         // Assert
-        criticalIssues.Should().HaveCount(1);
+        Assert.Equal(1, criticalIssues.Count());
     }
 
     [Fact]
@@ -656,7 +656,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var totalComplexity = handlers * 2 + notifications * 1 + behaviors * 3;
 
         // Assert
-        totalComplexity.Should().Be(34);
+        Assert.Equal(34, totalComplexity);
     }
 
     #endregion
@@ -683,10 +683,10 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         await File.WriteAllTextAsync(reportPath, content);
 
         // Assert
-        File.Exists(reportPath).Should().BeTrue();
+        Assert.True(File.Exists(reportPath));
         var report = await File.ReadAllTextAsync(reportPath);
-        report.Should().Contain("# Migration Report");
-        report.Should().Contain("Files Modified");
+        Assert.Contains("# Migration Report", report);
+        Assert.Contains("Files Modified", report);
     }
 
     [Fact]
@@ -704,9 +704,9 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         await File.WriteAllTextAsync(reportPath, json);
 
         // Assert
-        File.Exists(reportPath).Should().BeTrue();
+        Assert.True(File.Exists(reportPath));
         var content = await File.ReadAllTextAsync(reportPath);
-        content.Should().Contain("\"status\"");
+        Assert.Contains("\"status\"", content);
     }
 
     [Fact]
@@ -724,9 +724,9 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         await File.WriteAllTextAsync(reportPath, html);
 
         // Assert
-        File.Exists(reportPath).Should().BeTrue();
+        Assert.True(File.Exists(reportPath));
         var content = await File.ReadAllTextAsync(reportPath);
-        content.Should().Contain("<title>Migration Report</title>");
+        Assert.Contains("<title>Migration Report</title>", content);
     }
 
     [Fact]
@@ -737,7 +737,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var report = $"Generated: {timestamp}";
 
         // Assert
-        report.Should().Contain("Generated:");
+        Assert.Contains("Generated:", report);
     }
 
     [Fact]
@@ -753,9 +753,9 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         };
 
         // Assert
-        stats.FilesModified.Should().Be(5);
-        stats.HandlersConverted.Should().Be(10);
-        stats.Duration.TotalSeconds.Should().Be(5.5);
+        Assert.Equal(5, stats.FilesModified);
+        Assert.Equal(10, stats.HandlersConverted);
+        Assert.Equal(5.5, stats.Duration.TotalSeconds);
     }
 
     #endregion
@@ -778,7 +778,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var restored = await File.ReadAllTextAsync(targetPath);
 
         // Assert
-        restored.Should().Be("original");
+        Assert.Equal("original", restored);
     }
 
     [Fact]
@@ -794,8 +794,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var content = await File.ReadAllTextAsync(backupPath);
 
         // Assert
-        backupExists.Should().BeTrue();
-        content.Should().Be("backup content");
+        Assert.True(backupExists);
+        Assert.Equal("backup content", content);
     }
 
     #endregion
@@ -812,8 +812,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var fileName = $"report{extension}";
 
         // Assert
-        fileName.Should().EndWith(extension);
-        format.Should().BeOneOf("markdown", "json", "html");
+        Assert.EndsWith(extension, fileName);
+        Assert.Contains(format, new[] { "markdown", "json", "html" });
     }
 
     [Fact]
@@ -823,7 +823,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var defaultFormat = "markdown";
 
         // Assert
-        defaultFormat.Should().Be("markdown");
+        Assert.Equal("markdown", defaultFormat);
     }
 
     #endregion
@@ -844,7 +844,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         }
 
         // Assert
-        userApprovalRequired.Should().BeTrue();
+        Assert.True(userApprovalRequired);
     }
 
     [Fact]
@@ -861,7 +861,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         }
 
         // Assert
-        autoApply.Should().BeTrue();
+        Assert.True(autoApply);
     }
 
     #endregion
@@ -882,7 +882,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         }
 
         // Assert
-        optimizationsApplied.Should().BeGreaterThan(0);
+        Assert.True(optimizationsApplied > 0);
     }
 
     [Fact]
@@ -899,7 +899,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         }
 
         // Assert
-        safeMode.Should().BeTrue();
+        Assert.True(safeMode);
     }
 
     #endregion
@@ -917,7 +917,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var isCSharpFile = Path.GetExtension(csFile) == ".cs";
 
         // Assert
-        isCSharpFile.Should().BeTrue();
+        Assert.True(isCSharpFile);
     }
 
     [Fact]
@@ -931,7 +931,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var isProjectFile = Path.GetExtension(csprojFile) == ".csproj";
 
         // Assert
-        isProjectFile.Should().BeTrue();
+        Assert.True(isProjectFile);
     }
 
     [Fact]
@@ -949,7 +949,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var generatedFiles = files.Where(f => f.Contains(".g.") || f.Contains(".Designer.")).ToList();
 
         // Assert
-        generatedFiles.Should().HaveCount(2);
+        Assert.Equal(2, generatedFiles.Count());
     }
 
     [Fact]
@@ -968,7 +968,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var csharpFiles = files.Where(f => f.EndsWith(".cs")).ToList();
 
         // Assert
-        csharpFiles.Should().HaveCount(2);
+        Assert.Equal(2, csharpFiles.Count());
     }
 
     #endregion
@@ -985,7 +985,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var exists = Directory.Exists(nonExistentPath);
 
         // Assert
-        exists.Should().BeFalse();
+        Assert.False(exists);
     }
 
     [Fact]
@@ -999,7 +999,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var isValid = validFrameworks.Contains(framework.ToLower());
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -1013,7 +1013,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var isValid = validTargets.Contains(target.ToLower());
 
         // Assert
-        isValid.Should().BeFalse();
+        Assert.False(isValid);
     }
 
     [Fact]
@@ -1029,7 +1029,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var isReadOnly = fileInfo.IsReadOnly;
 
         // Assert
-        isReadOnly.Should().BeTrue();
+        Assert.True(isReadOnly);
 
         // Cleanup
         fileInfo.IsReadOnly = false;
@@ -1049,7 +1049,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         stats = new { FilesModified = 5 };
 
         // Assert
-        stats.FilesModified.Should().Be(5);
+        Assert.Equal(5, stats.FilesModified);
     }
 
     [Fact]
@@ -1062,7 +1062,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         linesChanged = 150;
 
         // Assert
-        linesChanged.Should().Be(150);
+        Assert.Equal(150, linesChanged);
     }
 
     [Fact]
@@ -1076,7 +1076,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var duration = endTime - startTime;
 
         // Assert
-        duration.TotalSeconds.Should().Be(5);
+        Assert.Equal(5, duration.TotalSeconds);
     }
 
     [Fact]
@@ -1090,7 +1090,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var successRate = (successfulFiles / (double)totalFiles) * 100;
 
         // Assert
-        successRate.Should().Be(80.0);
+        Assert.Equal(80.0, successRate);
     }
 
     #endregion
@@ -1108,8 +1108,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var diff = $"- {original}\n+ {modified}";
 
         // Assert
-        diff.Should().Contain("- using MediatR;");
-        diff.Should().Contain("+ using Relay.Core;");
+        Assert.Contains("- using MediatR;", diff);
+        Assert.Contains("+ using Relay.Core;", diff);
     }
 
     [Fact]
@@ -1124,8 +1124,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         };
 
         // Assert
-        changes.Should().Contain("Task -> ValueTask");
-        changes.Should().HaveCount(3);
+        Assert.Contains("Task -> ValueTask", changes);
+        Assert.Equal(3, changes.Count());
     }
 
     #endregion
@@ -1142,7 +1142,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         packages = packages.Where(p => !p.Contains("MediatR")).ToList();
 
         // Assert
-        packages.Should().BeEmpty();
+        Assert.Empty(packages);
     }
 
     [Fact]
@@ -1155,7 +1155,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         packages.Add("Relay.Core");
 
         // Assert
-        packages.Should().Contain("Relay.Core");
+        Assert.Contains("Relay.Core", packages);
     }
 
     [Fact]
@@ -1170,8 +1170,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
             .Replace("12.0.0", "2.0.0");
 
         // Assert
-        updated.Should().Contain("Relay.Core");
-        updated.Should().Contain("2.0.0");
+        Assert.Contains("Relay.Core", updated);
+        Assert.Contains("2.0.0", updated);
     }
 
     #endregion
@@ -1193,7 +1193,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var updated = usings.Select(u => u.Replace("MediatR", "Relay.Core")).ToArray();
 
         // Assert
-        updated.Should().Contain("using Relay.Core;");
+        Assert.Contains("using Relay.Core;", updated);
     }
 
     [Fact]
@@ -1211,8 +1211,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var nonMediatR = usings.Where(u => !u.Contains("MediatR")).ToArray();
 
         // Assert
-        nonMediatR.Should().HaveCount(2);
-        nonMediatR.Should().Contain("using System;");
+        Assert.Equal(2, nonMediatR.Count());
+        Assert.Contains("using System;", nonMediatR);
     }
 
     #endregion
@@ -1229,7 +1229,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         changes.Add(("Add", "Added [Handle] attribute"));
 
         // Assert
-        changes.Should().Contain(c => c.Type == "Add");
+        Assert.Contains(changes, c => c.Type == "Add");
     }
 
     [Fact]
@@ -1242,7 +1242,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         changes.Add(("Remove", "Removed MediatR using"));
 
         // Assert
-        changes.Should().Contain(c => c.Type == "Remove");
+        Assert.Contains(changes, c => c.Type == "Remove");
     }
 
     [Fact]
@@ -1255,7 +1255,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         changes.Add(("Modify", "Changed Task to ValueTask"));
 
         // Assert
-        changes.Should().Contain(c => c.Type == "Modify");
+        Assert.Contains(changes, c => c.Type == "Modify");
     }
 
     [Fact]
@@ -1273,8 +1273,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var grouped = changes.GroupBy(c => c.Category).ToList();
 
         // Assert
-        grouped.Should().HaveCount(2);
-        grouped.First(g => g.Key == "Usings").Should().HaveCount(2);
+        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Usings").Count());
     }
 
     #endregion
@@ -1291,8 +1291,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var absolutePath = Path.GetFullPath(relativePath);
 
         // Assert
-        absolutePath.Should().NotBeNullOrEmpty();
-        Path.IsPathRooted(absolutePath).Should().BeTrue();
+        Assert.False(string.IsNullOrEmpty(absolutePath));
+        Assert.True(Path.IsPathRooted(absolutePath));
     }
 
     [Fact]
@@ -1305,7 +1305,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var isAbsolute = Path.IsPathRooted(absolutePath);
 
         // Assert
-        isAbsolute.Should().BeTrue();
+        Assert.True(isAbsolute);
     }
 
     [Fact]
@@ -1319,7 +1319,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var isUnderProject = backupPath.StartsWith(projectPath);
 
         // Assert
-        isUnderProject.Should().BeTrue();
+        Assert.True(isUnderProject);
     }
 
     #endregion
@@ -1348,8 +1348,8 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         var hasHandler = content.Contains("IRequestHandler");
 
         // Assert
-        hasMediatR.Should().BeTrue();
-        hasHandler.Should().BeTrue();
+        Assert.True(hasMediatR);
+        Assert.True(hasHandler);
     }
 
     [Fact]
@@ -1365,9 +1365,9 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         };
 
         // Assert
-        steps.Should().HaveCount(4);
-        steps[0].Should().Contain("Analyze");
-        steps[3].Should().Contain("Report");
+        Assert.Equal(4, steps.Count());
+        Assert.Contains("Analyze", steps[0]);
+        Assert.Contains("Report", steps[3]);
     }
 
     #endregion
@@ -1387,3 +1387,5 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         }
     }
 }
+
+

@@ -1,5 +1,5 @@
 using Relay.CLI.Commands;
-using FluentAssertions;
+
 using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
@@ -13,9 +13,9 @@ public class AIOptimizationResultsTests
         var results = new AIOptimizationResults();
 
         // Assert
-        results.AppliedOptimizations.Should().NotBeNull();
-        results.AppliedOptimizations.Should().BeEmpty();
-        results.OverallImprovement.Should().Be(0.0);
+        Assert.NotNull(results.AppliedOptimizations);
+        Assert.Empty(results.AppliedOptimizations);
+        Assert.Equal(0.0, results.OverallImprovement);
     }
 
     [Fact]
@@ -33,8 +33,8 @@ public class AIOptimizationResultsTests
         results.AppliedOptimizations = optimizations;
 
         // Assert
-        results.AppliedOptimizations.Should().BeEquivalentTo(optimizations);
-        results.AppliedOptimizations.Should().HaveCount(2);
+        Assert.Equal(optimizations, results.AppliedOptimizations);
+        Assert.Equal(2, results.AppliedOptimizations.Count());
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class AIOptimizationResultsTests
         results.OverallImprovement = expectedImprovement;
 
         // Assert
-        results.OverallImprovement.Should().Be(expectedImprovement);
+        Assert.Equal(expectedImprovement, results.OverallImprovement);
     }
 
     [Fact]
@@ -59,13 +59,13 @@ public class AIOptimizationResultsTests
 
         // Act & Assert
         results.OverallImprovement = 0.0;
-        results.OverallImprovement.Should().Be(0.0);
+        Assert.Equal(0.0, results.OverallImprovement);
 
         results.OverallImprovement = 1.0;
-        results.OverallImprovement.Should().Be(1.0);
+        Assert.Equal(1.0, results.OverallImprovement);
 
         results.OverallImprovement = 0.5;
-        results.OverallImprovement.Should().Be(0.5);
+        Assert.Equal(0.5, results.OverallImprovement);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class AIOptimizationResultsTests
         results.AppliedOptimizations = null!;
 
         // Assert
-        results.AppliedOptimizations.Should().BeNull();
+        Assert.Null(results.AppliedOptimizations);
     }
 
     [Fact]
@@ -96,20 +96,20 @@ public class AIOptimizationResultsTests
         };
 
         // Assert
-        results.AppliedOptimizations.Should().HaveCount(2);
-        results.AppliedOptimizations[0].Strategy.Should().Be("Caching");
-        results.AppliedOptimizations[0].FilePath.Should().Be("Services/UserService.cs");
-        results.AppliedOptimizations[0].Description.Should().Be("Added [DistributedCache] attribute");
-        results.AppliedOptimizations[0].Success.Should().BeTrue();
-        results.AppliedOptimizations[0].PerformanceGain.Should().Be(0.6);
+        Assert.Equal(2, results.AppliedOptimizations.Count());
+        Assert.Equal("Caching", results.AppliedOptimizations[0].Strategy);
+        Assert.Equal("Services/UserService.cs", results.AppliedOptimizations[0].FilePath);
+        Assert.Equal("Added [DistributedCache] attribute", results.AppliedOptimizations[0].Description);
+        Assert.True(results.AppliedOptimizations[0].Success);
+        Assert.Equal(0.6, results.AppliedOptimizations[0].PerformanceGain);
 
-        results.AppliedOptimizations[1].Strategy.Should().Be("Async");
-        results.AppliedOptimizations[1].FilePath.Should().Be("Services/OrderService.cs");
-        results.AppliedOptimizations[1].Description.Should().Be("Converted Task to ValueTask");
-        results.AppliedOptimizations[1].Success.Should().BeTrue();
-        results.AppliedOptimizations[1].PerformanceGain.Should().Be(0.1);
+        Assert.Equal("Async", results.AppliedOptimizations[1].Strategy);
+        Assert.Equal("Services/OrderService.cs", results.AppliedOptimizations[1].FilePath);
+        Assert.Equal("Converted Task to ValueTask", results.AppliedOptimizations[1].Description);
+        Assert.True(results.AppliedOptimizations[1].Success);
+        Assert.Equal(0.1, results.AppliedOptimizations[1].PerformanceGain);
 
-        results.OverallImprovement.Should().Be(0.35);
+        Assert.Equal(0.35, results.OverallImprovement);
     }
 
     [Fact]
@@ -133,9 +133,9 @@ public class AIOptimizationResultsTests
         };
 
         // Act & Assert
-        results1.AppliedOptimizations[0].Strategy.Should().Be("Test1");
-        results2.AppliedOptimizations[0].Strategy.Should().Be("Test2");
-        results1.AppliedOptimizations[0].Should().NotBeSameAs(results2.AppliedOptimizations[0]);
+        Assert.Equal("Test1", results1.AppliedOptimizations[0].Strategy);
+        Assert.Equal("Test2", results2.AppliedOptimizations[0].Strategy);
+        Assert.NotSame(results1.AppliedOptimizations[0], results2.AppliedOptimizations[0]);
     }
 
     [Fact]
@@ -155,12 +155,12 @@ public class AIOptimizationResultsTests
         var json = System.Text.Json.JsonSerializer.Serialize(results);
 
         // Assert
-        json.Should().Contain("Caching");
-        json.Should().Contain("Services/UserService.cs");
-        json.Should().Contain("Added cache");
-        json.Should().Contain("true");
-        json.Should().Contain("0.6");
-        json.Should().Contain("0.35");
+        Assert.Contains("Caching", json);
+        Assert.Contains("Services/UserService.cs", json);
+        Assert.Contains("Added cache", json);
+        Assert.Contains("true", json);
+        Assert.Contains("0.6", json);
+        Assert.Contains("0.35", json);
     }
 
     [Fact]
@@ -184,14 +184,14 @@ public class AIOptimizationResultsTests
         var results = System.Text.Json.JsonSerializer.Deserialize<AIOptimizationResults>(json);
 
         // Assert
-        results.Should().NotBeNull();
-        results!.AppliedOptimizations.Should().HaveCount(1);
-        results.AppliedOptimizations[0].Strategy.Should().Be("Caching");
-        results.AppliedOptimizations[0].FilePath.Should().Be("Services/UserService.cs");
-        results.AppliedOptimizations[0].Description.Should().Be("Added cache");
-        results.AppliedOptimizations[0].Success.Should().BeTrue();
-        results.AppliedOptimizations[0].PerformanceGain.Should().Be(0.6);
-        results.OverallImprovement.Should().Be(0.35);
+        Assert.NotNull(results);
+        Assert.Equal(1, results!.AppliedOptimizations.Count());
+        Assert.Equal("Caching", results.AppliedOptimizations[0].Strategy);
+        Assert.Equal("Services/UserService.cs", results.AppliedOptimizations[0].FilePath);
+        Assert.Equal("Added cache", results.AppliedOptimizations[0].Description);
+        Assert.True(results.AppliedOptimizations[0].Success);
+        Assert.Equal(0.6, results.AppliedOptimizations[0].PerformanceGain);
+        Assert.Equal(0.35, results.OverallImprovement);
     }
 
     [Fact]
@@ -208,8 +208,8 @@ public class AIOptimizationResultsTests
         var json = System.Text.Json.JsonSerializer.Serialize(results);
 
         // Assert
-        json.Should().Contain("[]");
-        json.Should().Contain("0");
+        Assert.Contains("[]", json);
+        Assert.Contains("0", json);
     }
 
     [Fact]
@@ -223,8 +223,8 @@ public class AIOptimizationResultsTests
         };
 
         // Assert
-        results.AppliedOptimizations.Should().BeEmpty();
-        results.OverallImprovement.Should().Be(0.0);
+        Assert.Empty(results.AppliedOptimizations);
+        Assert.Equal(0.0, results.OverallImprovement);
     }
 
     [Fact]
@@ -241,8 +241,8 @@ public class AIOptimizationResultsTests
         };
 
         // Assert
-        results.AppliedOptimizations[0].PerformanceGain.Should().Be(double.MaxValue);
-        results.OverallImprovement.Should().Be(double.MaxValue);
+        Assert.Equal(double.MaxValue, results.AppliedOptimizations[0].PerformanceGain);
+        Assert.Equal(double.MaxValue, results.OverallImprovement);
     }
 
     [Fact]
@@ -268,14 +268,14 @@ public class AIOptimizationResultsTests
         };
 
         // Act & Assert
-        results.AppliedOptimizations.Should().HaveCount(100);
+        Assert.Equal(100, results.AppliedOptimizations.Count());
         for (int i = 0; i < optimizations.Length; i++)
         {
-            results.AppliedOptimizations[i].Strategy.Should().Be($"Strategy{i}");
-            results.AppliedOptimizations[i].FilePath.Should().Be($"File{i}.cs");
-            results.AppliedOptimizations[i].Description.Should().Be($"Description{i}");
-            results.AppliedOptimizations[i].Success.Should().Be(i % 2 == 0);
-            results.AppliedOptimizations[i].PerformanceGain.Should().Be(i * 0.01);
+            Assert.Equal($"Strategy{i}", results.AppliedOptimizations[i].Strategy);
+            Assert.Equal($"File{i}.cs", results.AppliedOptimizations[i].FilePath);
+            Assert.Equal($"Description{i}", results.AppliedOptimizations[i].Description);
+            Assert.Equal(i % 2 == 0, results.AppliedOptimizations[i].Success);
+            Assert.Equal(i * 0.01, results.AppliedOptimizations[i].PerformanceGain);
         }
     }
 
@@ -287,7 +287,7 @@ public class AIOptimizationResultsTests
         var results2 = results1;
 
         // Assert
-        results1.Should().BeSameAs(results2);
+        Assert.Same(results1, results2);
     }
 
     [Fact]
@@ -301,8 +301,8 @@ public class AIOptimizationResultsTests
         results1.OverallImprovement = 0.8;
 
         // Assert
-        results1.OverallImprovement.Should().Be(0.8);
-        results2.OverallImprovement.Should().Be(0.7);
+        Assert.Equal(0.8, results1.OverallImprovement);
+        Assert.Equal(0.7, results2.OverallImprovement);
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class AIOptimizationResultsTests
         results.AppliedOptimizations[0].Strategy = "Modified";
 
         // Assert
-        results.AppliedOptimizations[0].Strategy.Should().Be("Modified");
+        Assert.Equal("Modified", results.AppliedOptimizations[0].Strategy);
     }
 
     [Fact]
@@ -339,10 +339,10 @@ public class AIOptimizationResultsTests
         };
 
         // Assert
-        results.AppliedOptimizations.Should().Contain(o => o.Success == true);
-        results.AppliedOptimizations.Should().Contain(o => o.Success == false);
-        results.AppliedOptimizations.Count(o => o.Success).Should().Be(1);
-        results.AppliedOptimizations.Count(o => !o.Success).Should().Be(1);
+        Assert.True(results.AppliedOptimizations.Any(o => o.Success == true));
+        Assert.True(results.AppliedOptimizations.Any(o => o.Success == false));
+        Assert.Equal(1, results.AppliedOptimizations.Count(o => o.Success));
+        Assert.Equal(1, results.AppliedOptimizations.Count(o => !o.Success));
     }
 
     [Fact]
@@ -359,8 +359,8 @@ public class AIOptimizationResultsTests
         };
 
         // Assert
-        results.AppliedOptimizations[0].PerformanceGain.Should().Be(-0.1);
-        results.OverallImprovement.Should().Be(-0.05);
+        Assert.Equal(-0.1, results.AppliedOptimizations[0].PerformanceGain);
+        Assert.Equal(-0.05, results.OverallImprovement);
     }
 
     [Fact]
@@ -376,7 +376,7 @@ public class AIOptimizationResultsTests
         };
 
         // Assert
-        results.AppliedOptimizations[0].FilePath.Should().BeEmpty();
+        Assert.Empty(results.AppliedOptimizations[0].FilePath);
     }
 
     [Fact]
@@ -392,7 +392,7 @@ public class AIOptimizationResultsTests
         };
 
         // Assert
-        results.AppliedOptimizations[0].Description.Should().BeEmpty();
+        Assert.Empty(results.AppliedOptimizations[0].Description);
     }
 }
 
@@ -405,11 +405,11 @@ public class OptimizationResultTests
         var result = new OptimizationResult();
 
         // Assert
-        result.Strategy.Should().BeEmpty();
-        result.FilePath.Should().BeEmpty();
-        result.Description.Should().BeEmpty();
-        result.Success.Should().BeFalse();
-        result.PerformanceGain.Should().Be(0.0);
+        Assert.Empty(result.Strategy);
+        Assert.Empty(result.FilePath);
+        Assert.Empty(result.Description);
+        Assert.False(result.Success);
+        Assert.Equal(0.0, result.PerformanceGain);
     }
 
     [Fact]
@@ -426,11 +426,11 @@ public class OptimizationResultTests
         };
 
         // Assert
-        result.Strategy.Should().Be("Caching");
-        result.FilePath.Should().Be("Services/UserService.cs");
-        result.Description.Should().Be("Added distributed cache");
-        result.Success.Should().BeTrue();
-        result.PerformanceGain.Should().Be(0.6);
+        Assert.Equal("Caching", result.Strategy);
+        Assert.Equal("Services/UserService.cs", result.FilePath);
+        Assert.Equal("Added distributed cache", result.Description);
+        Assert.True(result.Success);
+        Assert.Equal(0.6, result.PerformanceGain);
     }
 
     [Fact]
@@ -443,7 +443,7 @@ public class OptimizationResultTests
         result.PerformanceGain = 0.123;
 
         // Assert
-        result.PerformanceGain.Should().Be(0.123);
+        Assert.Equal(0.123, result.PerformanceGain);
     }
 
     [Fact]
@@ -463,11 +463,11 @@ public class OptimizationResultTests
         var json = System.Text.Json.JsonSerializer.Serialize(result);
 
         // Assert
-        json.Should().Contain("Async");
-        json.Should().Contain("Handlers/TestHandler.cs");
-        json.Should().Contain("Converted to ValueTask");
-        json.Should().Contain("true");
-        json.Should().Contain("0.15");
+        Assert.Contains("Async", json);
+        Assert.Contains("Handlers/TestHandler.cs", json);
+        Assert.Contains("Converted to ValueTask", json);
+        Assert.Contains("true", json);
+        Assert.Contains("0.15", json);
     }
 
     [Fact]
@@ -486,12 +486,12 @@ public class OptimizationResultTests
         var result = System.Text.Json.JsonSerializer.Deserialize<OptimizationResult>(json);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.Strategy.Should().Be("Database");
-        result.FilePath.Should().Be("Repositories/UserRepository.cs");
-        result.Description.Should().Be("Added query optimization");
-        result.Success.Should().BeTrue();
-        result.PerformanceGain.Should().Be(0.3);
+        Assert.NotNull(result);
+        Assert.Equal("Database", result!.Strategy);
+        Assert.Equal("Repositories/UserRepository.cs", result.FilePath);
+        Assert.Equal("Added query optimization", result.Description);
+        Assert.True(result.Success);
+        Assert.Equal(0.3, result.PerformanceGain);
     }
 
     [Fact]
@@ -502,7 +502,7 @@ public class OptimizationResultTests
         var result2 = result1;
 
         // Assert
-        result1.Should().BeSameAs(result2);
+        Assert.Same(result1, result2);
     }
 
     [Fact]
@@ -516,7 +516,7 @@ public class OptimizationResultTests
         result1.PerformanceGain = 0.8;
 
         // Assert
-        result1.PerformanceGain.Should().Be(0.8);
-        result2.PerformanceGain.Should().Be(0.7);
+        Assert.Equal(0.8, result1.PerformanceGain);
+        Assert.Equal(0.7, result2.PerformanceGain);
     }
 }

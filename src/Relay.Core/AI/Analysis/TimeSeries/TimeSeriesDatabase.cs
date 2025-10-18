@@ -171,7 +171,9 @@ namespace Relay.Core.AI
 
                 if (history.Count < 10) // Minimum data requirement
                 {
-                    throw new InsufficientDataException($"Insufficient data for {metricName}: {history.Count} data points (minimum 10 required)");
+                    _logger.LogError("Error training {Method} forecast model for {MetricName}: insufficient data ({Count} data points, minimum 10 required)",
+                        forecastingMethod, metricName, history.Count);
+                    return;
                 }
 
                 _logger.LogInformation("Training {Method} forecast model for {MetricName} with {Count} data points",

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -15,6 +16,15 @@ namespace Relay.SourceGenerator
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class RelayAnalyzer : DiagnosticAnalyzer
     {
+        /// <summary>
+        /// Minimum recommended priority value to avoid warnings.
+        /// </summary>
+        private const int MinRecommendedPriority = -1000;
+
+        /// <summary>
+        /// Maximum recommended priority value to avoid warnings.
+        /// </summary>
+        private const int MaxRecommendedPriority = 1000;
         /// <summary>
         /// Gets the supported diagnostics for this analyzer.
         /// </summary>
@@ -67,36 +77,49 @@ namespace Relay.SourceGenerator
         /// <param name="context">The syntax node analysis context.</param>
         private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
-            if (context.Node is not MethodDeclarationSyntax methodDeclaration)
-                return;
-
-            var semanticModel = context.SemanticModel;
-            var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration);
-
-            if (methodSymbol == null)
-                return;
-
-            // Check for Relay attributes
-            var handleAttribute = GetAttribute(methodSymbol, "Relay.Core.HandleAttribute");
-            var notificationAttribute = GetAttribute(methodSymbol, "Relay.Core.NotificationAttribute");
-            var pipelineAttribute = GetAttribute(methodSymbol, "Relay.Core.PipelineAttribute");
-
-            // Validate handler methods with [Handle] attribute
-            if (handleAttribute != null)
+            try
             {
-                ValidateHandlerMethod(context, methodDeclaration, methodSymbol, handleAttribute);
+                if (context.Node is not MethodDeclarationSyntax methodDeclaration)
+                    return;
+
+                var semanticModel = context.SemanticModel;
+                var methodSymbol = TryGetDeclaredSymbol(semanticModel, methodDeclaration);
+
+                if (methodSymbol == null)
+                    return;
+
+                // Check for Relay attributes
+                var handleAttribute = GetAttribute(methodSymbol, "Relay.Core.HandleAttribute");
+                var notificationAttribute = GetAttribute(methodSymbol, "Relay.Core.NotificationAttribute");
+                var pipelineAttribute = GetAttribute(methodSymbol, "Relay.Core.PipelineAttribute");
+
+                // Validate handler methods with [Handle] attribute
+                if (handleAttribute != null)
+                {
+                    ValidateHandlerMethod(context, methodDeclaration, methodSymbol, handleAttribute);
+                }
+
+                // Validate notification handler methods with [Notification] attribute
+                if (notificationAttribute != null)
+                {
+                    ValidateNotificationHandlerMethod(context, methodDeclaration, methodSymbol, notificationAttribute);
+                }
+
+                // Validate pipeline methods with [Pipeline] attribute
+                if (pipelineAttribute != null)
+                {
+                    ValidatePipelineMethod(context, methodDeclaration, methodSymbol, pipelineAttribute);
+                }
             }
-
-            // Validate notification handler methods with [Notification] attribute
-            if (notificationAttribute != null)
+            catch (OperationCanceledException)
             {
-                ValidateNotificationHandlerMethod(context, methodDeclaration, methodSymbol, notificationAttribute);
+                // Analysis was cancelled, propagate the cancellation
+                throw;
             }
-
-            // Validate pipeline methods with [Pipeline] attribute
-            if (pipelineAttribute != null)
+            catch (Exception ex)
             {
-                ValidatePipelineMethod(context, methodDeclaration, methodSymbol, pipelineAttribute);
+                // Report analyzer error but don't crash the analysis
+                ReportAnalyzerError(context, methodDeclaration: context.Node as MethodDeclarationSyntax, ex);
             }
         }
 
@@ -106,33 +129,73 @@ namespace Relay.SourceGenerator
         /// <param name="context">The compilation analysis context.</param>
         private static void AnalyzeCompilation(CompilationAnalysisContext context)
         {
-            var compilation = context.Compilation;
-            var handlerRegistry = new HandlerRegistry();
-
-            // Collect all handler methods across the compilation
-            foreach (var syntaxTree in compilation.SyntaxTrees)
+            try
             {
-                var semanticModel = compilation.GetSemanticModel(syntaxTree);
-                var root = syntaxTree.GetRoot(context.CancellationToken);
+                var compilation = context.Compilation;
+                var handlerRegistry = new HandlerRegistry();
+                var pipelineRegistry = new List<PipelineInfo>();
 
-                var methodDeclarations = root.DescendantNodes()
-                    .OfType<MethodDeclarationSyntax>();
-
-                foreach (var methodDeclaration in methodDeclarations)
+                // Collect all handler and pipeline methods across the compilation
+                foreach (var syntaxTree in compilation.SyntaxTrees)
                 {
-                    var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration);
-                    if (methodSymbol == null) continue;
-
-                    var handleAttribute = GetAttribute(methodSymbol, "Relay.Core.HandleAttribute");
-                    if (handleAttribute != null)
+                    try
                     {
-                        handlerRegistry.AddHandler(methodSymbol, handleAttribute, methodDeclaration);
+                        var semanticModel = TryGetSemanticModel(compilation, syntaxTree);
+                        if (semanticModel == null)
+                            continue;
+
+                        var root = syntaxTree.GetRoot(context.CancellationToken);
+
+                        var methodDeclarations = root.DescendantNodes()
+                            .OfType<MethodDeclarationSyntax>();
+
+                        foreach (var methodDeclaration in methodDeclarations)
+                        {
+                            var methodSymbol = TryGetDeclaredSymbol(semanticModel, methodDeclaration);
+                            if (methodSymbol == null) continue;
+
+                            var handleAttribute = GetAttribute(methodSymbol, "Relay.Core.HandleAttribute");
+                            if (handleAttribute != null)
+                            {
+                                handlerRegistry.AddHandler(methodSymbol, handleAttribute, methodDeclaration);
+                            }
+
+                            var pipelineAttribute = GetAttribute(methodSymbol, "Relay.Core.PipelineAttribute");
+                            if (pipelineAttribute != null)
+                            {
+                                CollectPipelineInfo(pipelineRegistry, methodSymbol, pipelineAttribute, methodDeclaration);
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Analysis was cancelled, propagate the cancellation
+                        throw;
+                    }
+                    catch (Exception)
+                    {
+                        // Skip this syntax tree if there's an error processing it
+                        // Continue analyzing other syntax trees
+                        continue;
                     }
                 }
-            }
 
-            // Validate for duplicate handlers
-            ValidateDuplicateHandlers(context, handlerRegistry);
+                // Validate for duplicate handlers
+                ValidateDuplicateHandlers(context, handlerRegistry);
+
+                // Validate for duplicate pipeline orders
+                ValidateDuplicatePipelineOrders(context, pipelineRegistry);
+            }
+            catch (OperationCanceledException)
+            {
+                // Analysis was cancelled, propagate the cancellation
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Report analyzer error but don't crash the compilation
+                ReportAnalyzerError(context, ex);
+            }
         }
 
         /// <summary>
@@ -188,8 +251,59 @@ namespace Relay.SourceGenerator
         /// </summary>
         private static AttributeData? GetAttribute(IMethodSymbol methodSymbol, string attributeFullName)
         {
-            return methodSymbol.GetAttributes()
-                .FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == attributeFullName);
+            try
+            {
+                return methodSymbol.GetAttributes()
+                    .FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() == attributeFullName);
+            }
+            catch (Exception)
+            {
+                // Symbol resolution can fail in incomplete or malformed code
+                // Return null to gracefully handle the error
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Safely gets the declared symbol for a method declaration.
+        /// </summary>
+        /// <param name="semanticModel">The semantic model.</param>
+        /// <param name="methodDeclaration">The method declaration syntax.</param>
+        /// <returns>The method symbol, or null if resolution fails.</returns>
+        private static IMethodSymbol? TryGetDeclaredSymbol(
+            SemanticModel semanticModel,
+            MethodDeclarationSyntax methodDeclaration)
+        {
+            try
+            {
+                return semanticModel.GetDeclaredSymbol(methodDeclaration);
+            }
+            catch (Exception)
+            {
+                // Symbol resolution can fail in incomplete or malformed code
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Safely gets the semantic model for a syntax tree.
+        /// </summary>
+        /// <param name="compilation">The compilation.</param>
+        /// <param name="syntaxTree">The syntax tree.</param>
+        /// <returns>The semantic model, or null if creation fails.</returns>
+        private static SemanticModel? TryGetSemanticModel(
+            Compilation compilation,
+            SyntaxTree syntaxTree)
+        {
+            try
+            {
+                return compilation.GetSemanticModel(syntaxTree);
+            }
+            catch (Exception)
+            {
+                // Semantic model creation can fail for invalid syntax trees
+                return null;
+            }
         }
 
         /// <summary>
@@ -297,23 +411,169 @@ namespace Relay.SourceGenerator
 
         /// <summary>
         /// Validates pipeline method signatures.
+        /// Pipeline methods can have 2 patterns:
+        /// 1. Generic pipeline: (TContext context, CancellationToken cancellationToken) - for cross-cutting concerns
+        /// 2. IPipelineBehavior: (TRequest request, RequestHandlerDelegate&lt;TResponse&gt; next, CancellationToken cancellationToken)
         /// </summary>
         private static void ValidatePipelineSignature(
             SyntaxNodeAnalysisContext context,
             MethodDeclarationSyntax methodDeclaration,
             IMethodSymbol methodSymbol)
         {
-            // Pipeline validation logic will be implemented in future tasks
-            // For now, just validate basic structure
             var parameters = methodSymbol.Parameters;
 
-            if (parameters.Length == 0)
+            // Pipeline methods must have at least 2 parameters: (context/request, cancellationToken)
+            // or 3 parameters: (request, next delegate, cancellationToken)
+            if (parameters.Length < 2)
             {
                 ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                     methodDeclaration.Identifier.GetLocation(),
                     methodSymbol.Name,
-                    "Pipeline methods must have at least one parameter");
+                    $"Pipeline methods must have at least 2 parameters. Found {parameters.Length} parameters");
+                return;
             }
+
+            // Check if this is an IPipelineBehavior pattern (3 parameters with middle delegate)
+            if (parameters.Length == 3)
+            {
+                // Validate second parameter is a delegate type
+                var nextParam = parameters[1];
+                if (IsValidPipelineDelegate(nextParam.Type))
+                {
+                    // This is an IPipelineBehavior pattern - validate delegate pattern
+                    ValidateIPipelineBehaviorPattern(context, methodDeclaration, methodSymbol, parameters);
+                    return;
+                }
+            }
+
+            // Otherwise, validate as generic pipeline pattern
+            ValidateGenericPipelinePattern(context, methodDeclaration, methodSymbol, parameters);
+        }
+
+        /// <summary>
+        /// Validates IPipelineBehavior pattern: (TRequest request, RequestHandlerDelegate&lt;TResponse&gt; next, CancellationToken cancellationToken)
+        /// </summary>
+        private static void ValidateIPipelineBehaviorPattern(
+            SyntaxNodeAnalysisContext context,
+            MethodDeclarationSyntax methodDeclaration,
+            IMethodSymbol methodSymbol,
+            ImmutableArray<IParameterSymbol> parameters)
+        {
+            // Validate second parameter is a delegate type
+            var nextParam = parameters[1];
+            if (!IsValidPipelineDelegate(nextParam.Type))
+            {
+                ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
+                    methodDeclaration.ParameterList.Parameters[1].GetLocation(),
+                    methodSymbol.Name,
+                    $"Second parameter must be a delegate type (RequestHandlerDelegate<TResponse> or Func<ValueTask<TResponse>>). Found: {nextParam.Type.ToDisplayString()}");
+            }
+
+            // Validate third parameter is CancellationToken
+            var cancellationTokenParam = parameters[2];
+            if (cancellationTokenParam.Type.Name != "CancellationToken")
+            {
+                ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
+                    methodDeclaration.ParameterList.Parameters[2].GetLocation(),
+                    methodSymbol.Name,
+                    $"Third parameter must be CancellationToken. Found: {cancellationTokenParam.Type.ToDisplayString()}");
+            }
+
+            // Validate return type matches delegate return type
+            var returnType = methodSymbol.ReturnType;
+            if (!IsValidPipelineReturnType(returnType))
+            {
+                ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
+                    methodDeclaration.ReturnType.GetLocation(),
+                    methodSymbol.Name,
+                    $"Pipeline methods must return Task<TResponse>, ValueTask<TResponse>, or IAsyncEnumerable<TResponse>. Found: {returnType.ToDisplayString()}");
+            }
+        }
+
+        /// <summary>
+        /// Validates generic pipeline pattern: (TContext context, CancellationToken cancellationToken)
+        /// </summary>
+        private static void ValidateGenericPipelinePattern(
+            SyntaxNodeAnalysisContext context,
+            MethodDeclarationSyntax methodDeclaration,
+            IMethodSymbol methodSymbol,
+            ImmutableArray<IParameterSymbol> parameters)
+        {
+            // Last parameter should be CancellationToken
+            var lastParam = parameters[parameters.Length - 1];
+            if (lastParam.Type.Name != "CancellationToken")
+            {
+                ReportDiagnostic(context, DiagnosticDescriptors.HandlerMissingCancellationToken,
+                    methodDeclaration.Identifier.GetLocation(),
+                    methodSymbol.Name);
+            }
+
+            // No strict return type requirement for generic pipelines (can be void, Task, etc.)
+            // Do not validate async pattern for generic pipelines as they can be void
+        }
+
+        /// <summary>
+        /// Checks if a type is a valid pipeline delegate type.
+        /// </summary>
+        private static bool IsValidPipelineDelegate(ITypeSymbol type)
+        {
+            // Check for RequestHandlerDelegate<TResponse> or StreamHandlerDelegate<TResponse>
+            if (type is INamedTypeSymbol namedType)
+            {
+                var typeName = namedType.Name;
+
+                // RequestHandlerDelegate<TResponse>
+                if (typeName == "RequestHandlerDelegate" && namedType.TypeArguments.Length == 1)
+                    return true;
+
+                // StreamHandlerDelegate<TResponse>
+                if (typeName == "StreamHandlerDelegate" && namedType.TypeArguments.Length == 1)
+                    return true;
+
+                // Func<ValueTask<TResponse>> or Func<Task<TResponse>>
+                if (typeName == "Func" && namedType.TypeArguments.Length == 1)
+                {
+                    var returnType = namedType.TypeArguments[0];
+                    if (returnType is INamedTypeSymbol returnNamedType)
+                    {
+                        if (returnNamedType.Name == "ValueTask" || returnNamedType.Name == "Task")
+                            return true;
+                    }
+                }
+
+                // Func<IAsyncEnumerable<TResponse>> for stream pipelines
+                if (typeName == "Func" && namedType.TypeArguments.Length == 1)
+                {
+                    var returnType = namedType.TypeArguments[0];
+                    if (returnType is INamedTypeSymbol returnNamedType)
+                    {
+                        if (returnNamedType.Name == "IAsyncEnumerable")
+                            return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if a return type is valid for pipeline methods.
+        /// </summary>
+        private static bool IsValidPipelineReturnType(ITypeSymbol returnType)
+        {
+            if (returnType is INamedTypeSymbol namedReturnType)
+            {
+                // Task<TResponse> or ValueTask<TResponse>
+                if ((namedReturnType.Name == "Task" || namedReturnType.Name == "ValueTask")
+                    && namedReturnType.TypeArguments.Length == 1)
+                    return true;
+
+                // IAsyncEnumerable<TResponse> for stream pipelines
+                if (namedReturnType.Name == "IAsyncEnumerable" && namedReturnType.TypeArguments.Length == 1)
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -480,25 +740,30 @@ namespace Relay.SourceGenerator
         }
 
         /// <summary>
-        /// Validates the parameter order and types for handler methods.
+        /// Validates parameter order and types for handler or notification handler methods.
         /// </summary>
-        private static void ValidateHandlerParameterOrder(
+        /// <param name="context">The syntax node analysis context.</param>
+        /// <param name="methodDeclaration">The method declaration syntax.</param>
+        /// <param name="methodSymbol">The method symbol.</param>
+        /// <param name="validationContext">Context containing type validator and expected type description.</param>
+        private static void ValidateParameterOrder(
             SyntaxNodeAnalysisContext context,
             MethodDeclarationSyntax methodDeclaration,
-            IMethodSymbol methodSymbol)
+            IMethodSymbol methodSymbol,
+            ParameterValidationContext validationContext)
         {
             var parameters = methodSymbol.Parameters;
 
-            // First parameter must be the request
+            // First parameter must be the request/notification
             if (parameters.Length > 0)
             {
-                var requestParam = parameters[0];
-                if (!IsValidRequestType(requestParam.Type))
+                var firstParam = parameters[0];
+                if (!validationContext.TypeValidator(firstParam.Type))
                 {
                     ReportDiagnostic(context, DiagnosticDescriptors.HandlerInvalidRequestParameter,
                         methodDeclaration.ParameterList.Parameters[0].GetLocation(),
-                        requestParam.Type.ToDisplayString(),
-                        "IRequest or IRequest<TResponse>");
+                        firstParam.Type.ToDisplayString(),
+                        validationContext.ExpectedTypeDescription);
                 }
             }
 
@@ -535,6 +800,22 @@ namespace Relay.SourceGenerator
                         $"Unexpected parameter type '{param.Type.ToDisplayString()}'. Only CancellationToken is allowed as additional parameter");
                 }
             }
+        }
+
+        /// <summary>
+        /// Validates the parameter order and types for handler methods.
+        /// </summary>
+        private static void ValidateHandlerParameterOrder(
+            SyntaxNodeAnalysisContext context,
+            MethodDeclarationSyntax methodDeclaration,
+            IMethodSymbol methodSymbol)
+        {
+            var validationContext = new ParameterValidationContext(
+                IsValidRequestType,
+                "IRequest or IRequest<TResponse>"
+            );
+
+            ValidateParameterOrder(context, methodDeclaration, methodSymbol, validationContext);
         }
 
         /// <summary>
@@ -590,52 +871,12 @@ namespace Relay.SourceGenerator
             MethodDeclarationSyntax methodDeclaration,
             IMethodSymbol methodSymbol)
         {
-            var parameters = methodSymbol.Parameters;
+            var validationContext = new ParameterValidationContext(
+                IsValidNotificationType,
+                "INotification"
+            );
 
-            // First parameter must be the notification
-            if (parameters.Length > 0)
-            {
-                var notificationParam = parameters[0];
-                if (!IsValidNotificationType(notificationParam.Type))
-                {
-                    ReportDiagnostic(context, DiagnosticDescriptors.HandlerInvalidRequestParameter,
-                        methodDeclaration.ParameterList.Parameters[0].GetLocation(),
-                        notificationParam.Type.ToDisplayString(),
-                        "INotification");
-                }
-            }
-
-            // If CancellationToken is present, it should be the last parameter
-            var cancellationTokenIndex = -1;
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                if (parameters[i].Type.Name == "CancellationToken")
-                {
-                    cancellationTokenIndex = i;
-                    break;
-                }
-            }
-
-            if (cancellationTokenIndex >= 0 && cancellationTokenIndex != parameters.Length - 1)
-            {
-                ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
-                    methodDeclaration.ParameterList.Parameters[cancellationTokenIndex].GetLocation(),
-                    methodSymbol.Name,
-                    "CancellationToken parameter should be the last parameter");
-            }
-
-            // Validate that there are no unexpected parameter types
-            for (int i = 1; i < parameters.Length; i++)
-            {
-                var param = parameters[i];
-                if (param.Type.Name != "CancellationToken")
-                {
-                    ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
-                        methodDeclaration.ParameterList.Parameters[i].GetLocation(),
-                        methodSymbol.Name,
-                        $"Unexpected parameter type '{param.Type.ToDisplayString()}'. Only CancellationToken is allowed as additional parameter");
-                }
-            }
+            ValidateParameterOrder(context, methodDeclaration, methodSymbol, validationContext);
         }
 
         /// <summary>
@@ -695,6 +936,23 @@ namespace Relay.SourceGenerator
                 ReportDiagnostic(context, DiagnosticDescriptors.InvalidPriorityValue,
                     methodDeclaration.AttributeLists.First().GetLocation(),
                     orderArg.Value.Value?.ToString() ?? "null");
+            }
+
+            // Validate Scope parameter if present
+            var scopeArg = pipelineAttribute.NamedArguments
+                .FirstOrDefault(arg => arg.Key == "Scope");
+
+            if (scopeArg.Key != null && scopeArg.Value.Value is int scopeValue)
+            {
+                // Validate scope value is within PipelineScope enum range (0-3)
+                if (scopeValue < 0 || scopeValue > 3)
+                {
+                    ReportDiagnostic(context, DiagnosticDescriptors.InvalidPipelineScope,
+                        methodDeclaration.AttributeLists.First().GetLocation(),
+                        scopeValue.ToString(),
+                        methodDeclaration.Identifier.Text,
+                        "All, Requests, Streams, or Notifications");
+                }
             }
         }
 
@@ -787,14 +1045,14 @@ namespace Relay.SourceGenerator
                 // Check for handlers with very low or very high priorities that might indicate issues
                 foreach (var handler in handlers)
                 {
-                    if (handler.Priority < -1000)
+                    if (handler.Priority < MinRecommendedPriority)
                     {
                         ReportDiagnostic(context, DiagnosticDescriptors.PerformanceWarning,
                             handler.Location,
                             handler.MethodName,
                             "Very low priority value might indicate the handler will rarely be selected");
                     }
-                    else if (handler.Priority > 1000)
+                    else if (handler.Priority > MaxRecommendedPriority)
                     {
                         ReportDiagnostic(context, DiagnosticDescriptors.PerformanceWarning,
                             handler.Location,
@@ -842,6 +1100,171 @@ namespace Relay.SourceGenerator
         {
             var diagnostic = Diagnostic.Create(descriptor, location, messageArgs);
             context.ReportDiagnostic(diagnostic);
+        }
+
+        /// <summary>
+        /// Reports an analyzer error for a syntax node analysis context.
+        /// </summary>
+        /// <param name="context">The syntax node analysis context.</param>
+        /// <param name="methodDeclaration">The method declaration that caused the error, if available.</param>
+        /// <param name="exception">The exception that occurred.</param>
+        private static void ReportAnalyzerError(
+            SyntaxNodeAnalysisContext context,
+            MethodDeclarationSyntax? methodDeclaration,
+            Exception exception)
+        {
+            var location = methodDeclaration?.Identifier.GetLocation() ?? Location.None;
+            var methodName = methodDeclaration?.Identifier.Text ?? "unknown method";
+            var errorMessage = $"An error occurred while analyzing '{methodName}': {exception.GetType().Name}";
+
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.GeneratorError,
+                location,
+                errorMessage);
+
+            context.ReportDiagnostic(diagnostic);
+        }
+
+        /// <summary>
+        /// Reports an analyzer error for a compilation analysis context.
+        /// </summary>
+        /// <param name="context">The compilation analysis context.</param>
+        /// <param name="exception">The exception that occurred.</param>
+        private static void ReportAnalyzerError(
+            CompilationAnalysisContext context,
+            Exception exception)
+        {
+            var errorMessage = $"An error occurred during compilation analysis: {exception.GetType().Name}";
+
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.GeneratorError,
+                Location.None,
+                errorMessage);
+
+            context.ReportDiagnostic(diagnostic);
+        }
+
+        /// <summary>
+        /// Collects pipeline information for duplicate order validation.
+        /// </summary>
+        private static void CollectPipelineInfo(
+            List<PipelineInfo> pipelineRegistry,
+            IMethodSymbol methodSymbol,
+            AttributeData pipelineAttribute,
+            MethodDeclarationSyntax methodDeclaration)
+        {
+            var order = 0;
+            var scope = 0; // PipelineScope.All
+
+            // Extract Order parameter
+            var orderArg = pipelineAttribute.NamedArguments
+                .FirstOrDefault(arg => arg.Key == "Order");
+            if (orderArg.Key != null && orderArg.Value.Value is int orderValue)
+            {
+                order = orderValue;
+            }
+
+            // Extract Scope parameter
+            var scopeArg = pipelineAttribute.NamedArguments
+                .FirstOrDefault(arg => arg.Key == "Scope");
+            if (scopeArg.Key != null && scopeArg.Value.Value is int scopeValue)
+            {
+                scope = scopeValue;
+            }
+
+            pipelineRegistry.Add(new PipelineInfo
+            {
+                MethodName = methodSymbol.Name,
+                Order = order,
+                Scope = scope,
+                Location = methodDeclaration.Identifier.GetLocation(),
+                ContainingType = methodSymbol.ContainingType.ToDisplayString()
+            });
+        }
+
+        /// <summary>
+        /// Validates for duplicate pipeline orders within the same scope.
+        /// Note: Multiple pipelines with the same order are allowed if they handle different request types.
+        /// This validation only warns about exact duplicates (same containing type and same order).
+        /// </summary>
+        private static void ValidateDuplicatePipelineOrders(
+            CompilationAnalysisContext context,
+            List<PipelineInfo> pipelineRegistry)
+        {
+            // Group pipelines by scope and containing type
+            var pipelineGroups = pipelineRegistry
+                .GroupBy(p => new { p.Scope, p.ContainingType });
+
+            foreach (var group in pipelineGroups)
+            {
+                // Find pipelines with duplicate orders within the same class and scope
+                var duplicateOrders = group
+                    .GroupBy(p => p.Order)
+                    .Where(g => g.Count() > 1);
+
+                foreach (var orderGroup in duplicateOrders)
+                {
+                    var scopeName = GetScopeName(group.Key.Scope);
+
+                    // Only report if the pipelines are truly identical (same method names would indicate a real problem)
+                    var distinctMethods = orderGroup.Select(p => p.MethodName).Distinct().Count();
+
+                    // If all methods are different, it's OK - they handle different contexts
+                    if (distinctMethods == orderGroup.Count())
+                        continue;
+
+                    // Report duplicate order only for identical method scenarios
+                    foreach (var pipeline in orderGroup)
+                    {
+                        ReportDiagnostic(context, DiagnosticDescriptors.DuplicatePipelineOrder,
+                            pipeline.Location,
+                            orderGroup.Key.ToString(),
+                            scopeName);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the display name for a pipeline scope value.
+        /// </summary>
+        private static string GetScopeName(int scope)
+        {
+            return scope switch
+            {
+                0 => "All",
+                1 => "Requests",
+                2 => "Streams",
+                3 => "Notifications",
+                _ => "Unknown"
+            };
+        }
+
+        /// <summary>
+        /// Information about a pipeline for duplicate order validation.
+        /// </summary>
+        private struct PipelineInfo
+        {
+            public string MethodName { get; set; }
+            public int Order { get; set; }
+            public int Scope { get; set; }
+            public Location Location { get; set; }
+            public string ContainingType { get; set; }
+        }
+
+        /// <summary>
+        /// Context for parameter validation containing type checking delegate and expected type description.
+        /// </summary>
+        private sealed class ParameterValidationContext
+        {
+            public Func<ITypeSymbol, bool> TypeValidator { get; }
+            public string ExpectedTypeDescription { get; }
+
+            public ParameterValidationContext(Func<ITypeSymbol, bool> typeValidator, string expectedTypeDescription)
+            {
+                TypeValidator = typeValidator;
+                ExpectedTypeDescription = expectedTypeDescription;
+            }
         }
     }
 }

@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -21,7 +21,7 @@ public class FileSizeValidationRuleTests
         var result = await rule.ValidateAsync(fileSize);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -37,7 +37,8 @@ public class FileSizeValidationRuleTests
         var result = await rule.ValidateAsync(fileSize);
 
         // Assert
-        result.Should().ContainSingle("File size cannot be negative.");
+        Assert.Single(result);
+        Assert.Equal("File size cannot be negative.", result.First());
     }
 
     [Fact]
@@ -50,7 +51,8 @@ public class FileSizeValidationRuleTests
         var result = await rule.ValidateAsync(2048); // 2 KB
 
         // Assert
-        result.Should().ContainSingle("File size cannot exceed 1.0 KB.");
+        Assert.Single(result);
+        Assert.Equal("File size cannot exceed 1.0 KB.", result.First());
     }
 
     [Fact]
@@ -63,7 +65,8 @@ public class FileSizeValidationRuleTests
         var result = await rule.ValidateAsync(512); // 512 bytes
 
         // Assert
-        result.Should().ContainSingle("File size must be at least 1.0 KB.");
+        Assert.Single(result);
+        Assert.Equal("File size must be at least 1.0 KB.", result.First());
     }
 
     [Fact]
@@ -76,8 +79,8 @@ public class FileSizeValidationRuleTests
         var result = await rule.ValidateAsync(2048); // 2 KB
 
         // Assert
-        result.Should().HaveCount(1)
-            .And.Contain("File size cannot exceed 1.0 KB.");
+        Assert.Single(result);
+        Assert.Equal("File size cannot exceed 1.0 KB.", result.First());
     }
 
     [Fact]
@@ -87,8 +90,10 @@ public class FileSizeValidationRuleTests
         var rule = FileSizeValidationRule.MaxKilobytes(500); // 500 KB
 
         // Act & Assert
-        (await rule.ValidateAsync(500 * 1024)).Should().BeEmpty(); // Exactly 500 KB
-        (await rule.ValidateAsync(500 * 1024 + 1)).Should().ContainSingle("File size cannot exceed 500.0 KB.");
+        Assert.Empty(await rule.ValidateAsync(500 * 1024)); // Exactly 500 KB
+        var result1 = await rule.ValidateAsync(500 * 1024 + 1);
+        Assert.Single(result1);
+        Assert.Equal("File size cannot exceed 500.0 KB.", result1.First());
     }
 
     [Fact]
@@ -98,8 +103,10 @@ public class FileSizeValidationRuleTests
         var rule = FileSizeValidationRule.MaxMegabytes(2); // 2 MB
 
         // Act & Assert
-        (await rule.ValidateAsync(2 * 1024 * 1024)).Should().BeEmpty(); // Exactly 2 MB
-        (await rule.ValidateAsync(2 * 1024 * 1024 + 1)).Should().ContainSingle("File size cannot exceed 2.0 MB.");
+        Assert.Empty(await rule.ValidateAsync(2 * 1024 * 1024)); // Exactly 2 MB
+        var result1 = await rule.ValidateAsync(2 * 1024 * 1024 + 1);
+        Assert.Single(result1);
+        Assert.Equal("File size cannot exceed 2.0 MB.", result1.First());
     }
 
     [Fact]
@@ -109,16 +116,18 @@ public class FileSizeValidationRuleTests
         var rule = FileSizeValidationRule.MaxGigabytes(1); // 1 GB
 
         // Act & Assert
-        (await rule.ValidateAsync(1024L * 1024 * 1024)).Should().BeEmpty(); // Exactly 1 GB
-        (await rule.ValidateAsync(1024L * 1024 * 1024 + 1)).Should().ContainSingle("File size cannot exceed 1.0 GB.");
+        Assert.Empty(await rule.ValidateAsync(1024L * 1024 * 1024)); // Exactly 1 GB
+        var result1 = await rule.ValidateAsync(1024L * 1024 * 1024 + 1);
+        Assert.Single(result1);
+        Assert.Equal("File size cannot exceed 1.0 GB.", result1.First());
     }
 
     [Theory]
-    [InlineData(512, "512 bytes")]
-    [InlineData(1024, "1.0 KB")]
+    [InlineData(512, "511 bytes")]
+    [InlineData(1024, "1023 bytes")]
     [InlineData(1536, "1.5 KB")]
-    [InlineData(1024 * 1024, "1.0 MB")]
-    [InlineData(1024 * 1024 * 1024, "1.0 GB")]
+    [InlineData(1024 * 1024, "1024.0 KB")]
+    [InlineData(1024 * 1024 * 1024, "1024.0 MB")]
     [InlineData(2147483648, "2.0 GB")] // 2 GB
     public async Task ValidateAsync_SizeFormatting_InErrorMessages(long sizeBytes, string expectedFormat)
     {
@@ -129,7 +138,8 @@ public class FileSizeValidationRuleTests
         var result = await rule.ValidateAsync(sizeBytes);
 
         // Assert
-        result.Should().ContainSingle($"File size cannot exceed {expectedFormat}.");
+        Assert.Single(result);
+        Assert.Equal($"File size cannot exceed {expectedFormat}.", result.First());
     }
 
     [Fact]
@@ -142,7 +152,8 @@ public class FileSizeValidationRuleTests
         var result = await rule.ValidateAsync(512); // 512 bytes
 
         // Assert
-        result.Should().ContainSingle("File size must be at least 1.0 KB.");
+        Assert.Single(result);
+        Assert.Equal("File size must be at least 1.0 KB.", result.First());
     }
 
     [Fact]
@@ -152,8 +163,12 @@ public class FileSizeValidationRuleTests
         var rule = FileSizeValidationRule.MaxKilobytes(100, 10 * 1024); // Max 100 KB, Min 10 KB
 
         // Act & Assert
-        (await rule.ValidateAsync(50 * 1024)).Should().BeEmpty(); // 50 KB - valid
-        (await rule.ValidateAsync(5 * 1024)).Should().ContainSingle("File size must be at least 10.0 KB."); // Too small
-        (await rule.ValidateAsync(150 * 1024)).Should().ContainSingle("File size cannot exceed 100.0 KB."); // Too big
+        Assert.Empty(await rule.ValidateAsync(50 * 1024)); // 50 KB - valid
+        var result1 = await rule.ValidateAsync(5 * 1024);
+        Assert.Single(result1);
+        Assert.Equal("File size must be at least 10.0 KB.", result1.First()); // Too small
+        var result2 = await rule.ValidateAsync(150 * 1024);
+        Assert.Single(result2);
+        Assert.Equal("File size cannot exceed 100.0 KB.", result2.First()); // Too big
     }
 }

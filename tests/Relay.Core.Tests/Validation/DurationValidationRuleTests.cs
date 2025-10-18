@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -27,7 +27,7 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -43,7 +43,7 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -64,7 +64,7 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -90,7 +90,7 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -106,7 +106,8 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid duration format");
+        Assert.Single(result);
+        Assert.Contains("Invalid duration format", result.First());
     }
 
     [Theory]
@@ -121,7 +122,8 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid duration format");
+        Assert.Single(result);
+        Assert.Contains("Invalid duration format", result.First());
     }
 
     [Theory]
@@ -137,7 +139,8 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Invalid duration format");
+        Assert.Single(result);
+        Assert.Contains("Invalid duration format", result.First());
     }
 
     [Theory]
@@ -153,7 +156,8 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().ContainSingle("Invalid duration format. Supported formats: ISO 8601 (P1Y2M3DT4H5M6S), TimeSpan (HH:MM:SS), or simple text (1 day 2 hours 30 minutes)");
+        Assert.Single(result);
+        Assert.Equal("Invalid duration format. Supported formats: ISO 8601 (P1Y2M3DT4H5M6S), TimeSpan (HH:MM:SS), or simple text (1 day 2 hours 30 minutes)", result.First());
     }
 
     [Theory]
@@ -166,7 +170,7 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -180,7 +184,7 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -194,7 +198,7 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -209,6 +213,6 @@ public class DurationValidationRuleTests
         var result = await _rule.ValidateAsync(duration);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 }

@@ -133,6 +133,70 @@ namespace Relay.SourceGenerator.Validators
                         "Notification handler methods should return Task or ValueTask for optimal async performance");
                 }
             }
+
+            if (methodDeclaration.Body == null) return;
+
+            foreach (var awaitExpression in methodDeclaration.Body.DescendantNodes().OfType<AwaitExpressionSyntax>())
+            {
+                var awaitOperand = awaitExpression.Expression;
+                if (awaitOperand is InvocationExpressionSyntax invocation &&
+                    invocation.Expression is MemberAccessExpressionSyntax memberAccess &&
+                    memberAccess.Name.Identifier.Text == "ConfigureAwait")
+                {
+                    // Correctly using ConfigureAwait. Do nothing.
+                }
+                else
+                {
+                    // Potentially missing ConfigureAwait.
+                    // Check if the awaited type is a Task or ValueTask.
+                    var awaitedType = context.SemanticModel.GetTypeInfo(awaitOperand).Type;
+                    if (awaitedType != null)
+                    {
+                        var taskSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
+                        var valueTaskSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
+                        var genericTaskSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+                        var genericValueTaskSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
+
+                        var originalDefinition = awaitedType.OriginalDefinition;
+
+                        if (SymbolEqualityComparer.Default.Equals(originalDefinition, taskSymbol) ||
+                            SymbolEqualityComparer.Default.Equals(originalDefinition, valueTaskSymbol) ||
+                            SymbolEqualityComparer.Default.Equals(originalDefinition, genericTaskSymbol) ||
+                            SymbolEqualityComparer.Default.Equals(originalDefinition, genericValueTaskSymbol))
+                        {
+                            ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.MissingConfigureAwait,
+                                awaitExpression.GetLocation());
+                        }
+                    }
+                }
+            }
+
+            foreach (var memberAccess in methodDeclaration.Body.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+            {
+                if (memberAccess.Name.Identifier.Text == "Result" || memberAccess.Name.Identifier.Text == "Wait")
+                {
+                    var typeInfo = context.SemanticModel.GetTypeInfo(memberAccess.Expression);
+                    var objectType = typeInfo.Type;
+                    if (objectType != null)
+                    {
+                        var taskSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Threading.Tasks.Task");
+                        var valueTaskSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask");
+                        var genericTaskSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+                        var genericValueTaskSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
+
+                        var originalDefinition = objectType.OriginalDefinition;
+
+                        if (SymbolEqualityComparer.Default.Equals(originalDefinition, taskSymbol) ||
+                            SymbolEqualityComparer.Default.Equals(originalDefinition, valueTaskSymbol) ||
+                            SymbolEqualityComparer.Default.Equals(originalDefinition, genericTaskSymbol) ||
+                            SymbolEqualityComparer.Default.Equals(originalDefinition, genericValueTaskSymbol))
+                        {
+                            ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.SyncOverAsync,
+                                memberAccess.Name.GetLocation());
+                        }
+                    }
+                }
+            }
         }
     }
 }

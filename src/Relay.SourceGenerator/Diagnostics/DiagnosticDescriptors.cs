@@ -84,6 +84,22 @@ namespace Relay.SourceGenerator
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
 
+        public static readonly DiagnosticDescriptor MissingConfigureAwait = new(
+            "RELAY_GEN_104",
+            "Missing ConfigureAwait(false)",
+            "Await on a task without calling .ConfigureAwait(false) can lead to deadlocks. Consider using .ConfigureAwait(false).",
+            Category,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: false);
+
+        public static readonly DiagnosticDescriptor SyncOverAsync = new(
+            "RELAY_GEN_105",
+            "Sync-over-async detected",
+            "Calling .Result or .Wait() on a task can lead to deadlocks. Use await instead.",
+            Category,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: false);
+
         // Configuration validation diagnostics
         public static readonly DiagnosticDescriptor DuplicatePipelineOrder = new(
             "RELAY_GEN_201",

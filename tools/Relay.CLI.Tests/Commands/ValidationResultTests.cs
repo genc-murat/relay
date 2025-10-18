@@ -1,4 +1,3 @@
-using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Validation;
 
 namespace Relay.CLI.Tests.Commands;
@@ -12,7 +11,7 @@ public class ValidationResultTests
         var result = new ValidationResult { Type = "Handler Pattern" };
 
         // Assert
-        result.Type.Should().Be("Handler Pattern");
+        Assert.Equal("Handler Pattern", result.Type);
     }
 
     [Fact]
@@ -22,7 +21,7 @@ public class ValidationResultTests
         var result = new ValidationResult { Status = ValidationStatus.Pass };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Pass);
+        Assert.Equal(ValidationStatus.Pass, result.Status);
     }
 
     [Fact]
@@ -32,7 +31,7 @@ public class ValidationResultTests
         var result = new ValidationResult { Message = "Validation successful" };
 
         // Assert
-        result.Message.Should().Be("Validation successful");
+        Assert.Equal("Validation successful", result.Message);
     }
 
     [Fact]
@@ -42,7 +41,7 @@ public class ValidationResultTests
         var result = new ValidationResult { Severity = ValidationSeverity.High };
 
         // Assert
-        result.Severity.Should().Be(ValidationSeverity.High);
+        Assert.Equal(ValidationSeverity.High, result.Severity);
     }
 
     [Fact]
@@ -52,7 +51,7 @@ public class ValidationResultTests
         var result = new ValidationResult { Suggestion = "Use ValueTask instead of Task" };
 
         // Assert
-        result.Suggestion.Should().Be("Use ValueTask instead of Task");
+        Assert.Equal("Use ValueTask instead of Task", result.Suggestion);
     }
 
     [Fact]
@@ -62,11 +61,11 @@ public class ValidationResultTests
         var result = new ValidationResult();
 
         // Assert
-        result.Type.Should().Be("");
-        result.Status.Should().Be(ValidationStatus.Pass);
-        result.Message.Should().Be("");
-        result.Severity.Should().Be(ValidationSeverity.Info);
-        result.Suggestion.Should().BeNull();
+        Assert.Equal("", result.Type);
+        Assert.Equal(ValidationStatus.Pass, result.Status);
+        Assert.Equal("", result.Message);
+        Assert.Equal(ValidationSeverity.Info, result.Severity);
+        Assert.Null(result.Suggestion);
     }
 
     [Fact]
@@ -83,11 +82,11 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Handler Pattern");
-        result.Status.Should().Be(ValidationStatus.Warning);
-        result.Message.Should().Contain("ValueTask");
-        result.Severity.Should().Be(ValidationSeverity.Medium);
-        result.Suggestion.Should().Contain("performance");
+        Assert.Equal("Handler Pattern", result.Type);
+        Assert.Equal(ValidationStatus.Warning, result.Status);
+        Assert.Contains("ValueTask", result.Message);
+        Assert.Equal(ValidationSeverity.Medium, result.Severity);
+        Assert.Contains("performance", result.Suggestion);
     }
 
     [Theory]
@@ -100,7 +99,7 @@ public class ValidationResultTests
         var result = new ValidationResult { Status = status };
 
         // Assert
-        result.Status.Should().Be(status);
+        Assert.Equal(status, result.Status);
     }
 
     [Theory]
@@ -115,7 +114,7 @@ public class ValidationResultTests
         var result = new ValidationResult { Severity = severity };
 
         // Assert
-        result.Severity.Should().Be(severity);
+        Assert.Equal(severity, result.Severity);
     }
 
     [Fact]
@@ -131,8 +130,8 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Pass);
-        result.Severity.Should().Be(ValidationSeverity.Info);
+        Assert.Equal(ValidationStatus.Pass, result.Status);
+        Assert.Equal(ValidationSeverity.Info, result.Severity);
     }
 
     [Fact]
@@ -148,8 +147,8 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Warning);
-        result.Severity.Should().Be(ValidationSeverity.Medium);
+        Assert.Equal(ValidationStatus.Warning, result.Status);
+        Assert.Equal(ValidationSeverity.Medium, result.Severity);
     }
 
     [Fact]
@@ -166,9 +165,10 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Fail);
-        result.Severity.Should().Be(ValidationSeverity.Critical);
-        result.Suggestion.Should().NotBeNullOrEmpty();
+        Assert.Equal(ValidationStatus.Fail, result.Status);
+        Assert.Equal(ValidationSeverity.Critical, result.Severity);
+        Assert.NotNull(result.Suggestion);
+        Assert.NotEmpty(result.Suggestion);
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Suggestion.Should().BeNull();
+        Assert.Null(result.Suggestion);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Suggestion.Should().BeEmpty();
+        Assert.Empty(result.Suggestion);
     }
 
     [Fact]
@@ -221,7 +221,7 @@ public class ValidationResultTests
             var result = new ValidationResult { Type = type };
 
             // Assert
-            result.Type.Should().Be(type);
+            Assert.Equal(type, result.Type);
         }
     }
 
@@ -235,10 +235,10 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Message.Should().Contain("CreateUserHandler");
-        result.Message.Should().Contain("CreateUser.cs");
-        result.Message.Should().Contain("Task");
-        result.Message.Should().Contain("ValueTask");
+        Assert.Contains("CreateUserHandler", result.Message);
+        Assert.Contains("CreateUser.cs", result.Message);
+        Assert.Contains("Task", result.Message);
+        Assert.Contains("ValueTask", result.Message);
     }
 
     [Fact]
@@ -251,8 +251,8 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Suggestion.Should().Contain("CancellationToken");
-        result.Suggestion.Should().Contain("cancellation");
+        Assert.Contains("CancellationToken", result.Suggestion);
+        Assert.Contains("cancellation", result.Suggestion);
     }
 
     [Fact]
@@ -262,8 +262,8 @@ public class ValidationResultTests
         var result = new ValidationResult();
 
         // Assert
-        result.Should().NotBeNull();
-        result.GetType().IsClass.Should().BeTrue();
+        Assert.NotNull(result);
+        Assert.True(result.GetType().IsClass);
     }
 
     [Fact]
@@ -278,10 +278,10 @@ public class ValidationResultTests
         };
 
         // Assert
-        results.Should().HaveCount(3);
-        results.Count(r => r.Status == ValidationStatus.Pass).Should().Be(1);
-        results.Count(r => r.Status == ValidationStatus.Warning).Should().Be(1);
-        results.Count(r => r.Status == ValidationStatus.Fail).Should().Be(1);
+        Assert.Equal(3, results.Count);
+        Assert.Equal(1, results.Count(r => r.Status == ValidationStatus.Pass));
+        Assert.Equal(1, results.Count(r => r.Status == ValidationStatus.Warning));
+        Assert.Equal(1, results.Count(r => r.Status == ValidationStatus.Fail));
     }
 
     [Fact]
@@ -300,7 +300,7 @@ public class ValidationResultTests
         var failures = results.Where(r => r.Status == ValidationStatus.Fail).ToList();
 
         // Assert
-        failures.Should().HaveCount(1);
+        Assert.Single(failures);
     }
 
     [Fact]
@@ -319,7 +319,7 @@ public class ValidationResultTests
         var criticalIssues = results.Where(r => r.Severity == ValidationSeverity.Critical).ToList();
 
         // Assert
-        criticalIssues.Should().HaveCount(2);
+        Assert.Equal(2, criticalIssues.Count);
     }
 
     [Fact]
@@ -339,9 +339,9 @@ public class ValidationResultTests
         result.Message = "Modified message";
 
         // Assert
-        result.Type.Should().Be("Modified");
-        result.Status.Should().Be(ValidationStatus.Fail);
-        result.Message.Should().Be("Modified message");
+        Assert.Equal("Modified", result.Type);
+        Assert.Equal(ValidationStatus.Fail, result.Status);
+        Assert.Equal("Modified message", result.Message);
     }
 
     [Fact]
@@ -358,11 +358,11 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Handler Pattern");
-        result.Status.Should().Be(ValidationStatus.Warning);
-        result.Message.Should().Contain("Task");
-        result.Severity.Should().Be(ValidationSeverity.Medium);
-        result.Suggestion.Should().NotBeNull();
+        Assert.Equal("Handler Pattern", result.Type);
+        Assert.Equal(ValidationStatus.Warning, result.Status);
+        Assert.Contains("Task", result.Message);
+        Assert.Equal(ValidationSeverity.Medium, result.Severity);
+        Assert.NotNull(result.Suggestion);
     }
 
     [Fact]
@@ -378,10 +378,10 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Package Reference");
-        result.Status.Should().Be(ValidationStatus.Pass);
-        result.Message.Should().Contain("Relay package");
-        result.Severity.Should().Be(ValidationSeverity.Info);
+        Assert.Equal("Package Reference", result.Type);
+        Assert.Equal(ValidationStatus.Pass, result.Status);
+        Assert.Contains("Relay package", result.Message);
+        Assert.Equal(ValidationSeverity.Info, result.Severity);
     }
 
     [Fact]
@@ -398,10 +398,10 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("DI Registration");
-        result.Status.Should().Be(ValidationStatus.Fail);
-        result.Severity.Should().Be(ValidationSeverity.High);
-        result.Suggestion.Should().Contain("AddRelay");
+        Assert.Equal("DI Registration", result.Type);
+        Assert.Equal(ValidationStatus.Fail, result.Status);
+        Assert.Equal(ValidationSeverity.High, result.Severity);
+        Assert.Contains("AddRelay", result.Suggestion);
     }
 
     [Fact]
@@ -417,10 +417,10 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Configuration");
-        result.Status.Should().Be(ValidationStatus.Pass);
-        result.Message.Should().Contain("configuration");
-        result.Severity.Should().Be(ValidationSeverity.Info);
+        Assert.Equal("Configuration", result.Type);
+        Assert.Equal(ValidationStatus.Pass, result.Status);
+        Assert.Contains("configuration", result.Message);
+        Assert.Equal(ValidationSeverity.Info, result.Severity);
     }
 
     [Fact]
@@ -436,10 +436,10 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Code Quality");
-        result.Status.Should().Be(ValidationStatus.Warning);
-        result.Message.Should().Contain("Nullable");
-        result.Severity.Should().Be(ValidationSeverity.Medium);
+        Assert.Equal("Code Quality", result.Type);
+        Assert.Equal(ValidationStatus.Warning, result.Status);
+        Assert.Contains("Nullable", result.Message);
+        Assert.Equal(ValidationSeverity.Medium, result.Severity);
     }
 
     [Fact]
@@ -452,9 +452,9 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Message.Should().Contain("Handler validation failed");
-        result.Message.Should().Contain("Missing CancellationToken");
-        result.Message.Should().Contain("Using Task instead of ValueTask");
+        Assert.Contains("Handler validation failed", result.Message);
+        Assert.Contains("Missing CancellationToken", result.Message);
+        Assert.Contains("Using Task instead of ValueTask", result.Message);
     }
 
     [Fact]
@@ -467,9 +467,9 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Suggestion.Should().Contain("To fix this issue");
-        result.Suggestion.Should().Contain("Add CancellationToken");
-        result.Suggestion.Should().Contain("Use ValueTask<T>");
+        Assert.Contains("To fix this issue", result.Suggestion);
+        Assert.Contains("Add CancellationToken", result.Suggestion);
+        Assert.Contains("Use ValueTask<T>", result.Suggestion);
     }
 
     [Theory]
@@ -492,10 +492,10 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Type.Should().Be(type);
-        result.Status.Should().Be(status);
-        result.Message.Should().Be(message);
-        result.Severity.Should().Be(severity);
+        Assert.Equal(type, result.Type);
+        Assert.Equal(status, result.Status);
+        Assert.Equal(message, result.Message);
+        Assert.Equal(severity, result.Severity);
     }
 
     [Fact]
@@ -509,8 +509,8 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Warning);
-        result.Severity.Should().Be(ValidationSeverity.Low);
+        Assert.Equal(ValidationStatus.Warning, result.Status);
+        Assert.Equal(ValidationSeverity.Low, result.Severity);
     }
 
     [Fact]
@@ -526,7 +526,7 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Pass);
+        Assert.Equal(ValidationStatus.Pass, result.Status);
     }
 
     [Fact]
@@ -543,8 +543,8 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Warning);
-        result.Suggestion.Should().NotBeNull();
+        Assert.Equal(ValidationStatus.Warning, result.Status);
+        Assert.NotNull(result.Suggestion);
     }
 
     [Fact]
@@ -561,8 +561,8 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Status.Should().Be(ValidationStatus.Fail);
-        result.Severity.Should().Be(ValidationSeverity.Critical);
+        Assert.Equal(ValidationStatus.Fail, result.Status);
+        Assert.Equal(ValidationSeverity.Critical, result.Severity);
     }
 
     [Fact]
@@ -575,7 +575,7 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Type.Should().Be("Handler Pattern Violation");
+        Assert.Equal("Handler Pattern Violation", result.Type);
     }
 
     [Fact]
@@ -588,9 +588,9 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Message.Should().Contain("'CreateUser'");
-        result.Message.Should().Contain("->");
-        result.Message.Should().Contain("[Handle]");
+        Assert.Contains("'CreateUser'", result.Message);
+        Assert.Contains("->", result.Message);
+        Assert.Contains("[Handle]", result.Message);
     }
 
     [Fact]
@@ -603,7 +603,7 @@ public class ValidationResultTests
         };
 
         // Assert
-        result.Suggestion.Should().Contain("AddRelay()");
+        Assert.Contains("AddRelay()", result.Suggestion);
     }
 
     [Fact]
@@ -622,8 +622,8 @@ public class ValidationResultTests
         var grouped = results.GroupBy(r => r.Type);
 
         // Assert
-        grouped.Should().HaveCount(3);
-        grouped.First(g => g.Key == "Handlers").Should().HaveCount(2);
+        Assert.Equal(3, grouped.Count());
+        Assert.Equal(2, grouped.First(g => g.Key == "Handlers").Count());
     }
 
     [Fact]
@@ -641,8 +641,8 @@ public class ValidationResultTests
         var ordered = results.OrderByDescending(r => r.Severity).ToList();
 
         // Assert
-        ordered[0].Severity.Should().Be(ValidationSeverity.Critical);
-        ordered[1].Severity.Should().Be(ValidationSeverity.Medium);
-        ordered[2].Severity.Should().Be(ValidationSeverity.Low);
+        Assert.Equal(ValidationSeverity.Critical, ordered[0].Severity);
+        Assert.Equal(ValidationSeverity.Medium, ordered[1].Severity);
+        Assert.Equal(ValidationSeverity.Low, ordered[2].Severity);
     }
 }

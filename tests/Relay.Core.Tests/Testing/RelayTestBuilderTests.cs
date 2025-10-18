@@ -1,14 +1,10 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Relay.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Diagnostics;
 using Relay.Core.Diagnostics.Core;
 using Relay.Core.Telemetry;
+using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.Testing;
@@ -22,7 +18,7 @@ public class RelayTestBuilderTests
         var builder = RelayTestBuilder.Create();
 
         // Assert
-        builder.Should().NotBeNull();
+        Assert.NotNull(builder);
     }
 
     [Fact]
@@ -38,7 +34,7 @@ public class RelayTestBuilderTests
 
         // Assert
         var handler = serviceProvider.GetService<IRequestHandler<TestBuilderRequest, string>>();
-        handler.Should().NotBeNull();
+        Assert.NotNull(handler);
     }
 
     [Fact]
@@ -56,7 +52,7 @@ public class RelayTestBuilderTests
         var response = await relay.SendAsync(request);
 
         // Assert
-        response.Should().Be(expectedResponse);
+        Assert.Equal(expectedResponse, response);
     }
 
     [Fact]
@@ -71,9 +67,8 @@ public class RelayTestBuilderTests
             .Build();
 
         // Act & Assert
-        await relay.Invoking(r => r.SendAsync(request).AsTask())
-            .Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Test exception");
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => relay.SendAsync(request).AsTask());
+        Assert.Equal("Test exception", exception.Message);
     }
 
     [Fact]
@@ -86,8 +81,8 @@ public class RelayTestBuilderTests
 
         // Assert
         var telemetryProvider = serviceProvider.GetService<ITelemetryProvider>();
-        telemetryProvider.Should().NotBeNull();
-        telemetryProvider.Should().BeOfType<TestTelemetryProvider>();
+        Assert.NotNull(telemetryProvider);
+        Assert.IsType<TestTelemetryProvider>(telemetryProvider);
     }
 
     [Fact]
@@ -100,7 +95,7 @@ public class RelayTestBuilderTests
 
         // Assert
         var tracer = serviceProvider.GetService<IRequestTracer>();
-        tracer.Should().NotBeNull();
+        Assert.NotNull(tracer);
     }
 
     private class TestBuilderRequest : IRequest<string>

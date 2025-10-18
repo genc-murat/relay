@@ -5,7 +5,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Data point for time-series storage with ML.NET compatibility
     /// </summary>
-    internal class MetricDataPoint
+    public class MetricDataPoint
     {
         public string MetricName { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }

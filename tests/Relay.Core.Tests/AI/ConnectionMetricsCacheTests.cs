@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.TimeSeries;
 using Xunit;
 
 namespace Relay.Core.Tests.AI
@@ -20,7 +21,7 @@ namespace Relay.Core.Tests.AI
 
         private ConnectionMetricsCache CreateCache()
         {
-            var timeSeriesDb = new TimeSeriesDatabase(_timeSeriesLogger, 10000);
+            var timeSeriesDb = TimeSeriesDatabase.Create(_timeSeriesLogger, maxHistorySize: 10000);
             return new ConnectionMetricsCache(_logger, timeSeriesDb);
         }
 
@@ -38,7 +39,7 @@ namespace Relay.Core.Tests.AI
         public void Constructor_Should_Throw_When_Logger_Is_Null()
         {
             // Arrange
-            var timeSeriesDb = new TimeSeriesDatabase(_timeSeriesLogger, 10000);
+            var timeSeriesDb = TimeSeriesDatabase.Create(_timeSeriesLogger, maxHistorySize: 10000);
 
             // Act & Assert
             var exception = Assert.Throws<ArgumentNullException>(() =>

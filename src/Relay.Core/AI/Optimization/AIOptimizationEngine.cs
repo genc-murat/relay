@@ -10,6 +10,7 @@ using Relay.Core.AI.Optimization.Models;
 using Relay.Core.AI.Optimization.Strategies;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Contexts;
+using Relay.Core.AI.Analysis.TimeSeries;
 
 namespace Relay.Core.AI
 {
@@ -76,7 +77,7 @@ namespace Relay.Core.AI
             _connectionMetrics = new ConnectionMetricsCollector(connLogger, _options, _requestAnalytics);
 
             var tsDbLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<TimeSeriesDatabase>.Instance;
-            _timeSeriesDb = new TimeSeriesDatabase(tsDbLogger, maxHistorySize: 10000);
+            _timeSeriesDb = TimeSeriesDatabase.Create(tsDbLogger, maxHistorySize: 10000);
 
             var connCacheLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<ConnectionMetricsCache>.Instance;
             _connectionMetricsCache = new ConnectionMetricsCache(connCacheLogger, _timeSeriesDb);

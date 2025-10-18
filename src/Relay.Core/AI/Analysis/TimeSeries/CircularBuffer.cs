@@ -2,18 +2,19 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Analysis.TimeSeries
 {
     /// <summary>
     /// Circular buffer for efficient time-series storage
     /// </summary>
-    internal class CircularBuffer<T> : IEnumerable<T>, IReadOnlyCollection<T>
+    internal class CircularBuffer<T> : IEnumerable<T>, IReadOnlyCollection<T>, IDisposable
     {
         private readonly T[] _buffer;
         private int _start;
         private int _count;
-        private readonly object _lock = new object();
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
 
         public CircularBuffer(int capacity)
         {
@@ -29,17 +30,23 @@ namespace Relay.Core.AI
         {
             get
             {
-                lock (_lock)
+                _lock.EnterReadLock();
+                try
                 {
                     if (index < 0 || index >= _count) throw new ArgumentOutOfRangeException(nameof(index));
                     return _buffer[(_start + index) % _buffer.Length];
+                }
+                finally
+                {
+                    _lock.ExitReadLock();
                 }
             }
         }
 
         public void Add(T item)
         {
-            lock (_lock)
+            _lock.EnterWriteLock();
+            try
             {
                 if (_count < _buffer.Length)
                 {
@@ -52,30 +59,45 @@ namespace Relay.Core.AI
                     _start = (_start + 1) % _buffer.Length;
                 }
             }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
         }
 
         public void Clear()
         {
-            lock (_lock)
+            _lock.EnterWriteLock();
+            try
             {
                 _start = 0;
                 _count = 0;
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
             }
         }
 
         public void RemoveFront(int count)
         {
             if (count < 0 || count > _count) throw new ArgumentOutOfRangeException(nameof(count));
-            lock (_lock)
+            _lock.EnterWriteLock();
+            try
             {
                 _start = (_start + count) % _buffer.Length;
                 _count -= count;
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
             }
         }
 
         public T[] ToArray()
         {
-            lock (_lock)
+            _lock.EnterReadLock();
+            try
             {
                 var result = new T[_count];
                 var resultSpan = result.AsSpan();
@@ -91,20 +113,40 @@ namespace Relay.Core.AI
                 }
                 return result;
             }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
 
 
         public IEnumerator<T> GetEnumerator()
         {
-            lock (_lock)
+            _lock.EnterReadLock();
+            T[] snapshot;
+            int start, count;
+            try
             {
-                for (int i = 0; i < _count; i++)
-                {
-                    int index = (_start + i) % _buffer.Length;
-                    yield return _buffer[index];
-                }
+                snapshot = (T[])_buffer.Clone();
+                start = _start;
+                count = _count;
             }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int index = (start + i) % snapshot.Length;
+                yield return snapshot[index];
+            }
+        }
+
+        public void Dispose()
+        {
+            _lock?.Dispose();
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

@@ -1,6 +1,7 @@
 using System.Linq;
 using Xunit;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.TimeSeries;
 
 namespace Relay.Core.Tests.AI
 {

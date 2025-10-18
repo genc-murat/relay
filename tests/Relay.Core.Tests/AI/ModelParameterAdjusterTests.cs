@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.TimeSeries;
 using Relay.Core.AI.Optimization.Strategies;
 using Xunit;
 
@@ -30,7 +31,7 @@ namespace Relay.Core.Tests.AI
                 MaxCacheTtl = TimeSpan.FromHours(24)
             };
             _recentPredictions = new ConcurrentQueue<PredictionResult>();
-            _timeSeriesDb = new TimeSeriesDatabase(_timeSeriesLogger, 10000);
+            _timeSeriesDb = TimeSeriesDatabase.Create(_timeSeriesLogger, maxHistorySize: 10000);
         }
 
         private ModelParameterAdjuster CreateAdjuster()
@@ -367,7 +368,7 @@ namespace Relay.Core.Tests.AI
                 MinCacheTtl = TimeSpan.FromSeconds(1),
                 MaxCacheTtl = TimeSpan.FromDays(7)
             };
-            var timeSeriesDb = new TimeSeriesDatabase(_timeSeriesLogger, 10000);
+            var timeSeriesDb = TimeSeriesDatabase.Create(_timeSeriesLogger, maxHistorySize: 10000);
             var adjuster = new ModelParameterAdjuster(_logger, extremeOptions, _recentPredictions, timeSeriesDb);
             var modelStats = CreateDefaultModelStatistics();
 
@@ -608,7 +609,7 @@ namespace Relay.Core.Tests.AI
         public void AdjustModelParameters_Should_Handle_Large_TimeSeriesDatabase()
         {
             // Arrange
-            var largeTimeSeriesDb = new TimeSeriesDatabase(_timeSeriesLogger, 50000);
+            var largeTimeSeriesDb = TimeSeriesDatabase.Create(_timeSeriesLogger, maxHistorySize: 50000);
             
             // Add many metrics
             for (int i = 0; i < 1000; i++)

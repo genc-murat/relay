@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.TimeSeries;
 using Xunit;
 
 namespace Relay.Core.Tests.AI
@@ -17,7 +18,7 @@ namespace Relay.Core.Tests.AI
         {
             var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             _logger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
-            _database = new TimeSeriesDatabase(_logger, maxHistorySize: 1000);
+            _database = TimeSeriesDatabase.Create(_logger, maxHistorySize: 1000);
         }
 
         public void Dispose()
@@ -28,27 +29,27 @@ namespace Relay.Core.Tests.AI
         #region Constructor Tests
 
         [Fact]
-        public void Constructor_Should_Throw_When_Logger_Is_Null()
+        public void Create_Should_Throw_When_Logger_Is_Null()
         {
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new TimeSeriesDatabase(null!));
+            Assert.Throws<ArgumentNullException>(() => TimeSeriesDatabase.Create(null!));
         }
 
         [Fact]
-        public void Constructor_Should_Initialize_With_Default_MaxHistorySize()
+        public void Create_Should_Initialize_With_Default_MaxHistorySize()
         {
             // Arrange & Act
-            using var db = new TimeSeriesDatabase(_logger);
+            using var db = TimeSeriesDatabase.Create(_logger);
 
             // Assert - Should not throw
             db.StoreMetric("test", 1.0, DateTime.UtcNow);
         }
 
         [Fact]
-        public void Constructor_Should_Initialize_With_Custom_MaxHistorySize()
+        public void Create_Should_Initialize_With_Custom_MaxHistorySize()
         {
             // Arrange & Act
-            using var db = new TimeSeriesDatabase(_logger, maxHistorySize: 500);
+            using var db = TimeSeriesDatabase.Create(_logger, maxHistorySize: 500);
 
             // Assert - Should not throw
             db.StoreMetric("test", 1.0, DateTime.UtcNow);
@@ -940,7 +941,7 @@ namespace Relay.Core.Tests.AI
         public void Dispose_Should_Clear_Data()
         {
             // Arrange
-            using var db = new TimeSeriesDatabase(_logger);
+            using var db = TimeSeriesDatabase.Create(_logger);
             db.StoreMetric("test", 10.0, DateTime.UtcNow);
 
             // Act
@@ -955,7 +956,7 @@ namespace Relay.Core.Tests.AI
         public void Dispose_Should_Be_Idempotent()
         {
             // Arrange
-            using var db = new TimeSeriesDatabase(_logger);
+            using var db = TimeSeriesDatabase.Create(_logger);
 
             // Act
             db.Dispose();
@@ -973,7 +974,7 @@ namespace Relay.Core.Tests.AI
         {
             // Arrange - Create a database with a mock logger to verify graceful handling
             var loggerMock = new Moq.Mock<ILogger<TimeSeriesDatabase>>();
-            using var db = new TimeSeriesDatabase(loggerMock.Object);
+            using var db = TimeSeriesDatabase.Create(loggerMock.Object);
 
             // Act - This should not throw even with problematic values
             db.StoreMetric("test", double.NaN, DateTime.UtcNow); // NaN values are handled gracefully
@@ -989,7 +990,7 @@ namespace Relay.Core.Tests.AI
         {
             // Arrange
             var loggerMock = new Moq.Mock<ILogger<TimeSeriesDatabase>>();
-            using var db = new TimeSeriesDatabase(loggerMock.Object);
+            using var db = TimeSeriesDatabase.Create(loggerMock.Object);
 
             // Store insufficient data that will cause InsufficientDataException
             var baseTime = DateTime.UtcNow;
@@ -1015,7 +1016,7 @@ namespace Relay.Core.Tests.AI
         {
             // Arrange
             var loggerMock = new Moq.Mock<ILogger<TimeSeriesDatabase>>();
-            using var db = new TimeSeriesDatabase(loggerMock.Object);
+            using var db = TimeSeriesDatabase.Create(loggerMock.Object);
 
             // Store data that should work but might cause internal issues
             var baseTime = DateTime.UtcNow;
@@ -1038,7 +1039,7 @@ namespace Relay.Core.Tests.AI
         {
             // Arrange
             var loggerMock = new Moq.Mock<ILogger<TimeSeriesDatabase>>();
-            using var db = new TimeSeriesDatabase(loggerMock.Object);
+            using var db = TimeSeriesDatabase.Create(loggerMock.Object);
 
             // Store data that should work but might cause internal issues
             var baseTime = DateTime.UtcNow;
@@ -1061,7 +1062,7 @@ namespace Relay.Core.Tests.AI
         {
             // Arrange
             var loggerMock = new Moq.Mock<ILogger<TimeSeriesDatabase>>();
-            using var db = new TimeSeriesDatabase(loggerMock.Object);
+            using var db = TimeSeriesDatabase.Create(loggerMock.Object);
 
             // Store some data
             db.StoreMetric("test", 10.0, DateTime.UtcNow);
@@ -1262,7 +1263,7 @@ namespace Relay.Core.Tests.AI
         public void CircularBuffer_Should_Respect_MaxHistorySize()
         {
             // Arrange
-            using var db = new TimeSeriesDatabase(_logger, maxHistorySize: 10);
+            using var db = TimeSeriesDatabase.Create(_logger, maxHistorySize: 10);
             var baseTime = DateTime.UtcNow;
 
             // Act - Store more than max size
@@ -1282,7 +1283,7 @@ namespace Relay.Core.Tests.AI
         public void CircularBuffer_Should_Maintain_Order_After_Overflow()
         {
             // Arrange
-            using var db = new TimeSeriesDatabase(_logger, maxHistorySize: 5);
+            using var db = TimeSeriesDatabase.Create(_logger, maxHistorySize: 5);
             var baseTime = DateTime.UtcNow;
 
             // Act
@@ -1387,7 +1388,7 @@ namespace Relay.Core.Tests.AI
         public void TimeSeriesDatabase_Should_Handle_Large_Dataset_Efficiently()
         {
             // Arrange
-            using var db = new TimeSeriesDatabase(_logger, maxHistorySize: 10000);
+            using var db = TimeSeriesDatabase.Create(_logger, maxHistorySize: 10000);
             var baseTime = DateTime.UtcNow;
 
             // Act - Store large amount of data
@@ -1497,7 +1498,7 @@ namespace Relay.Core.Tests.AI
         public void TimeSeriesDatabase_Should_Respect_MaxHistorySize()
         {
             // Arrange
-            using var db = new TimeSeriesDatabase(_logger, maxHistorySize: 100);
+            using var db = TimeSeriesDatabase.Create(_logger, maxHistorySize: 100);
             var baseTime = DateTime.UtcNow;
 
             // Act - Store more than max

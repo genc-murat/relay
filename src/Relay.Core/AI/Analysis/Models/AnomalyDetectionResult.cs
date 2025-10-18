@@ -5,7 +5,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Anomaly detection result
     /// </summary>
-    internal class AnomalyDetectionResult
+    public class AnomalyDetectionResult
     {
         public string MetricName { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }

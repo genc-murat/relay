@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Analysis.TimeSeries
 {
     /// <summary>
     /// Static utility class for time-series statistical calculations.

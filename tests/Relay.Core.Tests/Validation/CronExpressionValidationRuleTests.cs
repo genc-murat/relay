@@ -1,7 +1,6 @@
-using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using System.Threading.Tasks;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -26,7 +25,7 @@ public class CronExpressionValidationRuleTests
         var result = await _rule.ValidateAsync(cron);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -47,11 +46,11 @@ public class CronExpressionValidationRuleTests
         // Assert
         if (string.IsNullOrWhiteSpace(cron))
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().NotBeEmpty();
+            Assert.NotEmpty(result);
         }
     }
 }

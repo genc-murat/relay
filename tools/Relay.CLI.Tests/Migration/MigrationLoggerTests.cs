@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Moq;
 using Relay.CLI.Migration;
 
 namespace Relay.CLI.Tests.Migration;
@@ -283,6 +282,6 @@ public class MigrationLoggerTests
         var migrationLogger = new MigrationLogger(logger.Object);
 
         // Assert
-        migrationLogger.Should().NotBeNull();
+        Assert.NotNull(migrationLogger);
     }
 }

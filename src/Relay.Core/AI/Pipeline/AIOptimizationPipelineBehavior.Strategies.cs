@@ -1027,13 +1027,17 @@ namespace Relay.Core.AI
             }
 
             // Create new circuit breaker
-            var circuitBreaker = new AICircuitBreaker<TResponse>(
-                failureThreshold,
-                successThreshold,
-                timeout,
-                breakDuration,
-                halfOpenMaxCalls,
-                _logger);
+            var options = new AICircuitBreakerOptions
+            {
+                FailureThreshold = failureThreshold,
+                SuccessThreshold = successThreshold,
+                Timeout = timeout,
+                BreakDuration = breakDuration,
+                HalfOpenMaxCalls = halfOpenMaxCalls,
+                Name = $"CircuitBreaker:{requestType.FullName}"
+            };
+
+            var circuitBreaker = new AICircuitBreaker<TResponse>(options, _logger);
 
             _batchCoordinators[key] = circuitBreaker;
 

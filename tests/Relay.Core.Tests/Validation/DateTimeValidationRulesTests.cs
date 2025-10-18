@@ -1,9 +1,8 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Xunit;
-using Relay.Core.Validation.Rules;
+ using System;
+ using System.Linq;
+ using System.Threading.Tasks;
+ using Xunit;
+ using Relay.Core.Validation.Rules;
 
 namespace Relay.Core.Tests.Validation
 {
@@ -42,7 +41,7 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(age);
 
             // Assert
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
 
         [Theory]
@@ -59,9 +58,9 @@ namespace Relay.Core.Tests.Validation
 
             // Assert
             // Negative ages trigger both min age check (since age < 0) and negative check
-            result.Should().HaveCount(2)
-                .And.Contain("Age cannot be less than 0 years.")
-                .And.Contain("Age cannot be negative.");
+            Assert.Equal(2, result.Count());
+            Assert.Contains("Age cannot be less than 0 years.", result);
+            Assert.Contains("Age cannot be negative.", result);
         }
 
         [Theory]
@@ -77,7 +76,8 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(age);
 
             // Assert
-            result.Should().ContainSingle("Age cannot exceed 150 years.");
+            Assert.Single(result);
+            Assert.Equal("Age cannot exceed 150 years.", result.First());
         }
 
         [Fact]
@@ -90,7 +90,8 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(16);
 
             // Assert
-            result.Should().ContainSingle("Age cannot be less than 18 years.");
+            Assert.Single(result);
+            Assert.Equal("Age cannot be less than 18 years.", result.First());
         }
 
         [Fact]
@@ -103,7 +104,8 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(70);
 
             // Assert
-            result.Should().ContainSingle("Age cannot exceed 65 years.");
+            Assert.Single(result);
+            Assert.Equal("Age cannot exceed 65 years.", result.First());
         }
 
         [Theory]
@@ -119,7 +121,7 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(age);
 
             // Assert
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
 
         [Fact]
@@ -129,8 +131,8 @@ namespace Relay.Core.Tests.Validation
             var rule = new AgeValidationRule(minAge: 18, maxAge: 65);
 
             // Act & Assert
-            (await rule.ValidateAsync(18)).Should().BeEmpty(); // Min boundary
-            (await rule.ValidateAsync(65)).Should().BeEmpty(); // Max boundary
+            Assert.Empty(await rule.ValidateAsync(18)); // Min boundary
+            Assert.Empty(await rule.ValidateAsync(65)); // Max boundary
         }
 
         [Fact]
@@ -143,7 +145,8 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(200);
 
             // Assert
-            result.Should().ContainSingle("Age cannot exceed 65 years.");
+            Assert.Single(result);
+            Assert.Equal("Age cannot exceed 65 years.", result.First());
         }
 
         [Fact]
@@ -156,9 +159,9 @@ namespace Relay.Core.Tests.Validation
             var result = await rule.ValidateAsync(-5);
 
             // Assert
-            result.Should().HaveCount(2)
-                .And.Contain("Age cannot be negative.")
-                .And.Contain("Age cannot be less than 18 years.");
+            Assert.Equal(2, result.Count());
+            Assert.Contains("Age cannot be negative.", result);
+            Assert.Contains("Age cannot be less than 18 years.", result);
         }
 
         [Theory]
@@ -171,24 +174,27 @@ namespace Relay.Core.Tests.Validation
             var rule = new AgeValidationRule(minAge, maxAge);
 
             // Act & Assert
-            (await rule.ValidateAsync(minAge)).Should().BeEmpty();
-            (await rule.ValidateAsync(maxAge)).Should().BeEmpty();
+            Assert.Empty(await rule.ValidateAsync(minAge));
+            Assert.Empty(await rule.ValidateAsync(maxAge));
 
             // Test below minimum
             var belowMinResult = await rule.ValidateAsync(minAge - 1);
             if (minAge == 0)
             {
                 // When minAge is 0, negative values trigger both min age check and negative check
-                belowMinResult.Should().HaveCount(2)
-                    .And.Contain("Age cannot be less than 0 years.")
-                    .And.Contain("Age cannot be negative.");
+                Assert.Equal(2, belowMinResult.Count());
+                Assert.Contains("Age cannot be less than 0 years.", belowMinResult);
+                Assert.Contains("Age cannot be negative.", belowMinResult);
             }
             else
             {
-                belowMinResult.Should().ContainSingle($"Age cannot be less than {minAge} years.");
+                Assert.Single(belowMinResult);
+                Assert.Equal($"Age cannot be less than {minAge} years.", belowMinResult.First());
             }
 
-            (await rule.ValidateAsync(maxAge + 1)).Should().ContainSingle($"Age cannot exceed {maxAge} years.");
+            var aboveMaxResult = await rule.ValidateAsync(maxAge + 1);
+            Assert.Single(aboveMaxResult);
+            Assert.Equal($"Age cannot exceed {maxAge} years.", aboveMaxResult.First());
         }
     }
 }

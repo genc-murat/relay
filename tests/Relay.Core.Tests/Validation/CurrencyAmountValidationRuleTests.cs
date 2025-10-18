@@ -1,7 +1,7 @@
+using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Relay.Core.Validation.Rules;
-using Xunit;
+ using Relay.Core.Validation.Rules;
+ using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -23,7 +23,7 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync(amount);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync(amount);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Theory]
@@ -58,7 +58,8 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync(amount);
 
         // Assert
-        result.Should().ContainSingle("Invalid currency amount format.");
+        Assert.Single(result);
+        Assert.Equal("Invalid currency amount format.", result.First());
     }
 
     [Fact]
@@ -71,7 +72,8 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync("-100.00");
 
         // Assert
-        result.Should().ContainSingle("Currency amount cannot be negative.");
+        Assert.Single(result);
+        Assert.Equal("Currency amount cannot be negative.", result.First());
     }
 
     [Fact]
@@ -84,7 +86,7 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync("-100.00");
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -97,7 +99,8 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync("5.00");
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Currency amount cannot be less than");
+        Assert.Single(result);
+        Assert.Contains("Currency amount cannot be less than", result.First());
     }
 
     [Fact]
@@ -110,7 +113,8 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync("1500.00");
 
         // Assert
-        result.Should().ContainSingle().Which.Should().Contain("Currency amount cannot exceed");
+        Assert.Single(result);
+        Assert.Contains("Currency amount cannot exceed", result.First());
     }
 
     [Theory]
@@ -128,11 +132,12 @@ public class CurrencyAmountValidationRuleTests
         // Assert
         if (decimalPlaces <= 2)
         {
-            result.Should().BeEmpty();
+            Assert.Empty(result);
         }
         else
         {
-            result.Should().ContainSingle("Currency amount cannot have more than 2 decimal places.");
+            Assert.Single(result);
+            Assert.Equal("Currency amount cannot have more than 2 decimal places.", result.First());
         }
     }
 
@@ -143,8 +148,10 @@ public class CurrencyAmountValidationRuleTests
         var rule = new CurrencyAmountValidationRule(maxDecimalPlaces: 4);
 
         // Act & Assert
-        (await rule.ValidateAsync("1.2345")).Should().BeEmpty(); // 4 decimal places - valid
-        (await rule.ValidateAsync("1.23456")).Should().ContainSingle("Currency amount cannot have more than 4 decimal places."); // 5 decimal places - invalid
+        Assert.Empty(await rule.ValidateAsync("1.2345")); // 4 decimal places - valid
+        var result = await rule.ValidateAsync("1.23456");
+        Assert.Single(result);
+        Assert.Equal("Currency amount cannot have more than 4 decimal places.", result.First()); // 5 decimal places - invalid
     }
 
     [Fact]
@@ -154,9 +161,13 @@ public class CurrencyAmountValidationRuleTests
         var rule = CurrencyAmountValidationRule.Standard();
 
         // Act & Assert
-        (await rule.ValidateAsync("100.00")).Should().BeEmpty();
-        (await rule.ValidateAsync("-100.00")).Should().ContainSingle("Currency amount cannot be negative.");
-        (await rule.ValidateAsync("100.001")).Should().ContainSingle("Currency amount cannot have more than 2 decimal places.");
+        Assert.Empty(await rule.ValidateAsync("100.00"));
+        var result1 = await rule.ValidateAsync("-100.00");
+        Assert.Single(result1);
+        Assert.Equal("Currency amount cannot be negative.", result1.First());
+        var result2 = await rule.ValidateAsync("100.001");
+        Assert.Single(result2);
+        Assert.Equal("Currency amount cannot have more than 2 decimal places.", result2.First());
     }
 
     [Fact]
@@ -166,9 +177,13 @@ public class CurrencyAmountValidationRuleTests
         var rule = CurrencyAmountValidationRule.Crypto();
 
         // Act & Assert
-        (await rule.ValidateAsync("0.00000001")).Should().BeEmpty(); // 8 decimal places - valid for crypto
-        (await rule.ValidateAsync("-0.00000001")).Should().ContainSingle("Currency amount cannot be negative.");
-        (await rule.ValidateAsync("0.000000001")).Should().ContainSingle("Currency amount cannot have more than 8 decimal places.");
+        Assert.Empty(await rule.ValidateAsync("0.00000001")); // 8 decimal places - valid for crypto
+        var result1 = await rule.ValidateAsync("-0.00000001");
+        Assert.Single(result1);
+        Assert.Equal("Currency amount cannot be negative.", result1.First());
+        var result2 = await rule.ValidateAsync("0.000000001");
+        Assert.Single(result2);
+        Assert.Equal("Invalid currency amount format.", result2.First());
     }
 
     [Theory]
@@ -184,7 +199,8 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync(amount);
 
         // Assert
-        result.Should().ContainSingle("Currency amount cannot have leading zeros.");
+        Assert.Single(result);
+        Assert.Equal("Currency amount cannot have leading zeros.", result.First());
     }
 
     [Theory]
@@ -200,7 +216,7 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync(amount);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -213,9 +229,9 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync("-150.123");
 
         // Assert
-        result.Should().HaveCount(2)
-            .And.Contain("Currency amount cannot have more than 2 decimal places.")
-            .And.Contain("Currency amount cannot be negative.");
+        Assert.Equal(2, result.Count());
+        Assert.Contains("Currency amount cannot have more than 2 decimal places.", result);
+        Assert.Contains("Currency amount cannot be negative.", result);
     }
 
     [Theory]
@@ -230,7 +246,7 @@ public class CurrencyAmountValidationRuleTests
         var result = await rule.ValidateAsync(amount);
 
         // Assert
-        result.Should().BeEmpty();
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -240,7 +256,7 @@ public class CurrencyAmountValidationRuleTests
         var rule = new CurrencyAmountValidationRule(minAmount: 10.00M, maxAmount: 100.00M);
 
         // Act & Assert
-        (await rule.ValidateAsync("10.00")).Should().BeEmpty();
-        (await rule.ValidateAsync("100.00")).Should().BeEmpty();
+        Assert.Empty(await rule.ValidateAsync("10.00"));
+        Assert.Empty(await rule.ValidateAsync("100.00"));
     }
 }

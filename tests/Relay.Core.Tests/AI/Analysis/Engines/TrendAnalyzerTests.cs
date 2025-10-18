@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Relay.Core.AI;
 using Xunit;
@@ -8,23 +9,34 @@ namespace Relay.Core.Tests.AI.Analysis.Engines
 {
     public class TrendAnalyzerTests
     {
-        private readonly ILogger<TrendAnalyzer> _logger;
+        private readonly IServiceProvider _serviceProvider;
         private readonly TrendAnalyzer _analyzer;
 
         public TrendAnalyzerTests()
         {
-            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            _logger = loggerFactory.CreateLogger<TrendAnalyzer>();
-            _analyzer = new TrendAnalyzer(_logger);
+            var services = new ServiceCollection();
+            services.AddLogging(builder => builder.AddConsole());
+            services.AddTrendAnalysis();
+
+            _serviceProvider = services.BuildServiceProvider();
+            _analyzer = _serviceProvider.GetRequiredService<ITrendAnalyzer>() as TrendAnalyzer
+                ?? throw new InvalidOperationException("Could not resolve TrendAnalyzer");
         }
 
         #region Constructor Tests
 
         [Fact]
-        public void Constructor_Should_Throw_When_Logger_Is_Null()
+        public void Service_Should_Be_Registered_In_DI_Container()
         {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddTrendAnalysis();
+            var provider = services.BuildServiceProvider();
+
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => new TrendAnalyzer(null!));
+            var analyzer = provider.GetService<ITrendAnalyzer>();
+            Assert.NotNull(analyzer);
         }
 
         #endregion
@@ -180,100 +192,6 @@ namespace Relay.Core.Tests.AI.Analysis.Engines
 
         #endregion
 
-        #region CalculateMovingAverage Tests
 
-        [Fact]
-        public void CalculateMovingAverage_Should_Return_Current_Value()
-        {
-            // Act
-            var result = _analyzer.CalculateMovingAverage("test", 42.0, 5);
-
-            // Assert
-            Assert.Equal(42.0, result);
-        }
-
-        #endregion
-
-        #region CalculateExponentialMovingAverage Tests
-
-        [Fact]
-        public void CalculateExponentialMovingAverage_Should_Return_Current_Value()
-        {
-            // Act
-            var result = _analyzer.CalculateExponentialMovingAverage("test", 42.0, 0.3);
-
-            // Assert
-            Assert.Equal(42.0, result);
-        }
-
-        #endregion
-
-        #region CalculateTrendStrength Tests
-
-        [Fact]
-        public void CalculateTrendStrength_Should_Calculate_Correctly()
-        {
-            // Act
-            var result = _analyzer.CalculateTrendStrength(10.0, 8.0, 6.0);
-
-            // Assert
-            Assert.Equal(0.333, result, 3); // (8-6)/6 = 2/6 ≈ 0.333
-        }
-
-        [Fact]
-        public void CalculateTrendStrength_Should_Return_Zero_When_MA15_Is_Zero()
-        {
-            // Act
-            var result = _analyzer.CalculateTrendStrength(10.0, 8.0, 0.0);
-
-            // Assert
-            Assert.Equal(0.0, result);
-        }
-
-        #endregion
-
-        #region IsWithinSeasonalExpectation Tests
-
-        [Fact]
-        public void IsWithinSeasonalExpectation_Should_Return_True()
-        {
-            // Act
-            var result = _analyzer.IsWithinSeasonalExpectation(100.0, 1.5);
-
-            // Assert
-            Assert.True(result);
-        }
-
-        #endregion
-
-        #region CalculateLinearRegression Tests
-
-        [Fact]
-        public void CalculateLinearRegression_Should_Return_Default_Result()
-        {
-            // Act
-            var result = _analyzer.CalculateLinearRegression("test", DateTime.UtcNow);
-
-            // Assert
-            Assert.Equal(0.0, result.Slope);
-            Assert.Equal(0.0, result.Intercept);
-            Assert.Equal(0.0, result.RSquared);
-        }
-
-        #endregion
-
-        #region CalculateCorrelation Tests
-
-        [Fact]
-        public void CalculateCorrelation_Should_Return_Zero()
-        {
-            // Act
-            var result = _analyzer.CalculateCorrelation("metric1", "metric2");
-
-            // Assert
-            Assert.Equal(0.0, result);
-        }
-
-        #endregion
     }
 }

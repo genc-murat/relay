@@ -90,7 +90,15 @@ namespace Relay.Core.AI
             _parameterAdjuster = new ModelParameterAdjuster(paramLogger, _options, _recentPredictions, _timeSeriesDb);
 
             var trendLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<TrendAnalyzer>.Instance;
-            _trendAnalyzer = new TrendAnalyzer(trendLogger);
+            var config = new TrendAnalysisConfig();
+            var movingAverageUpdater = new MovingAverageUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<MovingAverageUpdater>.Instance, config);
+            var trendDirectionUpdater = new TrendDirectionUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<TrendDirectionUpdater>.Instance);
+            var trendVelocityUpdater = new TrendVelocityUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<TrendVelocityUpdater>.Instance, config);
+            var seasonalityUpdater = new SeasonalityUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<SeasonalityUpdater>.Instance);
+            var regressionUpdater = new RegressionUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<RegressionUpdater>.Instance);
+            var correlationUpdater = new CorrelationUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<CorrelationUpdater>.Instance, config);
+            var anomalyUpdater = new AnomalyUpdater(Microsoft.Extensions.Logging.Abstractions.NullLogger<AnomalyUpdater>.Instance, config);
+            _trendAnalyzer = new TrendAnalyzer(trendLogger, movingAverageUpdater, trendDirectionUpdater, trendVelocityUpdater, seasonalityUpdater, regressionUpdater, correlationUpdater, anomalyUpdater);
 
             var patternLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<PatternRecognitionEngine>.Instance;
             var analyzerLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<DefaultPatternAnalyzer>.Instance;

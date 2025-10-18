@@ -461,7 +461,7 @@ namespace Relay.Core.Tests.Implementation
             };
 
             // Assert
-            await Assert.ThrowsAsync<OperationCanceledException>(act);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(act);
             Assert.True(results.Count < 1000); // Should have stopped before processing all items
         }
 

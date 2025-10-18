@@ -1,18 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Relay.Core;
+using Xunit;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Diagnostics;
 using Relay.Core.Diagnostics.Core;
 using Relay.Core.Diagnostics.Validation;
 using Relay.Core.Telemetry;
+using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Relay.Core.Tests.Testing;
 
@@ -33,16 +29,13 @@ public static class RelayAssertions
         var telemetryProvider = serviceProvider.GetService<ITelemetryProvider>() as TestTelemetryProvider;
         if (telemetryProvider != null)
         {
-            telemetryProvider.HandlerExecutions
-                .Should().Contain(h => h.RequestType == typeof(TRequest),
-                    message ?? $"Handler for {typeof(TRequest).Name} should have been executed");
+            Assert.Contains(telemetryProvider.HandlerExecutions, h => h.RequestType == typeof(TRequest));
         }
         else
         {
             // Fallback: check if handler is registered
             var handlerType = typeof(IRequestHandler<TRequest>);
-            serviceProvider.GetService(handlerType)
-                .Should().NotBeNull(message ?? $"Handler for {typeof(TRequest).Name} should be registered");
+            Assert.NotNull(serviceProvider.GetService(handlerType));
         }
     }
 
@@ -64,22 +57,18 @@ public static class RelayAssertions
             {
                 // Fallback: check if handler is registered and assume it was called if registered
                 var handlerType = typeof(IRequestHandler<TRequest, TResponse>);
-                serviceProvider.GetService(handlerType)
-                    .Should().NotBeNull(message ?? $"Handler for {typeof(TRequest).Name} should be registered and executed");
+                Assert.NotNull(serviceProvider.GetService(handlerType));
             }
             else
             {
-                telemetryProvider.HandlerExecutions
-                    .Should().Contain(h => h.RequestType == typeof(TRequest),
-                        message ?? $"Handler for {typeof(TRequest).Name} should have been executed");
+                Assert.Contains(telemetryProvider.HandlerExecutions, h => h.RequestType == typeof(TRequest));
             }
         }
         else
         {
             // Fallback: check if handler is registered
             var handlerType = typeof(IRequestHandler<TRequest, TResponse>);
-            serviceProvider.GetService(handlerType)
-                .Should().NotBeNull(message ?? $"Handler for {typeof(TRequest).Name} should be registered");
+            Assert.NotNull(serviceProvider.GetService(handlerType));
         }
     }
 
@@ -95,16 +84,13 @@ public static class RelayAssertions
         var telemetryProvider = serviceProvider.GetService<ITelemetryProvider>() as TestTelemetryProvider;
         if (telemetryProvider != null)
         {
-            telemetryProvider.NotificationPublishes
-                .Should().Contain(n => n.NotificationType == typeof(TNotification),
-                    message ?? $"Notification handler for {typeof(TNotification).Name} should have been executed");
+            Assert.Contains(telemetryProvider.NotificationPublishes, n => n.NotificationType == typeof(TNotification));
         }
         else
         {
             // Fallback: check if handler is registered
             var handlerType = typeof(INotificationHandler<TNotification>);
-            serviceProvider.GetService(handlerType)
-                .Should().NotBeNull(message ?? $"Notification handler for {typeof(TNotification).Name} should be registered");
+            Assert.NotNull(serviceProvider.GetService(handlerType));
         }
     }
 
@@ -117,14 +103,13 @@ public static class RelayAssertions
     public static void ShouldHaveExecutedPipelineInOrder(this IServiceProvider serviceProvider, Type[] expectedOrder, string? message = null)
     {
         var telemetryProvider = serviceProvider.GetService<ITelemetryProvider>() as TestTelemetryProvider;
-        telemetryProvider.Should().NotBeNull("TestTelemetryProvider should be configured to verify pipeline execution order");
+        Assert.NotNull(telemetryProvider);
 
         // For now, we'll check that the expected pipeline types are registered
         // In a full implementation, we'd track pipeline execution order in telemetry
         foreach (var pipelineType in expectedOrder)
         {
-            serviceProvider.GetService(pipelineType)
-                .Should().NotBeNull(message ?? $"Pipeline {pipelineType.Name} should be registered");
+            Assert.NotNull(serviceProvider.GetService(pipelineType));
         }
     }
 
@@ -140,8 +125,7 @@ public static class RelayAssertions
         await action();
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeLessThanOrEqualTo(maxDuration,
-            message ?? $"Execution should complete within {maxDuration}");
+        Assert.True(stopwatch.Elapsed <= maxDuration);
     }
 
     /// <summary>
@@ -158,8 +142,7 @@ public static class RelayAssertions
         var result = await action();
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeLessThanOrEqualTo(maxDuration,
-            message ?? $"Execution should complete within {maxDuration}");
+        Assert.True(stopwatch.Elapsed <= maxDuration);
 
         return (result, stopwatch.Elapsed);
     }
@@ -177,8 +160,7 @@ public static class RelayAssertions
         var finalMemory = GC.GetTotalMemory(false);
 
         var allocatedMemory = finalMemory - initialMemory;
-        allocatedMemory.Should().BeLessThanOrEqualTo(maxAllocations,
-            message ?? $"Memory allocation should not exceed {maxAllocations} bytes");
+        Assert.True(allocatedMemory <= maxAllocations);
     }
 
     /// <summary>
@@ -191,15 +173,14 @@ public static class RelayAssertions
         where TRequest : IRequest
     {
         var tracer = serviceProvider.GetService<IRequestTracer>();
-        tracer.Should().NotBeNull("Request tracer should be configured");
+        Assert.NotNull(tracer);
 
         var diagnostics = serviceProvider.GetService<IRelayDiagnostics>();
         if (diagnostics != null)
         {
             var trace = diagnostics.GetCurrentTrace();
-            trace.Should().NotBeNull(message ?? "Request trace should be available");
-            trace!.RequestType.Should().Be(typeof(TRequest),
-                message ?? $"Trace should be for request type {typeof(TRequest).Name}");
+            Assert.NotNull(trace);
+            Assert.Equal(typeof(TRequest), trace!.RequestType);
         }
     }
 
@@ -212,14 +193,13 @@ public static class RelayAssertions
     public static void ShouldHaveExecutionFlow(this IServiceProvider serviceProvider, string[] expectedSteps, string? message = null)
     {
         var diagnostics = serviceProvider.GetService<IRelayDiagnostics>();
-        diagnostics.Should().NotBeNull("Relay diagnostics should be configured");
+        Assert.NotNull(diagnostics);
 
         var trace = diagnostics!.GetCurrentTrace();
-        trace.Should().NotBeNull(message ?? "Request trace should be available");
+        Assert.NotNull(trace);
 
         var actualSteps = trace!.Steps.Select(s => s.Name).ToArray();
-        actualSteps.Should().BeEquivalentTo(expectedSteps, options => options.WithStrictOrdering(),
-            message ?? "Execution flow should match expected steps");
+        Assert.Equal(expectedSteps, actualSteps);
     }
 
     /// <summary>
@@ -243,8 +223,7 @@ public static class RelayAssertions
                     .Select(s => s.Exception))
                 .ToList();
 
-            allExceptions.Should().BeEmpty(
-                message ?? "No exceptions should have occurred during execution");
+            Assert.Empty(allExceptions);
         }
 
         var diagnostics = serviceProvider.GetService<IRelayDiagnostics>();
@@ -253,10 +232,8 @@ public static class RelayAssertions
             var trace = diagnostics.GetCurrentTrace();
             if (trace != null)
             {
-                trace.Exception.Should().BeNull(
-                    message ?? "No exceptions should be recorded in the trace");
-                trace.Steps.Should().NotContain(s => s.Exception != null,
-                    message ?? "No step should have exceptions");
+                Assert.Null(trace.Exception);
+                Assert.DoesNotContain(trace.Steps, s => s.Exception != null);
             }
         }
     }
@@ -284,8 +261,7 @@ public static class RelayAssertions
                     .Select(s => s.Exception))
                 .ToList();
 
-            allExceptions.Should().Contain(e => e is TException,
-                message ?? $"Exception of type {typeof(TException).Name} should have been thrown");
+            Assert.Contains(allExceptions, e => e is TException);
         }
 
         var diagnostics = serviceProvider.GetService<IRelayDiagnostics>();
@@ -294,8 +270,7 @@ public static class RelayAssertions
             var trace = diagnostics.GetCurrentTrace();
             if (trace != null)
             {
-                (trace.Exception is TException || trace.Steps.Any(s => s.Exception is TException))
-                    .Should().BeTrue(message ?? $"Exception of type {typeof(TException).Name} should be recorded in the trace");
+                Assert.True(trace.Exception is TException || trace.Steps.Any(s => s.Exception is TException));
             }
         }
     }
@@ -309,15 +284,14 @@ public static class RelayAssertions
     public static void ShouldHaveRegisteredHandlers(this IServiceProvider serviceProvider, Type[] expectedHandlerTypes, string? message = null)
     {
         var diagnostics = serviceProvider.GetService<IRelayDiagnostics>();
-        diagnostics.Should().NotBeNull("Relay diagnostics should be configured");
+        Assert.NotNull(diagnostics);
 
         var registry = diagnostics!.GetHandlerRegistry();
-        registry.Should().NotBeNull(message ?? "Handler registry should be available");
+        Assert.NotNull(registry);
 
         foreach (var handlerType in expectedHandlerTypes)
         {
-            registry.Handlers.Should().Contain(h => h.HandlerType == handlerType.FullName,
-                message ?? $"Handler {handlerType.Name} should be registered");
+            Assert.Contains(registry.Handlers, h => h.HandlerType == handlerType.FullName);
         }
     }
 
@@ -329,12 +303,11 @@ public static class RelayAssertions
     public static void ShouldHaveValidConfiguration(this IServiceProvider serviceProvider, string? message = null)
     {
         var diagnostics = serviceProvider.GetService<IRelayDiagnostics>();
-        diagnostics.Should().NotBeNull("Relay diagnostics should be configured");
+        Assert.NotNull(diagnostics);
 
         var validationResult = diagnostics!.ValidateConfiguration();
         var errors = validationResult.Issues.Where(i => i.Severity == ValidationSeverity.Error).Select(i => i.Message);
-        validationResult.IsValid.Should().BeTrue(
-            message ?? $"Configuration should be valid. Errors: {string.Join(", ", errors)}");
+        Assert.True(validationResult.IsValid);
     }
 
     /// <summary>
@@ -346,15 +319,14 @@ public static class RelayAssertions
     public static void ShouldHaveAcceptablePerformance(this IServiceProvider serviceProvider, TimeSpan maxAverageExecutionTime, string? message = null)
     {
         var diagnostics = serviceProvider.GetService<IRelayDiagnostics>();
-        diagnostics.Should().NotBeNull("Relay diagnostics should be configured");
+        Assert.NotNull(diagnostics);
 
         var metrics = diagnostics!.GetHandlerMetrics().ToList();
-        metrics.Should().NotBeEmpty(message ?? "Handler metrics should be available");
+        Assert.NotEmpty(metrics);
 
         foreach (var metric in metrics)
         {
-            metric.AverageExecutionTime.Should().BeLessThanOrEqualTo(maxAverageExecutionTime,
-                message ?? $"Handler {metric.HandlerType} average execution time should be within acceptable limits");
+            Assert.True(metric.AverageExecutionTime <= maxAverageExecutionTime);
         }
     }
 
@@ -370,13 +342,12 @@ public static class RelayAssertions
         where TRequest : IRequest<TResponse>
     {
         var handler = serviceProvider.GetService<IRequestHandler<TRequest, TResponse>>();
-        handler.Should().NotBeNull("Mock handler should be registered");
+        Assert.NotNull(handler);
 
         if (handler is MockRequestHandler<TRequest, TResponse> mockHandler)
         {
-            mockHandler.WasCalled.Should().BeTrue(message ?? "Mock handler should have been called");
-            mockHandler.LastRequest.Should().BeEquivalentTo(expectedRequest,
-                message ?? "Mock handler should have been called with the expected request");
+            Assert.True(mockHandler.WasCalled);
+            Assert.Equal(expectedRequest, mockHandler.LastRequest);
         }
     }
 
@@ -391,13 +362,12 @@ public static class RelayAssertions
         where TNotification : INotification
     {
         var handler = serviceProvider.GetService<INotificationHandler<TNotification>>();
-        handler.Should().NotBeNull("Mock notification handler should be registered");
+        Assert.NotNull(handler);
 
         if (handler is MockNotificationHandler<TNotification> mockHandler)
         {
-            mockHandler.WasCalled.Should().BeTrue(message ?? "Mock notification handler should have been called");
-            mockHandler.LastNotification.Should().BeEquivalentTo(expectedNotification,
-                message ?? "Mock notification handler should have been called with the expected notification");
+            Assert.True(mockHandler.WasCalled);
+            Assert.Equal(expectedNotification, mockHandler.LastNotification);
         }
     }
 
@@ -413,12 +383,11 @@ public static class RelayAssertions
         where TRequest : IRequest<TResponse>
     {
         var handler = serviceProvider.GetService<IRequestHandler<TRequest, TResponse>>();
-        handler.Should().NotBeNull("Handler should be registered");
+        Assert.NotNull(handler);
 
         if (handler is MockRequestHandler<TRequest, TResponse> mockHandler)
         {
-            mockHandler.CallCount.Should().Be(expectedCallCount,
-                message ?? $"Handler should have been called {expectedCallCount} times");
+            Assert.Equal(expectedCallCount, mockHandler.CallCount);
         }
     }
 }

@@ -38,7 +38,7 @@ namespace Relay.SourceGenerator
         public static readonly DiagnosticDescriptor InvalidHandlerSignature = new(
             "RELAY_GEN_002",
             "Invalid Handler Signature",
-            "Handler method '{0}' has an invalid signature: {1}",
+            "Invalid signature for {0} '{1}': {2}",
             Category,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);

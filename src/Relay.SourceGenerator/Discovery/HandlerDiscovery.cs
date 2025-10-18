@@ -287,6 +287,7 @@ namespace Relay.SourceGenerator
             if (method.Parameters.Length != 1)
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                    "request handler",
                     method.Name, "Request handlers must have exactly one parameter");
                 diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
@@ -295,6 +296,7 @@ namespace Relay.SourceGenerator
             if (!IsValidAccessibility(method))
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                    "request handler",
                     method.Name, "Request handlers must be public or internal");
                 diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
@@ -303,6 +305,7 @@ namespace Relay.SourceGenerator
             if (!IsValidReturnType(method.ReturnType))
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                    "request handler",
                     method.Name, "Request handlers must return Task<T>, ValueTask<T>, Task, ValueTask, or a concrete type");
                 diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
@@ -321,6 +324,7 @@ namespace Relay.SourceGenerator
             if (method.Parameters.Length != 1)
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                    "notification handler",
                     method.Name, "Notification handlers must have exactly one parameter");
                 diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
@@ -329,6 +333,7 @@ namespace Relay.SourceGenerator
             if (!IsValidAccessibility(method))
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                    "notification handler",
                     method.Name, "Notification handlers must be public or internal");
                 diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
@@ -337,6 +342,7 @@ namespace Relay.SourceGenerator
             if (!IsValidNotificationReturnType(method.ReturnType))
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                    "notification handler",
                     method.Name, "Notification handlers must return Task, ValueTask, or void");
                 diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
@@ -355,6 +361,7 @@ namespace Relay.SourceGenerator
             if (method.Parameters.Length < 2)
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                    "pipeline handler",
                     method.Name, "Pipeline handlers must have at least two parameters (request and next delegate)");
                 diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;
@@ -363,6 +370,7 @@ namespace Relay.SourceGenerator
             if (!IsValidAccessibility(method))
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                    "pipeline handler",
                     method.Name, "Pipeline handlers must be public or internal");
                 diagnosticReporter.ReportDiagnostic(diagnostic);
                 return false;

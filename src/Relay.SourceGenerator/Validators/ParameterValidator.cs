@@ -51,8 +51,9 @@ namespace Relay.SourceGenerator.Validators
             {
                 ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                     methodDeclaration.ParameterList.Parameters[cancellationTokenIndex].GetLocation(),
+                    "handler",
                     methodSymbol.Name,
-                    "CancellationToken parameter should be the last parameter");
+                    "CancellationToken parameter must be the last parameter");
             }
 
             // Validate that there are no unexpected parameter types
@@ -65,8 +66,9 @@ namespace Relay.SourceGenerator.Validators
                     // Future versions might allow dependency injection parameters
                     ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                         methodDeclaration.ParameterList.Parameters[i].GetLocation(),
+                        "handler",
                         methodSymbol.Name,
-                        $"Unexpected parameter type '{param.Type.ToDisplayString()}'. Only CancellationToken is allowed as additional parameter");
+                        $"Unexpected parameter type '{param.Type.ToDisplayString()}'. Only CancellationToken is allowed as an additional parameter.");
                 }
             }
         }

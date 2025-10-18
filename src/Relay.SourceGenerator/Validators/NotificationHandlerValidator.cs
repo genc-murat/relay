@@ -118,6 +118,7 @@ namespace Relay.SourceGenerator.Validators
                 {
                     ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                         methodDeclaration.ReturnType.GetLocation(),
+                        "notification handler",
                         methodSymbol.Name,
                         "Async notification handler methods must return Task or ValueTask");
                 }

@@ -179,8 +179,9 @@ namespace Relay.SourceGenerator.Validators
                 {
                     ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                         methodDeclaration.ReturnType.GetLocation(),
+                        "handler",
                         methodSymbol.Name,
-                        "Async handler methods must return Task, Task<T>, ValueTask, or ValueTask<T>");
+                        "Async methods must return Task, Task<T>, ValueTask, or ValueTask<T>");
                 }
             }
             else

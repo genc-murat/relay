@@ -47,6 +47,7 @@ namespace Relay.SourceGenerator.Validators
             {
                 ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                     methodDeclaration.Identifier.GetLocation(),
+                    "pipeline",
                     methodSymbol.Name,
                     $"Pipeline methods must have at least 2 parameters. Found {parameters.Length} parameters");
                 return;
@@ -84,6 +85,7 @@ namespace Relay.SourceGenerator.Validators
             {
                 ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                     methodDeclaration.ParameterList.Parameters[1].GetLocation(),
+                    "pipeline",
                     methodSymbol.Name,
                     $"Second parameter must be a delegate type (RequestHandlerDelegate<TResponse> or Func<ValueTask<TResponse>>). Found: {nextParam.Type.ToDisplayString()}");
             }
@@ -94,6 +96,7 @@ namespace Relay.SourceGenerator.Validators
             {
                 ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                     methodDeclaration.ParameterList.Parameters[2].GetLocation(),
+                    "pipeline",
                     methodSymbol.Name,
                     $"Third parameter must be CancellationToken. Found: {cancellationTokenParam.Type.ToDisplayString()}");
             }
@@ -104,6 +107,7 @@ namespace Relay.SourceGenerator.Validators
             {
                 ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.InvalidHandlerSignature,
                     methodDeclaration.ReturnType.GetLocation(),
+                    "pipeline",
                     methodSymbol.Name,
                     $"Pipeline methods must return Task<TResponse>, ValueTask<TResponse>, or IAsyncEnumerable<TResponse>. Found: {returnType.ToDisplayString()}");
             }

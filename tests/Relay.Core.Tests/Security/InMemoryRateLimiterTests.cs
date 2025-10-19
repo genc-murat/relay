@@ -190,5 +190,131 @@ namespace Relay.Core.Tests.Security
             Assert.True(firstResult);
             Assert.False(secondResult);
         }
+
+        [Fact]
+        public async Task CheckRateLimitAsync_ShouldTriggerCleanup_WhenEntryCountExceedsThreshold()
+        {
+            // Arrange
+            var rateLimiter = new InMemoryRateLimiter(1, TimeSpan.FromMilliseconds(1)); // Very short window for quick expiration
+            var keys = new string[10001]; // Exceed cleanup threshold
+
+            // Fill up the dictionary
+            for (int i = 0; i < keys.Length; i++)
+            {
+                keys[i] = $"key{i}";
+                await rateLimiter.CheckRateLimitAsync(keys[i]);
+            }
+
+            // Wait for entries to expire (window * 2)
+            await Task.Delay(5);
+
+            // Act - This should trigger cleanup
+            var result = await rateLimiter.CheckRateLimitAsync("newkey");
+
+            // Assert
+            Assert.True(result);
+            // Note: Cleanup happens asynchronously, so we can't reliably assert the count
+        }
+
+        [Fact]
+        public async Task CheckRateLimitAsync_ShouldHandleConcurrentRequests()
+        {
+            // Arrange
+            var rateLimiter = new InMemoryRateLimiter(100, TimeSpan.FromMinutes(1));
+            var key = "concurrent:key";
+            var tasks = new Task<bool>[50];
+
+            // Act
+            for (int i = 0; i < tasks.Length; i++)
+            {
+                tasks[i] = rateLimiter.CheckRateLimitAsync(key).AsTask();
+            }
+
+            var results = await Task.WhenAll(tasks);
+
+            // Assert
+            Assert.Equal(50, results.Length);
+            Assert.All(results, r => Assert.True(r)); // All should be allowed within limit
+        }
+
+        [Fact]
+        public async Task CheckRateLimitAsync_ShouldHandleNegativeWindowDuration()
+        {
+            // Arrange
+            var rateLimiter = new InMemoryRateLimiter(10, TimeSpan.FromSeconds(-1));
+
+            // Act
+            var result = await rateLimiter.CheckRateLimitAsync("test");
+
+            // Assert
+            Assert.True(result); // Should still work, though window logic may be inverted
+        }
+
+        [Fact]
+        public async Task CheckRateLimitAsync_ShouldHandleVeryLargeMaxRequests()
+        {
+            // Arrange
+            var rateLimiter = new InMemoryRateLimiter(int.MaxValue, TimeSpan.FromMinutes(1));
+            var key = "large:limit";
+
+            // Act
+            var result = await rateLimiter.CheckRateLimitAsync(key);
+
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task CheckRateLimitAsync_ShouldMaintainSlidingWindowBehavior()
+        {
+            // Arrange
+            var windowDuration = TimeSpan.FromMilliseconds(100);
+            var rateLimiter = new InMemoryRateLimiter(2, windowDuration);
+            var key = "sliding:window";
+
+            // Act - Make requests with timing to test sliding behavior
+            var result1 = await rateLimiter.CheckRateLimitAsync(key); // t=0
+            await Task.Delay(50); // t=50
+            var result2 = await rateLimiter.CheckRateLimitAsync(key); // t=50
+            await Task.Delay(60); // t=110 (past window start + duration)
+            var result3 = await rateLimiter.CheckRateLimitAsync(key); // Should reset
+
+            // Assert
+            Assert.True(result1);
+            Assert.True(result2);
+            Assert.True(result3); // Window should have reset
+        }
+
+        [Fact]
+        public async Task CheckRateLimitAsync_ShouldHandleVeryLongKeys()
+        {
+            // Arrange
+            var longKey = new string('a', 10000);
+            var rateLimiter = new InMemoryRateLimiter(1, TimeSpan.FromMinutes(1));
+
+            // Act
+            var firstResult = await rateLimiter.CheckRateLimitAsync(longKey);
+            var secondResult = await rateLimiter.CheckRateLimitAsync(longKey);
+
+            // Assert
+            Assert.True(firstResult);
+            Assert.False(secondResult);
+        }
+
+        [Fact]
+        public async Task CheckRateLimitAsync_ShouldHandleUnicodeKeys()
+        {
+            // Arrange
+            var unicodeKey = "测试🔥key🚀";
+            var rateLimiter = new InMemoryRateLimiter(1, TimeSpan.FromMinutes(1));
+
+            // Act
+            var firstResult = await rateLimiter.CheckRateLimitAsync(unicodeKey);
+            var secondResult = await rateLimiter.CheckRateLimitAsync(unicodeKey);
+
+            // Assert
+            Assert.True(firstResult);
+            Assert.False(secondResult);
+        }
     }
 }

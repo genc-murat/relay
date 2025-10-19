@@ -2508,6 +2508,9 @@ namespace Relay.Core.Tests.AI
             public bool AnalyzeCalled { get; private set; }
             public bool LearnCalled { get; private set; }
             public int BatchSizeToReturn { get; set; } = 10;
+            public bool ThrowOnAnalyze { get; set; }
+            public bool LowConfidence { get; set; }
+
             public OptimizationRecommendation RecommendationToReturn { get; set; } = new OptimizationRecommendation
             {
                 Strategy = OptimizationStrategy.None,
@@ -2526,7 +2529,28 @@ namespace Relay.Core.Tests.AI
             {
                 AnalyzeCalled = true;
                 cancellationToken.ThrowIfCancellationRequested();
-                return new ValueTask<OptimizationRecommendation>(RecommendationToReturn);
+
+                if (ThrowOnAnalyze)
+                {
+                    throw new InvalidOperationException("AI Engine analyze failed");
+                }
+
+                var recommendation = RecommendationToReturn;
+                if (LowConfidence)
+                {
+                    recommendation = new OptimizationRecommendation
+                    {
+                        Strategy = OptimizationStrategy.None,
+                        ConfidenceScore = 0.3, // Below threshold
+                        EstimatedImprovement = TimeSpan.Zero,
+                        Reasoning = "Low confidence mock recommendation",
+                        Priority = OptimizationPriority.Low,
+                        EstimatedGainPercentage = 0.0,
+                        Risk = RiskLevel.VeryLow
+                    };
+                }
+
+                return new ValueTask<OptimizationRecommendation>(recommendation);
             }
 
             public ValueTask<int> PredictOptimalBatchSizeAsync(
@@ -2796,6 +2820,292 @@ namespace Relay.Core.Tests.AI
             {
                 throw new InvalidOperationException("System load metrics provider failure");
             }
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Handle_SystemMetrics_Exception_Gracefully()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine();
+            var systemMetrics = new FailingSystemLoadMetricsProvider();
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(_options),
+                systemMetrics);
+
+            var request = new TestRequest { Value = "test" };
+            var executed = false;
+            RequestHandlerDelegate<TestResponse> next = () =>
+            {
+                executed = true;
+                return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+            };
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert - Should continue with default metrics
+            Assert.True(executed);
+            Assert.Equal("success", result.Result);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Record_Metrics_When_Learning_Enabled()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine();
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+            var enabledOptions = new AIOptimizationOptions
+            {
+                Enabled = true,
+                LearningEnabled = true,
+                MinConfidenceScore = 0.7
+            };
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(enabledOptions),
+                systemMetrics);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = () =>
+                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.True(aiEngine.LearnCalled);
+            Assert.Equal("success", result.Result);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Not_Record_Metrics_When_Learning_Disabled()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine();
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+            var disabledLearningOptions = new AIOptimizationOptions
+            {
+                Enabled = true,
+                LearningEnabled = false,
+                MinConfidenceScore = 0.7
+            };
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(disabledLearningOptions),
+                systemMetrics);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = () =>
+                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.False(aiEngine.LearnCalled);
+            Assert.Equal("success", result.Result);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Track_Memory_Allocation()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine();
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(_options),
+                systemMetrics);
+
+            var request = new TestRequest { Value = "test" };
+            var largeArray = new byte[1024 * 1024]; // Allocate 1MB
+            RequestHandlerDelegate<TestResponse> next = () =>
+            {
+                // Force some memory allocation
+                _ = new byte[1024];
+                return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+            };
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("success", result.Result);
+            Assert.True(aiEngine.LearnCalled);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Handle_Null_Response()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine();
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(_options),
+                systemMetrics);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = () =>
+                new ValueTask<TestResponse>(default(TestResponse)!);
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert - Should handle null response gracefully
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Handle_Multiple_Concurrent_Requests()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine();
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(_options),
+                systemMetrics);
+
+            var tasks = new List<Task<TestResponse>>();
+            for (int i = 0; i < 10; i++)
+            {
+                var request = new TestRequest { Value = $"test{i}" };
+                RequestHandlerDelegate<TestResponse> next = () =>
+                    new ValueTask<TestResponse>(new TestResponse { Result = $"success{i}" });
+
+                tasks.Add(behavior.HandleAsync(request, next, CancellationToken.None).AsTask());
+            }
+
+            // Act
+            var results = await Task.WhenAll(tasks);
+
+            // Assert
+            Assert.Equal(10, results.Length);
+            Assert.All(results, r => Assert.StartsWith("success", r.Result));
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Measure_Execution_Time()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine();
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(_options),
+                systemMetrics);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = async () =>
+            {
+                await Task.Delay(50); // Simulate some work
+                return new TestResponse { Result = "success" };
+            };
+
+            // Act
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+            stopwatch.Stop();
+
+            // Assert
+            Assert.Equal("success", result.Result);
+            Assert.True(stopwatch.ElapsedMilliseconds >= 50, "Should have taken at least 50ms");
+            Assert.True(aiEngine.LearnCalled);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Handle_AIEngine_Analyze_Exception()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine { ThrowOnAnalyze = true };
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(_options),
+                systemMetrics);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = () =>
+                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await behavior.HandleAsync(request, next, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Handle_Low_Confidence_Recommendations()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine { LowConfidence = true };
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(_options),
+                systemMetrics);
+
+            var request = new TestRequest { Value = "test" };
+            var executed = false;
+            RequestHandlerDelegate<TestResponse> next = () =>
+            {
+                executed = true;
+                return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+            };
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.True(executed);
+            Assert.Equal("success", result.Result);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Work_With_Optional_Dependencies_Missing()
+        {
+            // Arrange
+            var aiEngine = new MockAIOptimizationEngine();
+            var systemMetrics = new SystemLoadMetricsProvider(_systemLogger);
+
+            // Create behavior without optional dependencies
+            var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+                aiEngine,
+                _logger,
+                Options.Create(_options),
+                systemMetrics,
+                metricsProvider: null,
+                memoryCache: null,
+                distributedCache: null);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = () =>
+                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("success", result.Result);
         }
     }
 }

@@ -1479,9 +1479,9 @@ public class PipelineCommandTests
             Assert.NotNull(generatedLine);
 
             var timestampStr = generatedLine.Replace("**Generated:** ", "").Trim();
-            var timestamp = DateTime.Parse(timestampStr);
+            var timestamp = DateTimeOffset.Parse(timestampStr);
 
-            var now = DateTime.Now;
+            var now = DateTimeOffset.Now;
             Assert.True(timestamp >= now.AddSeconds(-1) && timestamp <= now.AddSeconds(1));
         }
         finally

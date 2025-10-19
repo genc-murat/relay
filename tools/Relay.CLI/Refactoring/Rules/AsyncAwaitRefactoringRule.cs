@@ -91,6 +91,9 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
 
     public async Task<SyntaxNode> ApplyRefactoringAsync(SyntaxNode root, RefactoringSuggestion suggestion)
     {
+        SyntaxNode? contextNode = null;
+        MethodDeclarationSyntax? method = null;
+
         if (suggestion.Context is MemberAccessExpressionSyntax memberAccess)
         {
             // Replace .Result with await
@@ -99,28 +102,8 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
                 .WithTrailingTrivia(memberAccess.GetTrailingTrivia());
 
             root = root.ReplaceNode(memberAccess, awaitExpression);
-
-            // Make the containing method async if needed
-            var method = memberAccess.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
-            if (method != null && !method.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
-            {
-                var asyncModifier = SyntaxFactory.Token(SyntaxKind.AsyncKeyword);
-                var newModifiers = method.Modifiers.Add(asyncModifier);
-                var newMethod = method.WithModifiers(newModifiers);
-
-                // Update return type if needed
-                var returnType = method.ReturnType.ToString();
-                if (!returnType.StartsWith("Task"))
-                {
-                    var newReturnType = returnType == "void"
-                        ? SyntaxFactory.ParseTypeName("Task")
-                        : SyntaxFactory.ParseTypeName($"Task<{returnType}>");
-
-                    newMethod = newMethod.WithReturnType(newReturnType);
-                }
-
-                root = root.ReplaceNode(method, newMethod);
-            }
+            contextNode = memberAccess;
+            method = contextNode.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
         }
         else if (suggestion.Context is InvocationExpressionSyntax invocation)
         {
@@ -132,18 +115,39 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
                     .WithTrailingTrivia(invocation.GetTrailingTrivia());
 
                 root = root.ReplaceNode(invocation, awaitExpression);
-
-                // Make the containing method async if needed
-                var method = invocation.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
-                if (method != null && !method.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
-                {
-                    var asyncModifier = SyntaxFactory.Token(SyntaxKind.AsyncKeyword);
-                    var newModifiers = method.Modifiers.Add(asyncModifier);
-                    var newMethod = method.WithModifiers(newModifiers);
-
-                    root = root.ReplaceNode(method, newMethod);
-                }
+                contextNode = invocation;
+                method = contextNode.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
             }
+        }
+
+        // Make the containing method async if needed
+        if (method != null && !method.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword)))
+        {
+            // Find the updated method in the new root
+            var updatedMethod = root.DescendantNodes().OfType<MethodDeclarationSyntax>()
+                .First(m => m.Identifier.Text == method.Identifier.Text);
+
+            var asyncModifier = SyntaxFactory.Token(SyntaxKind.AsyncKeyword);
+            var newModifiers = updatedMethod.Modifiers.Add(asyncModifier);
+            var newMethod = updatedMethod.WithModifiers(newModifiers);
+
+            // Update return type if needed
+            var returnType = updatedMethod.ReturnType.ToString();
+            if (!returnType.StartsWith("Task"))
+            {
+                var newReturnType = returnType == "void"
+                    ? SyntaxFactory.ParseTypeName("Task")
+                    : SyntaxFactory.ParseTypeName($"Task<{returnType}>");
+
+                // Preserve the original return type's trivia to maintain spacing
+                newReturnType = newReturnType
+                    .WithLeadingTrivia(updatedMethod.ReturnType.GetLeadingTrivia())
+                    .WithTrailingTrivia(updatedMethod.ReturnType.GetTrailingTrivia());
+
+                newMethod = newMethod.WithReturnType(newReturnType);
+            }
+
+            root = root.ReplaceNode(updatedMethod, newMethod);
         }
 
         return await Task.FromResult(root);

@@ -1,262 +1,118 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core.Security
+namespace Relay.Core.Security;
+
+/// <summary>
+/// Advanced security pipeline behavior with multi-layer protection.
+/// </summary>
+public class SecurityPipelineBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
 {
-    /// <summary>
-    /// Advanced security pipeline behavior with multi-layer protection.
-    /// </summary>
-    public class SecurityPipelineBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : IRequest<TResponse>
+    private readonly ILogger<SecurityPipelineBehavior<TRequest, TResponse>> _logger;
+    private readonly ISecurityContext _securityContext;
+    private readonly IRequestAuditor _auditor;
+    private readonly IRateLimiter? _rateLimiter;
+
+    public SecurityPipelineBehavior(
+        ILogger<SecurityPipelineBehavior<TRequest, TResponse>> logger,
+        ISecurityContext securityContext,
+        IRequestAuditor auditor,
+        IRateLimiter? rateLimiter = null)
     {
-        private readonly ILogger<SecurityPipelineBehavior<TRequest, TResponse>> _logger;
-        private readonly ISecurityContext _securityContext;
-        private readonly IRequestAuditor _auditor;
-        private readonly IRateLimiter? _rateLimiter;
-
-        public SecurityPipelineBehavior(
-            ILogger<SecurityPipelineBehavior<TRequest, TResponse>> logger,
-            ISecurityContext securityContext,
-            IRequestAuditor auditor,
-            IRateLimiter? rateLimiter = null)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _securityContext = securityContext ?? throw new ArgumentNullException(nameof(securityContext));
-            _auditor = auditor ?? throw new ArgumentNullException(nameof(auditor));
-            _rateLimiter = rateLimiter;
-        }
-
-        public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-        {
-            var requestType = typeof(TRequest).Name;
-            var userId = _securityContext.UserId;
-
-            // Data sanitization
-            SanitizeRequest(request);
-
-            // Permission validation
-            await ValidatePermissions(request, requestType);
-
-            // Rate limiting per user
-            await ValidateUserRateLimit(userId, requestType);
-
-            // Audit logging
-            await _auditor.LogRequestAsync(userId, requestType, request, cancellationToken);
-
-            try
-            {
-                var response = await next();
-                
-                // Sanitize response data
-                SanitizeResponse(response);
-                
-                // Log successful access
-                await _auditor.LogSuccessAsync(userId, requestType, cancellationToken);
-                
-                return response;
-            }
-            catch (Exception ex)
-            {
-                // Log security-related failures
-                await _auditor.LogFailureAsync(userId, requestType, ex, cancellationToken);
-                throw;
-            }
-        }
-
-        private void SanitizeRequest(TRequest request)
-        {
-            // Implement data sanitization logic
-            // Remove/mask sensitive data, validate input formats, etc.
-        }
-
-        private void SanitizeResponse(TResponse response)
-        {
-            // Implement response sanitization
-            // Remove sensitive fields based on user permissions
-        }
-
-        private ValueTask ValidatePermissions(TRequest request, string requestType)
-        {
-            var requiredPermissions = GetRequiredPermissions(requestType);
-            if (requiredPermissions.Any() && !_securityContext.HasPermissions(requiredPermissions))
-            {
-                _logger.LogWarning("Permission denied for user {UserId} on {RequestType}", 
-                    _securityContext.UserId, requestType);
-                throw new InsufficientPermissionsException(requestType, requiredPermissions);
-            }
-
-            return ValueTask.CompletedTask;
-        }
-
-        private async ValueTask ValidateUserRateLimit(string userId, string requestType)
-        {
-            if (_rateLimiter == null)
-                return;
-
-            var rateLimitKey = $"{userId}:{requestType}";
-            var isAllowed = await _rateLimiter.CheckRateLimitAsync(rateLimitKey);
-
-            if (!isAllowed)
-            {
-                _logger.LogWarning("Rate limit exceeded for user {UserId} on {RequestType}", userId, requestType);
-                throw new RateLimitExceededException(userId, requestType);
-            }
-        }
-
-        private IEnumerable<string> GetRequiredPermissions(string requestType)
-        {
-            // Return required permissions for the request type
-            // This could be configured via attributes or configuration
-            return Enumerable.Empty<string>();
-        }
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _securityContext = securityContext ?? throw new ArgumentNullException(nameof(securityContext));
+        _auditor = auditor ?? throw new ArgumentNullException(nameof(auditor));
+        _rateLimiter = rateLimiter;
     }
 
-    /// <summary>
-    /// Interface for rate limiting functionality.
-    /// </summary>
-    public interface IRateLimiter
+    public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        /// <summary>
-        /// Checks if the request is allowed under rate limiting rules.
-        /// </summary>
-        /// <param name="key">The rate limit key (typically user:requesttype)</param>
-        /// <returns>True if allowed, false if rate limit exceeded</returns>
-        ValueTask<bool> CheckRateLimitAsync(string key);
-    }
+        var requestType = typeof(TRequest).Name;
+        var userId = _securityContext.UserId;
 
-    /// <summary>
-    /// In-memory implementation of rate limiter using sliding window algorithm.
-    /// </summary>
-    public class InMemoryRateLimiter : IRateLimiter
-    {
-        private readonly ConcurrentDictionary<string, RateLimitEntry> _requestCounts = new();
-        private readonly int _maxRequestsPerWindow;
-        private readonly TimeSpan _windowDuration;
+        // Data sanitization
+        SanitizeRequest(request);
 
-        public InMemoryRateLimiter(int maxRequestsPerWindow = 100, TimeSpan? windowDuration = null)
+        // Permission validation
+        await ValidatePermissions(request, requestType);
+
+        // Rate limiting per user
+        await ValidateUserRateLimit(userId, requestType);
+
+        // Audit logging
+        await _auditor.LogRequestAsync(userId, requestType, request, cancellationToken);
+
+        try
         {
-            _maxRequestsPerWindow = maxRequestsPerWindow;
-            _windowDuration = windowDuration ?? TimeSpan.FromMinutes(1);
-        }
-
-        public ValueTask<bool> CheckRateLimitAsync(string key)
-        {
-            var now = DateTimeOffset.UtcNow;
+            var response = await next();
             
-            var entry = _requestCounts.AddOrUpdate(
-                key,
-                _ => new RateLimitEntry 
-                { 
-                    Count = 1, 
-                    WindowStart = now 
-                },
-                (_, existing) =>
-                {
-                    // Check if window has expired
-                    if (now - existing.WindowStart >= _windowDuration)
-                    {
-                        // Reset window
-                        existing.WindowStart = now;
-                        existing.Count = 1;
-                    }
-                    else
-                    {
-                        // Increment count in current window
-                        existing.Count++;
-                    }
-                    return existing;
-                });
-
-            // Cleanup old entries periodically (simple approach)
-            if (_requestCounts.Count > 10000)
-            {
-                CleanupExpiredEntries();
-            }
-
-            return new ValueTask<bool>(entry.Count <= _maxRequestsPerWindow);
+            // Sanitize response data
+            SanitizeResponse(response);
+            
+            // Log successful access
+            await _auditor.LogSuccessAsync(userId, requestType, cancellationToken);
+            
+            return response;
         }
-
-        private void CleanupExpiredEntries()
+        catch (Exception ex)
         {
-            var now = DateTimeOffset.UtcNow;
-            var expiredKeys = _requestCounts
-                .Where(kvp => now - kvp.Value.WindowStart >= _windowDuration * 2)
-                .Select(kvp => kvp.Key)
-                .ToList();
-
-            foreach (var key in expiredKeys)
-            {
-                _requestCounts.TryRemove(key, out _);
-            }
-        }
-
-        private class RateLimitEntry
-        {
-            public int Count { get; set; }
-            public DateTimeOffset WindowStart { get; set; }
+            // Log security-related failures
+            await _auditor.LogFailureAsync(userId, requestType, ex, cancellationToken);
+            throw;
         }
     }
 
-    /// <summary>
-    /// Security context interface for accessing current user information.
-    /// </summary>
-    public interface ISecurityContext
+    private void SanitizeRequest(TRequest request)
     {
-        string UserId { get; }
-        IEnumerable<string> Roles { get; }
-        IEnumerable<Claim> Claims { get; }
-        bool IsAuthenticated { get; }
-        bool HasPermission(string permission);
-        bool HasPermissions(IEnumerable<string> permissions);
+        // Implement data sanitization logic
+        // Remove/mask sensitive data, validate input formats, etc.
     }
 
-    /// <summary>
-    /// Request auditing interface.
-    /// </summary>
-    public interface IRequestAuditor
+    private void SanitizeResponse(TResponse response)
     {
-        ValueTask LogRequestAsync(string userId, string requestType, object request, CancellationToken cancellationToken);
-        ValueTask LogSuccessAsync(string userId, string requestType, CancellationToken cancellationToken);
-        ValueTask LogFailureAsync(string userId, string requestType, Exception exception, CancellationToken cancellationToken);
+        // Implement response sanitization
+        // Remove sensitive fields based on user permissions
     }
 
-    /// <summary>
-    /// Exception thrown when user lacks required permissions.
-    /// </summary>
-    public class InsufficientPermissionsException : Exception
+    private ValueTask ValidatePermissions(TRequest request, string requestType)
     {
-        public string RequestType { get; }
-        public IEnumerable<string> RequiredPermissions { get; }
-
-        public InsufficientPermissionsException(string requestType, IEnumerable<string> requiredPermissions)
-            : base($"Insufficient permissions for {requestType}. Required: {string.Join(", ", requiredPermissions)}")
+        var requiredPermissions = GetRequiredPermissions(requestType);
+        if (requiredPermissions.Any() && !_securityContext.HasPermissions(requiredPermissions))
         {
-            RequestType = requestType;
-            RequiredPermissions = requiredPermissions;
+            _logger.LogWarning("Permission denied for user {UserId} on {RequestType}", 
+                _securityContext.UserId, requestType);
+            throw new InsufficientPermissionsException(requestType, requiredPermissions);
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    private async ValueTask ValidateUserRateLimit(string userId, string requestType)
+    {
+        if (_rateLimiter == null)
+            return;
+
+        var rateLimitKey = $"{userId}:{requestType}";
+        var isAllowed = await _rateLimiter.CheckRateLimitAsync(rateLimitKey);
+
+        if (!isAllowed)
+        {
+            _logger.LogWarning("Rate limit exceeded for user {UserId} on {RequestType}", userId, requestType);
+            throw new RateLimitExceededException(userId, requestType);
         }
     }
 
-    /// <summary>
-    /// Exception thrown when rate limit is exceeded.
-    /// </summary>
-    public class RateLimitExceededException : Exception
+    private IEnumerable<string> GetRequiredPermissions(string requestType)
     {
-        public string UserId { get; }
-        public string RequestType { get; }
-
-        public RateLimitExceededException(string userId, string requestType)
-            : base($"Rate limit exceeded for user {userId} on request type {requestType}")
-        {
-            UserId = userId;
-            RequestType = requestType;
-        }
+        // Return required permissions for the request type
+        // This could be configured via attributes or configuration
+        return Enumerable.Empty<string>();
     }
 }

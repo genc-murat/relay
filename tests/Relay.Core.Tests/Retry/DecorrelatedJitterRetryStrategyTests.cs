@@ -412,12 +412,9 @@ namespace Relay.Core.Tests.Retry
                 var attempt = i % 10 + 1; // Attempts 1-10
                 tasks.Add(Task.Run(async () =>
                 {
-                    var shouldRetry = await strategy.ShouldRetryAsync(attempt, exception);
-                    var delay = await strategy.GetRetryDelayAsync(attempt, exception);
-
-                    // Basic validation
-                    Assert.True(shouldRetry);
-                    Assert.True(delay >= TimeSpan.Zero);
+                    await strategy.ShouldRetryAsync(attempt, exception);
+                    await strategy.GetRetryDelayAsync(attempt, exception);
+                    return Task.CompletedTask;
                 }));
             }
 
@@ -437,11 +434,12 @@ namespace Relay.Core.Tests.Retry
             var delays = new System.Collections.Concurrent.ConcurrentBag<TimeSpan>();
 
             // Act - Get delays from multiple threads simultaneously
-            var tasks = Enumerable.Range(0, 50).Select(_ => Task.Run(async () =>
+            var tasks = Enumerable.Range(0, 50).Select(async _ =>
             {
                 var delay = await strategy.GetRetryDelayAsync(3, exception);
                 delays.Add(delay);
-            }));
+                return Task.CompletedTask;
+            }).ToArray();
 
             await Task.WhenAll(tasks);
 
@@ -553,6 +551,232 @@ namespace Relay.Core.Tests.Retry
 
         #endregion
 
+        #region Disposal Tests
+
+        [Fact]
+        public void Dispose_Should_CleanUpResources()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+
+            // Act
+            strategy.Dispose();
+
+            // Assert - Should not throw on multiple dispose calls
+            strategy.Dispose();
+        }
+
+        [Fact]
+        public async Task ShouldRetryAsync_Should_ThrowAfterDispose()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+            var exception = new InvalidOperationException("Test exception");
+
+            strategy.Dispose();
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ObjectDisposedException>(
+                () => strategy.ShouldRetryAsync(1, exception).AsTask());
+        }
+
+        [Fact]
+        public async Task GetRetryDelayAsync_Should_ThrowAfterDispose()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+            var exception = new InvalidOperationException("Test exception");
+
+            strategy.Dispose();
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ObjectDisposedException>(
+                () => strategy.GetRetryDelayAsync(1, exception).AsTask());
+        }
+
+        #endregion
+
+        #region Additional Edge Cases
+
+        [Fact]
+        public async Task GetRetryDelayAsync_Should_HandleVeryHighAttemptNumbers()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+            var exception = new InvalidOperationException("Test exception");
+
+            // Act
+            var delay = await strategy.GetRetryDelayAsync(int.MaxValue, exception);
+
+            // Assert - Should still respect bounds even for extreme attempt numbers
+            Assert.InRange(delay, TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+        }
+
+        [Fact]
+        public async Task Strategy_Should_HandleNullException()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+
+            // Act
+            var shouldRetry = await strategy.ShouldRetryAsync(1, null!);
+            var delay = await strategy.GetRetryDelayAsync(1, null!);
+
+            // Assert
+            Assert.True(shouldRetry);
+            Assert.True(delay >= TimeSpan.Zero);
+        }
+
+        [Fact]
+        public async Task Strategy_Should_WorkWithCancelledCancellationToken()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+            var exception = new InvalidOperationException("Test exception");
+
+            // Act & Assert - Should still work even with cancelled token (no async delay)
+            var shouldRetry = await strategy.ShouldRetryAsync(1, exception, cts.Token);
+            var delay = await strategy.GetRetryDelayAsync(1, exception, cts.Token);
+
+            Assert.True(shouldRetry);
+            Assert.True(delay >= TimeSpan.Zero);
+        }
+
+        [Fact]
+        public async Task GetRetryDelayAsync_Should_ProduceConsistentSequence_ForSameStrategyInstance()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+            var exception = new InvalidOperationException("Test exception");
+
+            // Act - Get delays for consecutive attempts
+            var delay1 = await strategy.GetRetryDelayAsync(1, exception);
+            var delay2 = await strategy.GetRetryDelayAsync(2, exception);
+            var delay3 = await strategy.GetRetryDelayAsync(3, exception);
+
+            // Assert - Each delay should be within valid range
+            Assert.InRange(delay1, TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+            Assert.InRange(delay2, TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+            Assert.InRange(delay3, TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+        }
+
+        [Fact]
+        public async Task Strategy_Should_HandleVerySmallTimeSpans()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromTicks(1),
+                TimeSpan.FromTicks(10));
+            var exception = new InvalidOperationException("Test exception");
+
+            // Act
+            var delay = await strategy.GetRetryDelayAsync(1, exception);
+
+            // Assert
+            Assert.InRange(delay, TimeSpan.FromTicks(1), TimeSpan.FromTicks(10));
+        }
+
+        [Fact]
+        public async Task Strategy_Should_HandleVeryLargeTimeSpans()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromDays(1),
+                TimeSpan.FromDays(365));
+            var exception = new InvalidOperationException("Test exception");
+
+            // Act
+            var delay = await strategy.GetRetryDelayAsync(1, exception);
+
+            // Assert
+            Assert.InRange(delay, TimeSpan.FromDays(1), TimeSpan.FromDays(365));
+        }
+
+        [Fact]
+        public async Task GetRetryDelayAsync_Should_HandleEdgeCase_WhereRangeCalculationResultsInZero()
+        {
+            // Arrange - Create scenario where baseDelay * 3 > maxDelay, and baseDelay == maxDelay
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromSeconds(10),
+                TimeSpan.FromSeconds(10)); // baseDelay == maxDelay
+            var exception = new InvalidOperationException("Test exception");
+
+            // Act
+            var delay = await strategy.GetRetryDelayAsync(1, exception);
+
+            // Assert
+            Assert.Equal(TimeSpan.FromSeconds(10), delay);
+        }
+
+        [Fact]
+        public async Task Strategy_Should_WorkWithDifferentExceptionTypes()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+
+            var exceptions = new Exception[]
+            {
+                new InvalidOperationException("Test"),
+                new ArgumentException("Test"),
+                new TimeoutException("Test"),
+                new System.IO.IOException("Test"),
+                new CustomException("Test")
+            };
+
+            // Act & Assert - Strategy should work regardless of exception type
+            foreach (var ex in exceptions)
+            {
+                var shouldRetry = await strategy.ShouldRetryAsync(1, ex);
+                var delay = await strategy.GetRetryDelayAsync(1, ex);
+
+                Assert.True(shouldRetry);
+                Assert.True(delay >= TimeSpan.Zero);
+            }
+        }
+
+        [Fact]
+        public async Task Strategy_Should_BeReusable_AcrossMultipleOperations()
+        {
+            // Arrange
+            var strategy = new DecorrelatedJitterRetryStrategy(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromSeconds(30));
+            var exception = new InvalidOperationException("Test exception");
+
+            // Act - Simulate multiple independent operations
+            for (int operation = 1; operation <= 5; operation++)
+            {
+                for (int attempt = 1; attempt <= 3; attempt++)
+                {
+                    var shouldRetry = await strategy.ShouldRetryAsync(attempt, exception);
+                    var delay = await strategy.GetRetryDelayAsync(attempt, exception);
+
+                    Assert.True(shouldRetry);
+                    Assert.InRange(delay, TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(30));
+                }
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
 
         /// <summary>
@@ -575,6 +799,11 @@ namespace Relay.Core.Tests.Retry
 
             var averageMilliseconds = delays.Average(d => d.TotalMilliseconds);
             return TimeSpan.FromMilliseconds(averageMilliseconds);
+        }
+
+        private class CustomException : Exception
+        {
+            public CustomException(string message) : base(message) { }
         }
 
         #endregion

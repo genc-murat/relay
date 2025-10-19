@@ -1,13 +1,12 @@
+using Microsoft.Extensions.Logging;
+using Relay.Core.Contracts.Core;
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Relay.Core.Contracts.Core;
-using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.HandlerVersioning;
 
@@ -150,42 +149,5 @@ public sealed class VersionedRelay : IVersionedRelay
         });
 
         return compatibleVersions.OrderByDescending(v => v.Version).FirstOrDefault()?.Version;
-    }
-}
-
-/// <summary>
-/// Information about a handler version
-/// </summary>
-internal sealed class HandlerVersionInfo
-{
-    public Version Version { get; init; } = new(1, 0);
-    public bool IsDeprecated { get; init; }
-    public string? DeprecationMessage { get; init; }
-    public Type HandlerType { get; init; } = typeof(object);
-}
-
-/// <summary>
-/// Exception thrown when a handler version is not found
-/// </summary>
-public sealed class HandlerVersionNotFoundException : Exception
-{
-    public Type RequestType { get; }
-    public Version? RequestedVersion { get; }
-    public Version? MinVersion { get; }
-    public Version? MaxVersion { get; }
-
-    public HandlerVersionNotFoundException(Type requestType, Version requestedVersion)
-        : base("Handler version {requestedVersion} not found for request type {requestType.Name}")
-    {
-        RequestType = requestType;
-        RequestedVersion = requestedVersion;
-    }
-
-    public HandlerVersionNotFoundException(Type requestType, Version? minVersion, Version? maxVersion)
-        : base("No compatible handler version found for request type {requestType.Name} (min: {minVersion}, max: {maxVersion})")
-    {
-        RequestType = requestType;
-        MinVersion = minVersion;
-        MaxVersion = maxVersion;
     }
 }

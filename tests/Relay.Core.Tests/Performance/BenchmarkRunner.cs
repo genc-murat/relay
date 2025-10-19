@@ -58,8 +58,32 @@ public class RelayBenchmarkRunner
         Console.WriteLine("\n3. Running Throughput Benchmarks...");
         BenchmarkDotNet.Running.BenchmarkRunner.Run<RelayThroughputBenchmarks>(config);
 
-        Console.WriteLine("\n4. Running Validation Benchmarks...");
-        BenchmarkDotNet.Running.BenchmarkRunner.Run<ValidationBenchmarks>(config);
+        Console.WriteLine("\n4. Running Format Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<FormatValidationBenchmarks>(config);
+
+        Console.WriteLine("\n5. Running Advanced Format Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<AdvancedFormatValidationBenchmarks>(config);
+
+        Console.WriteLine("\n6. Running Basic Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<BasicValidationBenchmarks>(config);
+
+        Console.WriteLine("\n7. Running Numeric Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<NumericValidationBenchmarks>(config);
+
+        Console.WriteLine("\n8. Running String Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<StringValidationBenchmarks>(config);
+
+        Console.WriteLine("\n9. Running DateTime Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<DateTimeValidationBenchmarks>(config);
+
+        Console.WriteLine("\n10. Running Collection Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<CollectionValidationBenchmarks>(config);
+
+        Console.WriteLine("\n11. Running Business Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<BusinessValidationBenchmarks>(config);
+
+        Console.WriteLine("\n12. Running Complex Validation Benchmarks...");
+        BenchmarkDotNet.Running.BenchmarkRunner.Run<ComplexValidationBenchmarks>(config);
 
         await Task.CompletedTask;
     }
@@ -80,7 +104,16 @@ public class RelayBenchmarkRunner
                 BenchmarkDotNet.Running.BenchmarkRunner.Run<RelayThroughputBenchmarks>(config);
                 break;
             case "validation":
-                BenchmarkDotNet.Running.BenchmarkRunner.Run<ValidationBenchmarks>(config);
+                Console.WriteLine("Running all validation benchmarks...");
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<FormatValidationBenchmarks>(config);
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<AdvancedFormatValidationBenchmarks>(config);
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<BasicValidationBenchmarks>(config);
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<NumericValidationBenchmarks>(config);
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<StringValidationBenchmarks>(config);
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<DateTimeValidationBenchmarks>(config);
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<CollectionValidationBenchmarks>(config);
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<BusinessValidationBenchmarks>(config);
+                BenchmarkDotNet.Running.BenchmarkRunner.Run<ComplexValidationBenchmarks>(config);
                 break;
             default:
                 Console.WriteLine($"Unknown benchmark: {benchmarkName}");

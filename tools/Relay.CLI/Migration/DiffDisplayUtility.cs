@@ -22,7 +22,7 @@ namespace Relay.CLI.Migration
             if (string.IsNullOrEmpty(original) && string.IsNullOrEmpty(modified))
                 return;
 
-            var diff = InlineDiffBuilder.Diff(original ?? string.Empty, modified ?? string.Empty);
+            var diff = InlineDiffBuilder.Diff(original ?? string.Empty, modified ?? string.Empty, false);
 
             var displayedLines = 0;
             var totalChanges = diff.Lines.Count(l => l.Type != DiffPlex.DiffBuilder.Model.ChangeType.Unchanged);
@@ -75,7 +75,7 @@ namespace Relay.CLI.Migration
             if (string.IsNullOrEmpty(original) && string.IsNullOrEmpty(modified))
                 return;
 
-            var diff = SideBySideDiffBuilder.Diff(original ?? string.Empty, modified ?? string.Empty);
+            var diff = SideBySideDiffBuilder.Diff(original ?? string.Empty, modified ?? string.Empty, false);
 
             // Create a table to display side by side
             var table = new Table()
@@ -157,7 +157,7 @@ namespace Relay.CLI.Migration
             if (string.IsNullOrEmpty(original) && string.IsNullOrEmpty(modified))
                 return (0, 0, 0);
 
-            var diff = InlineDiffBuilder.Diff(original ?? string.Empty, modified ?? string.Empty);
+            var diff = InlineDiffBuilder.Diff(original ?? string.Empty, modified ?? string.Empty, false);
 
             int added = 0, removed = 0, modifiedLines = 0;
 

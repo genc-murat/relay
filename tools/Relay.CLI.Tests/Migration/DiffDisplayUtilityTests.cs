@@ -1,4 +1,4 @@
-﻿using Relay.CLI.Migration;
+using Relay.CLI.Migration;
 using Xunit;
 
 namespace Relay.CLI.Tests.Migration;
@@ -403,7 +403,9 @@ public class Handler : IRequestHandler<Request>
         var (added, removed, modifiedCount) = DiffDisplayUtility.GetChangeSummary(original, modified);
 
         // Assert
-        Assert.Equal(10, modifiedCount); // Every 100th line is modified
+        Assert.Equal(10, added); // Every 100th line is replaced, counted as added
+        Assert.Equal(10, removed); // Every 100th line is replaced, counted as removed
+        Assert.Equal(0, modifiedCount);
     }
 
     [Fact]

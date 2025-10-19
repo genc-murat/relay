@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.MessageBroker.Saga;
 using Relay.MessageBroker.Saga.Services;
+using Moq;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Relay.MessageBroker.Tests;
@@ -374,5 +376,124 @@ public class SagaMetricsTests
         Assert.True(metrics.FailuresByStep.ContainsKey("ProcessPayment"));
         Assert.Equal(2, metrics.FailuresByStep["ProcessPayment"]);
     }
+
+    // Additional metrics tests from SagaTests.cs
+
+    [Fact]
+    public void InMemorySagaMetricsCollector_RecordSagaStarted_IncrementsStarted()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<InMemorySagaMetricsCollector>>();
+        var collector = new InMemorySagaMetricsCollector(logger.Object);
+        var sagaId = Guid.NewGuid();
+        var correlationId = "test-correlation";
+
+        // Act
+        collector.RecordSagaStarted("TestSaga", sagaId, correlationId);
+
+        // Assert
+        var metrics = collector.GetMetrics("TestSaga");
+        Assert.Equal(1, metrics.TotalStarted);
+        Assert.Equal(0, metrics.TotalCompleted);
+        Assert.Equal(0, metrics.TotalFailed);
+        Assert.Equal(0, metrics.TotalCompensated);
+    }
+
+    [Fact]
+    public void InMemorySagaMetricsCollector_RecordSagaCompleted_IncrementsCompleted()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<InMemorySagaMetricsCollector>>();
+        var collector = new InMemorySagaMetricsCollector(logger.Object);
+        var sagaId = Guid.NewGuid();
+        var duration = TimeSpan.FromSeconds(5);
+
+        // Act
+        collector.RecordSagaCompleted("TestSaga", sagaId, duration);
+
+        // Assert
+        var metrics = collector.GetMetrics("TestSaga");
+        Assert.Equal(1, metrics.TotalCompleted);
+        Assert.Equal(duration.TotalMilliseconds, metrics.AverageDurationMs);
+    }
+
+    [Fact]
+    public void InMemorySagaMetricsCollector_RecordSagaFailed_IncrementsFailed()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<InMemorySagaMetricsCollector>>();
+        var collector = new InMemorySagaMetricsCollector(logger.Object);
+        var sagaId = Guid.NewGuid();
+        var failedStep = "TestStep";
+        var duration = TimeSpan.FromSeconds(3);
+
+        // Act
+        collector.RecordSagaFailed("TestSaga", sagaId, failedStep, duration);
+
+        // Assert
+        var metrics = collector.GetMetrics("TestSaga");
+        Assert.Equal(1, metrics.TotalFailed);
+        Assert.Equal(1, metrics.FailuresByStep[failedStep]);
+    }
+
+    [Fact]
+    public void InMemorySagaMetricsCollector_RecordStepExecuted_TracksMetrics()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<InMemorySagaMetricsCollector>>();
+        var collector = new InMemorySagaMetricsCollector(logger.Object);
+        var stepName = "TestStep";
+        var duration = TimeSpan.FromMilliseconds(100);
+
+        // Act
+        collector.RecordStepExecuted("TestSaga", stepName, duration, true);
+        collector.RecordStepExecuted("TestSaga", stepName, duration, false);
+
+        // Assert
+        var metrics = collector.GetMetrics("TestSaga");
+        Assert.True(metrics.StepMetrics.ContainsKey(stepName));
+        var stepMetrics = metrics.StepMetrics[stepName];
+        Assert.Equal(2, stepMetrics.TotalExecutions);
+        Assert.Equal(1, stepMetrics.Successes);
+        Assert.Equal(1, stepMetrics.Failures);
+        Assert.Equal(50.0, stepMetrics.SuccessRate); // 50%
+    }
+
+    [Fact]
+    public void InMemorySagaMetricsCollector_GetAllMetrics_ReturnsAllTypes()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<InMemorySagaMetricsCollector>>();
+        var collector = new InMemorySagaMetricsCollector(logger.Object);
+
+        // Act
+        collector.RecordSagaStarted("SagaA", Guid.NewGuid(), "corr1");
+        collector.RecordSagaStarted("SagaB", Guid.NewGuid(), "corr2");
+
+        // Assert
+        var allMetrics = collector.GetAllMetrics();
+        Assert.Equal(2, allMetrics.Count);
+        Assert.True(allMetrics.ContainsKey("SagaA"));
+        Assert.True(allMetrics.ContainsKey("SagaB"));
+    }
+
+    [Fact]
+    public void InMemorySagaMetricsCollector_Reset_ClearsAllMetrics()
+    {
+        // Arrange
+        var logger = new Mock<ILogger<InMemorySagaMetricsCollector>>();
+        var collector = new InMemorySagaMetricsCollector(logger.Object);
+        collector.RecordSagaStarted("TestSaga", Guid.NewGuid(), "corr");
+
+        // Act
+        collector.Reset();
+
+        // Assert
+        var metrics = collector.GetMetrics("TestSaga");
+        Assert.Equal(0, metrics.TotalStarted);
+        var allMetrics = collector.GetAllMetrics();
+        Assert.Empty(allMetrics);
+    }
 }
+
 

@@ -12,7 +12,7 @@ namespace Relay.Core.Telemetry;
 /// <summary>
 /// Unified telemetry provider that supports all Relay components
 /// </summary>
-public class RelayTelemetryProvider : ITelemetryProvider
+public class RelayTelemetryProvider : ITelemetryProvider, IDisposable
 {
     private readonly RelayTelemetryOptions _options;
     private readonly ILogger<RelayTelemetryProvider>? _logger;
@@ -47,6 +47,8 @@ public class RelayTelemetryProvider : ITelemetryProvider
         IMetricsProvider? metricsProvider = null)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        if (_options.Component == null)
+            throw new ArgumentNullException(nameof(_options.Component));
         _logger = logger;
         _metricsProvider = metricsProvider;
 
@@ -429,7 +431,7 @@ public class RelayTelemetryProvider : ITelemetryProvider
         _correlationIdContext.Value = correlationId;
 
         var activity = Activity.Current;
-        if (activity != null)
+        if (activity != null && correlationId != null)
         {
             activity.SetTag(RelayTelemetryConstants.Attributes.CorrelationId, correlationId);
         }
@@ -437,6 +439,12 @@ public class RelayTelemetryProvider : ITelemetryProvider
 
     public string? GetCorrelationId()
     {
-        return _correlationIdContext.Value ?? Activity.Current?.GetTagItem(RelayTelemetryConstants.Attributes.CorrelationId)?.ToString();
+        return _correlationIdContext.Value;
+    }
+
+    public void Dispose()
+    {
+        _activitySource?.Dispose();
+        _meter?.Dispose();
     }
 }

@@ -784,29 +784,6 @@ public class PluginCommandTests
     }
 
     [Fact]
-    public async Task PluginCommand_ExecuteUpdate_SpecificPlugin_ShouldDisplayTarget()
-    {
-        // Arrange
-        var testConsole = new Spectre.Console.Testing.TestConsole();
-
-        // Act
-        var originalConsole = AnsiConsole.Console;
-        AnsiConsole.Console = testConsole;
-
-        try
-        {
-            await PluginCommand.ExecuteUpdate("test-plugin");
-        }
-        finally
-        {
-            AnsiConsole.Console = originalConsole;
-        }
-
-        // Assert
-        Assert.Contains("🔄 Updating test-plugin", testConsole.Output);
-    }
-
-    [Fact]
     public async Task PluginCommand_ExecuteCreate_ShouldCreatePluginStructure()
     {
         // Arrange

@@ -28,41 +28,6 @@ namespace Relay.Core.Tests.AI.Training
             _testModelPath = Path.Combine(Path.GetTempPath(), $"RelayAIIntegrationTests_{Guid.NewGuid()}");
         }
 
-        [Fact(Skip = "DefaultAIModelTrainer includes forecasting which requires 200+ samples")]
-        public async Task EndToEnd_TrainAndPersist_ThenLoadAndPredict()
-        {
-            // Arrange - Create training data
-            var trainingData = CreateComprehensiveTrainingData();
-
-            // Act 1: Train models (first run)
-            _trainer = new DefaultAIModelTrainer(_trainerLogger.Object);
-            await _trainer.TrainModelAsync(trainingData);
-            _trainer.Dispose();
-            _trainer = null;
-
-            // Act 2: Create new trainer and manager (should load persisted models)
-            _trainer = new DefaultAIModelTrainer(_trainerLogger.Object);
-            _manager = new MLNetModelManager(_managerLogger.Object, _testModelPath);
-
-            // Assert: Models should be persisted
-            Assert.True(_manager.HasPersistedModels());
-
-            // Act 3: Make predictions with loaded models
-            var performanceData = new PerformanceData
-            {
-                ExecutionTime = 150f,
-                ConcurrencyLevel = 5,
-                MemoryUsage = 50 * 1024 * 1024,
-                DatabaseCalls = 3,
-                ExternalApiCalls = 1
-            };
-
-            var prediction = _manager.PredictOptimizationGain(performanceData);
-
-            // Assert: Prediction should be valid
-            Assert.InRange(prediction, 0f, 1f);
-        }
-
         [Fact]
         public async Task EndToEnd_TrainWithProgressTracking_ReportsAllPhases()
         {
@@ -91,86 +56,6 @@ namespace Relay.Core.Tests.AI.Training
             // Progress should reach 100%
             Assert.Equal(100, progressReports.Last().ProgressPercentage);
             Assert.Contains("completed", progressReports.Last().StatusMessage, StringComparison.OrdinalIgnoreCase);
-        }
-
-        [Fact(Skip = "Includes forecasting training which requires 200+ samples")]
-        public async Task EndToEnd_TrainMultipleModels_AllModelsWork()
-        {
-            // Arrange
-            var trainingData = CreateComprehensiveTrainingData();
-            _trainer = new DefaultAIModelTrainer(_trainerLogger.Object);
-            _manager = new MLNetModelManager(_managerLogger.Object, _testModelPath);
-
-            // Act: Train all models
-            await _trainer.TrainModelAsync(trainingData);
-
-            // Manually train ML.NET models (since trainer uses internal manager)
-            _manager.TrainRegressionModel(trainingData.ExecutionHistory!
-                .Select(e => new PerformanceData
-                {
-                    ExecutionTime = (float)e.AverageExecutionTime.TotalMilliseconds,
-                    ConcurrencyLevel = e.ConcurrentExecutions,
-                    MemoryUsage = e.MemoryUsage,
-                    DatabaseCalls = e.DatabaseCalls,
-                    ExternalApiCalls = e.ExternalApiCalls,
-                    OptimizationGain = 0.7f
-                })
-                .ToList());
-
-            _manager.TrainClassificationModel(trainingData.OptimizationHistory!
-                .Select(o => new OptimizationStrategyData
-                {
-                    ExecutionTime = (float)o.ExecutionTime.TotalMilliseconds,
-                    RepeatRate = 0.8f,
-                    ConcurrencyLevel = 5f,
-                    MemoryPressure = 0.5f,
-                    ErrorRate = o.Success ? 0f : 0.1f,
-                    ShouldOptimize = o.Success
-                })
-                .ToList());
-
-            var metricData = trainingData.SystemLoadHistory!
-                .Select(s => new MetricData
-                {
-                    Timestamp = s.Timestamp,
-                    Value = (float)s.CpuUtilization
-                })
-                .ToList();
-
-            _manager.TrainAnomalyDetectionModel(metricData);
-            _manager.TrainForecastingModel(metricData, horizon: 12);
-
-            // Assert: All models should work
-            var perfPrediction = _manager.PredictOptimizationGain(new PerformanceData
-            {
-                ExecutionTime = 150f,
-                ConcurrencyLevel = 5,
-                MemoryUsage = 50 * 1024 * 1024,
-                DatabaseCalls = 3,
-                ExternalApiCalls = 1
-            });
-            Assert.InRange(perfPrediction, 0f, 1f);
-
-            var (shouldOptimize, confidence) = _manager.PredictOptimizationStrategy(new OptimizationStrategyData
-            {
-                ExecutionTime = 150f,
-                RepeatRate = 0.8f,
-                ConcurrencyLevel = 5f,
-                MemoryPressure = 0.5f,
-                ErrorRate = 0.02f
-            });
-            Assert.InRange(confidence, 0f, 1f);
-
-            var isAnomaly = _manager.DetectAnomaly(new MetricData
-            {
-                Timestamp = DateTime.UtcNow,
-                Value = 85f
-            });
-            // Anomaly detection should return a boolean (no assertion on value, just no exception)
-
-            var forecast = _manager.ForecastMetric(horizon: 12);
-            Assert.NotNull(forecast);
-            Assert.Equal(12, forecast.ForecastedValues.Length);
         }
 
         [Fact]
@@ -251,44 +136,6 @@ namespace Relay.Core.Tests.AI.Training
 
             // All scores should be between 0 and 1
             Assert.All(importance.Values, score => Assert.InRange(score, 0f, 1f));
-        }
-
-        [Fact(Skip = "SSA forecasting requires 200+ time-series samples")]
-        public async Task EndToEnd_IncrementalLearning_UpdatesForecastModel()
-        {
-            // Arrange
-            var trainingData = CreateComprehensiveTrainingData();
-            _manager = new MLNetModelManager(_managerLogger.Object, _testModelPath);
-
-            var metricData = trainingData.SystemLoadHistory!
-                .Select(s => new MetricData
-                {
-                    Timestamp = s.Timestamp,
-                    Value = (float)s.ThroughputPerSecond
-                })
-                .ToList();
-
-            // Act: Train initial forecast model
-            _manager.TrainForecastingModel(metricData, horizon: 12);
-            var forecast1 = _manager.ForecastMetric(horizon: 12);
-
-            // Add new observations
-            for (int i = 0; i < 10; i++)
-            {
-                _manager.UpdateForecastingModel(new MetricData
-                {
-                    Timestamp = DateTime.UtcNow.AddMinutes(i),
-                    Value = 200f + i * 2
-                });
-            }
-
-            var forecast2 = _manager.ForecastMetric(horizon: 12);
-
-            // Assert: Both forecasts should be valid
-            Assert.NotNull(forecast1);
-            Assert.NotNull(forecast2);
-            Assert.Equal(12, forecast1.ForecastedValues.Length);
-            Assert.Equal(12, forecast2.ForecastedValues.Length);
         }
 
         [Fact]

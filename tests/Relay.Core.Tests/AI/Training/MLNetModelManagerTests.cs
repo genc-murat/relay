@@ -243,25 +243,6 @@ namespace Relay.Core.Tests.AI.Training
             Assert.True(File.Exists(modelFile));
         }
 
-        [Fact(Skip = "SSA forecasting requires 200+ time-series samples. Test data has only 100 samples.")]
-        public void TrainForecastingModel_WithValidData_SucceedsAndMakesForecasts()
-        {
-            // Arrange
-            _manager = new MLNetModelManager(_mockLogger.Object, _testModelPath);
-            var trainingData = CreateSampleMetricData(100);
-
-            // Act
-            _manager.TrainForecastingModel(trainingData, horizon: 12);
-            var forecast = _manager.ForecastMetric(horizon: 12);
-
-            // Assert
-            Assert.NotNull(forecast);
-            Assert.NotNull(forecast.ForecastedValues);
-            Assert.Equal(12, forecast.ForecastedValues.Length);
-            Assert.NotNull(forecast.LowerBound);
-            Assert.NotNull(forecast.UpperBound);
-        }
-
         [Fact]
         public void ForecastMetric_WithoutTraining_ReturnsNull()
         {
@@ -273,28 +254,6 @@ namespace Relay.Core.Tests.AI.Training
 
             // Assert
             Assert.Null(forecast);
-        }
-
-        [Fact(Skip = "SSA forecasting requires 200+ time-series samples. Test data has only 100 samples.")]
-        public void UpdateForecastingModel_WithNewObservation_Succeeds()
-        {
-            // Arrange
-            _manager = new MLNetModelManager(_mockLogger.Object, _testModelPath);
-            var trainingData = CreateSampleMetricData(100);
-            _manager.TrainForecastingModel(trainingData, horizon: 12);
-
-            var newObservation = new MetricData
-            {
-                Timestamp = DateTime.UtcNow,
-                Value = 75.5f
-            };
-
-            // Act
-            _manager.UpdateForecastingModel(newObservation);
-
-            // Assert - Should not throw
-            var forecast = _manager.ForecastMetric(horizon: 12);
-            Assert.NotNull(forecast);
         }
 
         [Fact]

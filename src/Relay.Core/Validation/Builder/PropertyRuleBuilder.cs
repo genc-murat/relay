@@ -36,7 +36,7 @@ public class PropertyRuleBuilder<TRequest, TProperty>
             _rules.Add(new PropertyValidationRule<TRequest, TProperty>(
                 _propertyName,
                 _propertyFunc,
-                value => value != null && predicate(value.ToString()),
+                value => value == null || predicate(value.ToString()),
                 errorMessage));
         }
     }

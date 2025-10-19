@@ -262,18 +262,95 @@ public class PluginLifecycleTests
     }
 
     [Fact]
-    public void PluginLogger_ShouldLogMessages()
+    public void PluginLogger_Constructor_SetsPluginName()
+    {
+        // Arrange & Act
+        var logger = new PluginLogger("test-plugin");
+
+        // Assert - We can't directly test the private field, but we can verify the logger was created
+        Assert.NotNull(logger);
+    }
+
+    [Fact]
+    public void PluginLogger_LogTrace_ShouldLogMessage()
     {
         // Arrange
         var logger = new PluginLogger("test-plugin");
-        var logged = false;
 
-        // Act
-        logger.LogInformation("Test message");
-        logged = true;
+        // Act & Assert - Should not throw
+        logger.LogTrace("Trace message");
+    }
 
-        // Assert
-        Assert.True(logged);
+    [Fact]
+    public void PluginLogger_LogDebug_ShouldLogMessage()
+    {
+        // Arrange
+        var logger = new PluginLogger("test-plugin");
+
+        // Act & Assert - Should not throw
+        logger.LogDebug("Debug message");
+    }
+
+    [Fact]
+    public void PluginLogger_LogInformation_ShouldLogMessage()
+    {
+        // Arrange
+        var logger = new PluginLogger("test-plugin");
+
+        // Act & Assert - Should not throw
+        logger.LogInformation("Info message");
+    }
+
+    [Fact]
+    public void PluginLogger_LogWarning_ShouldLogMessage()
+    {
+        // Arrange
+        var logger = new PluginLogger("test-plugin");
+
+        // Act & Assert - Should not throw
+        logger.LogWarning("Warning message");
+    }
+
+    [Fact]
+    public void PluginLogger_LogError_WithoutException_ShouldLogMessage()
+    {
+        // Arrange
+        var logger = new PluginLogger("test-plugin");
+
+        // Act & Assert - Should not throw
+        logger.LogError("Error message");
+    }
+
+    [Fact]
+    public void PluginLogger_LogError_WithException_ShouldLogMessageAndException()
+    {
+        // Arrange
+        var logger = new PluginLogger("test-plugin");
+        var exception = new Exception("Test exception");
+
+        // Act & Assert - Should not throw
+        logger.LogError("Error message", exception);
+    }
+
+    [Fact]
+    public void PluginLogger_LogCritical_WithoutException_ShouldLogMessage()
+    {
+        // Arrange
+        var logger = new PluginLogger("test-plugin");
+
+        // Act & Assert - Should not throw
+        logger.LogCritical("Critical message");
+    }
+
+    [Fact]
+    public void PluginLogger_LogCritical_WithException_ShouldLogMessageAndException()
+    {
+        // Arrange
+        var logger = new PluginLogger("test-plugin");
+        var exception = new Exception("Test critical exception");
+
+        // Act & Assert - Should not throw
+        logger.LogCritical("Critical message", exception);
     }
 
     [Fact]

@@ -133,4 +133,193 @@ public class PluginSecurityValidatorTests
         // Assert
         Assert.Null(permissions);
     }
+
+    [Fact]
+    public async Task ValidatePluginAsync_PluginWithInvalidPermissions_ReturnsInvalidResult()
+    {
+        // Arrange
+        var tempPath = Path.GetTempFileName();
+        File.WriteAllText(tempPath, "dummy content");
+
+        var pluginInfo = new PluginInfo
+        {
+            Name = "TestPlugin",
+            Manifest = new PluginManifest
+            {
+                Name = "TestPlugin",
+                Description = "Test Description",
+                Permissions = new PluginPermissions
+                {
+                    FileSystem = new FileSystemPermissions
+                    {
+                        AllowedPaths = new[] { @"C:\Windows\System32" } // Invalid system path
+                    }
+                }
+            }
+        };
+
+        // Act
+        var result = await _validator.ValidatePluginAsync(tempPath, pluginInfo);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("invalid permissions"));
+
+        // Cleanup
+        File.Delete(tempPath);
+    }
+
+    [Fact]
+    public async Task ValidatePluginAsync_PluginWithUntrustedRepository_LogsWarning()
+    {
+        // Arrange
+        var tempPath = Path.GetTempFileName();
+        File.WriteAllText(tempPath, "dummy content");
+
+        var pluginInfo = new PluginInfo
+        {
+            Name = "TestPlugin",
+            Manifest = new PluginManifest
+            {
+                Name = "TestPlugin",
+                Description = "Test Description",
+                Repository = "https://untrusted.example.com"
+            }
+        };
+
+        // Act
+        var result = await _validator.ValidatePluginAsync(tempPath, pluginInfo);
+
+        // Assert
+        Assert.True(result.IsValid); // Repository warning doesn't make it invalid
+        _mockLogger.Verify(x => x.LogWarning(It.Is<string>(s => s.Contains("not trusted"))), Times.Once);
+
+        // Cleanup
+        File.Delete(tempPath);
+    }
+
+    [Fact]
+    public async Task ValidatePluginAsync_PluginWithEmptyDescription_ReturnsInvalidResult()
+    {
+        // Arrange
+        var tempPath = Path.GetTempFileName();
+        File.WriteAllText(tempPath, "dummy content");
+
+        var pluginInfo = new PluginInfo
+        {
+            Name = "TestPlugin",
+            Manifest = new PluginManifest
+            {
+                Name = "TestPlugin",
+                Description = "" // Invalid - empty description
+            }
+        };
+
+        // Act
+        var result = await _validator.ValidatePluginAsync(tempPath, pluginInfo);
+
+        // Assert
+        Assert.False(result.IsValid);
+
+        // Cleanup
+        File.Delete(tempPath);
+    }
+
+    [Fact]
+    public async Task ValidatePluginAsync_PluginWithNullManifest_ReturnsInvalidResult()
+    {
+        // Arrange
+        var tempPath = Path.GetTempFileName();
+        File.WriteAllText(tempPath, "dummy content");
+
+        var pluginInfo = new PluginInfo
+        {
+            Name = "TestPlugin",
+            Manifest = null // Invalid - null manifest
+        };
+
+        // Act
+        var result = await _validator.ValidatePluginAsync(tempPath, pluginInfo);
+
+        // Assert
+        Assert.False(result.IsValid);
+
+        // Cleanup
+        File.Delete(tempPath);
+    }
+
+    [Fact]
+    public async Task ValidatePluginAsync_InvalidAssemblyPath_ReturnsInvalidResult()
+    {
+        // Arrange - use a directory path that exists but is not a valid assembly
+        var directoryPath = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar); // Directory path
+        var pluginInfo = new PluginInfo
+        {
+            Name = "TestPlugin",
+            Manifest = new PluginManifest
+            {
+                Name = "TestPlugin",
+                Description = "Test Description"
+            }
+        };
+
+        // Act
+        var result = await _validator.ValidatePluginAsync(directoryPath, pluginInfo);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("does not exist"));
+    }
+
+    [Fact]
+    public void ValidateFileSystemPermissions_InvalidSystemPath_ReturnsFalse()
+    {
+        // Arrange
+        var permissions = new FileSystemPermissions
+        {
+            AllowedPaths = new[] { @"C:\Windows\System32" }
+        };
+
+        // Act - use reflection to call private method
+        var method = typeof(PluginSecurityValidator).GetMethod("ValidateFileSystemPermissions", BindingFlags.NonPublic | BindingFlags.Instance);
+        var result = (bool)method.Invoke(_validator, new object[] { permissions });
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ValidateFileSystemPermissions_ValidPaths_ReturnsTrue()
+    {
+        // Arrange
+        var permissions = new FileSystemPermissions
+        {
+            AllowedPaths = new[] { @"C:\Temp", @"D:\Data" }
+        };
+
+        // Act - use reflection to call private method
+        var method = typeof(PluginSecurityValidator).GetMethod("ValidateFileSystemPermissions", BindingFlags.NonPublic | BindingFlags.Instance);
+        var result = (bool)method.Invoke(_validator, new object[] { permissions });
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateNetworkPermissions_ReturnsTrue()
+    {
+        // Arrange
+        var permissions = new NetworkPermissions
+        {
+            Http = true,
+            Https = true
+        };
+
+        // Act - use reflection to call private method
+        var method = typeof(PluginSecurityValidator).GetMethod("ValidateNetworkPermissions", BindingFlags.NonPublic | BindingFlags.Instance);
+        var result = (bool)method.Invoke(_validator, new object[] { permissions });
+
+        // Assert
+        Assert.True(result);
+    }
 }

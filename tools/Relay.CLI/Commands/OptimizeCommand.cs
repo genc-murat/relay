@@ -35,7 +35,7 @@ public static class OptimizeCommand
     internal static async Task ExecuteOptimize(string projectPath, bool dryRun, string target, bool aggressive, bool backup)
     {
         var title = dryRun ? "🔍 DRY RUN: Analyzing potential optimizations..." : "🔧 Optimizing Relay project...";
-        AnsiConsole.MarkupLine($"[cyan]{title}[/]");
+        SafeMarkupLine($"[cyan]{title}[/]");
         AnsiConsole.WriteLine();
 
         var optimization = new OptimizationContext
@@ -77,6 +77,19 @@ public static class OptimizeCommand
         DisplayOptimizationResults(optimization);
     }
 
+    private static void SafeMarkupLine(string markup)
+    {
+        try
+        {
+            AnsiConsole.MarkupLine(markup);
+        }
+        catch (ArgumentException)
+        {
+            // Fallback for test environments where markup might fail due to internal buffer issues
+            AnsiConsole.WriteLine(System.Text.RegularExpressions.Regex.Replace(markup, @"\[.*?\]", ""));
+        }
+    }
+
     internal static async Task DiscoverFiles(OptimizationContext context, ProgressContext ctx, ProgressTask overallTask)
     {
         try
@@ -86,7 +99,7 @@ public static class OptimizeCommand
                 // Directory doesn't exist, just return empty list
                 if (ctx != null)
                 {
-                    AnsiConsole.MarkupLine($"[dim]Directory {context.ProjectPath} does not exist[/]");
+                    SafeMarkupLine($"[dim]Directory {context.ProjectPath} does not exist[/]");
                 }
                 await Task.CompletedTask;
                 return;
@@ -100,14 +113,14 @@ public static class OptimizeCommand
             {
                 var discoveryTask = ctx.AddTask("[green]Discovering files[/]");
                 discoveryTask.Value = discoveryTask.MaxValue;
-                AnsiConsole.MarkupLine($"[dim]Found {csFiles.Count} source files[/]");
+                SafeMarkupLine($"[dim]Found {csFiles.Count} source files[/]");
             }
         }
         catch (Exception ex)
         {
             if (ctx != null)
             {
-                AnsiConsole.MarkupLine($"[red]Error discovering files: {ex.Message}[/]");
+                SafeMarkupLine($"[red]Error discovering files: {ex.Message}[/]");
             }
         }
 
@@ -170,7 +183,7 @@ public static class OptimizeCommand
                     {
                         if (ctx != null)
                         {
-                            AnsiConsole.MarkupLine($"[red]Error writing file {Path.GetFileName(file)}: {ex.Message}[/]");
+                            SafeMarkupLine($"[red]Error writing file {Path.GetFileName(file)}: {ex.Message}[/]");
                         }
                         // Continue with other files
                     }
@@ -182,7 +195,7 @@ public static class OptimizeCommand
         if (handlerTask != null)
         {
             handlerTask.Value = handlerTask.MaxValue;
-            AnsiConsole.MarkupLine($"[dim]Optimized {optimizedCount} handler file(s)[/]");
+            SafeMarkupLine($"[dim]Optimized {optimizedCount} handler file(s)[/]");
         }
     }
 
@@ -190,7 +203,7 @@ public static class OptimizeCommand
     {
         if (!context.OptimizationActions.Any())
         {
-            AnsiConsole.MarkupLine("[green]✅ No optimizations needed - your project is already well optimized![/]");
+            SafeMarkupLine("[green]✅ No optimizations needed - your project is already well optimized![/]");
             return;
         }
 
@@ -215,13 +228,13 @@ public static class OptimizeCommand
         
         if (context.IsDryRun)
         {
-            AnsiConsole.MarkupLine($"[yellow]📊 Summary: {totalModifications} optimization(s) available[/]");
-            AnsiConsole.MarkupLine("[yellow]💡 Run without --dry-run to apply these optimizations[/]");
+            SafeMarkupLine($"[yellow]📊 Summary: {totalModifications} optimization(s) available[/]");
+            SafeMarkupLine("[yellow]💡 Run without --dry-run to apply these optimizations[/]");
         }
         else
         {
-            AnsiConsole.MarkupLine($"[green]🚀 Applied {totalModifications} optimization(s)[/]");
-            AnsiConsole.MarkupLine("[green]✨ Your Relay implementation is now optimized![/]");
+            SafeMarkupLine($"[green]🚀 Applied {totalModifications} optimization(s)[/]");
+            SafeMarkupLine("[green]✨ Your Relay implementation is now optimized![/]");
         }
     }
 

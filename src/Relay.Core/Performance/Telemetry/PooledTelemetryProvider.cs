@@ -38,10 +38,12 @@ public class PooledTelemetryProvider : ITelemetryProvider
             activity.SetTag("relay.request_type", requestType.FullName);
             activity.SetTag("relay.operation", operationName);
 
-            if (correlationId != null)
+            // Use provided correlationId or get existing one from context
+            var effectiveCorrelationId = correlationId ?? CorrelationIdContext.Value ?? Activity.Current?.GetTagItem("relay.correlation_id")?.ToString();
+            if (effectiveCorrelationId != null)
             {
-                activity.SetTag("relay.correlation_id", correlationId);
-                SetCorrelationId(correlationId);
+                activity.SetTag("relay.correlation_id", effectiveCorrelationId);
+                SetCorrelationId(effectiveCorrelationId);
             }
 
             _logger?.LogDebug("Started activity {ActivityId} for {RequestType}", activity.Id, requestType.Name);
@@ -84,16 +86,24 @@ public class PooledTelemetryProvider : ITelemetryProvider
             context.Activity = activity;
 
             // Record detailed metrics using pooled context
-            MetricsProvider?.RecordHandlerExecution(new HandlerExecutionMetrics
+            try
             {
-                OperationId = operationId,
-                RequestType = requestType,
-                ResponseType = responseType,
-                HandlerName = handlerName,
-                Duration = duration,
-                Success = success,
-                Exception = exception
-            });
+                MetricsProvider?.RecordHandlerExecution(new HandlerExecutionMetrics
+                {
+                    OperationId = operationId,
+                    RequestType = requestType,
+                    ResponseType = responseType,
+                    HandlerName = handlerName,
+                    Duration = duration,
+                    Success = success,
+                    Exception = exception
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log metrics recording failure but don't let it break the telemetry flow
+                _logger?.LogWarning(ex, "Failed to record handler execution metrics for {RequestType}", requestType.Name);
+            }
         }
         finally
         {
@@ -136,15 +146,23 @@ public class PooledTelemetryProvider : ITelemetryProvider
             context.Activity = activity;
 
             // Record detailed metrics using pooled context
-            MetricsProvider?.RecordNotificationPublish(new NotificationPublishMetrics
+            try
             {
-                OperationId = operationId,
-                NotificationType = notificationType,
-                HandlerCount = handlerCount,
-                Duration = duration,
-                Success = success,
-                Exception = exception
-            });
+                MetricsProvider?.RecordNotificationPublish(new NotificationPublishMetrics
+                {
+                    OperationId = operationId,
+                    NotificationType = notificationType,
+                    HandlerCount = handlerCount,
+                    Duration = duration,
+                    Success = success,
+                    Exception = exception
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log metrics recording failure but don't let it break the telemetry flow
+                _logger?.LogWarning(ex, "Failed to record notification publish metrics for {NotificationType}", notificationType.Name);
+            }
         }
         finally
         {
@@ -191,17 +209,25 @@ public class PooledTelemetryProvider : ITelemetryProvider
             context.Activity = activity;
 
             // Record detailed metrics using pooled context
-            MetricsProvider?.RecordStreamingOperation(new StreamingOperationMetrics
+            try
             {
-                OperationId = operationId,
-                RequestType = requestType,
-                ResponseType = responseType,
-                HandlerName = handlerName,
-                Duration = duration,
-                ItemCount = itemCount,
-                Success = success,
-                Exception = exception
-            });
+                MetricsProvider?.RecordStreamingOperation(new StreamingOperationMetrics
+                {
+                    OperationId = operationId,
+                    RequestType = requestType,
+                    ResponseType = responseType,
+                    HandlerName = handlerName,
+                    Duration = duration,
+                    ItemCount = itemCount,
+                    Success = success,
+                    Exception = exception
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log metrics recording failure but don't let it break the telemetry flow
+                _logger?.LogWarning(ex, "Failed to record streaming operation metrics for {RequestType}", requestType.Name);
+            }
         }
         finally
         {

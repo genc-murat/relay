@@ -1,380 +1,88 @@
 using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI;
+
+/// <summary>
+/// Provides system load metrics for AI optimization decisions.
+/// </summary>
+public sealed class SystemLoadMetricsProvider : ISystemLoadMetricsProvider, IDisposable
 {
-    /// <summary>
-    /// Provides system load metrics for AI optimization decisions.
-    /// </summary>
-    public sealed class SystemLoadMetricsProvider : ISystemLoadMetricsProvider, IDisposable
+    private readonly ILogger<SystemLoadMetricsProvider> _logger;
+    private readonly SystemLoadMetricsOptions _options;
+    private readonly MetricsCollector _collector;
+    private readonly Timer? _cacheTimer;
+    private SystemLoadMetrics? _cachedMetrics;
+    private DateTime _lastCacheUpdate = DateTime.MinValue;
+    private readonly object _cacheLock = new object();
+
+    public SystemLoadMetricsProvider(
+        ILogger<SystemLoadMetricsProvider> logger,
+        SystemLoadMetricsOptions? options = null)
     {
-        private readonly ILogger<SystemLoadMetricsProvider> _logger;
-        private readonly SystemLoadMetricsOptions _options;
-        private readonly MetricsCollector _collector;
-        private readonly Timer? _cacheTimer;
-        private SystemLoadMetrics? _cachedMetrics;
-        private DateTime _lastCacheUpdate = DateTime.MinValue;
-        private readonly object _cacheLock = new object();
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _options = options ?? new SystemLoadMetricsOptions();
+        _collector = new MetricsCollector(_logger, _options);
 
-        public SystemLoadMetricsProvider(
-            ILogger<SystemLoadMetricsProvider> logger,
-            SystemLoadMetricsOptions? options = null)
+        if (_options.EnableCaching)
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _options = options ?? new SystemLoadMetricsOptions();
-            _collector = new MetricsCollector(_logger, _options);
-
-            if (_options.EnableCaching)
-            {
-                _cacheTimer = new Timer(
-                    RefreshCacheCallback,
-                    null,
-                    _options.CacheRefreshInterval,
-                    _options.CacheRefreshInterval);
-            }
-        }
-
-        public async ValueTask<SystemLoadMetrics> GetCurrentLoadAsync(CancellationToken cancellationToken = default)
-        {
-            // Check cache first
-            if (_options.EnableCaching)
-            {
-                lock (_cacheLock)
-                {
-                    if (_cachedMetrics != null &&
-                        (DateTime.UtcNow - _lastCacheUpdate) < _options.CacheTtl)
-                    {
-                        _logger.LogTrace("Returning cached system load metrics");
-                        return _cachedMetrics;
-                    }
-                }
-            }
-
-            // Collect fresh metrics
-            var metrics = await _collector.CollectMetricsAsync(cancellationToken);
-
-            // Update cache
-            if (_options.EnableCaching)
-            {
-                lock (_cacheLock)
-                {
-                    _cachedMetrics = metrics;
-                    _lastCacheUpdate = DateTime.UtcNow;
-                }
-            }
-
-            return metrics;
-        }
-
-        private async void RefreshCacheCallback(object? state)
-        {
-            try
-            {
-                await GetCurrentLoadAsync(CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to refresh cached system load metrics");
-            }
-        }
-
-        public void Dispose()
-        {
-            _cacheTimer?.Dispose();
-            _collector?.Dispose();
+            _cacheTimer = new Timer(
+                RefreshCacheCallback,
+                null,
+                _options.CacheRefreshInterval,
+                _options.CacheRefreshInterval);
         }
     }
 
-    /// <summary>
-    /// Configuration options for SystemLoadMetricsProvider.
-    /// </summary>
-    public class SystemLoadMetricsOptions
+    public async ValueTask<SystemLoadMetrics> GetCurrentLoadAsync(CancellationToken cancellationToken = default)
     {
-        /// <summary>
-        /// Gets or sets whether metrics caching is enabled.
-        /// </summary>
-        public bool EnableCaching { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets the cache TTL.
-        /// </summary>
-        public TimeSpan CacheTtl { get; set; } = TimeSpan.FromSeconds(5);
-
-        /// <summary>
-        /// Gets or sets the cache refresh interval.
-        /// </summary>
-        public TimeSpan CacheRefreshInterval { get; set; } = TimeSpan.FromSeconds(10);
-
-        /// <summary>
-        /// Gets or sets whether to use cached CPU measurements.
-        /// </summary>
-        public bool UseCachedCpuMeasurements { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets the CPU measurement interval (for non-blocking measurements).
-        /// </summary>
-        public int CpuMeasurementIntervalMs { get; set; } = 10;
-
-        /// <summary>
-        /// Gets or sets the baseline memory for utilization calculation (bytes).
-        /// </summary>
-        public long BaselineMemory { get; set; } = 1024L * 1024 * 1024; // 1GB
-
-        /// <summary>
-        /// Gets or sets whether to enable detailed logging.
-        /// </summary>
-        public bool EnableDetailedLogging { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets the active request counter (for testing/injection).
-        /// </summary>
-        public IActiveRequestCounter? ActiveRequestCounter { get; set; }
-    }
-
-    /// <summary>
-    /// Interface for tracking active requests.
-    /// </summary>
-    public interface IActiveRequestCounter
-    {
-        int GetActiveRequestCount();
-        int GetQueuedRequestCount();
-    }
-
-    /// <summary>
-    /// Collects system metrics.
-    /// </summary>
-    internal class MetricsCollector : IDisposable
-    {
-        private readonly ILogger _logger;
-        private readonly SystemLoadMetricsOptions _options;
-        private readonly Process _currentProcess;
-        private DateTime _lastCpuCheckTime;
-        private TimeSpan _lastCpuTime;
-        private double _lastCpuUtilization;
-        private readonly ConcurrentQueue<RequestTiming> _requestTimings;
-        private long _totalRequests;
-        private long _errorCount;
-
-        public MetricsCollector(ILogger logger, SystemLoadMetricsOptions options)
+        // Check cache first
+        if (_options.EnableCaching)
         {
-            _logger = logger;
-            _options = options;
-            _currentProcess = Process.GetCurrentProcess();
-            _lastCpuCheckTime = DateTime.UtcNow;
-            _lastCpuTime = _currentProcess.TotalProcessorTime;
-            _requestTimings = new ConcurrentQueue<RequestTiming>();
-        }
-
-        public async ValueTask<SystemLoadMetrics> CollectMetricsAsync(CancellationToken cancellationToken)
-        {
-            await Task.CompletedTask;
-
-            var cpuUtilization = GetCpuUtilization();
-            var memoryUtilization = GetMemoryUtilization();
-            var threadPoolUtilization = GetThreadPoolUtilization();
-            var activeRequests = GetActiveRequestCount();
-            var queuedRequests = GetQueuedRequestCount();
-
-            var metrics = new SystemLoadMetrics
+            lock (_cacheLock)
             {
-                CpuUtilization = cpuUtilization,
-                MemoryUtilization = memoryUtilization,
-                AvailableMemory = GC.GetTotalMemory(false),
-                ActiveRequestCount = activeRequests,
-                QueuedRequestCount = queuedRequests,
-                ThroughputPerSecond = CalculateThroughput(),
-                AverageResponseTime = CalculateAverageResponseTime(),
-                ErrorRate = CalculateErrorRate(),
-                Timestamp = DateTime.UtcNow,
-                ActiveConnections = activeRequests,
-                DatabasePoolUtilization = 0.0, // Would be injected from DB connection pool
-                ThreadPoolUtilization = threadPoolUtilization
-            };
-
-            if (_options.EnableDetailedLogging)
-            {
-                _logger.LogDebug(
-                    "System load metrics: CPU={Cpu:P2}, Memory={Memory:P2}, ThreadPool={ThreadPool:P2}, " +
-                    "Active={Active}, Queued={Queued}, Throughput={Throughput:F2}/s, AvgResponseTime={AvgResponse}ms",
-                    metrics.CpuUtilization,
-                    metrics.MemoryUtilization,
-                    metrics.ThreadPoolUtilization,
-                    metrics.ActiveRequestCount,
-                    metrics.QueuedRequestCount,
-                    metrics.ThroughputPerSecond,
-                    metrics.AverageResponseTime.TotalMilliseconds);
-            }
-
-            return metrics;
-        }
-
-        private double GetCpuUtilization()
-        {
-            try
-            {
-                if (_options.UseCachedCpuMeasurements)
+                if (_cachedMetrics != null &&
+                    (DateTime.UtcNow - _lastCacheUpdate) < _options.CacheTtl)
                 {
-                    // Non-blocking approach using cached measurements
-                    var currentTime = DateTime.UtcNow;
-                    var currentCpuTime = _currentProcess.TotalProcessorTime;
-
-                    var timeDiff = (currentTime - _lastCpuCheckTime).TotalMilliseconds;
-
-                    if (timeDiff >= _options.CpuMeasurementIntervalMs)
-                    {
-                        var cpuTimeDiff = (currentCpuTime - _lastCpuTime).TotalMilliseconds;
-                        var cpuUsage = cpuTimeDiff / (Environment.ProcessorCount * timeDiff);
-
-                        _lastCpuUtilization = Math.Max(0.0, Math.Min(1.0, cpuUsage));
-                        _lastCpuCheckTime = currentTime;
-                        _lastCpuTime = currentCpuTime;
-
-                        if (_options.EnableDetailedLogging)
-                        {
-                            _logger.LogTrace("CPU utilization: {CpuUsage:P2}", _lastCpuUtilization);
-                        }
-                    }
-
-                    return _lastCpuUtilization;
-                }
-                else
-                {
-                    // Blocking measurement with sleep
-                    var startTime = DateTime.UtcNow;
-                    var startCpuTime = _currentProcess.TotalProcessorTime;
-
-                    Thread.Sleep(_options.CpuMeasurementIntervalMs);
-
-                    var endTime = DateTime.UtcNow;
-                    var endCpuTime = _currentProcess.TotalProcessorTime;
-
-                    var cpuUsedMs = (endCpuTime - startCpuTime).TotalMilliseconds;
-                    var totalMsPassed = (endTime - startTime).TotalMilliseconds;
-                    var cpuUsage = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
-
-                    return Math.Max(0.0, Math.Min(1.0, cpuUsage));
+                    _logger.LogTrace("Returning cached system load metrics");
+                    return _cachedMetrics;
                 }
             }
-            catch (Exception ex)
+        }
+
+        // Collect fresh metrics
+        var metrics = await _collector.CollectMetricsAsync(cancellationToken);
+
+        // Update cache
+        if (_options.EnableCaching)
+        {
+            lock (_cacheLock)
             {
-                _logger.LogWarning(ex, "Failed to get CPU utilization");
-                return GetThreadPoolUtilization() * 0.8;
+                _cachedMetrics = metrics;
+                _lastCacheUpdate = DateTime.UtcNow;
             }
         }
 
-        private double GetMemoryUtilization()
+        return metrics;
+    }
+
+    private async void RefreshCacheCallback(object? state)
+    {
+        try
         {
-            try
-            {
-                var totalMemory = GC.GetTotalMemory(false);
-                return Math.Min(1.0, (double)totalMemory / _options.BaselineMemory);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to get memory utilization");
-                return 0.5;
-            }
+            await GetCurrentLoadAsync(CancellationToken.None);
         }
-
-        private double GetThreadPoolUtilization()
+        catch (Exception ex)
         {
-            try
-            {
-                ThreadPool.GetAvailableThreads(out var workerThreads, out var completionPortThreads);
-                ThreadPool.GetMaxThreads(out var maxWorkerThreads, out var maxCompletionPortThreads);
-
-                return 1.0 - ((double)workerThreads / maxWorkerThreads);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to get thread pool utilization");
-                return 0.3;
-            }
+            _logger.LogError(ex, "Failed to refresh cached system load metrics");
         }
+    }
 
-        private int GetActiveRequestCount()
-        {
-            if (_options.ActiveRequestCounter != null)
-            {
-                return _options.ActiveRequestCounter.GetActiveRequestCount();
-            }
-
-            // Fallback: estimate from thread pool
-            ThreadPool.GetAvailableThreads(out var workerThreads, out _);
-            ThreadPool.GetMaxThreads(out var maxWorkerThreads, out _);
-            return maxWorkerThreads - workerThreads;
-        }
-
-        private int GetQueuedRequestCount()
-        {
-            if (_options.ActiveRequestCounter != null)
-            {
-                return _options.ActiveRequestCounter.GetQueuedRequestCount();
-            }
-
-            return 0;
-        }
-
-        private double CalculateThroughput()
-        {
-            // Clean old entries
-            while (_requestTimings.TryPeek(out var timing) &&
-                   (DateTime.UtcNow - timing.Timestamp).TotalSeconds > 60)
-            {
-                _requestTimings.TryDequeue(out _);
-            }
-
-            var recentRequests = _requestTimings.Count;
-            return recentRequests / 60.0; // Requests per second over last minute
-        }
-
-        private TimeSpan CalculateAverageResponseTime()
-        {
-            if (_requestTimings.IsEmpty)
-                return TimeSpan.FromMilliseconds(100);
-
-            var timings = _requestTimings.ToArray();
-            var average = timings.Average(t => t.Duration.TotalMilliseconds);
-            return TimeSpan.FromMilliseconds(average);
-        }
-
-        private double CalculateErrorRate()
-        {
-            var total = Interlocked.Read(ref _totalRequests);
-            var errors = Interlocked.Read(ref _errorCount);
-
-            return total > 0 ? (double)errors / total : 0.0;
-        }
-
-        public void RecordRequest(TimeSpan duration, bool success)
-        {
-            _requestTimings.Enqueue(new RequestTiming
-            {
-                Timestamp = DateTime.UtcNow,
-                Duration = duration
-            });
-
-            Interlocked.Increment(ref _totalRequests);
-            if (!success)
-            {
-                Interlocked.Increment(ref _errorCount);
-            }
-        }
-
-        public void Dispose()
-        {
-            _currentProcess?.Dispose();
-        }
-
-        private class RequestTiming
-        {
-            public DateTime Timestamp { get; set; }
-            public TimeSpan Duration { get; set; }
-        }
+    public void Dispose()
+    {
+        _cacheTimer?.Dispose();
+        _collector?.Dispose();
     }
 }

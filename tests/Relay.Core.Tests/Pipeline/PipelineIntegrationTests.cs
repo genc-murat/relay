@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Relay.Core;
-using Relay.Core.Contracts.Requests;
 using Relay.Core.Implementation.Core;
+using Relay.Core.Contracts.Requests;
 using Xunit;
 
-namespace Relay.Core.Tests
+namespace Relay.Core.Tests.Pipeline
 {
     public class PipelineIntegrationTests
     {
@@ -20,18 +18,18 @@ namespace Relay.Core.Tests
             var services = new ServiceCollection();
             var serviceProvider = services.BuildServiceProvider();
             var executor = new PipelineExecutor(serviceProvider);
-
-            var request = new TestRequest { Value = "test" };
             var executionOrder = new List<string>();
 
-            ValueTask<string> Handler(TestRequest req, CancellationToken ct)
+            var request = new IntegrationTestRequest { Value = "test" };
+
+            ValueTask<string> Handler(IntegrationTestRequest req, CancellationToken ct)
             {
                 executionOrder.Add("Handler");
                 return new ValueTask<string>($"Handled: {req.Value}");
             }
 
             // Act
-            var result = await executor.ExecuteAsync<TestRequest, string>(request, Handler, CancellationToken.None);
+            var result = await executor.ExecuteAsync<IntegrationTestRequest, string>(request, Handler, CancellationToken.None);
 
             // Assert
             Assert.Equal("Handled: test", result);
@@ -47,20 +45,19 @@ namespace Relay.Core.Tests
             var serviceProvider = services.BuildServiceProvider();
             var executor = new PipelineExecutor(serviceProvider);
 
-            var request = new TestStreamRequest { Count = 3 };
+            var request = new TestStreamRequest();
 
             IAsyncEnumerable<string> Handler(TestStreamRequest req, CancellationToken ct)
             {
-                return GenerateItems(req.Count);
+                return GenerateItems();
             }
 
-            static async IAsyncEnumerable<string> GenerateItems(int count)
+            static async IAsyncEnumerable<string> GenerateItems()
             {
                 await Task.CompletedTask;
-                for (int i = 0; i < count; i++)
-                {
-                    yield return $"Item {i}";
-                }
+                yield return "Item 1";
+                yield return "Item 2";
+                yield return "Item 3";
             }
 
             // Act
@@ -75,7 +72,7 @@ namespace Relay.Core.Tests
         {
             // Arrange
             var behavior = new TestPipelineBehavior();
-            var request = new PipelineBehaviorTests.TestRequest();
+            var request = new TestRequest();
 
             ValueTask<string> next() => new ValueTask<string>("response");
 
@@ -94,7 +91,7 @@ namespace Relay.Core.Tests
         {
             // Arrange
             var behavior = new TestStreamPipelineBehavior();
-            var request = new PipelineBehaviorTests.TestStreamRequest();
+            var request = new TestStreamRequest();
 
             IAsyncEnumerable<string> next()
             {
@@ -154,14 +151,11 @@ namespace Relay.Core.Tests
         }
 
         // Test request types
-        public class TestRequest : IRequest<string>
+        public class IntegrationTestRequest : IRequest<string>
         {
             public string Value { get; set; } = string.Empty;
         }
 
-        public class TestStreamRequest : IStreamRequest<string>
-        {
-            public int Count { get; set; }
-        }
+
     }
 }

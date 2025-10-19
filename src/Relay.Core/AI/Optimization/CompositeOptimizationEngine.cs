@@ -21,10 +21,7 @@ namespace Relay.Core.AI.Optimization
             IEnumerable<OptimizationEngineTemplate> engines)
             : base(logger, strategyFactory, observers)
         {
-            _engines = engines?.ToList() ?? throw new ArgumentNullException(nameof(engines));
-
-            if (_engines.Count == 0)
-                throw new ArgumentException("At least one engine must be provided", nameof(engines));
+            _engines = engines?.ToList() ?? new List<OptimizationEngineTemplate>();
         }
 
         public override async ValueTask<StrategyExecutionResult> OptimizeAsync(

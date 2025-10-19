@@ -383,7 +383,7 @@ public class InitCommandTests : IDisposable
     public async Task ExecuteInit_StandardTemplate_CreatesSampleCodeInRoot()
     {
         // Arrange
-        var projectName = "SampleCodeTest";
+        var projectName = "Test";
         var projectPath = Path.Combine(_testPath, projectName);
         var mainProjectPath = Path.Combine(projectPath, "src", projectName);
 

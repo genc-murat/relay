@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Relay.Core.AI
 {
@@ -29,7 +30,8 @@ namespace Relay.Core.AI
             IEnumerable<IMetricsExportStrategy> strategies,
             IMetricsValidator validator,
             IMetricsTrendAnalyzer trendAnalyzer,
-            IMetricsAlertObserver? alertObserver = null)
+            IMetricsAlertObserver? alertObserver = null,
+            ILogger? logger = null)
         {
             _strategies = strategies ?? throw new ArgumentNullException(nameof(strategies));
             _validator = validator ?? throw new ArgumentNullException(nameof(validator));
@@ -37,8 +39,7 @@ namespace Relay.Core.AI
             _alertObserver = alertObserver;
 
             // Create logger and activity source
-            using var loggerFactory = LoggerFactory.Create(builder => { });
-            _logger = loggerFactory.CreateLogger<CompositeMetricsExporter>();
+            _logger = logger ?? NullLogger<CompositeMetricsExporter>.Instance;
             _activitySource = new ActivitySource("Relay.AI.CompositeExporter", "1.0.0");
         }
 
@@ -74,8 +75,8 @@ namespace Relay.Core.AI
                 activity?.SetTag("model.accuracy", statistics.AccuracyScore);
 
                 var exportDuration = (DateTime.UtcNow - exportStartTime).TotalMilliseconds;
-                _logger.LogDebug("Composite metrics export #{ExportNumber} completed in {Duration}ms using {StrategyCount} strategies",
-                    exportNumber, exportDuration, _strategies.Count());
+                _logger.LogDebug("Metrics export #{ExportNumber} completed",
+                    exportNumber);
             }
             catch (Exception ex)
             {

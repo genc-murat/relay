@@ -55,7 +55,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 {
                     TotalExecutions = 100,
                     SuccessfulExecutions = 95,
-                    AverageExecutionTime = TimeSpan.FromMilliseconds(50),
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(150),
                     CpuUsage = 0.8, // High CPU
                     MemoryAllocated = 10 * 1024 * 1024 // 10MB
                 }

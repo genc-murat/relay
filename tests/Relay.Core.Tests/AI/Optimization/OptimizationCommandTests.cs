@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization;
 using Relay.Core.AI.Optimization.Strategies;
@@ -20,9 +19,14 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var options = new AIOptimizationOptions();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, options);
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(logger, strategyFactory.Object, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngineBuilder()
+                .WithLoggerFactory(NullLoggerFactory.Instance)
+                .WithOptions(options)
+                .AddObservers(observers)
+                .Build();
 
             var context = new OptimizationContext
             {
@@ -52,9 +56,14 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var options = new AIOptimizationOptions();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, options);
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(logger, strategyFactory.Object, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngineBuilder()
+                .WithLoggerFactory(NullLoggerFactory.Instance)
+                .WithOptions(options)
+                .AddObservers(observers)
+                .Build();
 
             var context = new OptimizationContext
             {
@@ -84,9 +93,14 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var options = new AIOptimizationOptions();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, options);
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(logger, strategyFactory.Object, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngineBuilder()
+                .WithLoggerFactory(NullLoggerFactory.Instance)
+                .WithOptions(options)
+                .AddObservers(observers)
+                .Build();
 
             var context = new OptimizationContext
             {
@@ -118,9 +132,14 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var options = new AIOptimizationOptions();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, options);
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(logger, strategyFactory.Object, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngineBuilder()
+                .WithLoggerFactory(NullLoggerFactory.Instance)
+                .WithOptions(options)
+                .AddObservers(observers)
+                .Build();
 
             var context = new OptimizationContext
             {
@@ -152,9 +171,14 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var options = new AIOptimizationOptions();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, options);
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(logger, strategyFactory.Object, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngineBuilder()
+                .WithLoggerFactory(NullLoggerFactory.Instance)
+                .WithOptions(options)
+                .AddObservers(observers)
+                .Build();
 
             var context = new OptimizationContext
             {
@@ -183,9 +207,14 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var options = new AIOptimizationOptions();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, options);
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(logger, strategyFactory.Object, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngineBuilder()
+                .WithLoggerFactory(NullLoggerFactory.Instance)
+                .WithOptions(options)
+                .AddObservers(observers)
+                .Build();
 
             var context = new OptimizationContext
             {
@@ -215,9 +244,14 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var options = new AIOptimizationOptions();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, options);
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(logger, strategyFactory.Object, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngineBuilder()
+                .WithLoggerFactory(NullLoggerFactory.Instance)
+                .WithOptions(options)
+                .AddObservers(observers)
+                .Build();
 
             var context = new OptimizationContext
             {
@@ -248,9 +282,14 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var options = new AIOptimizationOptions();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, options);
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(logger, strategyFactory.Object, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngineBuilder()
+                .WithLoggerFactory(NullLoggerFactory.Instance)
+                .WithOptions(options)
+                .AddObservers(observers)
+                .Build();
 
             var context = new OptimizationContext
             {

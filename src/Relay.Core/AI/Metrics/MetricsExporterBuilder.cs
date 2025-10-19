@@ -112,7 +112,7 @@ namespace Relay.Core.AI
             }
 
             // Create composite exporter
-            return new CompositeMetricsExporter(_strategies, validator, trendAnalyzer, _alertObserver);
+            return new CompositeMetricsExporter(_strategies, validator, trendAnalyzer, _alertObserver, logger);
         }
     }
 }

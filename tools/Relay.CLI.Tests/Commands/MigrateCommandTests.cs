@@ -1037,7 +1037,7 @@ public class MyExceptionHandler : IRequestExceptionHandler<MyRequest, MyResponse
             // Act & Assert - Should not throw but should show error message
             // The method validates frameworks and exits with error code
             await MigrateCommand.ExecuteMigrate(
-                "InvalidFramework", // Invalid source
+                "invalid", // Invalid source
                 "Relay",
                 tempPath,
                 false, false, false, false, true, ".backup", null, "markdown", false, false);

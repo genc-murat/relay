@@ -22,6 +22,7 @@ namespace Relay.Core.AI
             // Use builder pattern to create the composite exporter
             using var loggerFactory = LoggerFactory.Create(builder =>
             {
+                builder.SetMinimumLevel(LogLevel.Debug);
                 builder.AddProvider(new LoggerProvider(logger));
             });
 

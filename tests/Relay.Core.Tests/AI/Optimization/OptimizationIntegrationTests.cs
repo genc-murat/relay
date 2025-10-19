@@ -115,7 +115,7 @@ namespace Relay.Core.Tests.AI.Optimization
             // Arrange - Command pattern for optimization actions
             var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
-            var engine = new OptimizationEngine(_logger, strategyFactory, new List<IOptimizationStrategy>(), observers, TimeSpan.FromSeconds(30));
+            var engine = new OptimizationEngine(_logger, strategyFactory, strategyFactory.CreateAllStrategies(), observers, TimeSpan.FromSeconds(30));
 
             var context = new OptimizationContext
             {
@@ -151,7 +151,17 @@ namespace Relay.Core.Tests.AI.Optimization
             var decorator = new CachingOptimizationEngineDecorator(
                 innerEngine, _logger, strategyFactory, observers, cacheDuration);
 
-            var context = new OptimizationContext { Operation = "TestOperation" };
+            var context = new OptimizationContext
+            {
+                Operation = "AnalyzeRequest",
+                RequestType = typeof(string),
+                ExecutionMetrics = new RequestExecutionMetrics
+                {
+                    TotalExecutions = 100,
+                    SuccessfulExecutions = 95,
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(50)
+                }
+            };
 
             // Act - Execute through decorator
             var result1 = await decorator.OptimizeAsync(context);

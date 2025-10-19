@@ -257,7 +257,7 @@ namespace Relay.Core.Tests.AI.Optimization
         }
 
         [Fact]
-        public void CompositeOptimizationEngine_Constructor_RequiresAtLeastOneEngine()
+        public void CompositeOptimizationEngine_Constructor_AllowsEmptyEngines()
         {
             // Arrange
             var logger = NullLogger.Instance;
@@ -269,8 +269,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 logger, strategyFactory.Object, observers, Array.Empty<OptimizationEngineTemplate>());
 
             // Assert
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("At least one engine must be provided*");
+            act.Should().NotThrow();
         }
 
         [Fact]

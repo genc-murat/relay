@@ -265,13 +265,19 @@ namespace Relay.Core.AI.Optimization
 
                     var result = await base.OptimizeAsync(context, cancellationToken);
 
-                    if (result.Success || attempt == _maxRetries)
+                    if (result.Success)
                     {
                         return result;
                     }
 
-                    // If we got here, the result was not successful but we can retry
+                    // If we got here, the result was not successful
                     lastException = new InvalidOperationException(result.ErrorMessage);
+
+                    if (attempt == _maxRetries)
+                    {
+                        // Exhausted retries, return custom error
+                        break;
+                    }
                 }
                 catch (Exception ex)
                 {

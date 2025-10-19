@@ -20,7 +20,7 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
             var innerEngine = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions()), new List<IPerformanceObserver>());
             var cacheDuration = TimeSpan.FromMinutes(5);
@@ -34,7 +34,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 });
 
             var decorator = new CachingOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers, cacheDuration);
+                innerEngine.Object, logger, strategyFactory, observers, cacheDuration);
 
             var context = new OptimizationContext { Operation = "TestOperation" };
 
@@ -54,7 +54,7 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
             var innerEngine = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions()), new List<IPerformanceObserver>());
 
@@ -68,7 +68,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 });
 
             var decorator = new MonitoringOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers);
+                innerEngine.Object, logger, strategyFactory, observers);
 
             var context = new OptimizationContext { Operation = "TestOperation" };
 
@@ -85,7 +85,7 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
             var innerEngine = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions()), new List<IPerformanceObserver>());
             var maxRetries = 2;
@@ -103,10 +103,10 @@ namespace Relay.Core.Tests.AI.Optimization
                     Success = true,
                     StrategyName = "TestStrategy",
                     Confidence = 0.8
-                });
+                 });
 
             var decorator = new RetryOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers, maxRetries);
+                innerEngine.Object, logger, strategyFactory, observers, maxRetries);
 
             var context = new OptimizationContext { Operation = "TestOperation" };
 
@@ -123,7 +123,7 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
             var innerEngine = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions()), new List<IPerformanceObserver>());
             var maxRetries = 2;
@@ -137,7 +137,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 });
 
             var decorator = new RetryOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers, maxRetries);
+                innerEngine.Object, logger, strategyFactory, observers, maxRetries);
 
             var context = new OptimizationContext { Operation = "TestOperation" };
 
@@ -155,13 +155,13 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
             var innerEngine = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions()), new List<IPerformanceObserver>());
             var cacheDuration = TimeSpan.FromMinutes(5);
 
             var decorator = new CachingOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers, cacheDuration);
+                innerEngine.Object, logger, strategyFactory, observers, cacheDuration);
 
             var context1 = new OptimizationContext
             {
@@ -197,7 +197,7 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
             var innerEngine = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions()), new List<IPerformanceObserver>());
 
@@ -216,10 +216,10 @@ namespace Relay.Core.Tests.AI.Optimization
                     StrategyName = "TestStrategy",
                     Confidence = 0.8,
                     ExecutionTime = TimeSpan.FromMilliseconds(250) // 2.5x slower
-                });
+                 });
 
             var decorator = new MonitoringOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers);
+                innerEngine.Object, logger, strategyFactory, observers);
 
             var context = new OptimizationContext { Operation = "TestOperation" };
 
@@ -236,16 +236,16 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
             var innerEngine = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions()), new List<IPerformanceObserver>());
 
             // Act
             var cachingDecorator = new CachingOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers, TimeSpan.FromMinutes(5));
+                innerEngine.Object, logger, strategyFactory, observers, TimeSpan.FromMinutes(5));
 
             var monitoringDecorator = new MonitoringOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers);
+                innerEngine.Object, logger, strategyFactory, observers);
 
             // Assert
             cachingDecorator.Should().BeAssignableTo<OptimizationEngineDecorator>();
@@ -257,13 +257,13 @@ namespace Relay.Core.Tests.AI.Optimization
         {
             // Arrange
             var logger = NullLogger.Instance;
-            var strategyFactory = new Mock<OptimizationStrategyFactory>();
+            var strategyFactory = new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions());
             var observers = new List<IPerformanceObserver>();
             var innerEngine = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, new OptimizationStrategyFactory(NullLoggerFactory.Instance, new AIOptimizationOptions()), observers);
 
             // Act
             var decorator = new CachingOptimizationEngineDecorator(
-                innerEngine.Object, logger, strategyFactory.Object, observers, TimeSpan.FromMinutes(5));
+                innerEngine.Object, logger, strategyFactory, observers, TimeSpan.FromMinutes(5));
 
             // Assert
             decorator.Should().BeAssignableTo<OptimizationEngineTemplate>();

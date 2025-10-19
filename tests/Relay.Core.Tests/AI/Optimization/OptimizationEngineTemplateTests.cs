@@ -141,9 +141,9 @@ namespace Relay.Core.Tests.AI.Optimization
 
             // Act & Assert
             // Verify that the methods are virtual by checking if they can be overridden
-            engine.GetType().GetMethod("OptimizeAsync")!.IsVirtual.Should().BeTrue();
-            engine.GetType().GetMethod("PreOptimizationAsync")!.IsVirtual.Should().BeTrue();
-            engine.GetType().GetMethod("PostOptimizationAsync")!.IsVirtual.Should().BeTrue();
+            typeof(OptimizationEngineTemplate).GetMethod("OptimizeAsync")!.IsVirtual.Should().BeTrue();
+            typeof(OptimizationEngineTemplate).GetMethod("PreOptimizationAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.IsVirtual.Should().BeTrue();
+            typeof(OptimizationEngineTemplate).GetMethod("PostOptimizationAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.IsVirtual.Should().BeTrue();
         }
 
         // Test implementations

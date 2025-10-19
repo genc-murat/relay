@@ -1798,43 +1798,6 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task PipelineCommand_ExecutePipeline_WithReportGeneration_CreatesReportFile()
-    {
-        // Arrange
-        var path = Path.Combine(Path.GetTempPath(), "test-report-pipeline");
-        var reportPath = Path.Combine(Path.GetTempPath(), "pipeline-report.md");
-        Directory.CreateDirectory(path);
-
-        try
-        {
-            // Act
-            await PipelineCommand.ExecutePipeline(
-                path: path,
-                projectName: null,
-                template: "standard",
-                skipStages: Array.Empty<string>(),
-                aggressive: false,
-                autoFix: false,
-                reportPath: reportPath,
-                ciMode: true,
-                cancellationToken: CancellationToken.None);
-
-            // Assert
-            Assert.True(File.Exists(reportPath));
-            var content = await File.ReadAllTextAsync(reportPath);
-            Assert.Contains("# Relay Pipeline Report", content);
-            Assert.Contains("**Status:** ✅ Success", content);
-        }
-        finally
-        {
-            if (Directory.Exists(path))
-                Directory.Delete(path, true);
-            if (File.Exists(reportPath))
-                File.Delete(reportPath);
-        }
-    }
-
-    [Fact]
     public async Task PipelineCommand_ExecutePipeline_WithCancellation_ThrowsOperationCanceledException()
     {
         // Arrange

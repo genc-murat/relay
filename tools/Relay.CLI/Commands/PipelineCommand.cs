@@ -320,24 +320,24 @@ public static class PipelineCommand
 
             var validationResults = new List<ValidationIssue>();
 
-            await AnsiConsole.Status()
-                .StartAsync("Validating code...", async ctx =>
-                {
-                    // Validation 1: Handler patterns
-                    ctx.Status("Validating handler patterns...");
-                    await Task.Delay(400, cancellationToken);
-                    
-                    // Validation 2: Request/Response types
-                    ctx.Status("Validating request types...");
-                    await Task.Delay(350, cancellationToken);
-                    
-                    // Validation 3: Async patterns
-                    ctx.Status("Validating async patterns...");
-                    await Task.Delay(300, cancellationToken);
+             await AnsiConsole.Status()
+                 .StartAsync("Validating code...", async ctx =>
+                 {
+                     // Validation 1: Handler patterns
+                     ctx.Status("Validating handler patterns...");
+                     await Task.Delay(400, cancellationToken);
 
-                    stage.Success = true;
-                    stage.Message = "Code validation passed";
-                });
+                     // Validation 2: Request/Response types
+                     ctx.Status("Validating request types...");
+                     await Task.Delay(350, cancellationToken);
+
+                     // Validation 3: Async patterns
+                     ctx.Status("Validating async patterns...");
+                     await Task.Delay(300, cancellationToken);
+                 });
+
+             stage.Success = true;
+             stage.Message = "Code validation passed";
 
             stage.Details.Add("No critical issues found");
             stage.Details.Add("All handlers follow best practices");

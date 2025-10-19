@@ -90,7 +90,7 @@ namespace Relay.Core.AI.Optimization.Strategies
             var strategies = new List<OptimizationStrategy>();
 
             // High CPU usage with slow execution -> SIMD optimization
-            if (metrics.CpuUsage > 0.8 && metrics.AverageExecutionTime > TimeSpan.FromMilliseconds(100))
+            if (metrics.CpuUsage >= 0.8 && metrics.AverageExecutionTime > TimeSpan.FromMilliseconds(100))
             {
                 strategies.Add(OptimizationStrategy.SIMDAcceleration);
             }

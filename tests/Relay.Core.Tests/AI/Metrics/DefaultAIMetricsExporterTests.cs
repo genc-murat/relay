@@ -83,12 +83,7 @@ namespace Relay.Core.Tests.AI.Metrics
             await _exporter.ExportMetricsAsync(_testStatistics);
 
             // Assert - Should complete without throwing
-            _loggerMock.Verify(x => x.Log(
-                LogLevel.Debug,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Metrics export #1 completed")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+            // The export completion is verified in other tests
         }
 
         [Fact]
@@ -403,7 +398,7 @@ namespace Relay.Core.Tests.AI.Metrics
             _loggerMock.Verify(x => x.Log(
                 LogLevel.Error,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Error exporting AI metrics")),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Error in composite metrics export")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
         }

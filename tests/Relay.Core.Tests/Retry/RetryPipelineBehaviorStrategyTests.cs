@@ -13,6 +13,8 @@ using TestRequest = Relay.Core.Tests.Retry.RetryPipelineBehaviorTestUtilities.Te
 using TestResponse = Relay.Core.Tests.Retry.RetryPipelineBehaviorTestUtilities.TestResponse;
 using TestRequestWithCustomStrategy = Relay.Core.Tests.Retry.RetryPipelineBehaviorTestUtilities.TestRequestWithCustomStrategy;
 using CustomRetryStrategy = Relay.Core.Tests.Retry.RetryPipelineBehaviorTestUtilities.CustomRetryStrategy;
+using Relay.Core.Configuration.Options.Core;
+using Relay.Core.Configuration.Options.Retry;
 
 namespace Relay.Core.Tests.Retry;
 

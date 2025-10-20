@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Authorization;
 
 /// <summary>
 /// Configuration options for authorization.

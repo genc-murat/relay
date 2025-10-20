@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Options;
 using Relay.Core.Configuration.Core;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Options.Core;
+using Relay.Core.Configuration.Options.Handlers;
+using Relay.Core.Configuration.Options.Notifications;
 using System;
 using Xunit;
 

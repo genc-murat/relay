@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.RateLimiting;
 
 /// <summary>
 /// Configuration options for rate limiting.

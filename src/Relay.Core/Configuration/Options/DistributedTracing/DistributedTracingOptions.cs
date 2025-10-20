@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.DistributedTracing;
 
 /// <summary>
 /// Configuration options for distributed tracing.

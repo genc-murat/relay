@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Relay.Core.Configuration.Core;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Options.Core;
 using Xunit;
 
 namespace Relay.Core.Tests.Configuration

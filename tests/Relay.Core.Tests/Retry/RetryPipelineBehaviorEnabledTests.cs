@@ -11,6 +11,8 @@ using Xunit;
 using TestRequest = Relay.Core.Tests.Retry.RetryPipelineBehaviorTestUtilities.TestRequest;
 using TestResponse = Relay.Core.Tests.Retry.RetryPipelineBehaviorTestUtilities.TestResponse;
 using TestRequestWithAttribute = Relay.Core.Tests.Retry.RetryPipelineBehaviorTestUtilities.TestRequestWithAttribute;
+using Relay.Core.Configuration.Options.Core;
+using Relay.Core.Configuration.Options.Retry;
 
 namespace Relay.Core.Tests.Retry;
 

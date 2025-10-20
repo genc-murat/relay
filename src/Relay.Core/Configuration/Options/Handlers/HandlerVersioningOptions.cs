@@ -1,6 +1,6 @@
 using Relay.Core.Configuration.Core;
 
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Handlers;
 
 /// <summary>
 /// Configuration options for handler versioning.

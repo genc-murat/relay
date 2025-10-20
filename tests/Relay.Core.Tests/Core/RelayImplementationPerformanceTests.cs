@@ -4,6 +4,8 @@ using Xunit;
 using Relay.Core;
 using Relay.Core.Configuration.Options;
 using Relay.Core.Implementation.Core;
+using Relay.Core.Configuration.Options.Core;
+using Relay.Core.Configuration.Options.Performance;
 
 namespace Relay.Core.Tests.Core;
 

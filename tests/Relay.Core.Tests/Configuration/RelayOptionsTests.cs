@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using Relay.Core.Configuration;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Options.Core;
+using Relay.Core.Configuration.Options.Endpoints;
+using Relay.Core.Configuration.Options.Handlers;
+using Relay.Core.Configuration.Options.Notifications;
 using Xunit;
 
 namespace Relay.Core.Tests.Configuration

@@ -1,6 +1,7 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Relay.Core.Configuration.Options;
+ using Microsoft.Extensions.Logging;
+ using Microsoft.Extensions.Options;
+ using Relay.Core.Configuration.Options.Authorization;
+ using Relay.Core.Configuration.Options.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Telemetry;
 using System;

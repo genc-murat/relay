@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Options.Core;
+using Relay.Core.Configuration.Options.Retry;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Retry;
 using Xunit;

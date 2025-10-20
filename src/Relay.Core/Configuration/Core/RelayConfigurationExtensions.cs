@@ -1,9 +1,11 @@
-using System;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
-using Relay.Core.Configuration.Options;
+ using System;
+ using Microsoft.Extensions.Configuration;
+ using Microsoft.Extensions.DependencyInjection;
+ using Microsoft.Extensions.DependencyInjection.Extensions;
+ using Microsoft.Extensions.Options;
+ using Relay.Core.Configuration.Options.Core;
+ using Relay.Core.Configuration.Options.Handlers;
+ using Relay.Core.Configuration.Options.Notifications;
 using Relay.Core.Configuration.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Pipeline;

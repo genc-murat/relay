@@ -1,5 +1,6 @@
 using Relay.Core.Authorization;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Options.Authorization;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 using System;

@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Notifications;
 
 /// <summary>
 /// Configuration options for notification handlers.

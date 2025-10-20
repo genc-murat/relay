@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.EventSourcing;
 
 /// <summary>
 /// Configuration options for event sourcing.

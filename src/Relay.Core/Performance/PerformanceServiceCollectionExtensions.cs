@@ -1,9 +1,10 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.ObjectPool;
-using System;
-using System.Buffers;
-using Relay.Core.Configuration.Options;
+ using Microsoft.Extensions.DependencyInjection;
+ using Microsoft.Extensions.DependencyInjection.Extensions;
+ using Microsoft.Extensions.ObjectPool;
+ using System;
+ using System.Buffers;
+ using Relay.Core.Configuration.Options.Core;
+ using Relay.Core.Configuration.Options.Performance;
 using Relay.Core.Performance.BufferManagement;
 using Relay.Core.Performance.Telemetry;
 using Relay.Core.Extensions;

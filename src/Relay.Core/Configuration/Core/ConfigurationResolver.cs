@@ -1,6 +1,9 @@
-using System;
-using Microsoft.Extensions.Options;
-using Relay.Core.Configuration.Options;
+ using System;
+ using Microsoft.Extensions.Options;
+ using Relay.Core.Configuration.Options.Core;
+ using Relay.Core.Configuration.Options.Endpoints;
+ using Relay.Core.Configuration.Options.Handlers;
+ using Relay.Core.Configuration.Options.Notifications;
 using Relay.Core.Configuration.Resolved;
 
 namespace Relay.Core.Configuration.Core;

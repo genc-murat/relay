@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.ContractValidation;
 
 /// <summary>
 /// Configuration options for contract validation.

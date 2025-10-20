@@ -1,6 +1,7 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Relay.Core.Configuration.Options;
+ using Microsoft.Extensions.DependencyInjection;
+ using Microsoft.Extensions.Options;
+ using Relay.Core.Configuration.Options.Core;
+ using Relay.Core.Configuration.Options.Performance;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Dispatchers;
 using Relay.Core.Contracts.Infrastructure;

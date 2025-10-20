@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.MessageQueue;
 
 /// <summary>
 /// Configuration options for message queuing.

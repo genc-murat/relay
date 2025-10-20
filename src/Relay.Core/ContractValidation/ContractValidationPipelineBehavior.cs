@@ -1,7 +1,8 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Relay.Core.Configuration.Options;
-using Relay.Core.Configuration.Core;
+ using Microsoft.Extensions.Logging;
+ using Microsoft.Extensions.Options;
+ using Relay.Core.Configuration.Options.ContractValidation;
+ using Relay.Core.Configuration.Options.Core;
+ using Relay.Core.Configuration.Core;
 using System;
 using System.Linq;
 using System.Reflection;

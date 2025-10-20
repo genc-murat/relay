@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Handlers;
 
 /// <summary>
 /// Configuration options for request handlers.

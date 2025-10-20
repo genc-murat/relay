@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Endpoints;
 
 /// <summary>
 /// Configuration options for endpoint generation.

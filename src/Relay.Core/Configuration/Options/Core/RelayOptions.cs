@@ -1,7 +1,19 @@
 using System;
 using System.Collections.Generic;
+using Relay.Core.Configuration.Options.Authorization;
+using Relay.Core.Configuration.Options.Caching;
+using Relay.Core.Configuration.Options.ContractValidation;
+using Relay.Core.Configuration.Options.DistributedTracing;
+using Relay.Core.Configuration.Options.Endpoints;
+using Relay.Core.Configuration.Options.EventSourcing;
+using Relay.Core.Configuration.Options.Handlers;
+using Relay.Core.Configuration.Options.MessageQueue;
+using Relay.Core.Configuration.Options.Notifications;
+using Relay.Core.Configuration.Options.Performance;
+using Relay.Core.Configuration.Options.RateLimiting;
+using Relay.Core.Configuration.Options.Retry;
 
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Core;
 
 /// <summary>
 /// Global configuration options for the Relay framework.

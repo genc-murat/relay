@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Retry;
 
 /// <summary>
 /// Configuration options for retry behavior.

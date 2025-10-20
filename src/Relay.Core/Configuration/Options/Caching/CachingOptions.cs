@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Caching;
 
 /// <summary>
 /// Configuration options for caching.

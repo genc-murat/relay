@@ -1,4 +1,4 @@
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Performance;
 
 /// <summary>
 /// Performance optimization configuration options for Relay

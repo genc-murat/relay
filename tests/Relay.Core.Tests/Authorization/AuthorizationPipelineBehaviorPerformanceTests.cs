@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.Authorization;
 using Relay.Core.Configuration.Options;
+using Relay.Core.Configuration.Options.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using System;

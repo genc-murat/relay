@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Configuration.Options;
+namespace Relay.Core.Configuration.Options.Core;
 
 /// <summary>
 /// Configuration options for pipeline behaviors.

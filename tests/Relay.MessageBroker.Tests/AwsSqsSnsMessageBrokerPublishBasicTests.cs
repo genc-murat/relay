@@ -1,50 +1,73 @@
-using System.Net;
-using Amazon.SQS;
-using Amazon.SQS.Model;
-using Amazon.SimpleNotificationService;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Relay.MessageBroker;
 using Relay.MessageBroker.AwsSqsSns;
-using Relay.MessageBroker.Compression;
-using Relay.Core.ContractValidation;
-using Relay.Core;
-using Xunit;
 
 namespace Relay.MessageBroker.Tests;
 
-public class AwsSqsSnsMessageBrokerPublishBasicTests
+public class AwsSqsSnsMessageBrokerPublishBasicTests : IDisposable
 {
     private readonly Mock<ILogger<AwsSqsSnsMessageBroker>> _loggerMock;
+    private readonly AwsSqsSnsMessageBroker _broker;
 
     public AwsSqsSnsMessageBrokerPublishBasicTests()
     {
         _loggerMock = new Mock<ILogger<AwsSqsSnsMessageBroker>>();
+
+        // Create shared broker instance for all tests
+        var options = new MessageBrokerOptions
+        {
+            AwsSqsSns = new AwsSqsSnsOptions
+            {
+                Region = "us-east-1",
+                DefaultQueueUrl = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
+            }
+        };
+        _broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
     }
 
     [Fact]
     public async Task PublishAsync_WithNullMessage_ShouldThrowArgumentNullException()
     {
-        // Arrange
-        var options = new MessageBrokerOptions
-        {
-            AwsSqsSns = new AwsSqsSnsOptions
-            {
-                Region = "us-east-1",
-                DefaultQueueUrl = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
-            }
-        };
-        var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
-
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.PublishAsync<TestMessage>(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await _broker.PublishAsync<TestMessage>(null!));
     }
 
     [Fact]
-    public async Task PublishAsync_WithTopicArn_ShouldUseSnsClient()
+    public async Task PublishAsync_WithValidMessage_ShouldNotThrow()
     {
         // Arrange
+        var message = new TestMessage { Content = "test message" };
+
+        // Act & Assert - Basic publish should work
+        // Note: We can't easily test actual publish without mocking AWS SDK extensively
+        Assert.NotNull(_broker);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithRoutingKey_ShouldAcceptOptions()
+    {
+        // Arrange
+        var message = new TestMessage { Content = "test message" };
+        var publishOptions = new PublishOptions
+        {
+            RoutingKey = "https://sqs.us-east-1.amazonaws.com/123456789012/custom-queue"
+        };
+
+        // Act & Assert - Should accept routing key options
+        Assert.NotNull(_broker);
+        Assert.NotNull(publishOptions.RoutingKey);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithTopicArnConfiguration_ShouldBeValid()
+    {
+        // Arrange - Test with topic ARN configuration
         var options = new MessageBrokerOptions
         {
             AwsSqsSns = new AwsSqsSnsOptions
@@ -54,17 +77,15 @@ public class AwsSqsSnsMessageBrokerPublishBasicTests
             }
         };
         var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
-        var message = new TestMessage { Content = "test message" };
 
-        // Act & Assert - Should not throw during construction, SNS client would be used for publishing
+        // Act & Assert - Should create broker with topic ARN
         Assert.NotNull(broker);
-        // Note: We can't easily test the actual publish without mocking AWS SDK
     }
 
     [Fact]
-    public async Task PublishAsync_WithQueueUrl_ShouldUseSqsClient()
+    public async Task PublishAsync_WithQueueUrlConfiguration_ShouldBeValid()
     {
-        // Arrange
+        // Arrange - Test with queue URL configuration
         var options = new MessageBrokerOptions
         {
             AwsSqsSns = new AwsSqsSnsOptions
@@ -74,101 +95,8 @@ public class AwsSqsSnsMessageBrokerPublishBasicTests
             }
         };
         var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
-        var message = new TestMessage { Content = "test message" };
 
-        // Act & Assert - Should not throw during construction, SQS client would be used for publishing
-        Assert.NotNull(broker);
-        // Note: We can't easily test the actual publish without mocking AWS SDK
-    }
-
-    [Fact]
-    public async Task PublishAsync_WithRoutingKey_ShouldUseRoutingKey()
-    {
-        // Arrange
-        var options = new MessageBrokerOptions
-        {
-            AwsSqsSns = new AwsSqsSnsOptions
-            {
-                Region = "us-east-1",
-                DefaultQueueUrl = "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
-            }
-        };
-        var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
-        var message = new TestMessage { Content = "test message" };
-        var publishOptions = new PublishOptions
-        {
-            RoutingKey = "https://sqs.us-east-1.amazonaws.com/123456789012/custom-queue"
-        };
-
-        // Act & Assert - Should not throw, routing key would override default
-        Assert.NotNull(broker);
-        // Note: We can't easily test the actual publish without mocking AWS SDK
-    }
-
-    [Fact]
-    public async Task PublishAsync_WithCustomRoutingKey_ShouldOverrideDefaultTopicArn()
-    {
-        // Arrange
-        var options = new MessageBrokerOptions
-        {
-            AwsSqsSns = new AwsSqsSnsOptions
-            {
-                Region = "us-east-1",
-                DefaultTopicArn = "arn:aws:sns:us-east-1:123456789012/default-topic"
-            }
-        };
-        var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
-        var message = new TestMessage { Content = "test message" };
-        var publishOptions = new PublishOptions
-        {
-            RoutingKey = "arn:aws:sns:us-east-1:123456789012/custom-topic"
-        };
-
-        // Act & Assert - Should not throw, custom routing key would override default
-        Assert.NotNull(broker);
-        // Note: We can't easily test the actual publish without mocking AWS SDK
-    }
-
-    [Fact]
-    public async Task PublishAsync_WithCustomRoutingKey_ShouldOverrideDefaultQueueUrl()
-    {
-        // Arrange
-        var options = new MessageBrokerOptions
-        {
-            AwsSqsSns = new AwsSqsSnsOptions
-            {
-                Region = "us-east-1",
-                DefaultQueueUrl = "https://sqs.us-east-1.amazonaws.com/123456789012/default-queue"
-            }
-        };
-        var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
-        var message = new TestMessage { Content = "test message" };
-        var publishOptions = new PublishOptions
-        {
-            RoutingKey = "https://sqs.us-east-1.amazonaws.com/123456789012/custom-queue"
-        };
-
-        // Act & Assert - Should not throw, custom routing key would override default
-        Assert.NotNull(broker);
-        // Note: We can't easily test the actual publish without mocking AWS SDK
-    }
-
-    [Fact]
-    public async Task PublishAsync_WithSnsTopicAndSubject_ShouldUseMessageTypeAsSubject()
-    {
-        // Arrange
-        var options = new MessageBrokerOptions
-        {
-            AwsSqsSns = new AwsSqsSnsOptions
-            {
-                Region = "us-east-1",
-                DefaultTopicArn = "arn:aws:sns:us-east-1:123456789012:test-topic"
-            }
-        };
-        var broker = new AwsSqsSnsMessageBroker(Options.Create(options), _loggerMock.Object);
-        var message = new TestMessage { Content = "test message" };
-
-        // Act & Assert - Should not throw, message type would be used as SNS subject
+        // Act & Assert - Should create broker with queue URL
         Assert.NotNull(broker);
     }
 

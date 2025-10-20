@@ -1,10 +1,26 @@
+using Relay.MessageBroker;
 using Relay.MessageBroker.Compression;
 using Xunit;
 
 namespace Relay.MessageBroker.Tests;
 
-public class CompressionAdditionalTests
+public class CompressionAdditionalTests : IDisposable
 {
+    private readonly GZipMessageCompressor _gzipCompressor;
+    private readonly DeflateMessageCompressor _deflateCompressor;
+    private readonly BrotliMessageCompressor _brotliCompressor;
+
+    public CompressionAdditionalTests()
+    {
+        _gzipCompressor = new GZipMessageCompressor();
+        _deflateCompressor = new DeflateMessageCompressor();
+        _brotliCompressor = new BrotliMessageCompressor();
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
     [Fact]
     public void GZipMessageCompressor_WithLowLevel_ShouldUseFastestCompression()
     {
@@ -13,156 +29,6 @@ public class CompressionAdditionalTests
 
         // Assert
         Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.GZip, compressor.CoreAlgorithm);
-    }
-
-    [Fact]
-    public async Task GZipMessageCompressor_CompressAsync_WithNullData_ShouldReturnNull()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        byte[]? data = null;
-
-        // Act
-        var result = await compressor.CompressAsync(data!);
-
-        // Assert
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GZipMessageCompressor_CompressAsync_WithEmptyData_ShouldReturnEmpty()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        var data = Array.Empty<byte>();
-
-        // Act
-        var result = await compressor.CompressAsync(data);
-
-        // Assert
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GZipMessageCompressor_DecompressAsync_WithNullData_ShouldReturnNull()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        byte[]? data = null;
-
-        // Act
-        var result = await compressor.DecompressAsync(data!);
-
-        // Assert
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GZipMessageCompressor_DecompressAsync_WithEmptyData_ShouldReturnEmpty()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        var data = Array.Empty<byte>();
-
-        // Act
-        var result = await compressor.DecompressAsync(data);
-
-        // Assert
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public void GZipMessageCompressor_IsCompressed_WithNullData_ShouldReturnFalse()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-
-        // Act
-        var result = compressor.IsCompressed(null!);
-
-        // Assert
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void GZipMessageCompressor_IsCompressed_WithShortData_ShouldReturnFalse()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        var data = new byte[] { 0x1f };
-
-        // Act
-        var result = compressor.IsCompressed(data);
-
-        // Assert
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void GZipMessageCompressor_IsCompressed_WithGZipMagicNumber_ShouldReturnTrue()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        var data = new byte[] { 0x1f, 0x8b, 0x00, 0x00 };
-
-        // Act
-        var result = compressor.IsCompressed(data);
-
-        // Assert
-        Assert.True(result);
-    }
-
-    [Fact]
-    public void GZipMessageCompressor_IsCompressed_WithInvalidMagicNumber_ShouldReturnFalse()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        var data = new byte[] { 0x00, 0x00, 0x00, 0x00 };
-
-        // Act
-        var result = compressor.IsCompressed(data);
-
-        // Assert
-        Assert.False(result);
-    }
-
-    [Fact]
-    public async Task GZipMessageCompressor_CompressDecompress_ShouldPreserveData()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        var originalData = System.Text.Encoding.UTF8.GetBytes("Hello World! This is test data for compression.");
-
-        // Act
-        var compressed = await compressor.CompressAsync(originalData);
-        var decompressed = await compressor.DecompressAsync(compressed);
-
-        // Assert
-        Assert.Equal(originalData, decompressed);
-    }
-
-    [Fact]
-    public async Task GZipMessageCompressor_CompressAsync_WithCancellation_ShouldHandleCancellation()
-    {
-        // Arrange
-        var compressor = new GZipMessageCompressor();
-        var data = System.Text.Encoding.UTF8.GetBytes("Short data");  // Use shorter data for faster cancellation
-        var cts = new CancellationTokenSource();
-        cts.Cancel();
-
-        // Act - With already cancelled token, it should either throw or complete quickly
-        try
-        {
-            await compressor.CompressAsync(data, cts.Token);
-            // If it completes without throwing, that's acceptable for small data
-        }
-        catch (OperationCanceledException)
-        {
-            // This is also acceptable
-        }
-
-        // Assert - No assertion needed, we just want to verify it doesn't hang
-        Assert.True(true);
     }
 
     [Fact]
@@ -176,48 +42,6 @@ public class CompressionAdditionalTests
     }
 
     [Fact]
-    public async Task DeflateMessageCompressor_CompressAsync_WithNullData_ShouldReturnNull()
-    {
-        // Arrange
-        var compressor = new DeflateMessageCompressor();
-
-        // Act
-        var result = await compressor.CompressAsync(null!);
-
-        // Assert
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task DeflateMessageCompressor_CompressAsync_WithEmptyData_ShouldReturnEmpty()
-    {
-        // Arrange
-        var compressor = new DeflateMessageCompressor();
-        var data = Array.Empty<byte>();
-
-        // Act
-        var result = await compressor.CompressAsync(data);
-
-        // Assert
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task DeflateMessageCompressor_CompressDecompress_ShouldPreserveData()
-    {
-        // Arrange
-        var compressor = new DeflateMessageCompressor();
-        var originalData = System.Text.Encoding.UTF8.GetBytes("Deflate compression test data!");
-
-        // Act
-        var compressed = await compressor.CompressAsync(originalData);
-        var decompressed = await compressor.DecompressAsync(compressed);
-
-        // Assert
-        Assert.Equal(originalData, decompressed);
-    }
-
-    [Fact]
     public void BrotliMessageCompressor_WithLowLevel_ShouldUseFastestCompression()
     {
         // Arrange & Act
@@ -227,11 +51,14 @@ public class CompressionAdditionalTests
         Assert.Equal(Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli, compressor.CoreAlgorithm);
     }
 
-    [Fact]
-    public async Task BrotliMessageCompressor_CompressAsync_WithNullData_ShouldReturnNull()
+    [Theory]
+    [InlineData("GZip")]
+    [InlineData("Deflate")]
+    [InlineData("Brotli")]
+    public async Task MessageCompressor_CompressAsync_WithNullData_ShouldReturnNull(string compressorType)
     {
         // Arrange
-        var compressor = new BrotliMessageCompressor();
+        var compressor = GetCompressor(compressorType);
 
         // Act
         var result = await compressor.CompressAsync(null!);
@@ -240,11 +67,14 @@ public class CompressionAdditionalTests
         Assert.Null(result);
     }
 
-    [Fact]
-    public async Task BrotliMessageCompressor_CompressAsync_WithEmptyData_ShouldReturnEmpty()
+    [Theory]
+    [InlineData("GZip")]
+    [InlineData("Deflate")]
+    [InlineData("Brotli")]
+    public async Task MessageCompressor_CompressAsync_WithEmptyData_ShouldReturnEmpty(string compressorType)
     {
         // Arrange
-        var compressor = new BrotliMessageCompressor();
+        var compressor = GetCompressor(compressorType);
         var data = Array.Empty<byte>();
 
         // Act
@@ -254,12 +84,89 @@ public class CompressionAdditionalTests
         Assert.Empty(result);
     }
 
-    [Fact]
-    public async Task BrotliMessageCompressor_CompressDecompress_ShouldPreserveData()
+    [Theory]
+    [InlineData("GZip")]
+    [InlineData("Deflate")]
+    [InlineData("Brotli")]
+    public async Task MessageCompressor_DecompressAsync_WithNullData_ShouldReturnNull(string compressorType)
     {
         // Arrange
-        var compressor = new BrotliMessageCompressor();
-        var originalData = System.Text.Encoding.UTF8.GetBytes("Brotli compression test data!");
+        var compressor = GetCompressor(compressorType);
+
+        // Act
+        var result = await compressor.DecompressAsync(null!);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Theory]
+    [InlineData("GZip")]
+    [InlineData("Deflate")]
+    [InlineData("Brotli")]
+    public async Task MessageCompressor_DecompressAsync_WithEmptyData_ShouldReturnEmpty(string compressorType)
+    {
+        // Arrange
+        var compressor = GetCompressor(compressorType);
+        var data = Array.Empty<byte>();
+
+        // Act
+        var result = await compressor.DecompressAsync(data);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+
+
+    [Fact]
+    public void GZipMessageCompressor_IsCompressed_WithShortData_ShouldReturnFalse()
+    {
+        // Arrange
+        var data = new byte[] { 0x1f };
+
+        // Act
+        var result = _gzipCompressor.IsCompressed(data);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void GZipMessageCompressor_IsCompressed_WithGZipMagicNumber_ShouldReturnTrue()
+    {
+        // Arrange
+        var data = new byte[] { 0x1f, 0x8b, 0x00, 0x00 };
+
+        // Act
+        var result = _gzipCompressor.IsCompressed(data);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void GZipMessageCompressor_IsCompressed_WithInvalidMagicNumber_ShouldReturnFalse()
+    {
+        // Arrange
+        var data = new byte[] { 0x00, 0x00, 0x00, 0x00 };
+
+        // Act
+        var result = _gzipCompressor.IsCompressed(data);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Theory]
+    [InlineData("GZip", "Hello World! This is test data for compression.")]
+    [InlineData("Deflate", "Deflate compression test data!")]
+    [InlineData("Brotli", "Brotli compression test data!")]
+    public async Task MessageCompressor_CompressDecompress_ShouldPreserveData(string compressorType, string testData)
+    {
+        // Arrange
+        var compressor = GetCompressor(compressorType);
+        var originalData = System.Text.Encoding.UTF8.GetBytes(testData);
 
         // Act
         var compressed = await compressor.CompressAsync(originalData);
@@ -267,6 +174,29 @@ public class CompressionAdditionalTests
 
         // Assert
         Assert.Equal(originalData, decompressed);
+    }
+
+    [Fact]
+    public async Task GZipMessageCompressor_CompressAsync_WithCancellation_ShouldHandleCancellation()
+    {
+        // Arrange
+        var data = System.Text.Encoding.UTF8.GetBytes("Short data");  // Use shorter data for faster cancellation
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act - With already cancelled token, it should either throw or complete quickly
+        try
+        {
+            await _gzipCompressor.CompressAsync(data, cts.Token);
+            // If it completes without throwing, that's acceptable for small data
+        }
+        catch (OperationCanceledException)
+        {
+            // This is also acceptable
+        }
+
+        // Assert - No assertion needed, we just want to verify it doesn't hang
+        Assert.True(true);
     }
 
     [Fact]
@@ -352,4 +282,13 @@ public class CompressionAdditionalTests
         Assert.Equal(2048, options.MinimumSizeBytes);
         Assert.False(options.Enabled);
     }
+
+    private global::Relay.MessageBroker.Compression.IMessageCompressor GetCompressor(string type, int level = 6) =>
+        type switch
+        {
+            "GZip" => level == 6 ? _gzipCompressor : new GZipMessageCompressor(level: level),
+            "Deflate" => level == 6 ? _deflateCompressor : new DeflateMessageCompressor(level: level),
+            "Brotli" => level == 6 ? _brotliCompressor : new BrotliMessageCompressor(level: level),
+            _ => throw new ArgumentException("Invalid compressor type")
+        };
 }

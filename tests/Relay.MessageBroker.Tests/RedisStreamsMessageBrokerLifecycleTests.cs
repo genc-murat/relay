@@ -56,7 +56,7 @@ public class RedisStreamsMessageBrokerLifecycleTests
     public async Task StartAsync_ShouldCompleteSuccessfully()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
 
         // Act & Assert
         var exception = await Record.ExceptionAsync(async () => await broker.StartAsync());
@@ -67,7 +67,7 @@ public class RedisStreamsMessageBrokerLifecycleTests
     public async Task StopAsync_BeforeStart_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
 
         // Act & Assert
         var exception = await Record.ExceptionAsync(async () => await broker.StopAsync());
@@ -78,8 +78,8 @@ public class RedisStreamsMessageBrokerLifecycleTests
     public async Task StopAsync_AfterStart_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-        
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
+
         // StartAsync completes without Redis connection (lazy connection)
         await broker.StartAsync();
 
@@ -93,18 +93,19 @@ public class RedisStreamsMessageBrokerLifecycleTests
     public async Task DisposeAsync_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
 
         // Act & Assert
         var exception = await Record.ExceptionAsync(async () => await broker.DisposeAsync());
         Assert.Null(exception);
+
     }
 
     [Fact]
     public async Task StartAsync_MultipleTimes_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
 
         // Act & Assert
         var exception = await Record.ExceptionAsync(async () =>
@@ -119,7 +120,7 @@ public class RedisStreamsMessageBrokerLifecycleTests
     public async Task DisposeAsync_MultipleTimes_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
 
         // Act & Assert
         var exception = await Record.ExceptionAsync(async () =>

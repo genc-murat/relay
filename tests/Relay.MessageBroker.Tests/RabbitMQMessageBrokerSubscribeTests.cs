@@ -1,11 +1,7 @@
-using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 using Relay.MessageBroker.RabbitMQ;
-using Xunit;
 
 namespace Relay.MessageBroker.Tests;
 

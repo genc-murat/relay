@@ -4,13 +4,30 @@ using Xunit;
 
 namespace Relay.MessageBroker.Tests;
 
-public class SagaPersistenceTests
+public class SagaPersistenceTests : IDisposable
 {
-    [Fact]
-    public async Task InMemoryPersistence_SaveAndRetrieve_ShouldWork()
+    private readonly InMemorySagaPersistence<OrderSagaData> _inMemoryPersistence;
+    private readonly DatabaseSagaPersistence<OrderSagaData> _databasePersistence;
+    private readonly InMemorySagaDbContext _dbContext;
+
+    public SagaPersistenceTests()
+    {
+        _inMemoryPersistence = new InMemorySagaPersistence<OrderSagaData>();
+        _dbContext = new InMemorySagaDbContext();
+        _databasePersistence = new DatabaseSagaPersistence<OrderSagaData>(_dbContext);
+    }
+
+    public void Dispose()
+    {
+        _dbContext?.Dispose();
+    }
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_SaveAndRetrieve_ShouldWork(string persistenceType)
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var persistence = GetPersistence(persistenceType);
         var data = new OrderSagaData
         {
             SagaId = Guid.NewGuid(),
@@ -33,11 +50,13 @@ public class SagaPersistenceTests
         Assert.Equal(data.State, retrieved.State);
     }
 
-    [Fact]
-    public async Task InMemoryPersistence_GetByCorrelationId_ShouldWork()
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_GetByCorrelationId_ShouldWork(string persistenceType)
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var persistence = GetPersistence(persistenceType);
         var data = new OrderSagaData
         {
             SagaId = Guid.NewGuid(),
@@ -56,11 +75,13 @@ public class SagaPersistenceTests
         Assert.Equal("CORR-002", retrieved.CorrelationId);
     }
 
-    [Fact]
-    public async Task InMemoryPersistence_Update_ShouldOverwriteExisting()
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_Update_ShouldOverwriteExisting(string persistenceType)
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var persistence = GetPersistence(persistenceType);
         var sagaId = Guid.NewGuid();
         var data1 = new OrderSagaData
         {
@@ -73,7 +94,7 @@ public class SagaPersistenceTests
 
         // Act
         await persistence.SaveAsync(data1);
-        
+
         var data2 = new OrderSagaData
         {
             SagaId = sagaId,
@@ -92,11 +113,13 @@ public class SagaPersistenceTests
         Assert.Equal(SagaState.Completed, retrieved.State);
     }
 
-    [Fact]
-    public async Task InMemoryPersistence_Delete_ShouldRemoveSaga()
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_Delete_ShouldRemoveSaga(string persistenceType)
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var persistence = GetPersistence(persistenceType);
         var data = new OrderSagaData
         {
             SagaId = Guid.NewGuid(),
@@ -114,12 +137,14 @@ public class SagaPersistenceTests
         Assert.Null(retrieved);
     }
 
-    [Fact]
-    public async Task InMemoryPersistence_GetActiveSagas_ShouldReturnOnlyActive()
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_GetActiveSagas_ShouldReturnOnlyActive(string persistenceType)
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-        
+        var persistence = GetPersistence(persistenceType);
+
         var runningData = new OrderSagaData
         {
             SagaId = Guid.NewGuid(),
@@ -159,12 +184,14 @@ public class SagaPersistenceTests
         Assert.DoesNotContain(activeSagas, s => s.State == SagaState.Completed);
     }
 
-    [Fact]
-    public async Task InMemoryPersistence_GetByState_ShouldFilterCorrectly()
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_GetByState_ShouldFilterCorrectly(string persistenceType)
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-        
+        var persistence = GetPersistence(persistenceType);
+
         for (int i = 0; i < 3; i++)
         {
             await persistence.SaveAsync(new OrderSagaData
@@ -203,40 +230,12 @@ public class SagaPersistenceTests
         Assert.Equal(2, failedSagas.Count);
     }
 
-    [Fact]
-    public async Task DatabasePersistence_WithInMemoryContext_ShouldWork()
-    {
-        // Arrange
-        var dbContext = new InMemorySagaDbContext();
-        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
-        
-        var data = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "CORR-DB-001",
-            OrderId = "ORDER-DB-001",
-            Amount = 300m,
-            State = SagaState.Running
-        };
 
-        // Act
-        await persistence.SaveAsync(data);
-        var retrieved = await persistence.GetByIdAsync(data.SagaId);
-
-        // Assert
-        Assert.NotNull(retrieved);
-        Assert.Equal(data.SagaId, retrieved!.SagaId);
-        Assert.Equal(data.OrderId, retrieved.OrderId);
-        Assert.Equal(data.Amount, retrieved.Amount);
-    }
 
     [Fact]
     public async Task DatabasePersistence_Update_ShouldIncrementVersion()
     {
         // Arrange
-        var dbContext = new InMemorySagaDbContext();
-        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
-        
         var sagaId = Guid.NewGuid();
         var data = new OrderSagaData
         {
@@ -248,13 +247,13 @@ public class SagaPersistenceTests
         };
 
         // Act - Save twice
-        await persistence.SaveAsync(data);
-        
+        await _databasePersistence.SaveAsync(data);
+
         data.Amount = 200m;
         data.State = SagaState.Completed;
-        await persistence.SaveAsync(data);
+        await _databasePersistence.SaveAsync(data);
 
-        var entity = dbContext.Sagas.FirstOrDefault(s => s.SagaId == sagaId);
+        var entity = _dbContext.Sagas.FirstOrDefault(s => s.SagaId == sagaId);
 
         // Assert
         Assert.NotNull(entity);
@@ -262,75 +261,16 @@ public class SagaPersistenceTests
         Assert.Equal(SagaState.Completed, entity.State);
     }
 
-    [Fact]
-    public async Task DatabasePersistence_GetActiveSagas_ShouldWork()
-    {
-        // Arrange
-        var dbContext = new InMemorySagaDbContext();
-        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
-        
-        await persistence.SaveAsync(new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "ACTIVE-1",
-            State = SagaState.Running
-        });
 
-        await persistence.SaveAsync(new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "ACTIVE-2",
-            State = SagaState.Compensating
-        });
 
-        await persistence.SaveAsync(new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "INACTIVE-1",
-            State = SagaState.Completed
-        });
 
-        // Act
-        var activeSagas = new List<OrderSagaData>();
-        await foreach (var saga in persistence.GetActiveSagasAsync())
-        {
-            activeSagas.Add(saga);
-        }
-
-        // Assert
-        Assert.Equal(2, activeSagas.Count);
-    }
-
-    [Fact]
-    public async Task DatabasePersistence_Delete_ShouldRemove()
-    {
-        // Arrange
-        var dbContext = new InMemorySagaDbContext();
-        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
-        
-        var sagaId = Guid.NewGuid();
-        await persistence.SaveAsync(new OrderSagaData
-        {
-            SagaId = sagaId,
-            CorrelationId = "TO-DELETE",
-            State = SagaState.Running
-        });
-
-        // Act
-        await persistence.DeleteAsync(sagaId);
-        var retrieved = await persistence.GetByIdAsync(sagaId);
-
-        // Assert
-        Assert.Null(retrieved);
-    }
 
     [Fact]
     public async Task SagaWithPersistence_ExecuteAndRestore_ShouldWork()
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
         var saga = new TestOrderSaga();
-        
+
         var data = new OrderSagaData
         {
             SagaId = Guid.NewGuid(),
@@ -342,10 +282,10 @@ public class SagaPersistenceTests
 
         // Act - Execute saga and it will fail
         var result = await saga.ExecuteAsync(data);
-        await persistence.SaveAsync(result.Data);
+        await _inMemoryPersistence.SaveAsync(result.Data);
 
         // Retrieve and check state
-        var restored = await persistence.GetByIdAsync(data.SagaId);
+        var restored = await _inMemoryPersistence.GetByIdAsync(data.SagaId);
 
         // Assert
         Assert.NotNull(restored);
@@ -359,9 +299,8 @@ public class SagaPersistenceTests
     public async Task SagaWithPersistence_ResumeFromFailure_ShouldContinue()
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
         var saga = new TestOrderSaga();
-        
+
         // First execution - complete first step
         var data = new OrderSagaData
         {
@@ -376,12 +315,12 @@ public class SagaPersistenceTests
         data.ReserveInventoryExecuted = true;
         data.CurrentStep = 1;
         data.State = SagaState.Running;
-        await persistence.SaveAsync(data);
+        await _inMemoryPersistence.SaveAsync(data);
 
         // Act - Resume from step 2
-        var restored = await persistence.GetByIdAsync(data.SagaId);
+        var restored = await _inMemoryPersistence.GetByIdAsync(data.SagaId);
         Assert.NotNull(restored);
-        
+
         var result = await saga.ExecuteAsync(restored!);
 
         // Assert
@@ -396,7 +335,6 @@ public class SagaPersistenceTests
     public async Task SagaMetadata_ShouldBePersisted()
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
         var data = new OrderSagaData
         {
             SagaId = Guid.NewGuid(),
@@ -404,14 +342,14 @@ public class SagaPersistenceTests
             OrderId = "ORDER-META-001",
             Amount = 100m
         };
-        
+
         data.Metadata["userId"] = "user-123";
         data.Metadata["ipAddress"] = "192.168.1.1";
         data.Metadata["timestamp"] = DateTimeOffset.UtcNow.ToString();
 
         // Act
-        await persistence.SaveAsync(data);
-        var retrieved = await persistence.GetByIdAsync(data.SagaId);
+        await _inMemoryPersistence.SaveAsync(data);
+        var retrieved = await _inMemoryPersistence.GetByIdAsync(data.SagaId);
 
         // Assert
         Assert.NotNull(retrieved);
@@ -420,11 +358,13 @@ public class SagaPersistenceTests
         Assert.True(retrieved.Metadata.ContainsKey("timestamp"));
     }
 
-    [Fact]
-    public async Task InMemoryPersistence_GetByCorrelationId_WhenNotFound_ShouldReturnNull()
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_GetByCorrelationId_WhenNotFound_ShouldReturnNull(string persistenceType)
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var persistence = GetPersistence(persistenceType);
 
         // Act
         var retrieved = await persistence.GetByCorrelationIdAsync("NON-EXISTENT-CORR-ID");
@@ -433,48 +373,26 @@ public class SagaPersistenceTests
         Assert.Null(retrieved);
     }
 
-    [Fact]
-    public async Task InMemoryPersistence_Delete_WhenNotFound_ShouldNotThrow()
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_Delete_WhenNotFound_ShouldNotThrow(string persistenceType)
     {
         // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var persistence = GetPersistence(persistenceType);
         var sagaId = Guid.NewGuid();
 
         // Act & Assert
         await persistence.DeleteAsync(sagaId); // Should not throw
     }
 
-    [Fact]
-    public async Task DatabasePersistence_GetByCorrelationId_WhenNotFound_ShouldReturnNull()
+    [Theory]
+    [InlineData("InMemory")]
+    [InlineData("Database")]
+    public async Task Persistence_GetActiveSagas_WhenNone_ShouldReturnEmpty(string persistenceType)
     {
         // Arrange
-        var dbContext = new InMemorySagaDbContext();
-        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
-
-        // Act
-        var retrieved = await persistence.GetByCorrelationIdAsync("NON-EXISTENT-CORR-ID");
-
-        // Assert
-        Assert.Null(retrieved);
-    }
-
-    [Fact]
-    public async Task DatabasePersistence_Delete_WhenNotFound_ShouldNotThrow()
-    {
-        // Arrange
-        var dbContext = new InMemorySagaDbContext();
-        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
-        var sagaId = Guid.NewGuid();
-
-        // Act & Assert
-        await persistence.DeleteAsync(sagaId); // Should not throw
-    }
-
-    [Fact]
-    public async Task InMemoryPersistence_GetActiveSagas_WhenNone_ShouldReturnEmpty()
-    {
-        // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var persistence = GetPersistence(persistenceType);
         await persistence.SaveAsync(new OrderSagaData { State = SagaState.Completed });
         await persistence.SaveAsync(new OrderSagaData { State = SagaState.Failed });
 
@@ -489,204 +407,12 @@ public class SagaPersistenceTests
         Assert.Empty(activeSagas);
     }
 
-    [Fact]
-    public async Task DatabasePersistence_GetActiveSagas_WhenNone_ShouldReturnEmpty()
-    {
-        // Arrange
-        var dbContext = new InMemorySagaDbContext();
-        var persistence = new DatabaseSagaPersistence<OrderSagaData>(dbContext);
-        await persistence.SaveAsync(new OrderSagaData { State = SagaState.Completed });
-        await persistence.SaveAsync(new OrderSagaData { State = SagaState.Failed });
-
-        // Act
-        var activeSagas = new List<OrderSagaData>();
-        await foreach (var saga in persistence.GetActiveSagasAsync())
+    private ISagaPersistence<OrderSagaData> GetPersistence(string type) =>
+        type switch
         {
-            activeSagas.Add(saga);
-        }
-
-        // Assert
-        Assert.Empty(activeSagas);
-    }
-
-    // Additional persistence tests from SagaTests.cs
-
-    [Fact]
-    public async Task InMemorySagaPersistence_SaveAndGetById_Works()
-    {
-        // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-        var data = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "test-correlation",
-            OrderId = "ORDER-022",
-            Amount = 100m
+            "InMemory" => _inMemoryPersistence,
+            "Database" => _databasePersistence,
+            _ => throw new ArgumentException("Invalid persistence type")
         };
-
-        // Act
-        await persistence.SaveAsync(data);
-        var retrieved = await persistence.GetByIdAsync(data.SagaId);
-
-        // Assert
-        Assert.NotNull(retrieved);
-        Assert.Equal(data.SagaId, retrieved!.SagaId);
-        Assert.Equal(data.CorrelationId, retrieved.CorrelationId);
-        Assert.Equal(data.OrderId, retrieved.OrderId);
-        Assert.Equal(data.Amount, retrieved.Amount);
-    }
-
-    [Fact]
-    public async Task InMemorySagaPersistence_SaveAndGetByCorrelationId_Works()
-    {
-        // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-        var data = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "test-correlation",
-            OrderId = "ORDER-023",
-            Amount = 200m
-        };
-
-        // Act
-        await persistence.SaveAsync(data);
-        var retrieved = await persistence.GetByCorrelationIdAsync(data.CorrelationId);
-
-        // Assert
-        Assert.NotNull(retrieved);
-        Assert.Equal(data.SagaId, retrieved!.SagaId);
-        Assert.Equal(data.CorrelationId, retrieved.CorrelationId);
-    }
-
-    [Fact]
-    public async Task InMemorySagaPersistence_Delete_RemovesData()
-    {
-        // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-        var data = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "test-correlation",
-            OrderId = "ORDER-024",
-            Amount = 150m
-        };
-        await persistence.SaveAsync(data);
-
-        // Act
-        await persistence.DeleteAsync(data.SagaId);
-        var retrieved = await persistence.GetByIdAsync(data.SagaId);
-
-        // Assert
-        Assert.Null(retrieved);
-    }
-
-    [Fact]
-    public async Task InMemorySagaPersistence_GetActiveSagas_ReturnsRunningAndCompensating()
-    {
-        // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-        var runningData = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "running",
-            State = SagaState.Running
-        };
-        var compensatingData = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "compensating",
-            State = SagaState.Compensating
-        };
-        var completedData = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "completed",
-            State = SagaState.Completed
-        };
-
-        await persistence.SaveAsync(runningData);
-        await persistence.SaveAsync(compensatingData);
-        await persistence.SaveAsync(completedData);
-
-        // Act
-        var activeSagas = new List<OrderSagaData>();
-        await foreach (var saga in persistence.GetActiveSagasAsync())
-        {
-            activeSagas.Add(saga);
-        }
-
-        // Assert
-        Assert.Equal(2, activeSagas.Count);
-        Assert.Contains(activeSagas, s => s.SagaId == runningData.SagaId);
-        Assert.Contains(activeSagas, s => s.SagaId == compensatingData.SagaId);
-        Assert.DoesNotContain(activeSagas, s => s.SagaId == completedData.SagaId);
-    }
-
-    [Fact]
-    public async Task InMemorySagaPersistence_GetByState_ReturnsCorrectState()
-    {
-        // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-        var completedData = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "completed",
-            State = SagaState.Completed
-        };
-        var failedData = new OrderSagaData
-        {
-            SagaId = Guid.NewGuid(),
-            CorrelationId = "failed",
-            State = SagaState.Failed
-        };
-
-        await persistence.SaveAsync(completedData);
-        await persistence.SaveAsync(failedData);
-
-        // Act
-        var completedSagas = new List<OrderSagaData>();
-        await foreach (var saga in persistence.GetByStateAsync(SagaState.Completed))
-        {
-            completedSagas.Add(saga);
-        }
-        var failedSagas = new List<OrderSagaData>();
-        await foreach (var saga in persistence.GetByStateAsync(SagaState.Failed))
-        {
-            failedSagas.Add(saga);
-        }
-
-        // Assert
-        Assert.Single(completedSagas);
-        Assert.Equal(completedData.SagaId, completedSagas[0].SagaId);
-        Assert.Single(failedSagas);
-        Assert.Equal(failedData.SagaId, failedSagas[0].SagaId);
-    }
-
-    [Fact]
-    public async Task InMemorySagaPersistence_GetById_ReturnsNull_WhenNotFound()
-    {
-        // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-
-        // Act
-        var retrieved = await persistence.GetByIdAsync(Guid.NewGuid());
-
-        // Assert
-        Assert.Null(retrieved);
-    }
-
-    [Fact]
-    public async Task InMemorySagaPersistence_GetByCorrelationId_ReturnsNull_WhenNotFound()
-    {
-        // Arrange
-        var persistence = new InMemorySagaPersistence<OrderSagaData>();
-
-        // Act
-        var retrieved = await persistence.GetByCorrelationIdAsync("nonexistent");
-
-        // Assert
-        Assert.Null(retrieved);
-    }
 }
 

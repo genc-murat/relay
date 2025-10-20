@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Net.Sockets;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.MessageBroker.RedisStreams;
@@ -22,6 +23,8 @@ public class RedisStreamsMessageBrokerSubscribeTests : IDisposable
 
         _mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>())).Returns(_mockDatabase.Object);
         _mockRedis.SetupGet(x => x.IsConnected).Returns(true);
+
+
 
         _defaultOptions = new MessageBrokerOptions
         {
@@ -48,8 +51,34 @@ public class RedisStreamsMessageBrokerSubscribeTests : IDisposable
             }
         };
 
-        // Create broker once for all tests
-        _broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+        // Create broker once for all tests with mocked connection
+        _broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
+    }
+
+    /// <summary>
+    /// Checks if Redis server is available on localhost:6379.
+    /// This method is used in integration tests that require a real Redis connection.
+    /// For unit tests, prefer using mocked IConnectionMultiplexer instances instead.
+    ///
+    /// Pattern for handling external service dependencies in unit tests:
+    /// 1. For unit tests: Always use mocked connections (IConnectionMultiplexer, etc.)
+    /// 2. For integration tests: Check service availability with Is[Service]Available() and skip if unavailable
+    /// 3. Never attempt real connections in unit tests without mocking
+    /// </summary>
+    private static bool IsRedisAvailable()
+    {
+        try
+        {
+            using var tcpClient = new TcpClient();
+            var result = tcpClient.BeginConnect("localhost", 6379, null, null);
+            var success = result.AsyncWaitHandle.WaitOne(1000); // 1 second timeout
+            tcpClient.EndConnect(result);
+            return success;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public void Dispose()
@@ -60,6 +89,7 @@ public class RedisStreamsMessageBrokerSubscribeTests : IDisposable
     [Fact]
     public async Task SubscribeAsync_WithNullHandler_ShouldThrowArgumentNullException()
     {
+        // This test should work with mocked connections and not require Redis
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await _broker.SubscribeAsync<TestMessage>(null!));
     }

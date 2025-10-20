@@ -101,15 +101,22 @@ namespace Relay.Core.AI.Analysis.TimeSeries
             {
                 var result = new T[_count];
                 var resultSpan = result.AsSpan();
-                if (_count < _buffer.Length)
+                if (_start == 0)
                 {
                     _buffer.AsSpan(0, _count).CopyTo(resultSpan);
                 }
                 else
                 {
                     var firstPart = _buffer.Length - _start;
-                    _buffer.AsSpan(_start, firstPart).CopyTo(resultSpan);
-                    _buffer.AsSpan(0, _start).CopyTo(resultSpan.Slice(firstPart));
+                    if (_count <= firstPart)
+                    {
+                        _buffer.AsSpan(_start, _count).CopyTo(resultSpan);
+                    }
+                    else
+                    {
+                        _buffer.AsSpan(_start, firstPart).CopyTo(resultSpan);
+                        _buffer.AsSpan(0, _count - firstPart).CopyTo(resultSpan.Slice(firstPart));
+                    }
                 }
                 return result;
             }

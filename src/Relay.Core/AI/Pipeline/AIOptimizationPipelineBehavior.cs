@@ -63,10 +63,18 @@ namespace Relay.Core.AI
                 return await next();
             }
 
+            // Check cancellation before starting - this ensures fast fail for already-cancelled tokens
+            cancellationToken.ThrowIfCancellationRequested();
+
             var requestType = typeof(TRequest);
             var stopwatch = Stopwatch.StartNew();
             var startMemory = GC.GetTotalMemory(false);
             var appliedOptimizations = new List<OptimizationStrategy>();
+
+            // Variables to hold optimization state
+            SystemLoadMetrics systemLoad;
+            RequestHandlerDelegate<TResponse> optimizedNext;
+            TResponse response;
 
             try
             {
@@ -80,7 +88,6 @@ namespace Relay.Core.AI
                 }
 
                 // Collect current system metrics
-                SystemLoadMetrics systemLoad;
                 try
                 {
                     systemLoad = await _systemMetrics.GetCurrentLoadAsync(cancellationToken);
@@ -107,7 +114,7 @@ namespace Relay.Core.AI
 
                 // Get AI recommendations
                 var executionMetrics = await GetHistoricalMetrics(requestType, cancellationToken);
-                
+
                 // Analyze request with AI engine (TRequest already constrained to IRequest<TResponse>)
                 var recommendation = await _aiEngine.AnalyzeRequestAsync(request, executionMetrics, cancellationToken);
 
@@ -115,10 +122,59 @@ namespace Relay.Core.AI
                     requestType.Name, recommendation.Strategy, recommendation.ConfidenceScore);
 
                 // Apply optimizations based on AI recommendations
-                var optimizedNext = await ApplyOptimizations(request, next, recommendation, systemLoad, appliedOptimizations, cancellationToken);
+                optimizedNext = await ApplyOptimizations(request, next, recommendation, systemLoad, appliedOptimizations, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation occurred during AI optimization phase - fall back to standard execution
+                _logger.LogDebug("AI optimization cancelled for {RequestType}, falling back to standard execution", requestType.Name);
 
-                // Execute the request with optimizations
-                var response = await optimizedNext();
+                // Execute the handler anyway
+                response = await next();
+
+                // Record metrics even after cancellation
+                stopwatch.Stop();
+                var endMemory = GC.GetTotalMemory(false);
+
+                var actualMetrics = new RequestExecutionMetrics
+                {
+                    AverageExecutionTime = stopwatch.Elapsed,
+                    MedianExecutionTime = stopwatch.Elapsed,
+                    P95ExecutionTime = stopwatch.Elapsed,
+                    P99ExecutionTime = stopwatch.Elapsed,
+                    TotalExecutions = 1,
+                    SuccessfulExecutions = 1,
+                    FailedExecutions = 0,
+                    MemoryAllocated = Math.Max(0, endMemory - startMemory),
+                    ConcurrentExecutions = 1,
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = stopwatch.Elapsed,
+                    CpuUsage = 0.5,
+                    MemoryUsage = endMemory,
+                    DatabaseCalls = 0,
+                    ExternalApiCalls = 0
+                };
+
+                // Learn from the execution even after cancellation (use CancellationToken.None)
+                if (_options.LearningEnabled)
+                {
+                    try
+                    {
+                        await _aiEngine.LearnFromExecutionAsync(requestType, appliedOptimizations.ToArray(), actualMetrics, CancellationToken.None);
+                    }
+                    catch (Exception learningEx)
+                    {
+                        _logger.LogWarning(learningEx, "Failed to learn from execution after cancellation for {RequestType}", requestType.Name);
+                    }
+                }
+
+                return response;
+            }
+
+            // Execute the request with optimizations (separate try-catch for handler execution)
+            try
+            {
+                response = await optimizedNext();
                 
                 // Continue with metrics recording...
                 stopwatch.Stop();
@@ -178,10 +234,17 @@ namespace Relay.Core.AI
                     MemoryUsage = endMemory
                 };
 
-                // Learn from failed execution
+                // Learn from failed execution (use CancellationToken.None to avoid cancellation during learning)
                 if (_options.LearningEnabled)
                 {
-                    await _aiEngine.LearnFromExecutionAsync(requestType, appliedOptimizations.ToArray(), failedMetrics, cancellationToken);
+                    try
+                    {
+                        await _aiEngine.LearnFromExecutionAsync(requestType, appliedOptimizations.ToArray(), failedMetrics, CancellationToken.None);
+                    }
+                    catch (Exception learningEx)
+                    {
+                        _logger.LogWarning(learningEx, "Failed to learn from execution for {RequestType}", requestType.Name);
+                    }
                 }
 
                 _logger.LogWarning(ex, "AI-optimized execution of {RequestType} failed after {Duration}ms with {OptimizationCount} optimizations",

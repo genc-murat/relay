@@ -51,7 +51,14 @@ namespace Relay.CLI.Migration
 
                 // Escape square brackets to prevent Spectre.Console from interpreting them as markup
                 var escapedLine = line.Text?.Replace("[", "[[")?.Replace("]", "]]") ?? string.Empty;
-                
+
+                // Truncate very long lines to prevent rendering issues
+                const int maxLineLength = 500;
+                if (escapedLine.Length > maxLineLength)
+                {
+                    escapedLine = escapedLine.Substring(0, maxLineLength) + "... (truncated)";
+                }
+
                 AnsiConsole.MarkupLine($"[{color}]{prefix}{escapedLine}[/]");
                 
                 displayedLines++;

@@ -1166,18 +1166,19 @@ namespace Relay.Core.AI
         private bool ValidatePredictionAccuracy(OptimizationStrategy[] appliedStrategies, TimeSpan actualImprovement, RequestExecutionMetrics actualMetrics)
         {
             // Define accuracy thresholds for different strategies
-            var accuracyThreshold = appliedStrategies.Any(s => s == OptimizationStrategy.EnableCaching) ? 50 : // 50ms for caching
-                                   appliedStrategies.Any(s => s == OptimizationStrategy.BatchProcessing) ? 20 : // 20ms for batching
-                                   appliedStrategies.Any(s => s == OptimizationStrategy.MemoryPooling) ? 10 : // 10ms for memory pooling
-                                   5; // 5ms for other optimizations
+            var accuracyThreshold = appliedStrategies.Any(s => s == OptimizationStrategy.EnableCaching) ? 50 :
+                                     appliedStrategies.Any(s => s == OptimizationStrategy.BatchProcessing) ? 20 :
+                                     appliedStrategies.Any(s => s == OptimizationStrategy.MemoryPooling) ? 10 :
+                                     appliedStrategies.Any(s => s == OptimizationStrategy.DatabaseOptimization) ? 15 :
+                                     appliedStrategies.Any(s => s == OptimizationStrategy.ParallelProcessing) ? 25 :
+                                     appliedStrategies.Any(s => s == OptimizationStrategy.CircuitBreaker) ? 0 :
+                                     appliedStrategies.Any(s => s == OptimizationStrategy.SIMDAcceleration) ? 40 :
+                                     5; // Default for other optimizations
 
             // Check if we achieved meaningful improvement
             var achievedImprovement = actualImprovement.TotalMilliseconds > accuracyThreshold;
 
-            // Check if metrics improved (success rate, lower error rate)
-            var metricsImproved = actualMetrics.SuccessRate > 0.95 && actualMetrics.MemoryAllocated < 1024 * 1024; // 1MB threshold
-
-            return achievedImprovement || metricsImproved;
+            return achievedImprovement;
         }
 
         private double CalculatePrecisionScore()
@@ -2540,6 +2541,10 @@ namespace Relay.Core.AI
 
                 var baseGamma = 0.95; // Base discount factor
 
+                // System stability adjustment - low stability = lower gamma (focus on immediate rewards)
+                var systemStability = metrics.GetValueOrDefault("SystemStability", 0.8);
+                var stabilityAdjustment = (systemStability - 0.5) * 3.0; // -1.5 to +0.9 range (increased penalty)
+
                 // System volatility adjustment
                 var errorRate = metrics.GetValueOrDefault("ErrorRate", 0.0);
                 var volatilityPenalty = errorRate * 0.1; // High error rate = reduce future planning
@@ -2552,10 +2557,10 @@ namespace Relay.Core.AI
                 var throughput = metrics.GetValueOrDefault("ThroughputPerSecond", 10.0);
                 var throughputBonus = throughput > 50 ? 0.02 : 0.0; // High throughput = stable system
 
-                var gamma = baseGamma - volatilityPenalty + consistencyBonus + throughputBonus;
+                var gamma = baseGamma + stabilityAdjustment - volatilityPenalty + consistencyBonus + throughputBonus;
 
-                // Clamp to range: 0.85 to 0.99
-                return Math.Max(0.85, Math.Min(0.99, gamma));
+                // Clamp to range: 0.7 to 0.99 (expanded for low stability)
+                return Math.Max(0.7, Math.Min(0.99, gamma));
             }
             catch
             {
@@ -3532,7 +3537,7 @@ namespace Relay.Core.AI
 
         private double CalculateAutocorrelation(List<float> values, int lag)
         {
-            if (values.Count < lag + 1)
+            if (values == null || values.Count < lag + 1)
                 return 0.0;
 
             try
@@ -3639,6 +3644,9 @@ namespace Relay.Core.AI
             var memoryUsage = metrics.GetValueOrDefault("MemoryUtilization", 0.5);
 
             // Adjust batch size based on memory availability
+            // Lower memory usage -> higher batch size, Higher memory usage -> lower batch size
+            // Formula: 32 * (1 + (1.0 - memoryUsage))
+            // Results: 0.0 -> 64, 0.5 -> 48, 0.9 -> 35, 0.95 -> 33, 1.0 -> 32
             var baseBatchSize = 32;
             var memoryFactor = 1.0 - memoryUsage;
             var optimalBatchSize = (int)(baseBatchSize * (1 + memoryFactor));

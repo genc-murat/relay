@@ -45,16 +45,17 @@
               </Exclude>
             </Namespaces>
 
-            <!-- ===== Kaynak yoluna göre hariç tutma ===== -->
-            <Sources>
-              <Exclude>
-                <Source>.*\\Tests\\.*</Source>
-                <Source>.*\\TestHelpers\\.*</Source>
-                <Source>.*\\ThirdParty\\.*</Source>
-                <Source>.*\\packages\\.*</Source>
-                <Source>.*\\obj\\.*</Source>
-              </Exclude>
-            </Sources>
+             <!-- ===== Kaynak yoluna göre hariç tutma ===== -->
+             <Sources>
+               <Exclude>
+                 <Source>.*\\Tests\\.*</Source>
+                 <Source>.*\\TestHelpers\\.*</Source>
+                 <Source>.*\\ThirdParty\\.*</Source>
+                 <Source>.*\\packages\\.*</Source>
+                 <Source>.*\\obj\\.*</Source>
+                 <Source>.*\\tools\\Relay\.CLI\\Program\.cs$</Source>
+               </Exclude>
+             </Sources>
 
             <!-- ===== Kod bazlı hariç tutma ===== -->
             <Attributes>

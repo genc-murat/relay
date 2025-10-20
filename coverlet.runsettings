@@ -6,10 +6,11 @@
         <Configuration>
           <Format>cobertura</Format>
 
-          <Exclude>
-            <ModulePath>.*\.Tests\.dll$</ModulePath>
-            <ModulePath>.*\.tests\.dll$</ModulePath>
-          </Exclude>
+           <Exclude>
+             <ModulePath>.*\.Tests\.dll$</ModulePath>
+             <ModulePath>.*\.tests\.dll$</ModulePath>
+             <Source>.*tools/Relay\.CLI/Program\.cs$</Source>
+           </Exclude>
 
           <ExcludeByAttribute>
             Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute

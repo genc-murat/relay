@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
+[Collection("Sequential")]
 public class InitCommandTests : IDisposable
 {
     private readonly string _testPath;

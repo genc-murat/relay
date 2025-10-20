@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Relay.CLI.Refactoring;
+using System;
 using Xunit;
 
 namespace Relay.CLI.Tests.Refactoring;
@@ -627,5 +628,87 @@ public class Test
 
         // Assert
         Assert.Contains("??=", newCode);
+    }
+
+    [Fact]
+    public async Task DisposableRule_ShouldApplyRefactoring()
+    {
+        // Arrange
+        var code = @"
+using System.IO;
+
+public class Test
+{
+    public void ReadFile(string path)
+    {
+        var stream = new FileStream(path, FileMode.Open);
+        // Missing using or dispose
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new DisposablePatternRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First();
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.NotEqual(root.ToFullString(), newCode); // Code should have changed
+        Assert.Contains("using", newCode);
+        Assert.Contains("var stream", newCode);
+    }
+
+    [Fact]
+    public async Task DisposableRule_ShouldNotApplyRefactoring_WhenContextIsNotLocalDeclaration()
+    {
+        // Arrange
+        var code = @"
+using System.IO;
+
+public class Test
+{
+    public void ReadFile(string path)
+    {
+        var stream = new FileStream(path, FileMode.Open);
+        // Missing using or dispose
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new DisposablePatternRule();
+        var options = new RefactoringOptions();
+
+        // Create a suggestion with non-LocalDeclarationStatementSyntax context
+        var suggestion = new RefactoringSuggestion
+        {
+            RuleName = "DisposablePattern",
+            Description = "Test suggestion",
+            Category = RefactoringCategory.BestPractices,
+            Severity = RefactoringSeverity.Warning,
+            FilePath = "test.cs",
+            LineNumber = 1,
+            StartPosition = 0,
+            EndPosition = 1,
+            OriginalCode = "test",
+            SuggestedCode = "test",
+            Rationale = "test",
+            Context = null // Not a LocalDeclarationStatementSyntax
+        };
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Equal(root.ToFullString(), newCode); // Should be unchanged
     }
 }

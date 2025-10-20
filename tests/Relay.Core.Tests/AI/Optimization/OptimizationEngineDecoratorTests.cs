@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization;
-using Relay.Core.AI.Optimization.Strategies;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization
@@ -44,8 +40,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result2 = await decorator.OptimizeAsync(context);
 
             // Assert
-            result1.Success.Should().BeTrue();
-            result2.Success.Should().BeTrue();
+            Assert.True(result1.Success);
+            Assert.True(result2.Success);
             innerEngine.Verify(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default), Times.Once);
         }
 
@@ -76,7 +72,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await decorator.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
+            Assert.True(result.Success);
             innerEngine.Verify(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default), Times.Once);
         }
 
@@ -114,7 +110,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await decorator.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
+            Assert.True(result.Success);
             innerEngine.Verify(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default), Times.Exactly(2));
         }
 
@@ -145,8 +141,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await decorator.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeFalse();
-            result.ErrorMessage.Should().Contain("Failed after 3 attempts");
+            Assert.False(result.Success);
+            Assert.Contains("Failed after 3 attempts", result.ErrorMessage);
             innerEngine.Verify(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default), Times.Exactly(3));
         }
 
@@ -248,8 +244,8 @@ namespace Relay.Core.Tests.AI.Optimization
                 innerEngine.Object, logger, strategyFactory, observers);
 
             // Assert
-            cachingDecorator.Should().BeAssignableTo<OptimizationEngineDecorator>();
-            monitoringDecorator.Should().BeAssignableTo<OptimizationEngineDecorator>();
+            Assert.IsAssignableFrom<OptimizationEngineDecorator>(cachingDecorator);
+            Assert.IsAssignableFrom<OptimizationEngineDecorator>(monitoringDecorator);
         }
 
         [Fact]
@@ -266,7 +262,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 innerEngine.Object, logger, strategyFactory, observers, TimeSpan.FromMinutes(5));
 
             // Assert
-            decorator.Should().BeAssignableTo<OptimizationEngineTemplate>();
+            Assert.IsAssignableFrom<OptimizationEngineTemplate>(decorator);
         }
     }
 }

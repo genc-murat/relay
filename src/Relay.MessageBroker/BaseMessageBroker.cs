@@ -1,17 +1,12 @@
-using System.Collections.Concurrent;
-using System.Linq;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Relay.MessageBroker.Compression;
 using Relay.Core;
 using Relay.Core.ContractValidation;
-using Relay.Core.Validation;
-using Relay.Core.Validation.Interfaces;
-
 using Relay.Core.Telemetry;
+using Relay.MessageBroker.Compression;
+using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
+using System.Text.Json;
 
 namespace Relay.MessageBroker;
 
@@ -399,14 +394,4 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         _disposed = true;
         GC.SuppressFinalize(this);
     }
-}
-
-/// <summary>
-/// Information about a message subscription.
-/// </summary>
-public sealed class SubscriptionInfo
-{
-    public Type MessageType { get; set; } = null!;
-    public Func<object, MessageContext, CancellationToken, ValueTask> Handler { get; set; } = null!;
-    public SubscriptionOptions Options { get; set; } = null!;
 }

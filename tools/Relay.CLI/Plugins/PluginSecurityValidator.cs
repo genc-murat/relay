@@ -1,6 +1,5 @@
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Reflection;
+using System.Security.Cryptography;
 
 namespace Relay.CLI.Plugins;
 
@@ -319,48 +318,4 @@ public class PluginSecurityValidator
     {
         _pluginPermissions[pluginName] = permissions;
     }
-}
-
-/// <summary>
-/// Result of security validation
-/// </summary>
-public class SecurityValidationResult
-{
-    public bool IsValid { get; set; } = true;
-    public List<string> Errors { get; set; } = new List<string>();
-}
-
-/// <summary>
-/// Plugin permissions configuration
-/// </summary>
-public class PluginPermissions
-{
-    public FileSystemPermissions? FileSystem { get; set; }
-    public NetworkPermissions? Network { get; set; }
-    public long MaxMemoryBytes { get; set; } = 100 * 1024 * 1024; // Default 100MB
-    public long MaxExecutionTimeMs { get; set; } = 300000; // Default 5 minutes (300,000 ms)
-    // Add other permission types as needed
-}
-
-/// <summary>
-/// File system permissions configuration
-/// </summary>
-public class FileSystemPermissions
-{
-    public bool Read { get; set; } = false;
-    public bool Write { get; set; } = false;
-    public bool Delete { get; set; } = false;
-    public string[]? AllowedPaths { get; set; } = Array.Empty<string>();
-    public string[]? DeniedPaths { get; set; } = Array.Empty<string>();
-}
-
-/// <summary>
-/// Network permissions configuration
-/// </summary>
-public class NetworkPermissions
-{
-    public bool Http { get; set; } = false;
-    public bool Https { get; set; } = false;
-    public string[]? AllowedHosts { get; set; } = Array.Empty<string>();
-    public string[]? DeniedHosts { get; set; } = Array.Empty<string>();
 }

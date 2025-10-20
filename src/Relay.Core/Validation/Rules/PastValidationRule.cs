@@ -4,43 +4,23 @@ using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Validation.Interfaces;
 
-namespace Relay.Core.Validation.Rules
+namespace Relay.Core.Validation.Rules;
+
+/// <summary>
+/// Validation rule that checks if a date/time is in the past.
+/// </summary>
+public class PastValidationRule : IValidationRule<DateTime>
 {
-    /// <summary>
-    /// Validation rule that checks if a date/time is in the past.
-    /// </summary>
-    public class PastValidationRule : IValidationRule<DateTime>
+    /// <inheritdoc />
+    public ValueTask<IEnumerable<string>> ValidateAsync(DateTime request, CancellationToken cancellationToken = default)
     {
-        /// <inheritdoc />
-        public ValueTask<IEnumerable<string>> ValidateAsync(DateTime request, CancellationToken cancellationToken = default)
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (request >= DateTime.Now)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (request >= DateTime.Now)
-            {
-                return new ValueTask<IEnumerable<string>>(new[] { "Date must be in the past." });
-            }
-
-            return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
+            return new ValueTask<IEnumerable<string>>(new[] { "Date must be in the past." });
         }
-    }
 
-    /// <summary>
-    /// Validation rule that checks if a date/time offset is in the past.
-    /// </summary>
-    public class PastValidationRuleDateTimeOffset : IValidationRule<DateTimeOffset>
-    {
-        /// <inheritdoc />
-        public ValueTask<IEnumerable<string>> ValidateAsync(DateTimeOffset request, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (request >= DateTimeOffset.Now)
-            {
-                return new ValueTask<IEnumerable<string>>(new[] { "Date must be in the past." });
-            }
-
-            return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
-        }
+        return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
     }
 }

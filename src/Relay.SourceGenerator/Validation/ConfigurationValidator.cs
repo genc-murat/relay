@@ -1,355 +1,306 @@
+using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Relay.SourceGenerator
+namespace Relay.SourceGenerator;
+
+/// <summary>
+/// Validates configuration at compile time and reports configuration conflicts and issues.
+/// </summary>
+public class ConfigurationValidator
 {
-    /// <summary>
-    /// Validates configuration at compile time and reports configuration conflicts and issues.
-    /// </summary>
-    public class ConfigurationValidator
+    private readonly IDiagnosticReporter _diagnosticReporter;
+
+    public ConfigurationValidator(IDiagnosticReporter diagnosticReporter)
     {
-        private readonly IDiagnosticReporter _diagnosticReporter;
+        _diagnosticReporter = diagnosticReporter ?? throw new ArgumentNullException(nameof(diagnosticReporter));
+    }
 
-        public ConfigurationValidator(IDiagnosticReporter diagnosticReporter)
+    /// <summary>
+    /// Validates handler configurations for conflicts and completeness.
+    /// </summary>
+    public void ValidateHandlerConfigurations(IEnumerable<HandlerRegistration> handlers)
+    {
+        var handlerGroups = handlers.GroupBy(h => new { h.RequestType, h.ResponseType });
+
+        foreach (var group in handlerGroups)
         {
-            _diagnosticReporter = diagnosticReporter ?? throw new ArgumentNullException(nameof(diagnosticReporter));
-        }
+            var handlersInGroup = group.ToList();
 
-        /// <summary>
-        /// Validates handler configurations for conflicts and completeness.
-        /// </summary>
-        public void ValidateHandlerConfigurations(IEnumerable<HandlerRegistration> handlers)
-        {
-            var handlerGroups = handlers.GroupBy(h => new { h.RequestType, h.ResponseType });
-
-            foreach (var group in handlerGroups)
+            // Check for duplicate unnamed handlers
+            var unnamedHandlers = handlersInGroup.Where(h => string.IsNullOrWhiteSpace(h.Name)).ToList();
+            if (unnamedHandlers.Count > 1)
             {
-                var handlersInGroup = group.ToList();
-
-                // Check for duplicate unnamed handlers
-                var unnamedHandlers = handlersInGroup.Where(h => string.IsNullOrWhiteSpace(h.Name)).ToList();
-                if (unnamedHandlers.Count > 1)
+                foreach (var handler in unnamedHandlers)
                 {
-                    foreach (var handler in unnamedHandlers)
+                    _diagnosticReporter.ReportDuplicateHandler(
+                        handler.Location,
+                        handler.RequestType.Name,
+                        handler.ResponseType?.Name);
+                }
+            }
+
+            // Check for duplicate named handlers
+            var namedHandlerGroups = handlersInGroup
+                .Where(h => !string.IsNullOrWhiteSpace(h.Name))
+                .GroupBy(h => h.Name);
+
+            foreach (var namedGroup in namedHandlerGroups)
+            {
+                var namedHandlers = namedGroup.ToList();
+                if (namedHandlers.Count > 1)
+                {
+                    foreach (var handler in namedHandlers)
                     {
-                        _diagnosticReporter.ReportDuplicateHandler(
+                        _diagnosticReporter.ReportDuplicateNamedHandler(
                             handler.Location,
                             handler.RequestType.Name,
-                            handler.ResponseType?.Name);
+                            handler.Name!);
                     }
                 }
+            }
 
-                // Check for duplicate named handlers
-                var namedHandlerGroups = handlersInGroup
-                    .Where(h => !string.IsNullOrWhiteSpace(h.Name))
-                    .GroupBy(h => h.Name);
+            // Validate handler method signatures
+            foreach (var handler in handlersInGroup)
+            {
+                ValidateHandlerSignature(handler);
+            }
+        }
+    }
 
-                foreach (var namedGroup in namedHandlerGroups)
+    /// <summary>
+    /// Validates notification handler configurations.
+    /// </summary>
+    public void ValidateNotificationConfigurations(IEnumerable<NotificationHandlerRegistration> notificationHandlers)
+    {
+        foreach (var handler in notificationHandlers)
+        {
+            ValidateNotificationHandlerSignature(handler);
+        }
+    }
+
+    /// <summary>
+    /// Validates pipeline configurations for ordering and scope conflicts.
+    /// </summary>
+    public void ValidatePipelineConfigurations(IEnumerable<PipelineRegistration> pipelines)
+    {
+        // Group pipelines by scope to check for ordering conflicts
+        var pipelineGroups = pipelines.GroupBy(p => p.Scope);
+
+        foreach (var group in pipelineGroups)
+        {
+            var pipelinesInScope = group.OrderBy(p => p.Order).ToList();
+
+            // Check for duplicate orders within the same scope
+            var orderGroups = pipelinesInScope.GroupBy(p => p.Order);
+            foreach (var orderGroup in orderGroups)
+            {
+                var pipelinesWithSameOrder = orderGroup.ToList();
+                if (pipelinesWithSameOrder.Count > 1)
                 {
-                    var namedHandlers = namedGroup.ToList();
-                    if (namedHandlers.Count > 1)
+                    foreach (var pipeline in pipelinesWithSameOrder)
                     {
-                        foreach (var handler in namedHandlers)
-                        {
-                            _diagnosticReporter.ReportDuplicateNamedHandler(
-                                handler.Location,
-                                handler.RequestType.Name,
-                                handler.Name!);
-                        }
+                        _diagnosticReporter.ReportDuplicatePipelineOrder(
+                            pipeline.Location,
+                            pipeline.Order,
+                            group.Key.ToString());
                     }
                 }
+            }
 
-                // Validate handler method signatures
-                foreach (var handler in handlersInGroup)
-                {
-                    ValidateHandlerSignature(handler);
-                }
+            // Validate pipeline method signatures
+            foreach (var pipeline in pipelinesInScope)
+            {
+                ValidatePipelineSignature(pipeline);
             }
         }
+    }
 
-        /// <summary>
-        /// Validates notification handler configurations.
-        /// </summary>
-        public void ValidateNotificationConfigurations(IEnumerable<NotificationHandlerRegistration> notificationHandlers)
+    /// <summary>
+    /// Validates configuration completeness - ensures all required configurations are present.
+    /// </summary>
+    public void ValidateConfigurationCompleteness(
+        IEnumerable<HandlerRegistration> handlers,
+        IEnumerable<NotificationHandlerRegistration> notificationHandlers,
+        IEnumerable<PipelineRegistration> pipelines)
+    {
+        // Check if there are any handlers at all
+        if (!handlers.Any() && !notificationHandlers.Any())
         {
-            foreach (var handler in notificationHandlers)
-            {
-                ValidateNotificationHandlerSignature(handler);
-            }
+            _diagnosticReporter.ReportNoHandlersFound();
         }
 
-        /// <summary>
-        /// Validates pipeline configurations for ordering and scope conflicts.
-        /// </summary>
-        public void ValidatePipelineConfigurations(IEnumerable<PipelineRegistration> pipelines)
+        // Validate that request types have corresponding handlers
+        var requestTypes = handlers.Select(h => h.RequestType).Distinct(SymbolEqualityComparer.Default).ToList();
+        var handlerRequestTypes = handlers.Select(h => h.RequestType).Distinct(SymbolEqualityComparer.Default).ToList();
+
+        // This validation would be more meaningful with actual usage analysis
+        // For now, we ensure basic structural integrity
+    }
+
+    /// <summary>
+    /// Validates attribute parameter combinations for conflicts.
+    /// </summary>
+    public void ValidateAttributeParameterConflicts(IEnumerable<HandlerRegistration> handlers)
+    {
+        foreach (var handler in handlers)
         {
-            // Group pipelines by scope to check for ordering conflicts
-            var pipelineGroups = pipelines.GroupBy(p => p.Scope);
-
-            foreach (var group in pipelineGroups)
+            // Validate Handle attribute parameters
+            if (handler.Attribute != null)
             {
-                var pipelinesInScope = group.OrderBy(p => p.Order).ToList();
-
-                // Check for duplicate orders within the same scope
-                var orderGroups = pipelinesInScope.GroupBy(p => p.Order);
-                foreach (var orderGroup in orderGroups)
-                {
-                    var pipelinesWithSameOrder = orderGroup.ToList();
-                    if (pipelinesWithSameOrder.Count > 1)
-                    {
-                        foreach (var pipeline in pipelinesWithSameOrder)
-                        {
-                            _diagnosticReporter.ReportDuplicatePipelineOrder(
-                                pipeline.Location,
-                                pipeline.Order,
-                                group.Key.ToString());
-                        }
-                    }
-                }
-
-                // Validate pipeline method signatures
-                foreach (var pipeline in pipelinesInScope)
-                {
-                    ValidatePipelineSignature(pipeline);
-                }
+                ValidateHandleAttributeParameters(handler);
             }
         }
+    }
 
-        /// <summary>
-        /// Validates configuration completeness - ensures all required configurations are present.
-        /// </summary>
-        public void ValidateConfigurationCompleteness(
-            IEnumerable<HandlerRegistration> handlers,
-            IEnumerable<NotificationHandlerRegistration> notificationHandlers,
-            IEnumerable<PipelineRegistration> pipelines)
+    private void ValidateHandlerSignature(HandlerRegistration handler)
+    {
+        var method = handler.Method;
+
+        // Check return type
+        if (handler.Kind == HandlerKind.Request)
         {
-            // Check if there are any handlers at all
-            if (!handlers.Any() && !notificationHandlers.Any())
+            if (!IsValidHandlerReturnType(method.ReturnType, handler.ResponseType))
             {
-                _diagnosticReporter.ReportNoHandlersFound();
-            }
-
-            // Validate that request types have corresponding handlers
-            var requestTypes = handlers.Select(h => h.RequestType).Distinct(SymbolEqualityComparer.Default).ToList();
-            var handlerRequestTypes = handlers.Select(h => h.RequestType).Distinct(SymbolEqualityComparer.Default).ToList();
-
-            // This validation would be more meaningful with actual usage analysis
-            // For now, we ensure basic structural integrity
-        }
-
-        /// <summary>
-        /// Validates attribute parameter combinations for conflicts.
-        /// </summary>
-        public void ValidateAttributeParameterConflicts(IEnumerable<HandlerRegistration> handlers)
-        {
-            foreach (var handler in handlers)
-            {
-                // Validate Handle attribute parameters
-                if (handler.Attribute != null)
-                {
-                    ValidateHandleAttributeParameters(handler);
-                }
-            }
-        }
-
-        private void ValidateHandlerSignature(HandlerRegistration handler)
-        {
-            var method = handler.Method;
-
-            // Check return type
-            if (handler.Kind == HandlerKind.Request)
-            {
-                if (!IsValidHandlerReturnType(method.ReturnType, handler.ResponseType))
-                {
-                    _diagnosticReporter.ReportInvalidHandlerReturnType(
-                        handler.Location,
-                        method.ReturnType.ToString(),
-                        handler.ResponseType?.Name ?? "void");
-                }
-            }
-            else if (handler.Kind == HandlerKind.Stream)
-            {
-                if (!IsValidStreamHandlerReturnType(method.ReturnType, handler.ResponseType))
-                {
-                    _diagnosticReporter.ReportInvalidStreamHandlerReturnType(
-                        handler.Location,
-                        method.ReturnType.ToString(),
-                        handler.ResponseType?.Name ?? "unknown");
-                }
-            }
-
-            // Check parameters
-            var parameters = method.Parameters;
-            if (parameters.Length == 0)
-            {
-                _diagnosticReporter.ReportHandlerMissingRequestParameter(
+                _diagnosticReporter.ReportInvalidHandlerReturnType(
                     handler.Location,
-                    method.Name);
+                    method.ReturnType.ToString(),
+                    handler.ResponseType?.Name ?? "void");
             }
-            else
+        }
+        else if (handler.Kind == HandlerKind.Stream)
+        {
+            if (!IsValidStreamHandlerReturnType(method.ReturnType, handler.ResponseType))
             {
-                var firstParam = parameters[0];
-                if (!IsAssignableFrom(handler.RequestType, firstParam.Type))
-                {
-                    _diagnosticReporter.ReportHandlerInvalidRequestParameter(
-                        handler.Location,
-                        firstParam.Type.Name,
-                        handler.RequestType.Name);
-                }
-            }
-
-            // Check for CancellationToken parameter
-            var hasCancellationToken = parameters.Any(p =>
-                p.Type.Name == "CancellationToken" &&
-                p.Type.ContainingNamespace?.ToDisplayString() == "System.Threading");
-
-            if (!hasCancellationToken)
-            {
-                _diagnosticReporter.ReportHandlerMissingCancellationToken(
+                _diagnosticReporter.ReportInvalidStreamHandlerReturnType(
                     handler.Location,
-                    method.Name);
+                    method.ReturnType.ToString(),
+                    handler.ResponseType?.Name ?? "unknown");
             }
         }
 
-        private void ValidateNotificationHandlerSignature(NotificationHandlerRegistration handler)
+        // Check parameters
+        var parameters = method.Parameters;
+        if (parameters.Length == 0)
         {
-            var method = handler.Method;
-
-            // Check return type (should be Task or ValueTask)
-            if (!IsValidNotificationHandlerReturnType(method.ReturnType))
+            _diagnosticReporter.ReportHandlerMissingRequestParameter(
+                handler.Location,
+                method.Name);
+        }
+        else
+        {
+            var firstParam = parameters[0];
+            if (!IsAssignableFrom(handler.RequestType, firstParam.Type))
             {
-                _diagnosticReporter.ReportInvalidNotificationHandlerReturnType(
+                _diagnosticReporter.ReportHandlerInvalidRequestParameter(
                     handler.Location,
-                    method.ReturnType.ToString());
-            }
-
-            // Check parameters
-            var parameters = method.Parameters;
-            if (parameters.Length == 0)
-            {
-                _diagnosticReporter.ReportNotificationHandlerMissingParameter(
-                    handler.Location,
-                    method.Name);
+                    firstParam.Type.Name,
+                    handler.RequestType.Name);
             }
         }
 
-        private void ValidatePipelineSignature(PipelineRegistration pipeline)
+        // Check for CancellationToken parameter
+        var hasCancellationToken = parameters.Any(p =>
+            p.Type.Name == "CancellationToken" &&
+            p.Type.ContainingNamespace?.ToDisplayString() == "System.Threading");
+
+        if (!hasCancellationToken)
         {
-            var method = pipeline.Method;
+            _diagnosticReporter.ReportHandlerMissingCancellationToken(
+                handler.Location,
+                method.Name);
+        }
+    }
 
-            if (method == null) return; // System modules don't have methods
+    private void ValidateNotificationHandlerSignature(NotificationHandlerRegistration handler)
+    {
+        var method = handler.Method;
 
-            // Validate pipeline method signature based on scope
-            // This would require more detailed analysis of the method signature
-            // For now, we do basic validation
+        // Check return type (should be Task or ValueTask)
+        if (!IsValidNotificationHandlerReturnType(method.ReturnType))
+        {
+            _diagnosticReporter.ReportInvalidNotificationHandlerReturnType(
+                handler.Location,
+                method.ReturnType.ToString());
         }
 
-        private void ValidateHandleAttributeParameters(HandlerRegistration handler)
+        // Check parameters
+        var parameters = method.Parameters;
+        if (parameters.Length == 0)
         {
-            // Validate priority values
-            if (handler.Priority < int.MinValue || handler.Priority > int.MaxValue)
-            {
-                _diagnosticReporter.ReportInvalidPriorityValue(
-                    handler.Location,
-                    handler.Priority);
-            }
+            _diagnosticReporter.ReportNotificationHandlerMissingParameter(
+                handler.Location,
+                method.Name);
+        }
+    }
 
-            // Validate name conflicts would be handled in ValidateHandlerConfigurations
+    private void ValidatePipelineSignature(PipelineRegistration pipeline)
+    {
+        var method = pipeline.Method;
+
+        if (method == null) return; // System modules don't have methods
+
+        // Validate pipeline method signature based on scope
+        // This would require more detailed analysis of the method signature
+        // For now, we do basic validation
+    }
+
+    private void ValidateHandleAttributeParameters(HandlerRegistration handler)
+    {
+        // Validate priority values
+        if (handler.Priority < int.MinValue || handler.Priority > int.MaxValue)
+        {
+            _diagnosticReporter.ReportInvalidPriorityValue(
+                handler.Location,
+                handler.Priority);
         }
 
-        private static bool IsValidHandlerReturnType(ITypeSymbol returnType, ITypeSymbol? expectedResponseType)
+        // Validate name conflicts would be handled in ValidateHandlerConfigurations
+    }
+
+    private static bool IsValidHandlerReturnType(ITypeSymbol returnType, ITypeSymbol? expectedResponseType)
+    {
+        // Check for Task<T>, ValueTask<T>, T, Task, ValueTask
+        var returnTypeName = returnType.Name;
+
+        if (returnTypeName == "Task" || returnTypeName == "ValueTask")
         {
-            // Check for Task<T>, ValueTask<T>, T, Task, ValueTask
-            var returnTypeName = returnType.Name;
-
-            if (returnTypeName == "Task" || returnTypeName == "ValueTask")
-            {
-                if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
-                {
-                    var typeArg = namedType.TypeArguments.FirstOrDefault();
-                    return expectedResponseType != null && SymbolEqualityComparer.Default.Equals(typeArg, expectedResponseType);
-                }
-                return expectedResponseType == null; // Task or ValueTask without generic parameter
-            }
-
-            // Direct return type
-            return expectedResponseType != null && SymbolEqualityComparer.Default.Equals(returnType, expectedResponseType);
-        }
-
-        private static bool IsValidStreamHandlerReturnType(ITypeSymbol returnType, ITypeSymbol? expectedResponseType)
-        {
-            // Check for IAsyncEnumerable<T>
-            if (returnType is INamedTypeSymbol namedType &&
-                namedType.Name == "IAsyncEnumerable" &&
-                namedType.ContainingNamespace?.ToDisplayString() == "System.Collections.Generic")
+            if (returnType is INamedTypeSymbol namedType && namedType.IsGenericType)
             {
                 var typeArg = namedType.TypeArguments.FirstOrDefault();
                 return expectedResponseType != null && SymbolEqualityComparer.Default.Equals(typeArg, expectedResponseType);
             }
-
-            return false;
+            return expectedResponseType == null; // Task or ValueTask without generic parameter
         }
 
-        private static bool IsValidNotificationHandlerReturnType(ITypeSymbol returnType)
+        // Direct return type
+        return expectedResponseType != null && SymbolEqualityComparer.Default.Equals(returnType, expectedResponseType);
+    }
+
+    private static bool IsValidStreamHandlerReturnType(ITypeSymbol returnType, ITypeSymbol? expectedResponseType)
+    {
+        // Check for IAsyncEnumerable<T>
+        if (returnType is INamedTypeSymbol namedType &&
+            namedType.Name == "IAsyncEnumerable" &&
+            namedType.ContainingNamespace?.ToDisplayString() == "System.Collections.Generic")
         {
-            var returnTypeName = returnType.Name;
-            return returnTypeName == "Task" || returnTypeName == "ValueTask";
+            var typeArg = namedType.TypeArguments.FirstOrDefault();
+            return expectedResponseType != null && SymbolEqualityComparer.Default.Equals(typeArg, expectedResponseType);
         }
 
-        private static bool IsAssignableFrom(ITypeSymbol targetType, ITypeSymbol sourceType)
-        {
-            return SymbolEqualityComparer.Default.Equals(targetType, sourceType) ||
-                   sourceType.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, targetType));
-        }
+        return false;
     }
 
-    /// <summary>
-    /// Represents a notification handler registration for validation.
-    /// </summary>
-    public class NotificationHandlerRegistration
+    private static bool IsValidNotificationHandlerReturnType(ITypeSymbol returnType)
     {
-        public ITypeSymbol NotificationType { get; set; } = null!;
-        public IMethodSymbol Method { get; set; } = null!;
-        public int Priority { get; set; }
-        public Location Location { get; set; } = null!;
-        public AttributeData? Attribute { get; set; }
+        var returnTypeName = returnType.Name;
+        return returnTypeName == "Task" || returnTypeName == "ValueTask";
     }
 
-    /// <summary>
-    /// Represents a pipeline registration for validation.
-    /// </summary>
-    public class PipelineRegistration
+    private static bool IsAssignableFrom(ITypeSymbol targetType, ITypeSymbol sourceType)
     {
-        public ITypeSymbol? PipelineType { get; set; }
-        public IMethodSymbol? Method { get; set; }
-        public int Order { get; set; }
-        public PipelineScope Scope { get; set; }
-        public Location Location { get; set; } = null!;
-        public AttributeData? Attribute { get; set; }
-    }
-
-    /// <summary>
-    /// Pipeline scope enumeration for validation.
-    /// </summary>
-    public enum PipelineScope
-    {
-        All,
-        Requests,
-        Streams,
-        Notifications
-    }
-
-    /// <summary>
-    /// Handler kind enumeration for validation.
-    /// </summary>
-    public enum HandlerKind
-    {
-        Request,
-        Stream,
-        Notification
+        return SymbolEqualityComparer.Default.Equals(targetType, sourceType) ||
+               sourceType.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, targetType));
     }
 }

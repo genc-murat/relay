@@ -3,73 +3,72 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI;
+
+/// <summary>
+/// Default implementation of AI metrics exporter using modern design patterns.
+/// Uses Strategy, Observer, Builder, Command, and Composite patterns for maintainability.
+/// </summary>
+internal class DefaultAIMetricsExporter : IAIMetricsExporter, IDisposable
 {
-    /// <summary>
-    /// Default implementation of AI metrics exporter using modern design patterns.
-    /// Uses Strategy, Observer, Builder, Command, and Composite patterns for maintainability.
-    /// </summary>
-    internal class DefaultAIMetricsExporter : IAIMetricsExporter, IDisposable
+    private readonly IAIMetricsExporter _innerExporter;
+    private readonly ILogger<DefaultAIMetricsExporter> _logger;
+    private bool _disposed = false;
+
+    public DefaultAIMetricsExporter(ILogger<DefaultAIMetricsExporter> logger)
     {
-        private readonly IAIMetricsExporter _innerExporter;
-        private readonly ILogger<DefaultAIMetricsExporter> _logger;
-        private bool _disposed = false;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        public DefaultAIMetricsExporter(ILogger<DefaultAIMetricsExporter> logger)
+        // Use builder pattern to create the composite exporter
+        using var loggerFactory = LoggerFactory.Create(builder =>
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            builder.SetMinimumLevel(LogLevel.Debug);
+            builder.AddProvider(new LoggerProvider(logger));
+        });
 
-            // Use builder pattern to create the composite exporter
-            using var loggerFactory = LoggerFactory.Create(builder =>
-            {
-                builder.SetMinimumLevel(LogLevel.Debug);
-                builder.AddProvider(new LoggerProvider(logger));
-            });
+        var builder = new MetricsExporterBuilder(loggerFactory)
+            .WithOpenTelemetry()
+            .WithLogging()
+            .WithAlerting();
 
-            var builder = new MetricsExporterBuilder(loggerFactory)
-                .WithOpenTelemetry()
-                .WithLogging()
-                .WithAlerting();
+        _innerExporter = builder.Build();
 
-            _innerExporter = builder.Build();
+        _logger.LogInformation("AI Metrics Exporter initialized with modern design patterns");
+    }
 
-            _logger.LogInformation("AI Metrics Exporter initialized with modern design patterns");
+    public async ValueTask ExportMetricsAsync(AIModelStatistics statistics, CancellationToken cancellationToken = default)
+    {
+        await _innerExporter.ExportMetricsAsync(statistics, cancellationToken);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _disposed = true;
+
+        if (_innerExporter is IDisposable disposable)
+        {
+            disposable.Dispose();
         }
 
-        public async ValueTask ExportMetricsAsync(AIModelStatistics statistics, CancellationToken cancellationToken = default)
+        _logger.LogInformation("Default AI Metrics Exporter disposed");
+    }
+
+    /// <summary>
+    /// Simple logger provider for the builder.
+    /// </summary>
+    private class LoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider
+    {
+        private readonly Microsoft.Extensions.Logging.ILogger _logger;
+
+        public LoggerProvider(Microsoft.Extensions.Logging.ILogger logger)
         {
-            await _innerExporter.ExportMetricsAsync(statistics, cancellationToken);
+            _logger = logger;
         }
 
-        public void Dispose()
-        {
-            if (_disposed) return;
+        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => _logger;
 
-            _disposed = true;
-
-            if (_innerExporter is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-
-            _logger.LogInformation("Default AI Metrics Exporter disposed");
-        }
-
-        /// <summary>
-        /// Simple logger provider for the builder.
-        /// </summary>
-        private class LoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider
-        {
-            private readonly Microsoft.Extensions.Logging.ILogger _logger;
-
-            public LoggerProvider(Microsoft.Extensions.Logging.ILogger logger)
-            {
-                _logger = logger;
-            }
-
-            public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => _logger;
-
-            public void Dispose() { }
-        }
+        public void Dispose() { }
     }
 }

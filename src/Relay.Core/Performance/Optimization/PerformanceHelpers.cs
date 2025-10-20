@@ -2,7 +2,6 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
 namespace Relay.Core.Performance.Optimization;
@@ -203,38 +202,5 @@ public static class PerformanceHelpers
         }
 
         return true;
-    }
-}
-
-/// <summary>
-/// AOT-friendly type helpers that avoid reflection
-/// </summary>
-public static class AOTHelpers
-{
-    /// <summary>
-    /// Gets type name in AOT-safe manner
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string GetTypeName<T>()
-    {
-        return typeof(T).Name;
-    }
-
-    /// <summary>
-    /// Checks if type is value type in AOT-safe manner
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsValueType<T>()
-    {
-        return typeof(T).IsValueType;
-    }
-
-    /// <summary>
-    /// Creates default value in AOT-safe manner
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T CreateDefault<T>()
-    {
-        return default!;
     }
 }

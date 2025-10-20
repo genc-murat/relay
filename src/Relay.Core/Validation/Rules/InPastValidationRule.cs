@@ -4,39 +4,38 @@ using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Validation.Interfaces;
 
-namespace Relay.Core.Validation.Rules
+namespace Relay.Core.Validation.Rules;
+
+/// <summary>
+/// Validation rule that checks if a comparable value is in the past.
+/// </summary>
+/// <typeparam name="T">The type to validate, must be comparable.</typeparam>
+public class InPastValidationRule<T> : IValidationRule<T> where T : IComparable<T>
 {
+    private readonly Func<T> _pastValueProvider;
+    private readonly string _errorMessage;
+
     /// <summary>
-    /// Validation rule that checks if a comparable value is in the past.
+    /// Initializes a new instance of the <see cref="InPastValidationRule{T}"/> class.
     /// </summary>
-    /// <typeparam name="T">The type to validate, must be comparable.</typeparam>
-    public class InPastValidationRule<T> : IValidationRule<T> where T : IComparable<T>
+    /// <param name="pastValueProvider">A function that provides the value to compare against (e.g., () => DateTime.Now).</param>
+    /// <param name="errorMessage">The error message to return when validation fails.</param>
+    public InPastValidationRule(Func<T> pastValueProvider, string? errorMessage = null)
     {
-        private readonly Func<T> _pastValueProvider;
-        private readonly string _errorMessage;
+        _pastValueProvider = pastValueProvider ?? throw new ArgumentNullException(nameof(pastValueProvider));
+        _errorMessage = errorMessage ?? "Value must be in the past.";
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="InPastValidationRule{T}"/> class.
-        /// </summary>
-        /// <param name="pastValueProvider">A function that provides the value to compare against (e.g., () => DateTime.Now).</param>
-        /// <param name="errorMessage">The error message to return when validation fails.</param>
-        public InPastValidationRule(Func<T> pastValueProvider, string? errorMessage = null)
+    /// <inheritdoc />
+    public ValueTask<IEnumerable<string>> ValidateAsync(T request, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (request.CompareTo(_pastValueProvider()) >= 0)
         {
-            _pastValueProvider = pastValueProvider ?? throw new ArgumentNullException(nameof(pastValueProvider));
-            _errorMessage = errorMessage ?? "Value must be in the past.";
+            return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
         }
 
-        /// <inheritdoc />
-        public ValueTask<IEnumerable<string>> ValidateAsync(T request, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (request.CompareTo(_pastValueProvider()) >= 0)
-            {
-                return new ValueTask<IEnumerable<string>>(new[] { _errorMessage });
-            }
-
-            return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
-        }
+        return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
     }
 }

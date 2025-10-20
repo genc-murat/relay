@@ -1,15 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization;
-using Relay.Core.AI.Optimization.Strategies;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization
@@ -34,11 +31,11 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await engine.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.StrategyName.Should().Be("TestEngine");
-            engine.PreOptimizationCalled.Should().BeTrue();
-            engine.PostOptimizationCalled.Should().BeTrue();
-            engine.NotifyObserversCalled.Should().BeTrue();
+            Assert.True(result.Success);
+            Assert.Equal("TestEngine", result.StrategyName);
+            Assert.True(engine.PreOptimizationCalled);
+            Assert.True(engine.PostOptimizationCalled);
+            Assert.True(engine.NotifyObserversCalled);
         }
 
         [Fact]
@@ -59,8 +56,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await engine.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeFalse();
-            result.ErrorMessage.Should().Be("Invalid optimization context");
+            Assert.False(result.Success);
+            Assert.Equal("Invalid optimization context", result.ErrorMessage);
         }
 
         [Fact]
@@ -81,9 +78,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await engine.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeFalse();
-            result.StrategyName.Should().Be("Template");
-            result.ErrorMessage.Should().Contain("Test execution failure");
+            Assert.False(result.Success);
+            Assert.Equal("Template", result.StrategyName);
+            Assert.Contains("Test execution failure", result.ErrorMessage);
         }
 
         [Fact]
@@ -126,8 +123,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await engine.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.StrategyName.Should().Be("TestEngine");
+            Assert.True(result.Success);
+            Assert.Equal("TestEngine", result.StrategyName);
         }
 
         [Fact]
@@ -141,9 +138,9 @@ namespace Relay.Core.Tests.AI.Optimization
 
             // Act & Assert
             // Verify that the methods are virtual by checking if they can be overridden
-            typeof(OptimizationEngineTemplate).GetMethod("OptimizeAsync")!.IsVirtual.Should().BeTrue();
-            typeof(OptimizationEngineTemplate).GetMethod("PreOptimizationAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.IsVirtual.Should().BeTrue();
-            typeof(OptimizationEngineTemplate).GetMethod("PostOptimizationAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.IsVirtual.Should().BeTrue();
+            Assert.True(typeof(OptimizationEngineTemplate).GetMethod("OptimizeAsync")!.IsVirtual);
+            Assert.True(typeof(OptimizationEngineTemplate).GetMethod("PreOptimizationAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.IsVirtual);
+            Assert.True(typeof(OptimizationEngineTemplate).GetMethod("PostOptimizationAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.IsVirtual);
         }
 
         // Test implementations

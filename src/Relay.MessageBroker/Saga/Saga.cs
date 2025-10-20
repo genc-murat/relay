@@ -1,5 +1,7 @@
 namespace Relay.MessageBroker.Saga;
 
+using Relay.MessageBroker.Saga.Interfaces;
+
 /// <summary>
 /// Base class for saga orchestration.
 /// </summary>

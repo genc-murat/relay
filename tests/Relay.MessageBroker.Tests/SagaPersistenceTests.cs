@@ -1,4 +1,5 @@
 using Relay.MessageBroker.Saga;
+using Relay.MessageBroker.Saga.Interfaces;
 using Relay.MessageBroker.Saga.Persistence;
 using Xunit;
 

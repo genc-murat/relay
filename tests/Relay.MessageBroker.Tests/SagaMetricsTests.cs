@@ -1,6 +1,7 @@
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.MessageBroker.Saga;
+using Relay.MessageBroker.Saga.Interfaces;
 using Relay.MessageBroker.Saga.Services;
 using Moq;
 using Microsoft.Extensions.Logging;

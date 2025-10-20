@@ -1,5 +1,7 @@
 namespace Relay.MessageBroker.Saga;
 
+using Relay.MessageBroker.Saga.Interfaces;
+
 /// <summary>
 /// Result of saga execution.
 /// </summary>

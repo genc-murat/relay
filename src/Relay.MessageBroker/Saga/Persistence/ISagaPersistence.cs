@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
+using Relay.MessageBroker.Saga.Interfaces;
 
-namespace Relay.MessageBroker.Saga;
+namespace Relay.MessageBroker.Saga.Persistence;
 
 /// <summary>
 /// Interface for saga persistence.

@@ -1,4 +1,4 @@
-using Relay.MessageBroker.Saga;
+using Relay.MessageBroker.Saga.Interfaces;
 using Xunit;
 
 namespace Relay.MessageBroker.Tests;

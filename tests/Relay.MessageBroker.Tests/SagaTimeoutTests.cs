@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.MessageBroker.Saga;
+using Relay.MessageBroker.Saga.Interfaces;
+using Relay.MessageBroker.Saga.Persistence;
 using Relay.MessageBroker.Saga.Services;
 using Xunit;
 

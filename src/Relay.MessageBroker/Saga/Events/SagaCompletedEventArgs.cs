@@ -1,4 +1,4 @@
-namespace Relay.MessageBroker.Saga;
+namespace Relay.MessageBroker.Saga.Events;
 
 /// <summary>
 /// Event arguments for saga completed event.

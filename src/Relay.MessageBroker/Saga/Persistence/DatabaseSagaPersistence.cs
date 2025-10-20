@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using Relay.MessageBroker.Saga.Interfaces;
 
 namespace Relay.MessageBroker.Saga.Persistence;
 

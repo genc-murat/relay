@@ -1,5 +1,7 @@
 namespace Relay.MessageBroker.Saga;
 
+using Relay.MessageBroker.Saga.Events;
+
 /// <summary>
 /// Configuration options for saga orchestration.
 /// </summary>

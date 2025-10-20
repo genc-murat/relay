@@ -1,13 +1,11 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Relay.Core.AI;
+using Relay.Core.AI.Optimization.Strategies;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Relay.Core.AI;
-using Relay.Core.AI.Optimization;
-using Relay.Core.AI.Optimization.Strategies;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization
@@ -39,7 +37,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var canHandle = strategy.CanHandle(context.Operation);
 
             // Assert
-            canHandle.Should().BeTrue();
+            Assert.True(canHandle);
         }
 
         [Fact]
@@ -65,12 +63,12 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await strategy.ExecuteAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.StrategyName.Should().Be("RequestAnalysis");
-            result.Data.Should().BeOfType<OptimizationRecommendation>();
+            Assert.True(result.Success);
+            Assert.Equal("RequestAnalysis", result.StrategyName);
+            Assert.IsType<OptimizationRecommendation>(result.Data);
             var recommendation = (OptimizationRecommendation)result.Data!;
-            recommendation.Strategy.Should().Be(OptimizationStrategy.SIMDAcceleration);
-            recommendation.ConfidenceScore.Should().BeGreaterThan(0);
+            Assert.Equal(OptimizationStrategy.SIMDAcceleration, recommendation.Strategy);
+            Assert.True(recommendation.ConfidenceScore > 0);
         }
 
         [Fact]
@@ -96,7 +94,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var canHandle = strategy.CanHandle(context.Operation);
 
             // Assert
-            canHandle.Should().BeTrue();
+            Assert.True(canHandle);
         }
 
         [Fact]
@@ -122,11 +120,11 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await strategy.ExecuteAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.Data.Should().BeOfType<int>();
+            Assert.True(result.Success);
+            Assert.IsType<int>(result.Data);
             var batchSize = (int)result.Data!;
-            batchSize.Should().BeLessThanOrEqualTo(options.MaxBatchSize);
-            batchSize.Should().BeGreaterThan(0);
+            Assert.True(batchSize <= options.MaxBatchSize);
+            Assert.True(batchSize > 0);
         }
 
         [Fact]
@@ -153,7 +151,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var canHandle = strategy.CanHandle(context.Operation);
 
             // Assert
-            canHandle.Should().BeTrue();
+            Assert.True(canHandle);
         }
 
         [Fact]
@@ -181,10 +179,10 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await strategy.ExecuteAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.Data.Should().BeOfType<OptimizationRecommendation>();
+            Assert.True(result.Success);
+            Assert.IsType<OptimizationRecommendation>(result.Data);
             var recommendation = (OptimizationRecommendation)result.Data!;
-            recommendation.Strategy.Should().Be(OptimizationStrategy.Caching);
+            Assert.Equal(OptimizationStrategy.Caching, recommendation.Strategy);
         }
 
         [Fact]
@@ -211,7 +209,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var canHandle = strategy.CanHandle(context.Operation);
 
             // Assert
-            canHandle.Should().BeTrue();
+            Assert.True(canHandle);
         }
 
         [Fact]
@@ -247,11 +245,11 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await strategy.ExecuteAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.Data.Should().BeOfType<OptimizationRecommendation>();
+            Assert.True(result.Success);
+            Assert.IsType<OptimizationRecommendation>(result.Data);
             var recommendation = (OptimizationRecommendation)result.Data!;
-            recommendation.Parameters.Should().ContainKey("preferred_strategies");
-            recommendation.Parameters.Should().ContainKey("avoid_strategies");
+            Assert.Contains("preferred_strategies", recommendation.Parameters.Keys);
+            Assert.Contains("avoid_strategies", recommendation.Parameters.Keys);
         }
 
         [Fact]
@@ -275,7 +273,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var canHandle = strategy.CanHandle(context.Operation);
 
             // Assert
-            canHandle.Should().BeTrue();
+            Assert.True(canHandle);
         }
 
         [Fact]
@@ -299,13 +297,13 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await strategy.ExecuteAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.Data.Should().BeOfType<OptimizationRecommendation>();
+            Assert.True(result.Success);
+            Assert.IsType<OptimizationRecommendation>(result.Data);
             var recommendation = (OptimizationRecommendation)result.Data!;
-            recommendation.Parameters.Should().ContainKey("cpu_insights");
-            recommendation.Parameters.Should().ContainKey("memory_insights");
-            recommendation.Parameters.Should().ContainKey("connection_insights");
-            recommendation.Parameters.Should().ContainKey("queue_insights");
+            Assert.Contains("cpu_insights", recommendation.Parameters.Keys);
+            Assert.Contains("memory_insights", recommendation.Parameters.Keys);
+            Assert.Contains("connection_insights", recommendation.Parameters.Keys);
+            Assert.Contains("queue_insights", recommendation.Parameters.Keys);
         }
 
         [Fact]
@@ -325,8 +323,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var names = strategies.Select(s => s.Name).ToList();
 
             // Assert
-            names.Should().OnlyHaveUniqueItems();
-            names.Should().HaveCount(5);
+            Assert.Equal(5, names.Distinct().Count());
+            Assert.Equal(5, names.Count);
         }
 
         [Fact]
@@ -345,7 +343,7 @@ namespace Relay.Core.Tests.AI.Optimization
             // Act & Assert
             foreach (var strategy in strategies)
             {
-                strategy.Priority.Should().BeGreaterThanOrEqualTo(0);
+                Assert.True(strategy.Priority >= 0);
             }
         }
     }

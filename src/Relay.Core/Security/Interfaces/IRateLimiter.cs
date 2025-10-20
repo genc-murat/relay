@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Relay.Core.Security
+namespace Relay.Core.Security.Interfaces
 {
     /// <summary>
     /// Interface for rate limiting functionality.

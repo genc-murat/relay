@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using Relay.Core.Security;
+using Relay.Core.Security.Exceptions;
+using Relay.Core.Security.RateLimiting;
 using Xunit;
 
 namespace Relay.Core.Tests.Security

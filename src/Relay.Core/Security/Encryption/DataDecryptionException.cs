@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Security;
+namespace Relay.Core.Security.Encryption;
 
 /// <summary>
 /// Exception thrown when data decryption fails.

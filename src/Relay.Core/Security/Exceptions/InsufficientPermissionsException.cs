@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Relay.Core.Security
+namespace Relay.Core.Security.Exceptions
 {
     /// <summary>
     /// Exception thrown when user lacks required permissions.

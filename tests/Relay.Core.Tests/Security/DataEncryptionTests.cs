@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Security;
+using Relay.Core.Security.Encryption;
 using Xunit;
 
 namespace Relay.Core.Tests.Security

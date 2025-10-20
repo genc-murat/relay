@@ -1,4 +1,4 @@
-using Relay.Core.Security;
+using Relay.Core.Security.RateLimiting;
 using System;
 using System.Threading.Tasks;
 using Xunit;

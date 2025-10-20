@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Security
+namespace Relay.Core.Security.Interfaces
 {
     /// <summary>
     /// Request auditing interface.

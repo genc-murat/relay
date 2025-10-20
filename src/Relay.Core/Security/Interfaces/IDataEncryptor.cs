@@ -1,4 +1,4 @@
-namespace Relay.Core.Security;
+namespace Relay.Core.Security.Interfaces;
 
 /// <summary>
 /// Interface for data encryption/decryption operations.

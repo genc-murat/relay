@@ -2,8 +2,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
+using Relay.Core.Security.Interfaces;
 
-namespace Relay.Core.Security
+namespace Relay.Core.Security.RateLimiting
 {
     /// <summary>
     /// In-memory implementation of rate limiter using sliding window algorithm.

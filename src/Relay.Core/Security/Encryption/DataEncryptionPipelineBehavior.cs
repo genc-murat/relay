@@ -5,8 +5,9 @@ using System;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Security.Interfaces;
 
-namespace Relay.Core.Security;
+namespace Relay.Core.Security.Encryption;
 
 /// <summary>
 /// Pipeline behavior for automatic encryption/decryption of sensitive data.

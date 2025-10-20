@@ -8,6 +8,8 @@ using Moq;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Security;
+using Relay.Core.Security.Encryption;
+using Relay.Core.Security.Interfaces;
 using Xunit;
 
 namespace Relay.Core.Tests.Security

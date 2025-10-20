@@ -1,14 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Security;
+using Relay.Core.Security.Behaviors;
+using Relay.Core.Security.RateLimiting;
+using Relay.Core.Security.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.Security

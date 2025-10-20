@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Security
+namespace Relay.Core.Security.RateLimiting
 {
     /// <summary>
     /// Exception thrown when rate limit is exceeded.

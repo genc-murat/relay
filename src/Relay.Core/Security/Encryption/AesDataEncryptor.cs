@@ -2,8 +2,9 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using Relay.Core.Security.Interfaces;
 
-namespace Relay.Core.Security;
+namespace Relay.Core.Security.Encryption;
 
 /// <summary>
 /// AES-based data encryptor implementation.

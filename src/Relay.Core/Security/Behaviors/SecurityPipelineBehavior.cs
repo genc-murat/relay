@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Security.Exceptions;
+using Relay.Core.Security.Interfaces;
+using Relay.Core.Security.RateLimiting;
 
-namespace Relay.Core.Security;
+namespace Relay.Core.Security.Behaviors;
 
 /// <summary>
 /// Advanced security pipeline behavior with multi-layer protection.

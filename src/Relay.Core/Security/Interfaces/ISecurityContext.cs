@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Security.Claims;
 
-namespace Relay.Core.Security
+namespace Relay.Core.Security.Interfaces
 {
     /// <summary>
     /// Security context interface for accessing current user information.

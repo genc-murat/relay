@@ -1437,7 +1437,7 @@ public class PipelineCommandTests
     public async Task GeneratePipelineReport_ShouldCreateReportFile_WithSuccessfulResults()
     {
         // Arrange
-        var reportPath = Path.Combine(Path.GetTempPath(), "test-report.md");
+        var reportPath = Path.Combine(Path.GetTempPath(), $"test-report-{Guid.NewGuid()}.md");
         var pipelineResult = new PipelineResult
         {
             Success = true,

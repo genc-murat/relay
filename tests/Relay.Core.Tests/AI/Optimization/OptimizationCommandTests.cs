@@ -1,13 +1,10 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using Relay.Core.AI;
+using Relay.Core.AI.Optimization;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Relay.Core.AI;
-using Relay.Core.AI.Optimization;
-using Relay.Core.AI.Optimization.Strategies;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization
@@ -46,9 +43,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await command.ExecuteAsync();
 
             // Assert
-            result.Success.Should().BeTrue();
-            command.Description.Should().Contain("Analyze request execution patterns");
-            command.CanUndo.Should().BeFalse();
+            Assert.True(result.Success);
+            Assert.Contains("Analyze request execution patterns", command.Description);
+            Assert.False(command.CanUndo);
         }
 
         [Fact]
@@ -83,9 +80,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await command.ExecuteAsync();
 
             // Assert
-            result.Success.Should().BeTrue();
-            command.Description.Should().Contain("Predict optimal batch size");
-            command.CanUndo.Should().BeFalse();
+            Assert.True(result.Success);
+            Assert.Contains("Predict optimal batch size", command.Description);
+            Assert.False(command.CanUndo);
         }
 
         [Fact]
@@ -122,9 +119,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await command.ExecuteAsync();
 
             // Assert
-            result.Success.Should().BeTrue();
-            command.Description.Should().Contain("Analyze and optimize caching configuration");
-            command.CanUndo.Should().BeTrue();
+            Assert.True(result.Success);
+            Assert.Contains("Analyze and optimize caching configuration", command.Description);
+            Assert.True(command.CanUndo);
         }
 
         [Fact]
@@ -161,9 +158,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await command.ExecuteAsync();
 
             // Assert
-            result.Success.Should().BeTrue();
-            command.Description.Should().Contain("Learn from past optimization results");
-            command.CanUndo.Should().BeFalse();
+            Assert.True(result.Success);
+            Assert.Contains("Learn from past optimization results", command.Description);
+            Assert.False(command.CanUndo);
         }
 
         [Fact]
@@ -197,9 +194,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await command.ExecuteAsync();
 
             // Assert
-            result.Success.Should().BeTrue();
-            command.Description.Should().Contain("Analyze system-wide metrics");
-            command.CanUndo.Should().BeFalse();
+            Assert.True(result.Success);
+            Assert.Contains("Analyze system-wide metrics", command.Description);
+            Assert.False(command.CanUndo);
         }
 
         [Fact]
@@ -235,8 +232,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await invoker.ExecuteCommandAsync(command);
 
             // Assert
-            result.Success.Should().BeTrue();
-            invoker.UndoableCommandCount.Should().Be(0); // AnalyzeRequest cannot be undone
+            Assert.True(result.Success);
+            Assert.Equal(0, invoker.UndoableCommandCount); // AnalyzeRequest cannot be undone
         }
 
         [Fact]
@@ -273,8 +270,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await invoker.ExecuteCommandAsync(command);
 
             // Assert
-            result.Success.Should().BeTrue();
-            invoker.UndoableCommandCount.Should().Be(1); // OptimizeCaching can be undone
+            Assert.True(result.Success);
+            Assert.Equal(1, invoker.UndoableCommandCount); // OptimizeCaching can be undone
         }
 
         [Fact]
@@ -309,14 +306,14 @@ namespace Relay.Core.Tests.AI.Optimization
 
             // Execute command
             await invoker.ExecuteCommandAsync(command);
-            invoker.UndoableCommandCount.Should().Be(1);
+            Assert.Equal(1, invoker.UndoableCommandCount);
 
             // Act
             var undoResult = await invoker.UndoLastCommandAsync();
 
             // Assert
-            undoResult.Should().BeFalse(); // Default implementation returns false
-            invoker.UndoableCommandCount.Should().Be(0);
+            Assert.False(undoResult); // Default implementation returns false
+            Assert.Equal(0, invoker.UndoableCommandCount);
         }
 
         [Fact]
@@ -329,8 +326,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await invoker.UndoLastCommandAsync();
 
             // Assert
-            result.Should().BeFalse();
-            invoker.UndoableCommandCount.Should().Be(0);
+            Assert.False(result);
+            Assert.Equal(0, invoker.UndoableCommandCount);
         }
 
         [Fact]
@@ -342,8 +339,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var command = new TestCommand(engine, context);
 
             // Act & Assert
-            command.Description.Should().Be("Test command");
-            command.CanUndo.Should().BeFalse();
+            Assert.Equal("Test command", command.Description);
+            Assert.False(command.CanUndo);
         }
 
         // Test command implementation

@@ -1,11 +1,9 @@
-using System;
-using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization;
+using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization
@@ -31,7 +29,7 @@ namespace Relay.Core.Tests.AI.Optimization
 
             // Assert
             // Verify that the observer processes the result without throwing
-            result.Success.Should().BeTrue();
+            Assert.True(result.Success);
         }
 
         [Fact]
@@ -52,8 +50,8 @@ namespace Relay.Core.Tests.AI.Optimization
             await observer.OnOptimizationCompletedAsync(result);
 
             // Assert
-            result.Success.Should().BeFalse();
-            result.ErrorMessage.Should().Be("Test error");
+            Assert.False(result.Success);
+            Assert.Equal("Test error", result.ErrorMessage);
         }
 
         [Fact]
@@ -74,8 +72,8 @@ namespace Relay.Core.Tests.AI.Optimization
             await observer.OnPerformanceThresholdExceededAsync(alert);
 
             // Assert
-            alert.Severity.Should().Be(AlertSeverity.Critical);
-            alert.AlertType.Should().Be("HighCpuUtilization");
+            Assert.Equal(AlertSeverity.Critical, alert.Severity);
+            Assert.Equal("HighCpuUtilization", alert.AlertType);
         }
 
         [Fact]
@@ -97,8 +95,8 @@ namespace Relay.Core.Tests.AI.Optimization
             await observer.OnSystemLoadChangedAsync(loadMetrics);
 
             // Assert
-            loadMetrics.CpuUtilization.Should().Be(0.95);
-            loadMetrics.QueuedRequestCount.Should().Be(50);
+            Assert.Equal(0.95, loadMetrics.CpuUtilization);
+            Assert.Equal(50, loadMetrics.QueuedRequestCount);
         }
 
         [Fact]
@@ -118,7 +116,7 @@ namespace Relay.Core.Tests.AI.Optimization
             await observer.OnPerformanceThresholdExceededAsync(alert);
 
             // Assert
-            alert.Severity.Should().Be(AlertSeverity.Critical);
+            Assert.Equal(AlertSeverity.Critical, alert.Severity);
         }
 
         [Fact]
@@ -134,21 +132,21 @@ namespace Relay.Core.Tests.AI.Optimization
             };
 
             // Assert
-            alert.AlertType.Should().Be("TestAlert");
-            alert.Message.Should().Be("Test message");
-            alert.Severity.Should().Be(AlertSeverity.Medium);
-            alert.Data.Should().NotBeNull();
-            alert.Timestamp.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+            Assert.Equal("TestAlert", alert.AlertType);
+            Assert.Equal("Test message", alert.Message);
+            Assert.Equal(AlertSeverity.Medium, alert.Severity);
+            Assert.NotNull(alert.Data);
+            Assert.True(Math.Abs((alert.Timestamp - DateTime.UtcNow).TotalSeconds) < 1);
         }
 
         [Fact]
         public void AlertSeverity_ShouldHaveCorrectValues()
         {
             // Arrange & Act & Assert
-            AlertSeverity.Low.Should().Be(AlertSeverity.Low);
-            AlertSeverity.Medium.Should().Be(AlertSeverity.Medium);
-            AlertSeverity.High.Should().Be(AlertSeverity.High);
-            AlertSeverity.Critical.Should().Be(AlertSeverity.Critical);
+            Assert.Equal(AlertSeverity.Low, AlertSeverity.Low);
+            Assert.Equal(AlertSeverity.Medium, AlertSeverity.Medium);
+            Assert.Equal(AlertSeverity.High, AlertSeverity.High);
+            Assert.Equal(AlertSeverity.Critical, AlertSeverity.Critical);
         }
 
         [Fact]
@@ -174,7 +172,7 @@ namespace Relay.Core.Tests.AI.Optimization
             );
 
             // Assert
-            result.Success.Should().BeTrue();
+            Assert.True(result.Success);
         }
     }
 }

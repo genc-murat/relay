@@ -17,8 +17,11 @@ using Relay.Core.AI.CircuitBreaker;
 using Relay.Core.AI.CircuitBreaker.Options;
 using Relay.Core.AI.CircuitBreaker.Metrics;
 using Relay.Core.AI.CircuitBreaker.Exceptions;
+using Relay.Core.AI.Pipeline.Options;
+using Relay.Core.AI.Pipeline.Interfaces;
+using Relay.Core.AI.Pipeline.Metrics;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Behaviors
 {
     /// <summary>
     /// Partial class containing optimization strategy application methods.

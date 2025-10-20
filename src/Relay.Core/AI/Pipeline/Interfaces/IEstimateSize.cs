@@ -1,4 +1,4 @@
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Interfaces
 {
     /// <summary>
     /// Interface for objects that can estimate their serialized size.

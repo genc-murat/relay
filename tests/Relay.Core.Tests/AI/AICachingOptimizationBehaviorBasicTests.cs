@@ -1,272 +1,272 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Pipeline.Behaviors;
+using Relay.Core.AI.Pipeline.Options;
 using Relay.Core.Contracts.Pipeline;
-using Relay.Core.Contracts.Requests;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Relay.Core.Tests.AI
+namespace Relay.Core.Tests.AI;
+
+public class AICachingOptimizationBehaviorBasicTests : IDisposable
 {
-    public class AICachingOptimizationBehaviorBasicTests : IDisposable
+    private readonly ILogger<AICachingOptimizationBehavior<TestRequest, TestResponse>> _logger;
+    private readonly Mock<IAIPredictionCache> _cacheMock;
+    private readonly List<AICachingOptimizationBehavior<TestRequest, TestResponse>> _behaviorsToDispose;
+
+    public AICachingOptimizationBehaviorBasicTests()
     {
-        private readonly ILogger<AICachingOptimizationBehavior<TestRequest, TestResponse>> _logger;
-        private readonly Mock<IAIPredictionCache> _cacheMock;
-        private readonly List<AICachingOptimizationBehavior<TestRequest, TestResponse>> _behaviorsToDispose;
+        _logger = NullLogger<AICachingOptimizationBehavior<TestRequest, TestResponse>>.Instance;
+        _cacheMock = new Mock<IAIPredictionCache>();
+        _behaviorsToDispose = new List<AICachingOptimizationBehavior<TestRequest, TestResponse>>();
+    }
 
-        public AICachingOptimizationBehaviorBasicTests()
+    public void Dispose()
+    {
+        _behaviorsToDispose.Clear();
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Execute_Without_Cache()
+    {
+        // Arrange
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, null);
+        _behaviorsToDispose.Add(behavior);
+
+        var request = new TestRequest { Value = "test" };
+        var executed = false;
+
+        RequestHandlerDelegate<TestResponse> next = () =>
         {
-            _logger = NullLogger<AICachingOptimizationBehavior<TestRequest, TestResponse>>.Instance;
-            _cacheMock = new Mock<IAIPredictionCache>();
-            _behaviorsToDispose = new List<AICachingOptimizationBehavior<TestRequest, TestResponse>>();
-        }
+            executed = true;
+            return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+        };
 
-        public void Dispose()
+        // Act
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        Assert.True(executed);
+        Assert.Equal("success", result.Result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Execute_When_Caching_Disabled()
+    {
+        // Arrange
+        var options = new AICachingOptimizationOptions { EnableCaching = false };
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object, options);
+        _behaviorsToDispose.Add(behavior);
+
+        var request = new TestRequest { Value = "test" };
+        var executed = false;
+
+        RequestHandlerDelegate<TestResponse> next = () =>
         {
-            _behaviorsToDispose.Clear();
-        }
+            executed = true;
+            return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+        };
 
-        [Fact]
-        public async Task HandleAsync_Should_Execute_Without_Cache()
+        // Act
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        Assert.True(executed);
+        Assert.Equal("success", result.Result);
+        _cacheMock.Verify(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Check_Cache_On_First_Request()
+    {
+        // Arrange
+        _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OptimizationRecommendation?)null);
+
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object);
+        _behaviorsToDispose.Add(behavior);
+
+        var request = new TestRequest { Value = "test" };
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+
+        // Act
+        await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        _cacheMock.Verify(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Use_Cached_Recommendation()
+    {
+        // Arrange
+        var recommendation = new OptimizationRecommendation
         {
-            // Arrange
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, null);
-            _behaviorsToDispose.Add(behavior);
+            Strategy = OptimizationStrategy.EnableCaching,
+            ConfidenceScore = 0.95,
+            EstimatedImprovement = TimeSpan.FromMilliseconds(100),
+            Reasoning = "High cache hit rate"
+        };
 
-            var request = new TestRequest { Value = "test" };
-            var executed = false;
+        _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(recommendation);
 
-            RequestHandlerDelegate<TestResponse> next = () =>
-            {
-                executed = true;
-                return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
-            };
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object);
+        _behaviorsToDispose.Add(behavior);
 
-            // Act
-            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+        var request = new TestRequest { Value = "test" };
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "success" });
 
-            // Assert
-            Assert.True(executed);
-            Assert.Equal("success", result.Result);
-        }
+        // Act
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
-        [Fact]
-        public async Task HandleAsync_Should_Execute_When_Caching_Disabled()
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("success", result.Result);
+        _cacheMock.Verify(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Cache_Result_For_Slow_Operations()
+    {
+        // Arrange
+        _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OptimizationRecommendation?)null);
+
+        var options = new AICachingOptimizationOptions
         {
-            // Arrange
-            var options = new AICachingOptimizationOptions { EnableCaching = false };
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object, options);
-            _behaviorsToDispose.Add(behavior);
+            MinExecutionTimeForCaching = 10.0
+        };
 
-            var request = new TestRequest { Value = "test" };
-            var executed = false;
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object, options);
+        _behaviorsToDispose.Add(behavior);
 
-            RequestHandlerDelegate<TestResponse> next = () =>
-            {
-                executed = true;
-                return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
-            };
-
-            // Act
-            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-            // Assert
-            Assert.True(executed);
-            Assert.Equal("success", result.Result);
-            _cacheMock.Verify(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task HandleAsync_Should_Check_Cache_On_First_Request()
+        var request = new TestRequest { Value = "test" };
+        RequestHandlerDelegate<TestResponse> next = async () =>
         {
-            // Arrange
-            _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((OptimizationRecommendation?)null);
+            await Task.Delay(20); // Simulate slow operation
+            return new TestResponse { Result = "success" };
+        };
 
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object);
-            _behaviorsToDispose.Add(behavior);
+        // Act
+        await behavior.HandleAsync(request, next, CancellationToken.None);
 
-            var request = new TestRequest { Value = "test" };
-            RequestHandlerDelegate<TestResponse> next = () =>
-                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+        // Assert
+        _cacheMock.Verify(c => c.SetCachedPredictionAsync(
+            It.IsAny<string>(),
+            It.IsAny<OptimizationRecommendation>(),
+            It.IsAny<TimeSpan>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 
-            // Act
-            await behavior.HandleAsync(request, next, CancellationToken.None);
+    [Fact]
+    public async Task HandleAsync_Should_Not_Cache_Fast_Operations()
+    {
+        // Arrange
+        _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OptimizationRecommendation?)null);
 
-            // Assert
-            _cacheMock.Verify(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
-        }
-
-        [Fact]
-        public async Task HandleAsync_Should_Use_Cached_Recommendation()
+        var options = new AICachingOptimizationOptions
         {
-            // Arrange
-            var recommendation = new OptimizationRecommendation
-            {
-                Strategy = OptimizationStrategy.EnableCaching,
-                ConfidenceScore = 0.95,
-                EstimatedImprovement = TimeSpan.FromMilliseconds(100),
-                Reasoning = "High cache hit rate"
-            };
+            MinExecutionTimeForCaching = 100.0 // High threshold
+        };
 
-            _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(recommendation);
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object, options);
+        _behaviorsToDispose.Add(behavior);
 
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object);
-            _behaviorsToDispose.Add(behavior);
+        var request = new TestRequest { Value = "test" };
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "success" });
 
-            var request = new TestRequest { Value = "test" };
-            RequestHandlerDelegate<TestResponse> next = () =>
-                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+        // Act
+        await behavior.HandleAsync(request, next, CancellationToken.None);
 
-            // Act
-            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+        // Assert
+        _cacheMock.Verify(c => c.SetCachedPredictionAsync(
+            It.IsAny<string>(),
+            It.IsAny<OptimizationRecommendation>(),
+            It.IsAny<TimeSpan>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
 
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal("success", result.Result);
-            _cacheMock.Verify(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
-        }
+    [Fact]
+    public async Task HandleAsync_Should_Not_Cache_Null_Response()
+    {
+        // Arrange
+        _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((OptimizationRecommendation?)null);
 
-        [Fact]
-        public async Task HandleAsync_Should_Cache_Result_For_Slow_Operations()
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object);
+        _behaviorsToDispose.Add(behavior);
+
+        var request = new TestRequest { Value = "test" };
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(default(TestResponse)!);
+
+        // Act
+        await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        _cacheMock.Verify(c => c.SetCachedPredictionAsync(
+            It.IsAny<string>(),
+            It.IsAny<OptimizationRecommendation>(),
+            It.IsAny<TimeSpan>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Handle_Cache_Exception_Gracefully()
+    {
+        // Arrange
+        _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Cache error"));
+
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object);
+        _behaviorsToDispose.Add(behavior);
+
+        var request = new TestRequest { Value = "test" };
+        var executed = false;
+
+        RequestHandlerDelegate<TestResponse> next = () =>
         {
-            // Arrange
-            _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((OptimizationRecommendation?)null);
+            executed = true;
+            return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+        };
 
-            var options = new AICachingOptimizationOptions
-            {
-                MinExecutionTimeForCaching = 10.0
-            };
+        // Act
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object, options);
-            _behaviorsToDispose.Add(behavior);
+        // Assert - Should fall back to direct execution
+        Assert.True(executed);
+        Assert.Equal("success", result.Result);
+    }
 
-            var request = new TestRequest { Value = "test" };
-            RequestHandlerDelegate<TestResponse> next = async () =>
-            {
-                await Task.Delay(20); // Simulate slow operation
-                return new TestResponse { Result = "success" };
-            };
+    [Fact]
+    public async Task HandleAsync_Should_Support_Cancellation()
+    {
+        // Arrange
+        var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, null);
+        _behaviorsToDispose.Add(behavior);
 
-            // Act
-            await behavior.HandleAsync(request, next, CancellationToken.None);
+        var request = new TestRequest { Value = "test" };
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
 
-            // Assert
-            _cacheMock.Verify(c => c.SetCachedPredictionAsync(
-                It.IsAny<string>(),
-                It.IsAny<OptimizationRecommendation>(),
-                It.IsAny<TimeSpan>(),
-                It.IsAny<CancellationToken>()), Times.Once);
-        }
-
-        [Fact]
-        public async Task HandleAsync_Should_Not_Cache_Fast_Operations()
+        RequestHandlerDelegate<TestResponse> next = async () =>
         {
-            // Arrange
-            _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((OptimizationRecommendation?)null);
+            await Task.Delay(1000, cts.Token);
+            return new TestResponse { Result = "success" };
+        };
 
-            var options = new AICachingOptimizationOptions
-            {
-                MinExecutionTimeForCaching = 100.0 // High threshold
-            };
-
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object, options);
-            _behaviorsToDispose.Add(behavior);
-
-            var request = new TestRequest { Value = "test" };
-            RequestHandlerDelegate<TestResponse> next = () =>
-                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
-
-            // Act
-            await behavior.HandleAsync(request, next, CancellationToken.None);
-
-            // Assert
-            _cacheMock.Verify(c => c.SetCachedPredictionAsync(
-                It.IsAny<string>(),
-                It.IsAny<OptimizationRecommendation>(),
-                It.IsAny<TimeSpan>(),
-                It.IsAny<CancellationToken>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task HandleAsync_Should_Not_Cache_Null_Response()
-        {
-            // Arrange
-            _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((OptimizationRecommendation?)null);
-
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object);
-            _behaviorsToDispose.Add(behavior);
-
-            var request = new TestRequest { Value = "test" };
-            RequestHandlerDelegate<TestResponse> next = () =>
-                new ValueTask<TestResponse>(default(TestResponse)!);
-
-            // Act
-            await behavior.HandleAsync(request, next, CancellationToken.None);
-
-            // Assert
-            _cacheMock.Verify(c => c.SetCachedPredictionAsync(
-                It.IsAny<string>(),
-                It.IsAny<OptimizationRecommendation>(),
-                It.IsAny<TimeSpan>(),
-                It.IsAny<CancellationToken>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task HandleAsync_Should_Handle_Cache_Exception_Gracefully()
-        {
-            // Arrange
-            _cacheMock.Setup(c => c.GetCachedPredictionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new InvalidOperationException("Cache error"));
-
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, _cacheMock.Object);
-            _behaviorsToDispose.Add(behavior);
-
-            var request = new TestRequest { Value = "test" };
-            var executed = false;
-
-            RequestHandlerDelegate<TestResponse> next = () =>
-            {
-                executed = true;
-                return new ValueTask<TestResponse>(new TestResponse { Result = "success" });
-            };
-
-            // Act
-            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-            // Assert - Should fall back to direct execution
-            Assert.True(executed);
-            Assert.Equal("success", result.Result);
-        }
-
-        [Fact]
-        public async Task HandleAsync_Should_Support_Cancellation()
-        {
-            // Arrange
-            var behavior = new AICachingOptimizationBehavior<TestRequest, TestResponse>(_logger, null);
-            _behaviorsToDispose.Add(behavior);
-
-            var request = new TestRequest { Value = "test" };
-            var cts = new CancellationTokenSource();
-            cts.Cancel();
-
-            RequestHandlerDelegate<TestResponse> next = async () =>
-            {
-                await Task.Delay(1000, cts.Token);
-                return new TestResponse { Result = "success" };
-            };
-
-            // Act & Assert
-            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-                await behavior.HandleAsync(request, next, cts.Token));
-        }
+        // Act & Assert
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await behavior.HandleAsync(request, next, cts.Token));
     }
 }

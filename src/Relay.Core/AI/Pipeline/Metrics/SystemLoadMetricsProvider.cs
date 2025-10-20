@@ -2,8 +2,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Pipeline.Interfaces;
+using Relay.Core.AI.Pipeline.Options;
 
-namespace Relay.Core.AI;
+namespace Relay.Core.AI.Pipeline.Metrics;
 
 /// <summary>
 /// Provides system load metrics for AI optimization decisions.

@@ -11,6 +11,9 @@ using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Extensions;
 using Relay.Core.AI.Metrics.Interfaces;
 using Relay.Core.AI.Metrics.Implementations;
+using Relay.Core.AI.Pipeline.Behaviors;
+using Relay.Core.AI.Pipeline.Interfaces;
+using Relay.Core.AI.Pipeline.Metrics;
 
 namespace Relay.Core.AI
 {

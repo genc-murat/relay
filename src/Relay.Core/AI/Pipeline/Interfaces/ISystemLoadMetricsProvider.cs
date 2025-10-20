@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Interfaces
 {
     /// <summary>
     /// Interface for providing system load metrics for AI optimization decisions.

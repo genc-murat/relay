@@ -1,7 +1,7 @@
 using System;
 using System.Text.Json;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Options
 {
     /// <summary>
     /// Configuration options for AICachingOptimizationBehavior.

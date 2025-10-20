@@ -1,5 +1,5 @@
+using Relay.Core.AI.Pipeline.Options;
 using System;
-using Relay.Core.AI;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

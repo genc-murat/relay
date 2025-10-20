@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Telemetry;
 using Relay.Core.AI.Optimization.Contexts;
+using Relay.Core.AI.Pipeline.Interfaces;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Behaviors
 {
     /// <summary>
     /// Partial class containing helper methods for AI optimization pipeline behavior.

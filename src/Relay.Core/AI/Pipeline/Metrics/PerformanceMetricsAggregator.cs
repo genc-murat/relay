@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Relay.Core.AI.Pipeline.Options;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Metrics
 {
     /// <summary>
     /// Aggregates performance metrics with sliding window support.

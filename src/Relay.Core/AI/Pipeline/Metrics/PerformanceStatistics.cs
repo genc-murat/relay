@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Metrics
 {
     /// <summary>
     /// Performance statistics for a request type.

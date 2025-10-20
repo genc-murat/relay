@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization.Batching;
+using Relay.Core.AI.Pipeline.Behaviors;
+using Relay.Core.AI.Pipeline.Options;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Xunit;

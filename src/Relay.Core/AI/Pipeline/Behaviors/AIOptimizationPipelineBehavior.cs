@@ -10,11 +10,14 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Relay.Core.AI.Pipeline.Options;
+using Relay.Core.AI.Pipeline.Interfaces;
+using Relay.Core.AI.Pipeline.Metrics;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Behaviors
 {
     /// <summary>
     /// Pipeline behavior that integrates AI optimization engine into the request processing pipeline.

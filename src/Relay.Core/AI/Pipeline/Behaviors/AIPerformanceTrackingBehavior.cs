@@ -4,11 +4,13 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Pipeline.Options;
+using Relay.Core.AI.Pipeline.Metrics;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.AI.Metrics.Interfaces;
 
-namespace Relay.Core.AI;
+namespace Relay.Core.AI.Pipeline.Behaviors;
 
 /// <summary>
 /// Pipeline behavior for tracking AI-related performance metrics.

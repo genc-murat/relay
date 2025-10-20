@@ -1,4 +1,5 @@
 using Relay.Core.AI;
+using Relay.Core.AI.Pipeline.Interfaces;
 using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Tests.AI

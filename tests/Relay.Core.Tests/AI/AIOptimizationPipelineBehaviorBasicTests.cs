@@ -1,13 +1,14 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.Core.AI;
+using Relay.Core.AI.Pipeline.Behaviors;
+using Relay.Core.AI.Pipeline.Metrics;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Telemetry;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

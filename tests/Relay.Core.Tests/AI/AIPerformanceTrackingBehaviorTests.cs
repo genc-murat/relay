@@ -1,13 +1,16 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Metrics.Interfaces;
+using Relay.Core.AI.Pipeline.Behaviors;
+using Relay.Core.AI.Pipeline.Metrics;
+using Relay.Core.AI.Pipeline.Options;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

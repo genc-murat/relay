@@ -5,8 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Pipeline.Options;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Metrics
 {
     /// <summary>
     /// Collects system metrics.

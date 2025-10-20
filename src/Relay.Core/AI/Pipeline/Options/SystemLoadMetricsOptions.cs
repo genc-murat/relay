@@ -1,6 +1,7 @@
 using System;
+using Relay.Core.AI.Pipeline.Interfaces;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Pipeline.Options
 {
     /// <summary>
     /// Configuration options for SystemLoadMetricsProvider.

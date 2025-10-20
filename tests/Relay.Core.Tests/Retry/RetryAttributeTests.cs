@@ -2,6 +2,7 @@ using System;
 
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Retry;
+using Relay.Core.Retry.Strategies;
 using Xunit;
 
 namespace Relay.Core.Tests.Retry

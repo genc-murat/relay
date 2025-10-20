@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Retry
+namespace Relay.Core.Retry.Strategies
 {
     /// <summary>
     /// Exponential backoff retry strategy with jitter.

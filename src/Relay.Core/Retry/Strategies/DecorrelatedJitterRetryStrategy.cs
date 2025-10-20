@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Retry
+namespace Relay.Core.Retry.Strategies
 {
     /// <summary>
     /// Implements the Decorrelated Jitter retry strategy, which provides optimal distribution of retry attempts

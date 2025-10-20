@@ -2,6 +2,7 @@
  using Microsoft.Extensions.Options;
  using Relay.Core.Configuration.Options.Core;
  using Relay.Core.Configuration.Options.Retry;
+ using Relay.Core.Retry.Strategies;
 using Relay.Core.Contracts.Pipeline;
 using System;
 using System.Collections.Generic;

@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Retry
+namespace Relay.Core.Retry.Strategies
 {
     /// <summary>
     /// Linear retry strategy with fixed delay between attempts.

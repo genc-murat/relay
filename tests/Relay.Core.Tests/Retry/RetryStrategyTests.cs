@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Retry;
+using Relay.Core.Retry.Strategies;
 using Xunit;
 
 namespace Relay.Core.Tests.Retry

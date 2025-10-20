@@ -12,6 +12,7 @@ using Relay.Core.Configuration.Options.Core;
 using Relay.Core.Configuration.Options.Retry;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Retry;
+using Relay.Core.Retry.Strategies;
 
 namespace Relay.Core.Tests.Retry;
 

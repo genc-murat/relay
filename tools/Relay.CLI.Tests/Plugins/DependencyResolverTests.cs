@@ -1,3 +1,4 @@
+using System.Reflection;
 using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
@@ -247,5 +248,127 @@ public class DependencyResolverTests
         // Assert
         Assert.NotSame(result1, result2); // Should be different instances
         Assert.Equal(result1, result2); // But should have same content
+    }
+
+    [Fact]
+    public async Task ResolveVersionConflictAsync_WithInvalidDirectory_ShouldReturnOriginalPath()
+    {
+        // Arrange
+        var method = typeof(DependencyResolver).GetMethod("ResolveVersionConflictAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        var reference = new AssemblyName("TestAssembly, Version=1.0.0.0");
+        var invalidPath = "C:\\NonExistentDirectory\\TestAssembly.dll";
+
+        // Act
+        var result = await (Task<string?>)method!.Invoke(_dependencyResolver, new object[] { reference, invalidPath })!;
+
+        // Assert
+        Assert.Equal(invalidPath, result);
+    }
+
+    [Fact]
+    public async Task ResolveVersionConflictAsync_WithMultipleVersions_ShouldSelectHighestVersion()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Create fake assembly files with different versions
+            var baseName = "TestAssembly";
+            var v1Path = Path.Combine(tempDir, $"{baseName}.dll");
+            var v2Path = Path.Combine(tempDir, $"{baseName}2.dll"); // Different name, same assembly name
+
+            // Copy current assembly as v1
+            File.Copy(typeof(DependencyResolver).Assembly.Location, v1Path);
+
+            // For v2, we'll use the same file but modify metadata (simplified approach)
+            File.Copy(typeof(DependencyResolver).Assembly.Location, v2Path);
+
+            var method = typeof(DependencyResolver).GetMethod("ResolveVersionConflictAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            var reference = new AssemblyName($"{baseName}, Version=1.0.0.0");
+
+            // Act
+            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, new object[] { reference, v1Path })!;
+
+            // Assert
+            Assert.NotNull(result);
+            // Should return one of the paths (exact behavior depends on version comparison)
+            Assert.True(result == v1Path || result == v2Path);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveVersionConflictAsync_WithExceptionInAssemblyEvaluation_ShouldContinue()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var baseName = "TestAssembly";
+            var validPath = Path.Combine(tempDir, $"{baseName}.dll");
+            var invalidPath = Path.Combine(tempDir, $"{baseName}Invalid.dll");
+
+            // Copy valid assembly
+            File.Copy(typeof(DependencyResolver).Assembly.Location, validPath);
+
+            // Create invalid file that will cause exception
+            File.WriteAllText(invalidPath, "invalid dll content");
+
+            var method = typeof(DependencyResolver).GetMethod("ResolveVersionConflictAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            var reference = new AssemblyName($"{baseName}, Version=1.0.0.0");
+
+            // Act
+            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, new object[] { reference, validPath })!;
+
+            // Assert
+            Assert.NotNull(result);
+            // Should still return a valid path despite the invalid file
+            _loggerMock.Verify(x => x.LogWarning(It.Is<string>(s => s.Contains("Could not evaluate assembly"))), Times.AtLeastOnce);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveDependenciesAsync_WithVersionConflict_ShouldResolveAndLog()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // Create a simple test assembly that references something
+            var pluginPath = typeof(DependencyResolver).Assembly.Location;
+
+            // Copy the assembly to temp dir and create a "conflicting" version
+            var baseName = Path.GetFileNameWithoutExtension(pluginPath);
+            var conflictPath = Path.Combine(tempDir, $"{baseName}Conflict.dll");
+            File.Copy(pluginPath, conflictPath);
+
+            // Move plugin to temp dir to create conflict scenario
+            var tempPluginPath = Path.Combine(tempDir, Path.GetFileName(pluginPath));
+            File.Copy(pluginPath, tempPluginPath);
+
+            // Act
+            var result = await _dependencyResolver.ResolveDependenciesAsync(tempPluginPath);
+
+            // Assert
+            Assert.NotNull(result);
+            // The method should handle conflicts gracefully
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
     }
 }

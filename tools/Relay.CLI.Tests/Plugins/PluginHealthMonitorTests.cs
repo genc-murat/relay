@@ -167,4 +167,127 @@ public class PluginHealthMonitorTests
         var result = _monitor.IsHealthy("AnyPlugin");
         Assert.False(result);
     }
+
+    [Fact]
+    public void RecordFailure_DisposedMonitor_DoesNothing()
+    {
+        // Arrange
+        var pluginName = "TestPlugin";
+        _monitor.Dispose();
+
+        // Act
+        _monitor.RecordFailure(pluginName, new Exception("Test error"));
+
+        // Assert - Should not have recorded anything
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.Null(healthInfo);
+        _mockLogger.Verify(x => x.LogWarning(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void RecordFailure_NullException_UsesDefaultMessage()
+    {
+        // Arrange
+        var pluginName = "TestPlugin";
+
+        // Act
+        _monitor.RecordFailure(pluginName, null);
+
+        // Assert
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.NotNull(healthInfo);
+        Assert.Equal("Unknown error", healthInfo.LastErrorMessage);
+        Assert.Equal(1, healthInfo.FailureCount);
+        Assert.Equal(PluginHealthStatus.Unhealthy, healthInfo.Status);
+    }
+
+    [Fact]
+    public void RecordFailure_MultipleFailures_DisablesPlugin()
+    {
+        // Arrange
+        var pluginName = "FailingPlugin";
+
+        // Act - Record 4 failures to trigger disable logic
+        _monitor.RecordFailure(pluginName);
+        _monitor.RecordFailure(pluginName);
+        _monitor.RecordFailure(pluginName);
+        _monitor.RecordFailure(pluginName); // This should disable the plugin
+
+        // Assert
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.NotNull(healthInfo);
+        Assert.Equal(4, healthInfo.FailureCount);
+        Assert.Equal(PluginHealthStatus.Disabled, healthInfo.Status);
+        _mockLogger.Verify(x => x.LogError(It.Is<string>(s => s.Contains("has failed multiple times and will be temporarily disabled"))), Times.Once);
+    }
+
+    [Fact]
+    public void RecordFailure_MultipleFailures_IncrementsRestartCount()
+    {
+        // Arrange
+        var pluginName = "FailingPlugin";
+
+        // Act - Record multiple failures to trigger restart count tracking
+        for (int i = 0; i < 5; i++)
+        {
+            _monitor.RecordFailure(pluginName);
+        }
+
+        // Assert - Should have incremented restart count
+        // Note: We can't directly test the private _restartCount field,
+        // but we can verify the behavior through the logging
+        _mockLogger.Verify(x => x.LogError(It.Is<string>(s => s.Contains("has failed multiple times and will be temporarily disabled"))), Times.Exactly(2)); // 4th and 5th failure
+    }
+
+    [Fact]
+    public void RecordFailure_ExceedsMaxRestartAttempts_StopsRestarting()
+    {
+        // Arrange
+        var pluginName = "FailingPlugin";
+
+        // Act - Record many failures to exceed max restart attempts
+        for (int i = 0; i < 20; i++) // Way more than the limit of 5
+        {
+            _monitor.RecordFailure(pluginName);
+        }
+
+        // Assert - Should log that plugin exceeded max restart attempts
+        _mockLogger.Verify(x => x.LogError(It.Is<string>(s => s.Contains("has exceeded maximum restart attempts and will remain disabled"))), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void RecordFailure_SingleFailure_DoesNotDisablePlugin()
+    {
+        // Arrange
+        var pluginName = "TestPlugin";
+
+        // Act
+        _monitor.RecordFailure(pluginName, new Exception("Test error"));
+
+        // Assert
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.NotNull(healthInfo);
+        Assert.Equal(1, healthInfo.FailureCount);
+        Assert.Equal(PluginHealthStatus.Unhealthy, healthInfo.Status); // Not disabled
+        _mockLogger.Verify(x => x.LogError(It.Is<string>(s => s.Contains("will be temporarily disabled"))), Times.Never);
+    }
+
+    [Fact]
+    public void RecordFailure_ThreeFailures_DoesNotDisablePlugin()
+    {
+        // Arrange
+        var pluginName = "TestPlugin";
+
+        // Act - Exactly 3 failures (boundary test)
+        _monitor.RecordFailure(pluginName);
+        _monitor.RecordFailure(pluginName);
+        _monitor.RecordFailure(pluginName);
+
+        // Assert
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.NotNull(healthInfo);
+        Assert.Equal(3, healthInfo.FailureCount);
+        Assert.Equal(PluginHealthStatus.Unhealthy, healthInfo.Status); // Not disabled yet
+        _mockLogger.Verify(x => x.LogError(It.Is<string>(s => s.Contains("will be temporarily disabled"))), Times.Never);
+    }
 }

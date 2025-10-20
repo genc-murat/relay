@@ -297,7 +297,6 @@ public class InitCommandTests : IDisposable
         Assert.Contains("<IsPackable>false</IsPackable>", csprojContent);
         Assert.Contains("<PackageReference Include=\"Microsoft.NET.Test.Sdk\" Version=\"17.11.0\" />", csprojContent);
         Assert.Contains("<PackageReference Include=\"xunit\" Version=\"2.9.0\" />", csprojContent);
-        Assert.Contains("<PackageReference Include=\"FluentAssertions\" Version=\"6.12.0\" />", csprojContent);
         Assert.Contains("<PackageReference Include=\"NSubstitute\" Version=\"5.1.0\" />", csprojContent);
         Assert.Contains($"<ProjectReference Include=\"..\\..\\src\\{projectName}\\{projectName}.csproj\" />", csprojContent);
     }

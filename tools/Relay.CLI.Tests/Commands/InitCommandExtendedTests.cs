@@ -524,22 +524,6 @@ public class InitCommandExtendedTests : IDisposable
     }
 
     [Fact]
-    public void InitCommand_TestProject_ShouldReferenceFluentAssertions()
-    {
-        // Arrange
-        Directory.CreateDirectory(_testPath);
-        var csprojPath = Path.Combine(_testPath, "Test.Tests.csproj");
-        var csprojContent = "<PackageReference Include=\"FluentAssertions\" Version=\"6.12.0\" />";
-
-        // Act
-        File.WriteAllText(csprojPath, csprojContent);
-        var content = File.ReadAllText(csprojPath);
-
-        // Assert
-        Assert.Contains("FluentAssertions", content);
-    }
-
-    [Fact]
     public void InitCommand_TestProject_ShouldReferenceNSubstitute()
     {
         // Arrange

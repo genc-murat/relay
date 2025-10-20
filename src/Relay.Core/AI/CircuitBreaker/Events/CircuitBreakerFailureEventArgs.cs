@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Events
 {
     /// <summary>
     /// Event arguments for circuit breaker operation failures.

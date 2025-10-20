@@ -1,4 +1,4 @@
-using Relay.Core.AI;
+using Relay.Core.AI.CircuitBreaker.Metrics;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

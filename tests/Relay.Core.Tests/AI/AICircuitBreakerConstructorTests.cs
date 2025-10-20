@@ -2,6 +2,8 @@ using System;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
+using Relay.Core.AI.CircuitBreaker;
+using Relay.Core.AI.CircuitBreaker.Options;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

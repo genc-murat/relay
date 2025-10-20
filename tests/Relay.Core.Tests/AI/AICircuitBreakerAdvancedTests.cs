@@ -5,6 +5,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.CircuitBreaker;
+using Relay.Core.AI.CircuitBreaker.Exceptions;
+using Relay.Core.AI.CircuitBreaker.Options;
+using Relay.Core.AI.CircuitBreaker.Telemetry;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

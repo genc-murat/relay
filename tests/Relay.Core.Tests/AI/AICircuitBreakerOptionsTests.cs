@@ -1,5 +1,6 @@
 using System;
 using Relay.Core.AI;
+using Relay.Core.AI.CircuitBreaker.Options;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Events
 {
     /// <summary>
     /// Events interface for circuit breaker telemetry.

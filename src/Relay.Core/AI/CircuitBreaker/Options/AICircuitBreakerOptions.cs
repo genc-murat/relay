@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Options
 {
     /// <summary>
     /// Configuration options for AI Circuit Breaker

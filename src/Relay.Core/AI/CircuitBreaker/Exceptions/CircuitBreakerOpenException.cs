@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Exceptions
 {
     /// <summary>
     /// Exception thrown when circuit breaker is open.

@@ -1,6 +1,8 @@
 using System;
+using Relay.Core.AI.CircuitBreaker.Metrics;
+using Relay.Core.AI.CircuitBreaker.Options;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Strategies
 {
     /// <summary>
     /// Standard circuit breaker strategy that opens the circuit based on consecutive failures

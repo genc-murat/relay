@@ -1,6 +1,7 @@
 using System;
+using Relay.Core.AI.CircuitBreaker.Metrics;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Telemetry
 {
     /// <summary>
     /// Interface for circuit breaker telemetry and observability.

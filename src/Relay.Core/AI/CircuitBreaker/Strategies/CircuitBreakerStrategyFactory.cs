@@ -1,6 +1,7 @@
 using System;
+using Relay.Core.AI.CircuitBreaker.Options;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Strategies
 {
     /// <summary>
     /// Factory for creating circuit breaker strategies.

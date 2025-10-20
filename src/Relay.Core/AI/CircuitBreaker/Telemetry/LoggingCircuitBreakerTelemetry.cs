@@ -1,7 +1,8 @@
 using System;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.CircuitBreaker.Metrics;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Telemetry
 {
     /// <summary>
     /// Basic telemetry implementation using logging.

@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker.Metrics
 {
     /// <summary>
     /// Comprehensive circuit breaker metrics with detailed statistics.

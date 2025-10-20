@@ -5,7 +5,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
+using Relay.Core.AI.CircuitBreaker;
+using Relay.Core.AI.CircuitBreaker.Options;
+using Relay.Core.AI.CircuitBreaker.Events;
 using Xunit;
+using Relay.Core.AI.CircuitBreaker.Exceptions;
 
 namespace Relay.Core.Tests.AI
 {

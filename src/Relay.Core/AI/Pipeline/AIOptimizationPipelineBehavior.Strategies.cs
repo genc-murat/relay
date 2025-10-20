@@ -13,6 +13,10 @@ using Relay.Core.Telemetry;
 using Relay.Core.AI.Optimization.Batching;
 using Relay.Core.AI.Optimization.Contexts;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.AI.CircuitBreaker;
+using Relay.Core.AI.CircuitBreaker.Options;
+using Relay.Core.AI.CircuitBreaker.Metrics;
+using Relay.Core.AI.CircuitBreaker.Exceptions;
 
 namespace Relay.Core.AI
 {

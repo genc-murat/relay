@@ -4,8 +4,14 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.CircuitBreaker.Options;
+using Relay.Core.AI.CircuitBreaker.Strategies;
+using Relay.Core.AI.CircuitBreaker.Telemetry;
+using Relay.Core.AI.CircuitBreaker.Events;
+using Relay.Core.AI.CircuitBreaker.Exceptions;
+using Relay.Core.AI.CircuitBreaker.Metrics;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.CircuitBreaker
 {
     /// <summary>
     /// AI-powered circuit breaker implementation with configurable strategies and telemetry.

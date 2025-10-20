@@ -74,6 +74,188 @@ public class Test
     }
 
     [Fact]
+    public async Task NullCheckRule_ShouldDetectNullConditionalOpportunity()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessPerson(Person person)
+    {
+        string name;
+        if (person != null)
+        {
+            name = person.Name;
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("?.", suggestions.First().SuggestedCode);
+        Assert.Contains("person?.Name", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldDetectTernaryNullCoalescingOpportunity()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetValue(string input)
+    {
+        return input == null ? ""default"" : input;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("??", suggestions.First().SuggestedCode);
+        Assert.DoesNotContain(":", suggestions.First().SuggestedCode); // Should not contain ternary operator
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldHandleReverseNullCheck()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetValue(string input)
+    {
+        if (null == input)
+        {
+            input = ""default"";
+        }
+        return input;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("??=", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldHandleReverseNotNullCheck()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessPerson(Person person)
+    {
+        string name;
+        if (null != person)
+        {
+            name = person.Name;
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("?.", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldNotRefactorMultipleStatements()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetValue(string input)
+    {
+        if (input == null)
+        {
+            input = ""default"";
+            Console.WriteLine(""Assigned default"");
+        }
+        return input;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Empty(suggestions); // Should not suggest refactoring for multiple statements
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldNotRefactorNonAssignmentStatements()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessValue(string input)
+    {
+        if (input == null)
+        {
+            Console.WriteLine(""Input is null"");
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Empty(suggestions); // Should not suggest refactoring for non-assignment statements
+    }
+
+    [Fact]
     public async Task LinqRule_ShouldDetectWhereAnyPattern()
     {
         // Arrange

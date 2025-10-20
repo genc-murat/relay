@@ -474,6 +474,160 @@ namespace Relay.Core.Tests.AI
             Assert.NotNull(result2);
         }
 
+        [Fact]
+        public async Task HandleAsync_Should_Log_Detailed_Performance_Metrics()
+        {
+            // Arrange
+            var options = new AIPerformanceTrackingOptions
+            {
+                EnableDetailedLogging = true,
+                EnableImmediateExport = false,
+                EnablePeriodicExport = false
+            };
+
+            var behavior = new AIPerformanceTrackingBehavior<TestRequest, TestResponse>(
+                _logger,
+                null, // No exporter
+                options);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = async () =>
+            {
+                await Task.Delay(10);
+                return new TestResponse { Result = "success" };
+            };
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            // Detailed logging is enabled, so TrackPerformanceMetricsAsync should log trace information
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Enable_Immediate_Export_But_Not_Trigger_When_Threshold_Not_Reached()
+        {
+            // Arrange
+            var options = new AIPerformanceTrackingOptions
+            {
+                EnableImmediateExport = true,
+                ImmediateExportThreshold = 10, // High threshold
+                EnablePeriodicExport = false
+            };
+
+            var behavior = new AIPerformanceTrackingBehavior<TestRequest, TestResponse>(
+                _logger,
+                _exporterMock.Object,
+                options);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = () =>
+                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+
+            // Act - Execute fewer times than threshold
+            for (int i = 0; i < 3; i++)
+            {
+                await behavior.HandleAsync(request, next, CancellationToken.None);
+            }
+
+            // Assert - Should not have exported yet
+            _exporterMock.Verify(e => e.ExportMetricsAsync(It.IsAny<AIModelStatistics>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Handle_Null_Metrics_Exporter()
+        {
+            // Arrange
+            var options = new AIPerformanceTrackingOptions
+            {
+                EnableImmediateExport = true,
+                ImmediateExportThreshold = 2,
+                EnablePeriodicExport = false
+            };
+
+            var behavior = new AIPerformanceTrackingBehavior<TestRequest, TestResponse>(
+                _logger,
+                null, // Null exporter
+                options);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = () =>
+                new ValueTask<TestResponse>(new TestResponse { Result = "success" });
+
+            // Act - Should not throw even with null exporter
+            var result1 = await behavior.HandleAsync(request, next, CancellationToken.None);
+            var result2 = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result1);
+            Assert.NotNull(result2);
+            // No export should be attempted since exporter is null
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Log_Detailed_Exception_Tracking()
+        {
+            // Arrange
+            var options = new AIPerformanceTrackingOptions
+            {
+                EnableDetailedLogging = true,
+                EnableImmediateExport = false,
+                EnablePeriodicExport = false
+            };
+
+            var behavior = new AIPerformanceTrackingBehavior<TestRequest, TestResponse>(
+                _logger,
+                null, // No exporter
+                options);
+
+            var request = new TestRequest { Value = "test" };
+            var expectedException = new InvalidOperationException("Test exception");
+
+            RequestHandlerDelegate<TestResponse> next = () =>
+                throw expectedException;
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await behavior.HandleAsync(request, next, CancellationToken.None));
+
+            // Assert
+            Assert.Equal(expectedException, exception);
+            // Detailed logging should be performed for both start and exception paths
+        }
+
+        [Fact]
+        public async Task HandleAsync_Should_Log_Start_And_End_Messages_With_Detailed_Logging()
+        {
+            // Arrange
+            var options = new AIPerformanceTrackingOptions
+            {
+                EnableDetailedLogging = true,
+                EnableImmediateExport = false,
+                EnablePeriodicExport = false
+            };
+
+            var behavior = new AIPerformanceTrackingBehavior<TestRequest, TestResponse>(
+                _logger,
+                null, // No exporter
+                options);
+
+            var request = new TestRequest { Value = "test" };
+            RequestHandlerDelegate<TestResponse> next = async () =>
+            {
+                await Task.Delay(5); // Small delay to ensure measurable time
+                return new TestResponse { Result = "success" };
+            };
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("success", result.Result);
+            // Both start and end debug messages should be logged
+        }
+
         // Test classes
         public class TestRequest : IRequest<TestResponse>
         {

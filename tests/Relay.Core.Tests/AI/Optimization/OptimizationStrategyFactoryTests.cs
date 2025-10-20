@@ -1,10 +1,9 @@
-using System.Linq;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization;
 using Relay.Core.AI.Optimization.Strategies;
+using System.Linq;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization
@@ -24,12 +23,12 @@ namespace Relay.Core.Tests.AI.Optimization
             var strategies = factory.CreateAllStrategies().ToList();
 
             // Assert
-            strategies.Should().HaveCount(5);
-            strategies.Should().Contain(s => s.Name == "RequestAnalysis");
-            strategies.Should().Contain(s => s.Name == "BatchSizePrediction");
-            strategies.Should().Contain(s => s.Name == "Caching");
-            strategies.Should().Contain(s => s.Name == "Learning");
-            strategies.Should().Contain(s => s.Name == "SystemInsights");
+            Assert.Equal(5, strategies.Count);
+            Assert.Contains(strategies, s => s.Name == "RequestAnalysis");
+            Assert.Contains(strategies, s => s.Name == "BatchSizePrediction");
+            Assert.Contains(strategies, s => s.Name == "Caching");
+            Assert.Contains(strategies, s => s.Name == "Learning");
+            Assert.Contains(strategies, s => s.Name == "SystemInsights");
         }
 
         [Fact]
@@ -42,9 +41,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var strategy = factory.CreateStrategy("RequestAnalysis");
 
             // Assert
-            strategy.Should().NotBeNull();
-            strategy.Should().BeOfType<RequestAnalysisStrategy>();
-            strategy!.Name.Should().Be("RequestAnalysis");
+            Assert.NotNull(strategy);
+            Assert.IsType<RequestAnalysisStrategy>(strategy);
+            Assert.Equal("RequestAnalysis", strategy.Name);
         }
 
         [Fact]
@@ -57,7 +56,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var strategy = factory.CreateStrategy("UnknownStrategy");
 
             // Assert
-            strategy.Should().BeNull();
+            Assert.Null(strategy);
         }
 
         [Fact]
@@ -70,8 +69,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var strategies = factory.CreateStrategiesForOperation("AnalyzeRequest").ToList();
 
             // Assert
-            strategies.Should().HaveCount(1);
-            strategies[0].Should().BeOfType<RequestAnalysisStrategy>();
+            Assert.Single(strategies);
+            Assert.IsType<RequestAnalysisStrategy>(strategies[0]);
         }
 
         [Fact]
@@ -84,7 +83,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var strategies = factory.CreateStrategiesForOperation("UnknownOperation").ToList();
 
             // Assert
-            strategies.Should().BeEmpty();
+            Assert.Empty(strategies);
         }
 
         [Fact]
@@ -97,12 +96,12 @@ namespace Relay.Core.Tests.AI.Optimization
             var names = factory.GetAvailableStrategyNames().ToList();
 
             // Assert
-            names.Should().HaveCount(5);
-            names.Should().Contain("RequestAnalysis");
-            names.Should().Contain("BatchSizePrediction");
-            names.Should().Contain("Caching");
-            names.Should().Contain("Learning");
-            names.Should().Contain("SystemInsights");
+            Assert.Equal(5, names.Count);
+            Assert.Contains("RequestAnalysis", names);
+            Assert.Contains("BatchSizePrediction", names);
+            Assert.Contains("Caching", names);
+            Assert.Contains("Learning", names);
+            Assert.Contains("SystemInsights", names);
         }
 
         [Fact]
@@ -117,9 +116,10 @@ namespace Relay.Core.Tests.AI.Optimization
             // Assert
             foreach (var strategy in strategies)
             {
-                strategy.Should().NotBeNull();
-                strategy.Name.Should().NotBeNullOrEmpty();
-                strategy.Priority.Should().BeGreaterThanOrEqualTo(0);
+                Assert.NotNull(strategy);
+                Assert.NotNull(strategy.Name);
+                Assert.NotEmpty(strategy.Name);
+                Assert.True(strategy.Priority >= 0);
             }
         }
 
@@ -134,8 +134,8 @@ namespace Relay.Core.Tests.AI.Optimization
             foreach (var operation in operations)
             {
                 var strategies = factory.CreateStrategiesForOperation(operation).ToList();
-                strategies.Should().HaveCount(1);
-                strategies[0].CanHandle(operation).Should().BeTrue();
+                Assert.Single(strategies);
+                Assert.True(strategies[0].CanHandle(operation));
             }
         }
     }

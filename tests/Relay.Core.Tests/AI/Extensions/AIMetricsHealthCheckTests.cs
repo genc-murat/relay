@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Metrics.Interfaces;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Extensions

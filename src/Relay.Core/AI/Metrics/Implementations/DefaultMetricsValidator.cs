@@ -1,6 +1,7 @@
 using System;
+using Relay.Core.AI.Metrics.Interfaces;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Metrics.Implementations
 {
     /// <summary>
     /// Default implementation of metrics validator.

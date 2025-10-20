@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Extensions;
+using Relay.Core.AI.Metrics.Interfaces;
+using Relay.Core.AI.Metrics.Implementations;
 
 namespace Relay.Core.AI
 {

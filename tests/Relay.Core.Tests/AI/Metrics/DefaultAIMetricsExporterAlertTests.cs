@@ -10,6 +10,7 @@ using Moq;
 using Relay.Core.AI;
 using Xunit;
 using Microsoft.Extensions.Logging.Abstractions;
+using Relay.Core.AI.Metrics.Implementations;
 
 namespace Relay.Core.Tests.AI.Metrics
 {

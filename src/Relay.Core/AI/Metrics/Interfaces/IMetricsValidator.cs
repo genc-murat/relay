@@ -1,4 +1,4 @@
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Metrics.Interfaces
 {
     /// <summary>
     /// Interface for validating AI model statistics.

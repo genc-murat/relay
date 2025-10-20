@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.AI.Metrics.Interfaces;
 
 namespace Relay.Core.AI;
 

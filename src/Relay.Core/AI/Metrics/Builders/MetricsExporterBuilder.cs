@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Metrics.Interfaces;
+using Relay.Core.AI.Metrics.Implementations;
+using Relay.Core.AI.Metrics.Strategies;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Metrics.Builders
 {
     /// <summary>
     /// Builder for creating configured metrics exporters.

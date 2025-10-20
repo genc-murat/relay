@@ -4,8 +4,9 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.AI.Metrics.Interfaces;
 
-namespace Relay.Core.AI;
+namespace Relay.Core.AI.Metrics.Implementations;
 
 /// <summary>
 /// Default implementation of metrics trend analyzer.

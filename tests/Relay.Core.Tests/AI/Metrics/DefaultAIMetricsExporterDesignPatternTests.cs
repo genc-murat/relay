@@ -1,15 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Metrics.Builders;
+using Relay.Core.AI.Metrics.Commands;
+using Relay.Core.AI.Metrics.Implementations;
+using Relay.Core.AI.Metrics.Interfaces;
+using Relay.Core.AI.Metrics.Strategies;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Relay.Core.Tests.AI.Metrics
 {

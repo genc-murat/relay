@@ -2,8 +2,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Metrics.Interfaces;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Metrics.Strategies
 {
     /// <summary>
     /// Structured logging-based metrics export strategy.

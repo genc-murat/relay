@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.AI.Metrics.Interfaces;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Metrics.Commands
 {
     /// <summary>
     /// Command for executing metrics export operations.

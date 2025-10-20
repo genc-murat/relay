@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Metrics.Interfaces
 {
     /// <summary>
     /// Observer interface for metrics alerts.

@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.AI.Metrics.Interfaces;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Metrics.Strategies
 {
     /// <summary>
     /// OpenTelemetry-based metrics export strategy.

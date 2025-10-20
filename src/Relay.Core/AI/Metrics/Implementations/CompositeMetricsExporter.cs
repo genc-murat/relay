@@ -6,8 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Relay.Core.AI.Metrics.Interfaces;
+using Relay.Core.AI.Metrics.Commands;
 
-namespace Relay.Core.AI;
+namespace Relay.Core.AI.Metrics.Implementations;
 
 /// <summary>
 /// Composite metrics exporter that combines multiple export strategies.

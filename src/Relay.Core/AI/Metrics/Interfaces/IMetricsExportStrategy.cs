@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Metrics.Interfaces
 {
     /// <summary>
     /// Strategy interface for different metrics export approaches.

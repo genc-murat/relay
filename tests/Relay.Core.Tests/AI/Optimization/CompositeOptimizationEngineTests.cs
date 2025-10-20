@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -52,8 +51,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await composite.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.StrategyName.Should().Be("Engine2Strategy"); // Should pick highest confidence
+            Assert.True(result.Success);
+            Assert.Equal("Engine2Strategy", result.StrategyName); // Should pick highest confidence
             engine1.Verify(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default), Times.Once);
             engine2.Verify(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default), Times.Once);
         }
@@ -94,10 +93,10 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await composite.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeFalse();
-            result.ErrorMessage.Should().Contain("All engines failed");
-            result.ErrorMessage.Should().Contain("Engine1 failed");
-            result.ErrorMessage.Should().Contain("Engine2 failed");
+            Assert.False(result.Success);
+            Assert.Contains("All engines failed", result.ErrorMessage);
+            Assert.Contains("Engine1 failed", result.ErrorMessage);
+            Assert.Contains("Engine2 failed", result.ErrorMessage);
         }
 
         [Fact]
@@ -137,8 +136,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result2 = await loadBalanced.OptimizeAsync(context);
 
             // Assert
-            result1.Success.Should().BeTrue();
-            result2.Success.Should().BeTrue();
+            Assert.True(result1.Success);
+            Assert.True(result2.Success);
             // Note: Round-robin behavior may not be deterministic in parallel execution
         }
 
@@ -188,8 +187,193 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await voting.OptimizeAsync(context);
 
             // Assert
-            result.Success.Should().BeTrue();
-            result.StrategyName.Should().Be("StrategyA"); // Majority vote wins
+            Assert.True(result.Success);
+            Assert.Equal("StrategyA", result.StrategyName); // Majority vote wins
+        }
+
+        [Fact]
+        public async Task VotingOptimizationEngine_AllEnginesFail_ReturnsFailure()
+        {
+            // Arrange
+            var logger = NullLogger.Instance;
+            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var observers = new List<IPerformanceObserver>();
+
+            var engine1 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+            var engine2 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+
+            engine1.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = false,
+                    StrategyName = "Engine1",
+                    ErrorMessage = "Engine1 failed",
+                    ExecutionTime = TimeSpan.FromMilliseconds(100)
+                });
+
+            engine2.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = false,
+                    StrategyName = "Engine2",
+                    ErrorMessage = "Engine2 failed",
+                    ExecutionTime = TimeSpan.FromMilliseconds(200)
+                });
+
+            var voting = new VotingOptimizationEngine(
+                logger, strategyFactory.Object, observers, new[] { engine1.Object, engine2.Object });
+
+            var context = new OptimizationContext { Operation = "TestOperation" };
+
+            // Act
+            var result = await voting.OptimizeAsync(context);
+
+            // Assert
+            Assert.False(result.Success);
+            Assert.Equal("Voting", result.StrategyName);
+            Assert.Equal("No successful results from any engine", result.ErrorMessage);
+            Assert.Equal(TimeSpan.FromMilliseconds(200), result.ExecutionTime); // Max execution time
+        }
+
+        [Fact]
+        public async Task VotingOptimizationEngine_TieResolvedByConfidence()
+        {
+            // Arrange
+            var logger = NullLogger.Instance;
+            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var observers = new List<IPerformanceObserver>();
+
+            var engine1 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+            var engine2 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+            var engine3 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+            var engine4 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+
+            // Two engines choose StrategyA with low confidence, two choose StrategyB with high confidence
+            engine1.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = true,
+                    StrategyName = "StrategyA",
+                    Confidence = 0.5
+                });
+
+            engine2.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = true,
+                    StrategyName = "StrategyA",
+                    Confidence = 0.6
+                });
+
+            engine3.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = true,
+                    StrategyName = "StrategyB",
+                    Confidence = 0.8
+                });
+
+            engine4.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = true,
+                    StrategyName = "StrategyB",
+                    Confidence = 0.9
+                });
+
+            var voting = new VotingOptimizationEngine(
+                logger, strategyFactory.Object, observers, new[] { engine1.Object, engine2.Object, engine3.Object, engine4.Object });
+
+            var context = new OptimizationContext { Operation = "TestOperation" };
+
+            // Act
+            var result = await voting.OptimizeAsync(context);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("StrategyB", result.StrategyName); // Higher average confidence wins tie
+        }
+
+        [Fact]
+        public async Task VotingOptimizationEngine_AllEnginesAgree_ReturnsConsensus()
+        {
+            // Arrange
+            var logger = NullLogger.Instance;
+            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var observers = new List<IPerformanceObserver>();
+
+            var engine1 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+            var engine2 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+            var engine3 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+
+            // All engines agree on StrategyA
+            engine1.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = true,
+                    StrategyName = "StrategyA",
+                    Confidence = 0.7
+                });
+
+            engine2.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = true,
+                    StrategyName = "StrategyA",
+                    Confidence = 0.8
+                });
+
+            engine3.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = true,
+                    StrategyName = "StrategyA",
+                    Confidence = 0.9
+                });
+
+            var voting = new VotingOptimizationEngine(
+                logger, strategyFactory.Object, observers, new[] { engine1.Object, engine2.Object, engine3.Object });
+
+            var context = new OptimizationContext { Operation = "TestOperation" };
+
+            // Act
+            var result = await voting.OptimizeAsync(context);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("StrategyA", result.StrategyName);
+        }
+
+        [Fact]
+        public async Task VotingOptimizationEngine_SingleEngine_ReturnsItsResult()
+        {
+            // Arrange
+            var logger = NullLogger.Instance;
+            var strategyFactory = new Mock<OptimizationStrategyFactory>(NullLoggerFactory.Instance, new AIOptimizationOptions());
+            var observers = new List<IPerformanceObserver>();
+
+            var engine1 = new Mock<OptimizationEngineTemplate>(NullLogger.Instance, strategyFactory.Object, observers);
+
+            engine1.Setup(e => e.OptimizeAsync(It.IsAny<OptimizationContext>(), default))
+                .ReturnsAsync(new StrategyExecutionResult
+                {
+                    Success = true,
+                    StrategyName = "SingleStrategy",
+                    Confidence = 0.85
+                });
+
+            var voting = new VotingOptimizationEngine(
+                logger, strategyFactory.Object, observers, new[] { engine1.Object });
+
+            var context = new OptimizationContext { Operation = "TestOperation" };
+
+            // Act
+            var result = await voting.OptimizeAsync(context);
+
+            // Assert
+            Assert.True(result.Success);
+            Assert.Equal("SingleStrategy", result.StrategyName);
+            Assert.Equal(0.85, result.Confidence);
         }
 
         [Fact]
@@ -210,7 +394,7 @@ namespace Relay.Core.Tests.AI.Optimization
             composite.AddEngine(engine2.Object);
 
             // Assert
-            composite.EngineCount.Should().Be(2);
+            Assert.Equal(2, composite.EngineCount);
         }
 
         [Fact]
@@ -230,8 +414,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var removed = composite.RemoveEngine(engine2.Object);
 
             // Assert
-            removed.Should().BeTrue();
-            composite.EngineCount.Should().Be(1);
+            Assert.True(removed);
+            Assert.Equal(1, composite.EngineCount);
         }
 
         [Fact]
@@ -252,8 +436,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var removed = composite.RemoveEngine(engine2.Object);
 
             // Assert
-            removed.Should().BeFalse();
-            composite.EngineCount.Should().Be(1);
+            Assert.False(removed);
+            Assert.Equal(1, composite.EngineCount);
         }
 
         [Fact]
@@ -269,7 +453,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 logger, strategyFactory.Object, observers, Array.Empty<OptimizationEngineTemplate>());
 
             // Assert
-            act.Should().NotThrow();
+            act();
         }
 
         [Fact]
@@ -294,7 +478,7 @@ namespace Relay.Core.Tests.AI.Optimization
 
             // Act & Assert - Valid context
             // Note: Actual validation testing would require more complex mocking
-            composite.Should().NotBeNull();
+            Assert.NotNull(composite);
         }
 
         [Fact]
@@ -311,7 +495,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 logger, strategyFactory.Object, observers, new[] { engine.Object });
 
             // Assert
-            composite.Should().BeAssignableTo<OptimizationEngineTemplate>();
+            Assert.IsAssignableFrom<OptimizationEngineTemplate>(composite);
         }
 
         [Fact]
@@ -328,7 +512,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 logger, strategyFactory.Object, observers, new[] { engine.Object });
 
             // Assert
-            loadBalanced.Should().BeAssignableTo<CompositeOptimizationEngine>();
+            Assert.IsAssignableFrom<CompositeOptimizationEngine>(loadBalanced);
         }
 
         [Fact]
@@ -345,7 +529,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 logger, strategyFactory.Object, observers, new[] { engine.Object });
 
             // Assert
-            voting.Should().BeAssignableTo<CompositeOptimizationEngine>();
+            Assert.IsAssignableFrom<CompositeOptimizationEngine>(voting);
         }
 
 

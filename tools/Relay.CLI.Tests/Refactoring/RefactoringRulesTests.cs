@@ -711,4 +711,163 @@ public class Test
         // Assert
         Assert.Equal(root.ToFullString(), newCode); // Should be unchanged
     }
+
+    [Fact]
+    public async Task DisposableRule_ShouldNotSuggest_WhenDisposeCallExists()
+    {
+        // Arrange
+        var code = @"
+using System.IO;
+
+public class Test
+{
+    public void ReadFile(string path)
+    {
+        var stream = new FileStream(path, FileMode.Open);
+        stream.Dispose(); // Explicit dispose call
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new DisposablePatternRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Empty(suggestions); // Should not suggest since dispose call exists
+    }
+
+    [Fact]
+    public async Task DisposableRule_ShouldDetectTryFinallyWithDispose()
+    {
+        // Arrange
+        var code = @"
+using System.IO;
+
+public class Test
+{
+    public void ReadFile(string path)
+    {
+        var stream = new FileStream(path, FileMode.Open);
+        try
+        {
+            // Some code
+        }
+        finally
+        {
+            stream.Dispose();
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new DisposablePatternRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("try-finally", suggestions.First().Description);
+        Assert.Equal(RefactoringSeverity.Suggestion, suggestions.First().Severity);
+    }
+
+    [Fact]
+    public async Task DisposableRule_ShouldNotSuggest_WhenUsingModifierPresent()
+    {
+        // Arrange
+        var code = @"
+using System.IO;
+
+public class Test
+{
+    public void ReadFile(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open);
+        // Already has using modifier
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new DisposablePatternRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Empty(suggestions); // Should not suggest since using modifier is present
+    }
+
+    [Fact]
+    public async Task DisposableRule_ShouldNotSuggest_WhenInsideUsingStatement()
+    {
+        // Arrange
+        var code = @"
+using System.IO;
+
+public class Test
+{
+    public void ReadFile(string path)
+    {
+        using (var stream = new FileStream(path, FileMode.Open))
+        {
+            // Already inside using statement
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new DisposablePatternRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Empty(suggestions); // Should not suggest since inside using statement
+    }
+
+    [Fact]
+    public async Task DisposableRule_ShouldDetectDifferentDisposableTypes()
+    {
+        // Arrange
+        var code = @"
+using System.Data.SqlClient;
+
+public class Test
+{
+    public void QueryDatabase(string connectionString)
+    {
+        var connection = new SqlConnection(connectionString);
+        var command = new SqlCommand(""SELECT * FROM Users"", connection);
+        // Missing using for both disposable objects
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new DisposablePatternRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count >= 2); // Should detect both connection and command
+        Assert.Contains("connection", suggestions[0].Description.ToLower());
+        Assert.Contains("command", suggestions[1].Description.ToLower());
+    }
 }

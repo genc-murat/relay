@@ -1,14 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization;
-using Relay.Core.AI.Optimization.Strategies;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization
@@ -32,8 +30,8 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert - Verify Builder created engine
-            engine.Should().NotBeNull();
-            engine.Should().BeOfType<OptimizationEngine>();
+            Assert.NotNull(engine);
+            Assert.IsType<OptimizationEngine>(engine);
         }
 
         [Fact]
@@ -46,9 +44,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var strategies = factory.CreateAllStrategies().ToList();
 
             // Assert - Verify Factory integration
-            strategies.Should().NotBeNull();
-            strategies.Should().HaveCountGreaterThan(0);
-            strategies.Should().Contain(s => s.Name == "RequestAnalysis");
+            Assert.NotNull(strategies);
+            Assert.True(strategies.Count > 0);
+            Assert.Contains(strategies, s => s.Name == "RequestAnalysis");
         }
 
         [Fact]
@@ -69,7 +67,7 @@ namespace Relay.Core.Tests.AI.Optimization
             await observer.OnOptimizationCompletedAsync(result);
 
             // Assert - Observer integration
-            observer.Should().NotBeNull();
+            Assert.NotNull(observer);
             logger.Verify(l => l.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
@@ -105,8 +103,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await templateEngine.OptimizeAsync(context);
 
             // Assert - Template method integration
-            result.Should().NotBeNull();
-            result.StrategyName.Should().NotBeNullOrEmpty();
+            Assert.NotNull(result);
+            Assert.NotNull(result.StrategyName);
+            Assert.NotEmpty(result.StrategyName);
         }
 
         [Fact]
@@ -135,8 +134,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await command.ExecuteAsync();
 
             // Assert - Command pattern integration
-            result.Success.Should().BeTrue();
-            command.Description.Should().Contain("Analyze request");
+            Assert.True(result.Success);
+            Assert.Contains("Analyze request", command.Description);
         }
 
         [Fact]
@@ -168,8 +167,8 @@ namespace Relay.Core.Tests.AI.Optimization
             var result2 = await decorator.OptimizeAsync(context); // Should use cache
 
             // Assert - Decorator pattern integration
-            result1.Success.Should().BeTrue();
-            result2.Success.Should().BeTrue();
+            Assert.True(result1.Success);
+            Assert.True(result2.Success);
         }
 
         [Fact]
@@ -203,7 +202,7 @@ namespace Relay.Core.Tests.AI.Optimization
             var results = await compositeEngine.OptimizeAsync(context);
 
             // Assert - Composite pattern integration
-            results.Should().NotBeNull();
+            Assert.NotNull(results);
             // Note: Composite returns single result, not collection
         }
 
@@ -242,13 +241,13 @@ namespace Relay.Core.Tests.AI.Optimization
             composite.AddEngine(decorator);
 
             // Assert - All patterns can coexist
-            builder.Should().NotBeNull();
-            factory.Should().NotBeNull();
-            observer.Should().NotBeNull();
-            templateEngine.Should().NotBeNull();
-            command.Should().NotBeNull();
-            decorator.Should().NotBeNull();
-            composite.Should().NotBeNull();
+            Assert.NotNull(builder);
+            Assert.NotNull(factory);
+            Assert.NotNull(observer);
+            Assert.NotNull(templateEngine);
+            Assert.NotNull(command);
+            Assert.NotNull(decorator);
+            Assert.NotNull(composite);
         }
     }
 }

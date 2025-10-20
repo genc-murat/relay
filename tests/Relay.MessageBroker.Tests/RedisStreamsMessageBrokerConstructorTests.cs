@@ -10,14 +10,14 @@ using System.Reflection;
 
 namespace Relay.MessageBroker.Tests;
 
-public class RedisStreamsMessageBrokerTests : IDisposable
+public class RedisStreamsMessageBrokerConstructorTests : IDisposable
 {
     private readonly Mock<ILogger<RedisStreamsMessageBroker>> _mockLogger;
     private readonly Mock<IConnectionMultiplexer> _mockRedis;
     private readonly Mock<IDatabase> _mockDatabase;
     private readonly MessageBrokerOptions _defaultOptions;
 
-    public RedisStreamsMessageBrokerTests()
+    public RedisStreamsMessageBrokerConstructorTests()
     {
         _mockLogger = new Mock<ILogger<RedisStreamsMessageBroker>>();
         _mockRedis = new Mock<IConnectionMultiplexer>();
@@ -94,74 +94,6 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         Assert.NotNull(broker);
     }
 
-    [Fact]
-    public async Task PublishAsync_WithNullMessage_ShouldThrowArgumentNullException()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.PublishAsync<object>(null!));
-    }
-
-    [Fact]
-    public async Task SubscribeAsync_WithNullHandler_ShouldThrowArgumentNullException()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.SubscribeAsync<TestMessage>(null!));
-    }
-
-    [Fact]
-    public async Task StartAsync_ShouldCompleteSuccessfully()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.StartAsync());
-        Assert.Null(exception); // StartAsync uses lazy connection
-    }
-
-    [Fact]
-    public async Task StopAsync_BeforeStart_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.StopAsync());
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task StopAsync_AfterStart_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-        
-        // StartAsync completes without Redis connection (lazy connection)
-        await broker.StartAsync();
-
-        // Act & Assert
-        // StopAsync should not throw
-        var exception = await Record.ExceptionAsync(async () => await broker.StopAsync());
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task DisposeAsync_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.DisposeAsync());
-        Assert.Null(exception);
-    }
-
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -233,34 +165,6 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     }
 
     [Fact]
-    public void RedisStreamsOptions_ShouldHaveCorrectDefaults()
-    {
-        // Arrange & Act
-        var options = new RedisStreamsOptions();
-
-        // Assert
-        Assert.Equal("relay:stream", options.DefaultStreamName);
-        Assert.Equal("relay-consumer-group", options.ConsumerGroupName);
-        Assert.Equal("relay-consumer", options.ConsumerName);
-        Assert.Equal(0, options.Database);
-        Assert.True(options.CreateConsumerGroupIfNotExists);
-        Assert.True(options.AutoAcknowledge);
-        Assert.Null(options.MaxStreamLength);
-        Assert.Null(options.ConnectTimeout);
-        Assert.Null(options.SyncTimeout);
-    }
-
-    [Fact]
-    public void MessageBrokerOptions_ShouldIncludeRedisStreams()
-    {
-        // Arrange & Act
-        var options = new MessageBrokerOptions();
-
-        // Assert
-        Assert.Null(options.RedisStreams);
-    }
-
-    [Fact]
     public void Constructor_WithCreateConsumerGroupEnabled_ShouldSucceed()
     {
         // Arrange
@@ -324,252 +228,6 @@ public class RedisStreamsMessageBrokerTests : IDisposable
     }
 
     [Fact]
-    public async Task PublishAsync_WithCustomRoutingKey_ShouldUseProvidedRoutingKey()
-    {
-        // Arrange
-
-
-        var broker = new RedisStreamsMessageBroker(
-            Options.Create(_defaultOptions),
-            _mockLogger.Object,
-            connectionMultiplexer: _mockRedis.Object);
-
-        var message = new TestMessage { Id = 1, Content = "test" };
-        var publishOptions = new PublishOptions
-        {
-            RoutingKey = "custom-stream"
-        };
-
-        // Act
-        await broker.PublishAsync(message, publishOptions);
-
-        // Assert - The method completed without throwing, which indicates StreamAddAsync was called successfully
-    }
-
-    [Fact]
-    public async Task PublishAsync_WithHeaders_ShouldIncludeHeaders()
-    {
-        // Arrange
-
-
-        var broker = new RedisStreamsMessageBroker(
-            Options.Create(_defaultOptions),
-            _mockLogger.Object,
-            connectionMultiplexer: _mockRedis.Object);
-
-        var message = new TestMessage { Id = 1, Content = "test" };
-        var publishOptions = new PublishOptions
-        {
-            Headers = new Dictionary<string, object>
-            {
-                ["custom-header"] = "header-value",
-                ["numeric-header"] = 42
-            }
-        };
-
-        // Act
-        await broker.PublishAsync(message, publishOptions);
-
-        // Assert - The method completed without throwing, which indicates StreamAddAsync was called successfully
-    }
-
-    [Fact]
-    public async Task PublishAsync_WithPriority_ShouldIncludePriority()
-    {
-        // Arrange
-
-
-        var broker = new RedisStreamsMessageBroker(
-            Options.Create(_defaultOptions),
-            _mockLogger.Object,
-            connectionMultiplexer: _mockRedis.Object);
-
-        var message = new TestMessage { Id = 1, Content = "test" };
-        var publishOptions = new PublishOptions
-        {
-            Priority = 5
-        };
-
-        // Act
-        await broker.PublishAsync(message, publishOptions);
-
-        // Assert - The method completed without throwing, which indicates StreamAddAsync was called successfully
-    }
-
-    [Fact]
-    public async Task PublishAsync_WithExpiration_ShouldIncludeExpiration()
-    {
-        // Arrange
-
-
-        var broker = new RedisStreamsMessageBroker(
-            Options.Create(_defaultOptions),
-            _mockLogger.Object,
-            connectionMultiplexer: _mockRedis.Object);
-
-        var message = new TestMessage { Id = 1, Content = "test" };
-        var publishOptions = new PublishOptions
-        {
-            Expiration = TimeSpan.FromMinutes(5)
-        };
-
-        // Act
-        await broker.PublishAsync(message, publishOptions);
-
-        // Assert - The method completed without throwing, which indicates StreamAddAsync was called successfully
-    }
-
-    [Fact]
-    public async Task PublishAsync_WithCorrelationId_ShouldIncludeCorrelationId()
-    {
-        // Arrange
-
-
-        var broker = new RedisStreamsMessageBroker(
-            Options.Create(_defaultOptions),
-            _mockLogger.Object,
-            connectionMultiplexer: _mockRedis.Object);
-
-        var message = new TestMessage { Id = 1, Content = "test" };
-        var publishOptions = new PublishOptions
-        {
-            Headers = new Dictionary<string, object>
-            {
-                ["CorrelationId"] = "test-correlation-id"
-            }
-        };
-
-        // Act
-        await broker.PublishAsync(message, publishOptions);
-
-        // Assert - The method completed without throwing, which indicates StreamAddAsync was called successfully
-    }
-
-    [Fact]
-    public async Task SubscribeAsync_WithCustomQueueName_ShouldUseProvidedQueueName()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-        var subscriptionOptions = new SubscriptionOptions
-        {
-            QueueName = "custom-stream-name"
-        };
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask,
-            subscriptionOptions));
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task SubscribeAsync_WithCustomConsumerGroup_ShouldUseProvidedConsumerGroup()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-        var subscriptionOptions = new SubscriptionOptions
-        {
-            ConsumerGroup = "custom-consumer-group"
-        };
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask,
-            subscriptionOptions));
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task SubscribeAsync_WithValidHandler_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask));
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task SubscribeAsync_WithOptions_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-        var subscriptionOptions = new SubscriptionOptions
-        {
-            QueueName = "test-stream",
-            ConsumerGroup = "test-group"
-        };
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask,
-            subscriptionOptions));
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task SubscribeAsync_MultipleHandlers_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () =>
-        {
-            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-        });
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task SubscribeAsync_DifferentMessageTypes_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () =>
-        {
-            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-            await broker.SubscribeAsync<ComplexMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-        });
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task StartAsync_MultipleTimes_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () =>
-        {
-            await broker.StartAsync();
-            await broker.StartAsync(); // Call twice
-        });
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task DisposeAsync_MultipleTimes_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () =>
-        {
-            await broker.DisposeAsync();
-            await broker.DisposeAsync(); // Dispose twice
-        });
-        Assert.Null(exception);
-    }
-
-    [Fact]
     public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Arrange & Act & Assert
@@ -596,7 +254,7 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         // Arrange
         var options = new MessageBrokerOptions
         {
-            RedisStreams = new RedisStreamsOptions { ConnectionString = null }
+            RedisStreams = new RedisStreamsOptions { ConnectionString = null! }
         };
 
         // Act & Assert
@@ -711,8 +369,6 @@ public class RedisStreamsMessageBrokerTests : IDisposable
         // Assert
         Assert.NotNull(broker);
     }
-
-
 
     public void Dispose()
     {

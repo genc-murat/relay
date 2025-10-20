@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization;
-using Relay.Core.AI.Optimization.Strategies;
+using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization
@@ -29,8 +24,8 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            engine.Should().NotBeNull();
-            engine.Should().BeOfType<OptimizationEngine>();
+            Assert.NotNull(engine);
+            Assert.IsType<OptimizationEngine>(engine);
         }
 
         [Fact]
@@ -45,8 +40,8 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Logger factory must be set");
+            var exception = Assert.Throws<InvalidOperationException>(act);
+            Assert.Contains("Logger factory must be set", exception.Message);
         }
 
         [Fact]
@@ -61,8 +56,8 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Options must be set");
+            var exception = Assert.Throws<InvalidOperationException>(act);
+            Assert.Contains("Options must be set", exception.Message);
         }
 
         [Fact]
@@ -82,7 +77,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            engine.Should().NotBeNull();
+            Assert.NotNull(engine);
         }
 
         [Fact]
@@ -105,7 +100,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            engine.Should().NotBeNull();
+            Assert.NotNull(engine);
         }
 
         [Fact]
@@ -124,7 +119,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            engine.Should().NotBeNull();
+            Assert.NotNull(engine);
         }
 
         [Fact]
@@ -148,8 +143,8 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            engineWithCaching.Should().NotBeNull();
-            engineWithoutCaching.Should().NotBeNull();
+            Assert.NotNull(engineWithCaching);
+            Assert.NotNull(engineWithoutCaching);
         }
 
         [Fact]
@@ -173,8 +168,8 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            engineWithLearning.Should().NotBeNull();
-            engineWithoutLearning.Should().NotBeNull();
+            Assert.NotNull(engineWithLearning);
+            Assert.NotNull(engineWithoutLearning);
         }
 
         [Fact]
@@ -198,8 +193,8 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            engineWithInsights.Should().NotBeNull();
-            engineWithoutInsights.Should().NotBeNull();
+            Assert.NotNull(engineWithInsights);
+            Assert.NotNull(engineWithoutInsights);
         }
 
         [Fact]
@@ -218,7 +213,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 .Build();
 
             // Assert
-            engine.Should().NotBeNull();
+            Assert.NotNull(engine);
         }
 
         [Fact]
@@ -249,8 +244,9 @@ namespace Relay.Core.Tests.AI.Optimization
             var result = await engine.OptimizeAsync(context);
 
             // Assert
-            result.Should().NotBeNull();
-            result.StrategyName.Should().NotBeNullOrEmpty();
+            Assert.NotNull(result);
+            Assert.NotNull(result.StrategyName);
+            Assert.NotEmpty(result.StrategyName);
         }
 
         [Fact]
@@ -271,7 +267,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 .WithDefaultTimeout(TimeSpan.FromSeconds(30));
 
             // Assert
-            result.Should().Be(builder);
+            Assert.Equal(builder, result);
         }
 
         [Fact]
@@ -288,7 +284,7 @@ namespace Relay.Core.Tests.AI.Optimization
                 .AddStrategies(null!)
                 .Build();
 
-            act.Should().Throw<ArgumentNullException>();
+            Assert.Throws<ArgumentNullException>(act);
         }
     }
 }

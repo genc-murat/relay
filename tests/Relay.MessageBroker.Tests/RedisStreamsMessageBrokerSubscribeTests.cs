@@ -1,28 +1,25 @@
-using Relay.MessageBroker.RedisStreams;
-using Moq;
-using Xunit;
-using StackExchange.Redis;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Relay.MessageBroker;
-using System.Reflection;
+using Moq;
+using Relay.MessageBroker.RedisStreams;
+using StackExchange.Redis;
 
 namespace Relay.MessageBroker.Tests;
 
-public class RedisStreamsMessageBrokerSubscribeTests
+public class RedisStreamsMessageBrokerSubscribeTests : IDisposable
 {
     private readonly Mock<ILogger<RedisStreamsMessageBroker>> _mockLogger;
     private readonly Mock<IConnectionMultiplexer> _mockRedis;
     private readonly Mock<IDatabase> _mockDatabase;
     private readonly MessageBrokerOptions _defaultOptions;
+    private readonly RedisStreamsMessageBroker _broker;
 
     public RedisStreamsMessageBrokerSubscribeTests()
     {
         _mockLogger = new Mock<ILogger<RedisStreamsMessageBroker>>();
         _mockRedis = new Mock<IConnectionMultiplexer>();
         _mockDatabase = new Mock<IDatabase>();
-        
+
         _mockRedis.Setup(x => x.GetDatabase(It.IsAny<int>())).Returns(_mockDatabase.Object);
         _mockRedis.SetupGet(x => x.IsConnected).Returns(true);
 
@@ -50,69 +47,60 @@ public class RedisStreamsMessageBrokerSubscribeTests
                 BackoffMultiplier = 2
             }
         };
+
+        // Create broker once for all tests
+        _broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
     }
 
     [Fact]
     public async Task SubscribeAsync_WithNullHandler_ShouldThrowArgumentNullException()
     {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await broker.SubscribeAsync<TestMessage>(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await _broker.SubscribeAsync<TestMessage>(null!));
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WithValidHandler_ShouldNotThrow()
+    {
+        // Act & Assert - Test basic subscription
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
     }
 
     [Fact]
     public async Task SubscribeAsync_WithCustomQueueName_ShouldUseProvidedQueueName()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
         var subscriptionOptions = new SubscriptionOptions
         {
             QueueName = "custom-stream-name"
         };
 
         // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask,
-            subscriptionOptions));
-        Assert.Null(exception);
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask, subscriptionOptions);
     }
 
     [Fact]
     public async Task SubscribeAsync_WithCustomConsumerGroup_ShouldUseProvidedConsumerGroup()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
         var subscriptionOptions = new SubscriptionOptions
         {
             ConsumerGroup = "custom-consumer-group"
         };
 
         // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask,
-            subscriptionOptions));
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task SubscribeAsync_WithValidHandler_ShouldNotThrow()
-    {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask));
-        Assert.Null(exception);
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask, subscriptionOptions);
     }
 
     [Fact]
     public async Task SubscribeAsync_WithOptions_ShouldNotThrow()
     {
         // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
         var subscriptionOptions = new SubscriptionOptions
         {
             QueueName = "test-stream",
@@ -120,40 +108,23 @@ public class RedisStreamsMessageBrokerSubscribeTests
         };
 
         // Act & Assert
-        var exception = await Record.ExceptionAsync(async () => await broker.SubscribeAsync<TestMessage>(
-            (msg, ctx, ct) => ValueTask.CompletedTask,
-            subscriptionOptions));
-        Assert.Null(exception);
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask, subscriptionOptions);
     }
 
     [Fact]
     public async Task SubscribeAsync_MultipleHandlers_ShouldNotThrow()
     {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () =>
-        {
-            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-        });
-        Assert.Null(exception);
+        // Act & Assert - Test multiple subscriptions
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
     }
 
     [Fact]
     public async Task SubscribeAsync_DifferentMessageTypes_ShouldNotThrow()
     {
-        // Arrange
-        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object);
-
-        // Act & Assert
-        var exception = await Record.ExceptionAsync(async () =>
-        {
-            await broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-            await broker.SubscribeAsync<ComplexMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
-        });
-        Assert.Null(exception);
+        // Act & Assert - Test different message types
+        await _broker.SubscribeAsync<TestMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
+        await _broker.SubscribeAsync<ComplexMessage>((msg, ctx, ct) => ValueTask.CompletedTask);
     }
 
     private class TestMessage

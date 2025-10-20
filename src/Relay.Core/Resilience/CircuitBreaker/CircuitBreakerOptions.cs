@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Resilience;
+namespace Relay.Core.Resilience.CircuitBreaker;
 
 /// <summary>
 /// Configuration options for circuit breaker.

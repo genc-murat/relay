@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core.Resilience
+namespace Relay.Core.Resilience.Bulkhead
 {
     /// <summary>
     /// Bulkhead isolation pattern implementation for request handlers.

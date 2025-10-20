@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 
-namespace Relay.Core.Resilience;
+namespace Relay.Core.Resilience.CircuitBreaker;
 
 /// <summary>
 /// Circuit breaker state management.

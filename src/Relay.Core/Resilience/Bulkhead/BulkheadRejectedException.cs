@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Resilience
+namespace Relay.Core.Resilience.Bulkhead
 {
     /// <summary>
     /// Exception thrown when bulkhead rejects a request due to concurrency limits.

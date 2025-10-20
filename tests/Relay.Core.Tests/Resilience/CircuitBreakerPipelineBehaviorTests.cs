@@ -8,6 +8,7 @@ using Moq;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Resilience;
+using Relay.Core.Resilience.CircuitBreaker;
 using Xunit;
 
 namespace Relay.Core.Tests.Resilience

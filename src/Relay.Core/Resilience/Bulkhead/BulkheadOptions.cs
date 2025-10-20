@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 
-namespace Relay.Core.Resilience
+namespace Relay.Core.Resilience.Bulkhead
 {
     /// <summary>
     /// Configuration options for bulkhead isolation.

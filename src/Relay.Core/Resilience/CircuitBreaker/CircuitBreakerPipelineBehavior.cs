@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core.Resilience;
+namespace Relay.Core.Resilience.CircuitBreaker;
 
 /// <summary>
 /// Circuit breaker pattern implementation for request handlers.

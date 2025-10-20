@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.Resilience;
+namespace Relay.Core.Resilience.CircuitBreaker;
 
 /// <summary>
 /// Exception thrown when circuit breaker is open.

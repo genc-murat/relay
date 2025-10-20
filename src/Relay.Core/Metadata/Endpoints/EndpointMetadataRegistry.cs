@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Relay.Core
+namespace Relay.Core.Metadata.Endpoints
 {
     /// <summary>
     /// Registry for endpoint metadata generated at compile time.

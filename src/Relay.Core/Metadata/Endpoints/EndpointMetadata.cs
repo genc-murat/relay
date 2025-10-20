@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Relay.Core.Metadata.MessageQueue;
 
-namespace Relay.Core
+namespace Relay.Core.Metadata.Endpoints
 {
     /// <summary>
     /// Represents metadata for an HTTP endpoint generated from a handler.

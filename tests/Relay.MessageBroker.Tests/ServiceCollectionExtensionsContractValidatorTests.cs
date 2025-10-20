@@ -4,6 +4,7 @@ using Relay.MessageBroker;
 using Relay.Core.ContractValidation;
 using Relay.Core;
 using Xunit;
+using Relay.Core.Metadata.MessageQueue;
 
 namespace Relay.MessageBroker.Tests;
 

@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using Xunit;
 using Relay.Core;
+using Relay.Core.Metadata.MessageQueue;
+using Relay.Core.Metadata.Endpoints;
 
 namespace Relay.Core.Tests
 {

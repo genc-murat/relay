@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Relay.Core
+namespace Relay.Core.Metadata.MessageQueue
 {
     /// <summary>
     /// Represents a JSON schema contract for request/response types.

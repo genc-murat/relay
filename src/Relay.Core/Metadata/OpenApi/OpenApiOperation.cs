@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Relay.Core;
+namespace Relay.Core.Metadata.OpenApi;
 
 /// <summary>
 /// Represents an operation in an OpenAPI document.

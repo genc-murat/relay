@@ -3,6 +3,8 @@ using System.Linq;
 using Xunit;
 using Relay.Core;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Metadata.Endpoints;
+using Relay.Core.Metadata.MessageQueue;
 
 namespace Relay.Core.Tests
 {

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 #if NET6_0_OR_GREATER
 #endif
 
-namespace Relay.Core
+namespace Relay.Core.Metadata.OpenApi
 {
     /// <summary>
     /// Options for generating OpenAPI documents.

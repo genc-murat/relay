@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Metadata.MessageQueue;
 
 namespace Relay.Core.ContractValidation;
 

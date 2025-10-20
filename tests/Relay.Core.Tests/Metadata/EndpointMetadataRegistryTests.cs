@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Relay.Core;
+using Relay.Core.Metadata.Endpoints;
 using Xunit;
 
 namespace Relay.Core.Tests.Metadata

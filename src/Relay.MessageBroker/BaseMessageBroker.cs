@@ -7,6 +7,7 @@ using Relay.MessageBroker.Compression;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using Relay.Core.Metadata.MessageQueue;
 
 namespace Relay.MessageBroker;
 

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Relay.Core
+namespace Relay.Core.Metadata.MessageQueue
 {
     /// <summary>
     /// Registry for message queue contracts generated at compile time.

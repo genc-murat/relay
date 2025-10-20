@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Json.Schema;
+using Relay.Core.Metadata.MessageQueue;
 
 namespace Relay.Core.ContractValidation;
 

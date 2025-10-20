@@ -1,5 +1,6 @@
 using System;
 using Relay.Core;
+using Relay.Core.Metadata.OpenApi;
 using Xunit;
 
 namespace Relay.Core.Tests.Metadata

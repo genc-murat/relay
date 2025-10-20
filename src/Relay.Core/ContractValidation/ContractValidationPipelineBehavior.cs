@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Metadata.MessageQueue;
 
 namespace Relay.Core.ContractValidation;
 

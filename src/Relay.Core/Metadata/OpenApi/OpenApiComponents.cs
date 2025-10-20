@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Relay.Core;
+namespace Relay.Core.Metadata.OpenApi;
 
 /// <summary>
 /// Represents the components section of an OpenAPI document.

@@ -1,4 +1,4 @@
-namespace Relay.Core
+namespace Relay.Core.Metadata.MessageQueue
 {
     /// <summary>
     /// Represents the type of message queue provider.

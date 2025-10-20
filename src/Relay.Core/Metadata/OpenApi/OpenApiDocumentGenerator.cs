@@ -6,7 +6,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 #endif
 
-namespace Relay.Core
+using Relay.Core.Metadata.Endpoints;
+
+namespace Relay.Core.Metadata.OpenApi
 {
     /// <summary>
     /// Generates OpenAPI documents from endpoint metadata.

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Relay.Core;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Metadata.Endpoints;
 using Xunit;
 
 namespace Relay.Core.Tests.Metadata

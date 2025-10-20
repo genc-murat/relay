@@ -5,6 +5,7 @@ using Relay.Core.Configuration.Options;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.ContractValidation;
+using Relay.Core.Metadata.MessageQueue;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

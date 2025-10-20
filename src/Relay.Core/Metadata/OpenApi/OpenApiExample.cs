@@ -1,4 +1,4 @@
-namespace Relay.Core;
+namespace Relay.Core.Metadata.OpenApi;
 
 /// <summary>
 /// Represents an example in an OpenAPI document.

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Relay.Core
+namespace Relay.Core.Metadata.MessageQueue
 {
     /// <summary>
     /// Represents a message queue contract for a handler.

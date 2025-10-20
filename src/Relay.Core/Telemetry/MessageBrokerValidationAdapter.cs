@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Relay.Core.ContractValidation;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Interfaces;
+using Relay.Core.Metadata.MessageQueue;
 
 namespace Relay.Core.Telemetry;
 

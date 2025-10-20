@@ -1,4 +1,4 @@
-namespace Relay.Core
+namespace Relay.Core.Metadata.MessageQueue
 {
     /// <summary>
     /// Options for generating message queue contracts.

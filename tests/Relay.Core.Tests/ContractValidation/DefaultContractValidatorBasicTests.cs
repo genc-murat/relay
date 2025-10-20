@@ -1,6 +1,7 @@
+using Relay.Core.ContractValidation;
+using Relay.Core.Metadata.MessageQueue;
 using System.Linq;
 using System.Threading.Tasks;
-using Relay.Core.ContractValidation;
 using Xunit;
 
 namespace Relay.Core.Tests.ContractValidation

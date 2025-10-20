@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using Relay.Core.Metadata.Endpoints;
 
-namespace Relay.Core
+namespace Relay.Core.Metadata.MessageQueue
 {
     /// <summary>
     /// Generates message queue contracts from endpoint metadata.

@@ -3,6 +3,9 @@ using System.Linq;
 using System.Text.Json;
 using Relay.Core;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Metadata.Endpoints;
+using Relay.Core.Metadata.MessageQueue;
+using Relay.Core.Metadata.OpenApi;
 using Xunit;
 using static Relay.Core.Tests.Endpoints.OpenApiDocumentGenerationTests;
 

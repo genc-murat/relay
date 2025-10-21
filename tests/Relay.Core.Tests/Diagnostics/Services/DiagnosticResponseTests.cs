@@ -64,7 +64,15 @@ public class DiagnosticResponseTests
     {
         // Arrange
         var message = "Test error";
-        var exception = new InvalidOperationException("Inner error");
+        InvalidOperationException exception;
+        try
+        {
+            throw new InvalidOperationException("Inner error");
+        }
+        catch (InvalidOperationException ex)
+        {
+            exception = ex;
+        }
 
         // Act
         var response = DiagnosticResponse<string>.Error(message, exception);
@@ -147,7 +155,7 @@ public class DiagnosticResponseTests
         Assert.False(response.IsSuccess);
         Assert.Equal(503, response.StatusCode);
         Assert.Equal(message, response.ErrorMessage);
-        Assert.Null(response.Data);
+        Assert.Equal(0, response.Data); // default int is 0
         Assert.Null(response.ErrorDetails);
     }
 
@@ -255,7 +263,7 @@ public class DiagnosticResponseTests
         // Assert
         Assert.False(response.IsSuccess); // default bool is false
         Assert.Equal(0, response.StatusCode); // default int is 0
-        Assert.Null(response.Data);
+        Assert.Equal(0, response.Data); // default int is 0
         Assert.Null(response.ErrorMessage);
         Assert.Null(response.ErrorDetails);
     }

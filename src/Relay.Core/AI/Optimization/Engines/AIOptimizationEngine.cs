@@ -1305,6 +1305,10 @@ namespace Relay.Core.AI
             // Base confidence on accuracy and F1 score
             var baseConfidence = (accuracyScore + f1Score) / 2;
 
+            // Include average confidence from recent predictions
+            var averageConfidence = CalculateAverageConfidence();
+            var combinedConfidence = (baseConfidence + averageConfidence) / 2;
+
             // Adjust confidence based on sample size
             var sampleSizeMultiplier = predictionCount switch
             {
@@ -1314,7 +1318,7 @@ namespace Relay.Core.AI
                 _ => 1.0        // High confidence with many samples
             };
 
-            return Math.Min(0.95, baseConfidence * sampleSizeMultiplier);
+            return Math.Min(0.95, combinedConfidence * sampleSizeMultiplier);
         }
 
         private CacheStrategy DetermineCacheStrategy(AccessPattern[] patterns)
@@ -1617,6 +1621,12 @@ namespace Relay.Core.AI
                 // 8. Detect anomalies (add AIOptimizationEngine specific checks)
                 var anomalies = trendAnalysis.Anomalies;
                 AddAISpecificAnomalies(currentMetrics, anomalies);
+
+                // Log detected anomalies
+                foreach (var anomaly in anomalies)
+                {
+                    LogAnomaly(anomaly);
+                }
 
                 // 9. Generate trend insights
                 var insights = GenerateTrendInsights(currentMetrics, trendAnalysis.TrendDirections,

@@ -110,6 +110,20 @@ public class RelayDiagnosticsServiceHandlersTests
         Assert.NotNull(response);
         Assert.True(response.IsSuccess);
         Assert.NotNull(response.Data);
+
+        // Verify HandlerRegistryInfo content
+        var registry = response.Data;
+        Assert.NotNull(registry.AssemblyName);
+        Assert.NotEmpty(registry.AssemblyName);
+        Assert.True(registry.GenerationTime > DateTime.MinValue);
+        Assert.NotNull(registry.Handlers);
+        Assert.Empty(registry.Handlers); // Default implementation returns empty list
+        Assert.Equal(0, registry.TotalHandlers);
+        Assert.NotNull(registry.Pipelines);
+        Assert.Empty(registry.Pipelines);
+        Assert.Equal(0, registry.TotalPipelines);
+        Assert.NotNull(registry.Warnings);
+        Assert.Empty(registry.Warnings);
     }
 
     [Fact]

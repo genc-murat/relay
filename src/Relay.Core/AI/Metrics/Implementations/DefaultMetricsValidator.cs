@@ -10,8 +10,8 @@ namespace Relay.Core.AI.Metrics.Implementations
     {
         public void Validate(AIModelStatistics statistics)
         {
-            if (string.IsNullOrEmpty(statistics.ModelVersion))
-                throw new ArgumentException("Model version cannot be null or empty", nameof(statistics.ModelVersion));
+            if (string.IsNullOrWhiteSpace(statistics.ModelVersion))
+                throw new ArgumentException("Model version cannot be null, empty, or whitespace", nameof(statistics.ModelVersion));
 
             if (statistics.TotalPredictions < 0)
                 throw new ArgumentException("Total predictions cannot be negative", nameof(statistics.TotalPredictions));

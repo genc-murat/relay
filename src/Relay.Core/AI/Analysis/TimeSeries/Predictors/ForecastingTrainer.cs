@@ -80,6 +80,11 @@ namespace Relay.Core.AI.Analysis.TimeSeries
                 // Re-throw InsufficientDataException to be handled by higher level
                 throw;
             }
+            catch (OperationCanceledException)
+            {
+                // Re-throw OperationCanceledException for proper cancellation handling
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error training {Method} forecast model for {MetricName}", forecastingMethod, metricName);

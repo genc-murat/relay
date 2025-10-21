@@ -23,10 +23,10 @@ internal class DatabaseConnectionMetricsProvider
         Relay.Core.AI.SystemMetricsCalculator systemMetrics)
     {
         _logger = logger;
-        _options = options;
-        _requestAnalytics = requestAnalytics;
-        _timeSeriesDb = timeSeriesDb;
-        _systemMetrics = systemMetrics;
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
+        _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
+        _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
     }
 
     public int GetDatabaseConnectionCount()
@@ -54,7 +54,7 @@ internal class DatabaseConnectionMetricsProvider
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Error calculating database connections");
+            _logger?.LogDebug(ex, "Error calculating database connections");
             return (int)(GetDatabasePoolUtilization() * 10); // Rough estimate
         }
     }
@@ -90,7 +90,7 @@ internal class DatabaseConnectionMetricsProvider
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Error getting SQL Server connection count");
+            _logger?.LogDebug(ex, "Error getting SQL Server connection count");
             return 0;
         }
     }
@@ -151,7 +151,7 @@ internal class DatabaseConnectionMetricsProvider
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Error getting Entity Framework connection count");
+            _logger?.LogDebug(ex, "Error getting Entity Framework connection count");
             return 0;
         }
     }
@@ -194,7 +194,7 @@ internal class DatabaseConnectionMetricsProvider
             if (storedMetrics.Any())
             {
                 var recent = storedMetrics.Last().Value;
-                _logger.LogTrace("NoSQL connection count from metrics: {Count}", recent);
+                _logger?.LogTrace("NoSQL connection count from metrics: {Count}", recent);
                 return (int)recent;
             }
 
@@ -215,14 +215,14 @@ internal class DatabaseConnectionMetricsProvider
             // Store for future reference
             _timeSeriesDb.StoreMetric("NoSql_ConnectionCount", finalCount, DateTime.UtcNow);
 
-            _logger.LogDebug("Estimated NoSQL connections: {Count} (from {Requests} requests)",
+            _logger?.LogDebug("Estimated NoSQL connections: {Count} (from {Requests} requests)",
                 finalCount, estimatedNoSqlRequests);
 
             return finalCount;
         }
         catch (Exception ex)
         {
-            _logger.LogTrace(ex, "Error calculating NoSQL connections");
+            _logger?.LogTrace(ex, "Error calculating NoSQL connections");
             return 2; // Safe default
         }
     }

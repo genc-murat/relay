@@ -7,7 +7,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Request analysis data for tracking execution metrics and patterns
     /// </summary>
-    internal class RequestAnalysisData
+    public class RequestAnalysisData
     {
         public long TotalExecutions { get; private set; }
         public long SuccessfulExecutions { get; private set; }

@@ -5,7 +5,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Optimization result tracking
     /// </summary>
-    internal class OptimizationResult
+    public class OptimizationResult
     {
         public OptimizationStrategy Strategy { get; init; }
         public RequestExecutionMetrics ActualMetrics { get; init; } = null!;

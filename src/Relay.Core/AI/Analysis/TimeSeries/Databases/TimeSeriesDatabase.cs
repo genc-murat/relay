@@ -35,7 +35,7 @@ namespace Relay.Core.AI.Analysis.TimeSeries
     /// <summary>
     /// Time-series database facade for storing and analyzing metric trends
     /// </summary>
-    internal class TimeSeriesDatabase : IDisposable
+    public class TimeSeriesDatabase : IDisposable
     {
         private readonly ILogger<TimeSeriesDatabase> _logger;
         private readonly ITimeSeriesRepository _repository;
@@ -172,7 +172,7 @@ namespace Relay.Core.AI.Analysis.TimeSeries
         /// <summary>
         /// Get most recent N metrics for a specific metric name
         /// </summary>
-        public List<MetricDataPoint> GetRecentMetrics(string metricName, int count)
+        public virtual List<MetricDataPoint> GetRecentMetrics(string metricName, int count)
         {
             return _repository.GetRecentMetrics(metricName, count);
         }

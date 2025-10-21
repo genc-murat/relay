@@ -30,12 +30,12 @@ internal class ConnectionMetricsProvider
         Relay.Core.AI.SystemMetricsCalculator systemMetrics,
         Relay.Core.AI.ConnectionMetricsCollector connectionMetrics)
     {
-        _logger = logger;
-        _options = options;
-        _requestAnalytics = requestAnalytics;
-        _timeSeriesDb = timeSeriesDb;
-        _systemMetrics = systemMetrics;
-        _connectionMetrics = connectionMetrics;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
+        _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
+        _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
+        _connectionMetrics = connectionMetrics ?? throw new ArgumentNullException(nameof(connectionMetrics));
         
         // Initialize specialized providers
         _webSocketProvider = new WebSocketConnectionMetricsProvider(
@@ -226,6 +226,35 @@ internal class ConnectionMetricsProvider
         var activityBasedEstimate = Math.Max(baseEstimate, activeRequests / 2);
 
         return Math.Min(activityBasedEstimate, 200); // Reasonable upper bound
+    }
+
+    public double GetConnectionHealthScore()
+    {
+        // Calculate a health score based on connection metrics
+        // Lower is better (0 = perfect health, 1 = critical issues)
+        var totalConnections = GetActiveConnectionCount();
+        var maxConnections = _options.MaxEstimatedHttpConnections +
+                            _options.MaxEstimatedWebSocketConnections +
+                            _options.EstimatedMaxDbConnections;
+
+        if (maxConnections == 0) return 0.0;
+
+        var utilizationRatio = (double)totalConnections / maxConnections;
+
+        // Health score is inversely related to utilization
+        // High utilization = lower health score
+        return Math.Min(1.0, Math.Max(0.0, utilizationRatio));
+    }
+
+    public double GetConnectionLoadFactor()
+    {
+        // Calculate load factor based on current system load
+        var dbUtilization = GetDatabasePoolUtilization();
+        var threadUtilization = GetThreadPoolUtilization();
+        var connectionUtilization = GetConnectionHealthScore();
+
+        // Average of different load factors
+        return (dbUtilization + threadUtilization + connectionUtilization) / 3.0;
     }
 
     // Delegates to SystemMetricsCalculator

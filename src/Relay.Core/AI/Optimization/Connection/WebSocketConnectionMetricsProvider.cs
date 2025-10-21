@@ -22,11 +22,11 @@ internal class WebSocketConnectionMetricsProvider
         TimeSeriesDatabase timeSeriesDb,
         Relay.Core.AI.SystemMetricsCalculator systemMetrics)
     {
-        _logger = logger;
-        _options = options;
-        _requestAnalytics = requestAnalytics;
-        _timeSeriesDb = timeSeriesDb;
-        _systemMetrics = systemMetrics;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
+        _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
+        _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
     }
 
     public int GetWebSocketConnectionCount()

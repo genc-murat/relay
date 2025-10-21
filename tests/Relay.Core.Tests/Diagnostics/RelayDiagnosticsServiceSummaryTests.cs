@@ -1,19 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Diagnostics;
 using Relay.Core.Diagnostics.Configuration;
-using Relay.Core.Diagnostics.Services;
-using Relay.Core.Diagnostics.Tracing;
 using Relay.Core.Diagnostics.Core;
 using Relay.Core.Diagnostics.Metrics;
 using Relay.Core.Diagnostics.Registry;
+using Relay.Core.Diagnostics.Services;
+using Relay.Core.Diagnostics.Tracing;
 using Relay.Core.Diagnostics.Validation;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.Diagnostics;
@@ -128,5 +127,35 @@ public class RelayDiagnosticsServiceSummaryTests
         Assert.False(response.IsSuccess);
         Assert.Equal(500, response.StatusCode);
         Assert.Contains("Failed to retrieve diagnostic summary", response.ErrorMessage);
+        Assert.NotNull(response.ErrorDetails);
+    }
+
+    [Fact]
+    public void GetSummary_ShouldIncludeExceptionDetails_WhenExceptionThrown()
+    {
+        // Arrange
+        var diagnostics = new ThrowingDiagnostics();
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        // Act
+        var response = service.GetSummary();
+
+        // Assert
+        Assert.False(response.IsSuccess);
+        Assert.NotNull(response.ErrorDetails);
+
+        // Check that ErrorDetails contains exception information
+        var details = response.ErrorDetails;
+        Assert.NotNull(details);
+        var typeProperty = details.GetType().GetProperty("Type")?.GetValue(details);
+        var messageProperty = details.GetType().GetProperty("Message")?.GetValue(details);
+        var stackTraceProperty = details.GetType().GetProperty("StackTrace")?.GetValue(details);
+
+        Assert.Equal("Exception", typeProperty);
+        Assert.Equal("Test exception", messageProperty);
+        Assert.NotNull(stackTraceProperty);
     }
 }

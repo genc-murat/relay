@@ -22,6 +22,11 @@ namespace Relay.Core.AI
             Dictionary<string, double> currentMetrics,
             DateTime timestamp)
         {
+            if (currentMetrics == null)
+            {
+                throw new ArgumentNullException(nameof(currentMetrics));
+            }
+
             var result = new Dictionary<string, double>();
 
             try

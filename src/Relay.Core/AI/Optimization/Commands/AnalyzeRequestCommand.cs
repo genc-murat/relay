@@ -1,8 +1,11 @@
+using Relay.Core.AI;
+
 namespace Relay.Core.AI.Optimization
 {
     /// <summary>
     /// Command for analyzing request patterns.
     /// </summary>
+    [AIMonitored(Level = MonitoringLevel.Comprehensive, SamplingRate = 0.1, Tags = new[] { "ai", "analysis", "optimization" })]
     public class AnalyzeRequestCommand : OptimizationCommandBase
     {
         public AnalyzeRequestCommand(OptimizationEngine engine, OptimizationContext context)

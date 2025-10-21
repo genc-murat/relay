@@ -1,8 +1,11 @@
+using Relay.Core.AI;
+
 namespace Relay.Core.Diagnostics.Metrics;
 
 /// <summary>
 /// Request model for running benchmarks
 /// </summary>
+[AIMonitored(Level = MonitoringLevel.Detailed, CollectDetailedMetrics = true, Tags = new[] { "benchmark", "performance" })]
 public class BenchmarkRequest
 {
     /// <summary>

@@ -174,7 +174,11 @@ namespace Relay.Core.AI.Optimization.Strategies
         {
             // Base confidence on sample size and data quality
             var sampleConfidence = Math.Min(metrics.TotalExecutions / 1000.0, 1.0); // Max at 1000 samples
-            var successRateConfidence = metrics.SuccessfulExecutions / (double)metrics.TotalExecutions;
+            
+            // Handle case where TotalExecutions is 0 to avoid division by zero
+            var successRateConfidence = metrics.TotalExecutions > 0 
+                ? metrics.SuccessfulExecutions / (double)metrics.TotalExecutions 
+                : 0.0;
 
             return (sampleConfidence + successRateConfidence) / 2.0;
         }

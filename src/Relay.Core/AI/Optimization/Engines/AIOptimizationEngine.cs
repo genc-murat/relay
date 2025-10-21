@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace Relay.Core.AI
 {
-    public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
+    public sealed partial class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
     {
         private readonly ILogger<AIOptimizationEngine> _logger;
         private readonly AIOptimizationOptions _options;
@@ -3361,15 +3361,6 @@ namespace Relay.Core.AI
             }
         }
 
-        // Optimization strategy levels enum
-        private enum OptimizationStrategyLevel
-        {
-            Conservative = 0,
-            Balanced = 1,
-            Moderate = 2,
-            Aggressive = 3
-        }
-
         private void UpdateModelHyperparameters(Dictionary<string, double> metrics, double learningRate)
         {
             try
@@ -3674,6 +3665,13 @@ namespace Relay.Core.AI
             return patterns;
         }
 
+        private enum OptimizationStrategyLevel
+        {
+            Conservative = 0,
+            Balanced = 1,
+            Moderate = 2,
+            Aggressive = 3
+        }
         private string ClassifySeasonalType(int periodHours)
         {
             return periodHours switch

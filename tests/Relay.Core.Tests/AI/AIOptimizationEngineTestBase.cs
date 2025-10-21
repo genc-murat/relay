@@ -72,6 +72,9 @@ namespace Relay.Core.Tests.AI
         protected class ThirdTestRequest { }
         protected class FourthTestRequest { }
         protected class FifthTestRequest { }
+        protected class SixthTestRequest { }
+        protected class SeventhTestRequest { }
+        protected class EighthTestRequest { }
 
         #endregion
     }

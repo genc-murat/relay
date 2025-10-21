@@ -156,6 +156,122 @@ public class TelemetryRequestDispatcherTests
     }
 
     [Fact]
+    public async Task DispatchAsync_FireAndForget_SuccessfulExecution_RecordsTelemetry()
+    {
+        // Arrange
+        var request = new TestFireAndForgetRequest();
+        var cancellationToken = CancellationToken.None;
+
+        _innerDispatcherMock
+            .Setup(x => x.DispatchAsync(request, cancellationToken))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _dispatcher.DispatchAsync(request, cancellationToken);
+
+        // Assert
+        _innerDispatcherMock.Verify(x => x.DispatchAsync(request, cancellationToken), Times.Once);
+
+        // Verify telemetry
+        Assert.Single(_telemetryProvider.Activities);
+        var activity = _telemetryProvider.Activities[0];
+        Assert.Equal("Relay.Request", activity.OperationName);
+        Assert.Equal(typeof(TestFireAndForgetRequest).FullName, activity.Tags["relay.request_type"]);
+
+        Assert.Single(_telemetryProvider.HandlerExecutions);
+        var execution = _telemetryProvider.HandlerExecutions[0];
+        Assert.Equal(typeof(TestFireAndForgetRequest), execution.RequestType);
+        Assert.Null(execution.ResponseType);
+        Assert.Null(execution.HandlerName);
+        Assert.True(execution.Success);
+        Assert.True(execution.Duration > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_FireAndForget_WithException_RecordsFailureTelemetry()
+    {
+        // Arrange
+        var request = new TestFireAndForgetRequest();
+        var cancellationToken = CancellationToken.None;
+        var expectedException = new InvalidOperationException("Test exception");
+
+        _innerDispatcherMock
+            .Setup(x => x.DispatchAsync(request, cancellationToken))
+            .ThrowsAsync(expectedException);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _dispatcher.DispatchAsync(request, cancellationToken).AsTask());
+
+        Assert.Equal(expectedException, exception);
+        _innerDispatcherMock.Verify(x => x.DispatchAsync(request, cancellationToken), Times.Once);
+
+        // Verify telemetry
+        Assert.Single(_telemetryProvider.Activities);
+        Assert.Single(_telemetryProvider.HandlerExecutions);
+        var execution = _telemetryProvider.HandlerExecutions[0];
+        Assert.False(execution.Success);
+        Assert.Equal(expectedException, execution.Exception);
+        Assert.True(execution.Duration > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_FireAndForget_WithHandlerName_SuccessfulExecution_RecordsTelemetryWithHandlerName()
+    {
+        // Arrange
+        var request = new TestFireAndForgetRequest();
+        var handlerName = "TestHandler";
+        var cancellationToken = CancellationToken.None;
+
+        _innerDispatcherMock
+            .Setup(x => x.DispatchAsync(request, handlerName, cancellationToken))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _dispatcher.DispatchAsync(request, handlerName, cancellationToken);
+
+        // Assert
+        _innerDispatcherMock.Verify(x => x.DispatchAsync(request, handlerName, cancellationToken), Times.Once);
+
+        // Verify telemetry
+        Assert.Single(_telemetryProvider.Activities);
+        var activity = _telemetryProvider.Activities[0];
+        Assert.Equal("Relay.NamedRequest", activity.OperationName);
+
+        Assert.Single(_telemetryProvider.HandlerExecutions);
+        var execution = _telemetryProvider.HandlerExecutions[0];
+        Assert.Equal(handlerName, execution.HandlerName);
+        Assert.True(execution.Success);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_FireAndForget_WithHandlerName_WithException_RecordsFailureTelemetry()
+    {
+        // Arrange
+        var request = new TestFireAndForgetRequest();
+        var handlerName = "TestHandler";
+        var cancellationToken = CancellationToken.None;
+        var expectedException = new InvalidOperationException("Test exception");
+
+        _innerDispatcherMock
+            .Setup(x => x.DispatchAsync(request, handlerName, cancellationToken))
+            .ThrowsAsync(expectedException);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _dispatcher.DispatchAsync(request, handlerName, cancellationToken).AsTask());
+
+        Assert.Equal(expectedException, exception);
+
+        // Verify telemetry
+        Assert.Single(_telemetryProvider.HandlerExecutions);
+        var execution = _telemetryProvider.HandlerExecutions[0];
+        Assert.Equal(handlerName, execution.HandlerName);
+        Assert.False(execution.Success);
+        Assert.Equal(expectedException, execution.Exception);
+    }
+
+    [Fact]
     public async Task DispatchAsync_Generic_WithHandlerName_SuccessfulExecution_RecordsTelemetryWithHandlerName()
     {
         // Arrange
@@ -293,6 +409,10 @@ public class TelemetryRequestDispatcherTests
     }
 
     private class TestRequest : IRequest<string>
+    {
+    }
+
+    private class TestFireAndForgetRequest : IRequest
     {
     }
 }

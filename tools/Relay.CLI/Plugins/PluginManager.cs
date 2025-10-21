@@ -105,15 +105,45 @@ public class PluginManager : IDisposable
         // Check if already loaded
         if (_loadedPlugins.ContainsKey(pluginName))
         {
+            var existingPlugin = _loadedPlugins[pluginName];
+
             // Check if the plugin is healthy before returning
             if (_healthMonitor.IsHealthy(pluginName))
             {
-                return _loadedPlugins[pluginName].Instance;
+                // Re-initialize to ensure plugin is properly initialized with the new context
+                try
+                {
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3)); // 3 second timeout for re-initialization
+                    var initialized = await existingPlugin.Instance.InitializeAsync(context, cts.Token);
+
+                    if (!initialized)
+                    {
+                        _logger.LogError($"Plugin {pluginName} failed to re-initialize");
+                        await UnloadPluginAsync(pluginName);
+                        return null;
+                    }
+
+                    return existingPlugin.Instance;
+                }
+                catch (OperationCanceledException ex)
+                {
+                    _logger.LogError($"Plugin {pluginName} re-initialization timed out", ex);
+                    _healthMonitor.RecordFailure(pluginName, ex);
+                    await UnloadPluginAsync(pluginName);
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error re-initializing plugin {pluginName}: {ex.Message}", ex);
+                    _healthMonitor.RecordFailure(pluginName, ex);
+                    await UnloadPluginAsync(pluginName);
+                    return null;
+                }
             }
             else
             {
                 _logger.LogWarning($"Plugin {pluginName} is not healthy, attempting reload");
-                
+
                 // Try to restart the plugin automatically if it's disabled
                 if (_healthMonitor.AttemptRestart(pluginName))
                 {
@@ -231,18 +261,39 @@ public class PluginManager : IDisposable
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30 second timeout for cleanup
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)); // 5 second timeout for cleanup
             await plugin.Instance.CleanupAsync(cts.Token);
+
+            // Check if cleanup was cancelled
+            if (cts.Token.IsCancellationRequested)
+            {
+                _logger.LogWarning($"Plugin {pluginName} cleanup was cancelled");
+                _healthMonitor.RecordFailure(pluginName, new OperationCanceledException("Cleanup was cancelled"));
+                // Still remove from loaded plugins even if cleanup was cancelled
+                _loadedPlugins.Remove(pluginName);
+                return false;
+            }
+
             plugin.LoadContext.Unload();
             _loadedPlugins.Remove(pluginName);
-            
+
             _logger.LogInformation($"Successfully unloaded plugin: {pluginName}");
             return true;
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogError($"Plugin {pluginName} cleanup timed out", ex);
+            _healthMonitor.RecordFailure(pluginName, ex);
+            // Still remove from loaded plugins even if cleanup timed out
+            _loadedPlugins.Remove(pluginName);
+            return false;
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error during plugin {pluginName} cleanup: {ex.Message}", ex);
             _healthMonitor.RecordFailure(pluginName, ex);
+            // Still remove from loaded plugins even if cleanup failed
+            _loadedPlugins.Remove(pluginName);
             return false;
         }
     }
@@ -252,13 +303,29 @@ public class PluginManager : IDisposable
         var dllFiles = Directory.GetFiles(pluginPath, "*.dll", SearchOption.AllDirectories);
         
         // Look for the main plugin DLL (excluding dependencies)
+        // Priority order: relay-plugin-* prefix > *Plugin* filename > first available DLL
+        
+        // First, look for files with "relay-plugin-" prefix
         foreach (var dll in dllFiles)
         {
             if (dll.Contains("Relay.CLI.Sdk"))
                 continue;
 
             var fileName = Path.GetFileName(dll);
-            if (fileName.StartsWith("relay-plugin-") || fileName.Contains("Plugin"))
+            if (fileName.StartsWith("relay-plugin-"))
+            {
+                return dll;
+            }
+        }
+        
+        // Second, look for files containing "Plugin" in the name
+        foreach (var dll in dllFiles)
+        {
+            if (dll.Contains("Relay.CLI.Sdk"))
+                continue;
+
+            var fileName = Path.GetFileName(dll);
+            if (fileName.Contains("Plugin"))
             {
                 return dll;
             }
@@ -318,7 +385,7 @@ public class PluginManager : IDisposable
         if (plugin == null)
         {
             _logger.LogError($"Could not load plugin {pluginName} for execution");
-            _healthMonitor.RecordFailure(pluginName);
+            _healthMonitor.RecordFailure(pluginName, new InvalidOperationException($"Could not load plugin {pluginName}"));
             return -1;
         }
 

@@ -48,7 +48,7 @@ public class PluginSecurityValidator
     /// <param name="assemblyPath">Path to the plugin assembly</param>
     /// <param name="pluginInfo">Plugin information</param>
     /// <returns>Validation result</returns>
-    public async Task<SecurityValidationResult> ValidatePluginAsync(string assemblyPath, PluginInfo pluginInfo)
+    public virtual async Task<SecurityValidationResult> ValidatePluginAsync(string assemblyPath, PluginInfo pluginInfo)
     {
         var result = new SecurityValidationResult();
 

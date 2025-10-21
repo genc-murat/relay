@@ -407,12 +407,51 @@ namespace Relay.Core.AI
                 }
             }
 
-            // 5. Risk Assessment and Confidence Adjustment
+            // 5. ML.NET Strategy Prediction - Direct ML model prediction
+            var mlNetPrediction = UseMLNetForStrategyPrediction(currentMetrics);
+            var mlNetGainPrediction = UseMLNetForPrediction(currentMetrics);
+
+            if (mlNetPrediction.ShouldOptimize && mlNetPrediction.Confidence > confidence)
+            {
+                // ML.NET suggests optimization with higher confidence
+                if (strategy == OptimizationStrategy.None)
+                {
+                    strategy = OptimizationStrategy.BatchProcessing; // Default strategy when ML suggests optimization
+                    reasoning = $"ML.NET prediction: Optimization recommended with {mlNetPrediction.Confidence:P} confidence";
+                    confidence = mlNetPrediction.Confidence;
+                    priority = OptimizationPriority.Medium;
+                    risk = RiskLevel.Medium;
+                    gainPercentage = Math.Max(0.1, mlNetGainPrediction); // Use ML prediction for gain
+                    estimatedImprovement = TimeSpan.FromMilliseconds(currentMetrics.AverageExecutionTime.TotalMilliseconds * gainPercentage);
+                }
+                else
+                {
+                    // Enhance existing recommendation with ML confidence
+                    confidence = Math.Max(confidence, mlNetPrediction.Confidence);
+                    gainPercentage = Math.Max(gainPercentage, mlNetGainPrediction);
+                    estimatedImprovement = TimeSpan.FromMilliseconds(currentMetrics.AverageExecutionTime.TotalMilliseconds * gainPercentage);
+                    reasoning = $"{reasoning} (ML.NET enhanced confidence: {mlNetPrediction.Confidence:P}, predicted gain: {mlNetGainPrediction:P})";
+                }
+
+                parameters["MLNetPrediction"] = true;
+                parameters["MLNetConfidence"] = mlNetPrediction.Confidence;
+                parameters["MLNetPredictedGain"] = mlNetGainPrediction;
+            }
+            else if (strategy != OptimizationStrategy.None && mlNetGainPrediction > gainPercentage)
+            {
+                // Use ML prediction to improve gain estimate even if strategy prediction is lower
+                gainPercentage = mlNetGainPrediction;
+                estimatedImprovement = TimeSpan.FromMilliseconds(currentMetrics.AverageExecutionTime.TotalMilliseconds * gainPercentage);
+                reasoning = $"{reasoning} (ML.NET predicted gain: {mlNetGainPrediction:P})";
+                parameters["MLNetPredictedGain"] = mlNetGainPrediction;
+            }
+
+            // 6. Risk Assessment and Confidence Adjustment
             var riskAssessment = AssessOptimizationRisk(strategy, analysisContext);
             risk = riskAssessment.RiskLevel;
             confidence = Math.Min(confidence, riskAssessment.AdjustedConfidence);
 
-            // 6. Add contextual parameters
+            // 7. Add contextual parameters
             parameters["RequestType"] = requestType.Name;
             parameters["AnalysisTime"] = DateTime.UtcNow;
             parameters["SampleSize"] = analysisData.TotalExecutions;

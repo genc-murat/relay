@@ -26,9 +26,11 @@ namespace Relay.Core.AI.Analysis.TimeSeries
         public void StoreModel(string metricName, ITransformer model, ForecastingMethod method)
         {
             if (string.IsNullOrWhiteSpace(metricName))
-                throw new ArgumentException("Metric name cannot be null or empty", nameof(metricName));
+                throw new ArgumentException("Metric name cannot be null, empty, or whitespace", nameof(metricName));
             if (model == null)
                 throw new ArgumentNullException(nameof(model));
+            if (!Enum.IsDefined(typeof(ForecastingMethod), method))
+                throw new ArgumentException("Invalid forecasting method", nameof(method));
 
             _models[metricName] = model;
             _methods[metricName] = method;
@@ -39,15 +41,23 @@ namespace Relay.Core.AI.Analysis.TimeSeries
         public ITransformer? GetModel(string metricName)
         {
             if (string.IsNullOrWhiteSpace(metricName))
-                throw new ArgumentException("Metric name cannot be null or empty", nameof(metricName));
+                throw new ArgumentException("Metric name cannot be null, empty, or whitespace", nameof(metricName));
 
             return _models.TryGetValue(metricName, out var model) ? model : null;
+        }
+
+        public ForecastingMethod? GetMethod(string metricName)
+        {
+            if (string.IsNullOrWhiteSpace(metricName))
+                throw new ArgumentException("Metric name cannot be null, empty, or whitespace", nameof(metricName));
+
+            return _methods.TryGetValue(metricName, out var method) ? method : null;
         }
 
         public bool HasModel(string metricName)
         {
             if (string.IsNullOrWhiteSpace(metricName))
-                throw new ArgumentException("Metric name cannot be null or empty", nameof(metricName));
+                throw new ArgumentException("Metric name cannot be null, empty, or whitespace", nameof(metricName));
 
             return _models.ContainsKey(metricName);
         }
@@ -57,15 +67,70 @@ namespace Relay.Core.AI.Analysis.TimeSeries
             return _models.Keys.ToList();
         }
 
+        public int GetModelCount()
+        {
+            return _models.Count;
+        }
+
+        public void StoreModels(IDictionary<string, (ITransformer Model, ForecastingMethod Method)> models)
+        {
+            if (models == null)
+                throw new ArgumentNullException(nameof(models));
+
+            foreach (var kvp in models)
+            {
+                var (model, method) = kvp.Value;
+                StoreModel(kvp.Key, model, method);
+            }
+
+            _logger.LogInformation("Stored {Count} models in batch", models.Count);
+        }
+
+        public void RemoveModels(IEnumerable<string> metricNames)
+        {
+            if (metricNames == null)
+                throw new ArgumentNullException(nameof(metricNames));
+
+            var removedCount = 0;
+            foreach (var metricName in metricNames)
+            {
+                if (_models.ContainsKey(metricName))
+                {
+                    RemoveModel(metricName);
+                    removedCount++;
+                }
+            }
+
+            if (removedCount > 0)
+            {
+                _logger.LogInformation("Removed {Count} models in batch", removedCount);
+            }
+        }
+
         public void RemoveModel(string metricName)
         {
             if (string.IsNullOrWhiteSpace(metricName))
-                throw new ArgumentException("Metric name cannot be null or empty", nameof(metricName));
+                throw new ArgumentException("Metric name cannot be null, empty, or whitespace", nameof(metricName));
 
-            _models.TryRemove(metricName, out _);
+            var removed = _models.TryRemove(metricName, out _);
             _methods.TryRemove(metricName, out _);
 
-            _logger.LogDebug("Removed model for metric {MetricName}", metricName);
+            if (removed)
+            {
+                _logger.LogDebug("Removed model for metric {MetricName}", metricName);
+            }
+        }
+
+        public void ClearAll()
+        {
+            var count = _models.Count;
+            _models.Clear();
+            _methods.Clear();
+
+            if (count > 0)
+            {
+                _logger.LogInformation("Cleared all {Count} models", count);
+            }
         }
     }
 }

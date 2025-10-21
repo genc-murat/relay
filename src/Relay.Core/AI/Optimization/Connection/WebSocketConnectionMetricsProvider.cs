@@ -2233,7 +2233,7 @@ internal class WebSocketConnectionMetricsProvider
         }
     }
 
-    private double EstimateMemoryPressure()
+    internal double EstimateMemoryPressure()
     {
         try
         {

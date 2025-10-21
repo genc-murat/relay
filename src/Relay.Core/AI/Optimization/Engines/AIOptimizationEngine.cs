@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Models;
 using Relay.Core.AI.Optimization.Services;
+using Relay.Core.AI.Analysis;
 using Relay.Core.AI.Analysis.TimeSeries;
 using System;
 using System.Collections.Concurrent;
@@ -22,6 +23,7 @@ namespace Relay.Core.AI
         private readonly AIOptimizationOptions _options;
         private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics;
         private readonly ConcurrentDictionary<Type, CachingAnalysisData> _cachingAnalytics;
+        private readonly ConcurrentDictionary<Type, OptimizationStrategy[]> _lastPredictions;
 
         // Modular services
         private readonly PatternAnalysisService _patternAnalysisService;
@@ -30,6 +32,7 @@ namespace Relay.Core.AI
         private readonly MachineLearningEnhancementService _machineLearningEnhancementService;
         private readonly RiskAssessmentService _riskAssessmentService;
         private readonly SystemMetricsService _systemMetricsService;
+        private readonly SystemMetricsCalculator _systemMetricsCalculator;
         private readonly PredictiveAnalysisService _predictiveAnalysisService;
         private readonly ModelStatisticsService _modelStatisticsService;
 
@@ -50,6 +53,7 @@ namespace Relay.Core.AI
 
             _requestAnalytics = new ConcurrentDictionary<Type, RequestAnalysisData>();
             _cachingAnalytics = new ConcurrentDictionary<Type, CachingAnalysisData>();
+            _lastPredictions = new ConcurrentDictionary<Type, OptimizationStrategy[]>();
 
             // Initialize services with appropriate loggers
             _patternAnalysisService = new PatternAnalysisService(_logger);
@@ -58,6 +62,8 @@ namespace Relay.Core.AI
             _machineLearningEnhancementService = new MachineLearningEnhancementService(_logger);
             _riskAssessmentService = new RiskAssessmentService(_logger);
             _systemMetricsService = new SystemMetricsService(_logger);
+            var calculatorLogger = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance.CreateLogger<SystemMetricsCalculator>();
+            _systemMetricsCalculator = new SystemMetricsCalculator(calculatorLogger, _requestAnalytics);
             _predictiveAnalysisService = new PredictiveAnalysisService(_logger);
             _modelStatisticsService = new ModelStatisticsService(_logger);
 
@@ -88,6 +94,12 @@ namespace Relay.Core.AI
             // Use pattern analysis service
             var recommendation = await _patternAnalysisService.AnalyzePatternsAsync(
                 requestType, analysisData, executionMetrics, cancellationToken);
+
+            // Record the prediction in model statistics
+            _modelStatisticsService.RecordPrediction(requestType);
+
+            // Store the predicted strategies for accuracy calculation
+            _lastPredictions[requestType] = new[] { recommendation.Strategy };
 
             _logger.LogDebug("Generated optimization recommendation for {RequestType}: {Strategy} (Confidence: {Confidence:P})",
                 requestType.Name, recommendation.Strategy, recommendation.ConfidenceScore);
@@ -170,8 +182,13 @@ namespace Relay.Core.AI
             if (appliedOptimizations == null) throw new ArgumentNullException(nameof(appliedOptimizations));
             if (actualMetrics == null) throw new ArgumentNullException(nameof(actualMetrics));
 
+            // Check if the applied optimizations match the predicted ones
+            var predictedStrategies = _lastPredictions.GetValueOrDefault(requestType, Array.Empty<OptimizationStrategy>());
+            var strategiesMatch = predictedStrategies.Length == appliedOptimizations.Length &&
+                                  predictedStrategies.All(s => appliedOptimizations.Contains(s));
+
             // Use model statistics service to learn from results
-            _modelStatisticsService.UpdateModelAccuracy(requestType, appliedOptimizations, actualMetrics);
+            _modelStatisticsService.UpdateModelAccuracy(requestType, appliedOptimizations, actualMetrics, strategiesMatch);
 
             _logger.LogDebug("Learned from execution of {RequestType} with {StrategyCount} optimizations",
                 requestType.Name, appliedOptimizations.Length);
@@ -296,6 +313,320 @@ namespace Relay.Core.AI
             }
         }
 
+        /// <summary>
+        /// Classifies the seasonal type based on the period in hours
+        /// </summary>
+        private string ClassifySeasonalType(int periodHours)
+        {
+            if (periodHours <= 8) return "Intraday";
+            if (periodHours <= 24) return "Daily";
+            if (periodHours <= 48) return "Semi-weekly";
+            if (periodHours <= 168) return "Weekly";
+            if (periodHours <= 336) return "Bi-weekly";
+            return "Monthly"; // >= 337
+        }
+
+        /// <summary>
+        /// Detects seasonal patterns in time series data
+        /// </summary>
+        private List<SeasonalPattern> DetectSeasonalPatterns(Dictionary<string, double> metrics)
+        {
+            var patterns = new List<SeasonalPattern>();
+
+            // Get data from time series database
+            var dataPoints = _timeSeriesDb.GetHistory("ThroughputPerSecond", TimeSpan.FromHours(24));
+            var data = dataPoints.Select(dp => (double)dp.Value).ToList();
+
+            if (data.Count < 24) // Need at least 24 hours of data
+                return patterns;
+
+            // Test common periods
+            var testPeriods = new[] { 8, 12, 24, 48, 168, 336 };
+
+            foreach (var period in testPeriods)
+            {
+                if (data.Count >= period * 2)
+                {
+                    // Simple autocorrelation-based pattern detection
+                    var correlation = CalculateAutocorrelation(data, period);
+                    if (correlation > 0.7) // Strong correlation indicates pattern
+                    {
+                        patterns.Add(new SeasonalPattern
+                        {
+                            Period = period,
+                            Strength = correlation,
+                            Type = ClassifySeasonalType(period)
+                        });
+                    }
+                }
+            }
+
+            return patterns;
+        }
+
+        /// <summary>
+        /// Calculates autocorrelation for a given lag
+        /// </summary>
+        private double CalculateAutocorrelation(List<double> data, int lag)
+        {
+            if (data.Count < lag * 2) return 0.0;
+
+            var mean = data.Average();
+            var variance = data.Sum(x => Math.Pow(x - mean, 2));
+
+            if (variance == 0) return 1.0; // All values are the same
+
+            double covariance = 0;
+            for (int i = 0; i < data.Count - lag; i++)
+            {
+                covariance += (data[i] - mean) * (data[i + lag] - mean);
+            }
+
+            return covariance / variance;
+        }
+
+        /// <summary>
+        /// Calculates regularization strength based on overfitting risk
+        /// </summary>
+        private double CalculateRegularizationStrength(double overfittingRisk, Dictionary<string, double> metrics)
+        {
+            var baseStrength = 0.01;
+
+            if (overfittingRisk > 0.7)
+                baseStrength += 0.1;
+            else if (overfittingRisk > 0.5)
+                baseStrength += 0.05;
+
+            // Adjust based on model complexity
+            var modelComplexity = metrics?.GetValueOrDefault("ModelComplexity", 0.5) ?? 0.5;
+            if (modelComplexity > 0.8)
+                baseStrength += 0.05;
+
+            return Math.Max(0.001, Math.Min(0.5, baseStrength));
+        }
+
+        /// <summary>
+        /// Calculates optimal tree count for ensemble models
+        /// </summary>
+        private int CalculateOptimalTreeCount(double accuracy, Dictionary<string, double> metrics)
+        {
+            if (metrics == null)
+                return 100; // Default
+
+            var baseCount = 100;
+
+            // Reduce trees for high accuracy to prevent overfitting
+            if (accuracy > 0.9)
+                baseCount = (int)(baseCount * 0.7);
+            else if (accuracy > 0.8)
+                baseCount = (int)(baseCount * 0.8);
+
+            // Adjust based on system stability
+            var stability = metrics.GetValueOrDefault("SystemStability", 0.8);
+            if (stability < 0.5)
+                baseCount = (int)(baseCount * 0.6); // Fewer trees for unstable systems
+
+            return Math.Max(10, Math.Min(1000, baseCount));
+        }
+
+        /// <summary>
+        /// Calculates optimal epochs for training
+        /// </summary>
+        private int CalculateOptimalEpochs(long dataSize, Dictionary<string, double> metrics)
+        {
+            if (metrics == null)
+                return 100; // Default
+
+            var baseEpochs = 100;
+
+            // More data allows more epochs
+            if (dataSize > 100000)
+                baseEpochs += 50;
+            else if (dataSize > 10000)
+                baseEpochs += 25;
+
+            // Reduce epochs for high model complexity
+            var complexity = metrics.GetValueOrDefault("ModelComplexity", 0.5);
+            if (complexity > 0.8)
+                baseEpochs = (int)(baseEpochs * 0.7);
+
+            return Math.Max(10, Math.Min(1000, baseEpochs));
+        }
+
+        /// <summary>
+        /// Calculates optimal leaf count for decision trees
+        /// </summary>
+        private int CalculateOptimalLeafCount(long dataSize, Dictionary<string, double> metrics)
+        {
+            if (metrics == null)
+                return 31; // Default
+
+            var baseLeaves = 31;
+
+            // More data allows more leaves
+            if (dataSize > 10000)
+                baseLeaves += 10;
+
+            // Reduce leaves for high accuracy to prevent overfitting
+            var accuracy = metrics.GetValueOrDefault("Accuracy", 0.8);
+            if (accuracy > 0.9)
+                baseLeaves = (int)(baseLeaves * 0.8);
+
+            return Math.Max(2, Math.Min(100, baseLeaves));
+        }
+
+        /// <summary>
+        /// Calculates minimum examples per leaf
+        /// </summary>
+        private int CalculateMinExamplesPerLeaf(double accuracy, Dictionary<string, double> metrics)
+        {
+            var baseMin = 1;
+
+            // Higher accuracy allows fewer examples per leaf
+            if (accuracy > 0.9)
+                baseMin = 1;
+            else if (accuracy > 0.8)
+                baseMin = 2;
+            else if (accuracy > 0.7)
+                baseMin = 5;
+            else
+                baseMin = 10;
+
+            return baseMin;
+        }
+
+        /// <summary>
+        /// Analyzes caching patterns and returns detailed caching analysis result
+        /// </summary>
+        private CachingAnalysisResult AnalyzeCachingPatterns(PatternAnalysisContext context)
+        {
+            if (context == null) throw new ArgumentNullException(nameof(context));
+
+            var analysisData = context.AnalysisData;
+            var metrics = context.CurrentMetrics;
+
+            // Calculate repeat rate from analysis data
+            var repeatRate = analysisData.TotalExecutions > 0 ?
+                (double)analysisData.RepeatRequestCount / analysisData.TotalExecutions : 0.0;
+
+            // Determine if caching should be enabled
+            var shouldCache = repeatRate > 0.2 || metrics.AverageExecutionTime.TotalMilliseconds > 500;
+
+            // Calculate expected hit rate based on repeat rate
+            var expectedHitRate = repeatRate <= 0.1 ? 0.0 : Math.Min(repeatRate * 1.1, 0.95);
+
+            // Calculate expected improvement
+            var expectedImprovement = expectedHitRate * metrics.AverageExecutionTime.TotalMilliseconds * 0.7;
+
+            // Calculate confidence based on data quality
+            var baseConfidence = 0.5 + (repeatRate * 1.5);
+            var confidence = repeatRate <= 0.1 ? 0.0 : Math.Min(baseConfidence, 0.9);
+
+            // Generate reasoning
+            var reasoning = string.Empty;
+            if (analysisData.TotalExecutions == 0)
+            {
+                reasoning = string.Empty;
+            }
+            else if (shouldCache)
+            {
+                reasoning = $"High repeat rate ({repeatRate:P}) and execution time ({metrics.AverageExecutionTime.TotalMilliseconds:F0}ms) suggest caching benefits with expected {expectedImprovement:F0}ms improvement.";
+            }
+            else
+            {
+                reasoning = string.Empty;
+            }
+
+            // Determine recommended strategy based on repeat rate thresholds
+            var recommendedStrategy = CacheStrategy.None;
+            if (shouldCache)
+            {
+                if (repeatRate > 0.6)
+                {
+                    recommendedStrategy = CacheStrategy.LFU;
+                }
+                else
+                {
+                    recommendedStrategy = CacheStrategy.LRU;
+                }
+            }
+
+            // Calculate TTL based on repeat rate (higher repeat rate = shorter TTL)
+            var recommendedTTL = TimeSpan.Zero;
+            if (shouldCache)
+            {
+                // For repeatRate=1.0, TTL=30 minutes
+                // Scale inversely with repeat rate
+                var ttlMinutes = Math.Max(5, 60 - (repeatRate * 30));
+                recommendedTTL = TimeSpan.FromMinutes(ttlMinutes);
+            }
+
+            return new CachingAnalysisResult
+            {
+                ShouldCache = shouldCache,
+                ExpectedHitRate = expectedHitRate,
+                ExpectedImprovement = expectedImprovement,
+                Confidence = confidence,
+                Reasoning = reasoning,
+                RecommendedStrategy = recommendedStrategy,
+                RecommendedTTL = recommendedTTL
+            };
+        }
+
+        /// <summary>
+        /// Calculates the adaptive exploration rate based on effectiveness and system metrics
+        /// </summary>
+        private double CalculateAdaptiveExplorationRate(double effectiveness, Dictionary<string, double> metrics)
+        {
+            try
+            {
+                const double baseRate = 0.1;
+                var explorationRate = baseRate;
+
+                // Adjust based on effectiveness - lower effectiveness increases exploration
+                if (effectiveness < 0.5)
+                {
+                    explorationRate += 0.2; // Increase exploration for low effectiveness
+                }
+                else if (effectiveness < 0.7)
+                {
+                    explorationRate += 0.1; // Moderate increase
+                }
+                // High effectiveness (>= 0.7) keeps base rate
+
+                // Adjust based on system stability - lower stability increases exploration
+                if (metrics != null)
+                {
+                    var systemStability = metrics.GetValueOrDefault("SystemStability", 0.8);
+                    if (systemStability < 0.5)
+                    {
+                        explorationRate += 0.15; // Significant increase for unstable systems
+                    }
+                    else if (systemStability < 0.7)
+                    {
+                        explorationRate += 0.05; // Moderate increase
+                    }
+                }
+
+                // Ensure rate stays within reasonable bounds
+                return Math.Max(0.01, Math.Min(0.5, explorationRate));
+            }
+            catch (Exception)
+            {
+                // Return safe default on any exception
+                return 0.1;
+            }
+        }
+
+        // System metrics methods
+        private double CalculateMemoryUsage() => _systemMetricsCalculator.CalculateMemoryUsage();
+        private int GetActiveRequestCount() => _systemMetricsCalculator.GetActiveRequestCount();
+        private int GetQueuedRequestCount() => _systemMetricsCalculator.GetQueuedRequestCount();
+        private double CalculateCurrentThroughput() => _systemMetricsCalculator.CalculateCurrentThroughput();
+        private double CalculateCurrentErrorRate() => _systemMetricsCalculator.CalculateCurrentErrorRate();
+        private double GetDatabasePoolUtilization() => _systemMetricsCalculator.GetDatabasePoolUtilization();
+        private double GetThreadPoolUtilization() => _systemMetricsCalculator.GetThreadPoolUtilization();
+
         public void Dispose()
         {
             if (_disposed) return;
@@ -303,8 +634,7 @@ namespace Relay.Core.AI
             _disposed = true;
             _modelUpdateTimer?.Dispose();
             _metricsCollectionTimer?.Dispose();
-
-            _logger.LogInformation("AI Optimization Engine disposed");
+            (_timeSeriesDb as IDisposable)?.Dispose();
         }
     }
 }

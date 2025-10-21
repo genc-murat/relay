@@ -67,6 +67,9 @@ namespace Relay.Core.AI.Optimization.Services
 
         private bool ShouldEnableCaching(CachingAnalysisData analysisData, AccessPattern[] accessPatterns)
         {
+            if (accessPatterns.Length == 0)
+                return false;
+
             // Enable caching if hit rate is above threshold or access frequency is high
             if (analysisData.CacheHitRate > 0.3)
                 return true;
@@ -104,6 +107,9 @@ namespace Relay.Core.AI.Optimization.Services
 
         private CacheStrategy DetermineCacheStrategy(AccessPattern[] accessPatterns)
         {
+            if (accessPatterns.Length == 0)
+                return CacheStrategy.TimeBasedExpiration;
+
             var avgFrequency = accessPatterns.Average(p => p.AccessFrequency);
             var hasTimePatterns = accessPatterns.Any(p => p.TimeOfDayPattern != default);
 
@@ -118,7 +124,7 @@ namespace Relay.Core.AI.Optimization.Services
 
         private double PredictHitRate(CachingAnalysisData analysisData, AccessPattern[] accessPatterns)
         {
-            if (analysisData.TotalAccesses == 0)
+            if (analysisData.TotalAccesses == 0 || accessPatterns.Length == 0)
                 return 0.0;
 
             // Use historical hit rate as base
@@ -142,6 +148,9 @@ namespace Relay.Core.AI.Optimization.Services
 
         private CacheScope DetermineCacheScope(AccessPattern[] accessPatterns)
         {
+            if (accessPatterns.Length == 0)
+                return CacheScope.Global;
+
             var hasUserContext = accessPatterns.Any(p => !string.IsNullOrEmpty(p.UserContext));
             var hasRegionalData = accessPatterns.Any(p => !string.IsNullOrEmpty(p.Region));
 
@@ -156,6 +165,9 @@ namespace Relay.Core.AI.Optimization.Services
 
         private double CalculateConfidence(CachingAnalysisData analysisData, AccessPattern[] accessPatterns)
         {
+            if (accessPatterns.Length == 0)
+                return 0.0;
+
             var baseConfidence = 0.5;
 
             // More data = higher confidence
@@ -205,6 +217,9 @@ namespace Relay.Core.AI.Optimization.Services
 
         private CacheKeyStrategy DetermineKeyStrategy(AccessPattern[] accessPatterns)
         {
+            if (accessPatterns.Length == 0)
+                return CacheKeyStrategy.RequestTypeOnly;
+
             var hasComplexRequests = accessPatterns.Any(p => p.RequestType != null);
             var hasUserContext = accessPatterns.Any(p => !string.IsNullOrEmpty(p.UserContext));
 
@@ -235,6 +250,9 @@ namespace Relay.Core.AI.Optimization.Services
 
         private CachePriority DetermineCachePriority(AccessPattern[] accessPatterns)
         {
+            if (accessPatterns.Length == 0)
+                return CachePriority.Low;
+
             var avgFrequency = accessPatterns.Average(p => p.AccessFrequency);
             var avgExecutionTime = accessPatterns.Average(p => p.ExecutionTime.TotalMilliseconds);
 
@@ -249,6 +267,9 @@ namespace Relay.Core.AI.Optimization.Services
 
         private bool ShouldUseDistributedCache(AccessPattern[] accessPatterns)
         {
+            if (accessPatterns.Length == 0)
+                return false;
+
             var hasRegionalData = accessPatterns.Any(p => !string.IsNullOrEmpty(p.Region));
             var totalAccesses = accessPatterns.Sum(p => p.AccessCount);
 

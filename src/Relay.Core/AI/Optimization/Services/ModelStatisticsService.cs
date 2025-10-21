@@ -31,10 +31,22 @@ namespace Relay.Core.AI.Optimization.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        public void RecordPrediction(Type requestType)
+        {
+            if (requestType == null) throw new ArgumentNullException(nameof(requestType));
+
+            lock (_statisticsLock)
+            {
+                Interlocked.Increment(ref _totalPredictions);
+                _logger.LogDebug("Recorded prediction for {RequestType}", requestType.Name);
+            }
+        }
+
         public void UpdateModelAccuracy(
             Type requestType,
             OptimizationStrategy[] appliedOptimizations,
-            RequestExecutionMetrics actualMetrics)
+            RequestExecutionMetrics actualMetrics,
+            bool strategiesMatch)
         {
             if (requestType == null) throw new ArgumentNullException(nameof(requestType));
             if (appliedOptimizations == null) throw new ArgumentNullException(nameof(appliedOptimizations));
@@ -47,11 +59,8 @@ namespace Relay.Core.AI.Optimization.Services
                 // Update per-request-type accuracy
                 accuracyData.AddPrediction(appliedOptimizations, actualMetrics);
 
-                // Update global statistics
-                Interlocked.Increment(ref _totalPredictions);
-
-                // Simple accuracy calculation: if success rate improved or stayed the same, count as correct
-                var wasSuccessful = actualMetrics.SuccessRate >= 0.8; // Arbitrary threshold
+                // Accuracy calculation: strategies must match prediction AND execution must be successful
+                var wasSuccessful = strategiesMatch && actualMetrics.SuccessRate >= 0.8; // Arbitrary threshold
                 if (wasSuccessful)
                 {
                     Interlocked.Increment(ref _correctPredictions);
@@ -59,8 +68,8 @@ namespace Relay.Core.AI.Optimization.Services
 
                 _totalPredictionTime += actualMetrics.AverageExecutionTime;
 
-                _logger.LogDebug("Updated model accuracy for {RequestType}: Success={Success}, Strategies={Count}",
-                    requestType.Name, wasSuccessful, appliedOptimizations.Length);
+                _logger.LogDebug("Updated model accuracy for {RequestType}: Match={Match}, Success={Success}, Strategies={Count}",
+                    requestType.Name, strategiesMatch, wasSuccessful, appliedOptimizations.Length);
             }
         }
 

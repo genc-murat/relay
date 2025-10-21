@@ -1,7 +1,6 @@
+using Microsoft.ML;
 using System;
 using System.Collections.Generic;
-using Microsoft.ML;
-using Microsoft.ML.TimeSeries;
 
 namespace Relay.Core.AI.Analysis.TimeSeries.ForecastingStrategies;
 

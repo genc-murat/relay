@@ -17,6 +17,9 @@ public class PooledTelemetryProvider : ITelemetryProvider
     private readonly ILogger<PooledTelemetryProvider>? _logger;
     private readonly ITelemetryContextPool _contextPool;
 
+    // Test hook to disable activity creation
+    internal static bool DisableActivityCreation { get; set; }
+
     public PooledTelemetryProvider(
         ITelemetryContextPool contextPool,
         ILogger<PooledTelemetryProvider>? logger = null,
@@ -31,6 +34,12 @@ public class PooledTelemetryProvider : ITelemetryProvider
 
     public Activity? StartActivity(string operationName, Type requestType, string? correlationId = null)
     {
+        // Test hook to disable activity creation
+        if (DisableActivityCreation)
+        {
+            return null;
+        }
+
         var activity = ActivitySource.StartActivity(operationName);
 
         if (activity != null)

@@ -141,16 +141,15 @@ namespace Relay.Core.Tests.Validation
         public async Task ValidateAsync_Should_Handle_Unicode_Characters()
         {
             // Arrange
-            var rule = new ExactLengthValidationRule(3);
+            var rule = new ExactLengthValidationRule(4);
 
             // Act & Assert
-            Assert.Empty(await rule.ValidateAsync("café")); // 4 characters? Wait, café is 4 chars
-            // Actually, "café" has length 4 in .NET
-            var errors = await rule.ValidateAsync("café");
+            Assert.Empty(await rule.ValidateAsync("café")); // café is 4 characters
+            var errors = await rule.ValidateAsync("abc");
             Assert.Single(errors);
-            Assert.Equal("Value must be exactly 3 characters long.", errors.First());
+            Assert.Equal("Value must be exactly 4 characters long.", errors.First());
 
-            Assert.Empty(await rule.ValidateAsync("abc"));
+            Assert.Empty(await rule.ValidateAsync("test"));
         }
 
         [Fact]

@@ -118,7 +118,7 @@ namespace Relay.Core.Tests.Validation
             // Arrange
             var rule = new FutureValidationRuleDateTimeOffset();
             var utcFuture = DateTimeOffset.UtcNow.AddDays(1);
-            var offsetFuture = new DateTimeOffset(DateTime.UtcNow.AddDays(1), TimeSpan.FromHours(5));
+            var offsetFuture = utcFuture.AddHours(5); // Create offset by adding hours to UTC
 
             // Act & Assert
             Assert.Empty(await rule.ValidateAsync(utcFuture));

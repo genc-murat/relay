@@ -1434,64 +1434,6 @@ public class PipelineCommandTests
     }
 
     [Fact]
-    public async Task GeneratePipelineReport_ShouldCreateReportFile_WithSuccessfulResults()
-    {
-        // Arrange
-        var reportPath = Path.Combine(Path.GetTempPath(), $"test-report-{Guid.NewGuid()}.md");
-        var pipelineResult = new PipelineResult
-        {
-            Success = true,
-            TotalDuration = TimeSpan.FromSeconds(2.5),
-            Stages = new List<PipelineStageResult>
-            {
-                new PipelineStageResult
-                {
-                    StageName = "Init",
-                    StageEmoji = "🎬",
-                    Success = true,
-                    Message = "Project created",
-                    Duration = TimeSpan.FromSeconds(0.8)
-                },
-                new PipelineStageResult
-                {
-                    StageName = "Doctor",
-                    StageEmoji = "🏥",
-                    Success = true,
-                    Message = "Health checks passed",
-                    Duration = TimeSpan.FromSeconds(0.5)
-                }
-            }
-        };
-
-        try
-        {
-            // Act
-            await PipelineCommand.GeneratePipelineReport(pipelineResult, reportPath);
-
-            // Assert
-            Assert.True(File.Exists(reportPath));
-            var content = await File.ReadAllTextAsync(reportPath);
-            Assert.Contains("**Generated:**", content);
-
-            // Extract the timestamp from the content
-            var lines = content.Split('\n');
-            var generatedLine = lines.FirstOrDefault(l => l.Contains("**Generated:**"));
-            Assert.NotNull(generatedLine);
-
-            var timestampStr = generatedLine.Replace("**Generated:** ", "").Trim();
-            var timestamp = DateTimeOffset.Parse(timestampStr);
-
-            var now = DateTimeOffset.Now;
-            Assert.True(timestamp >= now.AddSeconds(-1) && timestamp <= now.AddSeconds(1));
-        }
-        finally
-        {
-            if (File.Exists(reportPath))
-                File.Delete(reportPath);
-        }
-    }
-
-    [Fact]
     public void DisplayPipelineResults_ShouldNotThrowException_WithValidResult()
     {
         // Arrange

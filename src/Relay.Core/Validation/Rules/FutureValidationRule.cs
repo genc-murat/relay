@@ -16,7 +16,12 @@ public class FutureValidationRule : IValidationRule<DateTime>
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (request <= DateTime.Now)
+        // Convert both to UTC for consistent comparison
+        var requestUtc = request.ToUniversalTime();
+        var nowUtc = DateTime.UtcNow;
+
+        // Use strict inequality to avoid timing precision issues
+        if (requestUtc <= nowUtc)
         {
             return new ValueTask<IEnumerable<string>>(new[] { "Date must be in the future." });
         }

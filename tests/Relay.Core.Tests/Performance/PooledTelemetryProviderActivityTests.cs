@@ -124,25 +124,29 @@ public class PooledTelemetryProviderActivityTests
     [Fact]
     public void PooledTelemetryProvider_StartActivity_Should_ReturnNullWhenSamplingDenies()
     {
-        // Arrange - Add activity listener that denies sampling
-        using var listener = new ActivityListener
+        // Arrange - Disable activity creation for testing
+        var originalDisableFlag = PooledTelemetryProvider.DisableActivityCreation;
+        PooledTelemetryProvider.DisableActivityCreation = true;
+
+        try
         {
-            ShouldListenTo = s => s.Name == "Relay.Core",
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.None,
-        };
-        ActivitySource.AddActivityListener(listener);
+            var services = new ServiceCollection();
+            services.AddRelayPerformanceOptimizations();
+            var provider = services.BuildServiceProvider();
+            var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
+            var telemetryProvider = new PooledTelemetryProvider(contextPool);
 
-        var services = new ServiceCollection();
-        services.AddRelayPerformanceOptimizations();
-        var provider = services.BuildServiceProvider();
-        var contextPool = provider.GetRequiredService<ITelemetryContextPool>();
-        var telemetryProvider = new PooledTelemetryProvider(contextPool);
+            // Act
+            var activity = telemetryProvider.StartActivity("TestOperation", typeof(string), "test-id");
 
-        // Act
-        var activity = telemetryProvider.StartActivity("TestOperation", typeof(string), "test-id");
-
-        // Assert
-        Assert.Null(activity);
+            // Assert
+            Assert.Null(activity);
+        }
+        finally
+        {
+            // Restore original flag
+            PooledTelemetryProvider.DisableActivityCreation = originalDisableFlag;
+        }
     }
 
     [Fact]

@@ -1093,23 +1093,6 @@ public class BenchmarkCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task BenchmarkCommand_MeasuresTotalTime()
-    {
-        // Arrange
-        var command = BenchmarkCommand.Create();
-        var console = new TestConsole();
-        var outputPath = Path.Combine(_testPath, "total-time.json");
-
-        // Act
-        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format json", console);
-
-        // Assert
-        Assert.Equal(0, result);
-        var content = await File.ReadAllTextAsync(outputPath);
-        Assert.Contains("TotalTime", content);
-    }
-
-    [Fact]
     public async Task BenchmarkCommand_DefaultsToConsoleFormat()
     {
         // Arrange

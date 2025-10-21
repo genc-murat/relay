@@ -183,7 +183,9 @@ namespace Relay.Core.Tests.Validation
         {
             // Arrange
             var rule = new FutureValidationRule();
-            var preciseFuture = new DateTime(DateTime.Now.Ticks + 1);
+            var now = DateTime.UtcNow;
+            // Create a DateTime that is definitely in the future by adding ticks to UTC now
+            var preciseFuture = new DateTime(now.Ticks + TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);
 
             // Act
             var errors = await rule.ValidateAsync(preciseFuture);

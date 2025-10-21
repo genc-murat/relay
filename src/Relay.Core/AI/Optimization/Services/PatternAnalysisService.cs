@@ -31,6 +31,8 @@ namespace Relay.Core.AI.Optimization.Services
             if (analysisData == null) throw new ArgumentNullException(nameof(analysisData));
             if (executionMetrics == null) throw new ArgumentNullException(nameof(executionMetrics));
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Analyze execution patterns
             var strategy = DetermineOptimalStrategy(analysisData, executionMetrics);
             var confidence = CalculateConfidenceScore(analysisData, executionMetrics);
@@ -75,14 +77,9 @@ namespace Relay.Core.AI.Optimization.Services
                     return OptimizationStrategy.ParallelProcessing;
             }
 
-            // Long execution time -> Caching or memory optimization
+            // Long execution time -> Enable caching
             if (executionMetrics.AverageExecutionTime.TotalMilliseconds > 1000)
-            {
-                if (analysisData.RepeatRequestRate > 0.5)
-                    return OptimizationStrategy.EnableCaching;
-                else
-                    return OptimizationStrategy.MemoryOptimization;
-            }
+                return OptimizationStrategy.EnableCaching;
 
             // High memory usage -> Memory pooling
             if (executionMetrics.MemoryUsage > 100 * 1024 * 1024) // 100MB

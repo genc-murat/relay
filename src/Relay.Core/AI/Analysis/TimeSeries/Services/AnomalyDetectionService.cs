@@ -90,7 +90,7 @@ namespace Relay.Core.AI.Analysis.TimeSeries
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error detecting anomalies for {MetricName}", metricName);
-                return new List<AnomalyDetectionResult>();
+                throw new AnomalyDetectionException($"Failed to detect anomalies for metric '{metricName}'", ex);
             }
         }
 

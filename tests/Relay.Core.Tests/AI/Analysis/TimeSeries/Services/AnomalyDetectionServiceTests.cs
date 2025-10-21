@@ -218,27 +218,27 @@ public class AnomalyDetectionServiceTests
         // We can't guarantee detection, but the method should complete without error
     }
 
-    [Fact]
-    public void DetectAnomalies_Should_Handle_Exception_And_Return_Empty_List()
-    {
-        // Arrange
-        var metricName = "test.metric";
-        _repositoryMock.Setup(r => r.GetHistory(metricName)).Throws(new Exception("Database error"));
+        [Fact]
+        public void DetectAnomalies_Should_Handle_Exception_And_Throw_AnomalyDetectionException()
+        {
+            // Arrange
+            var metricName = "test.metric";
+            _repositoryMock.Setup(r => r.GetHistory(metricName)).Throws(new Exception("Database error"));
 
-        // Act
-        var result = _service.DetectAnomalies(metricName);
-
-        // Assert
-        Assert.Empty(result);
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Error detecting anomalies")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
+            // Act & Assert
+            var exception = Assert.Throws<AnomalyDetectionException>(() => _service.DetectAnomalies(metricName));
+            Assert.Contains("Failed to detect anomalies for metric 'test.metric'", exception.Message);
+            Assert.NotNull(exception.InnerException);
+            Assert.IsType<Exception>(exception.InnerException);
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Error detecting anomalies")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
 
     #endregion
 
@@ -272,6 +272,20 @@ public class AnomalyDetectionServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(() => _service.DetectAnomaliesAsync(metricName, cancellationToken: cts.Token));
+    }
+
+    [Fact]
+    public async Task DetectAnomaliesAsync_Should_Handle_Exception_And_Throw_AnomalyDetectionException()
+    {
+        // Arrange
+        var metricName = "test.metric";
+        _repositoryMock.Setup(r => r.GetHistory(metricName)).Throws(new Exception("Database error"));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<AnomalyDetectionException>(() => _service.DetectAnomaliesAsync(metricName));
+        Assert.Contains("Failed to detect anomalies for metric 'test.metric'", exception.Message);
+        Assert.NotNull(exception.InnerException);
+        Assert.IsType<Exception>(exception.InnerException);
     }
 
     #endregion

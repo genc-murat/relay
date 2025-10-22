@@ -3,7 +3,7 @@ namespace Relay.Core.AI.Optimization.Data
     /// <summary>
     /// System load level classification
     /// </summary>
-    internal enum LoadLevel
+    public enum LoadLevel
     {
         Idle = 0,
         Low = 1,

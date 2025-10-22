@@ -5,7 +5,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Prediction result for ML model training and evaluation
     /// </summary>
-    internal class PredictionResult
+    public class PredictionResult
     {
         public Type RequestType { get; init; } = null!;
         public OptimizationStrategy[] PredictedStrategies { get; init; } = Array.Empty<OptimizationStrategy>();

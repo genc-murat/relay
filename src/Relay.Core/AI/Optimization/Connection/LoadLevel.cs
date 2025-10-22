@@ -1,6 +1,6 @@
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal enum LoadLevel
+public enum LoadLevel
 {
     Idle,
     Low,

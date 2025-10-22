@@ -5,7 +5,7 @@ namespace Relay.Core.AI.Optimization.Data
     /// <summary>
     /// Load pattern data for analysis
     /// </summary>
-    internal class LoadPatternData
+    public class LoadPatternData
     {
         public LoadLevel Level { get; set; }
         public List<PredictionResult> Predictions { get; set; } = new();

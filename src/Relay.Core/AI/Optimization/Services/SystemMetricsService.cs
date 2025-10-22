@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Models;
+using Relay.Core.AI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -48,6 +49,102 @@ namespace Relay.Core.AI.Optimization.Services
                 Maintainability = maintainability,
                 Status = status,
                 CriticalAreas = criticalAreas
+            };
+        }
+
+        public LoadPatternData AnalyzeLoadPatterns()
+        {
+            var metrics = CollectSystemMetrics();
+            var loadLevel = DetermineLoadLevel(metrics);
+            var predictions = GenerateLoadPredictions(metrics);
+            var successRate = CalculatePredictionSuccessRate();
+            var averageImprovement = CalculateAverageImprovement();
+            var totalPredictions = GetTotalPredictions();
+            var strategyEffectiveness = CalculateStrategyEffectiveness();
+
+            return new LoadPatternData
+            {
+                Level = loadLevel,
+                Predictions = predictions,
+                SuccessRate = successRate,
+                AverageImprovement = averageImprovement,
+                TotalPredictions = totalPredictions,
+                StrategyEffectiveness = strategyEffectiveness
+            };
+        }
+
+        private LoadLevel DetermineLoadLevel(Dictionary<string, double> metrics)
+        {
+            var cpuUtilization = metrics.GetValueOrDefault("CpuUtilization", 0);
+            var memoryUtilization = metrics.GetValueOrDefault("MemoryUtilization", 0);
+            var throughput = metrics.GetValueOrDefault("ThroughputPerSecond", 0);
+
+            // Determine load level based on system metrics
+            if (cpuUtilization > 0.9 || memoryUtilization > 0.9)
+                return LoadLevel.Critical;
+            else if (cpuUtilization > 0.7 || memoryUtilization > 0.7)
+                return LoadLevel.High;
+            else if (cpuUtilization > 0.5 || memoryUtilization > 0.5)
+                return LoadLevel.Medium;
+            else if (cpuUtilization > 0.2 || memoryUtilization > 0.2 || throughput > 10)
+                return LoadLevel.Low;
+            else
+                return LoadLevel.Idle;
+        }
+
+        private List<PredictionResult> GenerateLoadPredictions(Dictionary<string, double> metrics)
+        {
+            var predictions = new List<PredictionResult>();
+
+            // Generate predictions based on current metrics
+            var predictedStrategies = new[] { OptimizationStrategy.EnableCaching, OptimizationStrategy.BatchProcessing };
+            var improvement = TimeSpan.FromMilliseconds(metrics.GetValueOrDefault("AverageResponseTime", 100) * 0.1);
+
+            predictions.Add(new PredictionResult
+            {
+                RequestType = typeof(object), // Generic prediction
+                PredictedStrategies = predictedStrategies,
+                ActualImprovement = improvement,
+                Timestamp = DateTime.UtcNow,
+                Metrics = new RequestExecutionMetrics
+                {
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(metrics.GetValueOrDefault("AverageResponseTime", 100)),
+                    ConcurrentExecutions = (int)metrics.GetValueOrDefault("ConcurrentRequests", 1),
+                    MemoryUsage = (long)(metrics.GetValueOrDefault("MemoryUsageMB", 100) * 1024 * 1024),
+                    DatabaseCalls = (int)metrics.GetValueOrDefault("DatabaseCalls", 0)
+                }
+            });
+
+            return predictions;
+        }
+
+        private double CalculatePredictionSuccessRate()
+        {
+            // Placeholder implementation - would track actual vs predicted performance
+            return 0.85; // 85% success rate
+        }
+
+        private double CalculateAverageImprovement()
+        {
+            // Placeholder implementation - would calculate average improvement from predictions
+            return 0.15; // 15% average improvement
+        }
+
+        private int GetTotalPredictions()
+        {
+            // Placeholder implementation - would return total number of predictions made
+            return 100;
+        }
+
+        private Dictionary<string, double> CalculateStrategyEffectiveness()
+        {
+            // Placeholder implementation - would calculate effectiveness of different strategies
+            return new Dictionary<string, double>
+            {
+                ["EnableCaching"] = 0.8,
+                ["BatchProcessing"] = 0.7,
+                ["ParallelProcessing"] = 0.6,
+                ["CircuitBreaker"] = 0.9
             };
         }
 

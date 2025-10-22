@@ -293,6 +293,89 @@ public class ForecastingServiceTests
         _predictorMock.Verify(p => p.PredictAsync(metricName, horizon, cancellationToken), Times.Once);
     }
 
+    [Fact]
+    public async Task ForecastAsync_Should_Return_Valid_MetricForecastResult_Structure()
+    {
+        // Arrange
+        var metricName = "cpu_usage";
+        var horizon = 6;
+        var forecastResult = new MetricForecastResult
+        {
+            ForecastedValues = new float[] { 45.2f, 46.8f, 44.9f, 47.1f, 45.7f, 46.3f },
+            LowerBound = new float[] { 42.1f, 43.7f, 41.8f, 44.0f, 42.6f, 43.2f },
+            UpperBound = new float[] { 48.3f, 49.9f, 48.0f, 50.2f, 48.8f, 49.4f }
+        };
+        _predictorMock.Setup(p => p.PredictAsync(metricName, horizon, It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(forecastResult);
+
+        // Act
+        var result = await _service.ForecastAsync(metricName, horizon);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(horizon, result.ForecastedValues.Length);
+        Assert.Equal(horizon, result.LowerBound.Length);
+        Assert.Equal(horizon, result.UpperBound.Length);
+
+        // Verify confidence bounds
+        for (int i = 0; i < horizon; i++)
+        {
+            Assert.True(result.LowerBound[i] <= result.ForecastedValues[i],
+                $"Lower bound at index {i} should be <= forecasted value");
+            Assert.True(result.ForecastedValues[i] <= result.UpperBound[i],
+                $"Forecasted value at index {i} should be <= upper bound");
+        }
+    }
+
+    [Fact]
+    public async Task ForecastAsync_Should_Handle_Different_Horizons()
+    {
+        // Arrange
+        var metricName = "response_time";
+        var testCases = new[] { 1, 6, 12, 24 };
+
+        foreach (var horizon in testCases)
+        {
+            var forecastResult = CreateTestForecastResultWithHorizon(horizon);
+            _predictorMock.Setup(p => p.PredictAsync(metricName, horizon, It.IsAny<CancellationToken>()))
+                         .ReturnsAsync(forecastResult);
+
+            // Act
+            var result = await _service.ForecastAsync(metricName, horizon);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(horizon, result.ForecastedValues.Length);
+            Assert.Equal(horizon, result.LowerBound.Length);
+            Assert.Equal(horizon, result.UpperBound.Length);
+        }
+    }
+
+    [Fact]
+    public async Task ForecastAsync_Should_Handle_Empty_Forecast_Result()
+    {
+        // Arrange
+        var metricName = "empty_metric";
+        var horizon = 12;
+        var emptyResult = new MetricForecastResult
+        {
+            ForecastedValues = Array.Empty<float>(),
+            LowerBound = Array.Empty<float>(),
+            UpperBound = Array.Empty<float>()
+        };
+        _predictorMock.Setup(p => p.PredictAsync(metricName, horizon, It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(emptyResult);
+
+        // Act
+        var result = await _service.ForecastAsync(metricName, horizon);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result.ForecastedValues);
+        Assert.Empty(result.LowerBound);
+        Assert.Empty(result.UpperBound);
+    }
+
     #endregion
 
     #region GetForecastingMethod Tests
@@ -356,6 +439,27 @@ public class ForecastingServiceTests
             ForecastedValues = new float[] { 1.0f, 2.0f, 3.0f },
             LowerBound = new float[] { 0.8f, 1.8f, 2.8f },
             UpperBound = new float[] { 1.2f, 2.2f, 3.2f }
+        };
+    }
+
+    private static MetricForecastResult CreateTestForecastResultWithHorizon(int horizon)
+    {
+        var forecastedValues = new float[horizon];
+        var lowerBound = new float[horizon];
+        var upperBound = new float[horizon];
+
+        for (int i = 0; i < horizon; i++)
+        {
+            forecastedValues[i] = 50.0f + i * 0.5f;
+            lowerBound[i] = forecastedValues[i] - 2.0f;
+            upperBound[i] = forecastedValues[i] + 2.0f;
+        }
+
+        return new MetricForecastResult
+        {
+            ForecastedValues = forecastedValues,
+            LowerBound = lowerBound,
+            UpperBound = upperBound
         };
     }
 

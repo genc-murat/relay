@@ -340,7 +340,7 @@ internal sealed class MLNetModelManager : IDisposable
     /// <summary>
     /// Forecast future metric values
     /// </summary>
-    public MetricForecast? ForecastMetric(int horizon)
+    public MetricForecast? ForecastMetric()
     {
         if (_forecastModel == null)
         {
@@ -348,12 +348,49 @@ internal sealed class MLNetModelManager : IDisposable
             return null;
         }
 
+        if (_forecastingDataBuffer.Count == 0)
+        {
+            _logger.LogWarning("No forecasting data available");
+            return null;
+        }
+
+        // Ensure we have sufficient data for reliable forecasting
+        const int minDataPoints = 100;
+        if (_forecastingDataBuffer.Count < minDataPoints)
+        {
+            _logger.LogWarning("Insufficient data for forecasting: {Count} samples, minimum required: {Min}",
+                _forecastingDataBuffer.Count, minDataPoints);
+            return null;
+        }
+
         try
         {
-            var predictionEngine = _mlContext.Model.CreatePredictionEngine<MetricData, MetricForecast>(_forecastModel);
-            var forecast = predictionEngine.Predict(new MetricData());
+            // For SSA forecasting, we need to transform the data to get forecasts
+            var dataView = _mlContext.Data.LoadFromEnumerable(_forecastingDataBuffer);
+            var transformedData = _forecastModel.Transform(dataView);
 
-            _logger.LogDebug("Forecasted {Count} future values", forecast.ForecastedValues.Length);
+            // Extract the forecast from the transformed data
+            var forecastRows = _mlContext.Data.CreateEnumerable<MetricForecast>(transformedData, reuseRowObject: false).ToList();
+
+            if (forecastRows.Count == 0)
+            {
+                _logger.LogWarning("No forecast data generated");
+                return null;
+            }
+
+            var forecast = forecastRows.First();
+
+            // Validate forecast arrays match the trained horizon
+            if (forecast.ForecastedValues.Length != _currentForecastHorizon ||
+                forecast.LowerBound.Length != _currentForecastHorizon ||
+                forecast.UpperBound.Length != _currentForecastHorizon)
+            {
+                _logger.LogWarning("Forecast arrays have incorrect length. Expected {Horizon}, got ForecastedValues: {ForecastedLength}, LowerBound: {LowerLength}, UpperBound: {UpperLength}",
+                    _currentForecastHorizon, forecast.ForecastedValues.Length, forecast.LowerBound.Length, forecast.UpperBound.Length);
+                return null;
+            }
+
+            _logger.LogDebug("Successfully forecasted {Count} future values", forecast.ForecastedValues.Length);
 
             return forecast;
         }

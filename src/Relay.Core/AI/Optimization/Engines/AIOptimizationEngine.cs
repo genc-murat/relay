@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Relay.Core.AI;
 using Relay.Core.AI.Analysis.TimeSeries;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Services;
@@ -214,7 +215,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
             PerformanceGrade = CalculatePerformanceGrade(),
             KeyMetrics = keyMetrics,
             SeasonalPatterns = DetectSeasonalPatterns(keyMetrics),
-            ResourceOptimization = _resourceOptimizationService.AnalyzeResourceUsage(keyMetrics, new Dictionary<string, double>()) // Using current metrics as historical for simplicity
+            ResourceOptimization = _resourceOptimizationService.AnalyzeResourceUsage(keyMetrics, new Dictionary<string, double>()), // Using current metrics as historical for simplicity
+            RiskAssessment = AssessSystemRisk(keyMetrics)
         };
 
         _logger.LogInformation("Generated system performance insights: Grade {Grade}, Health Score {HealthScore:F2}",
@@ -326,6 +328,33 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
     private Dictionary<string, double> CollectKeyMetrics()
     {
         return _systemMetricsService.CollectSystemMetrics();
+    }
+
+    private Optimization.Services.RiskAssessment AssessSystemRisk(Dictionary<string, double> systemMetrics)
+    {
+        // Assess risk for the most common optimization strategy (EnableCaching as representative)
+        // In a more sophisticated implementation, this could assess risks for all active strategies
+        var representativeStrategy = OptimizationStrategy.EnableCaching;
+
+        // Create representative analysis data from current system state
+        var analysisData = new RequestAnalysisData();
+        var totalRequests = (int)systemMetrics.GetValueOrDefault("TotalRequests", 100);
+        var errorRate = systemMetrics.GetValueOrDefault("ErrorRate", 0.01);
+        var failedRequests = (int)(totalRequests * errorRate);
+
+        // Create representative metrics to populate the analysis data
+        var metrics = new RequestExecutionMetrics
+        {
+            TotalExecutions = totalRequests,
+            SuccessfulExecutions = totalRequests - failedRequests,
+            FailedExecutions = failedRequests,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            ConcurrentExecutions = 1
+        };
+
+        analysisData.AddMetrics(metrics);
+
+        return _riskAssessmentService.AssessOptimizationRisk(representativeStrategy, analysisData, systemMetrics);
     }
 
     private void UpdateModelCallback(object? state)

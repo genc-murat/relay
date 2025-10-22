@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Models;
 using System;
@@ -9,7 +10,7 @@ namespace Relay.Core.AI.Optimization.Services
     /// <summary>
     /// Service for assessing risks associated with optimization strategies
     /// </summary>
-    internal class RiskAssessmentService
+    public class RiskAssessmentService
     {
         private readonly ILogger _logger;
 
@@ -42,7 +43,7 @@ namespace Relay.Core.AI.Optimization.Services
             };
         }
 
-        private Relay.Core.AI.RiskLevel CalculateRiskLevel(
+        private RiskLevel CalculateRiskLevel(
             OptimizationStrategy strategy,
             RequestAnalysisData analysisData,
             Dictionary<string, double> systemMetrics)
@@ -55,10 +56,10 @@ namespace Relay.Core.AI.Optimization.Services
 
             return totalRisk switch
             {
-                < 0.3 => Relay.Core.AI.RiskLevel.Low,
-                < 0.6 => Relay.Core.AI.RiskLevel.Medium,
-                < 0.8 => Relay.Core.AI.RiskLevel.High,
-                _ => Relay.Core.AI.RiskLevel.VeryHigh
+                < 0.3 => RiskLevel.Low,
+                < 0.6 => RiskLevel.Medium,
+                < 0.8 => RiskLevel.High,
+                _ => RiskLevel.VeryHigh
             };
         }
 
@@ -135,24 +136,24 @@ namespace Relay.Core.AI.Optimization.Services
             return factors;
         }
 
-        private List<string> GenerateMitigationStrategies(Relay.Core.AI.RiskLevel riskLevel, List<string> riskFactors)
+        private List<string> GenerateMitigationStrategies(RiskLevel riskLevel, List<string> riskFactors)
         {
             var strategies = new List<string>();
 
-            if (riskLevel >= Relay.Core.AI.RiskLevel.High)
+            if (riskLevel >= RiskLevel.High)
             {
                 strategies.Add("Implement gradual rollout with feature flags");
                 strategies.Add("Set up comprehensive monitoring and alerting");
                 strategies.Add("Prepare rollback plan");
             }
 
-            if (riskFactors.Contains("Insufficient historical data"))
+            if (riskFactors.Contains("Insufficient historical data for reliable optimization"))
             {
                 strategies.Add("Start with conservative optimization settings");
                 strategies.Add("Monitor performance closely for first 24 hours");
             }
 
-            if (riskFactors.Contains("High error rate"))
+            if (riskFactors.Contains("High error rate may be exacerbated by optimization changes"))
             {
                 strategies.Add("Implement circuit breaker pattern");
                 strategies.Add("Add additional error handling and logging");
@@ -179,10 +180,10 @@ namespace Relay.Core.AI.Optimization.Services
         }
     }
 
-    internal class RiskAssessment
+    public class RiskAssessment
     {
         public OptimizationStrategy Strategy { get; set; }
-        public Relay.Core.AI.RiskLevel RiskLevel { get; set; }
+        public RiskLevel RiskLevel { get; set; }
         public List<string> RiskFactors { get; set; } = new();
         public List<string> MitigationStrategies { get; set; } = new();
         public double AssessmentConfidence { get; set; }

@@ -34,5 +34,10 @@ namespace Relay.Core.AI
         /// Resource optimization recommendations
         /// </summary>
         public Optimization.Services.ResourceOptimizationRecommendation ResourceOptimization { get; init; } = new();
+
+        /// <summary>
+        /// Risk assessment for current optimization strategies
+        /// </summary>
+        public Optimization.Services.RiskAssessment RiskAssessment { get; init; } = new();
     }
 }

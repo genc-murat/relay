@@ -23,9 +23,13 @@ public static class ForecastingServiceCollectionExtensions
         this IServiceCollection services,
         Action<ForecastingConfiguration> configure)
     {
-        services.Configure(configure);
+        if (configure == null)
+            throw new ArgumentNullException(nameof(configure));
 
-        services.AddSingleton<ForecastingConfiguration>();
+        var config = new ForecastingConfiguration();
+        configure(config);
+
+        services.AddSingleton(config);
         services.AddSingleton<IForecastingModelManager, ForecastingModelManager>();
         services.AddSingleton<IForecastingMethodManager, ForecastingMethodManager>();
         services.AddTransient<IForecastingTrainer, ForecastingTrainer>();

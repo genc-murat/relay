@@ -150,6 +150,15 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.AtLeastOnce);
+
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Calculated optimal tree count")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.AtLeastOnce);
     }
 
     [Fact]
@@ -224,5 +233,30 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
 
         // Assert - Higher overfitting risk should result in higher regularization strength
         Assert.True(resultHigh > resultLow);
+    }
+
+    [Fact]
+    public void CalculateOptimalTreeCount_ShouldReturnValidTreeCount()
+    {
+        // Act - Call CalculateOptimalTreeCount directly via reflection
+        var method = _engine.GetType().GetMethod("CalculateOptimalTreeCount", BindingFlags.NonPublic | BindingFlags.Instance);
+        var result = method?.Invoke(_engine, new object[] { 0.85, new Dictionary<string, double> { { "SystemStability", 0.8 } } });
+
+        // Assert - Should return an integer between 10 and 1000
+        Assert.NotNull(result);
+        var treeCount = (int)result;
+        Assert.InRange(treeCount, 10, 1000);
+    }
+
+    [Fact]
+    public void CalculateOptimalTreeCount_WithHighAccuracy_ShouldReduceTrees()
+    {
+        // Act - Call with different accuracies
+        var method = _engine.GetType().GetMethod("CalculateOptimalTreeCount", BindingFlags.NonPublic | BindingFlags.Instance);
+        var resultLow = (int)method?.Invoke(_engine, new object[] { 0.7, new Dictionary<string, double>() });
+        var resultHigh = (int)method?.Invoke(_engine, new object[] { 0.95, new Dictionary<string, double>() });
+
+        // Assert - Higher accuracy should result in fewer trees to prevent overfitting
+        Assert.True(resultHigh < resultLow);
     }
 }

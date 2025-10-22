@@ -408,6 +408,12 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
             _logger.LogDebug("Calculated regularization strength: {Strength} based on overfitting risk {Risk:P}", regularizationStrength, overfittingRisk);
 
+            // Calculate optimal tree count based on model accuracy
+            var accuracy = 1.0 - errorRate; // Simple heuristic: accuracy = 1 - error rate
+            var optimalTreeCount = CalculateOptimalTreeCount(accuracy, metrics);
+
+            _logger.LogDebug("Calculated optimal tree count: {Count} based on accuracy {Accuracy:P}", optimalTreeCount, accuracy);
+
             // This would coordinate updates across all services using the calculated epochs
             // For now, simplified implementation
 

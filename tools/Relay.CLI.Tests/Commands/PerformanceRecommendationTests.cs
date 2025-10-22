@@ -353,7 +353,7 @@ public class PerformanceRecommendationTests
         Assert.Equal(3, grouped.Count());
         Assert.Equal(2, grouped.First(g => g.Key == "Async").Count());
         Assert.Equal(2, grouped.First(g => g.Key == "Memory").Count());
-        Assert.Equal(1, grouped.First(g => g.Key == "Caching").Count());
+        Assert.Single(grouped.First(g => g.Key == "Caching"));
     }
 
     [Fact]

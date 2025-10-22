@@ -2,6 +2,7 @@ using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
 
+#pragma warning disable CS8625
 public class PluginConfigurationTests
 {
     private readonly PluginConfiguration _config;

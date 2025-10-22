@@ -3,6 +3,9 @@ using Relay.CLI.Plugins;
 using System.Reflection;
 using System.Text.Json;
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
+#pragma warning disable CS8602 // Dereference of a possibly null reference
+
 namespace Relay.CLI.Tests.Plugins;
 
 public class PluginManagerHealthMonitoringTests : IDisposable

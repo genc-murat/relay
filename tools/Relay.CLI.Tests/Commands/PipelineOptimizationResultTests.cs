@@ -545,7 +545,7 @@ public class PipelineOptimizationResultTests
         var appliedCaching = results.Where(r => r.Applied && r.Type == "Caching").ToList();
 
         // Assert
-        Assert.Equal(1, appliedCaching.Count());
+        Assert.Single(appliedCaching);
         Assert.Equal("Caching", appliedCaching[0].Type);
         Assert.True(appliedCaching[0].Applied);
     }

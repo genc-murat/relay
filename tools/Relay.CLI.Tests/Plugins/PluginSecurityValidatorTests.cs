@@ -6,6 +6,7 @@ namespace Relay.CLI.Tests.Plugins;
 
 public class PluginSecurityValidatorTests
 {
+#pragma warning disable CS8602, CS8605
     private readonly Mock<IPluginLogger> _mockLogger;
     private readonly PluginSecurityValidator _validator;
 

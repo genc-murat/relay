@@ -9,6 +9,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type
+
 namespace Relay.Core.Tests.Implementation;
 
 public class NamedRelayTests

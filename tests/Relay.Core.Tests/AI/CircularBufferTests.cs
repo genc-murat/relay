@@ -133,7 +133,7 @@ namespace Relay.Core.Tests.AI
 
             buffer.Clear();
 
-            Assert.Equal(0, buffer.Count);
+            Assert.Empty(buffer);
             Assert.Empty(buffer);
         }
 
@@ -144,7 +144,7 @@ namespace Relay.Core.Tests.AI
 
             buffer.Clear();
 
-            Assert.Equal(0, buffer.Count);
+            Assert.Empty(buffer);
             Assert.Empty(buffer);
         }
 
@@ -161,7 +161,7 @@ namespace Relay.Core.Tests.AI
 
             buffer.Clear();
 
-            Assert.Equal(0, buffer.Count);
+            Assert.Empty(buffer);
             Assert.Empty(buffer);
         }
 
@@ -179,7 +179,7 @@ namespace Relay.Core.Tests.AI
 
             buffer.Clear();
 
-            Assert.Equal(0, buffer.Count);
+            Assert.Empty(buffer);
             Assert.Empty(buffer);
         }
 
@@ -271,7 +271,7 @@ namespace Relay.Core.Tests.AI
             var buffer = new CircularBuffer<int>(10);
 
             Assert.Equal(10, buffer.Capacity);
-            Assert.Equal(0, buffer.Count);
+            Assert.Empty(buffer);
             Assert.Empty(buffer);
         }
 
@@ -291,7 +291,7 @@ namespace Relay.Core.Tests.AI
             var buffer = new CircularBuffer<int>(3);
 
             buffer.Add(1);
-            Assert.Equal(1, buffer.Count);
+            Assert.Single(buffer);
             Assert.Equal(1, buffer[0]);
 
             buffer.Add(2);

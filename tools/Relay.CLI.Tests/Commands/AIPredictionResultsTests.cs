@@ -137,7 +137,7 @@ public class AIPredictionResultsTests
         Assert.Equal(0.01, results.ExpectedErrorRate);
         Assert.Equal(65.2, results.ExpectedCpuUsage);
         Assert.Equal(78.9, results.ExpectedMemoryUsage);
-        Assert.Equal(1, results.Bottlenecks.Count());
+        Assert.Single(results.Bottlenecks);
         Assert.Equal(recommendations, results.Recommendations);
     }
 
@@ -212,7 +212,7 @@ public class AIPredictionResultsTests
         Assert.Equal(0.05, deserialized.ExpectedErrorRate);
         Assert.Equal(70.0, deserialized.ExpectedCpuUsage);
         Assert.Equal(80.0, deserialized.ExpectedMemoryUsage);
-        Assert.Equal(1, deserialized.Bottlenecks.Count());
+        Assert.Single(deserialized.Bottlenecks);
         Assert.Contains("Optimize queries", deserialized.Recommendations);
     }
 
@@ -247,7 +247,7 @@ public class AIPredictionResultsTests
         Assert.Equal(0.03, results.ExpectedErrorRate);
         Assert.Equal(85.5, results.ExpectedCpuUsage);
         Assert.Equal(90.2, results.ExpectedMemoryUsage);
-        Assert.Equal(1, results.Bottlenecks.Count());
+        Assert.Single(results.Bottlenecks);
         Assert.Equal("Network", results.Bottlenecks[0].Component);
         Assert.Contains("Upgrade network infrastructure", results.Recommendations);
     }

@@ -46,7 +46,7 @@ public class EfCoreEventStoreTests : IDisposable
 
         // Assert
         var savedEvents = await _context.Events.ToListAsync();
-        Assert.Equal(1, savedEvents.Count);
+        Assert.Single(savedEvents);
         Assert.Equal(aggregateId, savedEvents.First().AggregateId);
         Assert.Contains("TestAggregateCreated", savedEvents.First().EventType);
     }
@@ -137,7 +137,7 @@ public class EfCoreEventStoreTests : IDisposable
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId).ToListAsync();
 
         // Assert
-        Assert.Equal(1, retrievedEvents.Count);
+        Assert.Single(retrievedEvents);
         Assert.IsType<TestAggregateCreated>(retrievedEvents.First());
         Assert.Equal("Test Name", ((TestAggregateCreated)retrievedEvents.First()).AggregateName);
     }
@@ -335,8 +335,8 @@ public class EfCoreEventStoreTests : IDisposable
         var retrievedEvents1 = await _eventStore.GetEventsAsync(aggregateId1).ToListAsync();
         var retrievedEvents2 = await _eventStore.GetEventsAsync(aggregateId2).ToListAsync();
 
-        Assert.Equal(1, retrievedEvents1.Count);
-        Assert.Equal(1, retrievedEvents2.Count);
+        Assert.Single(retrievedEvents1);
+        Assert.Single(retrievedEvents2);
         Assert.Equal("Aggregate 1", ((TestAggregateCreated)retrievedEvents1.First()).AggregateName);
         Assert.Equal("Aggregate 2", ((TestAggregateCreated)retrievedEvents2.First()).AggregateName);
     }

@@ -5,6 +5,8 @@ using Spectre.Console;
 using Spectre.Console.Testing;
 using Xunit;
 
+#pragma warning disable CS0219, CS8625 // Cannot convert null literal to non-nullable reference type
+
 namespace Relay.CLI.Tests.Commands;
 
 public class OptimizeCommandTests : IDisposable
@@ -1121,7 +1123,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await OptimizeCommand.DiscoverFiles(context, null, null);
 
         // Assert
-        Assert.Equal(1, context.SourceFiles.Count());
+        Assert.Single(context.SourceFiles);
         Assert.EndsWith("Valid.cs", context.SourceFiles[0]);
     }
 
@@ -1160,7 +1162,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await OptimizeCommand.OptimizeHandlers(context, null, null);
 
         // Assert
-        Assert.Equal(1, context.OptimizationActions.Count());
+        Assert.Single(context.OptimizationActions);
         var action = context.OptimizationActions[0];
         Assert.Equal("Handler Optimization", action.Type);
         Assert.Contains("Replaced Task<T> with ValueTask<T> for better performance", action.Modifications);
@@ -1199,7 +1201,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await OptimizeCommand.OptimizeHandlers(context, null, null);
 
         // Assert
-        Assert.Equal(1, context.OptimizationActions.Count());
+        Assert.Single(context.OptimizationActions);
         var finalContent = await File.ReadAllTextAsync(testFile);
         Assert.Equal(originalContent, finalContent); // Should not be modified
     }

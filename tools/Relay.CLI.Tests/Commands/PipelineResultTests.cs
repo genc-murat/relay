@@ -406,7 +406,7 @@ public class PipelineResultTests
         result.Success = true;
 
         // Assert
-        Assert.Equal(1, result.Stages.Count());
+        Assert.Single(result.Stages);
         Assert.Equal("Modified", result.Stages[0].StageName);
         Assert.Equal(TimeSpan.FromSeconds(20), result.TotalDuration);
         Assert.True(result.Success);
@@ -476,7 +476,7 @@ public class PipelineResultTests
 
         // Assert
         Assert.Equal(2, failedStages.Count());
-        Assert.Equal(1, stagesWithErrors.Count());
+        Assert.Single(stagesWithErrors);
         Assert.Equal("Build failed", stagesWithErrors[0].Error);
     }
 

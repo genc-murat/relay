@@ -456,7 +456,7 @@ public class RequestInfoTests
         var commandRequests = requests.Where(r => r.FilePath.Contains("Commands")).ToList();
 
         // Assert
-        Assert.Equal(1, userRequests.Count());
+        Assert.Single(userRequests);
         Assert.Equal(2, commandRequests.Count());
     }
 
@@ -476,9 +476,9 @@ public class RequestInfoTests
         var simpleRequests = requests.Where(r => !r.HasValidation && !r.HasAuthorization && !r.HasCaching).ToList();
 
         // Assert
-        Assert.Equal(1, complexRequests.Count());
+        Assert.Single(complexRequests);
         Assert.Equal("Complex", complexRequests[0].Name);
-        Assert.Equal(1, simpleRequests.Count());
+        Assert.Single(simpleRequests);
         Assert.Equal("Simple", simpleRequests[0].Name);
     }
 

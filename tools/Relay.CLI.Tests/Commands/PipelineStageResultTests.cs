@@ -521,7 +521,7 @@ public class PipelineStageResultTests
         var failedStages = results.Where(r => !r.Success).ToList();
 
         // Assert
-        Assert.Equal(1, stagesWithErrors.Count());
+        Assert.Single(stagesWithErrors);
         Assert.Equal("Build", stagesWithErrors[0].StageName);
         Assert.Equal(2, failedStages.Count());
     }

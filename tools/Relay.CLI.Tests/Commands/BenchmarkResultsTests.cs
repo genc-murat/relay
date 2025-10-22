@@ -277,7 +277,7 @@ public class BenchmarkResultsTests
         results.ComparisonResults = newResults;
 
         // Assert
-        Assert.Equal(1, results.ComparisonResults.Count());
+        Assert.Single(results.ComparisonResults);
         Assert.Contains("NewOldHandler", results.ComparisonResults.Keys);
         Assert.DoesNotContain("OldHandler", results.ComparisonResults.Keys);
     }
@@ -368,7 +368,7 @@ public class BenchmarkResultsTests
         // Assert
         Assert.Equal(config, results.TestConfiguration);
         Assert.Equal(2, results.RelayResults.Count());
-        Assert.Equal(1, results.ComparisonResults.Count());
+        Assert.Single(results.ComparisonResults);
 
         // Verify relay results
         Assert.Equal(2000.0, results.RelayResults["CreateUserHandler"].RequestsPerSecond);

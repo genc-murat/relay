@@ -5,6 +5,9 @@ using Spectre.Console;
 using Spectre.Console.Testing;
 using Xunit;
 
+#pragma warning disable CS0219 // The variable is assigned but its value is never used
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type
+
 namespace Relay.CLI.Tests.Commands;
 
 public class PipelineCommandTests

@@ -308,7 +308,7 @@ public class RecommendationTests
 
         // Assert
         Assert.Equal(2, highPriority.Count());
-        Assert.Equal(1, criticalPriority.Count());
+        Assert.Single(criticalPriority);
     }
 
     [Fact]

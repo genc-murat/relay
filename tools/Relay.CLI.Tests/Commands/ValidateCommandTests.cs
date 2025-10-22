@@ -173,7 +173,7 @@ public class GetUserQuery : IRequest<string>
         await (Task)method!.Invoke(null, new object[] { testPath, results, true })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Request Pattern" && r.Status == ValidationStatus.Warning));
+        Assert.Contains(results, r => r.Type == "Request Pattern" && r.Status == ValidationStatus.Warning);
     }
 
     [Theory]
@@ -965,7 +965,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Project Files" && r.Status == ValidationStatus.Fail));
+        Assert.Contains(results, r => r.Type == "Project Files" && r.Status == ValidationStatus.Fail);
     }
 
     [Fact]
@@ -985,7 +985,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Package Reference" && r.Status == ValidationStatus.Pass));
+        Assert.Contains(results, r => r.Type == "Package Reference" && r.Status == ValidationStatus.Pass);
     }
 
     [Fact]
@@ -1005,7 +1005,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, true })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Code Quality" && r.Status == ValidationStatus.Warning));
+        Assert.Contains(results, r => r.Type == "Code Quality" && r.Status == ValidationStatus.Warning);
     }
 
     [Fact]
@@ -1025,7 +1025,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Message.Contains("Latest C# features enabled")));
+        Assert.Contains(results, r => r.Message.Contains("Latest C# features enabled"));
     }
 
     [Fact]
@@ -1054,7 +1054,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Handlers" && r.Status == ValidationStatus.Pass));
+        Assert.Contains(results, r => r.Type == "Handlers" && r.Status == ValidationStatus.Pass);
     }
 
     [Fact]
@@ -1083,7 +1083,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Handler Pattern" && r.Status == ValidationStatus.Warning));
+        Assert.Contains(results, r => r.Type == "Handler Pattern" && r.Status == ValidationStatus.Warning);
     }
 
     [Fact]
@@ -1111,7 +1111,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Handler Pattern" && r.Message.Contains("missing CancellationToken")));
+        Assert.Contains(results, r => r.Type == "Handler Pattern" && r.Message.Contains("missing CancellationToken"));
     }
 
     [Fact]
@@ -1125,7 +1125,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Handlers" && r.Status == ValidationStatus.Warning));
+        Assert.Contains(results, r => r.Type == "Handlers" && r.Status == ValidationStatus.Warning);
     }
 
     [Fact]
@@ -1146,7 +1146,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { testPath, results, true })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Fail));
+        Assert.Contains(results, r => r.Type == "DI Registration" && r.Status == ValidationStatus.Fail);
     }
 
     [Fact]
@@ -1167,7 +1167,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Warning));
+        Assert.Contains(results, r => r.Type == "DI Registration" && r.Status == ValidationStatus.Warning);
     }
 
     [Fact]
@@ -1189,7 +1189,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Configuration" && r.Status == ValidationStatus.Pass));
+        Assert.Contains(results, r => r.Type == "Configuration" && r.Status == ValidationStatus.Pass);
     }
 
     [Fact]
@@ -1209,7 +1209,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Configuration" && r.Message.Contains("Relay CLI configuration found")));
+        Assert.Contains(results, r => r.Type == "Configuration" && r.Message.Contains("Relay CLI configuration found"));
     }
 
     [Fact]
@@ -1229,7 +1229,7 @@ public record TestRequest : IRequest<string>;";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "Configuration" && r.Status == ValidationStatus.Fail));
+        Assert.Contains(results, r => r.Type == "Configuration" && r.Status == ValidationStatus.Fail);
     }
 
     [Fact]
@@ -1250,7 +1250,7 @@ var app = builder.Build();";
         await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
 
         // Assert
-        Assert.True(results.Any(r => r.Type == "DI Registration" && r.Status == ValidationStatus.Pass));
+        Assert.Contains(results, r => r.Type == "DI Registration" && r.Status == ValidationStatus.Pass);
     }
 
 

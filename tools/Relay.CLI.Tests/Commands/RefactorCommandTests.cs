@@ -5,6 +5,9 @@ using Spectre.Console;
 using System.Reflection;
 using Xunit;
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
+#pragma warning disable CS8602 // Dereference of a possibly null reference
+
 namespace Relay.CLI.Tests.Commands;
 
 public class RefactorCommandTests

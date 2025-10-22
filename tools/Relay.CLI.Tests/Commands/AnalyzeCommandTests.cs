@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
+#pragma warning disable CS0219
 public class AnalyzeCommandTests : IDisposable
 {
     private readonly string _testPath;
@@ -1208,7 +1209,7 @@ public record SecondRequest(string Value) : IRequest<string>;";
             await AnalyzeCommand.AnalyzeDependencies(analysis, null, null);
 
             // Assert
-            Assert.Equal(1, analysis.ProjectFiles.Count());
+            Assert.Single(analysis.ProjectFiles);
             Assert.True(analysis.HasRelayCore);
         }
         finally

@@ -463,7 +463,7 @@ public class MachineLearningEnhancementTests
         };
 
         // Assert
-        Assert.Equal(1, enhancement.AdditionalParameters.Count);
+        Assert.Single(enhancement.AdditionalParameters);
         Assert.Equal("value", enhancement.AdditionalParameters["new"]);
         Assert.False(enhancement.AdditionalParameters.ContainsKey("original"));
     }

@@ -1,6 +1,8 @@
 using Relay.CLI.Commands;
 using System.CommandLine;
 
+#pragma warning disable CS0219 // The variable is assigned but its value is never used
+
 namespace Relay.CLI.Tests.Commands;
 
 public class AICommandTests : IDisposable

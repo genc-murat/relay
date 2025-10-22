@@ -2,6 +2,8 @@ using Relay.MessageBroker.Compression;
 using System.Text;
 using Xunit;
 
+#pragma warning disable CS8604 // Possible null reference argument
+
 namespace Relay.MessageBroker.Tests;
 
 public class GZipMessageCompressorTests

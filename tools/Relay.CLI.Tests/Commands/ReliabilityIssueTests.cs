@@ -455,7 +455,7 @@ public class ReliabilityIssueTests
 
         // Assert
         Assert.Equal(40, totalCount);
-        Assert.Equal(1, criticalIssues.Count());
+        Assert.Single(criticalIssues);
         Assert.Equal(13.33, averageCount, 0.01);
     }
 

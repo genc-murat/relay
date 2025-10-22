@@ -9,6 +9,7 @@ namespace Relay.Core.Tests.AI.Analysis.Engines;
 
 public class EnsembleWeightsUpdaterTests
 {
+#pragma warning disable CS8602, CS8620
     private readonly Mock<ILogger<EnsembleWeightsUpdater>> _loggerMock;
     private readonly PatternRecognitionConfig _config;
 

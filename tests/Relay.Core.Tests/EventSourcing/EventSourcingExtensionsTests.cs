@@ -167,7 +167,7 @@ namespace Relay.Core.Tests.EventSourcing
                 retrievedEvents.Add(@event);
             }
 
-            Assert.Equal(1, retrievedEvents.Count);
+            Assert.Single(retrievedEvents);
             Assert.IsType<TestAggregateCreated>(retrievedEvents[0]);
         }
 
@@ -229,7 +229,7 @@ namespace Relay.Core.Tests.EventSourcing
                 }
 
                 // Assert - InMemory database persists across scopes with same database name
-                Assert.Equal(1, retrievedEvents.Count);
+                Assert.Single(retrievedEvents);
             }
         }
     }

@@ -7,6 +7,7 @@ namespace Relay.CLI.Tests.Plugins;
 
 public class PluginManagerTests : IDisposable
 {
+#pragma warning disable CS8600, CS8602 // Dereference of a possibly null reference
     private readonly Mock<IPluginLogger> _mockLogger;
     private readonly PluginManager _manager;
     private readonly string _tempPluginsDir;

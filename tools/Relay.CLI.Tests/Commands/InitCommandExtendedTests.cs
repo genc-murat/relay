@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
+#pragma warning disable CS8602
 /// <summary>
 /// Extended comprehensive tests for InitCommand
 /// </summary>

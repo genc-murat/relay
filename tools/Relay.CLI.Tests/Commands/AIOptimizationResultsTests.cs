@@ -185,7 +185,7 @@ public class AIOptimizationResultsTests
 
         // Assert
         Assert.NotNull(results);
-        Assert.Equal(1, results!.AppliedOptimizations.Count());
+        Assert.Single(results!.AppliedOptimizations);
         Assert.Equal("Caching", results.AppliedOptimizations[0].Strategy);
         Assert.Equal("Services/UserService.cs", results.AppliedOptimizations[0].FilePath);
         Assert.Equal("Added cache", results.AppliedOptimizations[0].Description);
@@ -339,8 +339,8 @@ public class AIOptimizationResultsTests
         };
 
         // Assert
-        Assert.True(results.AppliedOptimizations.Any(o => o.Success == true));
-        Assert.True(results.AppliedOptimizations.Any(o => o.Success == false));
+        Assert.Contains(results.AppliedOptimizations, o => o.Success == true);
+        Assert.Contains(results.AppliedOptimizations, o => o.Success == false);
         Assert.Equal(1, results.AppliedOptimizations.Count(o => o.Success));
         Assert.Equal(1, results.AppliedOptimizations.Count(o => !o.Success));
     }

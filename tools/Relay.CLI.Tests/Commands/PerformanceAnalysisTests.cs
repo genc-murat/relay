@@ -350,7 +350,7 @@ public class PerformanceAnalysisTests
         analysis.Recommendations.Add(recommendation);
 
         // Assert
-        Assert.Equal(1, analysis.Recommendations.Count());
+        Assert.Single(analysis.Recommendations);
         Assert.Equal(recommendation, analysis.Recommendations[0]);
     }
 

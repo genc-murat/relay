@@ -3,6 +3,7 @@ using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
 
+#pragma warning disable CS0414
 public class LazyPluginLoaderTests : IDisposable
 {
     private readonly Mock<IPluginLogger> _mockLogger;

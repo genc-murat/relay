@@ -3,6 +3,7 @@ using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
 
+#pragma warning disable CS8602
 public class PluginHealthMonitorTests
 {
     private readonly Mock<IPluginLogger> _mockLogger;

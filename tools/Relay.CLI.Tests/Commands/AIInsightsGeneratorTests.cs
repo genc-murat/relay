@@ -127,7 +127,7 @@ public class AIInsightsGeneratorTests
 
         // Assert
         Assert.NotNull(result.CriticalIssues);
-        Assert.Equal(1, result.CriticalIssues.Count());
+        Assert.Single(result.CriticalIssues);
         Assert.Equal("High memory usage detected in order processing", result.CriticalIssues[0]);
     }
 
@@ -538,8 +538,8 @@ public class AIInsightsGeneratorTests
         var result = await _insightsGenerator.GenerateInsightsAsync(path, timeWindow, includeHealth, includePredictions);
 
         // Assert
-        Assert.True(result.CriticalIssues.Any(issue => issue.Contains("memory usage")));
-        Assert.True(result.CriticalIssues.Any(issue => issue.Contains("order processing")));
+        Assert.Contains(result.CriticalIssues, issue => issue.Contains("memory usage"));
+        Assert.Contains(result.CriticalIssues, issue => issue.Contains("order processing"));
     }
 
     [Fact]

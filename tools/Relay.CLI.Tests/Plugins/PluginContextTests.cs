@@ -3,6 +3,7 @@ using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
 
+#pragma warning disable CS8625
 public class PluginContextTests
 {
     private readonly Mock<IPluginLogger> _mockLogger;

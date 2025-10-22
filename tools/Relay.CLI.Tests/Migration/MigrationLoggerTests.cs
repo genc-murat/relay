@@ -3,6 +3,7 @@ using Relay.CLI.Migration;
 
 namespace Relay.CLI.Tests.Migration;
 
+#pragma warning disable CS8600, CS8625
 public class MigrationLoggerTests
 {
     private readonly Mock<ILogger<MigrationLogger>> _loggerMock;

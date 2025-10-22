@@ -45,7 +45,7 @@ public class MediatRAnalyzerTests
         var result = await _analyzer.AnalyzeProjectAsync(_testProjectPath);
 
         // Assert
-        Assert.Equal(1, result.PackageReferences.Count);
+        Assert.Single(result.PackageReferences);
         Assert.Equal("MediatR", result.PackageReferences.First().Name);
         Assert.Equal("12.0.1", result.PackageReferences.First().CurrentVersion);
     }

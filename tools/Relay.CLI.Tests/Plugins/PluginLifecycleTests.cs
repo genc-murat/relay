@@ -3,6 +3,7 @@ using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
 
+#pragma warning disable CS0219
 public class PluginLifecycleTests
 {
     [Fact]

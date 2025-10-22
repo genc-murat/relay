@@ -83,7 +83,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("HttpMethod cannot be null or empty", errors[0]);
             }
 
@@ -100,7 +100,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains($"HttpMethod '{httpMethod}' is not valid", errors[0]);
             }
 
@@ -164,7 +164,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Route should not end with a trailing slash", errors[0]);
             }
 
@@ -182,7 +182,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Route cannot contain whitespace characters", errors[0]);
             }
 
@@ -215,7 +215,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Version cannot be whitespace only", errors[0]);
             }
 
@@ -244,7 +244,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateExposeAsEndpointAttribute(attribute).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Version cannot contain control characters", errors[0]);
             }
         }
@@ -277,7 +277,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidatePriority(priority).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Priority must be between -10000 and 10000", errors[0]);
             }
 
@@ -288,7 +288,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidatePriority(20000, "CustomPriority").ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("CustomPriority must be between -10000 and 10000", errors[0]);
             }
         }
@@ -352,7 +352,7 @@ namespace Relay.Core.Tests
                 var errors = AttributeValidation.ValidateHandlerName(name).ToList();
 
                 // Assert
-                Assert.Equal(1, errors.Count);
+                Assert.Single(errors);
                 Assert.Contains("Handler name cannot be whitespace only", errors[0]);
             }
 

@@ -45,7 +45,7 @@ public class GenerateCommandTests : IDisposable
 
         // Assert
         var files = Directory.GetFiles(_testPath);
-        Assert.Equal(1, files.Count());
+        Assert.Single(files);
     }
 
     [Fact]

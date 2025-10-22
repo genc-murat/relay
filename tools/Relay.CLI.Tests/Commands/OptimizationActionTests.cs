@@ -35,7 +35,7 @@ public class OptimizationActionTests
 
         // Assert
         Assert.NotNull(action.Modifications);
-        Assert.Equal(0, action.Modifications.Count());
+        Assert.Empty(action.Modifications);
     }
 
     #endregion
@@ -133,7 +133,7 @@ public class OptimizationActionTests
         // Assert
         Assert.Equal(@"C:\Projects\Handler.cs", action.FilePath);
         Assert.Equal("Handler", action.Type);
-        Assert.Equal(1, action.Modifications.Count());
+        Assert.Single(action.Modifications);
         Assert.NotEmpty(action.OriginalContent);
         Assert.NotEmpty(action.OptimizedContent);
     }
@@ -152,7 +152,7 @@ public class OptimizationActionTests
         action.Modifications.Add("Task -> ValueTask");
 
         // Assert
-        Assert.Equal(1, action.Modifications.Count());
+        Assert.Single(action.Modifications);
         Assert.Contains("Task -> ValueTask", action.Modifications);
     }
 
@@ -213,7 +213,7 @@ public class OptimizationActionTests
         action.Modifications.Remove("Task -> ValueTask");
 
         // Assert
-        Assert.Equal(1, action.Modifications.Count());
+        Assert.Single(action.Modifications);
         Assert.DoesNotContain("Task -> ValueTask", action.Modifications);
     }
 
@@ -474,7 +474,7 @@ public class OptimizationActionTests
         var taskRelated = action.Modifications.Where(m => m.Contains("Task")).ToList();
 
         // Assert
-        Assert.Equal(1, taskRelated.Count());
+        Assert.Single(taskRelated);
     }
 
     [Fact]

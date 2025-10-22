@@ -3,6 +3,8 @@ using Relay.Core.Caching.Attributes;
 using System;
 using Xunit;
 
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type
+
 namespace Relay.Core.Tests.Caching
 {
     public class DefaultCacheKeyGeneratorTests

@@ -6,6 +6,7 @@ namespace Relay.CLI.Tests.Plugins;
 
 public class PluginManagerTimeoutTests : IDisposable
 {
+#pragma warning disable CS8600, CS8602
     private readonly Mock<IPluginLogger> _mockLogger;
     private readonly PluginManager _manager;
     private readonly string _tempPluginsDir;

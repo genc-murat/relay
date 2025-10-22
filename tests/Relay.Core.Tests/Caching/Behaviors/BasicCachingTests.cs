@@ -11,6 +11,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
+#pragma warning disable CS8601 // Possible null reference assignment
+
 namespace Relay.Core.Tests.Caching.Behaviors;
 
 public class BasicCachingTests

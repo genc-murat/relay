@@ -5,6 +5,7 @@ using System.Text.Json;
 
 namespace Relay.CLI.Tests.Plugins;
 
+#pragma warning disable CS8600, CS8602
 public class PluginManagerInstallationTests : IDisposable
 {
     private readonly Mock<IPluginLogger> _mockLogger;

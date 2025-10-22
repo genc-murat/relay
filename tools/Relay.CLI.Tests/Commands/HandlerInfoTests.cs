@@ -296,7 +296,7 @@ public class HandlerInfoTests
         // Assert
         Assert.Equal(2, handlersWithLogging.Count());
         Assert.Equal(2, handlersWithValidation.Count());
-        Assert.Equal(1, handlersWithBoth.Count());
+        Assert.Single(handlersWithBoth);
     }
 
     [Fact]
@@ -475,7 +475,7 @@ public class HandlerInfoTests
         var commandHandlers = handlers.Where(h => h.FilePath.Contains("Commands")).ToList();
 
         // Assert
-        Assert.Equal(1, userHandlers.Count());
+        Assert.Single(userHandlers);
         Assert.Equal(3, commandHandlers.Count());
     }
 
@@ -495,9 +495,9 @@ public class HandlerInfoTests
         var simpleHandlers = handlers.Where(h => !h.HasDependencies && !h.HasLogging && !h.HasValidation).ToList();
 
         // Assert
-        Assert.Equal(1, complexHandlers.Count());
+        Assert.Single(complexHandlers);
         Assert.Equal("ComplexHandler", complexHandlers[0].Name);
-        Assert.Equal(1, simpleHandlers.Count());
+        Assert.Single(simpleHandlers);
         Assert.Equal("SimpleHandler", simpleHandlers[0].Name);
     }
 

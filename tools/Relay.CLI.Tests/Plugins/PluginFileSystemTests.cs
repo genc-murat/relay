@@ -3,6 +3,7 @@ using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
 
+#pragma warning disable CS8604, CS8619, CS8625
 public class PluginFileSystemTests
 {
     private readonly Mock<IPluginLogger> _mockLogger;

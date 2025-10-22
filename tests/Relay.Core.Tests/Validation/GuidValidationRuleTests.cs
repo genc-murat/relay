@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Xunit;
 using Relay.Core.Validation.Rules;
 
+#pragma warning disable CS8604 // Possible null reference argument
+
 namespace Relay.Core.Tests.Validation
 {
     public class GuidValidationRuleTests

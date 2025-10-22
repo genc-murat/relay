@@ -58,7 +58,7 @@ public class DiagnosticCheckTests
         check.AddIssue("Test message", DiagnosticSeverity.Warning, "TEST001", true);
 
         // Assert
-        Assert.Equal(1, check.Issues.Count());
+        Assert.Single(check.Issues);
         var issue = check.Issues[0];
         Assert.Equal("Test message", issue.Message);
         Assert.Equal(DiagnosticSeverity.Warning, issue.Severity);
@@ -76,7 +76,7 @@ public class DiagnosticCheckTests
         check.AddSuccess("Operation completed successfully");
 
         // Assert
-        Assert.Equal(1, check.Issues.Count());
+        Assert.Single(check.Issues);
         var issue = check.Issues[0];
         Assert.Equal("Operation completed successfully", issue.Message);
         Assert.Equal(DiagnosticSeverity.Success, issue.Severity);
@@ -94,7 +94,7 @@ public class DiagnosticCheckTests
         check.AddInfo("This is an informational message");
 
         // Assert
-        Assert.Equal(1, check.Issues.Count());
+        Assert.Single(check.Issues);
         var issue = check.Issues[0];
         Assert.Equal("This is an informational message", issue.Message);
         Assert.Equal(DiagnosticSeverity.Info, issue.Severity);
@@ -201,7 +201,7 @@ public class DiagnosticCheckTests
         Assert.NotNull(check.Issues);
         // We can't directly assign to Issues, but we can add to it via methods
         check.AddIssue("Test", DiagnosticSeverity.Info, "TEST");
-        Assert.Equal(1, check.Issues.Count());
+        Assert.Single(check.Issues);
     }
 
     [Fact]
@@ -236,7 +236,7 @@ public class DiagnosticCheckTests
         var warnings = check.Issues.Where(i => i.Severity == DiagnosticSeverity.Warning).ToList();
 
         // Assert
-        Assert.Equal(1, errors.Count());
+        Assert.Single(errors);
         Assert.Equal(2, warnings.Count());
     }
 
@@ -285,8 +285,8 @@ public class DiagnosticCheckTests
 
         // Act & Assert
         Assert.Empty(check.Issues);
-        Assert.Equal(0, check.Issues.Count);
-        Assert.Empty(check.Issues.Where(i => i.Severity == DiagnosticSeverity.Error));
+        Assert.Empty(check.Issues);
+        Assert.DoesNotContain(check.Issues, i => i.Severity == DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -375,8 +375,8 @@ public class DiagnosticCheckTests
         // Assert
         Assert.Equal(3, grouped.Count());
         Assert.Equal(2, grouped.First(g => g.Key == "Performance").Count());
-        Assert.Equal(1, grouped.First(g => g.Key == "Security").Count());
-        Assert.Equal(1, grouped.First(g => g.Key == "Reliability").Count());
+        Assert.Single(grouped.First(g => g.Key == "Security"));
+        Assert.Single(grouped.First(g => g.Key == "Reliability"));
     }
 
     [Fact]

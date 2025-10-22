@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Relay.CLI.Tests.Refactoring;
 
+#pragma warning disable xUnit1013
 public class RefactoringEngineTests
 {
     private readonly string _testProjectPath;
@@ -47,7 +48,7 @@ public class TestClass
 
         // Assert
         Assert.True(result.SuggestionsCount > 0);
-        Assert.Equal(1, result.FileResults.Count);
+        Assert.Single(result.FileResults);
 
         var suggestions = result.FileResults.First().Suggestions;
         Assert.Contains(suggestions, s => s.RuleName == "AsyncAwaitRefactoring");

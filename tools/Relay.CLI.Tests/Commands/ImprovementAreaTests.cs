@@ -301,7 +301,7 @@ public class ImprovementAreaTests
         var significantImprovements = areas.Where(a => a.Improvement >= 0.10).ToList();
 
         // Assert
-        Assert.Equal(1, significantImprovements.Count());
+        Assert.Single(significantImprovements);
         Assert.Equal("High Impact", significantImprovements[0].Area);
     }
 

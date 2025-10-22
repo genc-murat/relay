@@ -240,7 +240,7 @@ public class DiagnosticResultTests
         var errors = results.Where(r => r.Status == "Error").ToList();
 
         // Assert
-        Assert.Equal(1, errors.Count());
+        Assert.Single(errors);
     }
 
     [Fact]

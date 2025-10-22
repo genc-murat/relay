@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
+#pragma warning disable CS0219
 /// <summary>
 /// Extended comprehensive tests for OptimizeCommand
 /// </summary>
@@ -299,7 +300,7 @@ public class OptimizeCommandExtendedTests : IDisposable
             .Where(f => !f.Contains("bin")).ToList();
 
         // Assert
-        Assert.Equal(1, csFiles.Count());
+        Assert.Single(csFiles);
     }
 
     [Fact]
@@ -316,7 +317,7 @@ public class OptimizeCommandExtendedTests : IDisposable
             .Where(f => !f.Contains("obj")).ToList();
 
         // Assert
-        Assert.Equal(1, csFiles.Count());
+        Assert.Single(csFiles);
     }
 
     #endregion

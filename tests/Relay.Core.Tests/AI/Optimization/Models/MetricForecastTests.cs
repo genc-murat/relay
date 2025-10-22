@@ -55,7 +55,7 @@ namespace Relay.Core.Tests.AI.Optimization.Models
             // Assert
             Assert.Equal(2, forecast.ForecastedValues.Length);
             Assert.Equal(3, forecast.LowerBound.Length);
-            Assert.Equal(1, forecast.UpperBound.Length);
+            Assert.Single(forecast.UpperBound);
         }
 
         [Fact]
@@ -89,7 +89,7 @@ namespace Relay.Core.Tests.AI.Optimization.Models
             // Assert
             Assert.Equal(4, forecast.ForecastedValues.Length);
             Assert.Equal(2, forecast.LowerBound.Length);
-            Assert.Equal(1, forecast.UpperBound.Length);
+            Assert.Single(forecast.UpperBound);
             Assert.True(float.IsNaN(forecast.ForecastedValues[0]));
             Assert.True(float.IsPositiveInfinity(forecast.ForecastedValues[1]));
             Assert.True(float.IsNegativeInfinity(forecast.ForecastedValues[2]));

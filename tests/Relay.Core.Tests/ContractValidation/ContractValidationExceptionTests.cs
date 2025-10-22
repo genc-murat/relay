@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Relay.Core.ContractValidation;
 using Xunit;
 
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type
+
 namespace Relay.Core.Tests.ContractValidation;
 
 /// <summary>

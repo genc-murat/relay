@@ -211,8 +211,8 @@ public class DiagnosticIssueTests
         var warnings = issues.Where(i => i.Severity == DiagnosticSeverity.Warning).ToList();
 
         // Assert
-        Assert.Equal(1, errors.Count());
-        Assert.Equal(1, warnings.Count());
+        Assert.Single(errors);
+        Assert.Single(warnings);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class DiagnosticIssueTests
         // Assert
         Assert.Equal(3, grouped.Count());
         Assert.Equal(2, grouped.First(g => g.Key == DiagnosticSeverity.Error).Count());
-        Assert.Equal(1, grouped.First(g => g.Key == DiagnosticSeverity.Warning).Count());
+        Assert.Single(grouped.First(g => g.Key == DiagnosticSeverity.Warning));
         Assert.Equal(2, grouped.First(g => g.Key == DiagnosticSeverity.Info).Count());
     }
 
@@ -476,7 +476,7 @@ public class DiagnosticIssueTests
 
         // Assert
         Assert.Equal(2, criticalIssues.Count());
-        Assert.Equal(1, fixableCriticalIssues.Count());
+        Assert.Single(fixableCriticalIssues);
     }
 }
 

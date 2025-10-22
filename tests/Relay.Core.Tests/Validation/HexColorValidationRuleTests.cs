@@ -3,6 +3,8 @@ using System.Threading.Tasks;
  using Relay.Core.Validation.Rules;
  using Xunit;
 
+#pragma warning disable xUnit1012 // Null should not be used for type parameter
+
 namespace Relay.Core.Tests.Validation;
 
 public class HexColorValidationRuleTests

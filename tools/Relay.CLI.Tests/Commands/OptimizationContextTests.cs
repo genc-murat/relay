@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
+#pragma warning disable CS8602
 /// <summary>
 /// Comprehensive tests for OptimizationContext class
 /// </summary>
@@ -172,7 +173,7 @@ public class OptimizationContextTests
         context.OptimizationActions = actions;
 
         // Assert
-        Assert.Equal(1, context.OptimizationActions.Count());
+        Assert.Single(context.OptimizationActions);
     }
 
     #endregion
@@ -209,7 +210,7 @@ public class OptimizationContextTests
         Assert.Equal(timestamp, context.Timestamp);
         Assert.Equal(@"C:\Projects\.backup", context.BackupPath);
         Assert.Equal(2, context.SourceFiles.Count());
-        Assert.Equal(1, context.OptimizationActions.Count());
+        Assert.Single(context.OptimizationActions);
     }
 
     #endregion
@@ -332,7 +333,7 @@ public class OptimizationContextTests
         context.SourceFiles.Remove("File1.cs");
 
         // Assert
-        Assert.Equal(1, context.SourceFiles.Count());
+        Assert.Single(context.SourceFiles);
         Assert.DoesNotContain("File1.cs", context.SourceFiles);
     }
 
@@ -783,7 +784,7 @@ public class OptimizationContextTests
         Assert.False(string.IsNullOrEmpty(context.ProjectPath));
         Assert.Equal("handlers", context.Target);
         Assert.Equal(2, context.SourceFiles.Count());
-        Assert.Equal(1, context.OptimizationActions.Count());
+        Assert.Single(context.OptimizationActions);
         Assert.True(context.CreateBackup);
         Assert.Contains(".backup_", context.BackupPath);
     }

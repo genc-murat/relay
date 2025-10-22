@@ -641,7 +641,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var criticalIssues = issues.Where(i => i.Contains("Unsupported")).ToList();
 
         // Assert
-        Assert.Equal(1, criticalIssues.Count());
+        Assert.Single(criticalIssues);
     }
 
     [Fact]

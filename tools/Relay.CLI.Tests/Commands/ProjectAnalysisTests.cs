@@ -262,11 +262,11 @@ public class ProjectAnalysisTests
         Assert.Equal(timestamp, analysis.Timestamp);
         Assert.Equal(2, analysis.ProjectFiles.Count());
         Assert.Equal(2, analysis.SourceFiles.Count());
-        Assert.Equal(1, analysis.Handlers.Count());
-        Assert.Equal(1, analysis.Requests.Count());
-        Assert.Equal(1, analysis.PerformanceIssues.Count());
-        Assert.Equal(1, analysis.ReliabilityIssues.Count());
-        Assert.Equal(1, analysis.Recommendations.Count());
+        Assert.Single(analysis.Handlers);
+        Assert.Single(analysis.Requests);
+        Assert.Single(analysis.PerformanceIssues);
+        Assert.Single(analysis.ReliabilityIssues);
+        Assert.Single(analysis.Recommendations);
         Assert.True(analysis.HasRelayCore);
         Assert.True(analysis.HasMediatR);
         Assert.True(analysis.HasLogging);
@@ -423,7 +423,7 @@ public class ProjectAnalysisTests
         // Assert
         Assert.Equal(2, relayProjects.Count());
         Assert.Equal(2, projectsWithLogging.Count());
-        Assert.Equal(1, projectsWithAllFeatures.Count());
+        Assert.Single(projectsWithAllFeatures);
     }
 
     [Fact]
@@ -513,8 +513,8 @@ public class ProjectAnalysisTests
         Assert.Equal(3, analysis.ProjectFiles.Count());
         Assert.Equal(3, analysis.SourceFiles.Count());
         Assert.Equal(2, analysis.Handlers.Count());
-        Assert.Equal(1, analysis.PerformanceIssues.Count());
-        Assert.Equal(1, analysis.Recommendations.Count());
+        Assert.Single(analysis.PerformanceIssues);
+        Assert.Single(analysis.Recommendations);
         Assert.True(analysis.HasRelayCore);
         Assert.True(analysis.HasMediatR);
         Assert.True(analysis.HasLogging);
@@ -580,7 +580,7 @@ public class ProjectAnalysisTests
         // Assert
         Assert.Equal(2, grouped.Count());
         Assert.Equal(2, grouped.First(g => g.Key == "Basic").Count());
-        Assert.Equal(1, grouped.First(g => g.Key == "Full").Count());
+        Assert.Single(grouped.First(g => g.Key == "Full"));
     }
 
     [Fact]

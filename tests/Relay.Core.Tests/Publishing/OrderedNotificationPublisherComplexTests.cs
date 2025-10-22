@@ -136,7 +136,7 @@ namespace Relay.Core.Tests.Publishing
             await publisher.PublishAsync(notification, handlers, CancellationToken.None);
 
             // Assert
-            Assert.Equal(1, BasicHandler.ExecutionLog.Count);
+            Assert.Single(BasicHandler.ExecutionLog);
             Assert.Equal("BasicHandler: test", BasicHandler.ExecutionLog[0]);
         }
 

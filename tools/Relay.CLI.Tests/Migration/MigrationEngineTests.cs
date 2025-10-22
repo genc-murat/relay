@@ -4,6 +4,7 @@ using Spectre.Console.Testing;
 
 namespace Relay.CLI.Tests.Migration;
 
+#pragma warning disable CS8604
 public class MigrationEngineTests : IDisposable
 {
     private readonly MigrationEngine _engine;
@@ -146,7 +147,7 @@ public class MigrationEngineTests : IDisposable
 
         // Assert
         Assert.Contains("backup_", backupPath);
-        Assert.True(System.Text.RegularExpressions.Regex.IsMatch(backupPath, @"backup_\d{8}_\d{6}"));
+        Assert.Matches(@"backup_\d{8}_\d{6}", backupPath);
     }
 
     [Fact]

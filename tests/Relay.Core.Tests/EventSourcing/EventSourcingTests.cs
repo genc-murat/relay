@@ -35,7 +35,7 @@ namespace Relay.Core.Tests.EventSourcing
             // Assert
             Assert.Equal(id, aggregate.Id);
             Assert.Equal("Test Name", aggregate.Name);
-            Assert.Equal(1, aggregate.UncommittedEvents.Count);
+            Assert.Single(aggregate.UncommittedEvents);
             Assert.IsType<TestAggregateCreated>(aggregate.UncommittedEvents.First());
         }
 
@@ -91,7 +91,7 @@ namespace Relay.Core.Tests.EventSourcing
             var retrievedEvents = await eventStore.GetEventsAsync(aggregateId).ToListAsync();
 
             // Assert
-            Assert.Equal(1, retrievedEvents.Count);
+            Assert.Single(retrievedEvents);
             Assert.IsType<TestAggregateCreated>(retrievedEvents.First());
             Assert.Equal("Test Name", ((TestAggregateCreated)retrievedEvents.First()).AggregateName);
         }

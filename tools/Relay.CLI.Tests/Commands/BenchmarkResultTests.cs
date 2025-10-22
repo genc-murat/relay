@@ -365,8 +365,8 @@ public class BenchmarkResultTests
         // Assert
         Assert.Equal(3, grouped.Count());
         Assert.Equal(2, grouped.First(g => g.Key == 1).Count());
-        Assert.Equal(1, grouped.First(g => g.Key == 2).Count());
-        Assert.Equal(1, grouped.First(g => g.Key == 4).Count());
+        Assert.Single(grouped.First(g => g.Key == 2));
+        Assert.Single(grouped.First(g => g.Key == 4));
     }
 
     [Fact]

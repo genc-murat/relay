@@ -154,8 +154,8 @@ public class AIAnalysisResultsTests
         Assert.Equal(25, results.HandlersFound);
         Assert.Equal(78.5, results.PerformanceScore);
         Assert.Equal(0.87, results.AIConfidence);
-        Assert.Equal(1, results.PerformanceIssues.Length);
-        Assert.Equal(1, results.OptimizationOpportunities.Length);
+        Assert.Single(results.PerformanceIssues);
+        Assert.Single(results.OptimizationOpportunities);
     }
 
     [Fact]
@@ -228,8 +228,8 @@ public class AIAnalysisResultsTests
         Assert.Equal(20, deserialized.HandlersFound);
         Assert.Equal(85.0, deserialized.PerformanceScore);
         Assert.Equal(0.9, deserialized.AIConfidence);
-        Assert.Equal(1, deserialized.PerformanceIssues.Length);
-        Assert.Equal(1, deserialized.OptimizationOpportunities.Length);
+        Assert.Single(deserialized.PerformanceIssues);
+        Assert.Single(deserialized.OptimizationOpportunities);
     }
 
     [Fact]
@@ -272,8 +272,8 @@ public class AIAnalysisResultsTests
         Assert.Equal(12, results.HandlersFound);
         Assert.Equal(92.3, results.PerformanceScore);
         Assert.Equal(0.85, results.AIConfidence);
-        Assert.Equal(1, results.PerformanceIssues.Length);
-        Assert.Equal(1, results.OptimizationOpportunities.Length);
+        Assert.Single(results.PerformanceIssues);
+        Assert.Single(results.OptimizationOpportunities);
     }
 
     [Fact]

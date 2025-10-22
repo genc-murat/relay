@@ -42,7 +42,7 @@ public class DiagnosticResultsTests
         results.AddCheck(check);
 
         // Assert
-        Assert.Equal(1, results.Checks.Count());
+        Assert.Single(results.Checks);
         Assert.Equal(check, results.Checks[0]);
     }
 
@@ -285,7 +285,7 @@ public class DiagnosticResultsTests
         Assert.NotNull(results.Checks);
         // We can't directly assign to Checks, but we can add to it via AddCheck
         results.AddCheck(new DiagnosticCheck { Category = "Test" });
-        Assert.Equal(1, results.Checks.Count());
+        Assert.Single(results.Checks);
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class DiagnosticResultsTests
         var perfChecks = results.Checks.Where(c => c.Category == "Performance").ToList();
 
         // Assert
-        Assert.Equal(1, perfChecks.Count());
+        Assert.Single(perfChecks);
         Assert.Equal("Performance", perfChecks[0].Category);
     }
 

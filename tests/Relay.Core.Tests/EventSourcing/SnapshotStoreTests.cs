@@ -7,6 +7,8 @@ using Relay.Core.EventSourcing.Infrastructure;
 using Relay.Core.EventSourcing.Stores;
 using Xunit;
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference
+
 namespace Relay.Core.Tests.EventSourcing;
 
 public class SnapshotStoreTests

@@ -186,8 +186,8 @@ public class DataStructureTests
         result.Warnings.Add("Minor warning");
 
         // Assert
-        Assert.Equal(1, result.Errors.Count);
-        Assert.Equal(1, result.Warnings.Count);
+        Assert.Single(result.Errors);
+        Assert.Single(result.Warnings);
         Assert.Contains("Critical error", result.Errors);
         Assert.Contains("Minor warning", result.Warnings);
     }
@@ -265,7 +265,7 @@ public class DataStructureTests
         Assert.True(result.Success);
         Assert.Equal("Published successfully", result.Message);
         Assert.Equal("/path/to/package.nupkg", result.PackagePath);
-        Assert.Equal(1, result.Errors.Count);
+        Assert.Single(result.Errors);
     }
 
     [Fact]

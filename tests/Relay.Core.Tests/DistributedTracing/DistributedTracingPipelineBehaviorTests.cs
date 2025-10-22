@@ -14,6 +14,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
+#pragma warning disable CS8602 // Dereference of a possibly null reference
+
 namespace Relay.Core.Tests.DistributedTracing
 {
     public class DistributedTracingPipelineBehaviorTests

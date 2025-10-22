@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
@@ -30,7 +31,11 @@ namespace Relay.SourceGenerator
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
-            var declaration = root.FindToken(diagnosticSpan.Start).Parent!.AncestorsAndSelf().OfType<MethodDeclarationSyntax>().First();
+            var token = root.FindToken(diagnosticSpan.Start);
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            var parent = token.Parent!;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+            var declaration = parent.AncestorsAndSelf().OfType<MethodDeclarationSyntax>().First();
 
             context.RegisterCodeFix(
                 CodeAction.Create(
@@ -43,8 +48,7 @@ namespace Relay.SourceGenerator
         private async Task<Solution> AddCancellationTokenAsync(Document document, MethodDeclarationSyntax methodDecl, CancellationToken cancellationToken)
         {
             var oldRoot = await document.GetSyntaxRootAsync(cancellationToken);
-            var compilationUnit = oldRoot as CompilationUnitSyntax;
-            if (compilationUnit == null)
+            if (oldRoot is not CompilationUnitSyntax compilationUnit)
             {
                 // If not a compilation unit, just proceed with method change
                 var paramList = methodDecl.ParameterList;
@@ -59,7 +63,7 @@ namespace Relay.SourceGenerator
             }
 
             // Check if System.Threading is already imported
-            var hasSystemThreading = compilationUnit.Usings.Any(u => u.Name.ToString() == "System.Threading");
+            var hasSystemThreading = compilationUnit.Usings.Any(u => u.Name?.ToString() == "System.Threading");
 
             var paramList2 = methodDecl.ParameterList;
             var newParam2 = SyntaxFactory.Parameter(SyntaxFactory.Identifier("cancellationToken"))
@@ -68,7 +72,7 @@ namespace Relay.SourceGenerator
             var newParamList2 = paramList2.AddParameters(newParam2);
             var newMethod2 = methodDecl.WithParameterList(newParamList2);
 
-            var newRoot2 = oldRoot.ReplaceNode(methodDecl, newMethod2);
+            var newRoot2 = oldRoot!.ReplaceNode(methodDecl, newMethod2);
 
             return document.WithSyntaxRoot(newRoot2).Project.Solution;
         }

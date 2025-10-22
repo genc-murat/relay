@@ -330,7 +330,7 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         return _systemMetricsService.CollectSystemMetrics();
     }
 
-    private Optimization.Services.RiskAssessment AssessSystemRisk(Dictionary<string, double> systemMetrics)
+    private RiskAssessmentResult AssessSystemRisk(Dictionary<string, double> systemMetrics)
     {
         // Assess risk for the most common optimization strategy (EnableCaching as representative)
         // In a more sophisticated implementation, this could assess risks for all active strategies

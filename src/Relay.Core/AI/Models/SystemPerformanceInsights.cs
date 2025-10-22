@@ -38,6 +38,6 @@ namespace Relay.Core.AI
         /// <summary>
         /// Risk assessment for current optimization strategies
         /// </summary>
-        public Optimization.Services.RiskAssessment RiskAssessment { get; init; } = new();
+        public RiskAssessmentResult RiskAssessment { get; init; } = new();
     }
 }

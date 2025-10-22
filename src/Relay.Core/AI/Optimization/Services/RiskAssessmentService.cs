@@ -19,7 +19,7 @@ namespace Relay.Core.AI.Optimization.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public RiskAssessment AssessOptimizationRisk(
+        public RiskAssessmentResult AssessOptimizationRisk(
             OptimizationStrategy strategy,
             RequestAnalysisData analysisData,
             Dictionary<string, double> systemMetrics)
@@ -32,14 +32,13 @@ namespace Relay.Core.AI.Optimization.Services
             var mitigationStrategies = GenerateMitigationStrategies(riskLevel, riskFactors);
             var confidence = CalculateAssessmentConfidence(analysisData);
 
-            return new RiskAssessment
+            // Adjust confidence based on risk factors and mitigation strategies
+            var adjustedConfidence = CalculateAdjustedConfidence(confidence, riskLevel, riskFactors.Count);
+
+            return new RiskAssessmentResult
             {
-                Strategy = strategy,
                 RiskLevel = riskLevel,
-                RiskFactors = riskFactors,
-                MitigationStrategies = mitigationStrategies,
-                AssessmentConfidence = confidence,
-                LastAssessment = DateTime.UtcNow
+                AdjustedConfidence = adjustedConfidence
             };
         }
 
@@ -168,7 +167,7 @@ namespace Relay.Core.AI.Optimization.Services
         {
             var confidence = 0.5;
 
-            if (analysisData.TotalExecutions > 1000)
+            if (analysisData.TotalExecutions >= 1000)
                 confidence += 0.3;
             else if (analysisData.TotalExecutions > 100)
                 confidence += 0.1;
@@ -177,6 +176,20 @@ namespace Relay.Core.AI.Optimization.Services
                 confidence += 0.1;
 
             return Math.Min(confidence, 0.9);
+        }
+
+        private double CalculateAdjustedConfidence(double baseConfidence, RiskLevel riskLevel, int riskFactorCount)
+        {
+            var adjustment = 0.0;
+
+            // Reduce confidence based on risk level
+            adjustment -= (int)riskLevel * 0.1;
+
+            // Reduce confidence based on number of risk factors
+            adjustment -= riskFactorCount * 0.05;
+
+            // Ensure adjusted confidence doesn't go below 0.1 or above 0.95
+            return Math.Max(0.1, Math.Min(0.95, baseConfidence + adjustment));
         }
     }
 

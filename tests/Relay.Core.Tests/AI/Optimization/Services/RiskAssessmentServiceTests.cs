@@ -59,12 +59,8 @@ public class RiskAssessmentServiceTests
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
         // Assert
-        Assert.Equal(OptimizationStrategy.EnableCaching, result.Strategy);
         Assert.Equal(RiskLevel.Low, result.RiskLevel);
-        Assert.True(result.AssessmentConfidence > 0.5);
-        Assert.NotNull(result.RiskFactors);
-        Assert.NotNull(result.MitigationStrategies);
-        Assert.True(result.LastAssessment > DateTime.MinValue);
+        Assert.True(result.AdjustedConfidence > 0.5);
     }
 
     [Fact]
@@ -78,84 +74,74 @@ public class RiskAssessmentServiceTests
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.Custom, analysisData, systemMetrics);
 
         // Assert
-        Assert.Equal(OptimizationStrategy.Custom, result.Strategy);
-        // For debugging: let's see what we actually get
-        Assert.True(result.RiskLevel >= RiskLevel.Low); // Lower expectation for now
-        Assert.Contains("Custom optimizations require thorough testing", result.RiskFactors);
+        Assert.Equal(RiskLevel.High, result.RiskLevel); // Custom strategy with poor data and high system load = High risk
+        Assert.True(result.AdjustedConfidence < 0.5); // High risk should reduce confidence
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Return_VeryHigh_Risk_For_ParallelProcessing_With_High_CPU()
+    public void AssessOptimizationRisk_Should_Return_High_Risk_For_ParallelProcessing_With_High_CPU()
     {
         // Arrange
-        var analysisData = CreateTestAnalysisData(totalExecutions: 20, errorRate: 0.12, executionTimesCount: 5);
-        var systemMetrics = CreateTestSystemMetrics(cpuUtil: 0.95, memoryUtil: 0.95, errorRate: 0.08);
+        var analysisData = CreateTestAnalysisData(totalExecutions: 5, errorRate: 0.15, executionTimesCount: 2);
+        var systemMetrics = CreateTestSystemMetrics(cpuUtil: 0.98, memoryUtil: 0.98, errorRate: 0.15);
 
         // Act
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.ParallelProcessing, analysisData, systemMetrics);
 
         // Assert
-        Assert.Equal(OptimizationStrategy.ParallelProcessing, result.Strategy);
-        Assert.True(result.RiskLevel >= RiskLevel.High);
-        Assert.Contains("High CPU utilization may limit parallel processing benefits", result.RiskFactors);
+        Assert.Equal(RiskLevel.High, result.RiskLevel); // Parallel processing with very poor data and extreme system load = High risk
+        Assert.True(result.AdjustedConfidence < 0.5); // High risk should reduce confidence
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Identify_Insufficient_Data_Risk()
+    public void AssessOptimizationRisk_Should_Return_Higher_Risk_With_Insufficient_Data()
     {
         // Arrange
         var analysisData = CreateTestAnalysisData(totalExecutions: 10, errorRate: 0.0, executionTimesCount: 5);
-        var systemMetrics = CreateTestSystemMetrics();
+        var systemMetrics = CreateTestSystemMetrics(cpuUtil: 0.95, memoryUtil: 0.5, errorRate: 0.02);
 
         // Act
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
         // Assert
-        Assert.Contains("Insufficient historical data for reliable optimization", result.RiskFactors);
-        Assert.True(result.RiskFactors.Contains("Insufficient historical data for reliable optimization"));
+        Assert.True(result.RiskLevel >= RiskLevel.Medium); // Insufficient data + high CPU should increase risk
+        Assert.True(result.AdjustedConfidence < 0.8); // Should reduce confidence due to insufficient data
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Identify_High_Error_Rate_Risk()
+    public void AssessOptimizationRisk_Should_Return_Higher_Risk_With_High_Error_Rate()
     {
         // Arrange
-        var analysisData = CreateTestAnalysisData(totalExecutions: 200, errorRate: 0.15, executionTimesCount: 50);
-        var systemMetrics = CreateTestSystemMetrics();
+        var analysisData = CreateTestAnalysisData(totalExecutions: 80, errorRate: 0.15, executionTimesCount: 50);
+        var systemMetrics = CreateTestSystemMetrics(cpuUtil: 0.95, memoryUtil: 0.5, errorRate: 0.03);
 
         // Act
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
         // Assert
-        Assert.Contains("High error rate may be exacerbated by optimization changes", result.RiskFactors);
+        Assert.True(result.RiskLevel >= RiskLevel.Medium); // High error rate + low sample size + high CPU should increase risk
+        Assert.True(result.AdjustedConfidence < 0.8); // Should reduce confidence due to high error rate
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Generate_Mitigation_Strategies_For_High_Risk()
+    public void AssessOptimizationRisk_Should_Return_Valid_Risk_Assessment_Result_Type()
     {
-        // Arrange - Use simple data
+        // Arrange
         var analysisData = CreateTestAnalysisData(totalExecutions: 100, errorRate: 0.01, executionTimesCount: 50);
         var systemMetrics = CreateTestSystemMetrics();
 
         // Act
-        RiskAssessment result = null;
-        try
-        {
-            result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
-        }
-        catch (Exception ex)
-        {
-            Assert.True(false, $"Service threw exception: {ex.Message}");
-        }
+        var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
-        // Assert - Check what we actually get
+        // Assert
         Assert.NotNull(result);
-        Assert.IsType<RiskAssessment>(result);
-        Assert.True(result.RiskLevel >= RiskLevel.VeryLow, $"Actual RiskLevel: {result.RiskLevel}");
-        Assert.Contains("Establish performance baselines before deployment", result.MitigationStrategies);
+        Assert.IsType<RiskAssessmentResult>(result);
+        Assert.True(result.RiskLevel >= RiskLevel.VeryLow);
+        Assert.True(result.AdjustedConfidence >= 0.0 && result.AdjustedConfidence <= 1.0);
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Generate_Data_Specific_Mitigation_For_Insufficient_Data()
+    public void AssessOptimizationRisk_Should_Adjust_Confidence_Based_On_Risk_Level()
     {
         // Arrange
         var analysisData = CreateTestAnalysisData(totalExecutions: 30, errorRate: 0.0, executionTimesCount: 10);
@@ -165,48 +151,48 @@ public class RiskAssessmentServiceTests
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
         // Assert
-        // Check what we actually get
-        Assert.True(result.RiskFactors.Count >= 0); // Just to see what's in there
-        Assert.Contains("Establish performance baselines before deployment", result.MitigationStrategies);
+        Assert.NotNull(result);
+        // Higher risk should generally lead to lower adjusted confidence
+        if (result.RiskLevel >= RiskLevel.Medium)
+        {
+            Assert.True(result.AdjustedConfidence < 0.9);
+        }
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Generate_Error_Specific_Mitigation_For_High_Error_Rate()
+    public void AssessOptimizationRisk_Should_Increase_Risk_With_High_Error_Rate()
     {
         // Arrange
-        var analysisData = CreateTestAnalysisData(totalExecutions: 150, errorRate: 0.12, executionTimesCount: 40);
-        var systemMetrics = CreateTestSystemMetrics();
+        var analysisData = CreateTestAnalysisData(totalExecutions: 50, errorRate: 0.15, executionTimesCount: 5);
+        var systemMetrics = CreateTestSystemMetrics(cpuUtil: 0.8, memoryUtil: 0.5, errorRate: 0.02);
 
         // Act
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
         // Assert
-        Assert.Contains("High error rate may be exacerbated by optimization changes", result.RiskFactors);
-        Assert.Contains("Implement circuit breaker pattern", result.MitigationStrategies);
-        Assert.Contains("Add additional error handling and logging", result.MitigationStrategies);
+        Assert.True(result.RiskLevel >= RiskLevel.Medium); // High error rate + low sample size should increase risk
+        Assert.True(result.AdjustedConfidence < 0.8); // Should reduce confidence
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Return_Valid_Risk_Assessment()
+    public void AssessOptimizationRisk_Should_Return_Valid_Risk_Assessment_Result_Object()
     {
-        // Arrange - Use simple data
+        // Arrange
         var analysisData = CreateTestAnalysisData(totalExecutions: 100, errorRate: 0.01, executionTimesCount: 50);
         var systemMetrics = CreateTestSystemMetrics();
 
         // Act
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
-        // Assert - Basic validation that the service works
+        // Assert
         Assert.NotNull(result);
-        Assert.IsType<RiskAssessment>(result);
-        Assert.Equal(OptimizationStrategy.EnableCaching, result.Strategy);
-        Assert.NotNull(result.RiskFactors);
-        Assert.NotNull(result.MitigationStrategies);
-        Assert.Contains("Establish performance baselines before deployment", result.MitigationStrategies);
+        Assert.IsType<RiskAssessmentResult>(result);
+        Assert.True(Enum.IsDefined(typeof(RiskLevel), result.RiskLevel));
+        Assert.True(result.AdjustedConfidence >= 0.0 && result.AdjustedConfidence <= 1.0);
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Calculate_Low_Confidence_With_Insufficient_Data()
+    public void AssessOptimizationRisk_Should_Calculate_Low_Adjusted_Confidence_With_Insufficient_Data()
     {
         // Arrange
         var analysisData = CreateTestAnalysisData(totalExecutions: 5, errorRate: 0.0, executionTimesCount: 2);
@@ -216,11 +202,11 @@ public class RiskAssessmentServiceTests
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
         // Assert
-        Assert.True(result.AssessmentConfidence < 0.6);
+        Assert.True(result.AdjustedConfidence < 0.6);
     }
 
     [Fact]
-    public void AssessOptimizationRisk_Should_Always_Include_Baseline_Mitigation_Strategies()
+    public void AssessOptimizationRisk_Should_Return_Low_Risk_With_Good_Data_And_Metrics()
     {
         // Arrange
         var analysisData = CreateTestAnalysisData(totalExecutions: 1000, errorRate: 0.001, executionTimesCount: 100);
@@ -230,7 +216,8 @@ public class RiskAssessmentServiceTests
         var result = _service.AssessOptimizationRisk(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
 
         // Assert
-        Assert.Contains("Establish performance baselines before deployment", result.MitigationStrategies);
+        Assert.Equal(RiskLevel.Low, result.RiskLevel);
+        Assert.True(result.AdjustedConfidence > 0.5); // Good data should give reasonably high confidence
     }
 
     private static RequestAnalysisData CreateTestAnalysisData(

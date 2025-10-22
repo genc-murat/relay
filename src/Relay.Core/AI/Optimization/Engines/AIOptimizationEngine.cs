@@ -200,6 +200,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
     {
         if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var insights = new SystemPerformanceInsights
         {
             AnalysisTime = DateTime.UtcNow,
@@ -209,7 +211,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
             HealthScore = _systemMetricsService.CalculateSystemHealthScore(),
             Predictions = _predictiveAnalysisService.GeneratePredictiveAnalysis(),
             PerformanceGrade = CalculatePerformanceGrade(),
-            KeyMetrics = CollectKeyMetrics()
+            KeyMetrics = CollectKeyMetrics(),
+            SeasonalPatterns = DetectSeasonalPatterns(CollectKeyMetrics())
         };
 
         _logger.LogInformation("Generated system performance insights: Grade {Grade}, Health Score {HealthScore:F2}",

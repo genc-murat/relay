@@ -24,5 +24,10 @@ namespace Relay.Core.AI
         /// Key performance indicators
         /// </summary>
         public Dictionary<string, double> KeyMetrics { get; init; } = new();
+
+        /// <summary>
+        /// Detected seasonal patterns in system metrics
+        /// </summary>
+        public List<Optimization.Data.SeasonalPattern> SeasonalPatterns { get; init; } = new();
     }
 }

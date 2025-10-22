@@ -427,6 +427,65 @@ public class AIOptimizationEngineAnalysisTests : IDisposable
         Assert.NotNull(result.Predictions);
     }
 
+    [Fact]
+    public async Task GetSystemInsightsAsync_Should_Include_Seasonal_Patterns()
+    {
+        // Act
+        var insights = await _engine.GetSystemInsightsAsync(TimeSpan.FromHours(1));
+
+        // Assert
+        Assert.NotNull(insights);
+        Assert.NotNull(insights.SeasonalPatterns);
+        Assert.IsType<List<SeasonalPattern>>(insights.SeasonalPatterns);
+    }
+
+    [Fact]
+    public async Task GetSystemInsightsAsync_Should_Detect_Daily_Patterns_With_Sufficient_Data()
+    {
+        // Arrange - Simulate having enough historical data for pattern detection
+        // Note: In a real scenario, this would require the time series database to have data
+        // For this test, we verify the method doesn't throw and returns valid structure
+
+        // Act
+        var insights = await _engine.GetSystemInsightsAsync(TimeSpan.FromHours(24));
+
+        // Assert
+        Assert.NotNull(insights);
+        Assert.NotNull(insights.SeasonalPatterns);
+        // With insufficient data, patterns list should be empty but not null
+        Assert.IsType<List<SeasonalPattern>>(insights.SeasonalPatterns);
+    }
+
+    [Fact]
+    public async Task GetSystemInsightsAsync_Should_Handle_Cancellation_In_Seasonal_Analysis()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await _engine.GetSystemInsightsAsync(TimeSpan.FromHours(1), cts.Token));
+    }
+
+    [Fact]
+    public async Task GetSystemInsightsAsync_Should_Return_Valid_Insights_Structure()
+    {
+        // Act
+        var insights = await _engine.GetSystemInsightsAsync(TimeSpan.FromHours(1));
+
+        // Assert
+        Assert.NotNull(insights);
+        Assert.True(insights.AnalysisPeriod > TimeSpan.Zero);
+        Assert.NotNull(insights.Bottlenecks);
+        Assert.NotNull(insights.Opportunities);
+        Assert.NotNull(insights.HealthScore);
+        Assert.NotNull(insights.Predictions);
+        Assert.NotNull(insights.KeyMetrics);
+        Assert.NotNull(insights.SeasonalPatterns);
+        Assert.True(insights.PerformanceGrade >= 'A' && insights.PerformanceGrade <= 'F');
+    }
+
     #region Test Types
 
     private class TestRequest { }

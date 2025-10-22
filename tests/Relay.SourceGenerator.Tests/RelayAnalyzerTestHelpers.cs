@@ -77,6 +77,7 @@ namespace Relay.Core
     {
         public string? Name { get; set; }
         public int Order { get; set; }
+        public int Scope { get; set; }
     }
 }";
 

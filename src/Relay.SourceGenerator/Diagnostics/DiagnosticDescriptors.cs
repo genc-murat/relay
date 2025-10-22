@@ -33,7 +33,8 @@ namespace Relay.SourceGenerator
             "An error occurred during source generation: {0}",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            customTags: new[] { "CompilationEnd", "NotConfigurable" });
 
         public static readonly DiagnosticDescriptor InvalidHandlerSignature = new(
             "RELAY_GEN_002",

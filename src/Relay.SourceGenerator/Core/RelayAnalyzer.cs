@@ -222,12 +222,14 @@ namespace Relay.SourceGenerator
             var methodName = methodDeclaration?.Identifier.Text ?? "unknown method";
             var errorMessage = $"An error occurred while analyzing '{methodName}': {exception.GetType().Name}";
 
+#pragma warning disable RS1005 // ReportDiagnostic invoked with an unsupported DiagnosticDescriptor
             var diagnostic = Diagnostic.Create(
                 DiagnosticDescriptors.GeneratorError,
                 location,
                 errorMessage);
 
             context.ReportDiagnostic(diagnostic);
+#pragma warning restore RS1005
         }
 
         /// <summary>
@@ -241,12 +243,14 @@ namespace Relay.SourceGenerator
         {
             var errorMessage = $"An error occurred during compilation analysis: {exception.GetType().Name}";
 
+#pragma warning disable RS1005 // ReportDiagnostic invoked with an unsupported DiagnosticDescriptor
             var diagnostic = Diagnostic.Create(
                 DiagnosticDescriptors.GeneratorError,
                 Location.None,
                 errorMessage);
 
             context.ReportDiagnostic(diagnostic);
+#pragma warning restore RS1005
         }
     }
 }

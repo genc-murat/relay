@@ -313,6 +313,36 @@ namespace Relay.Core.Tests.AI
 
             // Assert
             Assert.Equal(TimeSpan.FromMilliseconds(200), stats.SlowestQueryDuration);
+            Assert.Equal(TimeSpan.FromMilliseconds(200), stats.SlowestQueryTime);
+        }
+
+        [Fact]
+        public void DatabaseOptimizationScope_Should_Record_Connections_And_Calculate_Statistics()
+        {
+            // Arrange
+            using var scope = DatabaseOptimizationScope.Create(_logger);
+
+            // Act
+            scope.RecordQueryExecution(TimeSpan.FromMilliseconds(100), wasRetried: false);
+            scope.RecordQueryExecution(TimeSpan.FromMilliseconds(200), wasRetried: true);
+            scope.RecordQueryExecution(TimeSpan.FromMilliseconds(50), wasRetried: false);
+            scope.RecordConnectionOpened();
+            scope.RecordConnectionOpened();
+            scope.RecordConnectionReused();
+            scope.RecordConnectionReused();
+            scope.RecordConnectionReused();
+
+            var stats = scope.GetStatistics();
+
+            // Assert
+            Assert.Equal(3, stats.QueriesExecuted);
+            Assert.Equal(1, stats.QueriesRetried);
+            Assert.Equal(1, stats.RetryCount);
+            Assert.Equal(TimeSpan.FromMilliseconds(350), stats.TotalQueryTime);
+            Assert.True(Math.Abs((stats.AverageQueryTime - TimeSpan.FromMilliseconds(116.66666666666667)).TotalMilliseconds) < 1);
+            Assert.Equal(2.0 / 3.0, stats.QueryEfficiency, 2);
+            Assert.Equal(2, stats.ConnectionsOpened);
+            Assert.Equal(3, stats.ConnectionsReused);
         }
 
         #endregion

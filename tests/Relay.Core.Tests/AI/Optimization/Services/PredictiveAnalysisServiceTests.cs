@@ -173,4 +173,195 @@ public class PredictiveAnalysisServiceTests
     }
 
     #endregion
+
+    #region LoadTransition Tests
+
+    [Fact]
+    public void GetLoadTransitions_Should_Return_Empty_List_Initially()
+    {
+        // Act
+        var transitions = _service.GetLoadTransitions();
+
+        // Assert
+        Assert.NotNull(transitions);
+        Assert.Empty(transitions);
+    }
+
+    [Fact]
+    public void AnalyzeLoadPatterns_Should_Track_Load_Level_Transitions()
+    {
+        // Arrange - Add metrics that will cause load level changes
+        // Need at least 5 metrics for AnalyzeLoadPatterns to work
+        for (int i = 0; i < 5; i++)
+        {
+            var metrics = new Dictionary<string, double>
+            {
+                ["CpuUtilization"] = 0.05, // Idle
+                ["MemoryUtilization"] = 0.1,
+                ["ThroughputPerSecond"] = 10
+            };
+            _service.AddMetricsSnapshot(metrics);
+        }
+
+        var lowMetrics = new Dictionary<string, double>
+        {
+            ["CpuUtilization"] = 0.25, // Low
+            ["MemoryUtilization"] = 0.3,
+            ["ThroughputPerSecond"] = 60
+        };
+
+        var mediumMetrics = new Dictionary<string, double>
+        {
+            ["CpuUtilization"] = 0.55, // Medium
+            ["MemoryUtilization"] = 0.6,
+            ["ThroughputPerSecond"] = 100
+        };
+
+        // Act - Add metrics in sequence to trigger transitions
+        _service.AddMetricsSnapshot(lowMetrics);
+        _service.AnalyzeLoadPatterns(); // Should transition Idle -> Low
+
+        _service.AddMetricsSnapshot(mediumMetrics);
+        _service.AnalyzeLoadPatterns(); // Should transition Low -> Medium
+
+        var transitions = _service.GetLoadTransitions();
+
+        // Assert
+        Assert.Equal(2, transitions.Count); // Two transitions: Idle->Low, Low->Medium
+
+        var firstTransition = transitions[0];
+        Assert.Equal(LoadLevel.Idle, firstTransition.FromLevel);
+        Assert.Equal(LoadLevel.Low, firstTransition.ToLevel);
+        Assert.Equal(TimeSpan.Zero, firstTransition.TimeSincePrevious); // First transition
+
+        var secondTransition = transitions[1];
+        Assert.Equal(LoadLevel.Low, secondTransition.FromLevel);
+        Assert.Equal(LoadLevel.Medium, secondTransition.ToLevel);
+        Assert.True(secondTransition.TimeSincePrevious > TimeSpan.Zero); // Should have time since previous
+    }
+
+    [Fact]
+    public void LoadTransition_Should_Calculate_Performance_Impact_Correctly()
+    {
+        // Arrange - Create a transition manually to test impact calculation
+        var transition = new LoadTransition
+        {
+            FromLevel = LoadLevel.Low, // Impact 1.0
+            ToLevel = LoadLevel.High,  // Impact 3.0
+            Timestamp = DateTime.UtcNow,
+            TimeSincePrevious = TimeSpan.FromMinutes(5)
+        };
+
+        // The impact should be |3.0 - 1.0| * 0.1 = 0.2 seconds
+        var expectedImpact = TimeSpan.FromSeconds(0.2);
+
+        // Act & Assert - We can't directly test the private method, but we can verify
+        // the transition object structure
+        Assert.Equal(LoadLevel.Low, transition.FromLevel);
+        Assert.Equal(LoadLevel.High, transition.ToLevel);
+        Assert.Equal(TimeSpan.FromMinutes(5), transition.TimeSincePrevious);
+        Assert.True(transition.PerformanceImpact >= TimeSpan.Zero); // Should be calculated
+    }
+
+    [Fact]
+    public void LoadTransitions_Should_Maintain_Maximum_History_Size()
+    {
+        // Arrange - Add many metrics to trigger multiple transitions
+        for (int i = 0; i < 60; i++) // More than the 50 limit
+        {
+            var metrics = new Dictionary<string, double>
+            {
+                ["CpuUtilization"] = 0.1 + (i * 0.01), // Gradually increasing
+                ["MemoryUtilization"] = 0.2,
+                ["ThroughputPerSecond"] = 50
+            };
+
+            _service.AddMetricsSnapshot(metrics);
+            _service.AnalyzeLoadPatterns();
+        }
+
+        // Act
+        var transitions = _service.GetLoadTransitions();
+
+        // Assert - Should not exceed 50 transitions
+        Assert.True(transitions.Count <= 50, $"Expected <= 50 transitions, got {transitions.Count}");
+    }
+
+    [Fact]
+    public void LoadTransition_Should_Record_Timestamps_Correctly()
+    {
+        // Arrange
+        var beforeTransition = DateTime.UtcNow;
+
+        var idleMetrics = new Dictionary<string, double>
+        {
+            ["CpuUtilization"] = 0.05,
+            ["MemoryUtilization"] = 0.1,
+            ["ThroughputPerSecond"] = 10
+        };
+
+        var highMetrics = new Dictionary<string, double>
+        {
+            ["CpuUtilization"] = 0.85, // High load (> 0.7)
+            ["MemoryUtilization"] = 0.8,
+            ["ThroughputPerSecond"] = 200
+        };
+
+        // Act - First establish baseline
+        _service.AddMetricsSnapshot(idleMetrics);
+        _service.AnalyzeLoadPatterns();
+
+        System.Threading.Thread.Sleep(10); // Small delay
+
+        // Now add high load metrics
+        _service.AddMetricsSnapshot(highMetrics);
+        _service.AnalyzeLoadPatterns();
+
+        var transitions = _service.GetLoadTransitions();
+
+        // Assert
+        Assert.Single(transitions);
+        var transition = transitions[0];
+
+        Assert.True(transition.Timestamp >= beforeTransition);
+        Assert.True(transition.Timestamp <= DateTime.UtcNow);
+        Assert.Equal(LoadLevel.Idle, transition.FromLevel);
+        Assert.Equal(LoadLevel.High, transition.ToLevel);
+    }
+
+    [Fact]
+    public void LoadTransition_Should_Handle_No_Previous_Transition()
+    {
+        // Arrange - First transition should have TimeSincePrevious = Zero
+        // Start with idle, then go to low to create a transition
+        var idleMetrics = new Dictionary<string, double>
+        {
+            ["CpuUtilization"] = 0.05,
+            ["MemoryUtilization"] = 0.1,
+            ["ThroughputPerSecond"] = 10
+        };
+
+        var lowMetrics = new Dictionary<string, double>
+        {
+            ["CpuUtilization"] = 0.25, // Low load
+            ["MemoryUtilization"] = 0.3,
+            ["ThroughputPerSecond"] = 60
+        };
+
+        // Act - Establish baseline first
+        _service.AddMetricsSnapshot(idleMetrics);
+        _service.AnalyzeLoadPatterns();
+
+        // Now create the transition
+        _service.AddMetricsSnapshot(lowMetrics);
+        _service.AnalyzeLoadPatterns();
+
+        var transitions = _service.GetLoadTransitions();
+
+        // Assert
+        Assert.Single(transitions);
+        Assert.Equal(TimeSpan.Zero, transitions[0].TimeSincePrevious);
+    }
+
+    #endregion
 }

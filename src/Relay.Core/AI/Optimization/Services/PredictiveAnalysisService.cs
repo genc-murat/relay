@@ -11,12 +11,14 @@ namespace Relay.Core.AI.Optimization.Services
     /// <summary>
     /// Service for generating predictive analysis of system behavior
     /// </summary>
-    internal class PredictiveAnalysisService
+    public class PredictiveAnalysisService
     {
         private readonly ILogger _logger;
         private readonly Queue<SystemMetricsSnapshot> _metricsHistory = new();
+        private readonly List<LoadTransition> _loadTransitions = new();
         private readonly int _maxHistorySize = 100;
         private readonly object _historyLock = new();
+        private LoadLevel _previousLoadLevel = LoadLevel.Idle;
 
         public PredictiveAnalysisService(ILogger logger)
         {
@@ -54,24 +56,63 @@ namespace Relay.Core.AI.Optimization.Services
             }
         }
 
+        internal List<LoadTransition> GetLoadTransitions()
+        {
+            lock (_historyLock)
+            {
+                return _loadTransitions.ToList();
+            }
+        }
+
         public LoadPatternData AnalyzeLoadPatterns()
         {
             lock (_historyLock)
             {
+                // Track load level transitions even with minimal data
+                if (_metricsHistory.Count >= 1)
+                {
+                    var currentMetrics = _metricsHistory.Last();
+                    var loadLevel = DetermineLoadLevel(currentMetrics.Metrics);
+
+                    // Track load level transitions
+                    if (loadLevel != _previousLoadLevel)
+                    {
+                        var transition = new LoadTransition
+                        {
+                            FromLevel = _previousLoadLevel,
+                            ToLevel = loadLevel,
+                            Timestamp = currentMetrics.Timestamp,
+                            TimeSincePrevious = _loadTransitions.Count > 0
+                                ? currentMetrics.Timestamp - _loadTransitions.Last().Timestamp
+                                : TimeSpan.Zero,
+                            PerformanceImpact = CalculatePerformanceImpact(_previousLoadLevel, loadLevel)
+                        };
+                        _loadTransitions.Add(transition);
+                        _previousLoadLevel = loadLevel;
+
+                        // Maintain transition history size
+                        if (_loadTransitions.Count > 50)
+                        {
+                            _loadTransitions.RemoveAt(0);
+                        }
+                    }
+                }
+
                 if (_metricsHistory.Count < 5)
                 {
                     return new LoadPatternData
                     {
-                        Level = LoadLevel.Idle,
+                        Level = _previousLoadLevel,
                         SuccessRate = 0.0,
                         AverageImprovement = 0.0,
                         TotalPredictions = 0
                     };
                 }
 
-                var currentMetrics = _metricsHistory.Last();
-                var loadLevel = DetermineLoadLevel(currentMetrics.Metrics);
-                var predictions = GenerateLoadPredictions(currentMetrics.Metrics);
+                var latestMetrics = _metricsHistory.Last();
+                var currentLoadLevel = DetermineLoadLevel(latestMetrics.Metrics);
+
+                var predictions = GenerateLoadPredictions(latestMetrics.Metrics);
                 var successRate = CalculateHistoricalSuccessRate();
                 var averageImprovement = CalculateHistoricalImprovement();
                 var totalPredictions = _metricsHistory.Count;
@@ -79,7 +120,7 @@ namespace Relay.Core.AI.Optimization.Services
 
                 return new LoadPatternData
                 {
-                    Level = loadLevel,
+                    Level = currentLoadLevel,
                     Predictions = predictions,
                     SuccessRate = successRate,
                     AverageImprovement = averageImprovement,
@@ -356,6 +397,31 @@ namespace Relay.Core.AI.Optimization.Services
             var peakHour = Array.IndexOf(hourlyAverages, maxUtilization);
 
             return (maxUtilization, peakHour);
+        }
+
+        private TimeSpan CalculatePerformanceImpact(LoadLevel fromLevel, LoadLevel toLevel)
+        {
+            // Estimate performance impact based on load level transition
+            // Higher load levels generally have more performance impact
+            var fromImpact = GetLoadLevelImpact(fromLevel);
+            var toImpact = GetLoadLevelImpact(toLevel);
+
+            // Impact is the difference in processing time (simplified)
+            var impactSeconds = Math.Abs(toImpact - fromImpact) * 0.1; // 0.1 seconds per impact unit
+            return TimeSpan.FromSeconds(impactSeconds);
+        }
+
+        private double GetLoadLevelImpact(LoadLevel level)
+        {
+            return level switch
+            {
+                LoadLevel.Idle => 0.0,
+                LoadLevel.Low => 1.0,
+                LoadLevel.Medium => 2.0,
+                LoadLevel.High => 3.0,
+                LoadLevel.Critical => 4.0,
+                _ => 0.0
+            };
         }
 
         private class SystemMetricsSnapshot

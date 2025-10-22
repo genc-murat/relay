@@ -230,6 +230,11 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         return _modelStatisticsService.GetModelStatistics();
     }
 
+    internal List<LoadTransition> GetLoadTransitions()
+    {
+        return _predictiveAnalysisService.GetLoadTransitions();
+    }
+
     public LoadPatternData GetLoadPatternAnalysis()
     {
         // Aggregate load pattern data from system metrics and predictive analysis services

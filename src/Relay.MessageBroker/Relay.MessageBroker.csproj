@@ -35,11 +35,12 @@
     <PackageReference Include="OpenTelemetry.Api" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
-  </ItemGroup>
+     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
-  </ItemGroup>
+   <ItemGroup>
+     <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
+   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Update="Microsoft.SourceLink.GitHub" />

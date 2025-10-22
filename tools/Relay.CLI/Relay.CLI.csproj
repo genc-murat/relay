@@ -74,12 +74,13 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Spectre.Console" />
-    <PackageReference Include="DiffPlex" />
-  </ItemGroup>
+     <PackageReference Include="DiffPlex" />
+     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+   </ItemGroup>
 
-  <!-- Project References -->
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj" />
-  </ItemGroup>
+   <!-- Project References -->
+   <ItemGroup>
+     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj" />
+   </ItemGroup>
 
 </Project>

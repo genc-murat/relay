@@ -1,13 +1,14 @@
 using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Optimization.Data;
 
 namespace Relay.Core.AI.Analysis.Engines
 {
     /// <summary>
     /// Optimizes decision boundaries for thresholds
     /// </summary>
-    internal class DecisionBoundaryOptimizer : IPatternUpdater
+    public class DecisionBoundaryOptimizer : IPatternUpdater
     {
         private readonly ILogger<DecisionBoundaryOptimizer> _logger;
         private readonly PatternRecognitionConfig _config;
@@ -22,17 +23,18 @@ namespace Relay.Core.AI.Analysis.Engines
         {
             try
             {
-                var bestThreshold = _config.ExecutionTimeThresholds
-                    .Select(threshold => new
-                    {
-                        Threshold = threshold,
-                        Accuracy = CalculateThresholdAccuracy(predictions, threshold)
-                    })
+                var thresholdMetrics = _config.ExecutionTimeThresholds
+                    .Select(threshold => CalculateThresholdMetrics(predictions, threshold))
                     .OrderByDescending(x => x.Accuracy)
-                    .First();
+                    .ToList();
 
-                _logger.LogDebug("Optimal execution time threshold: {Threshold}ms (accuracy: {Accuracy:P})",
-                    bestThreshold.Threshold, bestThreshold.Accuracy);
+                var bestThreshold = thresholdMetrics.First();
+
+                _logger.LogDebug("Optimal execution time threshold: {Threshold}ms (accuracy: {Accuracy:P}, sensitivity: {Sensitivity:P}, specificity: {Specificity:P})",
+                    bestThreshold.Threshold, bestThreshold.Accuracy, bestThreshold.Sensitivity, bestThreshold.Specificity);
+
+                // Update config with optimal threshold
+                _config.ExecutionTimeThresholds = new[] { (int)bestThreshold.Threshold };
 
                 return 1;
             }
@@ -43,11 +45,46 @@ namespace Relay.Core.AI.Analysis.Engines
             }
         }
 
-        private double CalculateThresholdAccuracy(PredictionResult[] predictions, int threshold)
+        private ThresholdMetrics CalculateThresholdMetrics(PredictionResult[] predictions, int threshold)
         {
-            // Placeholder implementation - in real scenario, this would evaluate
-            // the accuracy of the threshold in classifying predictions
-            return 0.7;
+            int truePositives = 0, falsePositives = 0, trueNegatives = 0, falseNegatives = 0;
+
+            foreach (var prediction in predictions)
+            {
+                var actualExecutionTime = prediction.Metrics.AverageExecutionTime.TotalMilliseconds;
+                var predictedNeedsOptimization = actualExecutionTime > threshold;
+                var actualNeedsOptimization = prediction.ActualImprovement > TimeSpan.Zero; // If there was improvement, it needed optimization
+
+                if (predictedNeedsOptimization && actualNeedsOptimization)
+                    truePositives++;
+                else if (predictedNeedsOptimization && !actualNeedsOptimization)
+                    falsePositives++;
+                else if (!predictedNeedsOptimization && !actualNeedsOptimization)
+                    trueNegatives++;
+                else if (!predictedNeedsOptimization && actualNeedsOptimization)
+                    falseNegatives++;
+            }
+
+            var total = predictions.Length;
+            var sensitivity = total > 0 ? (double)truePositives / (truePositives + falseNegatives) : 0;
+            var specificity = total > 0 ? (double)trueNegatives / (trueNegatives + falsePositives) : 0;
+            var precision = (truePositives + falsePositives) > 0 ? (double)truePositives / (truePositives + falsePositives) : 0;
+            var recall = sensitivity;
+            var accuracy = total > 0 ? (double)(truePositives + trueNegatives) / total : 0;
+
+            return new ThresholdMetrics
+            {
+                Threshold = threshold,
+                TruePositives = truePositives,
+                FalsePositives = falsePositives,
+                TrueNegatives = trueNegatives,
+                FalseNegatives = falseNegatives,
+                Sensitivity = sensitivity,
+                Specificity = specificity,
+                Precision = precision,
+                Recall = recall,
+                Accuracy = accuracy
+            };
         }
     }
 }

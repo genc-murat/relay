@@ -3,7 +3,7 @@ namespace Relay.Core.AI.Optimization.Data
     /// <summary>
     /// Metrics for threshold optimization using ROC curve analysis
     /// </summary>
-    internal class ThresholdMetrics
+    public class ThresholdMetrics
     {
         public double Threshold { get; set; }
         public int TruePositives { get; set; }

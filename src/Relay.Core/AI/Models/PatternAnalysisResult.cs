@@ -6,7 +6,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Pattern analysis result
     /// </summary>
-    internal class PatternAnalysisResult
+    public class PatternAnalysisResult
     {
         public int TotalPredictions { get; set; }
         public DateTime AnalysisTimestamp { get; set; }

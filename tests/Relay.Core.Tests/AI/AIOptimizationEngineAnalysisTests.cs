@@ -437,6 +437,16 @@ public class AIOptimizationEngineAnalysisTests : IDisposable
         Assert.NotNull(insights);
         Assert.NotNull(insights.SeasonalPatterns);
         Assert.IsType<List<SeasonalPattern>>(insights.SeasonalPatterns);
+
+        // Verify SeasonalPattern properties if any patterns are detected
+        foreach (var pattern in insights.SeasonalPatterns)
+        {
+            Assert.True(pattern.Period > 0, $"Pattern period should be positive, got {pattern.Period}");
+            Assert.True(pattern.Strength >= 0.0 && pattern.Strength <= 1.0,
+                $"Pattern strength should be between 0.0 and 1.0, got {pattern.Strength}");
+            Assert.False(string.IsNullOrEmpty(pattern.Type), "Pattern type should not be null or empty");
+            Assert.Contains(pattern.Type, new[] { "Intraday", "Daily", "Semi-weekly", "Weekly", "Bi-weekly", "Monthly" });
+        }
     }
 
     [Fact]
@@ -454,6 +464,14 @@ public class AIOptimizationEngineAnalysisTests : IDisposable
         Assert.NotNull(insights.SeasonalPatterns);
         // With insufficient data, patterns list should be empty but not null
         Assert.IsType<List<SeasonalPattern>>(insights.SeasonalPatterns);
+
+        // Verify any detected patterns have valid properties
+        foreach (var pattern in insights.SeasonalPatterns)
+        {
+            Assert.True(pattern.Period >= 8, $"Pattern period should be at least 8, got {pattern.Period}");
+            Assert.True(pattern.Strength > 0.7, $"Pattern strength should be > 0.7 for detection, got {pattern.Strength}");
+            Assert.Contains(pattern.Type, new[] { "Intraday", "Daily", "Semi-weekly", "Weekly", "Bi-weekly", "Monthly" });
+        }
     }
 
     [Fact]

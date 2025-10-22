@@ -27,15 +27,15 @@ namespace Relay.SourceGenerator
 
         public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
             var token = root.FindToken(diagnosticSpan.Start);
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
             var parent = token.Parent!;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
             var declaration = parent.AncestorsAndSelf().OfType<MethodDeclarationSyntax>().First();
+#pragma warning restore CS8602
 
             context.RegisterCodeFix(
                 CodeAction.Create(

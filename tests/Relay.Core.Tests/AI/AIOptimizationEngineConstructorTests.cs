@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.AI;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.AI
@@ -103,14 +104,14 @@ namespace Relay.Core.Tests.AI
         }
 
         [Fact]
-        public void GetModelStatistics_Should_Update_After_Predictions()
+        public async Task GetModelStatistics_Should_Update_After_Predictions()
         {
             // Arrange
             var initialStats = _engine.GetModelStatistics();
 
             // Act - Perform some operations
             var task = _engine.AnalyzeRequestAsync(new TestRequest(), CreateMetrics());
-            task.AsTask().Wait();
+            await task;
 
             var updatedStats = _engine.GetModelStatistics();
 

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Xunit;
 
+#pragma warning disable CS8601 // Possible null reference assignment
+
 namespace Relay.Core.Tests.AI
 {
     public class AIOptimizationEngineAdaptiveExplorationTests : AIOptimizationEngineTestBase

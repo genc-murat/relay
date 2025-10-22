@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
+#pragma warning disable CS8601 // Possible null reference assignment
+
 namespace Relay.Core.Tests.AI
 {
     public class AIOptimizationEngineReinforcementLearningTests : AIOptimizationEngineTestBase

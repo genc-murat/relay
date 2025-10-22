@@ -7,6 +7,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using Xunit;
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type
+
 namespace Relay.Core.Tests.AI;
 
 public class AIOptimizationEngineRetrainMLNetTests : IDisposable

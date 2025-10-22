@@ -318,6 +318,271 @@ public class Test
     }
 
     [Fact]
+    public async Task LinqRule_ShouldDetectWhereCountPattern()
+    {
+        // Arrange
+        var code = @"
+using System.Linq;
+using System.Collections.Generic;
+
+public class Test
+{
+    public int GetCount(List<int> items)
+    {
+        return items.Where(x => x > 0).Count();
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new LinqSimplificationRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("Where().Count()", suggestions.First().Description);
+        Assert.Contains("Count(", suggestions.First().SuggestedCode);
+        Assert.DoesNotContain("Where", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task LinqRule_ShouldDetectUnnecessarySelect()
+    {
+        // Arrange
+        var code = @"
+using System.Linq;
+using System.Collections.Generic;
+
+public class Test
+{
+    public IEnumerable<int> GetItems(List<int> items)
+    {
+        return items.Select(x => x);
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new LinqSimplificationRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("Select(x => x)", suggestions.First().Description);
+        Assert.Equal("items", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task LinqRule_ShouldNotDetectSelectWithDifferentParameter()
+    {
+        // Arrange
+        var code = @"
+using System.Linq;
+using System.Collections.Generic;
+
+public class Test
+{
+    public IEnumerable<int> GetItems(List<int> items)
+    {
+        return items.Select(x => x * 2);
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new LinqSimplificationRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Empty(suggestions);
+    }
+
+    [Fact]
+    public async Task LinqRule_ShouldHandleMultiplePatterns()
+    {
+        // Arrange
+        var code = @"
+using System.Linq;
+using System.Collections.Generic;
+
+public class Test
+{
+    public bool HasItems(List<int> items)
+    {
+        var anyResult = items.Where(x => x > 0).Any();
+        var firstResult = items.Where(x => x < 10).First();
+        var countResult = items.Where(x => x % 2 == 0).Count();
+        var selectResult = items.Select(x => x);
+        return anyResult;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new LinqSimplificationRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Equal(4, suggestions.Count);
+        Assert.Contains(suggestions, s => s.Description.Contains("Where().Any()"));
+        Assert.Contains(suggestions, s => s.Description.Contains("Where().First()"));
+        Assert.Contains(suggestions, s => s.Description.Contains("Where().Count()"));
+        Assert.Contains(suggestions, s => s.Description.Contains("Select(x => x)"));
+    }
+
+    [Fact]
+    public async Task LinqRule_ApplyRefactoring_ShouldTransformWhereAny()
+    {
+        // Arrange
+        var code = @"
+using System.Linq;
+using System.Collections.Generic;
+
+public class Test
+{
+    public bool HasItems(List<int> items)
+    {
+        return items.Where(x => x > 0).Any();
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new LinqSimplificationRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First(s => s.Description.Contains("Where().Any()"));
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToString();
+
+        // Assert
+        Assert.Contains("items.Any(x => x > 0)", newCode);
+        Assert.DoesNotContain("items.Where(x => x > 0).Any()", newCode);
+    }
+
+    [Fact]
+    public async Task LinqRule_ApplyRefactoring_ShouldTransformWhereFirst()
+    {
+        // Arrange
+        var code = @"
+using System.Linq;
+using System.Collections.Generic;
+
+public class Test
+{
+    public int GetFirst(List<int> items)
+    {
+        return items.Where(x => x > 0).First();
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new LinqSimplificationRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First(s => s.Description.Contains("Where().First()"));
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToString();
+
+        // Assert
+        Assert.Contains("items.First(x => x > 0)", newCode);
+        Assert.DoesNotContain("items.Where(x => x > 0).First()", newCode);
+    }
+
+    [Fact]
+    public async Task LinqRule_ApplyRefactoring_ShouldTransformWhereCount()
+    {
+        // Arrange
+        var code = @"
+using System.Linq;
+using System.Collections.Generic;
+
+public class Test
+{
+    public int GetCount(List<int> items)
+    {
+        return items.Where(x => x > 0).Count();
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new LinqSimplificationRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First(s => s.Description.Contains("Where().Count()"));
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToString();
+
+        // Assert
+        Assert.Contains("items.Count(x => x > 0)", newCode);
+        Assert.DoesNotContain("items.Where(x => x > 0).Count()", newCode);
+    }
+
+    [Fact]
+    public async Task LinqRule_ApplyRefactoring_ShouldRemoveUnnecessarySelect()
+    {
+        // Arrange
+        var code = @"
+using System.Linq;
+using System.Collections.Generic;
+
+public class Test
+{
+    public IEnumerable<int> GetItems(List<int> items)
+    {
+        return items.Select(x => x);
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new LinqSimplificationRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First(s => s.Description.Contains("Select(x => x)"));
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToString();
+
+        // Assert
+        Assert.Contains("return items;", newCode);
+        Assert.DoesNotContain("items.Select(x => x)", newCode);
+    }
+
+    [Fact]
     public async Task StringInterpolationRule_ShouldDetectStringFormat()
     {
         // Arrange

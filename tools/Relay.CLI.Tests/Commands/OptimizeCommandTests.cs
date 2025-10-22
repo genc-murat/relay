@@ -941,7 +941,7 @@ var result = _cache.GetOrAdd(key, k => ExpensiveOperation(k));";
         var command = OptimizeCommand.Create();
 
         // Assert
-        Assert.Equal(5, command.Options.Count());
+        Assert.Equal(5, command.Options.Count);
     }
 
     #endregion
@@ -1093,7 +1093,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         await OptimizeCommand.DiscoverFiles(context, null, null);
 
         // Assert
-        Assert.Equal(2, context.SourceFiles.Count());
+        Assert.Equal(2, context.SourceFiles.Count);
         Assert.Contains(context.SourceFiles, f => f.EndsWith("File1.cs"));
         Assert.Contains(context.SourceFiles, f => f.EndsWith("File2.cs"));
         Assert.DoesNotContain(context.SourceFiles, f => f.EndsWith("File.txt"));
@@ -1438,7 +1438,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var context = new OptimizationContext
         {
             IsDryRun = false,
-            OptimizationActions = new List<OptimizationAction>()
+            OptimizationActions = []
         };
 
         // Act & Assert - This would normally write to console, but we can't easily test console output
@@ -1453,15 +1453,15 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var context = new OptimizationContext
         {
             IsDryRun = false,
-            OptimizationActions = new List<OptimizationAction>
-            {
+            OptimizationActions =
+            [
                 new OptimizationAction
                 {
                     FilePath = "TestHandler.cs",
                     Type = "Handler Optimization",
                     Modifications = new List<string> { "Replaced Task<T> with ValueTask<T>" }
                 }
-            }
+            ]
         };
 
         // Act & Assert - Should not throw
@@ -1475,15 +1475,14 @@ public class TestHandler : IRequestHandler<TestRequest, string>
         var context = new OptimizationContext
         {
             IsDryRun = true,
-            OptimizationActions = new List<OptimizationAction>
-            {
-                new OptimizationAction
-                {
+            OptimizationActions =
+            [
+                new() {
                     FilePath = "TestHandler.cs",
                     Type = "Handler Optimization",
                     Modifications = new List<string> { "Replaced Task<T> with ValueTask<T>" }
                 }
-            }
+            ]
         };
 
         // Act & Assert - Should not throw

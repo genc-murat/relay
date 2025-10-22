@@ -151,7 +151,7 @@ public class BenchmarkResultsTests
         results.RelayResults["Handler3"] = result3;
 
         // Assert
-        Assert.Equal(3, results.RelayResults.Count());
+        Assert.Equal(3, results.RelayResults.Count);
         Assert.Equal(new[] { "Handler1", "Handler2", "Handler3" }.OrderBy(x => x), results.RelayResults.Keys.OrderBy(x => x));
     }
 
@@ -168,7 +168,7 @@ public class BenchmarkResultsTests
         results.ComparisonResults["OldHandler2"] = result2;
 
         // Assert
-        Assert.Equal(2, results.ComparisonResults.Count());
+        Assert.Equal(2, results.ComparisonResults.Count);
         Assert.Equal(new[] { "OldHandler1", "OldHandler2" }.OrderBy(x => x), results.ComparisonResults.Keys.OrderBy(x => x));
     }
 
@@ -255,7 +255,7 @@ public class BenchmarkResultsTests
         results.RelayResults = newResults;
 
         // Assert
-        Assert.Equal(2, results.RelayResults.Count());
+        Assert.Equal(2, results.RelayResults.Count);
         Assert.Contains("Handler2", results.RelayResults.Keys);
         Assert.Contains("Handler3", results.RelayResults.Keys);
         Assert.DoesNotContain("Handler1", results.RelayResults.Keys);
@@ -367,7 +367,7 @@ public class BenchmarkResultsTests
 
         // Assert
         Assert.Equal(config, results.TestConfiguration);
-        Assert.Equal(2, results.RelayResults.Count());
+        Assert.Equal(2, results.RelayResults.Count);
         Assert.Single(results.ComparisonResults);
 
         // Verify relay results
@@ -395,15 +395,13 @@ public class BenchmarkResultsTests
         // Arrange & Act
         var resultsList = new List<BenchmarkResults>
         {
-            new BenchmarkResults
-            {
+            new() {
                 RelayResults = new Dictionary<string, BenchmarkResult>
                 {
                     ["Handler1"] = new BenchmarkResult { Iterations = 100 }
                 }
             },
-            new BenchmarkResults
-            {
+            new() {
                 RelayResults = new Dictionary<string, BenchmarkResult>
                 {
                     ["Handler2"] = new BenchmarkResult { Iterations = 200 }
@@ -412,7 +410,7 @@ public class BenchmarkResultsTests
         };
 
         // Assert
-        Assert.Equal(2, resultsList.Count());
+        Assert.Equal(2, resultsList.Count);
         Assert.Equal(2, resultsList.Sum(r => r.RelayResults.Count));
     }
 
@@ -459,7 +457,7 @@ public class BenchmarkResultsTests
         var userHandlers = results.RelayResults.Where(r => r.Key.Contains("User")).ToList();
 
         // Assert
-        Assert.Equal(3, userHandlers.Count());
+        Assert.Equal(3, userHandlers.Count);
         Assert.Equal(450, userHandlers.Sum(r => r.Value.Iterations));
     }
 

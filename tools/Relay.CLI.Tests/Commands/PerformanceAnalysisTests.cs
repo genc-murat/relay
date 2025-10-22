@@ -377,7 +377,7 @@ public class PerformanceAnalysisTests
         analysis.Recommendations.AddRange(new[] { rec1, rec2, rec3 });
 
         // Assert
-        Assert.Equal(3, analysis.Recommendations.Count());
+        Assert.Equal(3, analysis.Recommendations.Count);
         Assert.Contains("Memory", analysis.Recommendations.Select(r => r.Category));
         Assert.Contains("Async", analysis.Recommendations.Select(r => r.Category));
         Assert.Contains("Caching", analysis.Recommendations.Select(r => r.Category));
@@ -400,13 +400,13 @@ public class PerformanceAnalysisTests
         // Arrange & Act
         var analyses = new List<PerformanceAnalysis>
         {
-            new PerformanceAnalysis { ProjectCount = 1, PerformanceScore = 70 },
-            new PerformanceAnalysis { ProjectCount = 2, PerformanceScore = 85 },
-            new PerformanceAnalysis { ProjectCount = 3, PerformanceScore = 92 }
+            new() { ProjectCount = 1, PerformanceScore = 70 },
+            new() { ProjectCount = 2, PerformanceScore = 85 },
+            new() { ProjectCount = 3, PerformanceScore = 92 }
         };
 
         // Assert
-        Assert.Equal(3, analyses.Count());
+        Assert.Equal(3, analyses.Count);
         Assert.Equal(6, analyses.Sum(a => a.ProjectCount));
         Assert.Equal(82.33333333333333, analyses.Average(a => a.PerformanceScore));
     }
@@ -436,9 +436,9 @@ public class PerformanceAnalysisTests
         // Arrange
         var analyses = new List<PerformanceAnalysis>
         {
-            new PerformanceAnalysis { PerformanceScore = 70 },
-            new PerformanceAnalysis { PerformanceScore = 95 },
-            new PerformanceAnalysis { PerformanceScore = 80 }
+            new() { PerformanceScore = 70 },
+            new() { PerformanceScore = 95 },
+            new() { PerformanceScore = 80 }
         };
 
         // Act
@@ -456,10 +456,10 @@ public class PerformanceAnalysisTests
         // Arrange
         var analyses = new List<PerformanceAnalysis>
         {
-            new PerformanceAnalysis { ModernFramework = true, ProjectCount = 1 },
-            new PerformanceAnalysis { ModernFramework = false, ProjectCount = 2 },
-            new PerformanceAnalysis { ModernFramework = true, ProjectCount = 3 },
-            new PerformanceAnalysis { ModernFramework = false, ProjectCount = 4 }
+            new() { ModernFramework = true, ProjectCount = 1 },
+            new() { ModernFramework = false, ProjectCount = 2 },
+            new() { ModernFramework = true, ProjectCount = 3 },
+            new() { ModernFramework = false, ProjectCount = 4 }
         };
 
         // Act

@@ -82,7 +82,7 @@ public class OptimizationActionTests
 
         // Assert
         Assert.Equal(modifications, action.Modifications);
-        Assert.Equal(2, action.Modifications.Count());
+        Assert.Equal(2, action.Modifications.Count);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class OptimizationActionTests
         {
             FilePath = @"C:\Projects\Handler.cs",
             Type = "Handler",
-            Modifications = new List<string> { "Task -> ValueTask" },
+            Modifications = ["Task -> ValueTask"],
             OriginalContent = "public async Task<Result> Handle()",
             OptimizedContent = "public async ValueTask<Result> HandleAsync()"
         };
@@ -168,7 +168,7 @@ public class OptimizationActionTests
         action.Modifications.Add("Handle -> HandleAsync");
 
         // Assert
-        Assert.Equal(3, action.Modifications.Count());
+        Assert.Equal(3, action.Modifications.Count);
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class OptimizationActionTests
         // Arrange
         var action = new OptimizationAction
         {
-            Modifications = new List<string> { "Mod1", "Mod2" }
+            Modifications = ["Mod1", "Mod2"]
         };
 
         // Act
@@ -549,7 +549,7 @@ public class OptimizationActionTests
         var grouped = actions.GroupBy(a => a.Type).ToList();
 
         // Assert
-        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.Count);
         Assert.Equal(2, grouped.First(g => g.Key == "Handler").Count());
     }
 
@@ -568,7 +568,7 @@ public class OptimizationActionTests
         var handlers = actions.Where(a => a.Type == "Handler").ToList();
 
         // Assert
-        Assert.Equal(2, handlers.Count());
+        Assert.Equal(2, handlers.Count);
     }
 
     [Fact]
@@ -577,8 +577,8 @@ public class OptimizationActionTests
         // Arrange
         var actions = new[]
         {
-            new OptimizationAction { Modifications = new List<string> { "Mod1", "Mod2" } },
-            new OptimizationAction { Modifications = new List<string> { "Mod3" } }
+            new OptimizationAction { Modifications = ["Mod1", "Mod2"] },
+            new OptimizationAction { Modifications = ["Mod3"] }
         };
 
         // Act
@@ -615,19 +615,19 @@ public class OptimizationActionTests
         return await _repository.GetUserAsync(request.UserId).ConfigureAwait(false);
     }
 }",
-            Modifications = new List<string>
-            {
+            Modifications =
+            [
                 "Replaced Task<User> with ValueTask<User>",
                 "Added [Handle] attribute",
                 "Renamed Handle to HandleAsync",
                 "Added ConfigureAwait(false)"
-            }
+            ]
         };
 
         // Assert
         Assert.EndsWith("GetUserHandler.cs", action.FilePath);
         Assert.Equal("Handler", action.Type);
-        Assert.Equal(4, action.Modifications.Count());
+        Assert.Equal(4, action.Modifications.Count);
         Assert.Contains("ValueTask", action.OptimizedContent);
         Assert.Contains("[Handle]", action.OptimizedContent);
     }
@@ -651,16 +651,16 @@ public class OptimizationActionTests
     ""CacheExpirationMinutes"": 30
   }
 }",
-            Modifications = new List<string>
-            {
+            Modifications =
+            [
                 "Enabled caching",
                 "Added cache expiration setting"
-            }
+            ]
         };
 
         // Assert
         Assert.Equal("Config", action.Type);
-        Assert.Equal(2, action.Modifications.Count());
+        Assert.Equal(2, action.Modifications.Count);
         Assert.Contains("\"EnableCaching\": true", action.OptimizedContent);
     }
 
@@ -698,7 +698,7 @@ public class OptimizationActionTests
         };
 
         // Act
-        action.Modifications = new List<string>();
+        action.Modifications = [];
 
         // Assert
         Assert.NotNull(action.Modifications);
@@ -750,7 +750,7 @@ public class OptimizationActionTests
         }
 
         // Assert
-        Assert.Equal(100, action.Modifications.Count());
+        Assert.Equal(100, action.Modifications.Count);
     }
 
     #endregion

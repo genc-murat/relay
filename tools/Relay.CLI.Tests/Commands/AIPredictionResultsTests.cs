@@ -69,7 +69,7 @@ public class AIPredictionResultsTests
         var results = new AIPredictionResults { Bottlenecks = bottlenecks };
 
         // Assert
-        Assert.Equal(2, results.Bottlenecks.Count());
+        Assert.Equal(2, results.Bottlenecks.Length);
         Assert.Equal("Database", results.Bottlenecks[0].Component);
         Assert.Equal("Cache", results.Bottlenecks[1].Component);
     }
@@ -194,11 +194,11 @@ public class AIPredictionResultsTests
             ExpectedErrorRate = 0.05,
             ExpectedCpuUsage = 70.0,
             ExpectedMemoryUsage = 80.0,
-            Bottlenecks = new[]
-            {
+            Bottlenecks =
+            [
                 new PredictedBottleneck { Component = "Database", Probability = 0.8 }
-            },
-            Recommendations = new[] { "Optimize queries" }
+            ],
+            Recommendations = ["Optimize queries"]
         };
 
         // Act
@@ -258,8 +258,8 @@ public class AIPredictionResultsTests
         // Arrange & Act
         var results = new AIPredictionResults
         {
-            Bottlenecks = Array.Empty<PredictedBottleneck>(),
-            Recommendations = Array.Empty<string>()
+            Bottlenecks = [],
+            Recommendations = []
         };
 
         // Assert

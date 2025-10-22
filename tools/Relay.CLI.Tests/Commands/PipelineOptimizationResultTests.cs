@@ -193,9 +193,9 @@ public class PipelineOptimizationResultTests
         // Arrange & Act
         var results = new List<PipelineOptimizationResult>
         {
-            new PipelineOptimizationResult { Type = "Caching", Applied = true },
-            new PipelineOptimizationResult { Type = "Async", Applied = false },
-            new PipelineOptimizationResult { Type = "Memory", Applied = true }
+            new() { Type = "Caching", Applied = true },
+            new() { Type = "Async", Applied = false },
+            new() { Type = "Memory", Applied = true }
         };
 
         // Assert
@@ -210,10 +210,10 @@ public class PipelineOptimizationResultTests
         // Arrange
         var results = new List<PipelineOptimizationResult>
         {
-            new PipelineOptimizationResult { Applied = true },
-            new PipelineOptimizationResult { Applied = true },
-            new PipelineOptimizationResult { Applied = false },
-            new PipelineOptimizationResult { Applied = false }
+            new() { Applied = true },
+            new() { Applied = true },
+            new() { Applied = false },
+            new() { Applied = false }
         };
 
         // Act

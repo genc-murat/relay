@@ -95,7 +95,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var command = OptimizeCommand.Create();
 
         // Assert
-        Assert.Equal(5, command.Options.Count());
+        Assert.Equal(5, command.Options.Count);
     }
 
     #endregion
@@ -283,7 +283,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var csFiles = Directory.GetFiles(_testPath, "*.cs", SearchOption.AllDirectories);
 
         // Assert
-        Assert.Equal(2, csFiles.Count());
+        Assert.Equal(2, csFiles.Length);
     }
 
     [Fact]
@@ -756,7 +756,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         };
 
         // Assert
-        Assert.Equal(3, optimizations.Count());
+        Assert.Equal(3, optimizations.Count);
     }
 
     #endregion
@@ -792,7 +792,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         };
 
         // Assert
-        Assert.Equal(3, details.Count());
+        Assert.Equal(3, details.Length);
         Assert.Contains("Handler.cs", details[0]);
     }
 
@@ -812,7 +812,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         var files = Directory.GetFiles(_testPath, "*.cs");
 
         // Assert
-        Assert.Equal(3, files.Count());
+        Assert.Equal(3, files.Length);
     }
 
     [Fact]

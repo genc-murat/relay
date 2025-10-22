@@ -34,7 +34,7 @@ public class AIOptimizationResultsTests
 
         // Assert
         Assert.Equal(optimizations, results.AppliedOptimizations);
-        Assert.Equal(2, results.AppliedOptimizations.Count());
+        Assert.Equal(2, results.AppliedOptimizations.Length);
     }
 
     [Fact]
@@ -55,10 +55,11 @@ public class AIOptimizationResultsTests
     public void AIOptimizationResults_OverallImprovement_AcceptsValidRange()
     {
         // Arrange
-        var results = new AIOptimizationResults();
-
-        // Act & Assert
-        results.OverallImprovement = 0.0;
+        var results = new AIOptimizationResults
+        {
+            // Act & Assert
+            OverallImprovement = 0.0
+        };
         Assert.Equal(0.0, results.OverallImprovement);
 
         results.OverallImprovement = 1.0;
@@ -72,10 +73,11 @@ public class AIOptimizationResultsTests
     public void AIOptimizationResults_AppliedOptimizations_CanBeNullInitially()
     {
         // Arrange
-        var results = new AIOptimizationResults();
-
-        // Act
-        results.AppliedOptimizations = null!;
+        var results = new AIOptimizationResults
+        {
+            // Act
+            AppliedOptimizations = null!
+        };
 
         // Assert
         Assert.Null(results.AppliedOptimizations);
@@ -87,16 +89,16 @@ public class AIOptimizationResultsTests
         // Arrange & Act
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Caching", FilePath = "Services/UserService.cs", Description = "Added [DistributedCache] attribute", Success = true, PerformanceGain = 0.6 },
                 new OptimizationResult { Strategy = "Async", FilePath = "Services/OrderService.cs", Description = "Converted Task to ValueTask", Success = true, PerformanceGain = 0.1 }
-            },
+            ],
             OverallImprovement = 0.35
         };
 
         // Assert
-        Assert.Equal(2, results.AppliedOptimizations.Count());
+        Assert.Equal(2, results.AppliedOptimizations.Length);
         Assert.Equal("Caching", results.AppliedOptimizations[0].Strategy);
         Assert.Equal("Services/UserService.cs", results.AppliedOptimizations[0].FilePath);
         Assert.Equal("Added [DistributedCache] attribute", results.AppliedOptimizations[0].Description);
@@ -118,18 +120,18 @@ public class AIOptimizationResultsTests
         // Arrange
         var results1 = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Test1", Success = true }
-            }
+            ]
         };
 
         var results2 = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Test2", Success = false }
-            }
+            ]
         };
 
         // Act & Assert
@@ -144,10 +146,10 @@ public class AIOptimizationResultsTests
         // Arrange
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Caching", FilePath = "Services/UserService.cs", Description = "Added cache", Success = true, PerformanceGain = 0.6 }
-            },
+            ],
             OverallImprovement = 0.35
         };
 
@@ -200,7 +202,7 @@ public class AIOptimizationResultsTests
         // Arrange
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = Array.Empty<OptimizationResult>(),
+            AppliedOptimizations = [],
             OverallImprovement = 0.0
         };
 
@@ -218,7 +220,7 @@ public class AIOptimizationResultsTests
         // Arrange & Act
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = Array.Empty<OptimizationResult>(),
+            AppliedOptimizations = [],
             OverallImprovement = 0.0
         };
 
@@ -233,10 +235,10 @@ public class AIOptimizationResultsTests
         // Arrange & Act
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Test", FilePath = "Test.cs", Description = "Test", Success = true, PerformanceGain = double.MaxValue }
-            },
+            ],
             OverallImprovement = double.MaxValue
         };
 
@@ -268,7 +270,7 @@ public class AIOptimizationResultsTests
         };
 
         // Act & Assert
-        Assert.Equal(100, results.AppliedOptimizations.Count());
+        Assert.Equal(100, results.AppliedOptimizations.Length);
         for (int i = 0; i < optimizations.Length; i++)
         {
             Assert.Equal($"Strategy{i}", results.AppliedOptimizations[i].Strategy);
@@ -311,10 +313,10 @@ public class AIOptimizationResultsTests
         // Arrange
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Initial", Success = true }
-            }
+            ]
         };
 
         // Act
@@ -330,11 +332,11 @@ public class AIOptimizationResultsTests
         // Arrange & Act
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "SuccessOpt", Success = true, PerformanceGain = 0.5 },
                 new OptimizationResult { Strategy = "FailedOpt", Success = false, PerformanceGain = 0.0 }
-            },
+            ],
             OverallImprovement = 0.25
         };
 
@@ -351,10 +353,10 @@ public class AIOptimizationResultsTests
         // Arrange & Act
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "BadOpt", Success = false, PerformanceGain = -0.1 }
-            },
+            ],
             OverallImprovement = -0.05
         };
 
@@ -369,10 +371,10 @@ public class AIOptimizationResultsTests
         // Arrange & Act
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Test", FilePath = "", Description = "Test", Success = true, PerformanceGain = 0.1 }
-            }
+            ]
         };
 
         // Assert
@@ -385,10 +387,10 @@ public class AIOptimizationResultsTests
         // Arrange & Act
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Test", FilePath = "Test.cs", Description = "", Success = true, PerformanceGain = 0.1 }
-            }
+            ]
         };
 
         // Assert
@@ -437,10 +439,11 @@ public class OptimizationResultTests
     public void OptimizationResult_PerformanceGain_AcceptsDecimalValues()
     {
         // Arrange
-        var result = new OptimizationResult();
-
-        // Act
-        result.PerformanceGain = 0.123;
+        var result = new OptimizationResult
+        {
+            // Act
+            PerformanceGain = 0.123
+        };
 
         // Assert
         Assert.Equal(0.123, result.PerformanceGain);

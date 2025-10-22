@@ -298,13 +298,13 @@ public class BenchmarkResultTests
         // Arrange & Act
         var results = new List<BenchmarkResult>
         {
-            new BenchmarkResult { Name = "Test1", Iterations = 100 },
-            new BenchmarkResult { Name = "Test2", Iterations = 200 },
-            new BenchmarkResult { Name = "Test3", Iterations = 300 }
+            new() { Name = "Test1", Iterations = 100 },
+            new() { Name = "Test2", Iterations = 200 },
+            new() { Name = "Test3", Iterations = 300 }
         };
 
         // Assert
-        Assert.Equal(3, results.Count());
+        Assert.Equal(3, results.Count);
         Assert.Equal(600, results.Sum(r => r.Iterations));
     }
 
@@ -314,16 +314,16 @@ public class BenchmarkResultTests
         // Arrange
         var results = new List<BenchmarkResult>
         {
-            new BenchmarkResult { Name = "Handler1", Iterations = 100 },
-            new BenchmarkResult { Name = "Handler2", Iterations = 200 },
-            new BenchmarkResult { Name = "Handler1", Iterations = 150 }
+            new() { Name = "Handler1", Iterations = 100 },
+            new() { Name = "Handler2", Iterations = 200 },
+            new() { Name = "Handler1", Iterations = 150 }
         };
 
         // Act
         var handler1Results = results.Where(r => r.Name == "Handler1").ToList();
 
         // Assert
-        Assert.Equal(2, handler1Results.Count());
+        Assert.Equal(2, handler1Results.Count);
         Assert.Equal(250, handler1Results.Sum(r => r.Iterations));
     }
 
@@ -333,9 +333,9 @@ public class BenchmarkResultTests
         // Arrange
         var results = new List<BenchmarkResult>
         {
-            new BenchmarkResult { Name = "Slow", AverageTime = 10.0 },
-            new BenchmarkResult { Name = "Fast", AverageTime = 1.0 },
-            new BenchmarkResult { Name = "Medium", AverageTime = 5.0 }
+            new() { Name = "Slow", AverageTime = 10.0 },
+            new() { Name = "Fast", AverageTime = 1.0 },
+            new() { Name = "Medium", AverageTime = 5.0 }
         };
 
         // Act
@@ -353,10 +353,10 @@ public class BenchmarkResultTests
         // Arrange
         var results = new List<BenchmarkResult>
         {
-            new BenchmarkResult { Name = "Test1", Threads = 1 },
-            new BenchmarkResult { Name = "Test2", Threads = 2 },
-            new BenchmarkResult { Name = "Test3", Threads = 1 },
-            new BenchmarkResult { Name = "Test4", Threads = 4 }
+            new() { Name = "Test1", Threads = 1 },
+            new() { Name = "Test2", Threads = 2 },
+            new() { Name = "Test3", Threads = 1 },
+            new() { Name = "Test4", Threads = 4 }
         };
 
         // Act

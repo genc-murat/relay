@@ -267,7 +267,7 @@ public class PerformanceRecommendationTests
         };
 
         // Assert
-        Assert.Equal(3, recommendations.Count());
+        Assert.Equal(3, recommendations.Count);
         Assert.Equal(1, recommendations.Count(r => r.Category == "Async"));
         Assert.Equal(1, recommendations.Count(r => r.Category == "Memory"));
         Assert.Equal(1, recommendations.Count(r => r.Category == "Caching"));
@@ -279,17 +279,17 @@ public class PerformanceRecommendationTests
         // Arrange
         var recommendations = new List<PerformanceRecommendation>
         {
-            new PerformanceRecommendation { Category = "Async", Priority = "High" },
-            new PerformanceRecommendation { Category = "Memory", Priority = "Medium" },
-            new PerformanceRecommendation { Category = "Async", Priority = "Low" },
-            new PerformanceRecommendation { Category = "Caching", Priority = "High" }
+            new() { Category = "Async", Priority = "High" },
+            new() { Category = "Memory", Priority = "Medium" },
+            new() { Category = "Async", Priority = "Low" },
+            new() { Category = "Caching", Priority = "High" }
         };
 
         // Act
         var asyncRecommendations = recommendations.Where(r => r.Category == "Async").ToList();
 
         // Assert
-        Assert.Equal(2, asyncRecommendations.Count());
+        Assert.Equal(2, asyncRecommendations.Count);
         Assert.True(asyncRecommendations.All(r => r.Category == "Async"));
     }
 
@@ -299,17 +299,17 @@ public class PerformanceRecommendationTests
         // Arrange
         var recommendations = new List<PerformanceRecommendation>
         {
-            new PerformanceRecommendation { Priority = "High", Category = "Async" },
-            new PerformanceRecommendation { Priority = "Medium", Category = "Memory" },
-            new PerformanceRecommendation { Priority = "High", Category = "Caching" },
-            new PerformanceRecommendation { Priority = "Low", Category = "LINQ" }
+            new() { Priority = "High", Category = "Async" },
+            new() { Priority = "Medium", Category = "Memory" },
+            new() { Priority = "High", Category = "Caching" },
+            new() { Priority = "Low", Category = "LINQ" }
         };
 
         // Act
         var highPriority = recommendations.Where(r => r.Priority == "High").ToList();
 
         // Assert
-        Assert.Equal(2, highPriority.Count());
+        Assert.Equal(2, highPriority.Count);
         Assert.True(highPriority.All(r => r.Priority == "High"));
     }
 
@@ -319,9 +319,9 @@ public class PerformanceRecommendationTests
         // Arrange
         var recommendations = new List<PerformanceRecommendation>
         {
-            new PerformanceRecommendation { Priority = "Low", Title = "Minor optimization" },
-            new PerformanceRecommendation { Priority = "High", Title = "Critical fix" },
-            new PerformanceRecommendation { Priority = "Medium", Title = "Important improvement" }
+            new() { Priority = "Low", Title = "Minor optimization" },
+            new() { Priority = "High", Title = "Critical fix" },
+            new() { Priority = "Medium", Title = "Important improvement" }
         };
 
         // Act - Order by string length as a simple ordering (High=4, Medium=6, Low=3)
@@ -339,11 +339,11 @@ public class PerformanceRecommendationTests
         // Arrange
         var recommendations = new List<PerformanceRecommendation>
         {
-            new PerformanceRecommendation { Category = "Async", Title = "Use ValueTask" },
-            new PerformanceRecommendation { Category = "Memory", Title = "Use StringBuilder" },
-            new PerformanceRecommendation { Category = "Async", Title = "Avoid Task.Wait" },
-            new PerformanceRecommendation { Category = "Memory", Title = "Use object pooling" },
-            new PerformanceRecommendation { Category = "Caching", Title = "Add caching" }
+            new() { Category = "Async", Title = "Use ValueTask" },
+            new() { Category = "Memory", Title = "Use StringBuilder" },
+            new() { Category = "Async", Title = "Avoid Task.Wait" },
+            new() { Category = "Memory", Title = "Use object pooling" },
+            new() { Category = "Caching", Title = "Add caching" }
         };
 
         // Act

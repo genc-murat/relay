@@ -69,10 +69,11 @@ public class OptimizationContextTests
     public void OptimizationContext_IsDryRun_ShouldBeSettable()
     {
         // Arrange
-        var context = new OptimizationContext();
-
-        // Act
-        context.IsDryRun = true;
+        var context = new OptimizationContext
+        {
+            // Act
+            IsDryRun = true
+        };
 
         // Assert
         Assert.True(context.IsDryRun);
@@ -82,10 +83,11 @@ public class OptimizationContextTests
     public void OptimizationContext_Target_ShouldBeSettable()
     {
         // Arrange
-        var context = new OptimizationContext();
-
-        // Act
-        context.Target = "handlers";
+        var context = new OptimizationContext
+        {
+            // Act
+            Target = "handlers"
+        };
 
         // Assert
         Assert.Equal("handlers", context.Target);
@@ -95,10 +97,11 @@ public class OptimizationContextTests
     public void OptimizationContext_IsAggressive_ShouldBeSettable()
     {
         // Arrange
-        var context = new OptimizationContext();
-
-        // Act
-        context.IsAggressive = true;
+        var context = new OptimizationContext
+        {
+            // Act
+            IsAggressive = true
+        };
 
         // Assert
         Assert.True(context.IsAggressive);
@@ -108,10 +111,11 @@ public class OptimizationContextTests
     public void OptimizationContext_CreateBackup_ShouldBeSettable()
     {
         // Arrange
-        var context = new OptimizationContext();
-
-        // Act
-        context.CreateBackup = true;
+        var context = new OptimizationContext
+        {
+            // Act
+            CreateBackup = true
+        };
 
         // Assert
         Assert.True(context.CreateBackup);
@@ -166,7 +170,7 @@ public class OptimizationContextTests
         var context = new OptimizationContext();
         var actions = new List<OptimizationAction>
         {
-            new OptimizationAction { Type = "Handler" }
+            new() { Type = "Handler" }
         };
 
         // Act
@@ -194,11 +198,11 @@ public class OptimizationContextTests
             CreateBackup = true,
             Timestamp = timestamp,
             BackupPath = @"C:\Projects\.backup",
-            SourceFiles = new List<string> { "File1.cs", "File2.cs" },
-            OptimizationActions = new List<OptimizationAction>
-            {
+            SourceFiles = ["File1.cs", "File2.cs"],
+            OptimizationActions =
+            [
                 new OptimizationAction { Type = "Handler" }
-            }
+            ]
         };
 
         // Assert
@@ -209,7 +213,7 @@ public class OptimizationContextTests
         Assert.True(context.CreateBackup);
         Assert.Equal(timestamp, context.Timestamp);
         Assert.Equal(@"C:\Projects\.backup", context.BackupPath);
-        Assert.Equal(2, context.SourceFiles.Count());
+        Assert.Equal(2, context.SourceFiles.Count);
         Assert.Single(context.OptimizationActions);
     }
 
@@ -277,7 +281,7 @@ public class OptimizationContextTests
         context.SourceFiles.Add("Handler2.cs");
 
         // Assert
-        Assert.Equal(2, context.SourceFiles.Count());
+        Assert.Equal(2, context.SourceFiles.Count);
     }
 
     [Fact]
@@ -291,7 +295,7 @@ public class OptimizationContextTests
         context.SourceFiles.AddRange(files);
 
         // Assert
-        Assert.Equal(3, context.SourceFiles.Count());
+        Assert.Equal(3, context.SourceFiles.Count);
     }
 
     [Fact]
@@ -299,7 +303,7 @@ public class OptimizationContextTests
     {
         // Arrange
         var context = new OptimizationContext();
-        context.SourceFiles.AddRange(new[] { "File1.cs", "File2.cs" });
+        context.SourceFiles.AddRange(["File1.cs", "File2.cs"]);
 
         // Act
         context.SourceFiles.Clear();
@@ -327,7 +331,7 @@ public class OptimizationContextTests
     {
         // Arrange
         var context = new OptimizationContext();
-        context.SourceFiles.AddRange(new[] { "File1.cs", "File2.cs" });
+        context.SourceFiles.AddRange(["File1.cs", "File2.cs"]);
 
         // Act
         context.SourceFiles.Remove("File1.cs");
@@ -342,18 +346,18 @@ public class OptimizationContextTests
     {
         // Arrange
         var context = new OptimizationContext();
-        context.SourceFiles.AddRange(new[]
-        {
+        context.SourceFiles.AddRange(
+        [
             "GetUserHandler.cs",
             "CreateUserHandler.cs",
             "UserRequest.cs"
-        });
+        ]);
 
         // Act
         var handlers = context.SourceFiles.Where(f => f.Contains("Handler")).ToList();
 
         // Assert
-        Assert.Equal(2, handlers.Count());
+        Assert.Equal(2, handlers.Count);
     }
 
     #endregion
@@ -371,7 +375,7 @@ public class OptimizationContextTests
         context.OptimizationActions.Add(new OptimizationAction { Type = "Request" });
 
         // Assert
-        Assert.Equal(2, context.OptimizationActions.Count());
+        Assert.Equal(2, context.OptimizationActions.Count);
     }
 
     [Fact]
@@ -390,7 +394,7 @@ public class OptimizationContextTests
         context.OptimizationActions.AddRange(actions);
 
         // Assert
-        Assert.Equal(3, context.OptimizationActions.Count());
+        Assert.Equal(3, context.OptimizationActions.Count);
     }
 
     [Fact]
@@ -412,18 +416,18 @@ public class OptimizationContextTests
     {
         // Arrange
         var context = new OptimizationContext();
-        context.OptimizationActions.AddRange(new[]
-        {
+        context.OptimizationActions.AddRange(
+        [
             new OptimizationAction { Type = "Handler" },
             new OptimizationAction { Type = "Handler" },
             new OptimizationAction { Type = "Request" }
-        });
+        ]);
 
         // Act
         var grouped = context.OptimizationActions.GroupBy(a => a.Type).ToList();
 
         // Assert
-        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.Count);
         Assert.Equal(2, grouped.First(g => g.Key == "Handler").Count());
     }
 
@@ -432,11 +436,11 @@ public class OptimizationContextTests
     {
         // Arrange
         var context = new OptimizationContext();
-        context.OptimizationActions.AddRange(new[]
-        {
-            new OptimizationAction { Modifications = new List<string> { "Mod1", "Mod2" } },
-            new OptimizationAction { Modifications = new List<string> { "Mod3" } }
-        });
+        context.OptimizationActions.AddRange(
+        [
+            new OptimizationAction { Modifications = ["Mod1", "Mod2"] },
+            new OptimizationAction { Modifications = ["Mod3"] }
+        ]);
 
         // Act
         var totalMods = context.OptimizationActions.Sum(a => a.Modifications.Count);
@@ -672,7 +676,7 @@ public class OptimizationContextTests
     {
         // Arrange
         var context = new OptimizationContext();
-        context.SourceFiles.AddRange(new[] { "File1.cs", "File2.cs", "File3.cs" });
+        context.SourceFiles.AddRange(["File1.cs", "File2.cs", "File3.cs"]);
 
         // Act
         var count = context.SourceFiles.Count;
@@ -686,11 +690,11 @@ public class OptimizationContextTests
     {
         // Arrange
         var context = new OptimizationContext();
-        context.OptimizationActions.AddRange(new[]
-        {
+        context.OptimizationActions.AddRange(
+        [
             new OptimizationAction { Type = "Handler" },
             new OptimizationAction { Type = "Request" }
-        });
+        ]);
 
         // Act
         var count = context.OptimizationActions.Count;
@@ -704,17 +708,17 @@ public class OptimizationContextTests
     {
         // Arrange
         var context = new OptimizationContext();
-        context.OptimizationActions.AddRange(new[]
-        {
+        context.OptimizationActions.AddRange(
+        [
             new OptimizationAction
             {
-                Modifications = new List<string> { "Mod1", "Mod2", "Mod3" }
+                Modifications = ["Mod1", "Mod2", "Mod3"]
             },
             new OptimizationAction
             {
-                Modifications = new List<string> { "Mod4", "Mod5" }
+                Modifications = ["Mod4", "Mod5"]
             }
-        });
+        ]);
 
         // Act
         var total = context.OptimizationActions.Sum(a => a.Modifications.Count);
@@ -761,29 +765,30 @@ public class OptimizationContextTests
             Timestamp = DateTime.UtcNow
         };
 
-        context.SourceFiles.AddRange(new[]
-        {
+        context.SourceFiles.AddRange(
+        [
             @"C:\Projects\MyRelay\Handlers\GetUserHandler.cs",
             @"C:\Projects\MyRelay\Handlers\CreateUserHandler.cs"
-        });
+        ]);
 
-        context.OptimizationActions.Add(new OptimizationAction
+        OptimizationAction item = new()
         {
             FilePath = @"C:\Projects\MyRelay\Handlers\GetUserHandler.cs",
             Type = "Handler",
-            Modifications = new List<string>
-            {
+            Modifications =
+            [
                 "Task -> ValueTask",
                 "Added [Handle]"
-            }
-        });
+            ]
+        };
+        context.OptimizationActions.Add(item);
 
         context.BackupPath = $"{context.ProjectPath}\\.backup_{context.Timestamp:yyyyMMdd_HHmmss}";
 
         // Assert
         Assert.False(string.IsNullOrEmpty(context.ProjectPath));
         Assert.Equal("handlers", context.Target);
-        Assert.Equal(2, context.SourceFiles.Count());
+        Assert.Equal(2, context.SourceFiles.Count);
         Assert.Single(context.OptimizationActions);
         Assert.True(context.CreateBackup);
         Assert.Contains(".backup_", context.BackupPath);
@@ -803,34 +808,34 @@ public class OptimizationContextTests
             Timestamp = DateTime.UtcNow
         };
 
-        context.SourceFiles.AddRange(new[]
-        {
+        context.SourceFiles.AddRange(
+        [
             "Handler1.cs",
             "Handler2.cs",
             "Request1.cs",
             "Config.json"
-        });
+        ]);
 
-        context.OptimizationActions.AddRange(new[]
-        {
+        context.OptimizationActions.AddRange(
+        [
             new OptimizationAction
             {
                 Type = "Handler",
-                Modifications = new List<string> { "Task -> ValueTask" }
+                Modifications = ["Task -> ValueTask"]
             },
             new OptimizationAction
             {
                 Type = "Config",
-                Modifications = new List<string> { "Enabled caching" }
+                Modifications = ["Enabled caching"]
             }
-        });
+        ]);
 
         // Assert
         Assert.True(context.IsDryRun);
         Assert.False(context.CreateBackup);
         Assert.True(context.IsAggressive);
-        Assert.Equal(4, context.SourceFiles.Count());
-        Assert.Equal(2, context.OptimizationActions.Count());
+        Assert.Equal(4, context.SourceFiles.Count);
+        Assert.Equal(2, context.OptimizationActions.Count);
     }
 
     #endregion
@@ -883,7 +888,7 @@ public class OptimizationContextTests
         }
 
         // Assert
-        Assert.Equal(1000, context.SourceFiles.Count());
+        Assert.Equal(1000, context.SourceFiles.Count);
     }
 
     [Fact]
@@ -903,7 +908,7 @@ public class OptimizationContextTests
         }
 
         // Assert
-        Assert.Equal(100, context.OptimizationActions.Count());
+        Assert.Equal(100, context.OptimizationActions.Count);
     }
 
     #endregion

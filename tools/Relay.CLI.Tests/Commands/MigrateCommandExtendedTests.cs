@@ -949,7 +949,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var generatedFiles = files.Where(f => f.Contains(".g.") || f.Contains(".Designer.")).ToList();
 
         // Assert
-        Assert.Equal(2, generatedFiles.Count());
+        Assert.Equal(2, generatedFiles.Count);
     }
 
     [Fact]
@@ -968,7 +968,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var csharpFiles = files.Where(f => f.EndsWith(".cs")).ToList();
 
         // Assert
-        Assert.Equal(2, csharpFiles.Count());
+        Assert.Equal(2, csharpFiles.Count);
     }
 
     #endregion
@@ -1125,7 +1125,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
 
         // Assert
         Assert.Contains("Task -> ValueTask", changes);
-        Assert.Equal(3, changes.Count());
+        Assert.Equal(3, changes.Length);
     }
 
     #endregion
@@ -1139,7 +1139,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var packages = new List<string> { "MediatR", "MediatR.Extensions.Microsoft.DependencyInjection" };
 
         // Act
-        packages = packages.Where(p => !p.Contains("MediatR")).ToList();
+        packages = [.. packages.Where(p => !p.Contains("MediatR"))];
 
         // Assert
         Assert.Empty(packages);
@@ -1149,10 +1149,11 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
     public void MigrateCommand_Packages_ShouldAddRelayCore()
     {
         // Arrange
-        var packages = new List<string>();
-
-        // Act
-        packages.Add("Relay.Core");
+        var packages = new List<string>
+        {
+            // Act
+            "Relay.Core"
+        };
 
         // Assert
         Assert.Contains("Relay.Core", packages);
@@ -1211,7 +1212,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var nonMediatR = usings.Where(u => !u.Contains("MediatR")).ToArray();
 
         // Assert
-        Assert.Equal(2, nonMediatR.Count());
+        Assert.Equal(2, nonMediatR.Length);
         Assert.Contains("using System;", nonMediatR);
     }
 
@@ -1223,10 +1224,11 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
     public void MigrateCommand_Changes_ShouldTrackAdditions()
     {
         // Arrange
-        var changes = new List<(string Type, string Description)>();
-
-        // Act
-        changes.Add(("Add", "Added [Handle] attribute"));
+        var changes = new List<(string Type, string Description)>
+        {
+            // Act
+            ("Add", "Added [Handle] attribute")
+        };
 
         // Assert
         Assert.Contains(changes, c => c.Type == "Add");
@@ -1236,10 +1238,11 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
     public void MigrateCommand_Changes_ShouldTrackRemovals()
     {
         // Arrange
-        var changes = new List<(string Type, string Description)>();
-
-        // Act
-        changes.Add(("Remove", "Removed MediatR using"));
+        var changes = new List<(string Type, string Description)>
+        {
+            // Act
+            ("Remove", "Removed MediatR using")
+        };
 
         // Assert
         Assert.Contains(changes, c => c.Type == "Remove");
@@ -1249,10 +1252,11 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
     public void MigrateCommand_Changes_ShouldTrackModifications()
     {
         // Arrange
-        var changes = new List<(string Type, string Description)>();
-
-        // Act
-        changes.Add(("Modify", "Changed Task to ValueTask"));
+        var changes = new List<(string Type, string Description)>
+        {
+            // Act
+            ("Modify", "Changed Task to ValueTask")
+        };
 
         // Assert
         Assert.Contains(changes, c => c.Type == "Modify");
@@ -1273,7 +1277,7 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         var grouped = changes.GroupBy(c => c.Category).ToList();
 
         // Assert
-        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.Count);
         Assert.Equal(2, grouped.First(g => g.Key == "Usings").Count());
     }
 
@@ -1365,7 +1369,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         };
 
         // Assert
-        Assert.Equal(4, steps.Count());
+        Assert.Equal(4, steps.Length);
         Assert.Contains("Analyze", steps[0]);
         Assert.Contains("Report", steps[3]);
     }

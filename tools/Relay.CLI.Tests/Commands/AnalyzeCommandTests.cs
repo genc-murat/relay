@@ -25,8 +25,8 @@ public class AnalyzeCommandTests : IDisposable
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            PerformanceIssues = new List<PerformanceIssue>(),
-            ReliabilityIssues = new List<ReliabilityIssue>(),
+            PerformanceIssues = []  ,
+            ReliabilityIssues = [],
             HasRelayCore = true,
             HasLogging = true,
             HasValidation = true,
@@ -175,12 +175,12 @@ public class AnalyzeCommandTests : IDisposable
             Priority = "High",
             Title = "Optimize Handler Performance",
             Description = "Several optimization opportunities found",
-            Actions = new List<string>
-            {
+            Actions =
+            [
                 "Switch to ValueTask",
                 "Add cancellation support",
                 "Implement caching"
-            },
+            ],
             EstimatedImpact = "20-50% performance improvement"
         };
 
@@ -244,8 +244,8 @@ public class AnalyzeCommandTests : IDisposable
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            PerformanceIssues = new List<PerformanceIssue>(),
-            ReliabilityIssues = new List<ReliabilityIssue>(),
+            PerformanceIssues = [],
+            ReliabilityIssues = [],
             HasRelayCore = false,
             HasLogging = false,
             HasValidation = false,
@@ -265,15 +265,15 @@ public class AnalyzeCommandTests : IDisposable
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            PerformanceIssues = new List<PerformanceIssue>
-            {
+            PerformanceIssues =
+            [
                 new() { Severity = "High" },
                 new() { Severity = "High" }
-            },
-            ReliabilityIssues = new List<ReliabilityIssue>
-            {
+            ],
+            ReliabilityIssues =
+            [
                 new() { Severity = "High" }
-            }
+            ]
         };
 
         // Act
@@ -769,7 +769,7 @@ private void UnusedMethod() // Never called
         var code = "var password = \"admin123\";";
 
         // Act
-        var hasHardcodedSecret = code.Contains("password") && code.Contains("=");
+        var hasHardcodedSecret = code.Contains("password") && code.Contains('=');
 
         // Assert
         Assert.True(hasHardcodedSecret);
@@ -1289,7 +1289,7 @@ public record UserDto(int Id, string Name, string Email);";
             await AnalyzeCommand.AnalyzeRequests(analysis, null, null);
 
             // Assert
-            Assert.Equal(2, analysis.Requests.Count());
+            Assert.Equal(2, analysis.Requests.Count);
             Assert.Equal(2, analysis.Requests.Count(r => r.IsRecord));
             Assert.Equal(1, analysis.Requests.Count(r => r.HasAuthorization));
             Assert.Equal(1, analysis.Requests.Count(r => r.HasCaching));
@@ -1306,11 +1306,11 @@ public record UserDto(int Id, string Name, string Email);";
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            Handlers = new List<HandlerInfo>
-            {
+            Handlers =
+            [
                 new() { Name = "GetUserQueryHandler", UsesValueTask = false, HasCancellationToken = false, LineCount = 150 },
                 new() { UsesValueTask = true, HasCancellationToken = true, LineCount = 20 }
-            },
+            ],
             Requests = new List<RequestInfo>
             {
                 new() { HasCaching = false }
@@ -1334,16 +1334,16 @@ public record UserDto(int Id, string Name, string Email);";
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            Handlers = new List<HandlerInfo>
-            {
+            Handlers =
+            [
                 new() { HasLogging = false },
                 new() { HasValidation = false }
-            },
-            Requests = new List<RequestInfo>
-            {
+            ],
+            Requests =
+            [
                 new() { HasValidation = false },
                 new() { HasAuthorization = false }
-            }
+            ]
         };
 
         // Act
@@ -1401,15 +1401,15 @@ public record UserDto(int Id, string Name, string Email);";
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            Handlers = new List<HandlerInfo>(new HandlerInfo[25]), // 25 handlers
-            PerformanceIssues = new List<PerformanceIssue>
-            {
+            Handlers = [.. new HandlerInfo[25]], // 25 handlers
+            PerformanceIssues =
+            [
                 new() { Severity = "High" }
-            },
-            ReliabilityIssues = new List<ReliabilityIssue>
-            {
+            ],
+            ReliabilityIssues =
+            [
                 new() { Severity = "High" }
-            },
+            ],
             HasRelayCore = false
         };
 
@@ -1432,26 +1432,26 @@ public record UserDto(int Id, string Name, string Email);";
         {
             ProjectFiles = new List<string> { "Test.csproj" },
             SourceFiles = new List<string> { "Test.cs" },
-            Handlers = new List<HandlerInfo>
-            {
+            Handlers =
+            [
                 new() { Name = "TestHandler", UsesValueTask = true, HasCancellationToken = true }
-            },
-            Requests = new List<RequestInfo>
-            {
+            ],
+            Requests =
+            [
                 new() { Name = "TestRequest", IsRecord = true, HasValidation = true }
-            },
-            PerformanceIssues = new List<PerformanceIssue>
-            {
+            ],
+            PerformanceIssues =
+            [
                 new() { Type = "Test", Severity = "Medium", Description = "Test issue" }
-            },
-            ReliabilityIssues = new List<ReliabilityIssue>
-            {
+            ],
+            ReliabilityIssues =
+            [
                 new() { Type = "Test", Severity = "Low", Description = "Test reliability issue" }
-            },
-            Recommendations = new List<Recommendation>
-            {
+            ],
+            Recommendations =
+            [
                 new() { Title = "Test Rec", Priority = "High", Category = "Test", Actions = new List<string> { "Test action" } }
-            }
+            ]
         };
 
         // Act & Assert - Should not throw
@@ -1530,10 +1530,10 @@ public record UserDto(int Id, string Name, string Email);";
         var analysis = new ProjectAnalysis
         {
             ProjectPath = "/test/path",
-            Handlers = new List<HandlerInfo>
-            {
+            Handlers =
+            [
                 new() { Name = "TestHandler" }
-            }
+            ]
         };
 
         try
@@ -1596,8 +1596,8 @@ public record UserDto(int Id, string Name, string Email);";
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            PerformanceIssues = new List<PerformanceIssue>(),
-            ReliabilityIssues = new List<ReliabilityIssue>(),
+            PerformanceIssues = [],
+            ReliabilityIssues = [],
             HasRelayCore = true,
             HasLogging = true,
             HasValidation = true,

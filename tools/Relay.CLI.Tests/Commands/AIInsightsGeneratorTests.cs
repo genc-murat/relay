@@ -145,7 +145,7 @@ public class AIInsightsGeneratorTests
 
         // Assert
         Assert.NotNull(result.OptimizationOpportunities);
-        Assert.Equal(2, result.OptimizationOpportunities.Count());
+        Assert.Equal(2, result.OptimizationOpportunities.Length);
 
         var cachingOpportunity = result.OptimizationOpportunities.FirstOrDefault(o => o.Title == "Enable Caching");
         Assert.NotNull(cachingOpportunity);
@@ -172,7 +172,7 @@ public class AIInsightsGeneratorTests
 
         // Assert
         Assert.NotNull(result.Predictions);
-        Assert.Equal(2, result.Predictions.Count());
+        Assert.Equal(2, result.Predictions.Length);
 
         var throughputPrediction = result.Predictions.FirstOrDefault(p => p.Metric == "Throughput");
         Assert.NotNull(throughputPrediction);
@@ -281,7 +281,7 @@ public class AIInsightsGeneratorTests
         // Assert
         Assert.NotNull(result);
         // Currently implementation doesn't use includePredictions parameter, so results are the same
-        Assert.Equal(2, result.Predictions.Count());
+        Assert.Equal(2, result.Predictions.Length);
     }
 
     [Fact]
@@ -300,7 +300,7 @@ public class AIInsightsGeneratorTests
         Assert.NotNull(result);
         // Currently implementation doesn't use the flags, so results are the same
         Assert.Equal(8.2, result.HealthScore);
-        Assert.Equal(2, result.Predictions.Count());
+        Assert.Equal(2, result.Predictions.Length);
     }
 
     [Fact]

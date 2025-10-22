@@ -61,8 +61,8 @@ public class DiagnosticResultsTests
         results.AddCheck(check3);
 
         // Assert
-        Assert.Equal(3, results.Checks.Count());
-        Assert.Equal(new[] { "Check1", "Check2", "Check3" }, results.Checks.Select(c => c.Category));
+        Assert.Equal(3, results.Checks.Count);
+        Assert.Equal(["Check1", "Check2", "Check3"], results.Checks.Select(c => c.Category));
     }
 
     [Fact]
@@ -294,13 +294,13 @@ public class DiagnosticResultsTests
         // Arrange & Act
         var resultsList = new List<DiagnosticResults>
         {
-            new DiagnosticResults(),
-            new DiagnosticResults(),
-            new DiagnosticResults()
+            new(),
+            new(),
+            new()
         };
 
         // Assert
-        Assert.Equal(3, resultsList.Count());
+        Assert.Equal(3, resultsList.Count);
         Assert.True(resultsList.All(r => r.Checks.Count == 0));
     }
 

@@ -207,14 +207,14 @@ public class AIAnalysisResultsTests
             HandlersFound = 20,
             PerformanceScore = 85.0,
             AIConfidence = 0.9,
-            PerformanceIssues = new[]
-            {
+            PerformanceIssues =
+            [
                 new AIPerformanceIssue { Severity = "High", Description = "Issue", Location = "File.cs", Impact = "High" }
-            },
-            OptimizationOpportunities = new[]
-            {
+            ],
+            OptimizationOpportunities =
+            [
                 new OptimizationOpportunity { Strategy = "Cache", ExpectedImprovement = 20.0, Confidence = 0.8 }
-            }
+            ]
         };
 
         // Act
@@ -282,8 +282,8 @@ public class AIAnalysisResultsTests
         // Arrange & Act
         var results = new AIAnalysisResults
         {
-            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+            PerformanceIssues = [],
+            OptimizationOpportunities = []
         };
 
         // Assert

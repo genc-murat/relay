@@ -242,13 +242,13 @@ public class HandlerInfoTests
         // Arrange & Act
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo { Name = "CreateUserHandler", IsAsync = true, LineCount = 100 },
-            new HandlerInfo { Name = "UpdateUserHandler", IsAsync = false, LineCount = 80 },
-            new HandlerInfo { Name = "DeleteUserHandler", IsAsync = true, LineCount = 60 }
+            new() { Name = "CreateUserHandler", IsAsync = true, LineCount = 100 },
+            new() { Name = "UpdateUserHandler", IsAsync = false, LineCount = 80 },
+            new() { Name = "DeleteUserHandler", IsAsync = true, LineCount = 60 }
         };
 
         // Assert
-        Assert.Equal(3, handlers.Count());
+        Assert.Equal(3, handlers.Count);
         Assert.Equal(2, handlers.Count(h => h.IsAsync));
         Assert.Equal(240, handlers.Sum(h => h.LineCount));
     }
@@ -259,10 +259,10 @@ public class HandlerInfoTests
         // Arrange
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo { Name = "Handler1", IsAsync = true },
-            new HandlerInfo { Name = "Handler2", IsAsync = false },
-            new HandlerInfo { Name = "Handler3", IsAsync = true },
-            new HandlerInfo { Name = "Handler4", IsAsync = false }
+            new() { Name = "Handler1", IsAsync = true },
+            new() { Name = "Handler2", IsAsync = false },
+            new() { Name = "Handler3", IsAsync = true },
+            new() { Name = "Handler4", IsAsync = false }
         };
 
         // Act
@@ -270,8 +270,8 @@ public class HandlerInfoTests
         var syncHandlers = handlers.Where(h => !h.IsAsync).ToList();
 
         // Assert
-        Assert.Equal(2, asyncHandlers.Count());
-        Assert.Equal(2, syncHandlers.Count());
+        Assert.Equal(2, asyncHandlers.Count);
+        Assert.Equal(2, syncHandlers.Count);
         Assert.True(asyncHandlers.All(h => h.IsAsync));
         Assert.True(syncHandlers.All(h => !h.IsAsync));
     }
@@ -282,10 +282,10 @@ public class HandlerInfoTests
         // Arrange
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo { Name = "Handler1", HasLogging = true, HasValidation = true },
-            new HandlerInfo { Name = "Handler2", HasLogging = false, HasValidation = true },
-            new HandlerInfo { Name = "Handler3", HasLogging = true, HasValidation = false },
-            new HandlerInfo { Name = "Handler4", HasLogging = false, HasValidation = false }
+            new() { Name = "Handler1", HasLogging = true, HasValidation = true },
+            new() { Name = "Handler2", HasLogging = false, HasValidation = true },
+            new() { Name = "Handler3", HasLogging = true, HasValidation = false },
+            new() { Name = "Handler4", HasLogging = false, HasValidation = false }
         };
 
         // Act
@@ -294,8 +294,8 @@ public class HandlerInfoTests
         var handlersWithBoth = handlers.Where(h => h.HasLogging && h.HasValidation).ToList();
 
         // Assert
-        Assert.Equal(2, handlersWithLogging.Count());
-        Assert.Equal(2, handlersWithValidation.Count());
+        Assert.Equal(2, handlersWithLogging.Count);
+        Assert.Equal(2, handlersWithValidation.Count);
         Assert.Single(handlersWithBoth);
     }
 
@@ -305,9 +305,9 @@ public class HandlerInfoTests
         // Arrange
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo { Name = "LargeHandler", LineCount = 500 },
-            new HandlerInfo { Name = "SmallHandler", LineCount = 50 },
-            new HandlerInfo { Name = "MediumHandler", LineCount = 200 }
+            new() { Name = "LargeHandler", LineCount = 500 },
+            new() { Name = "SmallHandler", LineCount = 50 },
+            new() { Name = "MediumHandler", LineCount = 200 }
         };
 
         // Act
@@ -325,10 +325,10 @@ public class HandlerInfoTests
         // Arrange
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo { Name = "Async1", IsAsync = true, LineCount = 100 },
-            new HandlerInfo { Name = "Sync1", IsAsync = false, LineCount = 80 },
-            new HandlerInfo { Name = "Async2", IsAsync = true, LineCount = 120 },
-            new HandlerInfo { Name = "Sync2", IsAsync = false, LineCount = 90 }
+            new() { Name = "Async1", IsAsync = true, LineCount = 100 },
+            new() { Name = "Sync1", IsAsync = false, LineCount = 80 },
+            new() { Name = "Async2", IsAsync = true, LineCount = 120 },
+            new() { Name = "Sync2", IsAsync = false, LineCount = 90 }
         };
 
         // Act
@@ -440,10 +440,10 @@ public class HandlerInfoTests
         // Arrange
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo { Name = "H1", IsAsync = true, HasLogging = true, LineCount = 100 },
-            new HandlerInfo { Name = "H2", IsAsync = false, HasLogging = true, LineCount = 80 },
-            new HandlerInfo { Name = "H3", IsAsync = true, HasLogging = false, LineCount = 120 },
-            new HandlerInfo { Name = "H4", IsAsync = true, HasLogging = true, LineCount = 90 }
+            new() { Name = "H1", IsAsync = true, HasLogging = true, LineCount = 100 },
+            new() { Name = "H2", IsAsync = false, HasLogging = true, LineCount = 80 },
+            new() { Name = "H3", IsAsync = true, HasLogging = false, LineCount = 120 },
+            new() { Name = "H4", IsAsync = true, HasLogging = true, LineCount = 90 }
         };
 
         // Act
@@ -465,9 +465,9 @@ public class HandlerInfoTests
         // Arrange
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo { Name = "UserHandler", FilePath = "src/Users/Commands/CreateUserHandler.cs" },
-            new HandlerInfo { Name = "ProductHandler", FilePath = "src/Products/Commands/CreateProductHandler.cs" },
-            new HandlerInfo { Name = "OrderHandler", FilePath = "src/Orders/Commands/CreateOrderHandler.cs" }
+            new() { Name = "UserHandler", FilePath = "src/Users/Commands/CreateUserHandler.cs" },
+            new() { Name = "ProductHandler", FilePath = "src/Products/Commands/CreateProductHandler.cs" },
+            new() { Name = "OrderHandler", FilePath = "src/Orders/Commands/CreateOrderHandler.cs" }
         };
 
         // Act
@@ -476,7 +476,7 @@ public class HandlerInfoTests
 
         // Assert
         Assert.Single(userHandlers);
-        Assert.Equal(3, commandHandlers.Count());
+        Assert.Equal(3, commandHandlers.Count);
     }
 
     [Fact]
@@ -485,9 +485,9 @@ public class HandlerInfoTests
         // Arrange
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo { Name = "SimpleHandler", HasDependencies = false, HasLogging = false, HasValidation = false, LineCount = 20 },
-            new HandlerInfo { Name = "ComplexHandler", HasDependencies = true, HasLogging = true, HasValidation = true, LineCount = 200 },
-            new HandlerInfo { Name = "MediumHandler", HasDependencies = true, HasLogging = false, HasValidation = true, LineCount = 80 }
+            new() { Name = "SimpleHandler", HasDependencies = false, HasLogging = false, HasValidation = false, LineCount = 20 },
+            new() { Name = "ComplexHandler", HasDependencies = true, HasLogging = true, HasValidation = true, LineCount = 200 },
+            new() { Name = "MediumHandler", HasDependencies = true, HasLogging = false, HasValidation = true, LineCount = 80 }
         };
 
         // Act
@@ -527,8 +527,7 @@ public class HandlerInfoTests
         // Arrange
         var handlers = new List<HandlerInfo>
         {
-            new HandlerInfo
-            {
+            new() {
                 Name = "CreateUserHandler",
                 FilePath = "src/Users/CreateUserHandler.cs",
                 IsAsync = true,
@@ -537,8 +536,7 @@ public class HandlerInfoTests
                 HasValidation = true,
                 LineCount = 150
             },
-            new HandlerInfo
-            {
+            new() {
                 Name = "GetUserHandler",
                 FilePath = "src/Users/GetUserHandler.cs",
                 IsAsync = true,

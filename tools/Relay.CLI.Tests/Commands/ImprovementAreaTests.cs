@@ -199,7 +199,7 @@ public class ImprovementAreaTests
         };
 
         // Assert
-        Assert.Equal(3, areas.Count());
+        Assert.Equal(3, areas.Length);
         Assert.Equal("Area 1", areas[0].Area);
         Assert.Equal(0.2, areas[1].Improvement);
     }
@@ -210,9 +210,9 @@ public class ImprovementAreaTests
         // Arrange
         var areas = new List<ImprovementArea>
         {
-            new ImprovementArea { Area = "Caching", Improvement = 0.12 },
-            new ImprovementArea { Area = "Batch Processing", Improvement = 0.08 },
-            new ImprovementArea { Area = "Database Indexing", Improvement = 0.25 }
+            new() { Area = "Caching", Improvement = 0.12 },
+            new() { Area = "Batch Processing", Improvement = 0.08 },
+            new() { Area = "Database Indexing", Improvement = 0.25 }
         };
 
         // Act
@@ -370,7 +370,7 @@ public class ImprovementAreaTests
         var grouped = areas.GroupBy(a => a.Area).ToList();
 
         // Assert
-        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.Count);
         Assert.Equal(2, grouped.First(g => g.Key == "Caching").Count());
     }
 
@@ -486,9 +486,9 @@ public class ImprovementAreaTests
         // Arrange
         var areas = new List<ImprovementArea>
         {
-            new ImprovementArea { Area = "Third", Improvement = 0.08 },
-            new ImprovementArea { Area = "First", Improvement = 0.25 },
-            new ImprovementArea { Area = "Second", Improvement = 0.15 }
+            new() { Area = "Third", Improvement = 0.08 },
+            new() { Area = "First", Improvement = 0.25 },
+            new() { Area = "Second", Improvement = 0.15 }
         };
 
         // Act
@@ -517,7 +517,7 @@ public class ImprovementAreaTests
         var topThree = areas.OrderByDescending(a => a.Improvement).Take(3).ToList();
 
         // Assert
-        Assert.Equal(3, topThree.Count());
+        Assert.Equal(3, topThree.Count);
         Assert.Equal(0.20, topThree[0].Improvement);
         Assert.Equal(0.15, topThree[1].Improvement);
         Assert.Equal(0.10, topThree[2].Improvement);
@@ -538,7 +538,7 @@ public class ImprovementAreaTests
         var cacheRelated = areas.Where(a => a.Area.Contains("Cach")).ToList();
 
         // Assert
-        Assert.Equal(2, cacheRelated.Count());
+        Assert.Equal(2, cacheRelated.Count);
     }
 
     [Fact]

@@ -182,13 +182,13 @@ public class DiagnosticIssueTests
         // Arrange & Act
         var issues = new List<DiagnosticIssue>
         {
-            new DiagnosticIssue { Message = "Issue1", Severity = DiagnosticSeverity.Error },
-            new DiagnosticIssue { Message = "Issue2", Severity = DiagnosticSeverity.Warning },
-            new DiagnosticIssue { Message = "Issue3", Severity = DiagnosticSeverity.Info }
+            new() { Message = "Issue1", Severity = DiagnosticSeverity.Error },
+            new() { Message = "Issue2", Severity = DiagnosticSeverity.Warning },
+            new() { Message = "Issue3", Severity = DiagnosticSeverity.Info }
         };
 
         // Assert
-        Assert.Equal(3, issues.Count());
+        Assert.Equal(3, issues.Count);
         Assert.Equal(1, issues.Count(i => i.Severity == DiagnosticSeverity.Error));
         Assert.Equal(1, issues.Count(i => i.Severity == DiagnosticSeverity.Warning));
         Assert.Equal(1, issues.Count(i => i.Severity == DiagnosticSeverity.Info));
@@ -200,10 +200,10 @@ public class DiagnosticIssueTests
         // Arrange
         var issues = new List<DiagnosticIssue>
         {
-            new DiagnosticIssue { Message = "Error", Severity = DiagnosticSeverity.Error, Code = "E001" },
-            new DiagnosticIssue { Message = "Warning", Severity = DiagnosticSeverity.Warning, Code = "W001" },
-            new DiagnosticIssue { Message = "Info", Severity = DiagnosticSeverity.Info, Code = "I001" },
-            new DiagnosticIssue { Message = "Success", Severity = DiagnosticSeverity.Success, Code = "S001" }
+            new() { Message = "Error", Severity = DiagnosticSeverity.Error, Code = "E001" },
+            new() { Message = "Warning", Severity = DiagnosticSeverity.Warning, Code = "W001" },
+            new() { Message = "Info", Severity = DiagnosticSeverity.Info, Code = "I001" },
+            new() { Message = "Success", Severity = DiagnosticSeverity.Success, Code = "S001" }
         };
 
         // Act
@@ -221,16 +221,16 @@ public class DiagnosticIssueTests
         // Arrange
         var issues = new List<DiagnosticIssue>
         {
-            new DiagnosticIssue { Message = "Fixable", IsFixable = true, Code = "F001" },
-            new DiagnosticIssue { Message = "Not Fixable", IsFixable = false, Code = "NF001" },
-            new DiagnosticIssue { Message = "Also Fixable", IsFixable = true, Code = "F002" }
+            new() { Message = "Fixable", IsFixable = true, Code = "F001" },
+            new() { Message = "Not Fixable", IsFixable = false, Code = "NF001" },
+            new() { Message = "Also Fixable", IsFixable = true, Code = "F002" }
         };
 
         // Act
         var fixableIssues = issues.Where(i => i.IsFixable).ToList();
 
         // Assert
-        Assert.Equal(2, fixableIssues.Count());
+        Assert.Equal(2, fixableIssues.Count);
         Assert.All(fixableIssues, i => Assert.True(i.IsFixable));
     }
 
@@ -240,11 +240,11 @@ public class DiagnosticIssueTests
         // Arrange
         var issues = new List<DiagnosticIssue>
         {
-            new DiagnosticIssue { Message = "Error1", Severity = DiagnosticSeverity.Error },
-            new DiagnosticIssue { Message = "Error2", Severity = DiagnosticSeverity.Error },
-            new DiagnosticIssue { Message = "Warning1", Severity = DiagnosticSeverity.Warning },
-            new DiagnosticIssue { Message = "Info1", Severity = DiagnosticSeverity.Info },
-            new DiagnosticIssue { Message = "Info2", Severity = DiagnosticSeverity.Info }
+            new() { Message = "Error1", Severity = DiagnosticSeverity.Error },
+            new() { Message = "Error2", Severity = DiagnosticSeverity.Error },
+            new() { Message = "Warning1", Severity = DiagnosticSeverity.Warning },
+            new() { Message = "Info1", Severity = DiagnosticSeverity.Info },
+            new() { Message = "Info2", Severity = DiagnosticSeverity.Info }
         };
 
         // Act
@@ -263,10 +263,10 @@ public class DiagnosticIssueTests
         // Arrange
         var issues = new List<DiagnosticIssue>
         {
-            new DiagnosticIssue { Message = "Info", Severity = DiagnosticSeverity.Info },
-            new DiagnosticIssue { Message = "Error", Severity = DiagnosticSeverity.Error },
-            new DiagnosticIssue { Message = "Warning", Severity = DiagnosticSeverity.Warning },
-            new DiagnosticIssue { Message = "Success", Severity = DiagnosticSeverity.Success }
+            new() { Message = "Info", Severity = DiagnosticSeverity.Info },
+            new() { Message = "Error", Severity = DiagnosticSeverity.Error },
+            new() { Message = "Warning", Severity = DiagnosticSeverity.Warning },
+            new() { Message = "Success", Severity = DiagnosticSeverity.Success }
         };
 
         // Act
@@ -416,17 +416,17 @@ public class DiagnosticIssueTests
         // Arrange
         var issues = new List<DiagnosticIssue>
         {
-            new DiagnosticIssue { Code = "DB_001", Severity = DiagnosticSeverity.Error },
-            new DiagnosticIssue { Code = "DB_002", Severity = DiagnosticSeverity.Warning },
-            new DiagnosticIssue { Code = "MEM_001", Severity = DiagnosticSeverity.Warning },
-            new DiagnosticIssue { Code = "DB_001", Severity = DiagnosticSeverity.Info }
+            new() { Code = "DB_001", Severity = DiagnosticSeverity.Error },
+            new() { Code = "DB_002", Severity = DiagnosticSeverity.Warning },
+            new() { Code = "MEM_001", Severity = DiagnosticSeverity.Warning },
+            new() { Code = "DB_001", Severity = DiagnosticSeverity.Info }
         };
 
         // Act
         var dbIssues = issues.Where(i => i.Code.StartsWith("DB_")).ToList();
 
         // Assert
-        Assert.Equal(3, dbIssues.Count());
+        Assert.Equal(3, dbIssues.Count);
         Assert.Equal(2, dbIssues.Count(i => i.Code == "DB_001"));
     }
 
@@ -436,14 +436,14 @@ public class DiagnosticIssueTests
         // Arrange
         var issues = new List<DiagnosticIssue>
         {
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Success },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Info },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Info },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Warning },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Warning },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Warning },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Error },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Error }
+            new() { Severity = DiagnosticSeverity.Success },
+            new() { Severity = DiagnosticSeverity.Info },
+            new() { Severity = DiagnosticSeverity.Info },
+            new() { Severity = DiagnosticSeverity.Warning },
+            new() { Severity = DiagnosticSeverity.Warning },
+            new() { Severity = DiagnosticSeverity.Warning },
+            new() { Severity = DiagnosticSeverity.Error },
+            new() { Severity = DiagnosticSeverity.Error }
         };
 
         // Act
@@ -463,11 +463,11 @@ public class DiagnosticIssueTests
         // Arrange
         var issues = new List<DiagnosticIssue>
         {
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Success, IsFixable = false },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Info, IsFixable = false },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Warning, IsFixable = true },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Error, IsFixable = false },
-            new DiagnosticIssue { Severity = DiagnosticSeverity.Error, IsFixable = true }
+            new() { Severity = DiagnosticSeverity.Success, IsFixable = false },
+            new() { Severity = DiagnosticSeverity.Info, IsFixable = false },
+            new() { Severity = DiagnosticSeverity.Warning, IsFixable = true },
+            new() { Severity = DiagnosticSeverity.Error, IsFixable = false },
+            new() { Severity = DiagnosticSeverity.Error, IsFixable = true }
         };
 
         // Act
@@ -475,7 +475,7 @@ public class DiagnosticIssueTests
         var fixableCriticalIssues = criticalIssues.Where(i => i.IsFixable).ToList();
 
         // Assert
-        Assert.Equal(2, criticalIssues.Count());
+        Assert.Equal(2, criticalIssues.Count);
         Assert.Single(fixableCriticalIssues);
     }
 }

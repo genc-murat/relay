@@ -115,7 +115,7 @@ public class DiagnosticCheckTests
         check.AddInfo("Info 1");
 
         // Assert
-        Assert.Equal(4, check.Issues.Count());
+        Assert.Equal(4, check.Issues.Count);
         Assert.Equal(1, check.Issues.Count(i => i.Severity == DiagnosticSeverity.Error));
         Assert.Equal(1, check.Issues.Count(i => i.Severity == DiagnosticSeverity.Warning));
         Assert.Equal(1, check.Issues.Count(i => i.Severity == DiagnosticSeverity.Success));
@@ -135,14 +135,14 @@ public class DiagnosticCheckTests
         check.AddIssue("Error", DiagnosticSeverity.Error, "E001");
 
         // Assert
-        Assert.Equal(4, check.Issues.Count());
-        Assert.Equal(new[]
-        {
+        Assert.Equal(4, check.Issues.Count);
+        Assert.Equal(
+        [
             DiagnosticSeverity.Success,
             DiagnosticSeverity.Info,
             DiagnosticSeverity.Warning,
             DiagnosticSeverity.Error
-        }, check.Issues.Select(i => i.Severity));
+        ], check.Issues.Select(i => i.Severity));
     }
 
     [Fact]
@@ -210,14 +210,14 @@ public class DiagnosticCheckTests
         // Arrange & Act
         var checks = new List<DiagnosticCheck>
         {
-            new DiagnosticCheck { Category = "Check1" },
-            new DiagnosticCheck { Category = "Check2" },
-            new DiagnosticCheck { Category = "Check3" }
+            new() { Category = "Check1" },
+            new() { Category = "Check2" },
+            new() { Category = "Check3" }
         };
 
         // Assert
-        Assert.Equal(3, checks.Count());
-        Assert.Equal(new[] { "Check1", "Check2", "Check3" }, checks.Select(c => c.Category));
+        Assert.Equal(3, checks.Count);
+        Assert.Equal(["Check1", "Check2", "Check3"], checks.Select(c => c.Category));
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public class DiagnosticCheckTests
 
         // Assert
         Assert.Single(errors);
-        Assert.Equal(2, warnings.Count());
+        Assert.Equal(2, warnings.Count);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class DiagnosticCheckTests
         var fixableIssues = check.Issues.Where(i => i.IsFixable).ToList();
 
         // Assert
-        Assert.Equal(2, fixableIssues.Count());
+        Assert.Equal(2, fixableIssues.Count);
         Assert.All(fixableIssues, i => Assert.True(i.IsFixable));
     }
 
@@ -363,10 +363,10 @@ public class DiagnosticCheckTests
         // Arrange
         var checks = new List<DiagnosticCheck>
         {
-            new DiagnosticCheck { Category = "Performance" },
-            new DiagnosticCheck { Category = "Security" },
-            new DiagnosticCheck { Category = "Performance" },
-            new DiagnosticCheck { Category = "Reliability" }
+            new() { Category = "Performance" },
+            new() { Category = "Security" },
+            new() { Category = "Performance" },
+            new() { Category = "Reliability" }
         };
 
         // Act
@@ -385,9 +385,9 @@ public class DiagnosticCheckTests
         // Arrange
         var checks = new List<DiagnosticCheck>
         {
-            new DiagnosticCheck { Category = "Check1" },
-            new DiagnosticCheck { Category = "Check2" },
-            new DiagnosticCheck { Category = "Check3" }
+            new() { Category = "Check1" },
+            new() { Category = "Check2" },
+            new() { Category = "Check3" }
         };
 
         checks[0].AddIssue("Error", DiagnosticSeverity.Error, "E001");
@@ -430,7 +430,7 @@ public class DiagnosticCheckTests
         check.AddIssue("Database server version is outdated", DiagnosticSeverity.Error, "DB_VERSION", false);
 
         // Assert
-        Assert.Equal(4, check.Issues.Count());
+        Assert.Equal(4, check.Issues.Count);
         Assert.Equal(1, check.Issues.Count(i => i.Severity == DiagnosticSeverity.Success));
         Assert.Equal(1, check.Issues.Count(i => i.Severity == DiagnosticSeverity.Info));
         Assert.Equal(1, check.Issues.Count(i => i.Severity == DiagnosticSeverity.Warning));

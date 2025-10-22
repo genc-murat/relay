@@ -212,13 +212,13 @@ public class DiagnosticResultTests
         // Arrange & Act
         var results = new List<DiagnosticResult>
         {
-            new DiagnosticResult { Category = "Structure", Status = "Pass" },
-            new DiagnosticResult { Category = "Dependencies", Status = "Warning" },
-            new DiagnosticResult { Category = "Handlers", Status = "Error" }
+            new() { Category = "Structure", Status = "Pass" },
+            new() { Category = "Dependencies", Status = "Warning" },
+            new() { Category = "Handlers", Status = "Error" }
         };
 
         // Assert
-        Assert.Equal(3, results.Count());
+        Assert.Equal(3, results.Count);
         Assert.Equal(1, results.Count(r => r.Status == "Pass"));
         Assert.Equal(1, results.Count(r => r.Status == "Warning"));
         Assert.Equal(1, results.Count(r => r.Status == "Error"));
@@ -230,10 +230,10 @@ public class DiagnosticResultTests
         // Arrange
         var results = new List<DiagnosticResult>
         {
-            new DiagnosticResult { Status = "Pass" },
-            new DiagnosticResult { Status = "Pass" },
-            new DiagnosticResult { Status = "Warning" },
-            new DiagnosticResult { Status = "Error" }
+            new() { Status = "Pass" },
+            new() { Status = "Pass" },
+            new() { Status = "Warning" },
+            new() { Status = "Error" }
         };
 
         // Act
@@ -249,17 +249,17 @@ public class DiagnosticResultTests
         // Arrange
         var results = new List<DiagnosticResult>
         {
-            new DiagnosticResult { Category = "Handlers" },
-            new DiagnosticResult { Category = "Handlers" },
-            new DiagnosticResult { Category = "Dependencies" },
-            new DiagnosticResult { Category = "Performance" }
+            new() { Category = "Handlers" },
+            new() { Category = "Handlers" },
+            new() { Category = "Dependencies" },
+            new() { Category = "Performance" }
         };
 
         // Act
         var handlerResults = results.Where(r => r.Category == "Handlers").ToList();
 
         // Assert
-        Assert.Equal(2, handlerResults.Count());
+        Assert.Equal(2, handlerResults.Count);
     }
 
     [Fact]
@@ -413,10 +413,10 @@ public class DiagnosticResultTests
         // Arrange
         var results = new List<DiagnosticResult>
         {
-            new DiagnosticResult { Category = "Handlers" },
-            new DiagnosticResult { Category = "Handlers" },
-            new DiagnosticResult { Category = "Dependencies" },
-            new DiagnosticResult { Category = "Performance" }
+            new() { Category = "Handlers" },
+            new() { Category = "Handlers" },
+            new() { Category = "Dependencies" },
+            new() { Category = "Performance" }
         };
 
         // Act
@@ -433,9 +433,9 @@ public class DiagnosticResultTests
         // Arrange
         var results = new List<DiagnosticResult>
         {
-            new DiagnosticResult { Category = "Performance" },
-            new DiagnosticResult { Category = "Dependencies" },
-            new DiagnosticResult { Category = "Handlers" }
+            new() { Category = "Performance" },
+            new() { Category = "Dependencies" },
+            new() { Category = "Handlers" }
         };
 
         // Act

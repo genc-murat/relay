@@ -24,10 +24,10 @@ public class ContractValidationException : Exception
     /// <param name="objectType">The type of the object that failed validation.</param>
     /// <param name="errors">The validation errors.</param>
     public ContractValidationException(Type objectType, IEnumerable<string> errors)
-        : base($"Contract validation failed for {objectType.Name}. Errors: {string.Join(", ", errors)}")
+        : base(FormatMessage(objectType, errors))
     {
-        ObjectType = objectType ?? throw new ArgumentNullException(nameof(objectType));
-        Errors = errors ?? throw new ArgumentNullException(nameof(errors));
+        ObjectType = objectType;
+        Errors = errors;
     }
 
     /// <summary>
@@ -37,9 +37,19 @@ public class ContractValidationException : Exception
     /// <param name="errors">The validation errors.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     public ContractValidationException(Type objectType, IEnumerable<string> errors, Exception innerException)
-        : base($"Contract validation failed for {objectType.Name}. Errors: {string.Join(", ", errors)}", innerException)
+        : base(FormatMessage(objectType, errors), innerException)
     {
-        ObjectType = objectType ?? throw new ArgumentNullException(nameof(objectType));
-        Errors = errors ?? throw new ArgumentNullException(nameof(errors));
+        ObjectType = objectType;
+        Errors = errors;
+    }
+
+    private static string FormatMessage(Type objectType, IEnumerable<string> errors)
+    {
+        if (objectType == null)
+            throw new ArgumentNullException(nameof(objectType));
+        if (errors == null)
+            throw new ArgumentNullException(nameof(errors));
+
+        return $"Contract validation failed for {objectType.Name}. Errors: {string.Join(", ", errors)}";
     }
 }

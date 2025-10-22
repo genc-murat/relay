@@ -75,10 +75,11 @@ public class MachineLearningEnhancementServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(OptimizationStrategy.CircuitBreaker, result.EnhancedStrategy); // Due to high error rate
+        Assert.Equal(OptimizationStrategy.CircuitBreaker, result.AlternativeStrategy); // Due to high error rate
         Assert.True(result.EnhancedConfidence >= 0.1 && result.EnhancedConfidence <= 0.95);
-        Assert.NotNull(result.MLInsights);
-        Assert.Contains("High CPU utilization may limit parallel processing effectiveness", result.MLInsights);
+        Assert.NotNull(result.AdditionalParameters);
+        Assert.Contains("insight_0", result.AdditionalParameters.Keys);
+        Assert.Contains("High CPU utilization may limit parallel processing effectiveness", result.AdditionalParameters["insight_0"].ToString());
     }
 
     [Fact]
@@ -108,7 +109,7 @@ public class MachineLearningEnhancementServiceTests
         var result = _service.ApplyMachineLearningEnhancements(baseRecommendation, analysisData, systemMetrics);
 
         // Assert
-        Assert.Equal(OptimizationStrategy.EnableCaching, result.EnhancedStrategy);
+        Assert.Equal(OptimizationStrategy.EnableCaching, result.AlternativeStrategy);
     }
 
     [Fact]
@@ -134,7 +135,8 @@ public class MachineLearningEnhancementServiceTests
         var result = _service.ApplyMachineLearningEnhancements(baseRecommendation, analysisData, systemMetrics);
 
         // Assert
-        Assert.Contains("High repeat request rate suggests strong caching opportunity", result.MLInsights);
+        Assert.Contains("insight_0", result.AdditionalParameters.Keys);
+        Assert.Contains("High repeat request rate suggests strong caching opportunity", result.AdditionalParameters["insight_0"].ToString());
     }
 
     [Fact]
@@ -160,7 +162,8 @@ public class MachineLearningEnhancementServiceTests
         var result = _service.ApplyMachineLearningEnhancements(baseRecommendation, analysisData, systemMetrics);
 
         // Assert
-        Assert.Contains("Multiple database calls per request indicate optimization potential", result.MLInsights);
+        Assert.Contains("insight_0", result.AdditionalParameters.Keys);
+        Assert.Contains("Multiple database calls per request indicate optimization potential", result.AdditionalParameters["insight_0"].ToString());
     }
 
     [Fact]
@@ -175,11 +178,12 @@ public class MachineLearningEnhancementServiceTests
         var result = _service.ApplyMachineLearningEnhancements(baseRecommendation, analysisData, systemMetrics);
 
         // Assert
-        Assert.NotNull(result.TrendEnhancement);
-        Assert.Equal(Relay.Core.AI.Optimization.Services.TrendDirection.Degrading, result.TrendEnhancement.Direction);
-        Assert.True(result.TrendEnhancement.Magnitude > 0);
-        Assert.Equal(0.7, result.TrendEnhancement.Confidence);
-        Assert.Equal(TimeSpan.FromHours(24), result.TrendEnhancement.TimeHorizon);
+        Assert.Contains("trend_direction", result.AdditionalParameters.Keys);
+        Assert.Contains("trend_magnitude", result.AdditionalParameters.Keys);
+        Assert.Contains("trend_confidence", result.AdditionalParameters.Keys);
+        Assert.Equal("degrading", result.AdditionalParameters["trend_direction"]);
+        Assert.True((double)result.AdditionalParameters["trend_magnitude"] > 0);
+        Assert.Equal(0.7, result.AdditionalParameters["trend_confidence"]);
     }
 
     [Fact]
@@ -233,7 +237,9 @@ public class MachineLearningEnhancementServiceTests
         var result = _service.ApplyMachineLearningEnhancements(baseRecommendation, analysisData, systemMetrics);
 
         // Assert
-        Assert.Null(result.TrendEnhancement);
+        Assert.DoesNotContain("trend_direction", result.AdditionalParameters.Keys);
+        Assert.DoesNotContain("trend_magnitude", result.AdditionalParameters.Keys);
+        Assert.DoesNotContain("trend_confidence", result.AdditionalParameters.Keys);
     }
 
     private static OptimizationRecommendation CreateTestRecommendation()

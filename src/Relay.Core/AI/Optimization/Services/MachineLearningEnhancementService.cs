@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using Relay.Core.AI;
 
 namespace Relay.Core.AI.Optimization.Services;
 
@@ -16,7 +17,7 @@ public class MachineLearningEnhancementService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public MLEnhancementResult ApplyMachineLearningEnhancements(
+    public MachineLearningEnhancement ApplyMachineLearningEnhancements(
         OptimizationRecommendation baseRecommendation,
         RequestAnalysisData analysisData,
         Dictionary<string, double> systemMetrics)
@@ -28,15 +29,32 @@ public class MachineLearningEnhancementService
         // Apply ML-based adjustments to the recommendation
         var enhancedStrategy = EnhanceStrategyWithML(baseRecommendation.Strategy, analysisData);
         var enhancedConfidence = AdjustConfidenceWithML(baseRecommendation.ConfidenceScore, analysisData);
-        var trendEnhancement = PredictTrendEnhancement(analysisData);
+        var reasoning = GenerateMLReasoning(analysisData, systemMetrics);
 
-        return new MLEnhancementResult
+        var enhancement = new MachineLearningEnhancement
         {
-            EnhancedStrategy = enhancedStrategy,
+            AlternativeStrategy = enhancedStrategy,
             EnhancedConfidence = enhancedConfidence,
-            TrendEnhancement = trendEnhancement,
-            MLInsights = GenerateMLInsights(analysisData, systemMetrics)
+            Reasoning = reasoning
         };
+
+        // Add additional parameters based on ML insights
+        var insights = GenerateMLInsights(analysisData, systemMetrics);
+        foreach (var insight in insights)
+        {
+            enhancement.AdditionalParameters[$"insight_{insights.IndexOf(insight)}"] = insight;
+        }
+
+        // Add trend information
+        var performanceTrend = analysisData.CalculatePerformanceTrend();
+        if (Math.Abs(performanceTrend) >= 0.05)
+        {
+            enhancement.AdditionalParameters["trend_direction"] = performanceTrend > 0 ? "improving" : "degrading";
+            enhancement.AdditionalParameters["trend_magnitude"] = Math.Abs(performanceTrend);
+            enhancement.AdditionalParameters["trend_confidence"] = 0.7;
+        }
+
+        return enhancement;
     }
 
     private OptimizationStrategy EnhanceStrategyWithML(OptimizationStrategy baseStrategy, RequestAnalysisData analysisData)
@@ -64,20 +82,29 @@ public class MachineLearningEnhancementService
         return Math.Max(0.1, Math.Min(0.95, baseConfidence + adjustment));
     }
 
-    private TrendEnhancement? PredictTrendEnhancement(RequestAnalysisData analysisData)
+
+
+    private string GenerateMLReasoning(RequestAnalysisData analysisData, Dictionary<string, double> systemMetrics)
     {
-        var performanceTrend = analysisData.CalculatePerformanceTrend();
+        var reasons = new List<string>();
 
-        if (Math.Abs(performanceTrend) < 0.05)
-            return null; // No significant trend
+        if (analysisData.ErrorRate > 0.2)
+            reasons.Add("High error rate detected, switching to circuit breaker strategy");
 
-        return new TrendEnhancement
-        {
-            Direction = performanceTrend > 0 ? TrendDirection.Improving : TrendDirection.Degrading,
-            Magnitude = Math.Abs(performanceTrend),
-            Confidence = 0.7,
-            TimeHorizon = TimeSpan.FromHours(24)
-        };
+        if (analysisData.CacheHitRatio > 0.8)
+            reasons.Add("Excellent cache performance, enabling caching optimizations");
+
+        if (analysisData.RepeatRequestRate > 0.7)
+            reasons.Add("High repeat request rate indicates strong caching opportunity");
+
+        if (analysisData.DatabaseCalls > 10)
+            reasons.Add("Multiple database calls suggest optimization potential");
+
+        var cpuUtil = systemMetrics.GetValueOrDefault("CpuUtilization", 0);
+        if (cpuUtil > 0.8)
+            reasons.Add("High CPU utilization may impact optimization effectiveness");
+
+        return string.Join("; ", reasons);
     }
 
     private List<string> GenerateMLInsights(RequestAnalysisData analysisData, Dictionary<string, double> systemMetrics)
@@ -98,25 +125,3 @@ public class MachineLearningEnhancementService
     }
 }
 
-public class MLEnhancementResult
-{
-    public OptimizationStrategy EnhancedStrategy { get; set; }
-    public double EnhancedConfidence { get; set; }
-    public TrendEnhancement? TrendEnhancement { get; set; }
-    public List<string> MLInsights { get; set; } = new();
-}
-
-public class TrendEnhancement
-{
-    public TrendDirection Direction { get; set; }
-    public double Magnitude { get; set; }
-    public double Confidence { get; set; }
-    public TimeSpan TimeHorizon { get; set; }
-}
-
-public enum TrendDirection
-{
-    Improving,
-    Degrading,
-    Stable
-}

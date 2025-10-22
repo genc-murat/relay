@@ -94,16 +94,44 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         var recommendation = await _patternAnalysisService.AnalyzePatternsAsync(
             requestType, analysisData, executionMetrics, cancellationToken);
 
+        // Apply machine learning enhancements
+        var systemMetrics = _systemMetricsService.CollectSystemMetrics();
+        var enhancement = _machineLearningEnhancementService.ApplyMachineLearningEnhancements(
+            recommendation, analysisData, systemMetrics);
+
+        // Apply the enhancement to the recommendation
+        var enhancedRecommendation = new OptimizationRecommendation
+        {
+            Strategy = enhancement.AlternativeStrategy != OptimizationStrategy.None
+                ? enhancement.AlternativeStrategy
+                : recommendation.Strategy,
+            ConfidenceScore = enhancement.EnhancedConfidence,
+            EstimatedImprovement = recommendation.EstimatedImprovement,
+            Reasoning = string.IsNullOrEmpty(enhancement.Reasoning)
+                ? recommendation.Reasoning
+                : $"{recommendation.Reasoning}; ML Enhancement: {enhancement.Reasoning}",
+            Parameters = recommendation.Parameters,
+            Priority = recommendation.Priority,
+            EstimatedGainPercentage = recommendation.EstimatedGainPercentage,
+            Risk = recommendation.Risk
+        };
+
+        // Add ML enhancement parameters
+        foreach (var param in enhancement.AdditionalParameters)
+        {
+            enhancedRecommendation.Parameters[$"ml_{param.Key}"] = param.Value;
+        }
+
         // Record the prediction in model statistics
         _modelStatisticsService.RecordPrediction(requestType);
 
         // Store the predicted strategies for accuracy calculation
-        _lastPredictions[requestType] = new[] { recommendation.Strategy };
+        _lastPredictions[requestType] = new[] { enhancedRecommendation.Strategy };
 
-        _logger.LogDebug("Generated optimization recommendation for {RequestType}: {Strategy} (Confidence: {Confidence:P})",
-            requestType.Name, recommendation.Strategy, recommendation.ConfidenceScore);
+        _logger.LogDebug("Generated enhanced optimization recommendation for {RequestType}: {Strategy} (Confidence: {Confidence:P})",
+            requestType.Name, enhancedRecommendation.Strategy, enhancedRecommendation.ConfidenceScore);
 
-        return recommendation;
+        return enhancedRecommendation;
     }
 
     public async ValueTask<int> PredictOptimalBatchSizeAsync(

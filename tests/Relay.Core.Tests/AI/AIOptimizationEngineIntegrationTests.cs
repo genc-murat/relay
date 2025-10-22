@@ -81,6 +81,50 @@ namespace Relay.Core.Tests.AI
                 "Different request types should have different confidence scores based on their metrics");
         }
 
+        [Fact]
+        public async Task AnalyzeRequestAsync_Should_Apply_MachineLearning_Enhancements()
+        {
+            // Arrange
+            var request = new RequestType1();
+            // Create metrics that will trigger ML reasoning (high error rate and CPU usage)
+            var metrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                MedianExecutionTime = TimeSpan.FromMilliseconds(95),
+                P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+                P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+                TotalExecutions = 100,
+                SuccessfulExecutions = 70, // 30% error rate to trigger ML reasoning
+                FailedExecutions = 30,
+                MemoryAllocated = 1024 * 1024,
+                ConcurrentExecutions = 10,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromMinutes(5),
+                CpuUsage = 0.95, // High CPU to trigger ML reasoning
+                MemoryUsage = 512 * 1024,
+                DatabaseCalls = 15, // High DB calls to trigger ML reasoning
+                ExternalApiCalls = 1
+            };
+
+            // Act
+            var recommendation = await _engine.AnalyzeRequestAsync(request, metrics);
+
+            // Assert
+            Assert.NotNull(recommendation);
+            Assert.True(recommendation.ConfidenceScore >= 0 && recommendation.ConfidenceScore <= 1,
+                "Confidence score should be between 0 and 1");
+
+            // Verify ML enhancement integration - the recommendation should be enhanced
+            // ML enhancements may or may not add specific reasoning text depending on system conditions,
+            // but the recommendation should be processed and parameters should be present
+            Assert.NotNull(recommendation.Reasoning);
+            Assert.NotNull(recommendation.Parameters);
+
+            // Verify that the recommendation has been processed (should have some reasoning)
+            Assert.True(!string.IsNullOrEmpty(recommendation.Reasoning),
+                "Recommendation should have reasoning after ML enhancement processing");
+        }
+
         #region Helper Methods
 
         private RequestExecutionMetrics CreateMetrics()

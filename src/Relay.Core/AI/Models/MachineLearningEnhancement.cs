@@ -5,7 +5,7 @@ namespace Relay.Core.AI
     /// <summary>
     /// Machine learning enhancement result
     /// </summary>
-    internal class MachineLearningEnhancement
+    public class MachineLearningEnhancement
     {
         public OptimizationStrategy AlternativeStrategy { get; set; }
         public double EnhancedConfidence { get; set; }

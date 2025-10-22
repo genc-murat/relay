@@ -30,6 +30,7 @@ public class RedisStreamsIntegrationTests : IDisposable
         _loggerMock = new Mock<ILogger<IMessageBroker>>();
         _services = new ServiceCollection();
         _services.AddSingleton(_loggerMock.Object);
+        _serviceProvider = _services.BuildServiceProvider();
     }
 
     private IMessageBroker CreateBroker()

@@ -138,7 +138,7 @@ namespace Relay.SourceGenerator.Validators
         /// <summary>
         /// Checks if a type is a valid pipeline delegate type.
         /// </summary>
-        private static bool IsValidPipelineDelegate(ITypeSymbol type)
+        internal static bool IsValidPipelineDelegate(ITypeSymbol type)
         {
             // Check for RequestHandlerDelegate<TResponse> or StreamHandlerDelegate<TResponse>
             if (type is INamedTypeSymbol namedType)
@@ -182,7 +182,7 @@ namespace Relay.SourceGenerator.Validators
         /// <summary>
         /// Checks if a return type is valid for pipeline methods.
         /// </summary>
-        private static bool IsValidPipelineReturnType(ITypeSymbol returnType)
+        internal static bool IsValidPipelineReturnType(ITypeSymbol returnType)
         {
             if (returnType is INamedTypeSymbol namedReturnType)
             {
@@ -227,14 +227,36 @@ namespace Relay.SourceGenerator.Validators
                 scope = scopeValue;
             }
 
-            pipelineRegistry.Add(new PipelineInfo
+             pipelineRegistry.Add(new PipelineInfo
+             {
+                 MethodName = methodSymbol.Name,
+                 Order = order,
+                 Scope = scope,
+                 Location = methodDeclaration.Identifier.GetLocation(),
+                 ContainingType = GetFullTypeName(methodSymbol.ContainingType)
+             });
+        }
+
+        private static string GetFullTypeName(INamedTypeSymbol typeSymbol)
+        {
+            var parts = new List<string>();
+            var current = typeSymbol;
+            while (current != null)
             {
-                MethodName = methodSymbol.Name,
-                Order = order,
-                Scope = scope,
-                Location = methodDeclaration.Identifier.GetLocation(),
-                ContainingType = methodSymbol.ContainingType.ToDisplayString()
-            });
+                parts.Insert(0, current.Name);
+                current = current.ContainingType;
+            }
+
+            var namespaceSymbol = typeSymbol.ContainingNamespace;
+            if (namespaceSymbol != null && !namespaceSymbol.IsGlobalNamespace)
+            {
+                parts.Insert(0, namespaceSymbol.ToDisplayString());
+            }
+
+            var result = string.Join(".", parts);
+            // Debug output
+            System.Diagnostics.Debug.WriteLine($"Type: {typeSymbol.Name}, Namespace: {namespaceSymbol?.ToDisplayString() ?? "null"}, Result: {result}");
+            return result;
         }
 
         /// <summary>

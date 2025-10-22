@@ -1311,10 +1311,10 @@ public record UserDto(int Id, string Name, string Email);";
                 new() { Name = "GetUserQueryHandler", UsesValueTask = false, HasCancellationToken = false, LineCount = 150 },
                 new() { UsesValueTask = true, HasCancellationToken = true, LineCount = 20 }
             ],
-            Requests = new List<RequestInfo>
-            {
+            Requests =
+            [
                 new() { HasCaching = false }
-            }
+            ]
         };
 
         // Act
@@ -1430,8 +1430,8 @@ public record UserDto(int Id, string Name, string Email);";
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            ProjectFiles = new List<string> { "Test.csproj" },
-            SourceFiles = new List<string> { "Test.cs" },
+            ProjectFiles = ["Test.csproj"],
+            SourceFiles = ["Test.cs"],
             Handlers =
             [
                 new() { Name = "TestHandler", UsesValueTask = true, HasCancellationToken = true }
@@ -1467,10 +1467,10 @@ public record UserDto(int Id, string Name, string Email);";
         {
             ProjectPath = "/test/path",
             AnalysisDepth = "full",
-            Handlers = new List<HandlerInfo>
-            {
+            Handlers =
+            [
                 new() { Name = "TestHandler" }
-            }
+            ]
         };
 
         try
@@ -1499,10 +1499,10 @@ public record UserDto(int Id, string Name, string Email);";
         var analysis = new ProjectAnalysis
         {
             ProjectPath = "/test/path",
-            Handlers = new List<HandlerInfo>
-            {
+            Handlers =
+            [
                 new() { Name = "TestHandler" }
-            }
+            ]
         };
 
         try
@@ -1617,15 +1617,15 @@ public record UserDto(int Id, string Name, string Email);";
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            PerformanceIssues = new List<PerformanceIssue>
-            {
+            PerformanceIssues =
+            [
                 new() { Severity = "High" },
                 new() { Severity = "Medium" }
-            },
-            ReliabilityIssues = new List<ReliabilityIssue>
-            {
+            ],
+            ReliabilityIssues =
+            [
                 new() { Severity = "High" }
-            }
+            ]
         };
 
         // Act

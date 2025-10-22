@@ -522,9 +522,9 @@ var stream = File.OpenRead(""file.txt"");
         // Arrange
         var dependencies = new Dictionary<string, string[]>
         {
-            ["HandlerA"] = new[] { "ServiceB", "ServiceC" },
-            ["HandlerB"] = new[] { "ServiceC", "ServiceD" },
-            ["ServiceC"] = new[] { "RepositoryE" }
+            ["HandlerA"] = ["ServiceB", "ServiceC"],
+            ["HandlerB"] = ["ServiceC", "ServiceD"],
+            ["ServiceC"] = ["RepositoryE"]
         };
 
         // Act
@@ -1060,8 +1060,8 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+            PerformanceIssues = [],
+            OptimizationOpportunities = []
         };
 
         // Act & Assert - Should not throw exception
@@ -1099,14 +1099,14 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = new[]
-            {
+            PerformanceIssues =
+            [
                 new AIPerformanceIssue { Severity = "High", Description = "Test issue", Location = "Test.cs", Impact = "High" }
-            },
-            OptimizationOpportunities = new[]
-            {
+            ],
+            OptimizationOpportunities =
+            [
                 new OptimizationOpportunity { Strategy = "Caching", Description = "Test optimization", ExpectedImprovement = 0.5, Confidence = 0.8, RiskLevel = "Low" }
-            }
+            ]
         };
 
         // Act & Assert - Should not throw exception
@@ -1178,11 +1178,11 @@ public void ProcessOrder(Order order)
             ExpectedErrorRate = 0.02,
             ExpectedCpuUsage = 0.65,
             ExpectedMemoryUsage = 0.45,
-            Bottlenecks = new[]
-            {
+            Bottlenecks =
+            [
                 new PredictedBottleneck { Component = "Database", Description = "Connection pool", Probability = 0.3, Impact = "High" }
-            },
-            Recommendations = new[] { "Increase connection pool", "Enable read replicas" }
+            ],
+            Recommendations = ["Increase connection pool", "Enable read replicas"]
         };
 
         // Act & Assert - Should not throw exception
@@ -1278,16 +1278,16 @@ public void ProcessOrder(Order order)
             HealthScore = 8.2,
             PerformanceGrade = 'B',
             ReliabilityScore = 9.1,
-            CriticalIssues = new[] { "High memory usage detected" },
-            OptimizationOpportunities = new[]
-            {
+            CriticalIssues = ["High memory usage detected"],
+            OptimizationOpportunities =
+            [
                 new OptimizationOpportunity { Title = "Enable Caching", ExpectedImprovement = 0.4 },
                 new OptimizationOpportunity { Title = "Optimize Queries", ExpectedImprovement = 0.25 }
-            },
-            Predictions = new[]
-            {
+            ],
+            Predictions =
+            [
                 new PredictionResult { Metric = "Throughput", PredictedValue = "1,200 req/sec", Confidence = 0.89 }
-            }
+            ]
         };
 
         // Act & Assert - Should not throw exception
@@ -1346,9 +1346,9 @@ public void ProcessOrder(Order order)
             HealthScore = 8.2,
             PerformanceGrade = 'B',
             ReliabilityScore = 9.1,
-            CriticalIssues = Array.Empty<string>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
-            Predictions = Array.Empty<PredictionResult>()
+            CriticalIssues = [],
+            OptimizationOpportunities = [],
+            Predictions = []
         };
 
         // Act & Assert - Should not throw exception
@@ -1366,14 +1366,14 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = new[]
-            {
+            PerformanceIssues =
+            [
                 new AIPerformanceIssue { Severity = "High", Description = "Test issue", Location = "Test.cs", Impact = "High" }
-            },
-            OptimizationOpportunities = new[]
-            {
+            ],
+            OptimizationOpportunities =
+            [
                 new OptimizationOpportunity { Strategy = "Caching", Description = "Test optimization", ExpectedImprovement = 0.5, Confidence = 0.8, RiskLevel = "Low" }
-            }
+            ]
         };
 
         // Act
@@ -1558,9 +1558,9 @@ public void ProcessOrder(Order order)
             HealthScore = 8.2,
             PerformanceGrade = 'B',
             ReliabilityScore = 9.1,
-            CriticalIssues = Array.Empty<string>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
-            Predictions = Array.Empty<PredictionResult>()
+            CriticalIssues = [],
+            OptimizationOpportunities = [],
+            Predictions = []
         };
         var outputPath = Path.Combine(_testPath, "insights.html");
 
@@ -1584,8 +1584,8 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+            PerformanceIssues = [],
+            OptimizationOpportunities = []
         };
 
         // Act & Assert - Should not throw exception and should display message
@@ -1601,9 +1601,9 @@ public void ProcessOrder(Order order)
             HealthScore = 8.2,
             PerformanceGrade = 'B',
             ReliabilityScore = 9.1,
-            CriticalIssues = Array.Empty<string>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
-            Predictions = Array.Empty<PredictionResult>()
+            CriticalIssues = [],
+            OptimizationOpportunities = [],
+            Predictions = []
         };
 
         // Act & Assert - Should not throw exception and should display message

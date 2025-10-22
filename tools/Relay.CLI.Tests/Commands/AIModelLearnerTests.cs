@@ -94,7 +94,7 @@ public class AIModelLearnerTests
 
         // Assert
         Assert.NotNull(result.ImprovementAreas);
-        Assert.Equal(2, result.ImprovementAreas.Count());
+        Assert.Equal(2, result.ImprovementAreas.Length);
 
         var cachingArea = result.ImprovementAreas.FirstOrDefault(a => a.Area == "Caching Predictions");
         Assert.NotNull(cachingArea);
@@ -198,7 +198,7 @@ public class AIModelLearnerTests
         Assert.Equal(result2.TrainingSamples, result1.TrainingSamples);
         Assert.Equal(result2.ModelAccuracy, result1.ModelAccuracy);
         Assert.Equal(result2.TrainingTime, result1.TrainingTime);
-        Assert.Equal(result2.ImprovementAreas.Length, result1.ImprovementAreas.Count());
+        Assert.Equal(result2.ImprovementAreas.Length, result1.ImprovementAreas.Length);
     }
 
     [Fact]

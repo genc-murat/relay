@@ -283,8 +283,8 @@ public class DiagnosticSeverityTests
 
         // Act & Assert
         Assert.False(severity == DiagnosticSeverity.Success);
-        Assert.True(severity == DiagnosticSeverity.Warning);
-        Assert.True(severity != DiagnosticSeverity.Error);
+        Assert.Equal(DiagnosticSeverity.Warning, severity);
+        Assert.NotEqual(DiagnosticSeverity.Error, severity);
         Assert.True(severity >= DiagnosticSeverity.Info);
         Assert.True(severity <= DiagnosticSeverity.Error);
     }

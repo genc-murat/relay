@@ -1253,7 +1253,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var templates = new[] { "minimal", "standard", "enterprise" };
 
         // Assert
-        Assert.Equal(3, templates.Count());
+        Assert.Equal(3, templates.Length);
         Assert.All(templates, t => Assert.False(string.IsNullOrEmpty(t)));
     }
 
@@ -1264,7 +1264,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final";
         var frameworks = new[] { "net6.0", "net8.0", "net9.0" };
 
         // Assert
-        Assert.Equal(3, frameworks.Count());
+        Assert.Equal(3, frameworks.Length);
         Assert.All(frameworks, f => Assert.StartsWith("net", f));
     }
 

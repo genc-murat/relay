@@ -552,7 +552,7 @@ public class ImprovementAreaTests
         };
 
         // Act
-        var hasAnyImprovements = improvementAreas.Any();
+        var hasAnyImprovements = improvementAreas.Length != 0;
         var totalImprovement = improvementAreas.Sum(a => a.Improvement);
 
         // Assert
@@ -568,7 +568,6 @@ public class ImprovementAreaTests
 
         // Assert
         Assert.Empty(areas);
-        Assert.False(areas.Any());
     }
 
     [Fact]

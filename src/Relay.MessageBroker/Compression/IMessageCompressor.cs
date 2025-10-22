@@ -11,7 +11,7 @@ public interface IMessageCompressor
     /// <param name="data">The data to compress.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The compressed data.</returns>
-    ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default);
+    ValueTask<byte[]?> CompressAsync(byte[]? data, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Decompresses the input data.
@@ -19,7 +19,7 @@ public interface IMessageCompressor
     /// <param name="data">The data to decompress.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The decompressed data.</returns>
-    ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default);
+    ValueTask<byte[]?> DecompressAsync(byte[]? data, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the compression algorithm.
@@ -36,5 +36,5 @@ public interface IMessageCompressor
     /// </summary>
     /// <param name="data">The data to check.</param>
     /// <returns>True if data appears compressed, false otherwise.</returns>
-    bool IsCompressed(byte[] data);
+    bool IsCompressed(byte[]? data);
 }

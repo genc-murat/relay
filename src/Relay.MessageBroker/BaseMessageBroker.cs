@@ -251,7 +251,7 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         if (_compressor == null || !_options.Compression?.Enabled == true)
             return data;
 
-        return await _compressor.CompressAsync(data, cancellationToken);
+        return await _compressor.CompressAsync(data, cancellationToken) ?? data;
     }
 
     /// <summary>
@@ -265,7 +265,7 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         if (_compressor == null || !_options.Compression?.Enabled == true)
             return data;
 
-        return await _compressor.DecompressAsync(data, cancellationToken);
+        return await _compressor.DecompressAsync(data, cancellationToken) ?? data;
     }
 
     /// <summary>

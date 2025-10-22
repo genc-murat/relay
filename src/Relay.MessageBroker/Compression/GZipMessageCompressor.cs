@@ -31,19 +31,19 @@ public sealed class GZipMessageCompressor : IMessageCompressor
     public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.GZip;
 
     /// <inheritdoc/>
-    public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> CompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
         return await _innerCompressor.CompressAsync(data, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> DecompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
         return await _innerCompressor.DecompressAsync(data, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public bool IsCompressed(byte[] data)
+    public bool IsCompressed(byte[]? data)
     {
         return _innerCompressor.IsCompressed(data);
     }

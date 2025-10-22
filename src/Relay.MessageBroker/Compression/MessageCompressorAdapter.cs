@@ -1,3 +1,4 @@
+using System;
 using Relay.Core.Caching.Compression;
 
 namespace Relay.MessageBroker.Compression;
@@ -30,21 +31,21 @@ public sealed class MessageCompressorAdapter : IMessageCompressor
     public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => _unifiedCompressor.Algorithm;
 
     /// <inheritdoc/>
-    public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> CompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
         if (data == null) return null;
         return await _unifiedCompressor.CompressAsync(data, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> DecompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
         if (data == null) return null;
         return await _unifiedCompressor.DecompressAsync(data, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public bool IsCompressed(byte[] data)
+    public bool IsCompressed(byte[]? data)
     {
         if (data == null) return false;
         return _unifiedCompressor.IsCompressed(data);

@@ -330,9 +330,9 @@ public class GZipCompressor : Relay.MessageBroker.Compression.IMessageCompressor
     
     public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.GZip;
 
-    public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> CompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (data == null) return null;
 
         using var outputStream = new MemoryStream();
         using (var gzipStream = new GZipStream(outputStream, _level))
@@ -342,15 +342,15 @@ public class GZipCompressor : Relay.MessageBroker.Compression.IMessageCompressor
         return outputStream.ToArray();
     }
 
-    public bool IsCompressed(byte[] data)
+    public bool IsCompressed(byte[]? data)
     {
         if (data == null || data.Length < 2) return false;
         return (data[0] & 0x0F) <= 0x0D;
     }
 
-    public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> DecompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (data == null) return null;
 
         using var inputStream = new MemoryStream(data);
         using var outputStream = new MemoryStream();
@@ -375,9 +375,9 @@ public class BrotliCompressor : Relay.MessageBroker.Compression.IMessageCompress
     
     public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.Brotli;
 
-    public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> CompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (data == null) return null;
 
         using var outputStream = new MemoryStream();
         using (var brotliStream = new BrotliStream(outputStream, _level))
@@ -387,16 +387,16 @@ public class BrotliCompressor : Relay.MessageBroker.Compression.IMessageCompress
         return outputStream.ToArray();
     }
 
-public bool IsCompressed(byte[] data)
+public bool IsCompressed(byte[]? data)
     {
         if (data == null || data.Length < 4) return false;
         // Brotli magic number: 0x8b, 0x02, 0x80, 0xXX
         return data[0] == 0x8b && data[1] == 0x02 && (data[2] & 0x80) != 0;
     }
 
-    public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> DecompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (data == null) return null;
 
         using var inputStream = new MemoryStream(data);
         using var outputStream = new MemoryStream();
@@ -421,9 +421,9 @@ public class DeflateCompressor : Relay.MessageBroker.Compression.IMessageCompres
     
     public Relay.Core.Caching.Compression.CompressionAlgorithm CoreAlgorithm => Relay.Core.Caching.Compression.CompressionAlgorithm.Deflate;
 
-    public async ValueTask<byte[]> CompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> CompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (data == null) return null;
 
         using var outputStream = new MemoryStream();
         using (var deflateStream = new DeflateStream(outputStream, _level))
@@ -433,16 +433,16 @@ public class DeflateCompressor : Relay.MessageBroker.Compression.IMessageCompres
         return outputStream.ToArray();
     }
 
-    public bool IsCompressed(byte[] data)
+    public bool IsCompressed(byte[]? data)
     {
         if (data == null || data.Length < 2) return false;
         // Deflate header check (simplified)
         return (data[0] & 0x0F) == 0x08 && (data[0] >> 4) <= 0x07;
     }
 
-    public async ValueTask<byte[]> DecompressAsync(byte[] data, CancellationToken cancellationToken = default)
+    public async ValueTask<byte[]?> DecompressAsync(byte[]? data, CancellationToken cancellationToken = default)
     {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (data == null) return null;
 
         using var inputStream = new MemoryStream(data);
         using var outputStream = new MemoryStream();

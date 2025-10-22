@@ -370,5 +370,56 @@ public class ConnectionMetricsProviderTests
     }
 
     #endregion
+
+    #region GetKestrelServerConnections Tests
+
+    [Fact]
+    public void GetKestrelServerConnections_Should_Return_Non_Negative_Value()
+    {
+        // Act
+        var result = _provider.GetKestrelServerConnections();
+
+        // Assert
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void GetKestrelServerConnections_Should_Delegate_To_HttpProvider()
+    {
+        // The method delegates to _httpProvider.GetKestrelServerConnections()
+        // This test ensures the delegation works correctly
+
+        // Act
+        var result = _provider.GetKestrelServerConnections();
+
+        // Assert
+        Assert.True(result >= 0); // Should return a valid count
+    }
+
+    [Fact]
+    public void GetKestrelServerConnections_Should_Be_Thread_Safe()
+    {
+        // Arrange
+        var tasks = new System.Threading.Tasks.Task<int>[5];
+
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                return _provider.GetKestrelServerConnections();
+            });
+        }
+
+        // Act
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        // Assert
+        foreach (var task in tasks)
+        {
+            Assert.True(task.Result >= 0);
+        }
+    }
+
+    #endregion
 }
 

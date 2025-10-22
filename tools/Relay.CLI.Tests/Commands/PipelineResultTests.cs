@@ -11,8 +11,8 @@ public class PipelineResultTests
         var result = new PipelineResult();
         var stages = new List<PipelineStageResult>
         {
-            new PipelineStageResult { StageName = "Build" },
-            new PipelineStageResult { StageName = "Test" }
+            new() { StageName = "Build" },
+            new() { StageName = "Test" }
         };
 
         // Act
@@ -62,8 +62,8 @@ public class PipelineResultTests
         // Arrange
         var stages = new List<PipelineStageResult>
         {
-            new PipelineStageResult { StageName = "Compile", Success = true, Duration = TimeSpan.FromSeconds(10) },
-            new PipelineStageResult { StageName = "Test", Success = true, Duration = TimeSpan.FromSeconds(20) }
+            new() { StageName = "Compile", Success = true, Duration = TimeSpan.FromSeconds(10) },
+            new() { StageName = "Test", Success = true, Duration = TimeSpan.FromSeconds(20) }
         };
         var totalDuration = TimeSpan.FromSeconds(35);
 
@@ -94,7 +94,7 @@ public class PipelineResultTests
         result.Stages.Add(stage2);
 
         // Assert
-        Assert.Equal(2, result.Stages.Count());
+        Assert.Equal(2, result.Stages.Count);
         Assert.Equal(stage1, result.Stages[0]);
         Assert.Equal(stage2, result.Stages[1]);
     }
@@ -125,7 +125,7 @@ public class PipelineResultTests
         }
 
         // Assert
-        Assert.Equal(10, result.Stages.Count());
+        Assert.Equal(10, result.Stages.Count);
         Assert.Equal(55, result.Stages.Sum(s => s.Duration.TotalSeconds)); // Sum of 1-10
     }
 
@@ -181,7 +181,7 @@ public class PipelineResultTests
         };
 
         // Assert
-        Assert.Equal(3, results.Count());
+        Assert.Equal(3, results.Count);
         Assert.Equal(2, results.Count(r => r.Success));
         Assert.Equal(27.5, results.Where(r => r.Success).Average(r => r.TotalDuration.TotalSeconds));
     }
@@ -192,10 +192,10 @@ public class PipelineResultTests
         // Arrange
         var results = new List<PipelineResult>
         {
-            new PipelineResult { Success = true, TotalDuration = TimeSpan.FromSeconds(30) },
-            new PipelineResult { Success = false, TotalDuration = TimeSpan.FromSeconds(45) },
-            new PipelineResult { Success = true, TotalDuration = TimeSpan.FromSeconds(25) },
-            new PipelineResult { Success = false, TotalDuration = TimeSpan.FromSeconds(60) }
+            new() { Success = true, TotalDuration = TimeSpan.FromSeconds(30) },
+            new() { Success = false, TotalDuration = TimeSpan.FromSeconds(45) },
+            new() { Success = true, TotalDuration = TimeSpan.FromSeconds(25) },
+            new() { Success = false, TotalDuration = TimeSpan.FromSeconds(60) }
         };
 
         // Act
@@ -203,8 +203,8 @@ public class PipelineResultTests
         var failedResults = results.Where(r => !r.Success).ToList();
 
         // Assert
-        Assert.Equal(2, successfulResults.Count());
-        Assert.Equal(2, failedResults.Count());
+        Assert.Equal(2, successfulResults.Count);
+        Assert.Equal(2, failedResults.Count);
         Assert.True(successfulResults.All(r => r.Success));
         Assert.True(failedResults.All(r => !r.Success));
     }

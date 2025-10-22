@@ -199,7 +199,7 @@ public class PipelineOptimizationResultTests
         };
 
         // Assert
-        Assert.Equal(3, results.Count());
+        Assert.Equal(3, results.Count);
         Assert.Equal(2, results.Count(r => r.Applied));
         Assert.Equal(1, results.Count(r => !r.Applied));
     }
@@ -220,7 +220,7 @@ public class PipelineOptimizationResultTests
         var appliedOptimizations = results.Where(r => r.Applied).ToList();
 
         // Assert
-        Assert.Equal(2, appliedOptimizations.Count());
+        Assert.Equal(2, appliedOptimizations.Count);
     }
 
     [Fact]
@@ -229,17 +229,17 @@ public class PipelineOptimizationResultTests
         // Arrange
         var results = new List<PipelineOptimizationResult>
         {
-            new PipelineOptimizationResult { Type = "Caching" },
-            new PipelineOptimizationResult { Type = "Caching" },
-            new PipelineOptimizationResult { Type = "Async" },
-            new PipelineOptimizationResult { Type = "Memory" }
+            new() { Type = "Caching" },
+            new() { Type = "Caching" },
+            new() { Type = "Async" },
+            new() { Type = "Memory" }
         };
 
         // Act
         var cachingResults = results.Where(r => r.Type == "Caching").ToList();
 
         // Assert
-        Assert.Equal(2, cachingResults.Count());
+        Assert.Equal(2, cachingResults.Count);
     }
 
     [Fact]
@@ -394,10 +394,10 @@ public class PipelineOptimizationResultTests
         // Arrange
         var results = new List<PipelineOptimizationResult>
         {
-            new PipelineOptimizationResult { Type = "Caching" },
-            new PipelineOptimizationResult { Type = "Caching" },
-            new PipelineOptimizationResult { Type = "Async" },
-            new PipelineOptimizationResult { Type = "Memory" }
+            new() { Type = "Caching" },
+            new() { Type = "Caching" },
+            new() { Type = "Async" },
+            new() { Type = "Memory" }
         };
 
         // Act
@@ -414,9 +414,9 @@ public class PipelineOptimizationResultTests
         // Arrange
         var results = new List<PipelineOptimizationResult>
         {
-            new PipelineOptimizationResult { Type = "Memory" },
-            new PipelineOptimizationResult { Type = "Async" },
-            new PipelineOptimizationResult { Type = "Caching" }
+            new() { Type = "Memory" },
+            new() { Type = "Async" },
+            new() { Type = "Caching" }
         };
 
         // Act
@@ -535,10 +535,10 @@ public class PipelineOptimizationResultTests
         // Arrange
         var results = new List<PipelineOptimizationResult>
         {
-            new PipelineOptimizationResult { Type = "Caching", Applied = true },
-            new PipelineOptimizationResult { Type = "Caching", Applied = false },
-            new PipelineOptimizationResult { Type = "Async", Applied = true },
-            new PipelineOptimizationResult { Type = "Memory", Applied = false }
+            new() { Type = "Caching", Applied = true },
+            new() { Type = "Caching", Applied = false },
+            new() { Type = "Async", Applied = true },
+            new() { Type = "Memory", Applied = false }
         };
 
         // Act
@@ -556,10 +556,10 @@ public class PipelineOptimizationResultTests
         // Arrange
         var results = new List<PipelineOptimizationResult>
         {
-            new PipelineOptimizationResult { Applied = true },
-            new PipelineOptimizationResult { Applied = true },
-            new PipelineOptimizationResult { Applied = false },
-            new PipelineOptimizationResult { Applied = true }
+            new() { Applied = true },
+            new() { Applied = true },
+            new() { Applied = false },
+            new() { Applied = true }
         };
 
         // Act

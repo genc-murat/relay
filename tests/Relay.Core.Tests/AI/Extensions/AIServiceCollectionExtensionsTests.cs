@@ -236,32 +236,7 @@ namespace Relay.Core.Tests.AI.Extensions
             Assert.Throws<ArgumentNullException>(() => services.AddAIOptimizationForScenario(AIOptimizationScenario.Production));
         }
 
-        [Fact]
-        public void AddAIOptimizationWithCustomModel_AddsServicesToCollection()
-        {
-            var services = new Mock<IServiceCollection>();
 
-            var result = services.Object.AddAIOptimizationWithCustomModel<TestPredictionModel>(options => { });
-
-            Assert.NotNull(result);
-            Assert.Equal(services.Object, result);
-        }
-
-        [Fact]
-        public void AddAIOptimizationWithCustomModel_ThrowsArgumentNullException_WhenServicesIsNull()
-        {
-            IServiceCollection services = null;
-
-            Assert.Throws<ArgumentNullException>(() => services.AddAIOptimizationWithCustomModel<TestPredictionModel>(options => { }));
-        }
-
-        [Fact]
-        public void AddAIOptimizationWithCustomModel_ThrowsArgumentNullException_WhenConfigureOptionsIsNull()
-        {
-            var services = new Mock<IServiceCollection>();
-
-            Assert.Throws<ArgumentNullException>(() => services.Object.AddAIOptimizationWithCustomModel<TestPredictionModel>(null));
-        }
 
         [Fact]
         public void AddAIOptimizationHealthChecks_AddsHealthChecksToCollection()
@@ -395,13 +370,6 @@ namespace Relay.Core.Tests.AI.Extensions
             Assert.NotNull(result.Exception);
         }
 
-        // Mock class for testing
-        private class TestPredictionModel : IAIPredictionModel
-        {
-            public ValueTask<OptimizationRecommendation> PredictAsync(RequestContext context, CancellationToken cancellationToken = default)
-            {
-                throw new NotImplementedException();
-            }
-        }
+
     }
 }

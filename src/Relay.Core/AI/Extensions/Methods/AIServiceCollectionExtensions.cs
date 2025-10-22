@@ -126,21 +126,7 @@ namespace Relay.Core.AI
             return services.AddAIOptimization(scenario.GetDefaultOptions());
         }
 
-        /// <summary>
-        /// Adds AI optimization with custom prediction models.
-        /// </summary>
-        /// <typeparam name="TPredictionModel">The custom prediction model type</typeparam>
-        /// <param name="services">The service collection</param>
-        /// <param name="configureOptions">Configuration action</param>
-        /// <returns>The service collection for chaining</returns>
-        public static IServiceCollection AddAIOptimizationWithCustomModel<TPredictionModel>(
-            this IServiceCollection services,
-            Action<AIOptimizationOptions> configureOptions)
-            where TPredictionModel : class, IAIPredictionModel
-        {
-            return services.AddAIOptimization(configureOptions)
-                .RegisterCoreServices(svc => ServiceRegistrationHelper.TryAddSingleton<IAIPredictionModel, TPredictionModel>(svc));
-        }
+
 
         /// <summary>
         /// Adds health checks for AI optimization services.

@@ -13,5 +13,6 @@ namespace Relay.Core.AI
         public Dictionary<string, RegressionResult> RegressionResults { get; set; } = new();
         public Dictionary<string, List<string>> Correlations { get; set; } = new();
         public List<MetricAnomaly> Anomalies { get; set; } = new();
+        public List<TrendInsight> Insights { get; set; } = new();
     }
 }

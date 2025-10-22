@@ -12,6 +12,17 @@ namespace Relay.Core.AI.Optimization.Strategies
     /// </summary>
     internal class SystemInsightsStrategy : IOptimizationStrategy
     {
+        private class SystemAnalysisResult
+        {
+            public string MetricName { get; set; } = string.Empty;
+            public double CurrentValue { get; set; }
+            public bool IsHigh { get; set; }
+            public bool IsCritical { get; set; }
+            public string[] Recommendations { get; set; } = Array.Empty<string>();
+            public string Priority { get; set; } = "low";
+            public InsightSeverity Severity { get; set; } = InsightSeverity.Info;
+        }
+
         private readonly ILogger _logger;
 
         public string Name => "SystemInsights";
@@ -79,26 +90,26 @@ namespace Relay.Core.AI.Optimization.Strategies
         private OptimizationRecommendation AnalyzeSystemInsights(OptimizationContext context)
         {
             var systemLoad = context.SystemLoad!;
-            var insights = new Dictionary<string, object>();
+            var insights = new List<TrendInsight>();
 
             // Analyze CPU utilization patterns
             var cpuInsights = AnalyzeCpuUtilization(systemLoad);
-            insights.Add("cpu_insights", cpuInsights);
+            insights.AddRange(GenerateTrendInsightsFromAnalysis("CPU", cpuInsights));
 
             // Analyze memory utilization patterns
             var memoryInsights = AnalyzeMemoryUtilization(systemLoad);
-            insights.Add("memory_insights", memoryInsights);
+            insights.AddRange(GenerateTrendInsightsFromAnalysis("Memory", memoryInsights));
 
             // Analyze connection patterns
             var connectionInsights = AnalyzeConnectionPatterns(systemLoad);
-            insights.Add("connection_insights", connectionInsights);
+            insights.AddRange(GenerateTrendInsightsFromAnalysis("Connections", connectionInsights));
 
             // Analyze queue patterns
             var queueInsights = AnalyzeQueuePatterns(systemLoad);
-            insights.Add("queue_insights", queueInsights);
+            insights.AddRange(GenerateTrendInsightsFromAnalysis("Queue", queueInsights));
 
             // Generate system-wide recommendations
-            var recommendations = GenerateSystemRecommendations(cpuInsights, memoryInsights, connectionInsights, queueInsights);
+            var recommendations = GenerateSystemRecommendations(new[] { cpuInsights, memoryInsights, connectionInsights, queueInsights });
 
             // Determine primary strategy based on most critical insight
             var primaryStrategy = DeterminePrimarySystemStrategy(recommendations);
@@ -108,144 +119,192 @@ namespace Relay.Core.AI.Optimization.Strategies
                 Strategy = primaryStrategy,
                 ConfidenceScore = CalculateOverallSystemConfidence(systemLoad),
                 EstimatedImprovement = EstimateSystemImprovement(recommendations),
-                Reasoning = $"System analysis identified {recommendations.Count} optimization opportunities",
-                Parameters = insights,
+                Reasoning = $"System analysis identified {insights.Count} insights and {recommendations.Count} optimization opportunities",
+                Parameters = new Dictionary<string, object> { ["insights"] = insights },
                 Priority = DetermineSystemPriority(recommendations),
                 EstimatedGainPercentage = EstimateOverallSystemGain(recommendations),
                 Risk = DetermineSystemRisk(recommendations)
             };
         }
 
-        private Dictionary<string, object> AnalyzeCpuUtilization(SystemLoadMetrics load)
+        private SystemAnalysisResult AnalyzeCpuUtilization(SystemLoadMetrics load)
         {
-            var insights = new Dictionary<string, object>();
-
-            insights["utilization"] = load.CpuUtilization;
-            insights["is_high"] = load.CpuUtilization > 0.8;
-            insights["is_critical"] = load.CpuUtilization > 0.95;
-
-            // Determine if CPU-bound optimizations are needed
-            if (load.CpuUtilization > 0.8)
+            var result = new SystemAnalysisResult
             {
-                insights["recommendations"] = new[] { "parallel_processing", "async_optimization", "cpu_affinity" };
-                insights["priority"] = "high";
+                MetricName = "CPU Utilization",
+                CurrentValue = load.CpuUtilization,
+                IsHigh = load.CpuUtilization > 0.8,
+                IsCritical = load.CpuUtilization > 0.95
+            };
+
+            if (load.CpuUtilization > 0.95)
+            {
+                result.Recommendations = new[] { "parallel_processing", "async_optimization", "cpu_affinity" };
+                result.Priority = "high";
+                result.Severity = InsightSeverity.Critical;
             }
-            else if (load.CpuUtilization < 0.3)
+            else if (load.CpuUtilization > 0.8)
             {
-                insights["recommendations"] = new[] { "consolidation", "resource_sharing" };
-                insights["priority"] = "low";
+                result.Recommendations = new[] { "consolidation", "resource_sharing" };
+                result.Priority = "medium";
+                result.Severity = InsightSeverity.Warning;
             }
             else
             {
-                insights["recommendations"] = new[] { "balanced_optimization" };
-                insights["priority"] = "medium";
+                result.Recommendations = new[] { "balanced_optimization" };
+                result.Priority = "low";
+                result.Severity = InsightSeverity.Info;
             }
 
-            return insights;
+            return result;
         }
 
-        private Dictionary<string, object> AnalyzeMemoryUtilization(SystemLoadMetrics load)
+        private SystemAnalysisResult AnalyzeMemoryUtilization(SystemLoadMetrics load)
         {
-            var insights = new Dictionary<string, object>();
-
-            insights["utilization"] = load.MemoryUtilization;
-            insights["is_high"] = load.MemoryUtilization > 0.8;
-            insights["is_critical"] = load.MemoryUtilization > 0.95;
-
-            if (load.MemoryUtilization > 0.8)
+            var result = new SystemAnalysisResult
             {
-                insights["recommendations"] = new[] { "memory_pooling", "garbage_collection_tuning", "object_pooling" };
-                insights["priority"] = "high";
+                MetricName = "Memory Utilization",
+                CurrentValue = load.MemoryUtilization,
+                IsHigh = load.MemoryUtilization > 0.8,
+                IsCritical = load.MemoryUtilization > 0.95
+            };
+
+            if (load.MemoryUtilization > 0.95)
+            {
+                result.Recommendations = new[] { "memory_pooling", "garbage_collection_tuning", "object_pooling" };
+                result.Priority = "high";
+                result.Severity = InsightSeverity.Critical;
             }
-            else if (load.MemoryUtilization < 0.3)
+            else if (load.MemoryUtilization > 0.8)
             {
-                insights["recommendations"] = new[] { "memory_preallocation", "caching_expansion" };
-                insights["priority"] = "low";
+                result.Recommendations = new[] { "memory_preallocation", "caching_expansion" };
+                result.Priority = "medium";
+                result.Severity = InsightSeverity.Warning;
             }
             else
             {
-                insights["recommendations"] = new[] { "memory_optimization" };
-                insights["priority"] = "medium";
+                result.Recommendations = new[] { "memory_optimization" };
+                result.Priority = "low";
+                result.Severity = InsightSeverity.Info;
             }
 
-            return insights;
+            return result;
         }
 
-        private Dictionary<string, object> AnalyzeConnectionPatterns(SystemLoadMetrics load)
+        private SystemAnalysisResult AnalyzeConnectionPatterns(SystemLoadMetrics load)
         {
-            var insights = new Dictionary<string, object>();
-
-            insights["active_connections"] = load.ActiveConnections;
-            insights["is_high"] = load.ActiveConnections > 1000;
-            insights["is_low"] = load.ActiveConnections < 10;
+            var result = new SystemAnalysisResult
+            {
+                MetricName = "Active Connections",
+                CurrentValue = load.ActiveConnections,
+                IsHigh = load.ActiveConnections > 1000,
+                IsCritical = false // Connections don't have a critical threshold like CPU/memory
+            };
 
             if (load.ActiveConnections > 1000)
             {
-                insights["recommendations"] = new[] { "resource_pooling", "load_balancing", "circuit_breaker" };
-                insights["priority"] = "high";
+                result.Recommendations = new[] { "resource_pooling", "load_balancing", "circuit_breaker" };
+                result.Priority = "high";
+                result.Severity = InsightSeverity.Warning;
             }
             else if (load.ActiveConnections < 10)
             {
-                insights["recommendations"] = new[] { "connection_reuse", "keep_alive" };
-                insights["priority"] = "low";
+                result.Recommendations = new[] { "connection_reuse", "keep_alive" };
+                result.Priority = "low";
+                result.Severity = InsightSeverity.Info;
             }
             else
             {
-                insights["recommendations"] = new[] { "connection_optimization" };
-                insights["priority"] = "medium";
+                result.Recommendations = new[] { "connection_optimization" };
+                result.Priority = "medium";
+                result.Severity = InsightSeverity.Info;
             }
 
-            return insights;
+            return result;
         }
 
-        private Dictionary<string, object> AnalyzeQueuePatterns(SystemLoadMetrics load)
+        private SystemAnalysisResult AnalyzeQueuePatterns(SystemLoadMetrics load)
         {
-            var insights = new Dictionary<string, object>();
-
-            insights["queued_requests"] = load.QueuedRequestCount;
-            insights["is_backlogged"] = load.QueuedRequestCount > 100;
-            insights["is_idle"] = load.QueuedRequestCount == 0;
+            var result = new SystemAnalysisResult
+            {
+                MetricName = "Queued Requests",
+                CurrentValue = load.QueuedRequestCount,
+                IsHigh = load.QueuedRequestCount > 100,
+                IsCritical = load.QueuedRequestCount > 100
+            };
 
             if (load.QueuedRequestCount > 100)
             {
-                insights["recommendations"] = new[] { "batching", "queue_optimization", "horizontal_scaling" };
-                insights["priority"] = "critical";
+                result.Recommendations = new[] { "batching", "queue_optimization", "horizontal_scaling" };
+                result.Priority = "critical";
+                result.Severity = InsightSeverity.Critical;
             }
             else if (load.QueuedRequestCount == 0)
             {
-                insights["recommendations"] = new[] { "resource_consolidation" };
-                insights["priority"] = "low";
+                result.Recommendations = new[] { "resource_consolidation" };
+                result.Priority = "low";
+                result.Severity = InsightSeverity.Info;
             }
             else
             {
-                insights["recommendations"] = new[] { "queue_monitoring" };
-                insights["priority"] = "medium";
+                result.Recommendations = new[] { "queue_monitoring" };
+                result.Priority = "medium";
+                result.Severity = InsightSeverity.Info;
             }
 
-            return insights;
+            return result;
         }
 
-        private List<string> GenerateSystemRecommendations(
-            Dictionary<string, object> cpuInsights,
-            Dictionary<string, object> memoryInsights,
-            Dictionary<string, object> connectionInsights,
-            Dictionary<string, object> queueInsights)
+        private List<string> GenerateSystemRecommendations(SystemAnalysisResult[] analyses)
         {
             var recommendations = new List<string>();
 
-            // Collect all recommendations from insights
-            recommendations.AddRange(GetInsightsRecommendations(cpuInsights));
-            recommendations.AddRange(GetInsightsRecommendations(memoryInsights));
-            recommendations.AddRange(GetInsightsRecommendations(connectionInsights));
-            recommendations.AddRange(GetInsightsRecommendations(queueInsights));
+            // Collect all recommendations from analyses
+            foreach (var analysis in analyses)
+            {
+                recommendations.AddRange(analysis.Recommendations);
+            }
 
             // Remove duplicates and prioritize
             return recommendations.Distinct().ToList();
         }
 
-        private string[] GetInsightsRecommendations(Dictionary<string, object> insights)
+        private List<TrendInsight> GenerateTrendInsightsFromAnalysis(string category, SystemAnalysisResult analysis)
         {
-            return insights.GetValueOrDefault("recommendations", Array.Empty<string>()) as string[] ?? new string[0];
+            var insights = new List<TrendInsight>();
+
+            if (analysis.IsCritical)
+            {
+                insights.Add(new TrendInsight
+                {
+                    Category = $"{category} - Critical",
+                    Severity = analysis.Severity,
+                    Message = $"{analysis.MetricName} is at critical level: {analysis.CurrentValue:F2}",
+                    RecommendedAction = $"Implement {string.Join(", ", analysis.Recommendations)} immediately"
+                });
+            }
+            else if (analysis.IsHigh)
+            {
+                insights.Add(new TrendInsight
+                {
+                    Category = $"{category} - Warning",
+                    Severity = analysis.Severity,
+                    Message = $"{analysis.MetricName} is elevated: {analysis.CurrentValue:F2}",
+                    RecommendedAction = $"Consider {string.Join(", ", analysis.Recommendations)}"
+                });
+            }
+            else
+            {
+                insights.Add(new TrendInsight
+                {
+                    Category = $"{category} - Normal",
+                    Severity = InsightSeverity.Info,
+                    Message = $"{analysis.MetricName} is within normal range: {analysis.CurrentValue:F2}",
+                    RecommendedAction = analysis.Recommendations.Length > 0 ? string.Join(", ", analysis.Recommendations) : "Continue monitoring"
+                });
+            }
+
+            return insights;
         }
 
         private OptimizationStrategy DeterminePrimarySystemStrategy(List<string> recommendations)

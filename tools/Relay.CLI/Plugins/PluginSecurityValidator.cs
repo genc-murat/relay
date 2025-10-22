@@ -162,9 +162,9 @@ public class PluginSecurityValidator
 
             foreach (var referencedAssembly in assembly.GetReferencedAssemblies())
             {
-                if (!_allowedAssemblies.Contains(referencedAssembly.Name))
+                if (referencedAssembly.Name is null || !_allowedAssemblies.Contains(referencedAssembly.Name))
                 {
-                    _logger.LogWarning($"Plugin references untrusted assembly: {referencedAssembly.Name}");
+                    _logger.LogWarning($"Plugin references untrusted assembly: {referencedAssembly.Name ?? "null"}");
                     return false;
                 }
             }

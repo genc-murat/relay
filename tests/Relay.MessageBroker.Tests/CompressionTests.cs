@@ -249,23 +249,29 @@ public class CompressionTests
     }
 
     [Fact]
-    public async Task Compress_WithNullData_ShouldThrowArgumentNullException()
+    public async Task Compress_WithNullData_ShouldReturnNull()
     {
         // Arrange
         var compressor = new GZipCompressor();
 
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await compressor.CompressAsync(null!));
+        // Act
+        var result = await compressor.CompressAsync(null!);
+
+        // Assert
+        Assert.Null(result);
     }
 
     [Fact]
-    public async Task Decompress_WithNullData_ShouldThrowArgumentNullException()
+    public async Task Decompress_WithNullData_ShouldReturnNull()
     {
         // Arrange
         var compressor = new GZipCompressor();
 
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await compressor.DecompressAsync(null!));
+        // Act
+        var result = await compressor.DecompressAsync(null!);
+
+        // Assert
+        Assert.Null(result);
     }
 
     [Fact]

@@ -158,7 +158,7 @@ public class ShipOrderStep : ISagaStep<OrderSagaData>
 
 public class EmptySagaData : SagaDataBase
 {
-    public string CorrelationId { get; set; } = string.Empty;
+    public new string CorrelationId { get; set; } = string.Empty;
 }
 
 public class EmptySaga : Saga<EmptySagaData>
@@ -168,7 +168,7 @@ public class EmptySaga : Saga<EmptySagaData>
 
 public class SingleStepSagaData : SagaDataBase
 {
-    public string CorrelationId { get; set; } = string.Empty;
+    public new string CorrelationId { get; set; } = string.Empty;
     public int Value { get; set; }
     public bool ShouldFail { get; set; }
     public bool StepExecuted { get; set; }
@@ -207,7 +207,7 @@ public class SingleStep : ISagaStep<SingleStepSagaData>
 
 public class LargeSagaData : SagaDataBase
 {
-    public string CorrelationId { get; set; } = string.Empty;
+    public new string CorrelationId { get; set; } = string.Empty;
     public List<string> ExecutedSteps { get; set; } = new();
 }
 

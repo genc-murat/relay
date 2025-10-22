@@ -401,6 +401,13 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
             _logger.LogDebug("Calculated optimal epochs for training: {Epochs} based on {DataSize} data points", optimalEpochs, dataSize);
 
+            // Calculate regularization strength based on overfitting risk
+            var errorRate = metrics.GetValueOrDefault("ErrorRate", 0.01);
+            var overfittingRisk = Math.Min(1.0, errorRate * 10); // Simple heuristic: higher error rate indicates higher overfitting risk
+            var regularizationStrength = CalculateRegularizationStrength(overfittingRisk, metrics);
+
+            _logger.LogDebug("Calculated regularization strength: {Strength} based on overfitting risk {Risk:P}", regularizationStrength, overfittingRisk);
+
             // This would coordinate updates across all services using the calculated epochs
             // For now, simplified implementation
 

@@ -132,12 +132,21 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
         // Assert - Should complete without throwing exceptions
         Assert.NotNull(_engine);
 
-        // Verify that the logger was called with the expected message
+        // Verify that the logger was called with the expected messages
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Calculated optimal epochs for training")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.AtLeastOnce);
+
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Calculated regularization strength")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.AtLeastOnce);
@@ -190,5 +199,30 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
 
         // Assert - Larger data size should result in more epochs
         Assert.True(resultLarge >= resultSmall);
+    }
+
+    [Fact]
+    public void CalculateRegularizationStrength_ShouldReturnValidStrength()
+    {
+        // Act - Call CalculateRegularizationStrength directly via reflection
+        var method = _engine.GetType().GetMethod("CalculateRegularizationStrength", BindingFlags.NonPublic | BindingFlags.Instance);
+        var result = method?.Invoke(_engine, new object[] { 0.5, new Dictionary<string, double> { { "ModelComplexity", 0.5 } } });
+
+        // Assert - Should return a double between 0.001 and 0.5
+        Assert.NotNull(result);
+        var strength = (double)result;
+        Assert.InRange(strength, 0.001, 0.5);
+    }
+
+    [Fact]
+    public void CalculateRegularizationStrength_WithHighOverfittingRisk_ShouldIncreaseStrength()
+    {
+        // Act - Call with different overfitting risks
+        var method = _engine.GetType().GetMethod("CalculateRegularizationStrength", BindingFlags.NonPublic | BindingFlags.Instance);
+        var resultLow = (double)method?.Invoke(_engine, new object[] { 0.3, new Dictionary<string, double>() });
+        var resultHigh = (double)method?.Invoke(_engine, new object[] { 0.8, new Dictionary<string, double>() });
+
+        // Assert - Higher overfitting risk should result in higher regularization strength
+        Assert.True(resultHigh > resultLow);
     }
 }

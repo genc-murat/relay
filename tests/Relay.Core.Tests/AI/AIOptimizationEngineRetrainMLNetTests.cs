@@ -159,6 +159,15 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.AtLeastOnce);
+
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Calculated minimum examples per leaf")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.AtLeastOnce);
     }
 
     [Fact]
@@ -258,5 +267,30 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
 
         // Assert - Higher accuracy should result in fewer trees to prevent overfitting
         Assert.True(resultHigh < resultLow);
+    }
+
+    [Fact]
+    public void CalculateMinExamplesPerLeaf_ShouldReturnValidMinExamples()
+    {
+        // Act - Call CalculateMinExamplesPerLeaf directly via reflection
+        var method = _engine.GetType().GetMethod("CalculateMinExamplesPerLeaf", BindingFlags.NonPublic | BindingFlags.Instance);
+        var result = method?.Invoke(_engine, new object[] { 0.85, new Dictionary<string, double>() });
+
+        // Assert - Should return an integer between 1 and 10
+        Assert.NotNull(result);
+        var minExamples = (int)result;
+        Assert.InRange(minExamples, 1, 10);
+    }
+
+    [Fact]
+    public void CalculateMinExamplesPerLeaf_WithHighAccuracy_ShouldAllowFewerExamples()
+    {
+        // Act - Call with different accuracies
+        var method = _engine.GetType().GetMethod("CalculateMinExamplesPerLeaf", BindingFlags.NonPublic | BindingFlags.Instance);
+        var resultLow = (int)method?.Invoke(_engine, new object[] { 0.6, new Dictionary<string, double>() });
+        var resultHigh = (int)method?.Invoke(_engine, new object[] { 0.95, new Dictionary<string, double>() });
+
+        // Assert - Higher accuracy should allow fewer examples per leaf
+        Assert.True(resultHigh <= resultLow);
     }
 }

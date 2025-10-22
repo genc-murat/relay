@@ -414,6 +414,11 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
             _logger.LogDebug("Calculated optimal tree count: {Count} based on accuracy {Accuracy:P}", optimalTreeCount, accuracy);
 
+            // Calculate minimum examples per leaf based on model accuracy
+            var minExamplesPerLeaf = CalculateMinExamplesPerLeaf(accuracy, metrics);
+
+            _logger.LogDebug("Calculated minimum examples per leaf: {MinExamples} based on accuracy {Accuracy:P}", minExamplesPerLeaf, accuracy);
+
             // This would coordinate updates across all services using the calculated epochs
             // For now, simplified implementation
 

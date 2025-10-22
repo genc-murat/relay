@@ -32,7 +32,7 @@ namespace Relay.Core.AI
 
                     var zScore = CalculateZScore(metric.Value, ma.MA15);
 
-                    if (System.Math.Abs(zScore) > _config.AnomalyZScoreThreshold)
+                    if (System.Math.Abs(zScore) >= _config.AnomalyZScoreThreshold)
                     {
                         var anomaly = new MetricAnomaly
                         {
@@ -42,6 +42,7 @@ namespace Relay.Core.AI
                             Deviation = System.Math.Abs(metric.Value - ma.MA15),
                             ZScore = zScore,
                             Severity = System.Math.Abs(zScore) > _config.HighAnomalyZScoreThreshold ? AnomalySeverity.High : AnomalySeverity.Medium,
+                            Description = $"Anomaly detected in {metric.Key}: Current={metric.Value:F2}, Expected={ma.MA15:F2}, Z-Score={zScore:F2}",
                             Timestamp = DateTime.UtcNow
                         };
 

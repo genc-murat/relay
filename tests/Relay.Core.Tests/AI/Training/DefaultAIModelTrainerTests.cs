@@ -248,6 +248,78 @@ public class DefaultAIModelTrainerTests : IDisposable
     }
 
     [Fact]
+    public async Task TrainModelAsync_WithProgressCallback_Reports_Correct_Metric_Values()
+    {
+        // Arrange
+        var trainingData = CreateValidTrainingData();
+        var progressReports = new List<TrainingProgress>();
+
+        // Act
+        await _trainer.TrainModelAsync(trainingData, progress =>
+        {
+            progressReports.Add(progress);
+        });
+
+        // Assert
+        Assert.NotEmpty(progressReports);
+
+        // Verify exact metric values for PerformanceModels phase
+        var performancePhaseReport = progressReports.FirstOrDefault(p => p.Phase == TrainingPhase.PerformanceModels);
+        Assert.NotNull(performancePhaseReport);
+        Assert.NotNull(performancePhaseReport.CurrentMetrics);
+        Assert.Equal(0.85, performancePhaseReport.CurrentMetrics.RSquared);
+        Assert.Equal(0.15, performancePhaseReport.CurrentMetrics.MAE);
+        Assert.Equal(0.20, performancePhaseReport.CurrentMetrics.RMSE);
+        Assert.Null(performancePhaseReport.CurrentMetrics.Accuracy);
+        Assert.Null(performancePhaseReport.CurrentMetrics.AUC);
+        Assert.Null(performancePhaseReport.CurrentMetrics.F1Score);
+
+        // Verify exact metric values for OptimizationClassifiers phase
+        var classifierPhaseReport = progressReports.FirstOrDefault(p => p.Phase == TrainingPhase.OptimizationClassifiers);
+        Assert.NotNull(classifierPhaseReport);
+        Assert.NotNull(classifierPhaseReport.CurrentMetrics);
+        Assert.Equal(0.88, classifierPhaseReport.CurrentMetrics.Accuracy);
+        Assert.Equal(0.82, classifierPhaseReport.CurrentMetrics.AUC);
+        Assert.Equal(0.85, classifierPhaseReport.CurrentMetrics.F1Score);
+        Assert.Null(classifierPhaseReport.CurrentMetrics.RSquared);
+        Assert.Null(classifierPhaseReport.CurrentMetrics.MAE);
+        Assert.Null(classifierPhaseReport.CurrentMetrics.RMSE);
+
+        // Verify exact metric values for AnomalyDetection phase
+        var anomalyPhaseReport = progressReports.FirstOrDefault(p => p.Phase == TrainingPhase.AnomalyDetection);
+        Assert.NotNull(anomalyPhaseReport);
+        Assert.NotNull(anomalyPhaseReport.CurrentMetrics);
+        Assert.Equal(0.92, anomalyPhaseReport.CurrentMetrics.Accuracy);
+        Assert.Null(anomalyPhaseReport.CurrentMetrics.RSquared);
+        Assert.Null(anomalyPhaseReport.CurrentMetrics.MAE);
+        Assert.Null(anomalyPhaseReport.CurrentMetrics.RMSE);
+        Assert.Null(anomalyPhaseReport.CurrentMetrics.AUC);
+        Assert.Null(anomalyPhaseReport.CurrentMetrics.F1Score);
+
+        // Verify exact metric values for Forecasting phase
+        var forecastingPhaseReport = progressReports.FirstOrDefault(p => p.Phase == TrainingPhase.Forecasting);
+        Assert.NotNull(forecastingPhaseReport);
+        Assert.NotNull(forecastingPhaseReport.CurrentMetrics);
+        Assert.Equal(0.78, forecastingPhaseReport.CurrentMetrics.RSquared);
+        Assert.Equal(0.12, forecastingPhaseReport.CurrentMetrics.MAE);
+        Assert.Null(forecastingPhaseReport.CurrentMetrics.RMSE);
+        Assert.Null(forecastingPhaseReport.CurrentMetrics.Accuracy);
+        Assert.Null(forecastingPhaseReport.CurrentMetrics.AUC);
+        Assert.Null(forecastingPhaseReport.CurrentMetrics.F1Score);
+
+        // Verify exact metric values for Statistics phase
+        var statisticsPhaseReport = progressReports.FirstOrDefault(p => p.Phase == TrainingPhase.Statistics);
+        Assert.NotNull(statisticsPhaseReport);
+        Assert.NotNull(statisticsPhaseReport.CurrentMetrics);
+        Assert.Equal(0.90, statisticsPhaseReport.CurrentMetrics.RSquared);
+        Assert.Equal(0.95, statisticsPhaseReport.CurrentMetrics.Accuracy);
+        Assert.Null(statisticsPhaseReport.CurrentMetrics.MAE);
+        Assert.Null(statisticsPhaseReport.CurrentMetrics.RMSE);
+        Assert.Null(statisticsPhaseReport.CurrentMetrics.AUC);
+        Assert.Null(statisticsPhaseReport.CurrentMetrics.F1Score);
+    }
+
+    [Fact]
     public async Task TrainModelAsync_WithCancellationToken_CanBeCancelled()
     {
         // Arrange

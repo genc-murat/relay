@@ -129,7 +129,7 @@ public static class OptimizeCommand
 
     internal static async Task OptimizeHandlers(OptimizationContext context, ProgressContext ctx, ProgressTask overallTask)
     {
-        ProgressTask handlerTask = null;
+        ProgressTask? handlerTask = null;
         if (ctx != null)
         {
             handlerTask = ctx.AddTask("[yellow]Optimizing handlers[/]");

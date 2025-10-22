@@ -73,7 +73,10 @@ public class DependencyResolver
                     }
                     
                     // Register shared assembly if not already registered
-                    RegisterSharedAssembly(reference.Name, assemblyPath);
+                    if (reference.Name != null)
+                    {
+                        RegisterSharedAssembly(reference.Name, assemblyPath);
+                    }
                 }
             }
             
@@ -157,11 +160,14 @@ public class DependencyResolver
                     if (otherAssembly.Name == reference.Name && otherAssembly.Version != reference.Version)
                     {
                         var conflict = $"Version conflict: {reference.Name} {reference.Version} vs {otherAssembly.Version}";
-                        if (!_versionConflicts.ContainsKey(reference.Name))
+                        if (reference.Name != null && !_versionConflicts.ContainsKey(reference.Name))
                         {
                             _versionConflicts[reference.Name] = new List<string>();
                         }
-                        _versionConflicts[reference.Name].Add(conflict);
+                        if (reference.Name != null)
+                        {
+                            _versionConflicts[reference.Name].Add(conflict);
+                        }
                         return conflict;
                     }
                 }

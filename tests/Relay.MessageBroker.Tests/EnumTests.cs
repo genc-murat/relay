@@ -338,5 +338,8 @@ public class SagaStateTests
         // Assert - Just verify the transitions are logically sound
         Assert.NotEqual(notStartedToRunning.Item1, notStartedToRunning.Item2);
         Assert.NotEqual(runningToCompleted.Item1, runningToCompleted.Item2);
+        Assert.NotEqual(runningToCompensating.Item1, runningToCompensating.Item2);
+        Assert.NotEqual(compensatingToCompensated.Item1, compensatingToCompensated.Item2);
+        Assert.NotEqual(compensatingToFailed.Item1, compensatingToFailed.Item2);
     }
 }

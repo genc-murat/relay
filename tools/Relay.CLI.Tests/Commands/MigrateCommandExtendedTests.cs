@@ -1022,8 +1022,10 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
         // Arrange
         var filePath = Path.Combine(_testPath, "readonly.cs");
         await File.WriteAllTextAsync(filePath, "content");
-        var fileInfo = new FileInfo(filePath);
-        fileInfo.IsReadOnly = true;
+        var fileInfo = new FileInfo(filePath)
+        {
+            IsReadOnly = true
+        };
 
         // Act
         var isReadOnly = fileInfo.IsReadOnly;

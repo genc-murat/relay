@@ -254,7 +254,7 @@ public class NewCommandTests : IDisposable
         var features = new[] { "auth", "swagger", "docker" };
 
         // Assert
-        Assert.Equal(3, features.Count());
+        Assert.Equal(3, features.Length);
         Assert.Contains("auth", features);
         Assert.Contains("swagger", features);
     }
@@ -263,7 +263,7 @@ public class NewCommandTests : IDisposable
     public void NewCommand_Features_ShouldBeOptional()
     {
         // Arrange
-        string[] features = Array.Empty<string>();
+        string[] features = [];
 
         // Assert
         Assert.Empty(features);
@@ -412,7 +412,7 @@ public class NewCommandTests : IDisposable
         };
 
         // Assert
-        Assert.Equal(3, testDirs.Count());
+        Assert.Equal(3, testDirs.Length);
         Assert.Contains(testDirs, d => d.Contains("UnitTests"));
     }
 
@@ -675,8 +675,8 @@ public class NewCommandTests : IDisposable
             Name = "Web API",
             Description = "REST API template",
             BestFor = "APIs",
-            Tags = new[] { "web", "api" },
-            Features = new[] { "auth", "swagger" },
+            Tags = ["web", "api"],
+            Features = ["auth", "swagger"],
             Structure = "clean-architecture"
         };
 
@@ -692,11 +692,11 @@ public class NewCommandTests : IDisposable
         // Arrange & Act
         var template = new TemplateInfo
         {
-            Tags = new[] { "web", "api", "rest" }
+            Tags = ["web", "api", "rest"]
         };
 
         // Assert
-        Assert.Equal(3, template.Tags.Count());
+        Assert.Equal(3, template.Tags.Length);
         Assert.Contains("web", template.Tags);
     }
 
@@ -706,11 +706,11 @@ public class NewCommandTests : IDisposable
         // Arrange & Act
         var template = new TemplateInfo
         {
-            Features = new[] { "auth", "swagger", "docker" }
+            Features = ["auth", "swagger", "docker"]
         };
 
         // Assert
-        Assert.Equal(3, template.Features.Count());
+        Assert.Equal(3, template.Features.Length);
         Assert.Contains("docker", template.Features);
     }
 
@@ -737,14 +737,14 @@ public class NewCommandTests : IDisposable
             Id = "relay-webapi",
             Description = "REST API",
             BestFor = "Backend services",
-            Tags = new[] { "web", "api" },
-            Features = new[] { "auth", "swagger" }
+            Tags = ["web", "api"],
+            Features = ["auth", "swagger"]
         };
 
         // Assert
-        Assert.False(string.IsNullOrEmpty(template.Id));
-        Assert.False(string.IsNullOrEmpty(template.Description));
-        Assert.False(string.IsNullOrEmpty(template.BestFor));
+        Assert.False(string.IsNullOrWhiteSpace(template.Id));
+        Assert.False(string.IsNullOrWhiteSpace(template.Description));
+        Assert.False(string.IsNullOrWhiteSpace(template.BestFor));
     }
 
     #endregion
@@ -1113,7 +1113,7 @@ public class NewCommandTests : IDisposable
         var uniqueIds = templateIds.Distinct().ToArray();
 
         // Assert
-        Assert.Equal(templateIds.Length, uniqueIds.Count());
+        Assert.Equal(templateIds.Length, uniqueIds.Length);
     }
 
     [Fact]
@@ -1255,7 +1255,7 @@ public class NewCommandTests : IDisposable
         try
         {
             // Act
-            await NewCommand.CreateProjectAsync("", "relay-webapi", Array.Empty<string>(),
+            await NewCommand.CreateProjectAsync("", "relay-webapi", [],
                 _testPath, null, null, null, true, true);
 
             // Assert
@@ -1351,7 +1351,7 @@ public class NewCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await NewCommand.CreateProjectAsync(projectName, "relay-webapi", Array.Empty<string>(),
+        await NewCommand.CreateProjectAsync(projectName, "relay-webapi", [],
             _testPath, null, null, null, true, true);
 
         // Assert
@@ -1373,7 +1373,7 @@ public class NewCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await NewCommand.CreateProjectAsync(projectName, "relay-microservice", Array.Empty<string>(),
+        await NewCommand.CreateProjectAsync(projectName, "relay-microservice", [],
             _testPath, null, null, null, true, true);
 
         // Assert
@@ -1392,7 +1392,7 @@ public class NewCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await NewCommand.CreateProjectAsync(projectName, "relay-webapi", new[] { "docker" },
+        await NewCommand.CreateProjectAsync(projectName, "relay-webapi", ["docker"],
             _testPath, null, null, null, true, true);
 
         // Assert
@@ -1495,8 +1495,8 @@ public class NewCommandTests : IDisposable
             Name = "Web API",
             Description = "Test description",
             BestFor = "Testing",
-            Tags = new[] { "test" },
-            Features = new[] { "auth" },
+            Tags = ["test"],
+            Features = ["auth"],
             Structure = "clean-architecture"
         };
 
@@ -1520,8 +1520,8 @@ public class NewCommandTests : IDisposable
             Name = "Web API",
             Description = "Test description",
             BestFor = "Testing",
-            Tags = new[] { "test" },
-            Features = new[] { "auth" },
+            Tags = ["test"],
+            Features = ["auth"],
             Structure = "clean-architecture"
         };
 

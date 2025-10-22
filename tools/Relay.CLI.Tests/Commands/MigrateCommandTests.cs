@@ -403,12 +403,13 @@ public async Task<User> Handle(GetUserQuery request, CancellationToken ct)
     public void Migrate_ShouldGenerateManualSteps()
     {
         // Arrange
-        var manualSteps = new List<string>();
-
-        // Act
-        manualSteps.Add("Update NuGet packages to Relay.Core");
-        manualSteps.Add("Review and test all handlers");
-        manualSteps.Add("Update documentation");
+        var manualSteps = new List<string>
+        {
+            // Act
+            "Update NuGet packages to Relay.Core",
+            "Review and test all handlers",
+            "Update documentation"
+        };
 
         // Assert
         Assert.Equal(3, manualSteps.Count);
@@ -432,12 +433,13 @@ public async Task<User> Handle(GetUserQuery request, CancellationToken ct)
     public void Migrate_ShouldTrackChanges()
     {
         // Arrange
-        var changes = new List<(string Type, string Description)>();
-
-        // Act
-        changes.Add(("Add", "Added [Handle] attribute"));
-        changes.Add(("Modify", "Changed Task to ValueTask"));
-        changes.Add(("Remove", "Removed MediatR using"));
+        var changes = new List<(string Type, string Description)>
+        {
+            // Act
+            ("Add", "Added [Handle] attribute"),
+            ("Modify", "Changed Task to ValueTask"),
+            ("Remove", "Removed MediatR using")
+        };
 
         // Assert
         Assert.Equal(3, changes.Count);
@@ -953,14 +955,15 @@ public class MyExceptionHandler : IRequestExceptionHandler<MyRequest, MyResponse
     public void Migrate_ShouldLogProgress()
     {
         // Arrange
-        var logs = new List<string>();
-
-        // Act
-        logs.Add("Starting migration...");
-        logs.Add("Analyzing project...");
-        logs.Add("Creating backup...");
-        logs.Add("Transforming code...");
-        logs.Add("Migration complete!");
+        var logs = new List<string>
+        {
+            // Act
+            "Starting migration...",
+            "Analyzing project...",
+            "Creating backup...",
+            "Transforming code...",
+            "Migration complete!"
+        };
 
         // Assert
         Assert.Equal(5, logs.Count);

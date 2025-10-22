@@ -419,6 +419,17 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
             _logger.LogDebug("Calculated minimum examples per leaf: {MinExamples} based on accuracy {Accuracy:P}", minExamplesPerLeaf, accuracy);
 
+            // Calculate optimal leaf count based on data size
+            var optimalLeafCount = CalculateOptimalLeafCount(dataSize, metrics);
+
+            _logger.LogDebug("Calculated optimal leaf count: {Count} based on data size {DataSize}", optimalLeafCount, dataSize);
+
+            // Calculate adaptive exploration rate based on effectiveness
+            var effectiveness = accuracy; // Use accuracy as effectiveness measure
+            var explorationRate = CalculateAdaptiveExplorationRate(effectiveness, metrics);
+
+            _logger.LogDebug("Calculated adaptive exploration rate: {Rate} based on effectiveness {Effectiveness:P}", explorationRate, effectiveness);
+
             // This would coordinate updates across all services using the calculated epochs
             // For now, simplified implementation
 
@@ -446,6 +457,15 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
             _timeSeriesDb.StoreMetric("ThroughputPerSecond", throughput, timestamp);
             _timeSeriesDb.StoreMetric("MemoryUtilization", metrics.GetValueOrDefault("MemoryUtilization", 0.0), timestamp);
             _timeSeriesDb.StoreMetric("ErrorRate", metrics.GetValueOrDefault("ErrorRate", 0.0), timestamp);
+
+            // Store additional system metrics
+            _timeSeriesDb.StoreMetric("MemoryUsage", CalculateMemoryUsage(), timestamp);
+            _timeSeriesDb.StoreMetric("ActiveRequestCount", GetActiveRequestCount(), timestamp);
+            _timeSeriesDb.StoreMetric("QueuedRequestCount", GetQueuedRequestCount(), timestamp);
+            _timeSeriesDb.StoreMetric("CurrentThroughput", CalculateCurrentThroughput(), timestamp);
+            _timeSeriesDb.StoreMetric("CurrentErrorRate", CalculateCurrentErrorRate(), timestamp);
+            _timeSeriesDb.StoreMetric("DatabasePoolUtilization", GetDatabasePoolUtilization(), timestamp);
+            _timeSeriesDb.StoreMetric("ThreadPoolUtilization", GetThreadPoolUtilization(), timestamp);
 
             // This would trigger analysis in various services
             // For now, simplified

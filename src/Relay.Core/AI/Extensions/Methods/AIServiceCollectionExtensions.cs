@@ -57,7 +57,7 @@ namespace Relay.Core.AI
                     svc.TryAddSingleton<ISystemLoadMetricsProvider, SystemLoadMetricsProvider>();
 
                     // Register pipeline behaviors
-                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
+                    ServiceRegistrationHelper.AddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
                 });
         }
 
@@ -112,9 +112,9 @@ namespace Relay.Core.AI
                     ServiceRegistrationHelper.TryAddSingleton<IAIMetricsExporter, DefaultAIMetricsExporter>(svc);
 
                     // Add specialized pipeline behaviors
-                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIPerformanceTrackingBehavior<,>));
-                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIBatchOptimizationBehavior<,>));
-                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AICachingOptimizationBehavior<,>));
+                    ServiceRegistrationHelper.AddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIPerformanceTrackingBehavior<,>));
+                    ServiceRegistrationHelper.AddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIBatchOptimizationBehavior<,>));
+                    ServiceRegistrationHelper.AddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AICachingOptimizationBehavior<,>));
                 });
             }
 

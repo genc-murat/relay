@@ -142,6 +142,39 @@ namespace Relay.Core.Extensions
         }
 
         /// <summary>
+        /// Registers a transient service (allows multiple registrations for the same service type).
+        /// </summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="serviceType">The service type.</param>
+        /// <param name="implementationType">The implementation type.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddTransient(
+            IServiceCollection services,
+            Type serviceType,
+            Type implementationType)
+        {
+            ValidateServices(services);
+            services.AddTransient(serviceType, implementationType);
+            return services;
+        }
+
+        /// <summary>
+        /// Registers a transient service (allows multiple registrations for the same service type).
+        /// </summary>
+        /// <typeparam name="TService">The service type.</typeparam>
+        /// <typeparam name="TImplementation">The implementation type.</typeparam>
+        /// <param name="services">The service collection.</param>
+        /// <returns>The service collection for chaining.</returns>
+        public static IServiceCollection AddTransient<TService, TImplementation>(IServiceCollection services)
+            where TService : class
+            where TImplementation : class, TService
+        {
+            ValidateServices(services);
+            services.AddTransient<TService, TImplementation>();
+            return services;
+        }
+
+        /// <summary>
         /// Registers an enumerable service (for multiple implementations) if not already registered.
         /// </summary>
         /// <param name="services">The service collection.</param>
@@ -150,7 +183,7 @@ namespace Relay.Core.Extensions
         /// <param name="lifetime">The service lifetime.</param>
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection TryAddEnumerable(
-            IServiceCollection services, 
+            IServiceCollection services,
             Type serviceType,
             Type implementationType,
             ServiceLifetime lifetime = ServiceLifetime.Transient)

@@ -175,6 +175,8 @@ public static partial class RelayServiceCollectionExtensions
         Assembly[] assemblies,
         Action<RelayOptions>? configure = null)
     {
+        ArgumentNullException.ThrowIfNull(assemblies);
+
         // Ensure core services are registered
         services.AddRelayCore(configure);
 

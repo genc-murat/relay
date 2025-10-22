@@ -15,8 +15,6 @@ namespace Relay.Core.Tests.AI.Optimization.Connection;
 // Test stub for TimeSeriesDatabase since it's internal and can't be mocked directly
 public class TestTimeSeriesDatabase : TimeSeriesDatabase
 {
-    private static readonly Dictionary<string, List<MetricDataPoint>> _storedMetrics = new();
-
     public TestTimeSeriesDatabase()
         : base(
             Mock.Of<ILogger<TimeSeriesDatabase>>(),
@@ -25,16 +23,16 @@ public class TestTimeSeriesDatabase : TimeSeriesDatabase
             Mock.Of<IAnomalyDetectionService>(),
             Mock.Of<ITimeSeriesStatisticsService>())
     {
-        _storedMetrics.Clear();
     }
 
-    public static ITimeSeriesRepository CreateMockRepository()
+    private static ITimeSeriesRepository CreateMockRepository()
     {
+        var storedMetrics = new Dictionary<string, List<MetricDataPoint>>();
         var mock = new Mock<ITimeSeriesRepository>();
         mock.Setup(r => r.GetRecentMetrics(It.IsAny<string>(), It.IsAny<int>()))
             .Returns((string key, int count) =>
             {
-                if (_storedMetrics.TryGetValue(key, out var metrics))
+                if (storedMetrics.TryGetValue(key, out var metrics))
                 {
                     return metrics.OrderByDescending(m => m.Timestamp).Take(count).ToList();
                 }
@@ -43,11 +41,11 @@ public class TestTimeSeriesDatabase : TimeSeriesDatabase
         mock.Setup(r => r.StoreMetric(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<DateTime>(), It.IsAny<double?>(), It.IsAny<double?>(), It.IsAny<Relay.Core.AI.TrendDirection>()))
             .Callback((string key, double value, DateTime timestamp, double? min, double? max, Relay.Core.AI.TrendDirection trend) =>
             {
-                if (!_storedMetrics.ContainsKey(key))
+                if (!storedMetrics.ContainsKey(key))
                 {
-                    _storedMetrics[key] = new List<MetricDataPoint>();
+                    storedMetrics[key] = new List<MetricDataPoint>();
                 }
-                _storedMetrics[key].Add(new MetricDataPoint
+                storedMetrics[key].Add(new MetricDataPoint
                 {
                     MetricName = key,
                     Timestamp = timestamp,
@@ -90,6 +88,37 @@ public class HttpConnectionMetricsProviderTests
             _requestAnalytics,
             _timeSeriesDb,
             _systemMetrics);
+    }
+
+    public static ITimeSeriesRepository CreateMockRepository(Dictionary<string, List<MetricDataPoint>> data)
+    {
+        var mock = new Mock<ITimeSeriesRepository>();
+        mock.Setup(r => r.GetRecentMetrics(It.IsAny<string>(), It.IsAny<int>()))
+            .Returns((string key, int count) =>
+            {
+                if (data.TryGetValue(key, out var metrics))
+                {
+                    return metrics.OrderByDescending(m => m.Timestamp).Take(count).ToList();
+                }
+                return new List<MetricDataPoint>();
+            });
+        mock.Setup(r => r.StoreMetric(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<DateTime>(), It.IsAny<double?>(), It.IsAny<double?>(), It.IsAny<Relay.Core.AI.TrendDirection>()))
+            .Callback((string key, double value, DateTime timestamp, double? min, double? max, Relay.Core.AI.TrendDirection trend) =>
+            {
+                if (!data.ContainsKey(key))
+                {
+                    data[key] = new List<MetricDataPoint>();
+                }
+                data[key].Add(new MetricDataPoint
+                {
+                    MetricName = key,
+                    Timestamp = timestamp,
+                    Value = (float)value,
+                    Trend = (int)trend
+                });
+            })
+            .Verifiable();
+        return mock.Object;
     }
 
     #region Constructor Tests

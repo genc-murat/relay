@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.AI;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Xunit;
 
@@ -101,7 +102,7 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
     {
         // Arrange - Verify engine is initially functional
         Assert.NotNull(_engine);
-        
+
         // Capture initial state if possible
         var mlModelsInitializedField = _engine.GetType().GetField("_mlModelsInitialized", BindingFlags.NonPublic | BindingFlags.Instance);
         var initialState = mlModelsInitializedField?.GetValue(_engine);
@@ -112,9 +113,82 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
 
         // Assert - Engine should still be functional after method execution
         Assert.False(_engine.GetType().GetField("_disposed", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(_engine) as bool? ?? true);
-        
+
         // Engine should still be able to handle other operations
         var stats = _engine.GetModelStatistics();
         Assert.NotNull(stats);
+    }
+
+    [Fact]
+    public void UpdateModelCallback_ShouldCalculateOptimalEpochsAndLog()
+    {
+        // Arrange - Ensure learning is enabled
+        _engine.SetLearningMode(true);
+
+        // Act - Call UpdateModelCallback directly via reflection
+        var method = _engine.GetType().GetMethod("UpdateModelCallback", BindingFlags.NonPublic | BindingFlags.Instance);
+        method?.Invoke(_engine, new object[] { null });
+
+        // Assert - Should complete without throwing exceptions
+        Assert.NotNull(_engine);
+
+        // Verify that the logger was called with the expected message
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Calculated optimal epochs for training")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void UpdateModelCallback_WhenLearningDisabled_ShouldReturnEarly()
+    {
+        // Arrange - Disable learning
+        _engine.SetLearningMode(false);
+
+        // Act - Call UpdateModelCallback directly via reflection
+        var method = _engine.GetType().GetMethod("UpdateModelCallback", BindingFlags.NonPublic | BindingFlags.Instance);
+        method?.Invoke(_engine, new object[] { null });
+
+        // Assert - Should complete without throwing exceptions
+        Assert.NotNull(_engine);
+
+        // Verify that no debug logging occurred (since it returned early)
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void CalculateOptimalEpochs_ShouldReturnValidEpochCount()
+    {
+        // Act - Call CalculateOptimalEpochs directly via reflection
+        var method = _engine.GetType().GetMethod("CalculateOptimalEpochs", BindingFlags.NonPublic | BindingFlags.Instance);
+        var result = method?.Invoke(_engine, new object[] { 1000L, new Dictionary<string, double> { { "ModelComplexity", 0.5 } } });
+
+        // Assert - Should return an integer between 10 and 1000
+        Assert.NotNull(result);
+        var epochs = (int)result;
+        Assert.InRange(epochs, 10, 1000);
+    }
+
+    [Fact]
+    public void CalculateOptimalEpochs_WithLargeDataSize_ShouldIncreaseEpochs()
+    {
+        // Act - Call with large data size
+        var method = _engine.GetType().GetMethod("CalculateOptimalEpochs", BindingFlags.NonPublic | BindingFlags.Instance);
+        var resultSmall = (int)method?.Invoke(_engine, new object[] { 1000L, new Dictionary<string, double>() });
+        var resultLarge = (int)method?.Invoke(_engine, new object[] { 100000L, new Dictionary<string, double>() });
+
+        // Assert - Larger data size should result in more epochs
+        Assert.True(resultLarge >= resultSmall);
     }
 }

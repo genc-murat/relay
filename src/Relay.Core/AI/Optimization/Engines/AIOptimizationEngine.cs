@@ -394,7 +394,14 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
             // Periodic model updates and retraining
             _logger.LogDebug("Updating AI model with latest data...");
 
-            // This would coordinate updates across all services
+            // Calculate optimal epochs for training based on available data
+            var dataSize = (long)_timeSeriesDb.GetHistory("ThroughputPerSecond", TimeSpan.FromHours(24)).Count();
+            var metrics = _systemMetricsService.CollectSystemMetrics();
+            var optimalEpochs = CalculateOptimalEpochs(dataSize, metrics);
+
+            _logger.LogDebug("Calculated optimal epochs for training: {Epochs} based on {DataSize} data points", optimalEpochs, dataSize);
+
+            // This would coordinate updates across all services using the calculated epochs
             // For now, simplified implementation
 
             _logger.LogInformation("AI model update completed");

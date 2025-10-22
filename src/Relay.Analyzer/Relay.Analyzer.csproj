@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+
+    <!-- Package Metadata -->
+    <PackageId>Relay.Analyzer</PackageId>
+    <PackageVersion>1.1.0</PackageVersion>
+    <Title>Relay.Analyzer - Compile-Time Validation</Title>
+    <Authors>Relay Framework Contributors</Authors>
+    <Company>Relay Framework</Company>
+    <Product>Relay Mediator Framework</Product>
+    <Description>Roslyn analyzer for the Relay mediator framework. Provides compile-time validation of handler signatures, attribute usage, and configuration issues.</Description>
+    <Summary>Roslyn analyzer for compile-time mediator validation.</Summary>
+    <PackageTags>mediator;cqrs;messaging;analyzer;roslyn;compile-time;validation</PackageTags>
+    <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
+    <PackageReleaseNotes>v1.1.0: Enhanced analyzer with comprehensive validation rules for Relay framework handlers and pipelines.</PackageReleaseNotes>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+    <!-- Build Configuration -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <!-- Dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Package the analyzer into the nupkg -->
+  <ItemGroup>
+    <None Include="$(TargetPath)" Pack="true" PackagePath="analyzers\dotnet\cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+    <None Include="lib\netstandard2.0\_._" Pack="true" PackagePath="lib\netstandard2.0\_._" />
+    <None Include="ref\netstandard2.0\_._" Pack="true" PackagePath="ref\netstandard2.0\_._" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Microsoft.SourceLink.GitHub" />
+  </ItemGroup>
+
+</Project>

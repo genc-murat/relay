@@ -42,15 +42,23 @@ namespace Relay.Core.AI
             this IServiceCollection services,
             Action<AIOptimizationOptions> configureOptions)
         {
-            return services.RegisterWithConfiguration(configureOptions, svc =>
-            {
-                // Register core AI services
-                ServiceRegistrationHelper.TryAddSingleton<IAIOptimizationEngine, Relay.Core.AI.AIOptimizationEngine>(svc);
-                svc.TryAddSingleton<ISystemLoadMetricsProvider, SystemLoadMetricsProvider>();
+            ArgumentNullException.ThrowIfNull(configureOptions);
 
-                // Register pipeline behaviors
-                ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
-            });
+            // Configure and validate options immediately
+            var options = new AIOptimizationOptions();
+            configureOptions(options);
+            options.Validate();
+
+            return services.RegisterWithConfiguration(configureOptions,
+                serviceRegistrations: svc =>
+                {
+                    // Register core AI services
+                    ServiceRegistrationHelper.TryAddSingleton<IAIOptimizationEngine, Relay.Core.AI.AIOptimizationEngine>(svc);
+                    svc.TryAddSingleton<ISystemLoadMetricsProvider, SystemLoadMetricsProvider>();
+
+                    // Register pipeline behaviors
+                    ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
+                });
         }
 
         /// <summary>

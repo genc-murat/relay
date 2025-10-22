@@ -37,21 +37,29 @@ namespace Relay.Core.Extensions
         /// <param name="services">The service collection.</param>
         /// <param name="configure">Configuration action.</param>
         /// <param name="serviceRegistrations">Action to register services that depend on the options.</param>
+        /// <param name="postConfigure">Optional post-configuration action.</param>
         /// <returns>The service collection for chaining.</returns>
         public static IServiceCollection RegisterWithConfiguration<TOptions>(
             this IServiceCollection services,
             Action<TOptions> configure,
-            Action<IServiceCollection>? serviceRegistrations = null)
+            Action<IServiceCollection>? serviceRegistrations = null,
+            Action<TOptions>? postConfigure = null)
             where TOptions : class, new()
         {
             ServiceRegistrationHelper.ValidateServicesAndConfiguration(services, configure);
-            
+
             // Configure options
             services.Configure(configure);
-            
+
+            // Apply post-configuration if provided
+            if (postConfigure != null)
+            {
+                services.PostConfigure(postConfigure);
+            }
+
             // Register additional services if provided
             serviceRegistrations?.Invoke(services);
-            
+
             return services;
         }
 

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.MessageBroker.Saga;
+using Relay.MessageBroker.Saga.Interfaces;
 using Relay.MessageBroker.Saga.Persistence;
 using Relay.MessageBroker.Saga.Services;
 
@@ -220,6 +221,279 @@ public class SagaTimeoutTests
             cts.Token));
 
         Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_Constructor_WithSaga_ShouldAcceptSagaInstance()
+    {
+        // Arrange
+        var persistence = new Mock<ISagaPersistence<OrderSagaData>>();
+        var logger = NullLogger<SagaTimeoutHandler<OrderSagaData>>.Instance;
+        var saga = new Mock<ISaga<OrderSagaData>>();
+
+        // Act
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence.Object, logger, saga.Object);
+
+        // Assert
+        Assert.NotNull(handler);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_GetSagaTimeout_FromISagaDataWithTimeout_ShouldUseInterfaceTimeout()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<SagaDataWithTimeout>();
+        var logger = NullLogger<SagaTimeoutHandler<SagaDataWithTimeout>>.Instance;
+        var handler = new SagaTimeoutHandler<SagaDataWithTimeout>(persistence, logger);
+
+        var sagaData = new SagaDataWithTimeout
+        {
+            SagaId = Guid.NewGuid(),
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow.AddSeconds(-30) // Within 1-minute timeout
+        };
+
+        await persistence.SaveAsync(sagaData);
+
+        // Act
+        var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(0, result.TimedOutCount); // Should not timeout (1 minute timeout, 30 seconds elapsed)
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_GetSagaTimeout_FromMetadataInt_ShouldParseSeconds()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var logger = NullLogger<SagaTimeoutHandler<OrderSagaData>>.Instance;
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence, logger);
+
+        var sagaData = new OrderSagaData
+        {
+            SagaId = Guid.NewGuid(),
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow.AddSeconds(-90), // 90 seconds ago
+            Metadata = new Dictionary<string, object> { ["Timeout"] = 60 } // 60 seconds timeout
+        };
+
+        await persistence.SaveAsync(sagaData);
+
+        // Act
+        var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount); // Should timeout (60s timeout, 90s elapsed)
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_GetSagaTimeout_FromMetadataString_ShouldParseTimeSpan()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var logger = NullLogger<SagaTimeoutHandler<OrderSagaData>>.Instance;
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence, logger);
+
+        var sagaData = new OrderSagaData
+        {
+            SagaId = Guid.NewGuid(),
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-10), // 10 minutes ago
+            Metadata = new Dictionary<string, object> { ["Timeout"] = "00:05:00" } // 5 minutes timeout
+        };
+
+        await persistence.SaveAsync(sagaData);
+
+        // Act
+        var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(15));
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount); // Should timeout (5min timeout, 10min elapsed)
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_HandleRunningSagaTimeout_WithSaga_SuccessfulCompensation()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var logger = new Mock<ILogger<SagaTimeoutHandler<OrderSagaData>>>();
+        var saga = new Mock<ISaga<OrderSagaData>>();
+
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence, logger.Object, saga.Object);
+
+        var sagaData = new OrderSagaData
+        {
+            SagaId = Guid.NewGuid(),
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-10)
+        };
+
+        await persistence.SaveAsync(sagaData);
+
+        saga.Setup(s => s.ExecuteAsync(It.IsAny<OrderSagaData>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SagaExecutionResult<OrderSagaData>
+            {
+                Data = sagaData,
+                IsSuccess = true,
+                CompensationSucceeded = true
+            });
+
+        // Act
+        var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
+
+        var updatedSaga = await persistence.GetByIdAsync(sagaData.SagaId);
+        Assert.Equal(SagaState.Compensating, updatedSaga.State);
+        Assert.True(updatedSaga.Metadata.ContainsKey("TimedOut"));
+        Assert.True((bool)updatedSaga.Metadata["TimedOut"]);
+
+        saga.Verify(s => s.ExecuteAsync(It.IsAny<OrderSagaData>(), It.IsAny<CancellationToken>()), Times.Once);
+        logger.Verify(l => l.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("successfully compensated after timeout")),
+            null,
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_HandleRunningSagaTimeout_WithSaga_FailedCompensation()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var logger = new Mock<ILogger<SagaTimeoutHandler<OrderSagaData>>>();
+        var saga = new Mock<ISaga<OrderSagaData>>();
+
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence, logger.Object, saga.Object);
+
+        var sagaData = new OrderSagaData
+        {
+            SagaId = Guid.NewGuid(),
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-10)
+        };
+
+        await persistence.SaveAsync(sagaData);
+
+        var compensationException = new Exception("Compensation failed");
+        saga.Setup(s => s.ExecuteAsync(It.IsAny<OrderSagaData>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SagaExecutionResult<OrderSagaData>
+            {
+                Data = sagaData,
+                IsSuccess = false,
+                CompensationSucceeded = false,
+                Exception = compensationException
+            });
+
+        // Act
+        var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
+
+        var updatedSaga = await persistence.GetByIdAsync(sagaData.SagaId);
+        Assert.Equal(SagaState.Compensating, updatedSaga.State); // When compensation fails, saga remains in Compensating state
+
+        saga.Verify(s => s.ExecuteAsync(It.IsAny<OrderSagaData>(), It.IsAny<CancellationToken>()), Times.Once);
+        logger.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("compensation failed after timeout")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_HandleRunningSagaTimeout_WithSaga_ExceptionDuringCompensation()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var logger = new Mock<ILogger<SagaTimeoutHandler<OrderSagaData>>>();
+        var saga = new Mock<ISaga<OrderSagaData>>();
+
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence, logger.Object, saga.Object);
+
+        var sagaData = new OrderSagaData
+        {
+            SagaId = Guid.NewGuid(),
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-10)
+        };
+
+        await persistence.SaveAsync(sagaData);
+
+        var executeException = new Exception("Execute failed");
+        saga.Setup(s => s.ExecuteAsync(It.IsAny<OrderSagaData>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(executeException);
+
+        // Act
+        var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
+
+        var updatedSaga = await persistence.GetByIdAsync(sagaData.SagaId);
+        Assert.Equal(SagaState.Failed, updatedSaga.State);
+
+        saga.Verify(s => s.ExecuteAsync(It.IsAny<OrderSagaData>(), It.IsAny<CancellationToken>()), Times.Once);
+        logger.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), executeException, It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_CheckAndHandleTimeouts_GetActiveSagasException_ShouldLogError()
+    {
+        // Arrange
+        var persistence = new Mock<ISagaPersistence<OrderSagaData>>();
+        var logger = new Mock<ILogger<SagaTimeoutHandler<OrderSagaData>>>();
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence.Object, logger.Object);
+
+        var getActiveException = new Exception("Database error");
+        persistence.Setup(p => p.GetActiveSagasAsync(It.IsAny<CancellationToken>()))
+            .Throws(getActiveException);
+
+        // Act
+        var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
+
+        // Assert
+        Assert.Equal(0, result.CheckedCount);
+        Assert.Equal(0, result.TimedOutCount);
+
+        logger.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_GetSagaTimeout_InvalidStringMetadata_ShouldReturnNull()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var logger = NullLogger<SagaTimeoutHandler<OrderSagaData>>.Instance;
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence, logger);
+
+        var sagaData = new OrderSagaData
+        {
+            SagaId = Guid.NewGuid(),
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-10),
+            Metadata = new Dictionary<string, object> { ["Timeout"] = "invalid-time-span" }
+        };
+
+        await persistence.SaveAsync(sagaData);
+
+        // Act
+        var result = await handler.CheckAndHandleTimeoutsAsync(TimeSpan.FromMinutes(5));
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount); // Should use default timeout since parsing failed
     }
 
     // Test helper class

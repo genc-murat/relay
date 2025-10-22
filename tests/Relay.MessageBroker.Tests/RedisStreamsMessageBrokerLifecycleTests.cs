@@ -131,6 +131,186 @@ public class RedisStreamsMessageBrokerLifecycleTests
         Assert.Null(exception);
     }
 
+    #region Internal Method Tests
+
+    [Fact]
+    public async Task StartInternalAsync_ShouldEnsureConnectionAndLog()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
+
+        // Use reflection to access the protected method
+        var startInternalMethod = typeof(RedisStreamsMessageBroker).GetMethod("StartInternalAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        // Act
+        await (ValueTask)startInternalMethod.Invoke(broker, new object[] { CancellationToken.None })!;
+
+        // Assert
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Redis Streams message broker started")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task StopInternalAsync_ShouldCancelConsumerTasksAndDisposeResourcesAndLog()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
+
+        // Add a mock consumer task to the dictionary
+        var consumerTasksField = typeof(RedisStreamsMessageBroker).GetField("_consumerTasks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var consumerTasks = consumerTasksField!.GetValue(broker) as Dictionary<string, CancellationTokenSource>;
+        var cts = new CancellationTokenSource();
+        consumerTasks!["test-stream"] = cts;
+
+        // Use reflection to access the protected method
+        var stopInternalMethod = typeof(RedisStreamsMessageBroker).GetMethod("StopInternalAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        // Act
+        await (ValueTask)stopInternalMethod.Invoke(broker, new object[] { CancellationToken.None })!;
+
+        // Assert
+        Assert.True(cts.IsCancellationRequested);
+        Assert.Empty(consumerTasks);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Redis Streams message broker stopped")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DisposeInternalAsync_ShouldCompleteWithoutError()
+    {
+        // Arrange
+        // Note: ConnectionMultiplexer is sealed and cannot be mocked, so we use the mock IConnectionMultiplexer
+        // The type check in DisposeInternalAsync (if (_redis is ConnectionMultiplexer)) will fail,
+        // but the method should still complete without throwing an error
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
+
+        // Use reflection to access the protected method
+        var disposeInternalMethod = typeof(RedisStreamsMessageBroker).GetMethod("DisposeInternalAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        // Act & Assert - Should complete without throwing
+        var exception = await Record.ExceptionAsync(async () =>
+            await (ValueTask)disposeInternalMethod.Invoke(broker, Array.Empty<object>())!);
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task PublishInternalAsync_ShouldAddMessageToStreamWithHeaders()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
+
+        var message = new TestMessage { Id = 1, Content = "Test", Timestamp = DateTime.UtcNow };
+        var serializedMessage = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(message);
+        var publishOptions = new PublishOptions
+        {
+            RoutingKey = "custom:stream",
+            Headers = new Dictionary<string, object?> { { "CorrelationId", "test-correlation" }, { "CustomHeader", "CustomValue" } },
+            Priority = 5,
+            Expiration = TimeSpan.FromMinutes(10)
+        };
+
+        // Mock StreamAddAsync to return a message ID
+        // Signature: StreamAddAsync(RedisKey key, NameValueEntry[] streamPairs, RedisValue? messageId, long? maxLength, bool useApproximateMaxLength, long? limit, StreamTrimMode trimMode, CommandFlags flags)
+        _mockDatabase
+            .Setup(d => d.StreamAddAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<NameValueEntry[]>(),
+                It.IsAny<RedisValue?>(),
+                It.IsAny<long?>(),
+                It.IsAny<bool>(),
+                It.IsAny<long?>(),
+                It.IsAny<StreamTrimMode>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync((RedisValue)"123456789-0");
+
+        // Mock StreamTrimAsync (called after publish to trim the stream)
+        _mockDatabase
+            .Setup(d => d.StreamTrimAsync(
+                It.IsAny<RedisKey>(),
+                It.IsAny<long>(),
+                It.IsAny<bool>(),
+                It.IsAny<long?>(),
+                It.IsAny<StreamTrimMode>(),
+                It.IsAny<CommandFlags>()))
+            .ReturnsAsync(1L);
+
+        // Use reflection to access the protected generic method
+        var publishInternalMethod = typeof(RedisStreamsMessageBroker)
+            .GetMethods(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .First(m => m.Name == "PublishInternalAsync" && m.IsGenericMethod);
+
+        var genericMethod = publishInternalMethod.MakeGenericMethod(typeof(TestMessage));
+
+        // Act
+        await (ValueTask)genericMethod.Invoke(broker, new object[] { message, serializedMessage, publishOptions, CancellationToken.None })!;
+
+        // Assert - Verify StreamAddAsync was called with expected stream name and entries
+        _mockDatabase.Verify(d => d.StreamAddAsync(
+            "custom:stream",
+            It.Is<NameValueEntry[]>(entries =>
+                entries.Any(e => e.Name == "type" && e.Value == "Relay.MessageBroker.Tests.RedisStreamsMessageBrokerLifecycleTests+TestMessage") &&
+                entries.Any(e => e.Name == "correlationId" && e.Value == "test-correlation") &&
+                entries.Any(e => e.Name == "header:CustomHeader" && e.Value == "CustomValue") &&
+                entries.Any(e => e.Name == "priority" && e.Value == "5") &&
+                entries.Any(e => e.Name == "expiration" && e.Value == "600000")),
+            It.IsAny<RedisValue?>(),
+            It.IsAny<long?>(),
+            It.IsAny<bool>(),
+            It.IsAny<long?>(),
+            It.IsAny<StreamTrimMode>(),
+            It.IsAny<CommandFlags>()), Times.Once);
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Published message TestMessage with ID 123456789-0 to Redis stream custom:stream")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SubscribeInternalAsync_ShouldCreateConsumerTask()
+    {
+        // Arrange
+        var broker = new RedisStreamsMessageBroker(Options.Create(_defaultOptions), _mockLogger.Object, connectionMultiplexer: _mockRedis.Object);
+
+        // Use reflection to access the protected method
+        var subscribeInternalMethod = typeof(RedisStreamsMessageBroker).GetMethod("SubscribeInternalAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        var subscriptionInfo = new SubscriptionInfo
+        {
+            MessageType = typeof(TestMessage),
+            Handler = (msg, ctx, ct) => ValueTask.CompletedTask,
+            Options = new SubscriptionOptions()
+        };
+
+        // Act
+        await (ValueTask)subscribeInternalMethod.Invoke(broker, new object[] { typeof(TestMessage), subscriptionInfo, CancellationToken.None })!;
+
+        // Assert - Consumer task should be added to the dictionary
+        var consumerTasksField = typeof(RedisStreamsMessageBroker).GetField("_consumerTasks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var consumerTasks = consumerTasksField!.GetValue(broker) as Dictionary<string, CancellationTokenSource>;
+        Assert.Single(consumerTasks!);
+        Assert.Contains("test-stream", consumerTasks.Keys);
+    }
+
+    #endregion
+
     private class TestMessage
     {
         public int Id { get; set; }

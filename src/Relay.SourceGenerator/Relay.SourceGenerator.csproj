@@ -27,7 +27,7 @@
     <PackageReleaseNotes>v1.1.0: Enhanced source generator with BaseRequestDispatcher support. Generates optimized request dispatchers inheriting from BaseRequestDispatcher. Fixed nullable reference type handling and improved type inference. Requires Relay.Core 1.1.0+.</PackageReleaseNotes>
     <DevelopmentDependency>true</DevelopmentDependency>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <NoWarn>RS1038;RS2008</NoWarn>
+    <NoWarn>RS1038;RS2008;RS1032</NoWarn>
 
     <!-- Build Configuration -->
     <IncludeSymbols>true</IncludeSymbols>

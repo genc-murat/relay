@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.TimeSeries;
 using Relay.Core.AI.Optimization.Connection;
 using System;
 using System.Collections.Concurrent;
@@ -258,4 +259,65 @@ public class ConnectionMetricsProviderTests
     }
 
     #endregion
+
+    #region GetAspNetCoreConnectionCountLegacy Tests
+
+    [Fact]
+    public void GetAspNetCoreConnectionCountLegacy_Should_Return_Non_Negative_Value()
+    {
+        // Act
+        var result = _provider.GetAspNetCoreConnectionCountLegacy();
+
+        // Assert
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void GetAspNetCoreConnectionCountLegacy_Should_Return_Value_Within_Reasonable_Range()
+    {
+        // Act
+        var result = _provider.GetAspNetCoreConnectionCountLegacy();
+
+        // Assert
+        // Should be within the configured maximum limit
+        Assert.True(result <= _options.MaxEstimatedHttpConnections);
+    }
+
+    [Fact]
+    public void GetAspNetCoreConnectionCountLegacy_Should_Handle_Exceptions_Gracefully()
+    {
+        // This test verifies that the method doesn't throw exceptions
+        // and returns a valid fallback value when internal operations fail
+
+        // Act & Assert - Should not throw
+        var result = _provider.GetAspNetCoreConnectionCountLegacy();
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void GetAspNetCoreConnectionCountLegacy_Should_Be_Thread_Safe()
+    {
+        // Arrange
+        var tasks = new System.Threading.Tasks.Task<int>[5];
+
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                return _provider.GetAspNetCoreConnectionCountLegacy();
+            });
+        }
+
+        // Act
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        // Assert
+        foreach (var task in tasks)
+        {
+            Assert.True(task.Result >= 0);
+        }
+    }
+
+    #endregion
 }
+

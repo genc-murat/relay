@@ -335,6 +335,9 @@ public class TrendAnalyzerTests
         var result = _analyzer.AnalyzeMetricTrends(metrics);
 
         // Assert
+        Assert.NotNull(result.Insights);
+        Assert.True(result.Insights.Count > 0, $"Expected insights to be generated, but got {result.Insights.Count}");
+
         var cpuInsight = result.Insights.Find(i => i.Message.Contains("cpu") && i.Severity == InsightSeverity.Warning);
         Assert.NotNull(cpuInsight);
         Assert.Contains("High utilization level", cpuInsight.Message);

@@ -38,26 +38,30 @@
              _anomalyUpdater = anomalyUpdater ?? throw new ArgumentNullException(nameof(anomalyUpdater));
          }
 
-         public TrendAnalysisResult AnalyzeMetricTrends(Dictionary<string, double> currentMetrics)
-         {
-             try
-             {
-                 var timestamp = DateTime.UtcNow;
-                 _logger.LogDebug("Starting metric trend analysis for {Count} metrics at {Timestamp}",
-                     currentMetrics.Count, timestamp);
+        public TrendAnalysisResult AnalyzeMetricTrends(Dictionary<string, double> currentMetrics)
+        {
+              var timestamp = DateTime.UtcNow;
+              _logger.LogDebug("Starting metric trend analysis for {Count} metrics at {Timestamp}",
+                  currentMetrics.Count, timestamp);
 
-                 var movingAverages = _movingAverageUpdater.UpdateMovingAverages(currentMetrics, timestamp);
-                 var trendDirections = _trendDirectionUpdater.UpdateTrendDirections(currentMetrics, movingAverages);
-                 var trendVelocities = _trendVelocityUpdater.UpdateTrendVelocities(currentMetrics, timestamp);
-                 var seasonalityPatterns = _seasonalityUpdater.UpdateSeasonalityPatterns(currentMetrics, timestamp);
-                 var regressionAnalysis = _regressionUpdater.UpdateRegressionResults(currentMetrics, timestamp);
-                 var correlations = _correlationUpdater.UpdateCorrelations(currentMetrics);
-                 var anomalies = _anomalyUpdater.UpdateAnomalies(currentMetrics, movingAverages);
+              // Generate basic insights from current metrics first (independent of updaters)
+              var basicInsights = GenerateBasicInsights(currentMetrics);
 
-                  var insights = GenerateTrendInsights(trendDirections, trendVelocities, anomalies, currentMetrics);
+              try
+              {
+                  var movingAverages = _movingAverageUpdater.UpdateMovingAverages(currentMetrics, timestamp);
+                  var trendDirections = _trendDirectionUpdater.UpdateTrendDirections(currentMetrics, movingAverages);
+                  var trendVelocities = _trendVelocityUpdater.UpdateTrendVelocities(currentMetrics, timestamp);
+                  var seasonalityPatterns = _seasonalityUpdater.UpdateSeasonalityPatterns(currentMetrics, timestamp);
+                  var regressionAnalysis = _regressionUpdater.UpdateRegressionResults(currentMetrics, timestamp);
+                  var correlations = _correlationUpdater.UpdateCorrelations(currentMetrics);
+                  var anomalies = _anomalyUpdater.UpdateAnomalies(currentMetrics, movingAverages);
+
+                  var advancedInsights = GenerateTrendInsights(trendDirections, trendVelocities, anomalies, currentMetrics);
+                  basicInsights.AddRange(advancedInsights);
 
                   _logger.LogInformation("Metric trend analysis completed: {Trends} trends detected, {Anomalies} anomalies found, {Insights} insights generated",
-                      trendDirections.Count, anomalies.Count, insights.Count);
+                      trendDirections.Count, anomalies.Count, basicInsights.Count);
 
                   return new TrendAnalysisResult
                   {
@@ -69,15 +73,19 @@
                       RegressionResults = regressionAnalysis,
                       Correlations = correlations,
                       Anomalies = anomalies,
-                      Insights = insights
+                      Insights = basicInsights
                   };
-             }
-             catch (Exception ex)
-             {
-                 _logger.LogError(ex, "Error analyzing metric trends");
-                 return new TrendAnalysisResult { Timestamp = DateTime.UtcNow };
-             }
-         }
+              }
+              catch (Exception ex)
+              {
+                  _logger.LogError(ex, "Error in advanced trend analysis, returning basic insights");
+                  return new TrendAnalysisResult
+                  {
+                      Timestamp = timestamp,
+                      Insights = basicInsights
+                  };
+              }
+          }
 
          public Dictionary<string, MovingAverageData> CalculateMovingAverages(
              Dictionary<string, double> currentMetrics,
@@ -103,7 +111,39 @@
               return _anomalyUpdater.UpdateAnomalies(currentMetrics, movingAverages);
           }
 
-          private List<TrendInsight> GenerateTrendInsights(
+           private List<TrendInsight> GenerateBasicInsights(Dictionary<string, double> currentMetrics)
+           {
+               var insights = new List<TrendInsight>();
+
+                // Generate insights for high utilization metrics (independent of historical data)
+                foreach (var metric in currentMetrics)
+                {
+                    if (metric.Value > 90 && (metric.Key.Contains("cpu") || metric.Key.Contains("memory")))
+                    {
+                        insights.Add(new TrendInsight
+                        {
+                            Category = "Resource Utilization",
+                            Severity = InsightSeverity.Critical,
+                            Message = $"Critical utilization level detected for '{metric.Key}': {metric.Value:F1}%",
+                            RecommendedAction = "Immediate action required - scale resources or optimize resource usage"
+                        });
+                    }
+                    else if (metric.Value > 80 && (metric.Key.Contains("cpu") || metric.Key.Contains("memory")))
+                    {
+                        insights.Add(new TrendInsight
+                        {
+                            Category = "Resource Utilization",
+                            Severity = InsightSeverity.Warning,
+                            Message = $"High utilization level detected for '{metric.Key}': {metric.Value:F1}%",
+                            RecommendedAction = "Monitor closely and prepare scaling strategies"
+                        });
+                    }
+                }
+
+               return insights;
+           }
+
+           private List<TrendInsight> GenerateTrendInsights(
               Dictionary<string, TrendDirection> trendDirections,
               Dictionary<string, double> trendVelocities,
               List<MetricAnomaly> anomalies,
@@ -177,30 +217,7 @@
                   });
               }
 
-              // Generate insights for high utilization metrics
-              foreach (var metric in currentMetrics)
-              {
-                  if (metric.Value > 0.9 && (metric.Key.Contains("cpu") || metric.Key.Contains("memory")))
-                  {
-                      insights.Add(new TrendInsight
-                      {
-                          Category = "Resource Utilization",
-                          Severity = InsightSeverity.Critical,
-                          Message = $"Critical utilization level detected for '{metric.Key}': {metric.Value:P1}",
-                          RecommendedAction = "Immediate action required - scale resources or optimize resource usage"
-                      });
-                  }
-                  else if (metric.Value > 0.8 && (metric.Key.Contains("cpu") || metric.Key.Contains("memory")))
-                  {
-                      insights.Add(new TrendInsight
-                      {
-                          Category = "Resource Utilization",
-                          Severity = InsightSeverity.Warning,
-                          Message = $"High utilization level detected for '{metric.Key}': {metric.Value:P1}",
-                          RecommendedAction = "Monitor closely and prepare scaling strategies"
-                      });
-                  }
-              }
+
 
               return insights;
           }

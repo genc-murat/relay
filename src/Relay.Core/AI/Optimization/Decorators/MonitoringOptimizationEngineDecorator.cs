@@ -35,14 +35,14 @@ namespace Relay.Core.AI.Optimization
 
             var totalTime = DateTime.UtcNow - startTime;
 
-            // Record performance metrics
-            RecordPerformanceMetrics(context.Operation, totalTime);
+            // Record performance metrics using the execution time from the result
+            RecordPerformanceMetrics(context.Operation, result.ExecutionTime);
 
             _logger.LogInformation("Completed monitored optimization in {Time}ms (Success: {Success})",
                 totalTime.TotalMilliseconds, result.Success);
 
             // Check for performance degradation
-            if (IsPerformanceDegraded(context.Operation, totalTime))
+            if (IsPerformanceDegraded(context.Operation, result.ExecutionTime))
             {
                 _logger.LogWarning("Performance degradation detected for operation: {Operation}", context.Operation);
 
@@ -52,7 +52,7 @@ namespace Relay.Core.AI.Optimization
                     AlertType = "PerformanceDegradation",
                     Message = $"Performance degraded for operation {context.Operation}",
                     Severity = AlertSeverity.Medium,
-                    Data = new { Operation = context.Operation, ExecutionTime = totalTime }
+                    Data = new { Operation = context.Operation, ExecutionTime = result.ExecutionTime }
                 };
 
                 await NotifyPerformanceAlertAsync(alert, cancellationToken);

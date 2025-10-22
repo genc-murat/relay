@@ -118,7 +118,6 @@ namespace Relay.SourceGenerator.Tests
             handlerInfo.Attributes = new List<RelayAttributeInfo> { mockAttributeWithArgs };
 
             // Manually invoke the logic to test the GetHandlerName method behavior
-            var mockNameValue = "CustomName";
             var handlerInfoWithNamedArgs = new HandlerInfo
             {
                 MethodSymbol = methodSymbol,

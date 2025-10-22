@@ -45,8 +45,6 @@ public class ThreadSafetyRegressionTests
         var compilation = CreateTestCompilation();
         var context = new RelayCompilationContext(compilation, CancellationToken.None);
 
-        var executionCount = 0;
-
         // We can't directly test private Lazy execution, but we can verify behavior
         // Multiple calls should not cause performance degradation that would indicate re-execution
         var sw = Stopwatch.StartNew();

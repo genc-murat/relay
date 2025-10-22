@@ -87,7 +87,10 @@ internal sealed class ForecastingTrainer : IForecastingTrainer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error training {Method} forecast model for {MetricName}", forecastingMethod, metricName);
-            // Do not throw - handle gracefully
+            throw new ModelTrainingException($"Failed to train {forecastingMethod} model for {metricName}: {ex.Message}", ex)
+            {
+                ForecastingMethod = forecastingMethod
+            };
         }
     }
 

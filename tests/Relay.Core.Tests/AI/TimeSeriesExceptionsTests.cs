@@ -98,6 +98,38 @@ public class TimeSeriesExceptionsTests
     }
 
     [Fact]
+    public void ModelTrainingException_Should_Allow_Setting_ForecastingMethod()
+    {
+        // Arrange
+        var message = "Model training failed";
+        var forecastingMethod = ForecastingMethod.SSA;
+
+        // Act
+        var exception = new ModelTrainingException(message)
+        {
+            ForecastingMethod = forecastingMethod
+        };
+
+        // Assert
+        Assert.Equal(message, exception.Message);
+        Assert.Equal(forecastingMethod, exception.ForecastingMethod);
+    }
+
+    [Fact]
+    public void ModelTrainingException_Should_Have_Null_ForecastingMethod_By_Default()
+    {
+        // Arrange
+        var message = "Model training failed";
+
+        // Act
+        var exception = new ModelTrainingException(message);
+
+        // Assert
+        Assert.Equal(message, exception.Message);
+        Assert.Null(exception.ForecastingMethod);
+    }
+
+    [Fact]
     public void ForecastingException_Should_Initialize_With_Message()
     {
         // Arrange

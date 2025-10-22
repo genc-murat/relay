@@ -236,7 +236,7 @@ public class ForecastingTrainerTests
     }
 
     [Fact]
-    public void TrainModel_Should_Handle_Exception_And_Log_Error()
+    public void TrainModel_Should_Throw_ModelTrainingException_With_ForecastingMethod_When_Training_Fails()
     {
         // Arrange
         var metricName = "test.metric";
@@ -245,15 +245,19 @@ public class ForecastingTrainerTests
         _repositoryMock.Setup(r => r.GetHistory(metricName, It.IsAny<TimeSpan>())).Returns(CreateTestHistory(15));
 
         var strategyMock = new Mock<IForecastingStrategy>();
+        var trainingException = new Exception("Training failed");
         strategyMock.Setup(s => s.TrainModel(It.IsAny<MLContext>(), It.IsAny<List<MetricDataPoint>>(), It.IsAny<int>()))
-            .Throws(new Exception("Training failed"));
+            .Throws(trainingException);
 
         _methodManagerMock.Setup(m => m.GetStrategy(method)).Returns(strategyMock.Object);
 
-        // Act
-        _trainer.TrainModel(metricName);
+        // Act & Assert
+        var exception = Assert.Throws<ModelTrainingException>(() => _trainer.TrainModel(metricName));
+        Assert.Equal(method, exception.ForecastingMethod);
+        Assert.Contains($"Failed to train {method} model for {metricName}", exception.Message);
+        Assert.Equal(trainingException, exception.InnerException);
 
-        // Assert
+        // Verify logging still happens
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Error,
@@ -263,6 +267,29 @@ public class ForecastingTrainerTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
         _modelManagerMock.Verify(m => m.StoreModel(It.IsAny<string>(), It.IsAny<ITransformer>(), It.IsAny<ForecastingMethod>()), Times.Never);
+    }
+
+    [Fact]
+    public void TrainModel_Should_Throw_ModelTrainingException_With_Correct_ForecastingMethod_For_Different_Methods()
+    {
+        // Arrange
+        var metricName = "test.metric";
+        var method = ForecastingMethod.ExponentialSmoothing;
+        _methodManagerMock.Setup(m => m.GetForecastingMethod(metricName)).Returns(method);
+        _repositoryMock.Setup(r => r.GetHistory(metricName, It.IsAny<TimeSpan>())).Returns(CreateTestHistory(15));
+
+        var strategyMock = new Mock<IForecastingStrategy>();
+        var trainingException = new InvalidOperationException("Exponential smoothing training failed");
+        strategyMock.Setup(s => s.TrainModel(It.IsAny<MLContext>(), It.IsAny<List<MetricDataPoint>>(), It.IsAny<int>()))
+            .Throws(trainingException);
+
+        _methodManagerMock.Setup(m => m.GetStrategy(method)).Returns(strategyMock.Object);
+
+        // Act & Assert
+        var exception = Assert.Throws<ModelTrainingException>(() => _trainer.TrainModel(metricName));
+        Assert.Equal(method, exception.ForecastingMethod);
+        Assert.Contains($"Failed to train {method} model for {metricName}", exception.Message);
+        Assert.Equal(trainingException, exception.InnerException);
     }
 
     [Fact]

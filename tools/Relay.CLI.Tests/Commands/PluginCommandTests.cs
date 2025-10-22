@@ -61,7 +61,7 @@ public class PluginCommandTests
         var command = PluginCommand.Create();
 
         // Assert
-        Assert.Equal(7, command.Subcommands.Count());
+        Assert.Equal(7, command.Subcommands.Count);
     }
 
     [Fact]

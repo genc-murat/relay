@@ -44,7 +44,7 @@ public class ValidationStatusTests
         var values = Enum.GetValues(typeof(ValidationStatus)).Cast<ValidationStatus>().ToList();
 
         // Assert
-        Assert.Equal(3, values.Count);
+        Assert.Equal(3, values.Count());
         Assert.Contains(ValidationStatus.Pass, values);
         Assert.Contains(ValidationStatus.Warning, values);
         Assert.Contains(ValidationStatus.Fail, values);
@@ -107,7 +107,7 @@ public class ValidationStatusTests
         };
 
         // Assert
-        Assert.Equal(3, statuses.Count);
+        Assert.Equal(3, statuses.Count());
         Assert.Equal(3, statuses.Distinct().Count());
     }
 
@@ -169,7 +169,7 @@ public class ValidationStatusTests
         Assert.Single(passingStatuses);
         Assert.Equal(ValidationStatus.Pass, passingStatuses[0]);
 
-        Assert.Equal(2, nonPassingStatuses.Count);
+        Assert.Equal(2, nonPassingStatuses.Count());
         Assert.Contains(ValidationStatus.Warning, nonPassingStatuses);
         Assert.Contains(ValidationStatus.Fail, nonPassingStatuses);
     }
@@ -281,7 +281,7 @@ public class ValidationStatusTests
         };
 
         // Assert
-        Assert.Equal(3, statusDescriptions.Count);
+        Assert.Equal(3, statusDescriptions.Count());
         Assert.Equal("Validation failed", statusDescriptions[ValidationStatus.Fail]);
     }
 
@@ -339,9 +339,9 @@ public class ValidationStatusTests
         var testsRequiringAttention = results.Where(r => r.Status != ValidationStatus.Pass).ToList();
 
         // Assert
-        Assert.Equal(2, passedTests.Count);
+        Assert.Equal(2, passedTests.Count());
         Assert.Single(failedTests);
-        Assert.Equal(3, testsRequiringAttention.Count);
+        Assert.Equal(3, testsRequiringAttention.Count());
     }
 
     [Fact]

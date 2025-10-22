@@ -151,7 +151,7 @@ public class NewCommandTests : IDisposable
         var command = new NewCommand();
 
         // Assert
-        Assert.Equal(10, command.Options.Count());
+        Assert.Equal(10, command.Options.Count);
     }
 
     #endregion

@@ -261,9 +261,9 @@ public class PerformanceRecommendationTests
         // Arrange & Act
         var recommendations = new List<PerformanceRecommendation>
         {
-            new PerformanceRecommendation { Category = "Async", Title = "Use ValueTask" },
-            new PerformanceRecommendation { Category = "Memory", Title = "Use StringBuilder" },
-            new PerformanceRecommendation { Category = "Caching", Title = "Add caching" }
+            new() { Category = "Async", Title = "Use ValueTask" },
+            new() { Category = "Memory", Title = "Use StringBuilder" },
+            new() { Category = "Caching", Title = "Add caching" }
         };
 
         // Assert

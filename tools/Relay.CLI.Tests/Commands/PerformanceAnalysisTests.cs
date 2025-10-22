@@ -426,7 +426,7 @@ public class PerformanceAnalysisTests
         var withRelay = analyses.Where(a => a.HasRelay).ToList();
 
         // Assert
-        Assert.Equal(2, withRelay.Count());
+        Assert.Equal(2, withRelay.Count);
         Assert.True(withRelay.All(a => a.HasRelay));
     }
 

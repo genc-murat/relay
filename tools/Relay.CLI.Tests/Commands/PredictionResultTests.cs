@@ -94,7 +94,7 @@ public class PredictionResultTests
         };
 
         // Act & Assert
-        Assert.Equal(2, results.Count());
+        Assert.Equal(2, results.Count);
         Assert.Equal("CPU", results[0].Metric);
         Assert.Equal("Memory", results[1].Metric);
     }
@@ -114,7 +114,7 @@ public class PredictionResultTests
         var cpuResults = results.Where(r => r.Metric == "CPU").ToList();
 
         // Assert
-        Assert.Equal(2, cpuResults.Count());
+        Assert.Equal(2, cpuResults.Count);
         Assert.True(cpuResults.All(r => r.Metric == "CPU"));
     }
 
@@ -302,7 +302,7 @@ public class PredictionResultTests
                                     select r).ToList();
 
         // Assert
-        Assert.Equal(2, highConfidenceResults.Count());
+        Assert.Equal(2, highConfidenceResults.Count);
         Assert.Equal("Network", highConfidenceResults[0].Metric);
         Assert.Equal("Memory", highConfidenceResults[1].Metric);
     }

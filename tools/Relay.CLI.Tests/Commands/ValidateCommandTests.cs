@@ -332,7 +332,7 @@ public record TestRequest : IRequest<string>;";
         var issues = new List<string> { "Missing CancellationToken", "Wrong return type", "No Handle attribute" };
 
         // Assert
-        Assert.Equal(3, issues.Count());
+        Assert.Equal(3, issues.Count);
     }
 
     [Fact]
@@ -868,7 +868,7 @@ public record TestRequest : IRequest<string>;";
         var command = ValidateCommand.Create();
 
         // Assert
-        Assert.Equal(4, command.Options.Count());
+        Assert.Equal(4, command.Options.Count);
     }
 
     [Fact]

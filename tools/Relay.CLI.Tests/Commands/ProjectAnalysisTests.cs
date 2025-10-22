@@ -246,8 +246,8 @@ public class ProjectAnalysisTests
             Handlers = new List<HandlerInfo> { new HandlerInfo { Name = "CreateUserHandler" } },
             Requests = new List<RequestInfo> { new RequestInfo { Name = "CreateUserRequest" } },
             PerformanceIssues = new List<PerformanceIssue> { new PerformanceIssue { Type = "Memory Leak" } },
-            ReliabilityIssues = new List<ReliabilityIssue> { new ReliabilityIssue { Type = "Timeout" } },
-            Recommendations = new List<Recommendation> { new Recommendation { Title = "Add Caching" } },
+            ReliabilityIssues = [ new() { Type = "Timeout" } ],
+            Recommendations = [ new() { Title = "Add Caching" } ],
             HasRelayCore = true,
             HasMediatR = true,
             HasLogging = true,
@@ -315,7 +315,7 @@ public class ProjectAnalysisTests
         analysis.Handlers.Add(new HandlerInfo { Name = "UpdateUserHandler", IsAsync = false });
 
         // Assert
-        Assert.Equal(2, analysis.Handlers.Count());
+        Assert.Equal(2, analysis.Handlers.Count);
         Assert.Equal(1, analysis.Handlers.Count(h => h.IsAsync));
     }
 
@@ -330,7 +330,7 @@ public class ProjectAnalysisTests
         analysis.PerformanceIssues.Add(new PerformanceIssue { Type = "CPU Bottleneck", Severity = "Medium" });
 
         // Assert
-        Assert.Equal(2, analysis.PerformanceIssues.Count());
+        Assert.Equal(2, analysis.PerformanceIssues.Count);
         Assert.Equal(1, analysis.PerformanceIssues.Count(i => i.Severity == "High"));
     }
 
@@ -394,9 +394,9 @@ public class ProjectAnalysisTests
         // Arrange & Act
         var analyses = new List<ProjectAnalysis>
         {
-            new ProjectAnalysis { ProjectPath = "Project1", HasRelayCore = true },
-            new ProjectAnalysis { ProjectPath = "Project2", HasRelayCore = false },
-            new ProjectAnalysis { ProjectPath = "Project3", HasRelayCore = true }
+            new() { ProjectPath = "Project1", HasRelayCore = true },
+            new() { ProjectPath = "Project2", HasRelayCore = false },
+            new() { ProjectPath = "Project3", HasRelayCore = true }
         };
 
         // Assert
@@ -410,9 +410,9 @@ public class ProjectAnalysisTests
         // Arrange
         var analyses = new List<ProjectAnalysis>
         {
-            new ProjectAnalysis { ProjectPath = "P1", HasRelayCore = true, HasLogging = true, HasValidation = true },
-            new ProjectAnalysis { ProjectPath = "P2", HasRelayCore = false, HasLogging = true, HasValidation = false },
-            new ProjectAnalysis { ProjectPath = "P3", HasRelayCore = true, HasLogging = false, HasValidation = true }
+            new() { ProjectPath = "P1", HasRelayCore = true, HasLogging = true, HasValidation = true },
+            new() { ProjectPath = "P2", HasRelayCore = false, HasLogging = true, HasValidation = false },
+            new() { ProjectPath = "P3", HasRelayCore = true, HasLogging = false, HasValidation = true }
         };
 
         // Act
@@ -432,22 +432,19 @@ public class ProjectAnalysisTests
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            Handlers = new List<HandlerInfo>
-            {
-                new HandlerInfo { Name = "H1", LineCount = 100, IsAsync = true },
-                new HandlerInfo { Name = "H2", LineCount = 80, IsAsync = false },
-                new HandlerInfo { Name = "H3", LineCount = 120, IsAsync = true }
-            },
-            PerformanceIssues = new List<PerformanceIssue>
-            {
-                new PerformanceIssue { Type = "Memory", Count = 5 },
-                new PerformanceIssue { Type = "CPU", Count = 3 }
-            },
-            Recommendations = new List<Recommendation>
-            {
-                new Recommendation { Title = "R1", Priority = "High" },
-                new Recommendation { Title = "R2", Priority = "Medium" }
-            }
+            Handlers = [
+                new() { Name = "H1", LineCount = 100, IsAsync = true },
+                new() { Name = "H2", LineCount = 80, IsAsync = false },
+                new() { Name = "H3", LineCount = 120, IsAsync = true }
+            ],
+            PerformanceIssues = [
+                new() { Type = "Memory", Count = 5 },
+                new() { Type = "CPU", Count = 3 }
+            ],
+            Recommendations = [
+                new() { Title = "R1", Priority = "High" },
+                new() { Title = "R2", Priority = "Medium" }
+            ]
         };
 
         // Act
@@ -486,19 +483,16 @@ public class ProjectAnalysisTests
             Timestamp = new DateTime(2023, 10, 15, 14, 30, 45),
             ProjectFiles = new List<string> { "MyRelayApp.csproj", "appsettings.json", "README.md" },
             SourceFiles = new List<string> { "Program.cs", "Startup.cs", "Controllers/UserController.cs" },
-            Handlers = new List<HandlerInfo>
-            {
-                new HandlerInfo { Name = "CreateUserHandler", IsAsync = true, HasLogging = true, LineCount = 45 },
-                new HandlerInfo { Name = "GetUserHandler", IsAsync = true, HasLogging = false, LineCount = 25 }
-            },
-            PerformanceIssues = new List<PerformanceIssue>
-            {
-                new PerformanceIssue { Type = "N+1 Query", Severity = "High", Count = 3 }
-            },
-            Recommendations = new List<Recommendation>
-            {
-                new Recommendation { Title = "Add Response Caching", Priority = "Medium" }
-            },
+            Handlers = [
+                new() { Name = "CreateUserHandler", IsAsync = true, HasLogging = true, LineCount = 45 },
+                new() { Name = "GetUserHandler", IsAsync = true, HasLogging = false, LineCount = 25 }
+            ],
+            PerformanceIssues = [
+                new() { Type = "N+1 Query", Severity = "High", Count = 3 }
+            ],
+            Recommendations = [
+                new() { Title = "Add Response Caching", Priority = "Medium" }
+            ],
             HasRelayCore = true,
             HasMediatR = true,
             HasLogging = true,
@@ -569,9 +563,9 @@ public class ProjectAnalysisTests
         // Arrange
         var analyses = new List<ProjectAnalysis>
         {
-            new ProjectAnalysis { ProjectPath = "P1", AnalysisDepth = "Basic", Handlers = new List<HandlerInfo> { new HandlerInfo() } },
-            new ProjectAnalysis { ProjectPath = "P2", AnalysisDepth = "Full", Handlers = new List<HandlerInfo> { new HandlerInfo(), new HandlerInfo() } },
-            new ProjectAnalysis { ProjectPath = "P3", AnalysisDepth = "Basic", Handlers = new List<HandlerInfo> { new HandlerInfo() } }
+            new() { ProjectPath = "P1", AnalysisDepth = "Basic", Handlers = [ new() ] },
+            new() { ProjectPath = "P2", AnalysisDepth = "Full", Handlers = [ new(), new() ] },
+            new() { ProjectPath = "P3", AnalysisDepth = "Basic", Handlers = [ new() ] }
         };
 
         // Act
@@ -594,16 +588,14 @@ public class ProjectAnalysisTests
             HasLogging = true,
             HasValidation = true,
             HasCaching = false,
-            PerformanceIssues = new List<PerformanceIssue>
-            {
-                new PerformanceIssue { Severity = "High", Count = 2 },
-                new PerformanceIssue { Severity = "Medium", Count = 3 },
-                new PerformanceIssue { Severity = "Low", Count = 5 }
-            },
-            ReliabilityIssues = new List<ReliabilityIssue>
-            {
-                new ReliabilityIssue { Severity = "High", Count = 1 }
-            }
+            PerformanceIssues = [
+                new() { Severity = "High", Count = 2 },
+                new() { Severity = "Medium", Count = 3 },
+                new() { Severity = "Low", Count = 5 }
+            ],
+            ReliabilityIssues = [
+                new() { Severity = "High", Count = 1 }
+            ]
         };
 
         // Act - Simulate health score calculation
@@ -642,16 +634,14 @@ public class ProjectAnalysisTests
                 new HandlerInfo { Name = "GetUserHandler", IsAsync = true },
                 new HandlerInfo { Name = "UpdateUserHandler", IsAsync = false }
             },
-            PerformanceIssues = new List<PerformanceIssue>
-            {
-                new PerformanceIssue { Type = "Memory Leak", Severity = "High" },
-                new PerformanceIssue { Type = "Slow Query", Severity = "Medium" }
-            },
-            Recommendations = new List<Recommendation>
-            {
-                new Recommendation { Title = "Add Caching", Priority = "High" },
-                new Recommendation { Title = "Optimize DB Queries", Priority = "Medium" }
-            },
+            PerformanceIssues = [
+                new() { Type = "Memory Leak", Severity = "High" },
+                new() { Type = "Slow Query", Severity = "Medium" }
+            ],
+            Recommendations = [
+                new() { Title = "Add Caching", Priority = "High" },
+                new() { Title = "Optimize DB Queries", Priority = "Medium" }
+            ],
             HasRelayCore = true,
             HasMediatR = true,
             HasLogging = true,
@@ -666,8 +656,8 @@ public class ProjectAnalysisTests
             FilesAnalyzed = analysis.SourceFiles.Count,
             HandlersFound = analysis.Handlers.Count,
             AsyncHandlers = analysis.Handlers.Count(h => h.IsAsync),
-            IssuesFound = analysis.PerformanceIssues.Count,
-            RecommendationsCount = analysis.Recommendations.Count,
+            IssuesFound = analysis.PerformanceIssues.Count(),
+            RecommendationsCount = analysis.Recommendations.Count(),
             FeaturesEnabled = new[] { analysis.HasRelayCore, analysis.HasMediatR, analysis.HasLogging, analysis.HasValidation, analysis.HasCaching }.Count(f => f)
         };
 

@@ -56,7 +56,7 @@ public class DiagnosticSeverityTests
         var values = Enum.GetValues(typeof(DiagnosticSeverity)).Cast<DiagnosticSeverity>().ToList();
 
         // Assert
-        Assert.Equal(4, values.Count());
+        Assert.Equal(4, values.Count);
         Assert.Contains(DiagnosticSeverity.Success, values);
         Assert.Contains(DiagnosticSeverity.Info, values);
         Assert.Contains(DiagnosticSeverity.Warning, values);
@@ -153,7 +153,7 @@ public class DiagnosticSeverityTests
         };
 
         // Assert
-        Assert.Equal(4, severities.Count());
+        Assert.Equal(4, severities.Count);
         Assert.Equal(4, severities.Distinct().Count());
     }
 
@@ -212,7 +212,7 @@ public class DiagnosticSeverityTests
         var highSeverity = severities.Where(s => (int)s >= (int)DiagnosticSeverity.Warning).ToList();
 
         // Assert
-        Assert.Equal(2, highSeverity.Count());
+        Assert.Equal(2, highSeverity.Count);
         Assert.Contains(DiagnosticSeverity.Warning, highSeverity);
         Assert.Contains(DiagnosticSeverity.Error, highSeverity);
     }
@@ -327,7 +327,7 @@ public class DiagnosticSeverityTests
         };
 
         // Assert
-        Assert.Equal(4, severityDescriptions.Count());
+        Assert.Equal(4, severityDescriptions.Count);
         Assert.Equal("Error that needs to be fixed", severityDescriptions[DiagnosticSeverity.Error]);
     }
 

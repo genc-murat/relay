@@ -110,7 +110,7 @@ public class PredictedBottleneckTests
         };
 
         // Act & Assert
-        Assert.Equal(2, bottlenecks.Count());
+        Assert.Equal(2, bottlenecks.Count);
         Assert.Equal("Database", bottlenecks[0].Component);
         Assert.Equal("Network", bottlenecks[1].Component);
     }
@@ -130,7 +130,7 @@ public class PredictedBottleneckTests
         var highImpactBottlenecks = bottlenecks.Where(b => b.Impact == "High").ToList();
 
         // Assert
-        Assert.Equal(2, highImpactBottlenecks.Count());
+        Assert.Equal(2, highImpactBottlenecks.Count);
         Assert.True(highImpactBottlenecks.All(b => b.Impact == "High"));
     }
 
@@ -326,7 +326,7 @@ public class PredictedBottleneckTests
                                              select b).ToList();
 
         // Assert
-        Assert.Equal(2, highImpactHighProbBottlenecks.Count());
+        Assert.Equal(2, highImpactHighProbBottlenecks.Count);
         Assert.Equal("CPU", highImpactHighProbBottlenecks[0].Component);
         Assert.Equal("Memory", highImpactHighProbBottlenecks[1].Component);
     }

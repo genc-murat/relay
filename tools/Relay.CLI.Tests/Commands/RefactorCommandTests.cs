@@ -106,7 +106,7 @@ public class RefactorCommandTests
         var command = RefactorCommand.Create();
 
         // Assert
-        Assert.Equal(10, command.Options.Count());
+        Assert.Equal(10, command.Options.Count);
     }
 
     [Fact]

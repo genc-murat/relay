@@ -427,7 +427,7 @@ public class OptimizationContextTests
         var grouped = context.OptimizationActions.GroupBy(a => a.Type).ToList();
 
         // Assert
-        Assert.Equal(2, grouped.Count);
+        Assert.Equal(2, grouped.Count());
         Assert.Equal(2, grouped.First(g => g.Key == "Handler").Count());
     }
 

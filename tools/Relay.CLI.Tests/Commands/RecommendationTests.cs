@@ -94,7 +94,7 @@ public class RecommendationTests
             Priority = "Critical",
             Title = "Implement HTTPS",
             Description = "Enable HTTPS to secure data transmission",
-            Actions = new List<string> { "Obtain SSL certificate", "Configure HTTPS in web server", "Update all HTTP links to HTTPS" },
+            Actions = [ "Obtain SSL certificate", "Configure HTTPS in web server", "Update all HTTP links to HTTPS" ],
             EstimatedImpact = "Prevents man-in-the-middle attacks"
         };
 
@@ -103,7 +103,7 @@ public class RecommendationTests
         Assert.Equal("Critical", recommendation.Priority);
         Assert.Equal("Implement HTTPS", recommendation.Title);
         Assert.Equal("Enable HTTPS to secure data transmission", recommendation.Description);
-        Assert.Equal(3, recommendation.Actions.Count());
+        Assert.Equal(3, recommendation.Actions.Count);
         Assert.Equal("Prevents man-in-the-middle attacks", recommendation.EstimatedImpact);
     }
 
@@ -210,7 +210,7 @@ public class RecommendationTests
         recommendation.Actions.Add("Step 3: Implement the changes");
 
         // Assert
-        Assert.Equal(3, recommendation.Actions.Count());
+        Assert.Equal(3, recommendation.Actions.Count);
         Assert.StartsWith("Step 1", recommendation.Actions[0]);
         Assert.StartsWith("Step 2", recommendation.Actions[1]);
         Assert.StartsWith("Step 3", recommendation.Actions[2]);
@@ -232,18 +232,17 @@ public class RecommendationTests
         // Arrange
         var recommendation = new Recommendation
         {
-            Actions = new List<string>
-            {
+            Actions = [
                 "Install required NuGet packages",
                 "Update configuration files",
                 "Modify startup code",
                 "Add middleware components",
                 "Update documentation"
-            }
+            ]
         };
 
         // Assert
-        Assert.Equal(5, recommendation.Actions.Count());
+        Assert.Equal(5, recommendation.Actions.Count);
         Assert.True(recommendation.Actions.All(a => a.Length > 0));
     }
 
@@ -284,7 +283,7 @@ public class RecommendationTests
         };
 
         // Assert
-        Assert.Equal(3, recommendations.Count());
+        Assert.Equal(3, recommendations.Count);
         Assert.Equal(2, recommendations.Count(r => r.Priority == "High"));
         Assert.Equal(1, recommendations.Count(r => r.Category == "Performance"));
     }
@@ -307,7 +306,7 @@ public class RecommendationTests
         var criticalPriority = recommendations.Where(r => r.Priority == "Critical").ToList();
 
         // Assert
-        Assert.Equal(2, highPriority.Count());
+        Assert.Equal(2, highPriority.Count);
         Assert.Single(criticalPriority);
     }
 
@@ -327,7 +326,7 @@ public class RecommendationTests
         var performanceRecommendations = recommendations.Where(r => r.Category == "Performance").ToList();
 
         // Assert
-        Assert.Equal(2, performanceRecommendations.Count());
+        Assert.Equal(2, performanceRecommendations.Count);
         Assert.True(performanceRecommendations.All(r => r.Category == "Performance"));
     }
 
@@ -449,7 +448,7 @@ public class RecommendationTests
         Assert.Equal("High", recommendation.Priority);
         Assert.Equal("Implement Query Result Caching", recommendation.Title);
         Assert.Contains("Database queries", recommendation.Description);
-        Assert.Equal(5, recommendation.Actions.Count());
+        Assert.Equal(5, recommendation.Actions.Count);
         Assert.Contains("Install", recommendation.Actions[0]);
         Assert.Contains("70%", recommendation.EstimatedImpact);
     }
@@ -478,7 +477,7 @@ public class RecommendationTests
         // Assert
         Assert.Equal("Security", recommendation.Category);
         Assert.Equal("Critical", recommendation.Priority);
-        Assert.Equal(5, recommendation.Actions.Count());
+        Assert.Equal(5, recommendation.Actions.Count);
         Assert.Contains("SQL injection", recommendation.EstimatedImpact);
     }
 
@@ -517,7 +516,7 @@ public class RecommendationTests
         var highImpact = recommendations.Where(r => r.EstimatedImpact.Contains("50%") || r.EstimatedImpact.Contains("80%")).ToList();
 
         // Assert
-        Assert.Equal(2, highImpact.Count());
+        Assert.Equal(2, highImpact.Count);
     }
 
     [Fact]
@@ -526,20 +525,18 @@ public class RecommendationTests
         // Arrange
         var recommendations = new List<Recommendation>
         {
-            new Recommendation
-            {
+            new() {
                 Category = "Performance",
                 Priority = "High",
                 Title = "Add Response Caching",
-                Actions = new List<string> { "Install package", "Configure cache", "Add attributes" },
+                Actions = ["Install package", "Configure cache", "Add attributes"],
                 EstimatedImpact = "50% faster responses"
             },
-            new Recommendation
-            {
+            new() {
                 Category = "Security",
                 Priority = "Critical",
                 Title = "Enable HTTPS",
-                Actions = new List<string> { "Get certificate", "Configure server", "Update links" },
+                Actions = ["Get certificate", "Configure server", "Update links"],
                 EstimatedImpact = "Secure data transmission"
             }
         };
@@ -555,7 +552,7 @@ public class RecommendationTests
         }).ToList();
 
         // Assert
-        Assert.Equal(2, report.Count());
+        Assert.Equal(2, report.Count);
         Assert.Equal(3, report[0].ActionCount);
         Assert.True(report[0].HasImpactEstimate);
         Assert.Equal(3, report[1].ActionCount);
@@ -572,8 +569,8 @@ public class RecommendationTests
             Priority = "Medium",
             Title = "Implement Clean Architecture Pattern",
             Description = "The current codebase mixes concerns and would benefit from a Clean Architecture approach to improve maintainability and testability.",
-            Actions = new List<string>
-            {
+            Actions =
+            [
                 "Create Core project for domain entities and business rules",
                 "Create Application project for use cases and commands/queries",
                 "Create Infrastructure project for external dependencies",
@@ -581,13 +578,13 @@ public class RecommendationTests
                 "Implement dependency injection properly",
                 "Add unit tests for all layers",
                 "Update documentation"
-            },
+            ],
             EstimatedImpact = "Improved code organization, better testability, easier maintenance, potential for 20-30% increase in development velocity"
         };
 
         // Assert - Basic serialization check
         Assert.Equal("Architecture", recommendation.Category);
-        Assert.Equal(7, recommendation.Actions.Count());
+        Assert.Equal(7, recommendation.Actions.Count);
         Assert.Contains("Clean Architecture", recommendation.Description);
         Assert.Contains("20-30%", recommendation.EstimatedImpact);
     }

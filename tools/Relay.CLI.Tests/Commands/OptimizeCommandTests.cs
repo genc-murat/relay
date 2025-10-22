@@ -134,7 +134,7 @@ return new[] { ""item1"", ""item2"" };";
     {
         // Arrange
         var codeWithLinq = @"
-for (int i = 0; i < items.Count(); i++) // Count() is inefficient
+for (int i = 0; i < items.Count; i++) // Count() is inefficient
 {
     // Process item
 }";

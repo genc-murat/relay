@@ -175,9 +175,9 @@ public class PipelineResultTests
         // Arrange & Act
         var results = new List<PipelineResult>
         {
-            new PipelineResult { Success = true, TotalDuration = TimeSpan.FromSeconds(30) },
-            new PipelineResult { Success = false, TotalDuration = TimeSpan.FromSeconds(45) },
-            new PipelineResult { Success = true, TotalDuration = TimeSpan.FromSeconds(25) }
+            new() { Success = true, TotalDuration = TimeSpan.FromSeconds(30) },
+            new() { Success = false, TotalDuration = TimeSpan.FromSeconds(45) },
+            new() { Success = true, TotalDuration = TimeSpan.FromSeconds(25) }
         };
 
         // Assert
@@ -215,25 +215,23 @@ public class PipelineResultTests
         // Arrange
         var results = new List<PipelineResult>
         {
-            new PipelineResult
+            new()
             {
                 Success = true,
                 TotalDuration = TimeSpan.FromSeconds(30),
-                Stages = new List<PipelineStageResult>
-                {
-                    new PipelineStageResult { StageName = "Build", Duration = TimeSpan.FromSeconds(10) },
-                    new PipelineStageResult { StageName = "Test", Duration = TimeSpan.FromSeconds(20) }
-                }
+                Stages = [
+                    new() { StageName = "Build", Duration = TimeSpan.FromSeconds(10) },
+                    new() { StageName = "Test", Duration = TimeSpan.FromSeconds(20) }
+                ]
             },
-            new PipelineResult
+            new()
             {
                 Success = true,
                 TotalDuration = TimeSpan.FromSeconds(45),
-                Stages = new List<PipelineStageResult>
-                {
-                    new PipelineStageResult { StageName = "Build", Duration = TimeSpan.FromSeconds(15) },
-                    new PipelineStageResult { StageName = "Test", Duration = TimeSpan.FromSeconds(30) }
-                }
+                Stages = [
+                    new() { StageName = "Build", Duration = TimeSpan.FromSeconds(15) },
+                    new() { StageName = "Test", Duration = TimeSpan.FromSeconds(30) }
+                ]
             }
         };
 
@@ -265,9 +263,8 @@ public class PipelineResultTests
         // Arrange & Act
         var result = new PipelineResult
         {
-            Stages = new List<PipelineStageResult>
-            {
-                new PipelineStageResult
+            Stages = [
+                new()
                 {
                     StageName = "Initialize",
                     StageEmoji = "🚀",
@@ -275,7 +272,7 @@ public class PipelineResultTests
                     Message = "Project initialized successfully",
                     Duration = TimeSpan.FromSeconds(2)
                 },
-                new PipelineStageResult
+                new()
                 {
                     StageName = "Build",
                     StageEmoji = "🔨",
@@ -283,21 +280,19 @@ public class PipelineResultTests
                     Message = "Build completed without errors",
                     Duration = TimeSpan.FromSeconds(15)
                 },
-                new PipelineStageResult
+                new()
                 {
                     StageName = "Test",
                     StageEmoji = "🧪",
                     Success = true,
                     Message = "All tests passed",
-                    Duration = TimeSpan.FromSeconds(25)
+                    Duration = TimeSpan.FromSeconds(10)
                 }
-            },
-            TotalDuration = TimeSpan.FromSeconds(42),
-            Success = true
+            ]
         };
 
         // Assert
-        Assert.Equal(3, result.Stages.Count());
+        Assert.Equal(3, result.Stages.Count);
         Assert.Equal(TimeSpan.FromSeconds(42), result.TotalDuration);
         Assert.True(result.Success);
         Assert.True(result.Stages.All(s => s.Success));
@@ -340,7 +335,7 @@ public class PipelineResultTests
         };
 
         // Assert
-        Assert.Equal(3, result.Stages.Count());
+        Assert.Equal(3, result.Stages.Count);
         Assert.Equal(TimeSpan.FromSeconds(10), result.TotalDuration);
         Assert.False(result.Success);
         Assert.Equal(1, result.Stages.Count(s => s.Success));
@@ -435,12 +430,11 @@ public class PipelineResultTests
         // Arrange
         var result = new PipelineResult
         {
-            Stages = new List<PipelineStageResult>
-            {
-                new PipelineStageResult { StageName = "Stage1", Duration = TimeSpan.FromSeconds(10) },
-                new PipelineStageResult { StageName = "Stage2", Duration = TimeSpan.FromSeconds(15) },
-                new PipelineStageResult { StageName = "Stage3", Duration = TimeSpan.FromSeconds(5) }
-            },
+            Stages = [
+                new() { StageName = "Stage1", Duration = TimeSpan.FromSeconds(10) },
+                new() { StageName = "Stage2", Duration = TimeSpan.FromSeconds(15) },
+                new() { StageName = "Stage3", Duration = TimeSpan.FromSeconds(5) }
+            ],
             TotalDuration = TimeSpan.FromSeconds(30),
             Success = true
         };
@@ -461,12 +455,11 @@ public class PipelineResultTests
         // Arrange
         var result = new PipelineResult
         {
-            Stages = new List<PipelineStageResult>
-            {
-                new PipelineStageResult { StageName = "Init", Success = true },
-                new PipelineStageResult { StageName = "Build", Success = false, Error = "Build failed" },
-                new PipelineStageResult { StageName = "Test", Success = false, Message = "Skipped" }
-            },
+            Stages = [
+                new() { StageName = "Init", Success = true },
+                new() { StageName = "Build", Success = false, Error = "Build failed" },
+                new() { StageName = "Test", Success = false, Message = "Skipped" }
+            ],
             Success = false
         };
 
@@ -475,7 +468,7 @@ public class PipelineResultTests
         var stagesWithErrors = result.Stages.Where(s => s.Error != null).ToList();
 
         // Assert
-        Assert.Equal(2, failedStages.Count());
+        Assert.Equal(2, failedStages.Count);
         Assert.Single(stagesWithErrors);
         Assert.Equal("Build failed", stagesWithErrors[0].Error);
     }
@@ -486,36 +479,35 @@ public class PipelineResultTests
         // Arrange & Act
         var result = new PipelineResult
         {
-            Stages = new List<PipelineStageResult>
-            {
-                new PipelineStageResult
+            Stages = [
+                new()
                 {
                     StageName = "Dependencies",
                     StageEmoji = "📦",
                     Success = true,
                     Message = "All dependencies resolved",
                     Duration = TimeSpan.FromSeconds(3),
-                    Details = new List<string> { "Restored 45 packages", "No conflicts detected" }
+                    Details = [ "Restored 45 packages", "No conflicts detected" ]
                 },
-                new PipelineStageResult
+                new()
                 {
                     StageName = "Compilation",
                     StageEmoji = "⚙️",
                     Success = true,
                     Message = "Code compiled successfully",
                     Duration = TimeSpan.FromSeconds(12),
-                    Details = new List<string> { "Compiled 15 source files", "0 warnings, 0 errors" }
+                    Details = [ "Compiled 15 source files", "0 warnings, 0 errors" ]
                 },
-                new PipelineStageResult
+                new()
                 {
                     StageName = "Unit Tests",
                     StageEmoji = "🧪",
                     Success = true,
                     Message = "All unit tests passed",
                     Duration = TimeSpan.FromSeconds(8),
-                    Details = new List<string> { "Ran 150 tests", "Coverage: 95%" }
+                    Details = [ "Ran 150 tests", "Coverage: 95%" ]
                 },
-                new PipelineStageResult
+                new()
                 {
                     StageName = "Integration Tests",
                     StageEmoji = "🔗",
@@ -523,15 +515,15 @@ public class PipelineResultTests
                     Message = "Integration tests failed",
                     Error = "Database connection timeout",
                     Duration = TimeSpan.FromSeconds(5),
-                    Details = new List<string> { "Failed test: UserLoginTest", "Timeout after 30s" }
+                    Details = [ "Failed test: UserLoginTest", "Timeout after 30s" ]
                 }
-            },
+            ],
             TotalDuration = TimeSpan.FromSeconds(28),
             Success = false
         };
 
         // Assert
-        Assert.Equal(4, result.Stages.Count());
+        Assert.Equal(4, result.Stages.Count);
         Assert.Equal(TimeSpan.FromSeconds(28), result.TotalDuration);
         Assert.False(result.Success);
         Assert.Equal(3, result.Stages.Count(s => s.Success));

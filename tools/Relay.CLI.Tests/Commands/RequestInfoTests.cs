@@ -231,7 +231,7 @@ public class RequestInfoTests
         };
 
         // Assert
-        Assert.Equal(3, requests.Count());
+        Assert.Equal(3, requests.Count);
         Assert.Equal(2, requests.Count(r => r.IsRecord));
         Assert.Equal(8, requests.Sum(r => r.ParameterCount));
     }
@@ -253,8 +253,8 @@ public class RequestInfoTests
         var classRequests = requests.Where(r => !r.IsRecord).ToList();
 
         // Assert
-        Assert.Equal(2, recordRequests.Count());
-        Assert.Equal(2, classRequests.Count());
+        Assert.Equal(2, recordRequests.Count);
+        Assert.Equal(2, classRequests.Count);
         Assert.True(recordRequests.All(r => r.IsRecord));
         Assert.True(classRequests.All(r => !r.IsRecord));
     }
@@ -277,9 +277,9 @@ public class RequestInfoTests
         var requestsWithCaching = requests.Where(r => r.HasCaching).ToList();
 
         // Assert
-        Assert.Equal(2, requestsWithValidation.Count());
-        Assert.Equal(2, requestsWithSecurity.Count());
-        Assert.Equal(2, requestsWithCaching.Count());
+        Assert.Equal(2, requestsWithValidation.Count);
+        Assert.Equal(2, requestsWithSecurity.Count);
+        Assert.Equal(2, requestsWithCaching.Count);
     }
 
     [Fact]
@@ -457,7 +457,7 @@ public class RequestInfoTests
 
         // Assert
         Assert.Single(userRequests);
-        Assert.Equal(2, commandRequests.Count());
+        Assert.Equal(2, commandRequests.Count);
     }
 
     [Fact]
@@ -542,7 +542,7 @@ public class RequestInfoTests
         }).ToList();
 
         // Assert
-        Assert.Equal(2, report.Count());
+        Assert.Equal(2, report.Count);
         Assert.Equal("Command", report[0].Type);
         Assert.Equal(2, report[0].Complexity);
         Assert.Contains("Record", report[0].Features);

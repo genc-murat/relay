@@ -244,7 +244,7 @@ public class ReliabilityIssueTests
         };
 
         // Assert
-        Assert.Equal(3, issues.Count());
+        Assert.Equal(3, issues.Count);
         Assert.Equal(17, issues.Sum(i => i.Count));
     }
 
@@ -264,7 +264,7 @@ public class ReliabilityIssueTests
         var timeoutIssues = issues.Where(i => i.Type == "Timeout").ToList();
 
         // Assert
-        Assert.Equal(2, timeoutIssues.Count());
+        Assert.Equal(2, timeoutIssues.Count);
         Assert.True(timeoutIssues.All(i => i.Type == "Timeout"));
     }
 
@@ -284,7 +284,7 @@ public class ReliabilityIssueTests
         var highSeverityIssues = issues.Where(i => i.Severity == "High").ToList();
 
         // Assert
-        Assert.Equal(2, highSeverityIssues.Count());
+        Assert.Equal(2, highSeverityIssues.Count);
         Assert.True(highSeverityIssues.All(i => i.Severity == "High"));
     }
 
@@ -494,7 +494,7 @@ public class ReliabilityIssueTests
         var highImpactIssues = issues.Where(i => i.Severity == "High" || i.Severity == "Critical").ToList();
 
         // Assert
-        Assert.Equal(2, highImpactIssues.Count());
+        Assert.Equal(2, highImpactIssues.Count);
         Assert.True(highImpactIssues.All(i => i.Severity != "Low"));
     }
 
@@ -534,7 +534,7 @@ public class ReliabilityIssueTests
         }).ToList();
 
         // Assert
-        Assert.Equal(2, report.Count());
+        Assert.Equal(2, report.Count);
         Assert.Equal(50, report[0].Occurrences);
         Assert.Equal("Medium", report[0].BusinessImpact);
         Assert.Equal(1, report[1].Occurrences);

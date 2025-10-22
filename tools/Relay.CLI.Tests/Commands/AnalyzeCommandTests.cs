@@ -1252,7 +1252,7 @@ public class RegularHandler : INotificationHandler<TestNotification>
             await AnalyzeCommand.AnalyzeHandlers(analysis, null, null);
 
             // Assert
-            Assert.Equal(2, analysis.Handlers.Count());
+            Assert.Equal(2, analysis.Handlers.Count);
             Assert.Equal(1, analysis.Handlers.Count(h => h.Name.Contains("Optimized")));
             Assert.Equal(2, analysis.Handlers.Count(h => h.UsesValueTask));
             Assert.Equal(2, analysis.Handlers.Count(h => h.HasCancellationToken));

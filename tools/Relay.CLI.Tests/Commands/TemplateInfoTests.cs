@@ -61,7 +61,7 @@ public class TemplateInfoTests
         };
 
         // Assert
-        Assert.Equal(3, template.Tags.Count());
+        Assert.Equal(3, template.Tags.Length);
         Assert.Contains("test", template.Tags);
         Assert.Contains("development", template.Tags);
         Assert.Contains("ci", template.Tags);

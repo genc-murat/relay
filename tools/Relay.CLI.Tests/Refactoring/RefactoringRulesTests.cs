@@ -329,7 +329,7 @@ public class Test
 {
     public int GetCount(List<int> items)
     {
-        return items.Where(x => x > 0).Count();
+        return items.Where(x => x > 0).Count;
     }
 }";
 
@@ -344,7 +344,7 @@ public class Test
 
         // Assert
         Assert.True(suggestions.Count > 0);
-        Assert.Contains("Where().Count()", suggestions.First().Description);
+        Assert.Contains("Where().Count", suggestions.First().Description);
         Assert.Contains("Count(", suggestions.First().SuggestedCode);
         Assert.DoesNotContain("Where", suggestions.First().SuggestedCode);
     }
@@ -423,7 +423,7 @@ public class Test
     {
         var anyResult = items.Where(x => x > 0).Any();
         var firstResult = items.Where(x => x < 10).First();
-        var countResult = items.Where(x => x % 2 == 0).Count();
+        var countResult = items.Where(x => x % 2 == 0).Count;
         var selectResult = items.Select(x => x);
         return anyResult;
     }
@@ -442,7 +442,7 @@ public class Test
         Assert.Equal(4, suggestions.Count);
         Assert.Contains(suggestions, s => s.Description.Contains("Where().Any()"));
         Assert.Contains(suggestions, s => s.Description.Contains("Where().First()"));
-        Assert.Contains(suggestions, s => s.Description.Contains("Where().Count()"));
+        Assert.Contains(suggestions, s => s.Description.Contains("Where().Count"));
         Assert.Contains(suggestions, s => s.Description.Contains("Select(x => x)"));
     }
 
@@ -526,7 +526,7 @@ public class Test
 {
     public int GetCount(List<int> items)
     {
-        return items.Where(x => x > 0).Count();
+        return items.Where(x => x > 0).Count;
     }
 }";
 
@@ -537,7 +537,7 @@ public class Test
         var options = new RefactoringOptions();
 
         var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
-        var suggestion = suggestions.First(s => s.Description.Contains("Where().Count()"));
+        var suggestion = suggestions.First(s => s.Description.Contains("Where().Count"));
 
         // Act
         var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
@@ -545,7 +545,7 @@ public class Test
 
         // Assert
         Assert.Contains("items.Count(x => x > 0)", newCode);
-        Assert.DoesNotContain("items.Where(x => x > 0).Count()", newCode);
+        Assert.DoesNotContain("items.Where(x => x > 0).Count", newCode);
     }
 
     [Fact]

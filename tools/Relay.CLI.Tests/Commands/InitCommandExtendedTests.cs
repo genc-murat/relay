@@ -119,7 +119,7 @@ public class InitCommandExtendedTests : IDisposable
         var command = InitCommand.Create();
 
         // Assert
-        Assert.Equal(7, command.Options.Count()); // name, template, output, framework, git, docker, ci
+        Assert.Equal(7, command.Options.Count); // name, template, output, framework, git, docker, ci
     }
 
     [Fact]

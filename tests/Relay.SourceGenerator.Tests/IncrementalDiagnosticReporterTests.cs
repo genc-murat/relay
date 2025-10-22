@@ -59,7 +59,7 @@ public class IncrementalDiagnosticReporterTests
     }
 
     [Fact]
-    public void IncrementalDiagnosticReporter_ShouldHandleConcurrentAccess()
+    public async Task IncrementalDiagnosticReporter_ShouldHandleConcurrentAccess()
     {
         // Arrange
         var reporter = new IncrementalDiagnosticReporter();
@@ -80,7 +80,7 @@ public class IncrementalDiagnosticReporterTests
             }));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
 
         // Assert
         var diagnostics = reporter.GetDiagnostics();

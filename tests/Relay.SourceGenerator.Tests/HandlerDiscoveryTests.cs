@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference
+
 namespace Relay.SourceGenerator.Tests
 {
     public class HandlerDiscoveryTests

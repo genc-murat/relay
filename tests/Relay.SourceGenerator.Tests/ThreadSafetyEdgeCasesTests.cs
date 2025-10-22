@@ -57,7 +57,7 @@ public class ThreadSafetyEdgeCasesTests
     }
 
     [Fact]
-    public void RelayCompilationContext_RapidSuccessiveCalls_NoDeadlock()
+    public async Task RelayCompilationContext_ShouldHandleHighConcurrencyWithoutDeadlock()
     {
         // Arrange
         var compilation = CreateTestCompilationWithSystemTypes();
@@ -81,13 +81,13 @@ public class ThreadSafetyEdgeCasesTests
         });
 
         // Assert: Should complete without deadlock
-        var finishedInTime = task.Wait(timeout);
-        Assert.True(finishedInTime, "Operation timed out - possible deadlock");
+        var completedTask = await Task.WhenAny(task, Task.Delay(timeout));
+        Assert.True(completedTask == task, "Operation timed out - possible deadlock");
         Assert.True(completed);
     }
 
     [Fact]
-    public void RelayCompilationContext_CancellationToken_PropagatedCorrectly()
+    public async Task RelayCompilationContext_CancellationToken_PropagatedCorrectly()
     {
         // Arrange
         var compilation = CreateTestCompilation();
@@ -116,7 +116,7 @@ public class ThreadSafetyEdgeCasesTests
             });
         });
 
-        task.Wait();
+        await task;
 
         // Assert: Some operations should succeed, some should be cancelled
         Assert.True(successCount > 0);

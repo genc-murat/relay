@@ -4,6 +4,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
 using System.Linq;
 
+#pragma warning disable CS8601 // Possible null reference assignment
+#pragma warning disable CS8604 // Possible null reference argument
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type
+
 namespace Relay.SourceGenerator.Tests;
 
 public class HandlerClassInfoTests

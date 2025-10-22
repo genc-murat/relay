@@ -5,6 +5,8 @@ using Relay.SourceGenerator.Validators;
 using System.Collections.Immutable;
 using System.Reflection;
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
+
 namespace Relay.SourceGenerator.Tests;
 
 /// <summary>

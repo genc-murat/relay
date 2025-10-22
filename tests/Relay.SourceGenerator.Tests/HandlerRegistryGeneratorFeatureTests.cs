@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
+#pragma warning disable CS8603 // Possible null reference return
+
 namespace Relay.SourceGenerator.Tests
 {
     public class HandlerRegistryGeneratorFeatureTests

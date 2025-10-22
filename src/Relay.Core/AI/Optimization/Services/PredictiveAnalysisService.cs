@@ -220,35 +220,91 @@ namespace Relay.Core.AI.Optimization.Services
             }
         }
 
-        private Dictionary<string, double> PredictNextHour()
+        private Dictionary<string, ForecastResult> PredictNextHour()
         {
-            var predictions = new Dictionary<string, double>();
+            var predictions = new Dictionary<string, ForecastResult>();
             var recentSnapshots = _metricsHistory.Reverse().Take(10).ToArray();
 
             if (recentSnapshots.Length < 5)
                 return predictions;
 
             // Simple linear trend prediction
-            predictions["CpuUtilization"] = PredictMetric(recentSnapshots, "CpuUtilization");
-            predictions["MemoryUtilization"] = PredictMetric(recentSnapshots, "MemoryUtilization");
-            predictions["ThroughputPerSecond"] = PredictMetric(recentSnapshots, "ThroughputPerSecond");
-            predictions["ErrorRate"] = PredictMetric(recentSnapshots, "ErrorRate");
+            var latest = recentSnapshots.Last();
+            predictions["CpuUtilization"] = new ForecastResult
+            {
+                Current = latest.Metrics.GetValueOrDefault("CpuUtilization", 0),
+                Forecast5Min = PredictMetric(recentSnapshots, "CpuUtilization"),
+                Forecast15Min = PredictMetric(recentSnapshots, "CpuUtilization"),
+                Forecast60Min = PredictMetric(recentSnapshots, "CpuUtilization"),
+                Confidence = CalculatePredictionConfidence()
+            };
+
+            predictions["MemoryUtilization"] = new ForecastResult
+            {
+                Current = latest.Metrics.GetValueOrDefault("MemoryUtilization", 0),
+                Forecast5Min = PredictMetric(recentSnapshots, "MemoryUtilization"),
+                Forecast15Min = PredictMetric(recentSnapshots, "MemoryUtilization"),
+                Forecast60Min = PredictMetric(recentSnapshots, "MemoryUtilization"),
+                Confidence = CalculatePredictionConfidence()
+            };
+
+            predictions["ThroughputPerSecond"] = new ForecastResult
+            {
+                Current = latest.Metrics.GetValueOrDefault("ThroughputPerSecond", 0),
+                Forecast5Min = PredictMetric(recentSnapshots, "ThroughputPerSecond"),
+                Forecast15Min = PredictMetric(recentSnapshots, "ThroughputPerSecond"),
+                Forecast60Min = PredictMetric(recentSnapshots, "ThroughputPerSecond"),
+                Confidence = CalculatePredictionConfidence()
+            };
+
+            predictions["ErrorRate"] = new ForecastResult
+            {
+                Current = latest.Metrics.GetValueOrDefault("ErrorRate", 0),
+                Forecast5Min = PredictMetric(recentSnapshots, "ErrorRate"),
+                Forecast15Min = PredictMetric(recentSnapshots, "ErrorRate"),
+                Forecast60Min = PredictMetric(recentSnapshots, "ErrorRate"),
+                Confidence = CalculatePredictionConfidence()
+            };
 
             return predictions;
         }
 
-        private Dictionary<string, double> PredictNextDay()
+        private Dictionary<string, ForecastResult> PredictNextDay()
         {
-            var predictions = new Dictionary<string, double>();
+            var predictions = new Dictionary<string, ForecastResult>();
             var dailySnapshots = AggregateDailySnapshots();
 
             if (dailySnapshots.Length < 3)
                 return predictions;
 
             // Predict based on daily patterns
-            predictions["AverageCpuUtilization"] = PredictMetric(dailySnapshots, "CpuUtilization");
-            predictions["PeakMemoryUtilization"] = PredictMetric(dailySnapshots, "MemoryUtilization");
-            predictions["DailyThroughput"] = PredictMetric(dailySnapshots, "ThroughputPerSecond");
+            var latestDaily = dailySnapshots.Last();
+            predictions["AverageCpuUtilization"] = new ForecastResult
+            {
+                Current = latestDaily.Metrics.GetValueOrDefault("CpuUtilization", 0),
+                Forecast5Min = PredictMetric(dailySnapshots, "CpuUtilization"),
+                Forecast15Min = PredictMetric(dailySnapshots, "CpuUtilization"),
+                Forecast60Min = PredictMetric(dailySnapshots, "CpuUtilization"),
+                Confidence = CalculatePredictionConfidence()
+            };
+
+            predictions["PeakMemoryUtilization"] = new ForecastResult
+            {
+                Current = latestDaily.Metrics.GetValueOrDefault("MemoryUtilization", 0),
+                Forecast5Min = PredictMetric(dailySnapshots, "MemoryUtilization"),
+                Forecast15Min = PredictMetric(dailySnapshots, "MemoryUtilization"),
+                Forecast60Min = PredictMetric(dailySnapshots, "MemoryUtilization"),
+                Confidence = CalculatePredictionConfidence()
+            };
+
+            predictions["DailyThroughput"] = new ForecastResult
+            {
+                Current = latestDaily.Metrics.GetValueOrDefault("ThroughputPerSecond", 0),
+                Forecast5Min = PredictMetric(dailySnapshots, "ThroughputPerSecond"),
+                Forecast15Min = PredictMetric(dailySnapshots, "ThroughputPerSecond"),
+                Forecast60Min = PredictMetric(dailySnapshots, "ThroughputPerSecond"),
+                Confidence = CalculatePredictionConfidence()
+            };
 
             return predictions;
         }

@@ -106,6 +106,74 @@ public class PredictiveAnalysisServiceTests
         Assert.True(result.PredictionConfidence < 0.5);
     }
 
+    [Fact]
+    public void GeneratePredictiveAnalysis_Should_Include_ForecastResults_In_Predictions_With_Sufficient_Data()
+    {
+        // Arrange - Add sufficient metrics history (more than 10 snapshots)
+        for (int i = 0; i < 15; i++)
+        {
+            var metrics = new Dictionary<string, double>
+            {
+                ["CpuUtilization"] = 0.1 + (i * 0.02), // Gradually increasing
+                ["MemoryUtilization"] = 0.2 + (i * 0.01),
+                ["ThroughputPerSecond"] = 50 + (i * 2),
+                ["ErrorRate"] = 0.01
+            };
+            _service.AddMetricsSnapshot(metrics);
+        }
+
+        // Act
+        var result = _service.GeneratePredictiveAnalysis();
+
+        // Assert
+        Assert.NotNull(result.NextHourPredictions);
+        Assert.NotNull(result.NextDayPredictions);
+
+        // Should contain predictions for key metrics
+        Assert.Contains("CpuUtilization", result.NextHourPredictions.Keys);
+        Assert.Contains("MemoryUtilization", result.NextHourPredictions.Keys);
+        Assert.Contains("ThroughputPerSecond", result.NextHourPredictions.Keys);
+        Assert.Contains("ErrorRate", result.NextHourPredictions.Keys);
+
+        // NextDayPredictions may be empty if insufficient daily data (requires multiple days)
+        // In this test, all snapshots are on the same day, so daily predictions are empty
+        // This is expected behavior
+
+        // Verify ForecastResult properties for NextHourPredictions
+        var cpuForecast = result.NextHourPredictions["CpuUtilization"];
+        Assert.NotNull(cpuForecast);
+        Assert.True(cpuForecast.Current >= 0.0 && cpuForecast.Current <= 1.0);
+        Assert.True(cpuForecast.Forecast5Min >= 0.0 && cpuForecast.Forecast5Min <= 1.0);
+        Assert.True(cpuForecast.Forecast15Min >= 0.0 && cpuForecast.Forecast15Min <= 1.0);
+        Assert.True(cpuForecast.Forecast60Min >= 0.0 && cpuForecast.Forecast60Min <= 1.0);
+        Assert.True(cpuForecast.Confidence >= 0.0 && cpuForecast.Confidence <= 1.0);
+    }
+
+    [Fact]
+    public void GeneratePredictiveAnalysis_Should_Return_Empty_Predictions_With_Insufficient_Data()
+    {
+        // Arrange - Add insufficient data (less than 10 snapshots)
+        for (int i = 0; i < 5; i++)
+        {
+            var metrics = new Dictionary<string, double>
+            {
+                ["CpuUtilization"] = 0.5,
+                ["MemoryUtilization"] = 0.3,
+                ["ThroughputPerSecond"] = 100
+            };
+            _service.AddMetricsSnapshot(metrics);
+        }
+
+        // Act
+        var result = _service.GeneratePredictiveAnalysis();
+
+        // Assert
+        Assert.NotNull(result.NextHourPredictions);
+        Assert.NotNull(result.NextDayPredictions);
+        Assert.Empty(result.NextHourPredictions);
+        Assert.Empty(result.NextDayPredictions);
+    }
+
     #endregion
 
     #region AddMetricsSnapshot Tests

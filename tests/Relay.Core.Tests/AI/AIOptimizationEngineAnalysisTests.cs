@@ -469,6 +469,18 @@ public class AIOptimizationEngineAnalysisTests : IDisposable
     }
 
     [Fact]
+    public async Task GetSystemInsightsAsync_Should_Include_Resource_Optimization_Recommendations()
+    {
+        // Act
+        var insights = await _engine.GetSystemInsightsAsync(TimeSpan.FromHours(1));
+
+        // Assert
+        Assert.NotNull(insights.ResourceOptimization);
+        Assert.NotNull(insights.ResourceOptimization.Recommendations);
+        Assert.True(insights.ResourceOptimization.EstimatedSavings >= TimeSpan.Zero);
+    }
+
+    [Fact]
     public async Task GetSystemInsightsAsync_Should_Return_Valid_Insights_Structure()
     {
         // Act
@@ -483,6 +495,7 @@ public class AIOptimizationEngineAnalysisTests : IDisposable
         Assert.NotNull(insights.Predictions);
         Assert.NotNull(insights.KeyMetrics);
         Assert.NotNull(insights.SeasonalPatterns);
+        Assert.NotNull(insights.ResourceOptimization);
         Assert.True(insights.PerformanceGrade >= 'A' && insights.PerformanceGrade <= 'F');
     }
 

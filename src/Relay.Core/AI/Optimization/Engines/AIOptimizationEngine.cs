@@ -202,6 +202,7 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        var keyMetrics = CollectKeyMetrics();
         var insights = new SystemPerformanceInsights
         {
             AnalysisTime = DateTime.UtcNow,
@@ -211,8 +212,9 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
             HealthScore = _systemMetricsService.CalculateSystemHealthScore(),
             Predictions = _predictiveAnalysisService.GeneratePredictiveAnalysis(),
             PerformanceGrade = CalculatePerformanceGrade(),
-            KeyMetrics = CollectKeyMetrics(),
-            SeasonalPatterns = DetectSeasonalPatterns(CollectKeyMetrics())
+            KeyMetrics = keyMetrics,
+            SeasonalPatterns = DetectSeasonalPatterns(keyMetrics),
+            ResourceOptimization = _resourceOptimizationService.AnalyzeResourceUsage(keyMetrics, new Dictionary<string, double>()) // Using current metrics as historical for simplicity
         };
 
         _logger.LogInformation("Generated system performance insights: Grade {Grade}, Health Score {HealthScore:F2}",

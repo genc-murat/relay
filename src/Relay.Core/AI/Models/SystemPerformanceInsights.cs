@@ -29,5 +29,10 @@ namespace Relay.Core.AI
         /// Detected seasonal patterns in system metrics
         /// </summary>
         public List<Optimization.Data.SeasonalPattern> SeasonalPatterns { get; init; } = new();
+
+        /// <summary>
+        /// Resource optimization recommendations
+        /// </summary>
+        public Optimization.Services.ResourceOptimizationRecommendation ResourceOptimization { get; init; } = new();
     }
 }

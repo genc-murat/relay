@@ -68,7 +68,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginAssemblyMethod.Invoke(_manager, new object[] { pluginDir }) as string;
+        var result = findPluginAssemblyMethod.Invoke(_manager, [pluginDir]) as string;
         
         // Assert
         Assert.Equal(relayPluginDll, result);
@@ -108,7 +108,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginAssemblyMethod.Invoke(_manager, new object[] { pluginDir }) as string;
+        var result = findPluginAssemblyMethod.Invoke(_manager, [pluginDir]) as string;
         
         // Assert
         Assert.Equal(pluginDll, result);
@@ -146,7 +146,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginAssemblyMethod.Invoke(_manager, new object[] { pluginDir }) as string;
+        var result = findPluginAssemblyMethod.Invoke(_manager, [pluginDir]) as string;
         
         // Assert - Should fallback to first DLL (otherDll)
         Assert.Equal(otherDll, result);
@@ -177,7 +177,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginAssemblyMethod.Invoke(_manager, new object[] { pluginDir }) as string;
+        var result = findPluginAssemblyMethod.Invoke(_manager, [pluginDir]) as string;
         
         // Assert
         Assert.Null(result);
@@ -194,7 +194,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginTypeMethod.Invoke(_manager, new object[] { assembly }) as Type;
+        var result = findPluginTypeMethod.Invoke(_manager, [assembly]) as Type;
         
         // Assert
         Assert.Equal(typeof(MockPluginWithAttribute), result);
@@ -213,7 +213,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginTypeMethod.Invoke(_manager, new object[] { assembly }) as Type;
+        var result = findPluginTypeMethod.Invoke(_manager, [assembly]) as Type;
         
         // Assert - Since both types exist in the same assembly, the attributed type takes precedence
         Assert.Equal(typeof(MockPluginWithAttribute), result);
@@ -230,7 +230,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginTypeMethod.Invoke(_manager, new object[] { assembly }) as Type;
+        var result = findPluginTypeMethod.Invoke(_manager, [assembly]) as Type;
         
         // For this specific test, we're using the mock assembly which contains many types
         // We need a more specific test with our own assembly containing specific types
@@ -249,7 +249,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginTypeMethod.Invoke(_manager, new object[] { assembly }) as Type;
+        var result = findPluginTypeMethod.Invoke(_manager, [assembly]) as Type;
         
         // Assert
         Assert.Null(result);
@@ -289,7 +289,7 @@ public class PluginManagerAssemblyFindingTests : IDisposable
             BindingFlags.NonPublic | BindingFlags.Instance);
         
         // Act
-        var result = findPluginAssemblyMethod.Invoke(_manager, new object[] { pluginDir }) as string;
+        var result = findPluginAssemblyMethod.Invoke(_manager, [pluginDir]) as string;
         
         // Assert that the relay-plugin DLL was found (takes precedence)
         Assert.Equal(relayPluginDll, result);
@@ -317,6 +317,8 @@ public class PluginManagerAssemblyFindingTests : IDisposable
         }
 
         _manager?.Dispose();
+
+        GC.SuppressFinalize(this);
     }
 }
 
@@ -326,8 +328,8 @@ public class MockPluginImplementation : IRelayPlugin
     public string Name => "MockPlugin";
     public string Version => "1.0.0";
     public string Description => "Mock Plugin for Testing";
-    public string[] Authors => new[] { "Test Author" };
-    public string[] Tags => new[] { "test" };
+    public string[] Authors => ["Test Author"];
+    public string[] Tags => ["test"];
     public string MinimumRelayVersion => "2.0.0";
     
     public Task<bool> InitializeAsync(IPluginContext context, CancellationToken cancellationToken)
@@ -357,8 +359,8 @@ public class MockPluginWithAttribute : IRelayPlugin
     public string Name => "MockPluginWithAttribute";
     public string Version => "1.0.0";
     public string Description => "Mock Plugin with Attribute for Testing";
-    public string[] Authors => new[] { "Test Author" };
-    public string[] Tags => new[] { "test" };
+    public string[] Authors => ["Test Author"];
+    public string[] Tags => ["test"];
     public string MinimumRelayVersion => "2.0.0";
     
     public Task<bool> InitializeAsync(IPluginContext context, CancellationToken cancellationToken)
@@ -389,8 +391,8 @@ public class MockPluginOnlyImplementation : IRelayPlugin
     public string Name => "MockPluginOnlyImplementation";
     public string Version => "1.0.0";
     public string Description => "Mock Plugin Only Implementation for Testing";
-    public string[] Authors => new[] { "Test Author" };
-    public string[] Tags => new[] { "test" };
+    public string[] Authors => ["Test Author"];
+    public string[] Tags => ["test"];
     public string MinimumRelayVersion => "2.0.0";
     
     public Task<bool> InitializeAsync(IPluginContext context, CancellationToken cancellationToken)

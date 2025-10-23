@@ -1,4 +1,3 @@
-using Moq;
 using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;

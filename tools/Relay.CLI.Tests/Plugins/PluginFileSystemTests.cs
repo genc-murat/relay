@@ -25,7 +25,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempFile) }
+                AllowedPaths = [Path.GetDirectoryName(tempFile)]
             }
         };
         
@@ -76,7 +76,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { @"C:\AllowedPath" } // Different path
+                AllowedPaths = [@"C:\AllowedPath"] // Different path
             }
         };
         
@@ -104,7 +104,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempFile) }
+                AllowedPaths = [Path.GetDirectoryName(tempFile)]
             }
         };
         
@@ -159,7 +159,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempFile) }
+                AllowedPaths = [Path.GetDirectoryName(tempFile)]
             }
         };
         
@@ -218,7 +218,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Delete = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempFile) }
+                AllowedPaths = [Path.GetDirectoryName(tempFile)]
             }
         };
         
@@ -247,7 +247,7 @@ public class PluginFileSystemTests
             {
                 Read = true,
                 Write = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(sourceFile) }
+                AllowedPaths = [Path.GetDirectoryName(sourceFile)]
             }
         };
         
@@ -358,7 +358,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempDir) }
+                AllowedPaths = [Path.GetDirectoryName(tempDir)]
             }
         };
 
@@ -429,7 +429,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { tempDir }
+                AllowedPaths = [tempDir]
             }
         };
 
@@ -473,7 +473,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { tempDir }
+                AllowedPaths = [tempDir]
             }
         };
 
@@ -546,7 +546,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { tempDir }
+                AllowedPaths = [tempDir]
             }
         };
 
@@ -614,7 +614,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempDir) }
+                AllowedPaths = [Path.GetDirectoryName(tempDir)]
             }
         };
 
@@ -671,7 +671,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Delete = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempDir) }
+                AllowedPaths = [Path.GetDirectoryName(tempDir)]
             }
         };
 
@@ -701,7 +701,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Delete = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempDir) }
+                AllowedPaths = [Path.GetDirectoryName(tempDir)]
             }
         };
 
@@ -761,7 +761,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(sourceFile) }
+                AllowedPaths = [Path.GetDirectoryName(sourceFile)]
             }
         };
 
@@ -837,7 +837,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = new[] { @"C:\AllowedPath" } // Different path for destination
+                AllowedPaths = [@"C:\AllowedPath"] // Different path for destination
             }
         };
 
@@ -871,8 +871,8 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { @"C:\AllowedPath" },
-                DeniedPaths = new[] { Path.GetDirectoryName(tempFile) }
+                AllowedPaths = [@"C:\AllowedPath"],
+                DeniedPaths = [Path.GetDirectoryName(tempFile)]
             }
         };
 
@@ -903,7 +903,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(nonExistentFile) }
+                AllowedPaths = [Path.GetDirectoryName(nonExistentFile)]
             }
         };
 
@@ -928,7 +928,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(tempFile) }
+                AllowedPaths = [Path.GetDirectoryName(tempFile)]
             }
         };
 
@@ -963,7 +963,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Delete = true,
-                AllowedPaths = new[] { Path.GetDirectoryName(nonExistentFile) }
+                AllowedPaths = [Path.GetDirectoryName(nonExistentFile)]
             }
         };
 

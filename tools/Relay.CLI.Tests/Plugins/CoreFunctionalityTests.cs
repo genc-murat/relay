@@ -6,8 +6,8 @@ namespace Relay.CLI.Tests.Plugins;
 
 public class CoreFunctionalityTests : IDisposable
 {
-    private Mock<IPluginLogger> _mockLogger = null!;
-    private PluginManager _pluginManager = null!;
+    private readonly Mock<IPluginLogger> _mockLogger = null!;
+    private readonly PluginManager _pluginManager = null!;
 
     public CoreFunctionalityTests()
     {
@@ -18,6 +18,7 @@ public class CoreFunctionalityTests : IDisposable
     public void Dispose()
     {
         _pluginManager?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -42,10 +43,7 @@ public class CoreFunctionalityTests : IDisposable
         var healthInfo = healthMonitor.GetHealthInfo(pluginName);
         
         // Manually set to disabled state for testing
-        if (healthInfo != null)
-        {
-            healthInfo.Status = PluginHealthStatus.Disabled;
-        }
+        healthInfo?.Status = PluginHealthStatus.Disabled;
 
         // Check that the plugin is not healthy
         var isHealthy = healthMonitor.IsHealthy(pluginName);

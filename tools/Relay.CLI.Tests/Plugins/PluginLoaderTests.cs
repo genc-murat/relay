@@ -34,7 +34,7 @@ public class PluginLoaderTests : IDisposable
         await File.WriteAllTextAsync(Path.Combine(_testPluginPath, "plugin.json"), invalidJson);
 
         // Act
-        Func<Task> act = async () => await File.ReadAllTextAsync(Path.Combine(_testPluginPath, "plugin.json"));
+        async Task act() => await File.ReadAllTextAsync(Path.Combine(_testPluginPath, "plugin.json"));
 
         // Assert
         await act();
@@ -82,5 +82,6 @@ public class PluginLoaderTests : IDisposable
                 Directory.Delete(_testPluginPath, true);
         }
         catch { }
+        GC.SuppressFinalize(this);
     }
 }

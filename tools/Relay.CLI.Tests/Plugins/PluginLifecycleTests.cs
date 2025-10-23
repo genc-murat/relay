@@ -1,4 +1,3 @@
-using Xunit;
 using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
@@ -10,14 +9,14 @@ public class PluginLifecycleTests
     public void PluginLifecycle_ShouldFollowCompleteFlow()
     {
         // Arrange
-        var lifecycle = new List<string>();
-        var pluginName = "test-plugin";
-
-        // Act - Simulate lifecycle
-        lifecycle.Add("install");
-        lifecycle.Add("load");
-        lifecycle.Add("execute");
-        lifecycle.Add("unload");
+        var lifecycle = new List<string>
+        {
+            // Act - Simulate lifecycle
+            "install",
+            "load",
+            "execute",
+            "unload"
+        };
 
         // Assert
         Assert.Equal(4, lifecycle.Count);
@@ -105,11 +104,10 @@ public class PluginLifecycleTests
     {
         // Arrange
         var plugin = new MockPlugin();
-        var cleanupCalled = false;
 
         // Act
         await plugin.CleanupAsync();
-        cleanupCalled = plugin.IsCleanedUp;
+        var cleanupCalled = plugin.IsCleanedUp;
 
         // Assert
         Assert.True(cleanupCalled);
@@ -119,11 +117,12 @@ public class PluginLifecycleTests
     public void PluginManager_ShouldTrackLoadedPlugins()
     {
         // Arrange
-        var loadedPlugins = new Dictionary<string, bool>();
-
-        // Act
-        loadedPlugins["plugin1"] = true;
-        loadedPlugins["plugin2"] = true;
+        var loadedPlugins = new Dictionary<string, bool>
+        {
+            // Act
+            ["plugin1"] = true,
+            ["plugin2"] = true
+        };
 
         // Assert
         Assert.Equal(2, loadedPlugins.Count);
@@ -139,7 +138,7 @@ public class PluginLifecycleTests
             Name = "test-plugin",
             Version = "1.0.0",
             Description = "Test plugin",
-            Authors = new[] { "Test Author" },
+            Authors = ["Test Author"],
             MinimumRelayVersion = "2.1.0"
         };
 
@@ -157,7 +156,6 @@ public class PluginLifecycleTests
     public void Plugin_ShouldSupportVersionChecking()
     {
         // Arrange
-        var pluginVersion = new Version("1.0.0");
         var minimumVersion = new Version("2.1.0");
         var cliVersion = new Version("2.1.0");
 
@@ -252,7 +250,7 @@ public class PluginLifecycleTests
         // Arrange
         var manifest = new PluginManifest
         {
-            Authors = new[] { "Author 1", "Author 2" }
+            Authors = ["Author 1", "Author 2"]
         };
 
         // Act
@@ -419,8 +417,8 @@ internal class MockPlugin : IRelayPlugin
     public string Name => "mock-plugin";
     public string Version => "1.0.0";
     public string Description => "Mock plugin for testing";
-    public string[] Authors => new[] { "Test Author" };
-    public string[] Tags => new[] { "test", "mock" };
+    public string[] Authors => ["Test Author"];
+    public string[] Tags => ["test", "mock"];
     public string MinimumRelayVersion => "2.1.0";
     public bool IsCleanedUp { get; private set; }
 
@@ -451,8 +449,8 @@ internal class FailingPlugin : IRelayPlugin
     public string Name => "failing-plugin";
     public string Version => "1.0.0";
     public string Description => "Plugin that fails initialization";
-    public string[] Authors => Array.Empty<string>();
-    public string[] Tags => Array.Empty<string>();
+    public string[] Authors => [];
+    public string[] Tags => [];
     public string MinimumRelayVersion => "2.1.0";
 
     public Task<bool> InitializeAsync(IPluginContext context, CancellationToken cancellationToken = default)

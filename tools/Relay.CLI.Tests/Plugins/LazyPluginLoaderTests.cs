@@ -26,6 +26,7 @@ public class LazyPluginLoaderTests : IDisposable
     public void Dispose()
     {
         // Cleanup if needed
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -158,7 +159,7 @@ public class LazyPluginLoaderTests : IDisposable
     public async Task ExecutePluginAsync_PluginNotFound_ReturnsNegativeOne()
     {
         // Act
-        var result = await _loader.ExecutePluginAsync("NonExistentPlugin", Array.Empty<string>(), _mockContext.Object);
+        var result = await _loader.ExecutePluginAsync("NonExistentPlugin", [], _mockContext.Object);
 
         // Assert
         Assert.Equal(-1, result);
@@ -171,7 +172,7 @@ public class LazyPluginLoaderTests : IDisposable
         var customTimeout = TimeSpan.FromSeconds(30);
 
         // Act
-        var result = await _loader.ExecutePluginAsync("NonExistentPlugin", Array.Empty<string>(), _mockContext.Object, customTimeout);
+        var result = await _loader.ExecutePluginAsync("NonExistentPlugin", [], _mockContext.Object, customTimeout);
 
         // Assert
         Assert.Equal(-1, result); // Plugin doesn't exist, so should return -1

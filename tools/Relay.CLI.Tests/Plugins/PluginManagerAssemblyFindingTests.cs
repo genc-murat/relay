@@ -1,4 +1,3 @@
-using Moq;
 using Relay.CLI.Plugins;
 using System.Reflection;
 using System.Text.Json;

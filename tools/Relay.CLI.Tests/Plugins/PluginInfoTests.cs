@@ -64,10 +64,11 @@ public class PluginInfoTests
     public void Authors_Property_HandlesNullAssignment()
     {
         // Arrange
-        var pluginInfo = new PluginInfo();
-
-        // Act
-        pluginInfo.Authors = null!;
+        var pluginInfo = new PluginInfo
+        {
+            // Act
+            Authors = null!
+        };
 
         // Assert
         Assert.Null(pluginInfo.Authors);
@@ -77,10 +78,11 @@ public class PluginInfoTests
     public void Tags_Property_HandlesNullAssignment()
     {
         // Arrange
-        var pluginInfo = new PluginInfo();
-
-        // Act
-        pluginInfo.Tags = null!;
+        var pluginInfo = new PluginInfo
+        {
+            // Act
+            Tags = null!
+        };
 
         // Assert
         Assert.Null(pluginInfo.Tags);
@@ -90,8 +92,10 @@ public class PluginInfoTests
     public void Manifest_Property_CanBeSetToNull()
     {
         // Arrange
-        var pluginInfo = new PluginInfo();
-        pluginInfo.Manifest = new PluginManifest();
+        var pluginInfo = new PluginInfo
+        {
+            Manifest = new PluginManifest()
+        };
 
         // Act
         pluginInfo.Manifest = null;
@@ -104,13 +108,14 @@ public class PluginInfoTests
     public void StringProperties_CanBeSetToNull()
     {
         // Arrange
-        var pluginInfo = new PluginInfo();
-
-        // Act
-        pluginInfo.Name = null!;
-        pluginInfo.Version = null!;
-        pluginInfo.Description = null!;
-        pluginInfo.Path = null!;
+        var pluginInfo = new PluginInfo
+        {
+            // Act
+            Name = null!,
+            Version = null!,
+            Description = null!,
+            Path = null!
+        };
 
         // Assert
         Assert.Null(pluginInfo.Name);

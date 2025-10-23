@@ -259,7 +259,7 @@ public class DependencyResolverTests
         var invalidPath = "C:\\NonExistentDirectory\\TestAssembly.dll";
 
         // Act
-        var result = await (Task<string?>)method!.Invoke(_dependencyResolver, new object[] { reference, invalidPath })!;
+        var result = await (Task<string?>)method!.Invoke(_dependencyResolver, [reference, invalidPath])!;
 
         // Assert
         Assert.Equal(invalidPath, result);
@@ -289,7 +289,7 @@ public class DependencyResolverTests
             var reference = new AssemblyName($"{baseName}, Version=1.0.0.0");
 
             // Act
-            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, new object[] { reference, v1Path })!;
+            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, [reference, v1Path])!;
 
             // Assert
             Assert.NotNull(result);
@@ -325,7 +325,7 @@ public class DependencyResolverTests
             var reference = new AssemblyName($"{baseName}, Version=1.0.0.0");
 
             // Act
-            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, new object[] { reference, validPath })!;
+            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, [reference, validPath])!;
 
             // Assert
             Assert.NotNull(result);

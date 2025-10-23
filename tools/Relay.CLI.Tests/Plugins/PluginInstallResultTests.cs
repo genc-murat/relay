@@ -22,14 +22,15 @@ public class PluginInstallResultTests
     public void Properties_CanBeSetAndRetrieved()
     {
         // Arrange
-        var result = new PluginInstallResult();
-
-        // Act
-        result.Success = true;
-        result.PluginName = "TestPlugin";
-        result.Version = "1.0.0";
-        result.InstalledPath = "/plugins/test";
-        result.Error = null;
+        var result = new PluginInstallResult
+        {
+            // Act
+            Success = true,
+            PluginName = "TestPlugin",
+            Version = "1.0.0",
+            InstalledPath = "/plugins/test",
+            Error = null
+        };
 
         // Assert
         Assert.True(result.Success);

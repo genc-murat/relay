@@ -590,7 +590,7 @@ public class SagaTimeoutTests
         // Act
         var result = await (Task<SagaTimeoutCheckResult>)service.GetType()
             .GetMethod("CheckAndHandleTimeoutsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { CancellationToken.None })!;
+            .Invoke(service, [CancellationToken.None])!;
 
         // Assert
         handler1.Verify(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -627,7 +627,7 @@ public class SagaTimeoutTests
         // Act
         var result = await (Task<SagaTimeoutCheckResult>)service.GetType()
             .GetMethod("CheckAndHandleTimeoutsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { CancellationToken.None })!;
+            .Invoke(service, [CancellationToken.None])!;
 
         // Assert
         goodHandler.Verify(h => h.CheckAndHandleTimeoutsAsync(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -667,7 +667,7 @@ public class SagaTimeoutTests
         // Act - Call the private method via reflection
         var result = await (Task<SagaTimeoutCheckResult>)service.GetType()
             .GetMethod("CheckAndHandleTimeoutsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { CancellationToken.None })!;
+            .Invoke(service, [CancellationToken.None])!;
 
         // Assert - The method completed without throwing
         Assert.NotNull(result);
@@ -699,7 +699,7 @@ public class SagaTimeoutTests
         // Act - Call the private method via reflection
         var result = await (Task<SagaTimeoutCheckResult>)service.GetType()
             .GetMethod("CheckAndHandleTimeoutsAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { CancellationToken.None })!;
+            .Invoke(service, [CancellationToken.None])!;
 
         // Assert - The method completed without throwing
         Assert.NotNull(result);
@@ -729,7 +729,7 @@ public class SagaTimeoutTests
         // Act - Start service and cancel immediately
         var executeTask = (Task)service.GetType()
             .GetMethod("ExecuteAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { cts.Token })!;
+            .Invoke(service, [cts.Token])!;
 
         cts.Cancel();
         await executeTask;
@@ -777,7 +777,7 @@ public class SagaTimeoutTests
         // Act - Let it run for a short time (enough for 2-3 iterations)
         var executeTask = (Task)service.GetType()
             .GetMethod("ExecuteAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { cts.Token })!;
+            .Invoke(service, [cts.Token])!;
 
         await Task.Delay(120); // Wait for ~2-3 iterations
         cts.Cancel();
@@ -813,7 +813,7 @@ public class SagaTimeoutTests
         // Act - Let it run briefly to trigger exception
         var executeTask = (Task)service.GetType()
             .GetMethod("ExecuteAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { cts.Token })!;
+            .Invoke(service, [cts.Token])!;
 
         await Task.Delay(100); // Wait for exception to occur
         cts.Cancel();
@@ -854,7 +854,7 @@ public class SagaTimeoutTests
         // Act - Start service, let it run briefly, then cancel to stop the infinite loop
         var executeTask = (Task)service.GetType()
             .GetMethod("ExecuteAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { cts.Token })!;
+            .Invoke(service, [cts.Token])!;
 
         // Wait a bit for the service to start and encounter the exception
         await Task.Delay(100);
@@ -898,7 +898,7 @@ public class SagaTimeoutTests
         // Act - Start service, let it do one check, then cancel during delay
         var executeTask = (Task)service.GetType()
             .GetMethod("ExecuteAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { cts.Token })!;
+            .Invoke(service, [cts.Token])!;
 
         await Task.Delay(75); // Wait for one check + partial delay
         cts.Cancel();
@@ -933,7 +933,7 @@ public class SagaTimeoutTests
         // Act - Run for one cycle
         var executeTask = (Task)service.GetType()
             .GetMethod("ExecuteAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { cts.Token })!;
+            .Invoke(service, [cts.Token])!;
 
         await Task.Delay(75);
         cts.Cancel();
@@ -973,7 +973,7 @@ public class SagaTimeoutTests
         // Act - Run for one cycle
         var executeTask = (Task)service.GetType()
             .GetMethod("ExecuteAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { cts.Token })!;
+            .Invoke(service, [cts.Token])!;
 
         await Task.Delay(75);
         cts.Cancel();
@@ -1014,7 +1014,7 @@ public class SagaTimeoutTests
         // Act - Run for one cycle
         var executeTask = (Task)service.GetType()
             .GetMethod("ExecuteAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(service, new object[] { cts.Token })!;
+            .Invoke(service, [cts.Token])!;
 
         await Task.Delay(75);
         cts.Cancel();

@@ -45,12 +45,13 @@ namespace Relay.Core.Tests.AI.Optimization.Models
         public void Arrays_CanHandleDifferentLengths()
         {
             // Arrange
-            var forecast = new MetricForecast();
-
-            // Act - Set arrays of different lengths (though in practice they should be consistent)
-            forecast.ForecastedValues = new float[] { 1.0f, 2.0f };
-            forecast.LowerBound = new float[] { 0.8f, 1.8f, 2.8f };
-            forecast.UpperBound = new float[] { 1.2f };
+            MetricForecast forecast = new()
+            {
+                // Act - Set arrays of different lengths (though in practice they should be consistent)
+                ForecastedValues = [1.0f, 2.0f],
+                LowerBound = [0.8f, 1.8f, 2.8f],
+                UpperBound = [1.2f]
+            };
 
             // Assert
             Assert.Equal(2, forecast.ForecastedValues.Length);
@@ -62,12 +63,13 @@ namespace Relay.Core.Tests.AI.Optimization.Models
         public void Arrays_CanBeSetToNull()
         {
             // Arrange
-            var forecast = new MetricForecast();
-
-            // Act
-            forecast.ForecastedValues = null!;
-            forecast.LowerBound = null!;
-            forecast.UpperBound = null!;
+            MetricForecast forecast = new()
+            {
+                // Act
+                ForecastedValues = null!,
+                LowerBound = null!,
+                UpperBound = null!
+            };
 
             // Assert
             Assert.Null(forecast.ForecastedValues);
@@ -79,12 +81,13 @@ namespace Relay.Core.Tests.AI.Optimization.Models
         public void Arrays_CanContainSpecialValues()
         {
             // Arrange
-            var forecast = new MetricForecast();
-
-            // Act - Test with special float values
-            forecast.ForecastedValues = new float[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity, 0f };
-            forecast.LowerBound = new float[] { float.MinValue, float.MaxValue };
-            forecast.UpperBound = new float[] { float.Epsilon };
+            MetricForecast forecast = new()
+            {
+                // Act - Test with special float values
+                ForecastedValues = [float.NaN, float.PositiveInfinity, float.NegativeInfinity, 0f],
+                LowerBound = [float.MinValue, float.MaxValue],
+                UpperBound = [float.Epsilon]
+            };
 
             // Assert
             Assert.Equal(4, forecast.ForecastedValues.Length);

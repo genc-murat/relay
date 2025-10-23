@@ -8,7 +8,7 @@ namespace Relay.MessageBroker.Tests;
 
 public class OpenTelemetryTests : IDisposable
 {
-    private readonly List<Activity> _exportedActivities = new();
+    private readonly List<Activity> _exportedActivities = [];
     private readonly TracerProvider _tracerProvider;
 
     public OpenTelemetryTests()
@@ -290,7 +290,7 @@ public class OpenTelemetryTests : IDisposable
         // Act
         if (activity != null)
         {
-            var eventTags = new ActivityTagsCollection(attributes?.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)) ?? Enumerable.Empty<KeyValuePair<string, object?>>());
+            var eventTags = new ActivityTagsCollection(attributes?.Select(kvp => new KeyValuePair<string, object?>(kvp.Key, kvp.Value)) ?? []);
             activity.AddEvent(new ActivityEvent(eventName, tags: eventTags));
         }
 
@@ -319,10 +319,7 @@ public class OpenTelemetryTests : IDisposable
         // Act & Assert
         var exception = Record.Exception(() => 
         {
-            if (activity != null)
-            {
-                activity.AddEvent(new ActivityEvent(eventName));
-            }
+            activity?.AddEvent(new ActivityEvent(eventName));
         });
 
         Assert.Null(exception);

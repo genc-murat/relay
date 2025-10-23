@@ -212,10 +212,10 @@ public class WorkflowDefinitionStoreTests
             Name = "ConditionalStep",
             Type = StepType.Conditional,
             Condition = "status == 'approved'",
-            ElseSteps = new List<WorkflowStep>
-            {
-                new WorkflowStep { Name = "RejectionHandler", Type = StepType.Request, RequestType = "HandleRejection" }
-            }
+            ElseSteps =
+            [
+                new() { Name = "RejectionHandler", Type = StepType.Request, RequestType = "HandleRejection" }
+            ]
         });
 
         // Act
@@ -237,11 +237,11 @@ public class WorkflowDefinitionStoreTests
             Id = id ?? Guid.NewGuid().ToString(),
             Name = name ?? "Test Workflow",
             Description = "A test workflow definition",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep { Name = "Step1", Type = StepType.Request, RequestType = "TestRequest" },
-                new WorkflowStep { Name = "Step2", Type = StepType.Wait, WaitTimeMs = 1000 }
-            }
+            Steps =
+            [
+                new() { Name = "Step1", Type = StepType.Request, RequestType = "TestRequest" },
+                new() { Name = "Step2", Type = StepType.Wait, WaitTimeMs = 1000 }
+            ]
         };
     }
 }

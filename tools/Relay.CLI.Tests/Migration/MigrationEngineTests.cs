@@ -763,6 +763,8 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, string>
         await CreateTestProjectWithMediatR();
 
         var customMediatorContent = @"using MediatR;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -772,32 +774,32 @@ public class CustomMediator : IMediator
 {
     public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return Task.FromResult(default(TResponse)!);
     }
 
     public Task<object?> Send(object request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return Task.FromResult<object?>(null);
     }
 
     public Task Publish(object notification, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 
     public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 
     public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return AsyncEnumerable.Empty<TResponse>();
     }
 
     public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return AsyncEnumerable.Empty<object?>();
     }
 }";
 

@@ -211,7 +211,7 @@ public class TelemetryServiceCollectionExtensionsTests
     // Test helper classes
     private class CustomTelemetryProvider : ITelemetryProvider
     {
-        public IMetricsProvider MetricsProvider => throw new NotImplementedException();
+        public IMetricsProvider MetricsProvider => new CustomMetricsProvider();
         public void RecordRequest(string requestType, TimeSpan duration, bool success) { }
         public void RecordStream(string streamType, long itemsProcessed, TimeSpan duration) { }
         public void RecordNotification(string notificationType, int subscriberCount, TimeSpan duration) { }

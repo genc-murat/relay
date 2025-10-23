@@ -120,13 +120,14 @@ public class TelemetryRelay : IRelay
             await _inner.PublishAsync(notification, cancellationToken);
             stopwatch.Stop();
 
-            // We don't have direct access to handler count here, so we'll use 0 as a placeholder
-            _telemetryProvider.RecordNotificationPublish(notificationType, 0, stopwatch.Elapsed, true);
+            // Estimate handler count - for IRelay.PublishAsync, we assume at least 1 handler
+            // In a more sophisticated implementation, this could be tracked or accessed from registry
+            _telemetryProvider.RecordNotificationPublish(notificationType, 1, stopwatch.Elapsed, true);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _telemetryProvider.RecordNotificationPublish(notificationType, 0, stopwatch.Elapsed, false, ex);
+            _telemetryProvider.RecordNotificationPublish(notificationType, 1, stopwatch.Elapsed, false, ex);
             throw;
         }
     }

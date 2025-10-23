@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -289,22 +290,22 @@ namespace Relay.Core.Tests
 
             public override ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
             {
-                throw new NotImplementedException();
+                return new ValueTask<TResponse>(default(TResponse)!);
             }
 
             public override ValueTask DispatchAsync(IRequest request, CancellationToken cancellationToken)
             {
-                throw new NotImplementedException();
+                return ValueTask.CompletedTask;
             }
 
             public override ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)
             {
-                throw new NotImplementedException();
+                return new ValueTask<TResponse>(default(TResponse)!);
             }
 
             public override ValueTask DispatchAsync(IRequest request, string handlerName, CancellationToken cancellationToken)
             {
-                throw new NotImplementedException();
+                return ValueTask.CompletedTask;
             }
 
             public static HandlerNotFoundException CreateHandlerNotFoundExceptionPublic(Type requestType) => CreateHandlerNotFoundException(requestType);
@@ -319,12 +320,17 @@ namespace Relay.Core.Tests
 
             public override IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken)
             {
-                throw new NotImplementedException();
+                return EmptyAsync<TResponse>();
             }
 
             public override IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)
             {
-                throw new NotImplementedException();
+                return EmptyAsync<TResponse>();
+            }
+
+            private static async IAsyncEnumerable<T> EmptyAsync<T>()
+            {
+                yield break;
             }
 
             public static IAsyncEnumerable<TResponse> ThrowHandlerNotFoundPublic<TResponse>(Type requestType) => ThrowHandlerNotFound<TResponse>(requestType);

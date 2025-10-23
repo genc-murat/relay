@@ -125,6 +125,9 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         // Record the prediction in model statistics
         _modelStatisticsService.RecordPrediction(requestType);
 
+        // Record request for throughput calculation
+        _systemMetricsService.RecordRequestProcessed();
+
         // Store the predicted strategies for accuracy calculation
         _lastPredictions[requestType] = new[] { enhancedRecommendation.Strategy };
 
@@ -328,16 +331,140 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
     // Simplified private methods that delegate to services
     private List<PerformanceBottleneck> IdentifyBottlenecks(TimeSpan timeWindow)
     {
-        // This would use a dedicated bottleneck analysis service
-        // For now, return empty list as placeholder
-        return new List<PerformanceBottleneck>();
+        var bottlenecks = new List<PerformanceBottleneck>();
+        var metrics = _systemMetricsService.CollectSystemMetrics();
+
+        // Check CPU utilization
+        var cpuUtilization = metrics.GetValueOrDefault("CpuUtilization", 0.0);
+        if (cpuUtilization > 0.8)
+        {
+            bottlenecks.Add(new PerformanceBottleneck
+            {
+                Component = "CPU",
+                Description = $"High CPU utilization: {cpuUtilization:P}",
+                Severity = cpuUtilization > 0.9 ? BottleneckSeverity.Critical : BottleneckSeverity.High,
+                Impact = (cpuUtilization - 0.8) * 100,
+                RecommendedActions = new List<string>
+                {
+                    "Scale CPU resources",
+                    "Optimize CPU-intensive operations",
+                    "Implement load balancing"
+                },
+                EstimatedResolutionTime = TimeSpan.FromHours(4)
+            });
+        }
+
+        // Check memory utilization
+        var memoryUtilization = metrics.GetValueOrDefault("MemoryUtilization", 0.0);
+        if (memoryUtilization > 0.85)
+        {
+            bottlenecks.Add(new PerformanceBottleneck
+            {
+                Component = "Memory",
+                Description = $"High memory utilization: {memoryUtilization:P}",
+                Severity = memoryUtilization > 0.95 ? BottleneckSeverity.Critical : BottleneckSeverity.High,
+                Impact = (memoryUtilization - 0.85) * 100,
+                RecommendedActions = new List<string>
+                {
+                    "Implement memory optimization strategies",
+                    "Increase memory allocation",
+                    "Fix memory leaks"
+                },
+                EstimatedResolutionTime = TimeSpan.FromHours(8)
+            });
+        }
+
+        // Check error rate
+        var errorRate = metrics.GetValueOrDefault("ErrorRate", 0.0);
+        if (errorRate > 0.05)
+        {
+            bottlenecks.Add(new PerformanceBottleneck
+            {
+                Component = "Application",
+                Description = $"High error rate: {errorRate:P}",
+                Severity = errorRate > 0.1 ? BottleneckSeverity.Critical : BottleneckSeverity.Medium,
+                Impact = errorRate * 100,
+                RecommendedActions = new List<string>
+                {
+                    "Investigate error root causes",
+                    "Implement retry mechanisms",
+                    "Add error monitoring"
+                },
+                EstimatedResolutionTime = TimeSpan.FromDays(2)
+            });
+        }
+
+        return bottlenecks;
     }
 
     private List<OptimizationOpportunity> IdentifyOptimizationOpportunities(TimeSpan timeWindow)
     {
-        // This would use a dedicated opportunity analysis service
-        // For now, return empty list as placeholder
-        return new List<OptimizationOpportunity>();
+        var opportunities = new List<OptimizationOpportunity>();
+        var metrics = _systemMetricsService.CollectSystemMetrics();
+
+        // Check for caching opportunities
+        var repeatRate = metrics.GetValueOrDefault("AverageRepeatRate", 0.0);
+        if (repeatRate > 0.3)
+        {
+            opportunities.Add(new OptimizationOpportunity
+            {
+                Title = "Implement Response Caching",
+                Description = $"High repeat request rate ({repeatRate:P}) indicates caching opportunity",
+                ExpectedImprovement = repeatRate * 0.6,
+                ImplementationEffort = TimeSpan.FromHours(16),
+                Priority = OptimizationPriority.High,
+                Steps = new List<string>
+                {
+                    "Identify cacheable endpoints",
+                    "Implement caching middleware",
+                    "Configure cache expiration policies",
+                    "Monitor cache hit rates"
+                }
+            });
+        }
+
+        // Check for batching opportunities
+        var avgBatchSize = metrics.GetValueOrDefault("AverageBatchSize", 1.0);
+        if (avgBatchSize < 5)
+        {
+            opportunities.Add(new OptimizationOpportunity
+            {
+                Title = "Implement Request Batching",
+                Description = $"Low average batch size ({avgBatchSize:F1}) suggests batching optimization",
+                ExpectedImprovement = 0.3,
+                ImplementationEffort = TimeSpan.FromDays(3),
+                Priority = OptimizationPriority.Medium,
+                Steps = new List<string>
+                {
+                    "Identify batchable operations",
+                    "Implement batch processing logic",
+                    "Update client libraries",
+                    "Test batch performance"
+                }
+            });
+        }
+
+        // Check for connection pooling opportunities
+        var connectionUtilization = metrics.GetValueOrDefault("DatabasePoolUtilization", 0.0);
+        if (connectionUtilization > 0.9)
+        {
+            opportunities.Add(new OptimizationOpportunity
+            {
+                Title = "Optimize Database Connection Pooling",
+                Description = $"High database connection utilization ({connectionUtilization:P})",
+                ExpectedImprovement = 0.2,
+                ImplementationEffort = TimeSpan.FromHours(8),
+                Priority = OptimizationPriority.Medium,
+                Steps = new List<string>
+                {
+                    "Review connection pool settings",
+                    "Implement connection multiplexing",
+                    "Monitor connection usage"
+                }
+            });
+        }
+
+        return opportunities;
     }
 
     private char CalculatePerformanceGrade()

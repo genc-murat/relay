@@ -208,8 +208,8 @@ namespace Relay.Core.AI
             return policy switch
             {
                 CacheEvictionPolicy.LRU => new LruEvictionPolicy(),
-                CacheEvictionPolicy.LFU => throw new NotImplementedException("LFU policy not yet implemented"),
-                CacheEvictionPolicy.FIFO => throw new NotImplementedException("FIFO policy not yet implemented"),
+                CacheEvictionPolicy.LFU => new LfuEvictionPolicy(),
+                CacheEvictionPolicy.FIFO => new FifoEvictionPolicy(),
                 _ => new LruEvictionPolicy()
             };
         }

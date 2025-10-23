@@ -194,7 +194,7 @@ public class TelemetryRelayTests
         Assert.Single(_telemetryProvider.NotificationPublishes);
         var publish = _telemetryProvider.NotificationPublishes[0];
         Assert.Equal(typeof(TestNotification), publish.NotificationType);
-        Assert.Equal(0, publish.HandlerCount); // Placeholder value
+        Assert.Equal(1, publish.HandlerCount); // Estimated count for notifications
         Assert.True(publish.Success);
         Assert.True(publish.Duration > TimeSpan.Zero);
     }

@@ -11,6 +11,7 @@ using Relay.Core.Diagnostics.Tracing;
 using Relay.Core.Diagnostics.Validation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -52,12 +53,17 @@ public class RelayDiagnosticsServiceHandlersTests
 
         public IAsyncEnumerable<TResponse> StreamAsync<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            return EmptyAsync<TResponse>();
+        }
+
+        private static async IAsyncEnumerable<T> EmptyAsync<T>()
+        {
+            yield break;
         }
 
         public ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification
         {
-            throw new NotImplementedException();
+            return ValueTask.CompletedTask;
         }
     }
 

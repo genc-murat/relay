@@ -20,9 +20,19 @@ namespace Relay.Core.AI.Optimization.Services
         private readonly Dictionary<string, double> _latestMetrics = new();
         private DateTime _lastCollectionTime = DateTime.UtcNow;
 
+        // Throughput tracking
+        private long _totalRequestsProcessed;
+        private DateTime _lastThroughputReset = DateTime.UtcNow;
+        private double _currentThroughputPerSecond;
+
         public SystemMetricsService(ILogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        public void RecordRequestProcessed()
+        {
+            Interlocked.Increment(ref _totalRequestsProcessed);
         }
 
         public SystemHealthScore CalculateSystemHealthScore()
@@ -167,7 +177,7 @@ namespace Relay.Core.AI.Optimization.Services
                     metrics["MemoryUsageMB"] = memoryInfo.usedMB;
                     metrics["AvailableMemoryMB"] = memoryInfo.availableMB;
 
-                    // Throughput metrics (placeholder - would come from actual system monitoring)
+                    // Throughput metrics collected from actual request processing
                     metrics["ThroughputPerSecond"] = GetThroughputPerSecond();
                     metrics["RequestsPerSecond"] = metrics["ThroughputPerSecond"];
 
@@ -320,8 +330,20 @@ namespace Relay.Core.AI.Optimization.Services
 
         private double GetThroughputPerSecond()
         {
-            // Placeholder - would be collected from actual request monitoring
-            return 150.0;
+            var now = DateTime.UtcNow;
+            var timeElapsed = (now - _lastThroughputReset).TotalSeconds;
+
+            if (timeElapsed >= 1.0) // Update every second
+            {
+                var requestsInPeriod = Interlocked.Read(ref _totalRequestsProcessed);
+                _currentThroughputPerSecond = requestsInPeriod / timeElapsed;
+
+                // Reset for next period
+                Interlocked.Exchange(ref _totalRequestsProcessed, 0);
+                _lastThroughputReset = now;
+            }
+
+            return _currentThroughputPerSecond;
         }
 
         private double GetErrorRate()

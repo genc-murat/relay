@@ -13,7 +13,7 @@ public class AnalysisResultTests
 
         // Assert
         Assert.Equal("", result.ProjectPath);
-        Assert.Equal(default(DateTime), result.AnalysisDate);
+        Assert.Equal(default, result.AnalysisDate);
         Assert.True(result.CanMigrate);
         Assert.Equal(0, result.FilesAffected);
         Assert.Equal(0, result.HandlersFound);
@@ -34,10 +34,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetProjectPath()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.ProjectPath = "/path/to/project";
+        var result = new AnalysisResult
+        {
+            // Act
+            ProjectPath = "/path/to/project"
+        };
 
         // Assert
         Assert.Equal("/path/to/project", result.ProjectPath);
@@ -61,10 +62,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetCanMigrate()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.CanMigrate = false;
+        var result = new AnalysisResult
+        {
+            // Act
+            CanMigrate = false
+        };
 
         // Assert
         Assert.False(result.CanMigrate);
@@ -74,10 +76,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetFilesAffected()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.FilesAffected = 42;
+        var result = new AnalysisResult
+        {
+            // Act
+            FilesAffected = 42
+        };
 
         // Assert
         Assert.Equal(42, result.FilesAffected);
@@ -87,10 +90,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetHandlersFound()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.HandlersFound = 15;
+        var result = new AnalysisResult
+        {
+            // Act
+            HandlersFound = 15
+        };
 
         // Assert
         Assert.Equal(15, result.HandlersFound);
@@ -100,10 +104,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetRequestsFound()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.RequestsFound = 10;
+        var result = new AnalysisResult
+        {
+            // Act
+            RequestsFound = 10
+        };
 
         // Assert
         Assert.Equal(10, result.RequestsFound);
@@ -113,10 +118,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetNotificationsFound()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.NotificationsFound = 5;
+        AnalysisResult result = new()
+        {
+            // Act
+            NotificationsFound = 5
+        };
 
         // Assert
         Assert.Equal(5, result.NotificationsFound);
@@ -126,10 +132,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetPipelineBehaviorsFound()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.PipelineBehaviorsFound = 3;
+        AnalysisResult result = new()
+        {
+            // Act
+            PipelineBehaviorsFound = 3
+        };
 
         // Assert
         Assert.Equal(3, result.PipelineBehaviorsFound);
@@ -139,10 +146,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetHasCustomMediator()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.HasCustomMediator = true;
+        AnalysisResult result = new()
+        {
+            // Act
+            HasCustomMediator = true
+        };
 
         // Assert
         Assert.True(result.HasCustomMediator);
@@ -152,10 +160,11 @@ public class AnalysisResultTests
     public void AnalysisResult_CanSetHasCustomBehaviors()
     {
         // Arrange
-        var result = new AnalysisResult();
-
-        // Act
-        result.HasCustomBehaviors = true;
+        AnalysisResult result = new()
+        {
+            // Act
+            HasCustomBehaviors = true
+        };
 
         // Assert
         Assert.True(result.HasCustomBehaviors);

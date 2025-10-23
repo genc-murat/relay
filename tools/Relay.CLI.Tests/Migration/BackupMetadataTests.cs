@@ -15,7 +15,7 @@ public class BackupMetadataTests
         Assert.Equal("", metadata.BackupId);
         Assert.Equal("", metadata.SourcePath);
         Assert.Equal("", metadata.BackupPath);
-        Assert.Equal(default(DateTime), metadata.CreatedAt);
+        Assert.Equal(default, metadata.CreatedAt);
         Assert.Equal("", metadata.ToolVersion);
         Assert.Equal(0, metadata.FileCount);
         Assert.Equal(0L, metadata.TotalSize);
@@ -25,10 +25,11 @@ public class BackupMetadataTests
     public void BackupMetadata_CanSetBackupId()
     {
         // Arrange
-        var metadata = new BackupMetadata();
-
-        // Act
-        metadata.BackupId = "backup-123";
+        BackupMetadata metadata = new()
+        {
+            // Act
+            BackupId = "backup-123"
+        };
 
         // Assert
         Assert.Equal("backup-123", metadata.BackupId);
@@ -38,10 +39,11 @@ public class BackupMetadataTests
     public void BackupMetadata_CanSetSourcePath()
     {
         // Arrange
-        var metadata = new BackupMetadata();
-
-        // Act
-        metadata.SourcePath = "/source/path";
+        BackupMetadata metadata = new()
+        {
+            // Act
+            SourcePath = "/source/path"
+        };
 
         // Assert
         Assert.Equal("/source/path", metadata.SourcePath);
@@ -51,10 +53,11 @@ public class BackupMetadataTests
     public void BackupMetadata_CanSetBackupPath()
     {
         // Arrange
-        var metadata = new BackupMetadata();
-
-        // Act
-        metadata.BackupPath = "/backup/path";
+        BackupMetadata metadata = new()
+        {
+            // Act
+            BackupPath = "/backup/path"
+        };
 
         // Assert
         Assert.Equal("/backup/path", metadata.BackupPath);
@@ -78,10 +81,11 @@ public class BackupMetadataTests
     public void BackupMetadata_CanSetToolVersion()
     {
         // Arrange
-        var metadata = new BackupMetadata();
-
-        // Act
-        metadata.ToolVersion = "1.2.3";
+        BackupMetadata metadata = new()
+        {
+            // Act
+            ToolVersion = "1.2.3"
+        };
 
         // Assert
         Assert.Equal("1.2.3", metadata.ToolVersion);
@@ -91,10 +95,11 @@ public class BackupMetadataTests
     public void BackupMetadata_CanSetFileCount()
     {
         // Arrange
-        var metadata = new BackupMetadata();
-
-        // Act
-        metadata.FileCount = 150;
+        BackupMetadata metadata = new()
+        {
+            // Act
+            FileCount = 150
+        };
 
         // Assert
         Assert.Equal(150, metadata.FileCount);
@@ -104,10 +109,11 @@ public class BackupMetadataTests
     public void BackupMetadata_CanSetTotalSize()
     {
         // Arrange
-        var metadata = new BackupMetadata();
-
-        // Act
-        metadata.TotalSize = 1024000L;
+        BackupMetadata metadata = new()
+        {
+            // Act
+            TotalSize = 1024000L
+        };
 
         // Assert
         Assert.Equal(1024000L, metadata.TotalSize);

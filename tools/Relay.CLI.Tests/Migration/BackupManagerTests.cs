@@ -391,5 +391,6 @@ public class BackupManagerTests : IDisposable
                 File.Delete(_testBackupPath + ".zip");
         }
         catch { }
+        GC.SuppressFinalize(this);
     }
 }

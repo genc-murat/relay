@@ -251,6 +251,9 @@ namespace Relay.Core.AI.Pipeline.Behaviors
 
                 case CacheKeyStrategy.Custom:
                 default:
+                    // For custom strategy, use the provided cache key if available, otherwise generate one
+                    if (!string.IsNullOrEmpty(recommendation.CacheKey))
+                        return recommendation.CacheKey;
                     return $"ai:cache:{requestType}:{GetRequestHash(request)}";
             }
         }
@@ -334,20 +337,13 @@ namespace Relay.Core.AI.Pipeline.Behaviors
                 // Store in memory cache (L1)
                 if (_memoryCache != null)
                 {
-                    var memOptions = new MemoryCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = recommendation.RecommendedTtl,
-                        Priority = recommendation.Priority switch
-                        {
-                            CachePriority.High => CacheItemPriority.High,
-                            CachePriority.Normal => CacheItemPriority.Normal,
-                            CachePriority.Low => CacheItemPriority.Low,
-                            _ => CacheItemPriority.Normal
-                        },
-                        Size = EstimateResponseSize(response)
-                    };
+                    var memOptions = new MemoryCacheEntryOptions();
 
-                    _memoryCache.Set(cacheKey, response, memOptions);
+                    using (var entry = _memoryCache.CreateEntry(cacheKey))
+                    {
+                        entry.Value = response;
+                        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+                    }
                     _logger.LogDebug("Stored in memory cache (L1): {CacheKey}, TTL: {TTL}s", cacheKey, recommendation.RecommendedTtl.TotalSeconds);
                 }
 

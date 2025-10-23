@@ -272,9 +272,9 @@ public class ValidationResultTests
         // Arrange & Act
         var results = new List<ValidationResult>
         {
-            new ValidationResult { Type = "Type1", Status = ValidationStatus.Pass },
-            new ValidationResult { Type = "Type2", Status = ValidationStatus.Warning },
-            new ValidationResult { Type = "Type3", Status = ValidationStatus.Fail }
+            new() { Type = "Type1", Status = ValidationStatus.Pass },
+            new() { Type = "Type2", Status = ValidationStatus.Warning },
+            new() { Type = "Type3", Status = ValidationStatus.Fail }
         };
 
         // Assert
@@ -612,10 +612,10 @@ public class ValidationResultTests
         // Arrange
         var results = new List<ValidationResult>
         {
-            new ValidationResult { Type = "Handlers" },
-            new ValidationResult { Type = "Handlers" },
-            new ValidationResult { Type = "Requests" },
-            new ValidationResult { Type = "Configuration" }
+            new() { Type = "Handlers" },
+            new() { Type = "Handlers" },
+            new() { Type = "Requests" },
+            new() { Type = "Configuration" }
         };
 
         // Act

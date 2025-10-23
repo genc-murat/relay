@@ -394,29 +394,12 @@ public record TestRequest({validation} string Name) : IRequest<string>;";
     public void AnalyzeCommand_ShouldDetectCodeComplexity()
     {
         // Arrange
-        var complexMethod = @"
-public void ComplexMethod()
-{
-    if (condition1)
-    {
-        if (condition2)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                while (condition3)
-                {
-                    // Nested logic
-                }
-            }
-        }
-    }
-}";
 
         // Act
-        var nestingLevel = 5; // Deep nesting detected
+        var _nestingLevel = 5; // Deep nesting detected
 
         // Assert
-        Assert.True(nestingLevel > 3);
+        Assert.True(_nestingLevel > 3);
     }
 
     [Fact]
@@ -1450,7 +1433,7 @@ public record UserDto(int Id, string Name, string Email);";
             ],
             Recommendations =
             [
-                new() { Title = "Test Rec", Priority = "High", Category = "Test", Actions = new List<string> { "Test action" } }
+                new() { Title = "Test Rec", Priority = "High", Category = "Test", Actions = ["Test action"] }
             ]
         };
 
@@ -1643,6 +1626,7 @@ public record UserDto(int Id, string Name, string Email);";
                 Directory.Delete(_testPath, true);
         }
         catch { }
+        GC.SuppressFinalize(this);
     }
 }
 

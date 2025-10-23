@@ -282,9 +282,9 @@ public class ValidationSeverityTests
         var severity = ValidationSeverity.Medium;
 
         // Act & Assert
-        Assert.False(severity == ValidationSeverity.Info);
-        Assert.True(severity == ValidationSeverity.Medium);
-        Assert.True(severity != ValidationSeverity.Critical);
+        Assert.NotEqual(ValidationSeverity.Info, severity);
+        Assert.Equal(ValidationSeverity.Medium, severity);
+        Assert.NotEqual(ValidationSeverity.Critical, severity);
         Assert.True(severity >= ValidationSeverity.Medium);
         Assert.True(severity <= ValidationSeverity.Critical);
         Assert.True(severity > ValidationSeverity.Low);

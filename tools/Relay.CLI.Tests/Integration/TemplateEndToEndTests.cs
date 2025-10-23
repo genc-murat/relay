@@ -13,6 +13,12 @@ public class TemplateEndToEndTests : IDisposable
     private readonly string _templatesPath;
     private readonly string _testOutputPath;
 
+    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = true
+    };
+
     public TemplateEndToEndTests()
     {
         _templatesPath = Path.Combine(AppContext.BaseDirectory, "TestData");
@@ -37,6 +43,7 @@ public class TemplateEndToEndTests : IDisposable
                 // Best effort cleanup
             }
         }
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -233,7 +240,7 @@ public class TemplateEndToEndTests : IDisposable
         var projectName = "ModularMonolith";
         var options = new GenerationOptions
         {
-            Modules = new[] { "Catalog", "Orders", "Customers", "Inventory" }
+            Modules = ["Catalog", "Orders", "Customers", "Inventory"]
         };
 
         // Act
@@ -564,11 +571,7 @@ public class TemplateEndToEndTests : IDisposable
         var templateJsonPath = Path.Combine(templatePath, ".template.config", "template.json");
         var json = File.ReadAllText(templateJsonPath);
 
-        var options = new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            WriteIndented = true
-        };
+        var options = _jsonOptions;
 
         var doc = System.Text.Json.JsonDocument.Parse(json);
         var root = doc.RootElement;

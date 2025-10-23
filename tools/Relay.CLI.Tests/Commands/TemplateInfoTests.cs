@@ -57,7 +57,7 @@ public class TemplateInfoTests
         // Arrange & Act
         var template = new TemplateInfo
         {
-            Tags = new[] { "test", "development", "ci" }
+            Tags = ["test", "development", "ci"]
         };
 
         // Assert
@@ -73,11 +73,11 @@ public class TemplateInfoTests
         // Arrange & Act
         var template = new TemplateInfo
         {
-            Features = new[] { "auth", "swagger", "docker" }
+            Features = ["auth", "swagger", "docker"]
         };
 
         // Assert
-        Assert.Equal(3, template.Features.Count());
+        Assert.Equal(3, template.Features.Length);
         Assert.Contains("auth", template.Features);
         Assert.Contains("swagger", template.Features);
         Assert.Contains("docker", template.Features);
@@ -122,8 +122,8 @@ public class TemplateInfoTests
             Name = "Clean Architecture Web API",
             Description = "Production-ready REST API",
             BestFor = "Enterprise REST APIs",
-            Tags = new[] { "web", "api", "rest" },
-            Features = new[] { "auth", "swagger" },
+            Tags = ["web", "api", "rest"],
+            Features = ["auth", "swagger"],
             Structure = "clean-architecture"
         };
 
@@ -132,8 +132,8 @@ public class TemplateInfoTests
         Assert.Equal("Clean Architecture Web API", template.Name);
         Assert.Equal("Production-ready REST API", template.Description);
         Assert.Equal("Enterprise REST APIs", template.BestFor);
-        Assert.Equal(3, template.Tags.Count());
-        Assert.Equal(2, template.Features.Count());
+        Assert.Equal(3, template.Tags.Length);
+        Assert.Equal(2, template.Features.Length);
         Assert.Equal("clean-architecture", template.Structure);
     }
 
@@ -143,7 +143,7 @@ public class TemplateInfoTests
         // Arrange & Act
         var template = new TemplateInfo
         {
-            Tags = Array.Empty<string>()
+            Tags = []
         };
 
         // Assert
@@ -156,7 +156,7 @@ public class TemplateInfoTests
         // Arrange & Act
         var template = new TemplateInfo
         {
-            Features = Array.Empty<string>()
+            Features = []
         };
 
         // Assert
@@ -169,18 +169,18 @@ public class TemplateInfoTests
         // Arrange & Act
         var template = new TemplateInfo
         {
-            Tags = new[]
-            {
+            Tags =
+            [
                 "microservice",
                 "events",
                 "messaging",
                 "kafka",
                 "rabbitmq"
-            }
+            ]
         };
 
         // Assert
-        Assert.Equal(5, template.Tags.Count());
+        Assert.Equal(5, template.Tags.Length);
         Assert.Contains("microservice", template.Tags);
         Assert.Contains("kafka", template.Tags);
     }
@@ -191,8 +191,8 @@ public class TemplateInfoTests
         // Arrange & Act
         var template = new TemplateInfo
         {
-            Features = new[]
-            {
+            Features =
+            [
                 "auth",
                 "swagger",
                 "docker",
@@ -200,11 +200,11 @@ public class TemplateInfoTests
                 "healthchecks",
                 "logging",
                 "monitoring"
-            }
+            ]
         };
 
         // Assert
-        Assert.Equal(7, template.Features.Count());
+        Assert.Equal(7, template.Features.Length);
         Assert.Contains("healthchecks", template.Features);
         Assert.Contains("monitoring", template.Features);
     }
@@ -261,8 +261,8 @@ public class TemplateInfoTests
             Name = "Clean Architecture Web API",
             Description = "Production-ready REST API following Clean Architecture principles",
             BestFor = "Enterprise REST APIs, Backend services",
-            Tags = new[] { "web", "api", "rest", "clean-architecture" },
-            Features = new[] { "auth", "swagger", "docker", "tests", "healthchecks" },
+            Tags = ["web", "api", "rest", "clean-architecture"],
+            Features = ["auth", "swagger", "docker", "tests", "healthchecks"],
             Structure = "clean-architecture"
         };
 
@@ -284,8 +284,8 @@ public class TemplateInfoTests
             Name = "Event-Driven Microservice",
             Description = "Microservice template with message broker integration",
             BestFor = "Microservices architecture, Event-driven systems",
-            Tags = new[] { "microservice", "events", "messaging" },
-            Features = new[] { "rabbitmq", "kafka", "k8s", "docker", "tracing" },
+            Tags = ["microservice", "events", "messaging"],
+            Features = ["rabbitmq", "kafka", "k8s", "docker", "tracing"],
             Structure = "microservice"
         };
 
@@ -307,8 +307,8 @@ public class TemplateInfoTests
             Name = "Domain-Driven Design",
             Description = "DDD tactical patterns with Relay",
             BestFor = "Complex business domains, Enterprise applications",
-            Tags = new[] { "ddd", "domain", "enterprise" },
-            Features = new[] { "aggregates", "events", "specifications" },
+            Tags = ["ddd", "domain", "enterprise"],
+            Features = ["aggregates", "events", "specifications"],
             Structure = "clean-architecture"
         };
 
@@ -328,8 +328,8 @@ public class TemplateInfoTests
             Name = "CQRS + Event Sourcing",
             Description = "Complete CQRS with Event Sourcing implementation",
             BestFor = "Systems requiring full audit trail, Financial applications",
-            Tags = new[] { "cqrs", "event-sourcing", "audit" },
-            Features = new[] { "eventstore", "projections", "snapshots" },
+            Tags = ["cqrs", "event-sourcing", "audit"],
+            Features = ["eventstore", "projections", "snapshots"],
             Structure = "clean-architecture"
         };
 
@@ -350,8 +350,8 @@ public class TemplateInfoTests
             Name = "GraphQL API",
             Description = "GraphQL API with Hot Chocolate",
             BestFor = "Flexible APIs, Mobile/SPA backends",
-            Tags = new[] { "graphql", "api", "hotchocolate" },
-            Features = new[] { "subscriptions", "dataloader", "filtering" },
+            Tags = ["graphql", "api", "hotchocolate"],
+            Features = ["subscriptions", "dataloader", "filtering"],
             Structure = "clean-architecture"
         };
 
@@ -371,8 +371,8 @@ public class TemplateInfoTests
             Name = "gRPC Service",
             Description = "High-performance gRPC service",
             BestFor = "Microservice communication, High-performance APIs",
-            Tags = new[] { "grpc", "protobuf", "performance" },
-            Features = new[] { "streaming", "tls", "discovery" },
+            Tags = ["grpc", "protobuf", "performance"],
+            Features = ["streaming", "tls", "discovery"],
             Structure = "microservice"
         };
 
@@ -392,8 +392,8 @@ public class TemplateInfoTests
             Name = "Serverless Functions",
             Description = "AWS Lambda / Azure Functions template",
             BestFor = "Serverless applications, Cost-sensitive workloads",
-            Tags = new[] { "serverless", "lambda", "functions" },
-            Features = new[] { "aws", "azure", "api-gateway" },
+            Tags = ["serverless", "lambda", "functions"],
+            Features = ["aws", "azure", "api-gateway"],
             Structure = "simple"
         };
 
@@ -414,8 +414,8 @@ public class TemplateInfoTests
             Name = "Blazor Application",
             Description = "Full-stack Blazor app with Relay",
             BestFor = "Full-stack .NET applications, Internal tools",
-            Tags = new[] { "blazor", "spa", "fullstack" },
-            Features = new[] { "server", "wasm", "signalr", "pwa" },
+            Tags = ["blazor", "spa", "fullstack"],
+            Features = ["server", "wasm", "signalr", "pwa"],
             Structure = "clean-architecture"
         };
 
@@ -435,8 +435,8 @@ public class TemplateInfoTests
             Name = "MAUI Mobile App",
             Description = "Cross-platform mobile app",
             BestFor = "Mobile applications, Cross-platform apps",
-            Tags = new[] { "maui", "mobile", "cross-platform" },
-            Features = new[] { "ios", "android", "offline", "sqlite" },
+            Tags = ["maui", "mobile", "cross-platform"],
+            Features = ["ios", "android", "offline", "sqlite"],
             Structure = "mvvm"
         };
 
@@ -477,7 +477,7 @@ public class TemplateInfoTests
         // Arrange
         var template = new TemplateInfo
         {
-            Features = new[] { "auth", "swagger", "docker" }
+            Features = ["auth", "swagger", "docker"]
         };
 
         // Act
@@ -495,7 +495,7 @@ public class TemplateInfoTests
         // Arrange
         var template = new TemplateInfo
         {
-            Tags = new[] { "web", "api", "rest" }
+            Tags = ["web", "api", "rest"]
         };
 
         // Act
@@ -514,12 +514,12 @@ public class TemplateInfoTests
         var template = new TemplateInfo
         {
             Id = "minimal-template",
-            Features = Array.Empty<string>()
+            Features = []
         };
 
         // Assert
         Assert.Empty(template.Features);
-        Assert.False(template.Features.Any());
+        Assert.Empty(template.Features);
     }
 
     [Fact]

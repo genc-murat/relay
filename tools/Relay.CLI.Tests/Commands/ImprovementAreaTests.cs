@@ -552,11 +552,10 @@ public class ImprovementAreaTests
         };
 
         // Act
-        var hasAnyImprovements = improvementAreas.Length != 0;
         var totalImprovement = improvementAreas.Sum(a => a.Improvement);
 
         // Assert
-        Assert.True(hasAnyImprovements);
+        Assert.NotEmpty(improvementAreas);
         Assert.Equal(0.20, totalImprovement);
     }
 

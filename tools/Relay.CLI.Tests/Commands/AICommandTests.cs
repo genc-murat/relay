@@ -170,7 +170,6 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
     public async Task AICommand_DetectsPatterns()
     {
         // Arrange
-        var projectPath = _testPath;
 
         // Act - Create some handler files
         await File.WriteAllTextAsync(Path.Combine(_testPath, "Handler1.cs"), "public class Handler1 {}");
@@ -313,7 +312,6 @@ public class BadHandler
     public async Task AICommand_GeneratesDocumentation()
     {
         // Arrange
-        var handlerName = "CreateOrderHandler";
         var requestType = "CreateOrderCommand";
         var responseType = "Guid";
 
@@ -375,14 +373,6 @@ for (int i = 0; i < 1000000; i++)
     public void AICommand_ShouldSuggestDesignPatterns()
     {
         // Arrange
-        var code = @"
-public class OrderService
-{
-    public void ProcessOrder() { }
-    public void ValidateOrder() { }
-    public void SaveOrder() { }
-    public void NotifyCustomer() { }
-}";
 
         // Act
         var suggestions = new List<string>
@@ -826,7 +816,6 @@ public void ProcessOrder(Order order)
     {
         // Arrange
         var mutable = "public string Name { get; set; }";
-        var immutable = "public string Name { get; init; }";
 
         // Act
         var isMutable = mutable.Contains("{ get; set; }");
@@ -950,6 +939,7 @@ public void ProcessOrder(Order order)
         {
             Directory.Delete(_testPath, true);
         }
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -1035,14 +1025,14 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = new[]
-            {
+            PerformanceIssues =
+            [
                 new AIPerformanceIssue { Severity = "High", Description = "Test issue", Location = "Test.cs", Impact = "High" }
-            },
-            OptimizationOpportunities = new[]
-            {
+            ],
+            OptimizationOpportunities =
+            [
                 new OptimizationOpportunity { Strategy = "Caching", Description = "Test optimization", ExpectedImprovement = 0.5, Confidence = 0.8, RiskLevel = "Low" }
-            }
+            ]
         };
 
         // Act & Assert - Should not throw exception
@@ -1079,8 +1069,8 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+            PerformanceIssues = [],
+            OptimizationOpportunities = []
         };
 
         // Act & Assert
@@ -1124,8 +1114,8 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+            PerformanceIssues = [],
+            OptimizationOpportunities = []  
         };
 
         // Act & Assert - Should not throw exception
@@ -1138,11 +1128,11 @@ public void ProcessOrder(Order order)
         // Arrange
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Caching", FilePath = "Services/UserService.cs", Description = "Added cache", Success = true, PerformanceGain = 0.6 },
                 new OptimizationResult { Strategy = "Async", FilePath = "Services/OrderService.cs", Description = "Converted to ValueTask", Success = true, PerformanceGain = 0.1 }
-            },
+            ],
             OverallImprovement = 0.35
         };
 
@@ -1156,10 +1146,10 @@ public void ProcessOrder(Order order)
         // Arrange
         var results = new AIOptimizationResults
         {
-            AppliedOptimizations = new[]
-            {
+            AppliedOptimizations =
+            [
                 new OptimizationResult { Strategy = "Caching", FilePath = "Services/UserService.cs", Description = "Added cache", Success = true, PerformanceGain = 0.6 }
-            },
+            ],
             OverallImprovement = 0.35
         };
 
@@ -1200,8 +1190,8 @@ public void ProcessOrder(Order order)
             ExpectedErrorRate = 0.02,
             ExpectedCpuUsage = 0.65,
             ExpectedMemoryUsage = 0.45,
-            Bottlenecks = Array.Empty<PredictedBottleneck>(),
-            Recommendations = Array.Empty<string>()
+            Bottlenecks = [],
+            Recommendations = []
         };
 
         // Act & Assert - Should not throw exception
@@ -1219,11 +1209,11 @@ public void ProcessOrder(Order order)
             ExpectedErrorRate = 0.02,
             ExpectedCpuUsage = 0.65,
             ExpectedMemoryUsage = 0.45,
-            Bottlenecks = new[]
-            {
+            Bottlenecks =
+            [
                 new PredictedBottleneck { Component = "Database", Description = "Connection pool", Probability = 0.3, Impact = "High" }
-            },
-            Recommendations = new[] { "Increase connection pool", "Enable read replicas" }
+            ],
+            Recommendations = ["Increase connection pool", "Enable read replicas"]
         };
 
         // Act & Assert - Should not throw exception
@@ -1241,8 +1231,8 @@ public void ProcessOrder(Order order)
             ExpectedErrorRate = 0.02,
             ExpectedCpuUsage = 0.65,
             ExpectedMemoryUsage = 0.45,
-            Bottlenecks = Array.Empty<PredictedBottleneck>(),
-            Recommendations = Array.Empty<string>()
+            Bottlenecks = [],
+            Recommendations = []
         };
 
         // Act & Assert - Should not throw exception
@@ -1258,11 +1248,11 @@ public void ProcessOrder(Order order)
             TrainingSamples = 15420,
             ModelAccuracy = 0.94,
             TrainingTime = 2.3,
-            ImprovementAreas = new[]
-            {
+            ImprovementAreas =
+            [
                 new ImprovementArea { Area = "Caching Predictions", Improvement = 0.12 },
                 new ImprovementArea { Area = "Batch Size Optimization", Improvement = 0.08 }
-            }
+            ]
         };
 
         // Act & Assert - Should not throw exception
@@ -1303,9 +1293,9 @@ public void ProcessOrder(Order order)
             HealthScore = 8.2,
             PerformanceGrade = 'B',
             ReliabilityScore = 9.1,
-            CriticalIssues = Array.Empty<string>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
-            Predictions = Array.Empty<PredictionResult>()
+            CriticalIssues = [],
+            OptimizationOpportunities = [],
+            Predictions = []
         };
 
         // Act & Assert - Should not throw exception
@@ -1321,16 +1311,16 @@ public void ProcessOrder(Order order)
             HealthScore = 8.2,
             PerformanceGrade = 'B',
             ReliabilityScore = 9.1,
-            CriticalIssues = new[] { "High memory usage detected" },
-            OptimizationOpportunities = new[]
-            {
+            CriticalIssues = ["High memory usage detected"],
+            OptimizationOpportunities =
+            [
                 new OptimizationOpportunity { Title = "Enable Caching", ExpectedImprovement = 0.4 },
                 new OptimizationOpportunity { Title = "Optimize Queries", ExpectedImprovement = 0.25 }
-            },
-            Predictions = new[]
-            {
+            ],
+            Predictions =
+            [
                 new PredictionResult { Metric = "Throughput", PredictedValue = "1,200 req/sec", Confidence = 0.89 }
-            }
+            ]
         };
 
         // Act & Assert - Should not throw exception
@@ -1398,8 +1388,8 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+            PerformanceIssues = [],
+            OptimizationOpportunities = []
         };
 
         // Act
@@ -1420,16 +1410,16 @@ public void ProcessOrder(Order order)
             HealthScore = 8.2,
             PerformanceGrade = 'B',
             ReliabilityScore = 9.1,
-            CriticalIssues = new[] { "High memory usage detected" },
-            OptimizationOpportunities = new[]
-            {
+            CriticalIssues = ["High memory usage detected"],
+            OptimizationOpportunities =
+            [
                 new OptimizationOpportunity { Title = "Enable Caching", ExpectedImprovement = 0.4 },
                 new OptimizationOpportunity { Title = "Optimize Queries", ExpectedImprovement = 0.25 }
-            },
-            Predictions = new[]
-            {
+            ],
+            Predictions =
+            [
                 new PredictionResult { Metric = "Throughput", PredictedValue = "1,200 req/sec", Confidence = 0.89 }
-            }
+            ]
         };
 
         // Act
@@ -1451,9 +1441,9 @@ public void ProcessOrder(Order order)
             HealthScore = 8.2,
             PerformanceGrade = 'B',
             ReliabilityScore = 9.1,
-            CriticalIssues = Array.Empty<string>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>(),
-            Predictions = Array.Empty<PredictionResult>()
+            CriticalIssues = [],
+            OptimizationOpportunities = [],
+            Predictions = []
         };
 
         // Act
@@ -1535,8 +1525,8 @@ public void ProcessOrder(Order order)
             HandlersFound = 15,
             PerformanceScore = 7.8,
             AIConfidence = 0.87,
-            PerformanceIssues = Array.Empty<AIPerformanceIssue>(),
-            OptimizationOpportunities = Array.Empty<OptimizationOpportunity>()
+            PerformanceIssues = [],
+            OptimizationOpportunities = []
         };
         var outputPath = Path.Combine(_testPath, "report.html");
 

@@ -19,6 +19,7 @@ namespace Relay.Core.AI.Optimization.Services
         private readonly object _metricsLock = new();
         private readonly Dictionary<string, double> _latestMetrics = new();
         private DateTime _lastCollectionTime = DateTime.UtcNow;
+        private Dictionary<string, double>? _testMetrics;
 
         // Throughput tracking
         private long _totalRequestsProcessed;
@@ -33,6 +34,11 @@ namespace Relay.Core.AI.Optimization.Services
         public void RecordRequestProcessed()
         {
             Interlocked.Increment(ref _totalRequestsProcessed);
+        }
+
+        internal void SetTestMetrics(Dictionary<string, double> testMetrics)
+        {
+            _testMetrics = testMetrics;
         }
 
         public SystemHealthScore CalculateSystemHealthScore()
@@ -160,6 +166,11 @@ namespace Relay.Core.AI.Optimization.Services
 
         public Dictionary<string, double> CollectSystemMetrics()
         {
+            if (_testMetrics != null)
+            {
+                return _testMetrics.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            }
+
             lock (_metricsLock)
             {
                 try

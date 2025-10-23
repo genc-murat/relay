@@ -101,7 +101,7 @@ public class PluginCommandTests
         Assert.Equal("search", searchCommand.Name);
         Assert.Equal("Search for plugins in the marketplace", searchCommand.Description);
         Assert.Single(searchCommand.Arguments);
-        Assert.Equal("query", searchCommand.Arguments.First().Name);
+        Assert.Equal("query", searchCommand.Arguments[0].Name);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class PluginCommandTests
         Assert.Equal("install", installCommand.Name);
         Assert.Equal("Install a plugin", installCommand.Description);
         Assert.Single(installCommand.Arguments);
-        Assert.Equal("name", installCommand.Arguments.First().Name);
+        Assert.Equal("name", installCommand.Arguments[0].Name);
 
         var versionOption = installCommand.Options.FirstOrDefault(o => o.Name == "version");
         var globalOption = installCommand.Options.FirstOrDefault(o => o.Name == "global");
@@ -159,7 +159,7 @@ public class PluginCommandTests
         Assert.Equal("uninstall", uninstallCommand.Name);
         Assert.Equal("Uninstall a plugin", uninstallCommand.Description);
         Assert.Single(uninstallCommand.Arguments);
-        Assert.Equal("name", uninstallCommand.Arguments.First().Name);
+        Assert.Equal("name", uninstallCommand.Arguments[0].Name);
 
         var globalOption = uninstallCommand.Options.FirstOrDefault(o => o.Name == "global");
         Assert.NotNull(globalOption);
@@ -178,7 +178,7 @@ public class PluginCommandTests
         Assert.Equal("update", updateCommand.Name);
         Assert.Equal("Update installed plugins", updateCommand.Description);
         Assert.Single(updateCommand.Arguments);
-        Assert.Equal("name", updateCommand.Arguments.First().Name);
+        Assert.Equal("name", updateCommand.Arguments[0].Name);
     }
 
     [Fact]
@@ -192,7 +192,7 @@ public class PluginCommandTests
         Assert.Equal("info", infoCommand.Name);
         Assert.Equal("Show detailed information about a plugin", infoCommand.Description);
         Assert.Single(infoCommand.Arguments);
-        Assert.Equal("name", infoCommand.Arguments.First().Name);
+        Assert.Equal("name", infoCommand.Arguments[0].Name);
     }
 
     [Fact]
@@ -525,7 +525,7 @@ public class PluginCommandTests
 
         // Assert
         Assert.Single(updateCommand.Arguments);
-        Assert.Equal("name", updateCommand.Arguments.First().Name);
+        Assert.Equal("name", updateCommand.Arguments[0].Name);
     }
 
     [Fact]

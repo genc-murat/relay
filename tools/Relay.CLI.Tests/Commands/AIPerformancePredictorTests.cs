@@ -143,7 +143,7 @@ public class AIPerformancePredictorTests
 
         // Assert
         Assert.NotNull(results.Recommendations);
-        Assert.Equal(3, results.Recommendations.Count());
+        Assert.Equal(3, results.Recommendations.Length);
         Assert.Contains("Consider increasing database connection pool size", results.Recommendations);
         Assert.Contains("Enable read replicas for read operations", results.Recommendations);
         Assert.Contains("Implement connection pooling optimization", results.Recommendations);
@@ -257,7 +257,7 @@ public class AIPerformancePredictorTests
         var results = await _predictor.PredictAsync(path, scenario, load, timeHorizon);
 
         // Assert
-        Assert.IsAssignableFrom<AIPredictionResults>(results);
+        Assert.IsType<AIPredictionResults>(results, exactMatch: false);
         Assert.True(results.ExpectedThroughput > 0);
         Assert.True(results.ExpectedResponseTime > 0);
         Assert.True(results.ExpectedErrorRate >= 0);

@@ -35,7 +35,7 @@ public class DataStructureTests
             EnableHealthChecks = false,
             EnableCaching = true,
             EnableTelemetry = true,
-            Modules = new[] { "Module1", "Module2" }
+            Modules = ["Module1", "Module2"]
         };
 
         // Assert
@@ -48,7 +48,7 @@ public class DataStructureTests
         Assert.False(options.EnableHealthChecks);
         Assert.True(options.EnableCaching);
         Assert.True(options.EnableTelemetry);
-        Assert.Equal(2, options.Modules.Count());
+        Assert.Equal(2, options.Modules.Length);
         Assert.Contains("Module1", options.Modules);
         Assert.Contains("Module2", options.Modules);
     }

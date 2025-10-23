@@ -290,10 +290,10 @@ public class ValidationResultTests
         // Arrange
         var results = new List<ValidationResult>
         {
-            new ValidationResult { Status = ValidationStatus.Pass },
-            new ValidationResult { Status = ValidationStatus.Pass },
-            new ValidationResult { Status = ValidationStatus.Warning },
-            new ValidationResult { Status = ValidationStatus.Fail }
+            new() { Status = ValidationStatus.Pass },
+            new() { Status = ValidationStatus.Pass },
+            new() { Status = ValidationStatus.Warning },
+            new() { Status = ValidationStatus.Fail }
         };
 
         // Act
@@ -309,10 +309,10 @@ public class ValidationResultTests
         // Arrange
         var results = new List<ValidationResult>
         {
-            new ValidationResult { Severity = ValidationSeverity.Info },
-            new ValidationResult { Severity = ValidationSeverity.Low },
-            new ValidationResult { Severity = ValidationSeverity.Critical },
-            new ValidationResult { Severity = ValidationSeverity.Critical }
+            new() { Severity = ValidationSeverity.Info },
+            new() { Severity = ValidationSeverity.Low },
+            new() { Severity = ValidationSeverity.Critical },
+            new() { Severity = ValidationSeverity.Critical }
         };
 
         // Act
@@ -632,9 +632,9 @@ public class ValidationResultTests
         // Arrange
         var results = new List<ValidationResult>
         {
-            new ValidationResult { Severity = ValidationSeverity.Low },
-            new ValidationResult { Severity = ValidationSeverity.Critical },
-            new ValidationResult { Severity = ValidationSeverity.Medium }
+            new() { Severity = ValidationSeverity.Low },
+            new() { Severity = ValidationSeverity.Critical },
+            new() { Severity = ValidationSeverity.Medium }
         };
 
         // Act

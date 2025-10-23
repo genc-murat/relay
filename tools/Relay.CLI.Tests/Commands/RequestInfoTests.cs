@@ -225,9 +225,9 @@ public class RequestInfoTests
         // Arrange & Act
         var requests = new List<RequestInfo>
         {
-            new RequestInfo { Name = "CreateUser", IsRecord = true, ParameterCount = 3 },
-            new RequestInfo { Name = "UpdateUser", IsRecord = false, ParameterCount = 4 },
-            new RequestInfo { Name = "DeleteUser", IsRecord = true, ParameterCount = 1 }
+            new() { Name = "CreateUser", IsRecord = true, ParameterCount = 3 },
+            new() { Name = "UpdateUser", IsRecord = false, ParameterCount = 4 },
+            new() { Name = "DeleteUser", IsRecord = true, ParameterCount = 1 }
         };
 
         // Assert
@@ -242,10 +242,10 @@ public class RequestInfoTests
         // Arrange
         var requests = new List<RequestInfo>
         {
-            new RequestInfo { Name = "Request1", IsRecord = true },
-            new RequestInfo { Name = "Request2", IsRecord = false },
-            new RequestInfo { Name = "Request3", IsRecord = true },
-            new RequestInfo { Name = "Request4", IsRecord = false }
+            new() { Name = "Request1", IsRecord = true },
+            new() { Name = "Request2", IsRecord = false },
+            new() { Name = "Request3", IsRecord = true },
+            new() { Name = "Request4", IsRecord = false }
         };
 
         // Act
@@ -265,10 +265,10 @@ public class RequestInfoTests
         // Arrange
         var requests = new List<RequestInfo>
         {
-            new RequestInfo { Name = "R1", HasValidation = true, HasAuthorization = true, HasCaching = false },
-            new RequestInfo { Name = "R2", HasValidation = false, HasAuthorization = true, HasCaching = true },
-            new RequestInfo { Name = "R3", HasValidation = true, HasAuthorization = false, HasCaching = true },
-            new RequestInfo { Name = "R4", HasValidation = false, HasAuthorization = false, HasCaching = false }
+            new() { Name = "R1", HasValidation = true, HasAuthorization = true, HasCaching = false },
+            new() { Name = "R2", HasValidation = false, HasAuthorization = true, HasCaching = true },
+            new() { Name = "R3", HasValidation = true, HasAuthorization = false, HasCaching = true },
+            new() { Name = "R4", HasValidation = false, HasAuthorization = false, HasCaching = false }
         };
 
         // Act
@@ -288,9 +288,9 @@ public class RequestInfoTests
         // Arrange
         var requests = new List<RequestInfo>
         {
-            new RequestInfo { Name = "Simple", ParameterCount = 1 },
-            new RequestInfo { Name = "Complex", ParameterCount = 10 },
-            new RequestInfo { Name = "Medium", ParameterCount = 5 }
+            new() { Name = "Simple", ParameterCount = 1 },
+            new() { Name = "Complex", ParameterCount = 10 },
+            new() { Name = "Medium", ParameterCount = 5 }
         };
 
         // Act
@@ -308,10 +308,10 @@ public class RequestInfoTests
         // Arrange
         var requests = new List<RequestInfo>
         {
-            new RequestInfo { Name = "Query1", HasResponse = true, ParameterCount = 2 },
-            new RequestInfo { Name = "Command1", HasResponse = false, ParameterCount = 3 },
-            new RequestInfo { Name = "Query2", HasResponse = true, ParameterCount = 1 },
-            new RequestInfo { Name = "Command2", HasResponse = false, ParameterCount = 4 }
+            new() { Name = "Query1", HasResponse = true, ParameterCount = 2 },
+            new() { Name = "Command1", HasResponse = false, ParameterCount = 3 },
+            new() { Name = "Query2", HasResponse = true, ParameterCount = 1 },
+            new() { Name = "Command2", HasResponse = false, ParameterCount = 4 }
         };
 
         // Act
@@ -421,10 +421,10 @@ public class RequestInfoTests
         // Arrange
         var requests = new List<RequestInfo>
         {
-            new RequestInfo { Name = "R1", IsRecord = true, HasValidation = true, ParameterCount = 3 },
-            new RequestInfo { Name = "R2", IsRecord = false, HasValidation = true, ParameterCount = 2 },
-            new RequestInfo { Name = "R3", IsRecord = true, HasValidation = false, ParameterCount = 5 },
-            new RequestInfo { Name = "R4", IsRecord = true, HasValidation = true, ParameterCount = 1 }
+            new() { Name = "R1", IsRecord = true, HasValidation = true, ParameterCount = 3 },
+            new() { Name = "R2", IsRecord = false, HasValidation = true, ParameterCount = 2 },
+            new() { Name = "R3", IsRecord = true, HasValidation = false, ParameterCount = 5 },
+            new() { Name = "R4", IsRecord = true, HasValidation = true, ParameterCount = 1 }
         };
 
         // Act
@@ -446,9 +446,9 @@ public class RequestInfoTests
         // Arrange
         var requests = new List<RequestInfo>
         {
-            new RequestInfo { Name = "UserRequest", FilePath = "src/Users/Commands/CreateUserCommand.cs" },
-            new RequestInfo { Name = "ProductRequest", FilePath = "src/Products/Commands/CreateProductCommand.cs" },
-            new RequestInfo { Name = "OrderRequest", FilePath = "src/Orders/Queries/GetOrderQuery.cs" }
+            new() { Name = "UserRequest", FilePath = "src/Users/Commands/CreateUserCommand.cs" },
+            new() { Name = "ProductRequest", FilePath = "src/Products/Commands/CreateProductCommand.cs" },
+            new() { Name = "OrderRequest", FilePath = "src/Orders/Queries/GetOrderQuery.cs" }
         };
 
         // Act
@@ -466,9 +466,9 @@ public class RequestInfoTests
         // Arrange
         var requests = new List<RequestInfo>
         {
-            new RequestInfo { Name = "Simple", HasValidation = false, HasAuthorization = false, HasCaching = false, ParameterCount = 1 },
-            new RequestInfo { Name = "Complex", HasValidation = true, HasAuthorization = true, HasCaching = true, ParameterCount = 8 },
-            new RequestInfo { Name = "Medium", HasValidation = true, HasAuthorization = false, HasCaching = true, ParameterCount = 3 }
+            new() { Name = "Simple", HasValidation = false, HasAuthorization = false, HasCaching = false, ParameterCount = 1 },
+            new() { Name = "Complex", HasValidation = true, HasAuthorization = true, HasCaching = true, ParameterCount = 8 },
+            new() { Name = "Medium", HasValidation = true, HasAuthorization = false, HasCaching = true, ParameterCount = 3 }
         };
 
         // Act
@@ -508,8 +508,7 @@ public class RequestInfoTests
         // Arrange
         var requests = new List<RequestInfo>
         {
-            new RequestInfo
-            {
+            new() {
                 Name = "CreateUserCommand",
                 FilePath = "src/Users/CreateUserCommand.cs",
                 IsRecord = true,
@@ -519,8 +518,7 @@ public class RequestInfoTests
                 HasCaching = false,
                 HasAuthorization = true
             },
-            new RequestInfo
-            {
+            new() {
                 Name = "GetUserQuery",
                 FilePath = "src/Users/GetUserQuery.cs",
                 IsRecord = true,

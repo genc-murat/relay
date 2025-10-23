@@ -138,10 +138,10 @@ public class PipelineStageResultTests
         // Arrange
         var results = new List<PipelineStageResult>
         {
-            new PipelineStageResult { StageName = "Stage1", Success = true },
-            new PipelineStageResult { StageName = "Stage2", Success = false, Error = "Failed" },
-            new PipelineStageResult { StageName = "Stage3", Success = true },
-            new PipelineStageResult { StageName = "Stage4", Success = false }
+            new() { StageName = "Stage1", Success = true },
+            new() { StageName = "Stage2", Success = false, Error = "Failed" },
+            new() { StageName = "Stage3", Success = true },
+            new() { StageName = "Stage4", Success = false }
         };
 
         // Act
@@ -160,9 +160,9 @@ public class PipelineStageResultTests
         // Arrange
         var results = new List<PipelineStageResult>
         {
-            new PipelineStageResult { StageName = "Fast", Duration = TimeSpan.FromSeconds(1) },
-            new PipelineStageResult { StageName = "Slow", Duration = TimeSpan.FromSeconds(30) },
-            new PipelineStageResult { StageName = "Medium", Duration = TimeSpan.FromSeconds(10) }
+            new() { StageName = "Fast", Duration = TimeSpan.FromSeconds(1) },
+            new() { StageName = "Slow", Duration = TimeSpan.FromSeconds(30) },
+            new() { StageName = "Medium", Duration = TimeSpan.FromSeconds(10) }
         };
 
         // Act
@@ -180,10 +180,10 @@ public class PipelineStageResultTests
         // Arrange
         var results = new List<PipelineStageResult>
         {
-            new PipelineStageResult { StageName = "Stage1", Success = true },
-            new PipelineStageResult { StageName = "Stage2", Success = false },
-            new PipelineStageResult { StageName = "Stage3", Success = true },
-            new PipelineStageResult { StageName = "Stage4", Success = false }
+            new() { StageName = "Stage1", Success = true },
+            new() { StageName = "Stage2", Success = false },
+            new() { StageName = "Stage3", Success = true },
+            new() { StageName = "Stage4", Success = false }
         };
 
         // Act
@@ -408,8 +408,7 @@ public class PipelineStageResultTests
         // Arrange
         var results = new List<PipelineStageResult>
         {
-            new PipelineStageResult
-            {
+            new() {
                 StageName = "Dependencies",
                 StageEmoji = "📦",
                 Success = true,
@@ -417,8 +416,7 @@ public class PipelineStageResultTests
                 Duration = TimeSpan.FromSeconds(8),
                 Details = [ "Restored 45 NuGet packages" ]
             },
-            new PipelineStageResult
-            {
+            new() {
                 StageName = "Compilation",
                 StageEmoji = "⚙️",
                 Success = true,
@@ -426,8 +424,7 @@ public class PipelineStageResultTests
                 Duration = TimeSpan.FromSeconds(12),
                 Details = [ "Compiled 18 C# files", "Generated MyApp.dll" ]
             },
-            new PipelineStageResult
-            {
+            new() {
                 StageName = "Testing",
                 StageEmoji = "🧪",
                 Success = false,

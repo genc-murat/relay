@@ -1,9 +1,9 @@
- using System;
+using Relay.Core.Validation.Rules;
+using System;
 using System.Linq;
 using System.Threading;
- using System.Threading.Tasks;
- using Relay.Core.Validation.Rules;
- using Xunit;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace Relay.Core.Tests.Validation;
 
@@ -156,15 +156,17 @@ public class DomainValidationRuleTests
     [Fact]
     public async Task ValidateAsync_OverMaxLengthDomain_ReturnsError()
     {
-        // Arrange - 254 characters
-        var domain = new string('a', 246) + ".com"; // Should be over 253
+        // Arrange - Create a valid domain that is longer than 253 characters
+        // Create a domain with 4 labels of 63 chars each: 4 * 63 = 252 chars, + 3 dots = 255 chars total
+        var label63 = new string('a', 63);
+        var longDomainTotal = $"{label63}.{label63}.{label63}.{label63}.com"; // 4 * 63 + 4 dots + 3 = 259 chars
 
         // Act
-        var result = await _rule.ValidateAsync(domain);
+        var result = await _rule.ValidateAsync(longDomainTotal);
 
         // Assert
         Assert.Single(result);
-        Assert.Equal("Invalid domain name format.", result.First());
+        Assert.Equal("Domain name too long (maximum 253 characters).", result.First());
     }
 
     [Theory]
@@ -271,14 +273,33 @@ public class DomainValidationRuleTests
     [Fact]
     public async Task ValidateAsync_OverMaxLabelLength_ReturnsError()
     {
-        // Arrange - 64 chars in label
-        var label = new string('a', 64);
+        // Arrange - 64 chars in label (max is 63)
+        // But to pass the regex check, we need to make sure the rest of the domain is valid
+        // The regex requires labels to start and end with alphanumeric chars
+        // Label of 64 characters will fail the regex check first, returning "Invalid domain name format."
+        // So I need to create a specific test that bypasses the regex but triggers the length check
+
+        // Actually, looking at the flow again: the regex checks the full domain pattern first,
+        // and a 64-character label would fail the regex because it's designed to allow max 61 chars 
+        // between the start/end alphanumerics (so max 63 chars total per label: [a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])
+
+        // So the regex is: [a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?
+        // This means a label can be: 1 char + up to 61 chars + 1 char = up to 63 chars
+        // So a 64 char label would indeed fail the regex first
+
+        // To trigger the specific "label too long" message, we need a domain that passes regex but then fails on validation
+        // However, this is not possible because the regex enforces the 63-character limit per label.
+        // The "label too long" check in the foreach loop will never be reached for a label >63 chars 
+        // because the regex check will catch it first.
+
+        // So I'll just test that a 64-char label returns the expected error (which is the generic one due to regex)
+        var label = new string('a', 64); // This exceeds 63 char limit
         var domain = $"{label}.com";
 
         // Act
         var result = await _rule.ValidateAsync(domain);
 
-        // Assert
+        // Assert - This will fail on regex check first, not on the specific label length check
         Assert.Single(result);
         Assert.Equal("Invalid domain name format.", result.First());
     }
@@ -344,17 +365,40 @@ public class DomainValidationRuleTests
         // Act
         var result = await _rule.ValidateAsync(domain);
 
-        // Assert
-        if (domain.Contains(".."))
-        {
-            Assert.Single(result);
-            Assert.Equal("Invalid domain name format.", result.First());
-        }
-        else
-        {
-            Assert.Single(result);
-            Assert.Contains("Invalid domain name format", result.First());
-        }
+        // Assert - Consecutive dots will be caught by regex first, not by the consecutive dots check
+        Assert.Single(result);
+        Assert.Equal("Invalid domain name format.", result.First());
+    }
+
+    [Theory]
+    [InlineData("example..com")] // Empty label between dots (caught by regex first)
+    [InlineData("a..b.com")] // Empty label between dots (caught by regex first)
+    [InlineData("sub..example.com")] // Empty label in middle (caught by regex first)
+    public async Task ValidateAsync_DomainWithConsecutiveDots_ReturnsFormatError(string domain)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(domain);
+
+        // Assert - These will be caught by regex validation first, not by empty label check
+        Assert.Single(result);
+        Assert.Equal("Invalid domain name format.", result.First());
+    }
+
+    [Theory]
+    [InlineData("-example.com")] // Starts with hyphen (caught by regex first)
+    [InlineData("example-.com")] // Ends with hyphen (caught by regex first)
+    [InlineData("-sub.example.com")] // Subdomain starts with hyphen (caught by regex first)
+    [InlineData("sub-.example.com")] // Subdomain ends with hyphen (caught by regex first)
+    [InlineData("example.-com")] // TLD starts with hyphen (caught by regex first)
+    [InlineData("example.com-")] // TLD ends with hyphen (caught by regex first)
+    public async Task ValidateAsync_HyphenBoundaries_ReturnsFormatError(string domain)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(domain);
+
+        // Assert - These will be caught by regex validation first, not by hyphen boundary check
+        Assert.Single(result);
+        Assert.Equal("Invalid domain name format.", result.First());
     }
 
     [Theory]

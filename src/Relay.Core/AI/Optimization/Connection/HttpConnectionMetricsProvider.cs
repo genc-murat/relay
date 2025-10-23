@@ -14,6 +14,7 @@ internal class HttpConnectionMetricsProvider
     private readonly Relay.Core.AI.Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb;
     private readonly Relay.Core.AI.SystemMetricsCalculator _systemMetrics;
     private WebSocketConnectionMetricsProvider? _webSocketProvider;
+    private readonly System.Diagnostics.Stopwatch _reflectionStopwatch = new();
 
     public HttpConnectionMetricsProvider(
         ILogger logger,
@@ -993,8 +994,18 @@ internal class HttpConnectionMetricsProvider
 
     private int TryGetHttpClientPoolMetricsViaReflection()
     {
-        try
+        if (!_options.EnableHttpConnectionReflection)
         {
+            _logger.LogTrace("HTTP connection reflection metrics are disabled");
+            return 0;
+        }
+
+        int lastExceptionCount = 0;
+        for (int attempt = 0; attempt <= _options.HttpMetricsReflectionMaxRetries; attempt++)
+        {
+            try
+            {
+                _reflectionStopwatch.Restart();
             // Try to access HttpClient connection pool metrics via reflection
             // This implementation works with .NET 6+ SocketsHttpHandler
 
@@ -1052,13 +1063,33 @@ internal class HttpConnectionMetricsProvider
                 _timeSeriesDb.StoreMetric("HttpClient_ActiveConnections_Reflection", totalActiveConnections, DateTime.UtcNow);
             }
 
-            return totalActiveConnections;
+                _reflectionStopwatch.Stop();
+                if (_reflectionStopwatch.ElapsedMilliseconds > _options.HttpMetricsReflectionTimeoutMs)
+                {
+                    _logger.LogWarning("HTTP connection reflection metrics collection timed out after {Timeout}ms", _options.HttpMetricsReflectionTimeoutMs);
+                    return 0;
+                }
+
+                return totalActiveConnections;
+            }
+            catch (Exception ex)
+            {
+                lastExceptionCount++;
+                _logger.LogTrace(ex, "Error retrieving HttpClient metrics via reflection (attempt {Attempt}/{MaxRetries})", attempt + 1, _options.HttpMetricsReflectionMaxRetries + 1);
+
+                if (attempt < _options.HttpMetricsReflectionMaxRetries)
+                {
+                    // Brief delay before retry
+                    System.Threading.Thread.Sleep(50);
+                    continue;
+                }
+
+                _logger.LogWarning(ex, "Failed to retrieve HttpClient metrics via reflection after {Attempts} attempts", _options.HttpMetricsReflectionMaxRetries + 1);
+                return 0;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogTrace(ex, "Error retrieving HttpClient metrics via reflection");
-            return 0;
-        }
+
+        return 0;
     }
 
     private System.Collections.Generic.IEnumerable<System.Net.Http.HttpClient> GetHttpClientInstances()

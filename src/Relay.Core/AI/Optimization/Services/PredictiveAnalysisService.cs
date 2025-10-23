@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Models;
 using Relay.Core.AI;
+using Relay.Core.AI.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,7 @@ namespace Relay.Core.AI.Optimization.Services
         private readonly int _maxHistorySize = 100;
         private readonly object _historyLock = new();
         private LoadLevel _previousLoadLevel = LoadLevel.Idle;
+        private readonly LinearRegressionModel _throughputModel = new();
 
         public PredictiveAnalysisService(ILogger logger)
         {
@@ -39,6 +41,9 @@ namespace Relay.Core.AI.Optimization.Services
                     };
                 }
 
+                // Train the throughput prediction model
+                TrainThroughputModel();
+
                 var nextHourPredictions = PredictNextHour();
                 var nextDayPredictions = PredictNextDay();
                 var potentialIssues = IdentifyPotentialIssues();
@@ -54,6 +59,41 @@ namespace Relay.Core.AI.Optimization.Services
                     PredictionConfidence = confidence
                 };
             }
+        }
+
+        private void TrainThroughputModel()
+        {
+            try
+            {
+                var trainingData = _metricsHistory
+                    .Select((snapshot, index) => (x: (double)index, y: snapshot.Metrics.GetValueOrDefault("ThroughputPerSecond", 0)))
+                    .ToList();
+
+                if (trainingData.Count >= 2)
+                {
+                    _throughputModel.Train(trainingData);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to train throughput prediction model");
+            }
+        }
+
+        public double PredictThroughput(int futureIndex)
+        {
+            if (_throughputModel.IsTrained)
+            {
+                try
+                {
+                    return _throughputModel.Predict(futureIndex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to predict throughput");
+                }
+            }
+            return _metricsHistory.LastOrDefault()?.Metrics.GetValueOrDefault("ThroughputPerSecond", 0) ?? 0;
         }
 
         internal List<LoadTransition> GetLoadTransitions()
@@ -248,13 +288,14 @@ namespace Relay.Core.AI.Optimization.Services
                 Confidence = CalculatePredictionConfidence()
             };
 
+            var currentThroughput = latest.Metrics.GetValueOrDefault("ThroughputPerSecond", 0);
             predictions["ThroughputPerSecond"] = new ForecastResult
             {
-                Current = latest.Metrics.GetValueOrDefault("ThroughputPerSecond", 0),
-                Forecast5Min = PredictMetric(recentSnapshots, "ThroughputPerSecond"),
-                Forecast15Min = PredictMetric(recentSnapshots, "ThroughputPerSecond"),
-                Forecast60Min = PredictMetric(recentSnapshots, "ThroughputPerSecond"),
-                Confidence = CalculatePredictionConfidence()
+                Current = currentThroughput,
+                Forecast5Min = PredictThroughput(_metricsHistory.Count + 1),
+                Forecast15Min = PredictThroughput(_metricsHistory.Count + 3),
+                Forecast60Min = PredictThroughput(_metricsHistory.Count + 12),
+                Confidence = _throughputModel.IsTrained ? 0.8 : CalculatePredictionConfidence()
             };
 
             predictions["ErrorRate"] = new ForecastResult

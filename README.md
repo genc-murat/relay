@@ -39,6 +39,7 @@
 - **🆕 OpenTelemetry**: Built-in distributed tracing and metrics
 - **🆕 CLI Tooling**: Powerful developer tools for scaffolding, migration, and optimization
 - **🆕 Plugin System**: Extensible architecture with community plugins
+- **🆕 AI-Powered Optimization**: Machine learning models for performance prediction and bottleneck detection
 
 ### 🏗️ **Advanced Architecture**
 - **Configuration System**: Rich configuration with validation and attribute-based parameter overrides
@@ -51,6 +52,7 @@
 - **Observability**: Built-in telemetry, metrics, and distributed tracing support
 - **🆕 Developer Tooling**: CLI tools for migration, scaffolding, health checks, and optimization
 - **🆕 Extensibility**: Plugin system for custom tools and community contributions
+- **🆕 AI Optimization Engine**: Machine learning-powered performance optimization with predictive analytics
 
 ## 🛠️ Installation
 
@@ -792,6 +794,36 @@ The framework itself is thoroughly tested with **754 passing tests** (558 core +
 - Compression algorithms
 - OpenTelemetry integration
 - Saga orchestration
+
+## 🧠 AI-Powered Optimization
+
+Relay includes an advanced AI optimization engine that continuously learns from your application's performance patterns:
+
+### **Machine Learning Models**
+- **Linear Regression**: Predicts throughput based on system metrics
+- **Cache Eviction Policies**: LFU (Least Frequently Used) and FIFO algorithms
+- **Bottleneck Detection**: Automatic identification of performance bottlenecks
+- **Predictive Analytics**: Forecast system behavior and resource needs
+
+### **Intelligent Caching**
+- **Adaptive Cache Sizes**: Dynamically adjusts cache capacity based on usage patterns
+- **Multi-Level Caching**: Request-level and handler-level caching strategies
+- **Cache Statistics**: Real-time monitoring of cache hit rates and performance
+
+### **System Metrics & Monitoring**
+- **HTTP Connection Tracking**: Reflection-based connection pool monitoring (configurable)
+- **Throughput Analysis**: Real-time request processing metrics
+- **Resource Optimization**: CPU, memory, and I/O optimization recommendations
+
+### **Configuration Options**
+```csharp
+services.Configure<AIOptimizationOptions>(options =>
+{
+    options.EnableHttpConnectionReflection = true; // Enable/disable reflection metrics
+    options.HttpMetricsReflectionMaxRetries = 3;   // Retry attempts for reflection
+    options.HttpMetricsReflectionTimeoutMs = 5000; // Timeout for metrics collection
+});
+```
 
 ## 📊 Performance
 

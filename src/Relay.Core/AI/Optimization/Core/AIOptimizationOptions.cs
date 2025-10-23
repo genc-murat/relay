@@ -189,6 +189,25 @@ namespace Relay.Core.AI
         public int EstimatedMaxDbConnections { get; set; } = 100;
 
         /// <summary>
+        /// Gets or sets whether to enable HTTP connection metrics collection via reflection.
+        /// This may have performance implications and requires appropriate permissions.
+        /// Default: true
+        /// </summary>
+        public bool EnableHttpConnectionReflection { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the maximum retry attempts for reflection-based metrics collection.
+        /// Default: 3
+        /// </summary>
+        public int HttpMetricsReflectionMaxRetries { get; set; } = 3;
+
+        /// <summary>
+        /// Gets or sets the timeout for reflection-based metrics collection (in milliseconds).
+        /// Default: 5000 (5 seconds)
+        /// </summary>
+        public int HttpMetricsReflectionTimeoutMs { get; set; } = 5000;
+
+        /// <summary>
         /// Gets or sets the maximum estimated external service connections.
         /// Default: 30
         /// </summary>

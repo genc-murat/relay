@@ -259,7 +259,6 @@ public class OptimizeCommandExtendedTests : IDisposable
     public void OptimizeCommand_ShouldOptimizeStringConcatenation()
     {
         // Arrange
-        var original = "var result = str1 + str2 + str3;";
 
         // Act
         var optimized = "var result = string.Concat(str1, str2, str3);";
@@ -477,9 +476,9 @@ public class OptimizeCommandExtendedTests : IDisposable
     {
         // Arrange
         var isAggressive = true;
-        var optimizationCount = 0;
 
         // Act
+        int optimizationCount;
         if (isAggressive)
         {
             optimizationCount = 10; // All optimizations
@@ -518,10 +517,9 @@ public class OptimizeCommandExtendedTests : IDisposable
     public void OptimizeCommand_Statistics_ShouldCountFilesProcessed()
     {
         // Arrange
-        var filesProcessed = 0;
 
         // Act
-        filesProcessed = 15;
+        var filesProcessed = 15;
 
         // Assert
         Assert.Equal(15, filesProcessed);
@@ -531,10 +529,9 @@ public class OptimizeCommandExtendedTests : IDisposable
     public void OptimizeCommand_Statistics_ShouldCountOptimizationsApplied()
     {
         // Arrange
-        var optimizationsApplied = 0;
 
         // Act
-        optimizationsApplied = 45;
+        var optimizationsApplied = 45;
 
         // Assert
         Assert.Equal(45, optimizationsApplied);
@@ -916,6 +913,7 @@ public class OptimizeCommandExtendedTests : IDisposable
         {
             // Ignore cleanup errors
         }
+        GC.SuppressFinalize(this);
     }
 }
 

@@ -218,19 +218,17 @@ namespace Relay.Core.Tests.EventSourcing
             }
 
             // Retrieve in second scope
-            using (var scope2 = serviceProvider.CreateScope())
-            {
-                var eventStore2 = scope2.ServiceProvider.GetRequiredService<IEventStore>();
-                
-                var retrievedEvents = new System.Collections.Generic.List<Event>();
-                await foreach (var @event in eventStore2.GetEventsAsync(aggregateId))
-                {
-                    retrievedEvents.Add(@event);
-                }
+            using var scope2 = serviceProvider.CreateScope();
+            var eventStore2 = scope2.ServiceProvider.GetRequiredService<IEventStore>();
 
-                // Assert - InMemory database persists across scopes with same database name
-                Assert.Single(retrievedEvents);
+            var retrievedEvents = new System.Collections.Generic.List<Event>();
+            await foreach (var @event in eventStore2.GetEventsAsync(aggregateId))
+            {
+                retrievedEvents.Add(@event);
             }
+
+            // Assert - InMemory database persists across scopes with same database name
+            Assert.Single(retrievedEvents);
         }
     }
 }

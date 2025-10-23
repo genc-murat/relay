@@ -21,7 +21,6 @@ public class MultiTargetingTests
     {
         // Arrange & Act
         var assembly = typeof(IRelay).Assembly;
-        var targetFramework = assembly.GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>();
 
         // Assert
         // This test validates that the assembly can be loaded and used
@@ -165,8 +164,8 @@ public class MultiTargetingTests
         Assert.Equal("TestHandler", relayException.HandlerName);
         Assert.Equal("Test message", relayException.Message);
 
-        Assert.IsAssignableFrom<RelayException>(handlerNotFoundException);
-        Assert.IsAssignableFrom<RelayException>(multipleHandlersException);
+        Assert.IsType<RelayException>(handlerNotFoundException, exactMatch: false);
+        Assert.IsType<RelayException>(multipleHandlersException, exactMatch: false);
     }
 
     [Fact]

@@ -22,6 +22,7 @@ public class CompressionAdditionalTests : IDisposable
     public void Dispose()
     {
         // Cleanup if needed
+        GC.SuppressFinalize(this);
     }
     [Fact]
     public void GZipMessageCompressor_WithLowLevel_ShouldUseFastestCompression()

@@ -238,9 +238,9 @@ public class ReliabilityIssueTests
         // Arrange & Act
         var issues = new List<ReliabilityIssue>
         {
-            new ReliabilityIssue { Type = "Timeout", Severity = "High", Count = 10 },
-            new ReliabilityIssue { Type = "Exception", Severity = "Medium", Count = 5 },
-            new ReliabilityIssue { Type = "CircuitBreaker", Severity = "Critical", Count = 2 }
+            new() { Type = "Timeout", Severity = "High", Count = 10 },
+            new() { Type = "Exception", Severity = "Medium", Count = 5 },
+            new() { Type = "CircuitBreaker", Severity = "Critical", Count = 2 }
         };
 
         // Assert
@@ -254,10 +254,10 @@ public class ReliabilityIssueTests
         // Arrange
         var issues = new List<ReliabilityIssue>
         {
-            new ReliabilityIssue { Type = "Timeout", Severity = "High" },
-            new ReliabilityIssue { Type = "Exception", Severity = "Medium" },
-            new ReliabilityIssue { Type = "Timeout", Severity = "Low" },
-            new ReliabilityIssue { Type = "CircuitBreaker", Severity = "High" }
+            new() { Type = "Timeout", Severity = "High" },
+            new() { Type = "Exception", Severity = "Medium" },
+            new() { Type = "Timeout", Severity = "Low" },
+            new() { Type = "CircuitBreaker", Severity = "High" }
         };
 
         // Act
@@ -274,10 +274,10 @@ public class ReliabilityIssueTests
         // Arrange
         var issues = new List<ReliabilityIssue>
         {
-            new ReliabilityIssue { Type = "Timeout", Severity = "High" },
-            new ReliabilityIssue { Type = "Exception", Severity = "Medium" },
-            new ReliabilityIssue { Type = "CircuitBreaker", Severity = "High" },
-            new ReliabilityIssue { Type = "Memory", Severity = "Low" }
+            new() { Type = "Timeout", Severity = "High" },
+            new() { Type = "Exception", Severity = "Medium" },
+            new() { Type = "CircuitBreaker", Severity = "High" },
+            new() { Type = "Memory", Severity = "Low" }
         };
 
         // Act
@@ -294,9 +294,9 @@ public class ReliabilityIssueTests
         // Arrange
         var issues = new List<ReliabilityIssue>
         {
-            new ReliabilityIssue { Type = "Low", Count = 1 },
-            new ReliabilityIssue { Type = "High", Count = 50 },
-            new ReliabilityIssue { Type = "Medium", Count = 10 }
+            new() { Type = "Low", Count = 1 },
+            new() { Type = "High", Count = 50 },
+            new() { Type = "Medium", Count = 10 }
         };
 
         // Act
@@ -314,10 +314,10 @@ public class ReliabilityIssueTests
         // Arrange
         var issues = new List<ReliabilityIssue>
         {
-            new ReliabilityIssue { Type = "Timeout", Count = 5 },
-            new ReliabilityIssue { Type = "Exception", Count = 3 },
-            new ReliabilityIssue { Type = "Timeout", Count = 7 },
-            new ReliabilityIssue { Type = "CircuitBreaker", Count = 2 }
+            new() { Type = "Timeout", Count = 5 },
+            new() { Type = "Exception", Count = 3 },
+            new() { Type = "Timeout", Count = 7 },
+            new() { Type = "CircuitBreaker", Count = 2 }
         };
 
         // Act
@@ -443,9 +443,9 @@ public class ReliabilityIssueTests
         // Arrange
         var issues = new List<ReliabilityIssue>
         {
-            new ReliabilityIssue { Type = "Timeout", Count = 20, Severity = "High" },
-            new ReliabilityIssue { Type = "Exception", Count = 15, Severity = "Medium" },
-            new ReliabilityIssue { Type = "CircuitBreaker", Count = 5, Severity = "Critical" }
+            new() { Type = "Timeout", Count = 20, Severity = "High" },
+            new() { Type = "Exception", Count = 15, Severity = "Medium" },
+            new() { Type = "CircuitBreaker", Count = 5, Severity = "Critical" }
         };
 
         // Act
@@ -485,9 +485,9 @@ public class ReliabilityIssueTests
         // Arrange
         var issues = new List<ReliabilityIssue>
         {
-            new ReliabilityIssue { Type = "Minor", Severity = "Low", Impact = "Minimal user impact" },
-            new ReliabilityIssue { Type = "Major", Severity = "High", Impact = "Service degradation" },
-            new ReliabilityIssue { Type = "Critical", Severity = "Critical", Impact = "Complete outage" }
+            new() { Type = "Minor", Severity = "Low", Impact = "Minimal user impact" },
+            new() { Type = "Major", Severity = "High", Impact = "Service degradation" },
+            new() { Type = "Critical", Severity = "Critical", Impact = "Complete outage" }
         };
 
         // Act
@@ -504,8 +504,7 @@ public class ReliabilityIssueTests
         // Arrange
         var issues = new List<ReliabilityIssue>
         {
-            new ReliabilityIssue
-            {
+            new() {
                 Type = "Database Timeout",
                 Severity = "High",
                 Count = 50,
@@ -513,8 +512,7 @@ public class ReliabilityIssueTests
                 Recommendation = "Optimize queries and add indexes",
                 Impact = "Slow performance and user frustration"
             },
-            new ReliabilityIssue
-            {
+            new() {
                 Type = "Memory Leak",
                 Severity = "Critical",
                 Count = 1,

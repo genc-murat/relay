@@ -162,6 +162,7 @@ public class GenerateCommandTests : IDisposable
                 Directory.Delete(_testPath, true);
         }
         catch { }
+        GC.SuppressFinalize(this);
     }
 }
 

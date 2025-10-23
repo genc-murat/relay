@@ -7,7 +7,7 @@ namespace Relay.CLI.Tests.Commands;
 
 public class ValidateCommandTests : IDisposable
 {
-    private string _testPath;
+    private readonly string _testPath;
 
     public ValidateCommandTests()
     {
@@ -170,7 +170,7 @@ public class GetUserQuery : IRequest<string>
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateRequestsAndResponses", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { testPath, results, true })!;
+        await (Task)method!.Invoke(null, [testPath, results, true])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Request Pattern" && r.Status == ValidationStatus.Warning);
@@ -652,7 +652,7 @@ public record TestRequest : IRequest<string>;";
 
         // Act
         var isRecord = response.Contains("record");
-        var hasProperties = response.Contains("(") && response.Contains(")");
+        var hasProperties = response.Contains('(') && response.Contains(')');
 
         // Assert
         Assert.True(isRecord);
@@ -962,7 +962,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Project Files" && r.Status == ValidationStatus.Fail);
@@ -982,7 +982,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Package Reference" && r.Status == ValidationStatus.Pass);
@@ -1002,7 +1002,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, true })!;
+        await (Task)method!.Invoke(null, [_testPath, results, true])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Code Quality" && r.Status == ValidationStatus.Warning);
@@ -1022,7 +1022,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Message.Contains("Latest C# features enabled"));
@@ -1051,7 +1051,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Handlers" && r.Status == ValidationStatus.Pass);
@@ -1080,7 +1080,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Handler Pattern" && r.Status == ValidationStatus.Warning);
@@ -1108,7 +1108,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Handler Pattern" && r.Message.Contains("missing CancellationToken"));
@@ -1122,7 +1122,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Handlers" && r.Status == ValidationStatus.Warning);
@@ -1143,7 +1143,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateDIRegistration", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { testPath, results, true })!;
+        await (Task)method!.Invoke(null, [testPath, results, true])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "DI Registration" && r.Status == ValidationStatus.Fail);
@@ -1164,7 +1164,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateDIRegistration", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { testPath, results, false })!;
+        await (Task)method!.Invoke(null, [testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "DI Registration" && r.Status == ValidationStatus.Warning);
@@ -1186,7 +1186,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateConfiguration", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Configuration" && r.Status == ValidationStatus.Pass);
@@ -1206,7 +1206,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateConfiguration", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Configuration" && r.Message.Contains("Relay CLI configuration found"));
@@ -1226,7 +1226,7 @@ public record TestRequest : IRequest<string>;";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateConfiguration", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "Configuration" && r.Status == ValidationStatus.Fail);
@@ -1247,7 +1247,7 @@ var app = builder.Build();";
         // Act
         var results = new List<ValidationResult>();
         var method = typeof(ValidateCommand).GetMethod("ValidateDIRegistration", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { _testPath, results, false })!;
+        await (Task)method!.Invoke(null, [_testPath, results, false])!;
 
         // Assert
         Assert.Contains(results, r => r.Type == "DI Registration" && r.Status == ValidationStatus.Pass);
@@ -1261,29 +1261,29 @@ var app = builder.Build();";
         // Arrange
         var results = new List<ValidationResult>
         {
-            new ValidationResult { Type = "Test", Status = ValidationStatus.Pass, Message = "Pass message" },
-            new ValidationResult { Type = "Test", Status = ValidationStatus.Warning, Message = "Warning message", Suggestion = "Fix this" },
-            new ValidationResult { Type = "Test", Status = ValidationStatus.Fail, Message = "Fail message" }
+            new() { Type = "Test", Status = ValidationStatus.Pass, Message = "Pass message" },
+            new() { Type = "Test", Status = ValidationStatus.Warning, Message = "Warning message", Suggestion = "Fix this" },
+            new() { Type = "Test", Status = ValidationStatus.Fail, Message = "Fail message" }
         };
 
         // Act & Assert - Should not throw
         var method = typeof(ValidateCommand).GetMethod("DisplayValidationResults", BindingFlags.NonPublic | BindingFlags.Static);
-        method!.Invoke(null, new object[] { results, "console" });
+        method!.Invoke(null, [results, "console"]);
     }
 
     [Fact]
     public async Task SaveValidationResults_WithJsonFormat_ShouldCreateValidJson()
     {
         // Arrange
-        var results = new List<ValidationResult>
-        {
-            new ValidationResult { Type = "Test", Status = ValidationStatus.Pass, Message = "Test passed" }
-        };
+        List<ValidationResult> results =
+        [
+            new() { Type = "Test", Status = ValidationStatus.Pass, Message = "Test passed" }
+        ];
         var outputFile = Path.Combine(_testPath, "test-output.json");
 
         // Act
         var method = typeof(ValidateCommand).GetMethod("SaveValidationResults", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { results, outputFile, "json" })!;
+        await (Task)method!.Invoke(null, [results, outputFile, "json"])!;
 
         // Assert
         Assert.True(File.Exists(outputFile));
@@ -1296,15 +1296,15 @@ var app = builder.Build();";
     public async Task SaveValidationResults_WithMarkdownFormat_ShouldCreateValidMarkdown()
     {
         // Arrange
-        var results = new List<ValidationResult>
-        {
-            new ValidationResult { Type = "Test", Status = ValidationStatus.Pass, Message = "Test passed", Suggestion = "Optional suggestion" }
-        };
+        List<ValidationResult> results =
+        [
+            new() { Type = "Test", Status = ValidationStatus.Pass, Message = "Test passed", Suggestion = "Optional suggestion" }
+        ];
         var outputFile = Path.Combine(_testPath, "test-output.md");
 
         // Act
         var method = typeof(ValidateCommand).GetMethod("SaveValidationResults", BindingFlags.NonPublic | BindingFlags.Static);
-        await (Task)method!.Invoke(null, new object[] { results, outputFile, "markdown" })!;
+        await (Task)method!.Invoke(null, [results, outputFile, "markdown"])!;
 
         // Assert
         Assert.True(File.Exists(outputFile));
@@ -1323,6 +1323,7 @@ var app = builder.Build();";
                 Directory.Delete(_testPath, true);
         }
         catch { }
+        GC.SuppressFinalize(this);
     }
 }
 

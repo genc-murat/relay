@@ -42,7 +42,7 @@ namespace Relay.Core.Tests.Authorization
             var behavior = CreateBehavior();
 
             // Act
-            Func<Task> act = async () => await behavior.HandleAsync(null!, () => new ValueTask<string>("Success"), CancellationToken.None);
+            async Task act() => await behavior.HandleAsync(null!, () => new ValueTask<string>("Success"), CancellationToken.None);
 
             // Assert
             var ex = await Assert.ThrowsAsync<ArgumentNullException>(act);
@@ -75,11 +75,11 @@ namespace Relay.Core.Tests.Authorization
                 .ReturnsAsync(false);
 
             var nextCalled = false;
-            RequestHandlerDelegate<Task<string>> next = () =>
+            ValueTask<Task<string>> next()
             {
                 nextCalled = true;
                 return new ValueTask<Task<string>>(Task.FromResult("Success"));
-            };
+            }
 
             // Act
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
@@ -117,11 +117,11 @@ namespace Relay.Core.Tests.Authorization
                 .ReturnsAsync(false);
 
             var nextCalled = false;
-            RequestHandlerDelegate<ValueTask<string>> next = () =>
+            ValueTask<ValueTask<string>> next()
             {
                 nextCalled = true;
                 return new ValueTask<ValueTask<string>>(new ValueTask<string>("Success"));
-            };
+            }
 
             // Act
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);
@@ -159,7 +159,7 @@ namespace Relay.Core.Tests.Authorization
             _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
-            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+            static ValueTask<string> next() => new("Success");
 
             // Act & Assert
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -203,7 +203,7 @@ namespace Relay.Core.Tests.Authorization
             _authorizationServiceMock.Setup(x => x.AuthorizeAsync(It.IsAny<IAuthorizationContext>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            RequestHandlerDelegate<string> next = () => new ValueTask<string>("Success");
+            static ValueTask<string> next() => new("Success");
 
             // Act
             var result = await behavior.HandleAsync(request, next, CancellationToken.None);

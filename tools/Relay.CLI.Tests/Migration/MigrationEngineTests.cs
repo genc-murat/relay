@@ -30,6 +30,7 @@ public class MigrationEngineTests : IDisposable
                 // Cleanup may fail due to file locks - best effort
             }
         }
+        GC.SuppressFinalize(this);
     }
 
     #region AnalyzeAsync Tests
@@ -483,7 +484,7 @@ public class MigrationEngineTests : IDisposable
             DryRun = false
         };
 
-        var inputSequence = new Queue<string>(new[] { "y" });
+        var inputSequence = new Queue<string>(["y"]);
         var testConsole = new Spectre.Console.Testing.TestConsole();
         foreach (var input in inputSequence)
         {
@@ -1462,7 +1463,7 @@ public class GetUser{i}Handler : IRequestHandler<GetUser{i}Query, string>
         // Should handle the XML parse error gracefully
         Assert.NotEqual(MigrationStatus.InProgress, result.Status);
         // May have issues recorded for the invalid file
-        if (result.Issues.Any())
+        if (result.Issues.Count != 0)
         {
             Assert.Contains(result.Issues, i => i.Contains("Broken.csproj") || i.Contains("Failed to transform"));
         }

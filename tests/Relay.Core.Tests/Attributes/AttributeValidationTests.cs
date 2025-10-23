@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using Xunit;
 
-namespace Relay.Core.Tests
+namespace Relay.Core.Tests.Attributes
 {
     public class AttributeValidationTests
     {

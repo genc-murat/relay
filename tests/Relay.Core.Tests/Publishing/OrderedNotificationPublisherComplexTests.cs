@@ -21,7 +21,7 @@ namespace Relay.Core.Tests.Publishing
         // Basic handler without attributes
         public class BasicHandler : INotificationHandler<TestNotification>
         {
-            public static List<string> ExecutionLog { get; } = new();
+            public static List<string> ExecutionLog { get; } = [];
 
             public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
             {

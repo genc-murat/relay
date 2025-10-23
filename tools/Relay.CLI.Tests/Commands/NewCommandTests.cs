@@ -2,7 +2,6 @@
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Template;
 using System.CommandLine;
-using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -1408,7 +1407,7 @@ public class NewCommandTests : IDisposable
         var projectPath = Path.Combine(_testPath, projectName);
 
         // Act
-        await NewCommand.CreateProjectAsync(projectName, "relay-microservice", Array.Empty<string>(),
+        await NewCommand.CreateProjectAsync(projectName, "relay-microservice", [],
             _testPath, "rabbitmq", null, null, true, true);
 
         // Assert
@@ -1501,7 +1500,7 @@ public class NewCommandTests : IDisposable
         };
 
         // Act
-        var readme = NewCommand.GenerateReadme("TestProject", template, new[] { "auth", "swagger" });
+        var readme = NewCommand.GenerateReadme("TestProject", template, ["auth", "swagger"]);
 
         // Assert
         Assert.Contains("# TestProject", readme);
@@ -1526,7 +1525,7 @@ public class NewCommandTests : IDisposable
         };
 
         // Act
-        var readme = NewCommand.GenerateReadme("TestProject", template, Array.Empty<string>());
+        var readme = NewCommand.GenerateReadme("TestProject", template, []);
 
         // Assert
         Assert.Contains("dotnet run --project src/TestProject.Api", readme);
@@ -1627,10 +1626,10 @@ public class NewCommandTests : IDisposable
     public void NewCommand_Features_ShouldHandleEmptyFeaturesArray()
     {
         // Arrange
-        string[] features = Array.Empty<string>();
+        string[] features = [];
 
         // Act
-        var hasFeatures = features.Any();
+        var hasFeatures = features.Length != 0;
 
         // Assert
         Assert.False(hasFeatures);
@@ -1643,7 +1642,7 @@ public class NewCommandTests : IDisposable
         string[]? features = null;
 
         // Act
-        var safeFeatures = features ?? Array.Empty<string>();
+        var safeFeatures = features ?? [];
 
         // Assert
         Assert.Empty(safeFeatures);
@@ -1687,9 +1686,9 @@ public class NewCommandTests : IDisposable
     {
         return templateId switch
         {
-            "relay-webapi" => new[] { "auth", "swagger", "docker", "tests", "healthchecks" },
-            "relay-microservice" => new[] { "rabbitmq", "kafka", "k8s", "docker", "tracing" },
-            _ => Array.Empty<string>()
+            "relay-webapi" => ["auth", "swagger", "docker", "tests", "healthchecks"],
+            "relay-microservice" => ["rabbitmq", "kafka", "k8s", "docker", "tracing"],
+            _ => []
         };
     }
 
@@ -1708,6 +1707,8 @@ public class NewCommandTests : IDisposable
         {
             // Ignore cleanup errors
         }
+
+        GC.SuppressFinalize(this);
     }
 }
 

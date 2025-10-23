@@ -374,7 +374,7 @@ public class PerformanceAnalysisTests
         var rec3 = new PerformanceRecommendation { Category = "Caching", Title = "Implement caching" };
 
         // Act
-        analysis.Recommendations.AddRange(new[] { rec1, rec2, rec3 });
+        analysis.Recommendations.AddRange([rec1, rec2, rec3]);
 
         // Assert
         Assert.Equal(3, analysis.Recommendations.Count);
@@ -417,9 +417,9 @@ public class PerformanceAnalysisTests
         // Arrange
         var analyses = new List<PerformanceAnalysis>
         {
-            new PerformanceAnalysis { HasRelay = true, PerformanceScore = 90 },
-            new PerformanceAnalysis { HasRelay = false, PerformanceScore = 60 },
-            new PerformanceAnalysis { HasRelay = true, PerformanceScore = 85 }
+            new() { HasRelay = true, PerformanceScore = 90 },
+            new() { HasRelay = false, PerformanceScore = 60 },
+            new() { HasRelay = true, PerformanceScore = 85 }
         };
 
         // Act

@@ -305,31 +305,28 @@ public class PipelineResultTests
         // Arrange & Act
         var result = new PipelineResult
         {
-            Stages = new List<PipelineStageResult>
-            {
-                new PipelineStageResult
-                {
+            Stages =
+            [
+                new() {
                     StageName = "Initialize",
                     Success = true,
                     Message = "Project initialized successfully",
                     Duration = TimeSpan.FromSeconds(2)
                 },
-                new PipelineStageResult
-                {
+                new() {
                     StageName = "Build",
                     Success = false,
                     Message = "Build failed",
                     Error = "Compilation error in Main.cs",
                     Duration = TimeSpan.FromSeconds(8)
                 },
-                new PipelineStageResult
-                {
+                new() {
                     StageName = "Test",
                     Success = false,
                     Message = "Tests skipped due to build failure",
                     Duration = TimeSpan.Zero
                 }
-            },
+            ],
             TotalDuration = TimeSpan.FromSeconds(10),
             Success = false
         };
@@ -349,9 +346,9 @@ public class PipelineResultTests
         // Arrange
         var results = new List<PipelineResult>
         {
-            new PipelineResult { Success = true, TotalDuration = TimeSpan.FromSeconds(60) },
-            new PipelineResult { Success = true, TotalDuration = TimeSpan.FromSeconds(30) },
-            new PipelineResult { Success = false, TotalDuration = TimeSpan.FromSeconds(45) }
+            new() { Success = true, TotalDuration = TimeSpan.FromSeconds(60) },
+            new() { Success = true, TotalDuration = TimeSpan.FromSeconds(30) },
+            new() { Success = false, TotalDuration = TimeSpan.FromSeconds(45) }
         };
 
         // Act
@@ -369,10 +366,10 @@ public class PipelineResultTests
         // Arrange
         var results = new List<PipelineResult>
         {
-            new PipelineResult { Success = true, TotalDuration = TimeSpan.FromSeconds(30) },
-            new PipelineResult { Success = false, TotalDuration = TimeSpan.FromSeconds(45) },
-            new PipelineResult { Success = true, TotalDuration = TimeSpan.FromSeconds(25) },
-            new PipelineResult { Success = false, TotalDuration = TimeSpan.FromSeconds(60) }
+            new() { Success = true, TotalDuration = TimeSpan.FromSeconds(30) },
+            new() { Success = false, TotalDuration = TimeSpan.FromSeconds(45) },
+            new() { Success = true, TotalDuration = TimeSpan.FromSeconds(25) },
+            new() { Success = false, TotalDuration = TimeSpan.FromSeconds(60) }
         };
 
         // Act
@@ -390,13 +387,13 @@ public class PipelineResultTests
         // Arrange
         var result = new PipelineResult
         {
-            Stages = new List<PipelineStageResult> { new PipelineStageResult { StageName = "Initial" } },
+            Stages = [new PipelineStageResult { StageName = "Initial" }],
             TotalDuration = TimeSpan.FromSeconds(10),
             Success = false
         };
 
         // Act
-        result.Stages = new List<PipelineStageResult> { new PipelineStageResult { StageName = "Modified" } };
+        result.Stages = [new PipelineStageResult { StageName = "Modified" }];
         result.TotalDuration = TimeSpan.FromSeconds(20);
         result.Success = true;
 
@@ -413,7 +410,7 @@ public class PipelineResultTests
         // Arrange
         var result = new PipelineResult
         {
-            Stages = new List<PipelineStageResult>(),
+            Stages = [],
             TotalDuration = TimeSpan.FromSeconds(5),
             Success = true
         };

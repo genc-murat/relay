@@ -1,8 +1,4 @@
-
-using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Optimization;
-using System;
-using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -26,7 +22,7 @@ public class OptimizationContextTests
         Assert.Empty(context.Target);
         Assert.False(context.IsAggressive);
         Assert.False(context.CreateBackup);
-        Assert.Equal(default(DateTime), context.Timestamp);
+        Assert.Equal(DateTime.MinValue, context.Timestamp);
         Assert.Empty(context.BackupPath);
         Assert.NotNull(context.SourceFiles);
         Assert.Empty(context.SourceFiles);
@@ -427,7 +423,7 @@ public class OptimizationContextTests
         var grouped = context.OptimizationActions.GroupBy(a => a.Type).ToList();
 
         // Assert
-        Assert.Equal(2, grouped.Count());
+        Assert.Equal(2, grouped.Count);
         Assert.Equal(2, grouped.First(g => g.Key == "Handler").Count());
     }
 
@@ -958,28 +954,28 @@ public class OptimizationContextTests
     public void OptimizationContext_SourceFiles_ShouldNotThrowOnInitialization()
     {
         // Act
-        Action act = () =>
+        static void TestAction()
         {
             var context = new OptimizationContext();
             _ = context.SourceFiles.Count;
-        };
+        }
 
         // Assert
-        act();
+        TestAction();
     }
 
     [Fact]
     public void OptimizationContext_OptimizationActions_ShouldNotThrowOnInitialization()
     {
         // Act
-        Action act = () =>
+        static void TestAction()
         {
             var context = new OptimizationContext();
             _ = context.OptimizationActions.Count;
-        };
+        }
 
         // Assert
-        act();
+        TestAction();
     }
 
     #endregion

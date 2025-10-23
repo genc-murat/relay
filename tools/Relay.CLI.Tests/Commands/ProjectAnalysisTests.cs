@@ -81,7 +81,7 @@ public class ProjectAnalysisTests
     {
         // Arrange & Act
         var analysis = new ProjectAnalysis();
-        var handlers = new List<HandlerInfo> { new HandlerInfo { Name = "Handler1" } };
+        var handlers = new List<HandlerInfo> { new() { Name = "Handler1" } };
 
         // Act
         analysis.Handlers = handlers;
@@ -95,7 +95,7 @@ public class ProjectAnalysisTests
     {
         // Arrange & Act
         var analysis = new ProjectAnalysis();
-        var requests = new List<RequestInfo> { new RequestInfo { Name = "Request1" } };
+        var requests = new List<RequestInfo> { new() { Name = "Request1" } };
 
         // Act
         analysis.Requests = requests;
@@ -109,7 +109,7 @@ public class ProjectAnalysisTests
     {
         // Arrange & Act
         var analysis = new ProjectAnalysis();
-        var issues = new List<PerformanceIssue> { new PerformanceIssue { Type = "Memory" } };
+        var issues = new List<PerformanceIssue> { new() { Type = "Memory" } };
 
         // Act
         analysis.PerformanceIssues = issues;
@@ -122,8 +122,8 @@ public class ProjectAnalysisTests
     public void ProjectAnalysis_ShouldHaveReliabilityIssuesProperty()
     {
         // Arrange & Act
-        var analysis = new ProjectAnalysis();
-        var issues = new List<ReliabilityIssue> { new ReliabilityIssue { Type = "Timeout" } };
+        ProjectAnalysis analysis = new();
+        List<ReliabilityIssue> issues = [new() { Type = "Timeout" }];
 
         // Act
         analysis.ReliabilityIssues = issues;
@@ -136,8 +136,8 @@ public class ProjectAnalysisTests
     public void ProjectAnalysis_ShouldHaveRecommendationsProperty()
     {
         // Arrange & Act
-        var analysis = new ProjectAnalysis();
-        var recommendations = new List<Recommendation> { new Recommendation { Title = "Optimize DB" } };
+        ProjectAnalysis analysis = new();
+        List<Recommendation> recommendations = [new() { Title = "Optimize DB" }];
 
         // Act
         analysis.Recommendations = recommendations;
@@ -241,13 +241,13 @@ public class ProjectAnalysisTests
             AnalysisDepth = "Comprehensive",
             IncludeTests = true,
             Timestamp = timestamp,
-            ProjectFiles = new List<string> { "MyProject.csproj", "README.md" },
-            SourceFiles = new List<string> { "Program.cs", "Startup.cs" },
-            Handlers = new List<HandlerInfo> { new HandlerInfo { Name = "CreateUserHandler" } },
-            Requests = new List<RequestInfo> { new RequestInfo { Name = "CreateUserRequest" } },
-            PerformanceIssues = new List<PerformanceIssue> { new PerformanceIssue { Type = "Memory Leak" } },
-            ReliabilityIssues = [ new() { Type = "Timeout" } ],
-            Recommendations = [ new() { Title = "Add Caching" } ],
+            ProjectFiles = ["MyProject.csproj", "README.md"],
+            SourceFiles = ["Program.cs", "Startup.cs"],
+            Handlers = [new HandlerInfo { Name = "CreateUserHandler" }],
+            Requests = [new RequestInfo { Name = "CreateUserRequest" }],
+            PerformanceIssues = [new PerformanceIssue { Type = "Memory Leak" }],
+            ReliabilityIssues = [new() { Type = "Timeout" }],
+            Recommendations = [new() { Title = "Add Caching" }],
             HasRelayCore = true,
             HasMediatR = true,
             HasLogging = true,
@@ -260,8 +260,8 @@ public class ProjectAnalysisTests
         Assert.Equal("Comprehensive", analysis.AnalysisDepth);
         Assert.True(analysis.IncludeTests);
         Assert.Equal(timestamp, analysis.Timestamp);
-        Assert.Equal(2, analysis.ProjectFiles.Count());
-        Assert.Equal(2, analysis.SourceFiles.Count());
+        Assert.Equal(2, analysis.ProjectFiles.Count);
+        Assert.Equal(2, analysis.SourceFiles.Count);
         Assert.Single(analysis.Handlers);
         Assert.Single(analysis.Requests);
         Assert.Single(analysis.PerformanceIssues);
@@ -285,7 +285,7 @@ public class ProjectAnalysisTests
         analysis.ProjectFiles.Add("appsettings.json");
 
         // Assert
-        Assert.Equal(2, analysis.ProjectFiles.Count());
+        Assert.Equal(2, analysis.ProjectFiles.Count);
         Assert.Contains("MyProject.csproj", analysis.ProjectFiles);
         Assert.Contains("appsettings.json", analysis.ProjectFiles);
     }
@@ -301,7 +301,7 @@ public class ProjectAnalysisTests
         analysis.SourceFiles.Add("Controllers/HomeController.cs");
 
         // Assert
-        Assert.Equal(2, analysis.SourceFiles.Count());
+        Assert.Equal(2, analysis.SourceFiles.Count);
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class ProjectAnalysisTests
         analysis.Recommendations.Add(new Recommendation { Title = "Optimize Queries", Priority = "Medium" });
 
         // Assert
-        Assert.Equal(2, analysis.Recommendations.Count());
+        Assert.Equal(2, analysis.Recommendations.Count);
     }
 
     [Fact]
@@ -400,7 +400,7 @@ public class ProjectAnalysisTests
         };
 
         // Assert
-        Assert.Equal(3, analyses.Count());
+        Assert.Equal(3, analyses.Count);
         Assert.Equal(2, analyses.Count(a => a.HasRelayCore));
     }
 
@@ -421,8 +421,8 @@ public class ProjectAnalysisTests
         var projectsWithAllFeatures = analyses.Where(a => a.HasRelayCore && a.HasLogging && a.HasValidation).ToList();
 
         // Assert
-        Assert.Equal(2, relayProjects.Count());
-        Assert.Equal(2, projectsWithLogging.Count());
+        Assert.Equal(2, relayProjects.Count);
+        Assert.Equal(2, projectsWithLogging.Count);
         Assert.Single(projectsWithAllFeatures);
     }
 
@@ -481,8 +481,8 @@ public class ProjectAnalysisTests
             AnalysisDepth = "Full",
             IncludeTests = true,
             Timestamp = new DateTime(2023, 10, 15, 14, 30, 45),
-            ProjectFiles = new List<string> { "MyRelayApp.csproj", "appsettings.json", "README.md" },
-            SourceFiles = new List<string> { "Program.cs", "Startup.cs", "Controllers/UserController.cs" },
+            ProjectFiles = ["MyRelayApp.csproj", "appsettings.json", "README.md"],
+            SourceFiles = ["Program.cs", "Startup.cs", "Controllers/UserController.cs"],
             Handlers = [
                 new() { Name = "CreateUserHandler", IsAsync = true, HasLogging = true, LineCount = 45 },
                 new() { Name = "GetUserHandler", IsAsync = true, HasLogging = false, LineCount = 25 }
@@ -504,9 +504,9 @@ public class ProjectAnalysisTests
         Assert.Equal("C:\\Projects\\MyRelayApp", analysis.ProjectPath);
         Assert.Equal("Full", analysis.AnalysisDepth);
         Assert.True(analysis.IncludeTests);
-        Assert.Equal(3, analysis.ProjectFiles.Count());
-        Assert.Equal(3, analysis.SourceFiles.Count());
-        Assert.Equal(2, analysis.Handlers.Count());
+        Assert.Equal(3, analysis.ProjectFiles.Count);
+        Assert.Equal(3, analysis.SourceFiles.Count);
+        Assert.Equal(2, analysis.Handlers.Count);
         Assert.Single(analysis.PerformanceIssues);
         Assert.Single(analysis.Recommendations);
         Assert.True(analysis.HasRelayCore);
@@ -544,16 +544,16 @@ public class ProjectAnalysisTests
         // Arrange
         var analyses = new List<ProjectAnalysis>
         {
-            new ProjectAnalysis { ProjectPath = "P1", Timestamp = new DateTime(2023, 1, 1) },
-            new ProjectAnalysis { ProjectPath = "P2", Timestamp = new DateTime(2023, 6, 1) },
-            new ProjectAnalysis { ProjectPath = "P3", Timestamp = new DateTime(2023, 12, 1) }
+            new() { ProjectPath = "P1", Timestamp = new DateTime(2023, 1, 1) },
+            new() { ProjectPath = "P2", Timestamp = new DateTime(2023, 6, 1) },
+            new() { ProjectPath = "P3", Timestamp = new DateTime(2023, 12, 1) }
         };
 
         // Act
         var recentAnalyses = analyses.Where(a => a.Timestamp > new DateTime(2023, 5, 1)).ToList();
 
         // Assert
-        Assert.Equal(2, recentAnalyses.Count());
+        Assert.Equal(2, recentAnalyses.Count);
         Assert.True(recentAnalyses.All(a => a.Timestamp > new DateTime(2023, 5, 1)));
     }
 
@@ -626,14 +626,14 @@ public class ProjectAnalysisTests
             AnalysisDepth = "Full",
             IncludeTests = true,
             Timestamp = new DateTime(2023, 10, 15, 14, 30, 0),
-            ProjectFiles = new List<string> { "Project.csproj", "README.md", "LICENSE" },
-            SourceFiles = new List<string> { "Program.cs", "Startup.cs", "Controllers/HomeController.cs" },
-            Handlers = new List<HandlerInfo>
-            {
-                new HandlerInfo { Name = "CreateUserHandler", IsAsync = true },
-                new HandlerInfo { Name = "GetUserHandler", IsAsync = true },
-                new HandlerInfo { Name = "UpdateUserHandler", IsAsync = false }
-            },
+            ProjectFiles = ["Project.csproj", "README.md", "LICENSE"],
+            SourceFiles = ["Program.cs", "Startup.cs", "Controllers/HomeController.cs"],
+            Handlers =
+            [
+                new() { Name = "CreateUserHandler", IsAsync = true },
+                new() { Name = "GetUserHandler", IsAsync = true },
+                new() { Name = "UpdateUserHandler", IsAsync = false }
+            ],
             PerformanceIssues = [
                 new() { Type = "Memory Leak", Severity = "High" },
                 new() { Type = "Slow Query", Severity = "Medium" }
@@ -656,8 +656,8 @@ public class ProjectAnalysisTests
             FilesAnalyzed = analysis.SourceFiles.Count,
             HandlersFound = analysis.Handlers.Count,
             AsyncHandlers = analysis.Handlers.Count(h => h.IsAsync),
-            IssuesFound = analysis.PerformanceIssues.Count(),
-            RecommendationsCount = analysis.Recommendations.Count(),
+            IssuesFound = analysis.PerformanceIssues.Count,
+            RecommendationsCount = analysis.Recommendations.Count,
             FeaturesEnabled = new[] { analysis.HasRelayCore, analysis.HasMediatR, analysis.HasLogging, analysis.HasValidation, analysis.HasCaching }.Count(f => f)
         };
 

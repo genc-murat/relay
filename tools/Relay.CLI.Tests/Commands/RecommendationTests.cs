@@ -277,9 +277,9 @@ public class RecommendationTests
         // Arrange & Act
         var recommendations = new List<Recommendation>
         {
-            new Recommendation { Title = "Add Caching", Priority = "High", Category = "Performance" },
-            new Recommendation { Title = "Implement Logging", Priority = "Medium", Category = "Observability" },
-            new Recommendation { Title = "Add Validation", Priority = "High", Category = "Security" }
+            new() { Title = "Add Caching", Priority = "High", Category = "Performance" },
+            new() { Title = "Implement Logging", Priority = "Medium", Category = "Observability" },
+            new() { Title = "Add Validation", Priority = "High", Category = "Security" }
         };
 
         // Assert
@@ -294,11 +294,11 @@ public class RecommendationTests
         // Arrange
         var recommendations = new List<Recommendation>
         {
-            new Recommendation { Title = "R1", Priority = "Low" },
-            new Recommendation { Title = "R2", Priority = "High" },
-            new Recommendation { Title = "R3", Priority = "Medium" },
-            new Recommendation { Title = "R4", Priority = "High" },
-            new Recommendation { Title = "R5", Priority = "Critical" }
+            new() { Title = "R1", Priority = "Low" },
+            new() { Title = "R2", Priority = "High" },
+            new() { Title = "R3", Priority = "Medium" },
+            new() { Title = "R4", Priority = "High" },
+            new() { Title = "R5", Priority = "Critical" }
         };
 
         // Act
@@ -316,10 +316,10 @@ public class RecommendationTests
         // Arrange
         var recommendations = new List<Recommendation>
         {
-            new Recommendation { Title = "R1", Category = "Performance" },
-            new Recommendation { Title = "R2", Category = "Security" },
-            new Recommendation { Title = "R3", Category = "Performance" },
-            new Recommendation { Title = "R4", Category = "Reliability" }
+            new() { Title = "R1", Category = "Performance" },
+            new() { Title = "R2", Category = "Security" },
+            new() { Title = "R3", Category = "Performance" },
+            new() { Title = "R4", Category = "Reliability" }
         };
 
         // Act
@@ -336,10 +336,10 @@ public class RecommendationTests
         // Arrange
         var recommendations = new List<Recommendation>
         {
-            new Recommendation { Title = "Low", Priority = "Low" },
-            new Recommendation { Title = "Critical", Priority = "Critical" },
-            new Recommendation { Title = "Medium", Priority = "Medium" },
-            new Recommendation { Title = "High", Priority = "High" }
+            new() { Title = "Low", Priority = "Low" },
+            new() { Title = "Critical", Priority = "Critical" },
+            new() { Title = "Medium", Priority = "Medium" },
+            new() { Title = "High", Priority = "High" }
         };
 
         // Act - Order by priority (assuming Critical > High > Medium > Low)
@@ -368,10 +368,10 @@ public class RecommendationTests
         // Arrange
         var recommendations = new List<Recommendation>
         {
-            new Recommendation { Title = "Cache Data", Category = "Performance", Actions = new List<string> { "A1", "A2" } },
-            new Recommendation { Title = "Add Logging", Category = "Observability", Actions = new List<string> { "A1" } },
-            new Recommendation { Title = "Optimize Queries", Category = "Performance", Actions = new List<string> { "A1", "A2", "A3" } },
-            new Recommendation { Title = "Enable HTTPS", Category = "Security", Actions = new List<string> { "A1" } }
+            new() { Title = "Cache Data", Category = "Performance", Actions = ["A1", "A2"] },
+            new() { Title = "Add Logging", Category = "Observability", Actions = ["A1"] },
+            new() { Title = "Optimize Queries", Category = "Performance", Actions = ["A1", "A2", "A3"] },
+            new() { Title = "Enable HTTPS", Category = "Security", Actions = ["A1"] }
         };
 
         // Act
@@ -432,14 +432,14 @@ public class RecommendationTests
             Priority = "High",
             Title = "Implement Query Result Caching",
             Description = "Database queries are being executed repeatedly with the same parameters. Implement caching to improve performance and reduce database load.",
-            Actions = new List<string>
-            {
+            Actions =
+            [
                 "Install Microsoft.Extensions.Caching.SqlServer package",
                 "Configure SQL Server distributed cache in Program.cs",
                 "Add [ResponseCache] attributes to controller actions",
                 "Configure cache expiration policies",
                 "Monitor cache hit rates and adjust as needed"
-            },
+            ],
             EstimatedImpact = "Expected: 70% reduction in database queries, 40% improvement in response times, 30% reduction in database server load"
         };
 
@@ -463,14 +463,14 @@ public class RecommendationTests
             Priority = "Critical",
             Title = "Implement Input Validation",
             Description = "User inputs are not being validated, creating potential security vulnerabilities.",
-            Actions = new List<string>
-            {
+            Actions =
+            [
                 "Add FluentValidation package",
                 "Create validation rules for all input models",
                 "Apply validation in controller actions",
                 "Return appropriate error messages",
                 "Add client-side validation"
-            },
+            ],
             EstimatedImpact = "Prevents SQL injection, XSS attacks, and other input-based vulnerabilities"
         };
 
@@ -487,9 +487,9 @@ public class RecommendationTests
         // Arrange
         var recommendations = new List<Recommendation>
         {
-            new Recommendation { Title = "R1", Actions = new List<string> { "A1", "A2", "A3" } },
-            new Recommendation { Title = "R2", Actions = new List<string> { "A1" } },
-            new Recommendation { Title = "R3", Actions = new List<string> { "A1", "A2" } }
+            new() { Title = "R1", Actions = ["A1", "A2", "A3"] },
+            new() { Title = "R2", Actions = ["A1"] },
+            new() { Title = "R3", Actions = ["A1", "A2"] }
         };
 
         // Act
@@ -507,9 +507,9 @@ public class RecommendationTests
         // Arrange
         var recommendations = new List<Recommendation>
         {
-            new Recommendation { Title = "R1", EstimatedImpact = "50% improvement" },
-            new Recommendation { Title = "R2", EstimatedImpact = "10% improvement" },
-            new Recommendation { Title = "R3", EstimatedImpact = "80% improvement" }
+            new() { Title = "R1", EstimatedImpact = "50% improvement" },
+            new() { Title = "R2", EstimatedImpact = "10% improvement" },
+            new() { Title = "R3", EstimatedImpact = "80% improvement" }
         };
 
         // Act
@@ -544,11 +544,11 @@ public class RecommendationTests
         // Act - Simulate report generation
         var report = recommendations.Select(r => new
         {
-            Category = r.Category,
-            Priority = r.Priority,
-            Title = r.Title,
+            r.Category,
+            r.Priority,
+            r.Title,
             ActionCount = r.Actions.Count,
-            HasImpactEstimate = !string.IsNullOrEmpty(r.EstimatedImpact)
+            HasImpactEstimate = !string.IsNullOrWhiteSpace(r.EstimatedImpact)
         }).ToList();
 
         // Assert

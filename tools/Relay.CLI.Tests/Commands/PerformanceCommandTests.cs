@@ -178,8 +178,8 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
     public void PerformanceCommand_TracksGCCollections()
     {
         // Arrange
-        var gen0Before = GC.CollectionCount(0);
-        var gen1Before = GC.CollectionCount(1);
+        var _gen0Before = GC.CollectionCount(0);
+        _ = GC.CollectionCount(1);
 
         // Act
         var list = new List<byte[]>();
@@ -189,11 +189,11 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         }
 
         GC.Collect();
-        var gen0After = GC.CollectionCount(0);
-        var gen1After = GC.CollectionCount(1);
+        var _gen0After = GC.CollectionCount(0);
+        _ = GC.CollectionCount(1);
 
         // Assert
-        Assert.True((gen0After - gen0Before) > 0);
+        Assert.True((_gen0After - _gen0Before) > 0);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var actualMeasurements = measurements.Skip(warmupThreshold).ToArray();
 
         // Assert
-        Assert.Equal(3, actualMeasurements.Count());
+        Assert.Equal(3, actualMeasurements.Length);
     }
 
     [Fact]
@@ -345,7 +345,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
     {
         // Arrange
         var lockObject = new object();
-        var contentionTime = TimeSpan.Zero;
+        TimeSpan contentionTime;
 
         // Act
         var sw = Stopwatch.StartNew();
@@ -393,7 +393,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         var lines = csv.Split('\n');
 
         // Assert
-        Assert.Equal(3, lines.Count());
+        Assert.Equal(3, lines.Length);
         Assert.Contains("Operation", lines[0]);
     }
 
@@ -534,7 +534,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
 
         // Assert
         Assert.False(isLOH);
-        Assert.True(largeObjectSize == 85000);
+        Assert.Equal(85000, largeObjectSize);
     }
 
     [Fact]
@@ -612,7 +612,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
             .ToArray();
 
         // Assert
-        Assert.Equal(5, histogram.Count());
+        Assert.Equal(5, histogram.Length);
         var h = histogram.First(h => h.Value == 4);
         Assert.Equal(4, h.Count);
     }
@@ -685,7 +685,7 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
         };
 
         // Assert
-        Assert.Equal(4, matrix.Count());
+        Assert.Equal(4, matrix.Length);
         var m = matrix.First(m => m.Operation == "Read");
         Assert.Equal(1.0, m.Avg);
     }

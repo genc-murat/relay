@@ -1044,11 +1044,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
     [Fact]
     public void MigrateCommand_Statistics_ShouldTrackFilesModified()
     {
-        // Arrange
-        var stats = new { FilesModified = 0 };
-
-        // Act
-        stats = new { FilesModified = 5 };
+        // Arrange & Act
+        var stats = new { FilesModified = 5 };
 
         // Assert
         Assert.Equal(5, stats.FilesModified);
@@ -1057,11 +1054,8 @@ public class Handler2 : IRequestHandler<Query2, Response2> { }
     [Fact]
     public void MigrateCommand_Statistics_ShouldTrackLinesChanged()
     {
-        // Arrange
-        var linesChanged = 0;
-
-        // Act
-        linesChanged = 150;
+        // Arrange & Act
+        var linesChanged = 150;
 
         // Assert
         Assert.Equal(150, linesChanged);
@@ -1391,6 +1385,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         {
             // Ignore cleanup errors
         }
+        GC.SuppressFinalize(this);
     }
 }
 

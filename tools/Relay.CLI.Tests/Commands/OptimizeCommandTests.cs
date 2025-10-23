@@ -1,9 +1,6 @@
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Optimization;
-using System.CommandLine;
 using Spectre.Console;
-using Spectre.Console.Testing;
-using Xunit;
 
 #pragma warning disable CS0219, CS8625 // Cannot convert null literal to non-nullable reference type
 
@@ -121,7 +118,7 @@ return new[] { ""item1"", ""item2"" };";
     public async Task OptimizeCommand_UsesSpanWherePossible()
     {
         // Arrange
-        var beforeOptimization = "string[] items = new string[10];";
+        _ = "string[] items = new string[10];";
         var afterOptimization = "Span<string> items = stackalloc string[10];";
 
         // Assert
@@ -150,7 +147,7 @@ for (int i = 0; i < items.Count; i++) // Count() is inefficient
     public async Task OptimizeCommand_SuggestsStructOverClass()
     {
         // Arrange
-        var smallValueType = @"
+        _ = @"
 public class Point // Should be struct for better performance
 {
     public int X { get; set; }
@@ -173,7 +170,7 @@ public readonly struct Point
     public async Task OptimizeCommand_UsesReadOnlyWherePossible()
     {
         // Arrange
-        var mutableField = "private List<string> _items;";
+        _ = "private List<string> _items;";
         var immutableField = "private readonly List<string> _items;";
 
         // Assert
@@ -208,7 +205,7 @@ string result = sb.ToString();";
     public async Task OptimizeCommand_SuggestsArrayPool()
     {
         // Arrange
-        var withoutPool = "var buffer = new byte[1024];";
+        _ = "var buffer = new byte[1024];";
         var withPool = @"
 var buffer = ArrayPool<byte>.Shared.Rent(1024);
 try
@@ -247,7 +244,7 @@ public async void ProcessData() // Should return Task
     public async Task OptimizeCommand_SuggestsConfigureAwaitFalse()
     {
         // Arrange
-        var without = "await someTask;";
+        _ = "await someTask;";
         var with = "await someTask.ConfigureAwait(false);";
 
         // Assert
@@ -278,7 +275,7 @@ Console.WriteLine(obj); // Uses boxed value";
     public void OptimizeCommand_IdentifiesOptimizableCases(string original, string optimized, bool shouldOptimize)
     {
         // Act
-        var needsOptimization = original.StartsWith("Task") && shouldOptimize;
+        _ = original.StartsWith("Task") && shouldOptimize;
 
         // Assert
         if (shouldOptimize)
@@ -323,7 +320,7 @@ Console.WriteLine(obj); // Uses boxed value";
     public async Task OptimizeCommand_PreservesCodeSemantics()
     {
         // Arrange
-        var originalCode = @"
+        _ = @"
 public async Task<int> Calculate(int x, int y)
 {
     return x + y;
@@ -364,7 +361,7 @@ public async ValueTask<int> Calculate(int x, int y)
     public async Task OptimizeCommand_ShouldUseMemoryInsteadOfArray()
     {
         // Arrange
-        var before = "public void Process(byte[] data)";
+        _ = "public void Process(byte[] data)";
         var after = "public void Process(ReadOnlyMemory<byte> data)";
 
         // Assert
@@ -387,7 +384,7 @@ public async ValueTask<int> Calculate(int x, int y)
     public async Task OptimizeCommand_ShouldSuggestStaticLambdas()
     {
         // Arrange
-        var nonStatic = "list.Where(x => x > 0)";
+        _ = "list.Where(x => x > 0)";
         var staticLambda = "list.Where(static x => x > 0)";
 
         // Assert
@@ -398,7 +395,7 @@ public async ValueTask<int> Calculate(int x, int y)
     public async Task OptimizeCommand_ShouldDetectAsNoTracking()
     {
         // Arrange
-        var tracked = "context.Users.ToList()";
+        _ = "context.Users.ToList()";
         var noTracking = "context.Users.AsNoTracking().ToList()";
 
         // Assert
@@ -409,7 +406,7 @@ public async ValueTask<int> Calculate(int x, int y)
     public async Task OptimizeCommand_ShouldSuggestCompiledQueries()
     {
         // Arrange
-        var regular = "context.Users.Where(u => u.Age > 18).ToList()";
+        _ = "context.Users.Where(u => u.Age > 18).ToList()";
         var compiled = "CompiledQuery.Compile((MyContext ctx, int age) => ctx.Users.Where(u => u.Age > age).ToList())";
 
         // Assert
@@ -434,7 +431,7 @@ foreach (var user in users)
     public async Task OptimizeCommand_ShouldSuggestInclude()
     {
         // Arrange
-        var without = "context.Users.ToList()";
+        _ = "context.Users.ToList()";
         var withInclude = "context.Users.Include(u => u.Orders).ToList()";
 
         // Assert
@@ -458,7 +455,7 @@ foreach (var user in users)
     public async Task OptimizeCommand_ShouldSuggestPrecomputation()
     {
         // Arrange
-        var inefficient = @"
+        _ = @"
 for (int i = 0; i < array.Length; i++)
 {
     var result = ExpensiveOperation();
@@ -491,7 +488,7 @@ for (int i = 0; i < array.Length; i++)
     public async Task OptimizeCommand_ShouldSuggestDictionaryLookup()
     {
         // Arrange
-        var linear = "list.FirstOrDefault(x => x.Id == id)";
+        _ = "list.FirstOrDefault(x => x.Id == id)";
         var indexed = "dictionary[id]";
 
         // Assert
@@ -503,7 +500,7 @@ for (int i = 0; i < array.Length; i++)
     {
         // Arrange
         var interpolation = "$\"Hello {name}\"";
-        var format = "string.Format(\"Hello {0}\", name)";
+        _ = "string.Format(\"Hello {0}\", name)";
 
         // Assert
         Assert.Contains("$\"", interpolation);
@@ -513,7 +510,7 @@ for (int i = 0; i < array.Length; i++)
     public async Task OptimizeCommand_ShouldSuggestAsParallel()
     {
         // Arrange
-        var sequential = "items.Select(x => ExpensiveOperation(x)).ToList()";
+        _ = "items.Select(x => ExpensiveOperation(x)).ToList()";
         var parallel = "items.AsParallel().Select(x => ExpensiveOperation(x)).ToList()";
 
         // Assert
@@ -564,7 +561,7 @@ using (var stream = File.OpenRead(""file.txt""))
     public async Task OptimizeCommand_ShouldDetectListCapacity(string type, int size, bool shouldPreallocate)
     {
         // Arrange
-        var withoutCapacity = $"var list = new {type}();";
+        _ = $"var list = new {type}();";
         var withCapacity = $"var list = new {type}({size});";
 
         // Assert
@@ -1459,7 +1456,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
                 {
                     FilePath = "TestHandler.cs",
                     Type = "Handler Optimization",
-                    Modifications = new List<string> { "Replaced Task<T> with ValueTask<T>" }
+                    Modifications = ["Replaced Task<T> with ValueTask<T>"]
                 }
             ]
         };
@@ -1480,7 +1477,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
                 new() {
                     FilePath = "TestHandler.cs",
                     Type = "Handler Optimization",
-                    Modifications = new List<string> { "Replaced Task<T> with ValueTask<T>" }
+                    Modifications = ["Replaced Task<T> with ValueTask<T>"]
                 }
             ]
         };
@@ -1533,5 +1530,7 @@ public class TestHandler : IRequestHandler<TestRequest, string>
                 Directory.Delete(_testPath, true);
         }
         catch { }
+
+        GC.SuppressFinalize(this);
     }
 }

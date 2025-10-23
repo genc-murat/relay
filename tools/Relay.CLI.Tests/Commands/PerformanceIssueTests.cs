@@ -237,9 +237,9 @@ public class PerformanceIssueTests
         // Arrange & Act
         var issues = new List<PerformanceIssue>
         {
-            new PerformanceIssue { Type = "Memory", Severity = "High", Count = 5 },
-            new PerformanceIssue { Type = "CPU", Severity = "Medium", Count = 3 },
-            new PerformanceIssue { Type = "I/O", Severity = "Low", Count = 1 }
+            new() { Type = "Memory", Severity = "High", Count = 5 },
+            new() { Type = "CPU", Severity = "Medium", Count = 3 },
+            new() { Type = "I/O", Severity = "Low", Count = 1 }
         };
 
         // Assert
@@ -253,10 +253,10 @@ public class PerformanceIssueTests
         // Arrange
         var issues = new List<PerformanceIssue>
         {
-            new PerformanceIssue { Type = "Memory", Severity = "High" },
-            new PerformanceIssue { Type = "CPU", Severity = "Medium" },
-            new PerformanceIssue { Type = "Memory", Severity = "Low" },
-            new PerformanceIssue { Type = "I/O", Severity = "High" }
+            new() { Type = "Memory", Severity = "High" },
+            new() { Type = "CPU", Severity = "Medium" },
+            new() { Type = "Memory", Severity = "Low" },
+            new() { Type = "I/O", Severity = "High" }
         };
 
         // Act
@@ -273,10 +273,10 @@ public class PerformanceIssueTests
         // Arrange
         var issues = new List<PerformanceIssue>
         {
-            new PerformanceIssue { Type = "Memory", Severity = "High" },
-            new PerformanceIssue { Type = "CPU", Severity = "Medium" },
-            new PerformanceIssue { Type = "I/O", Severity = "High" },
-            new PerformanceIssue { Type = "Network", Severity = "Low" }
+            new() { Type = "Memory", Severity = "High" },
+            new() { Type = "CPU", Severity = "Medium" },
+            new() { Type = "I/O", Severity = "High" },
+            new() { Type = "Network", Severity = "Low" }
         };
 
         // Act
@@ -293,9 +293,9 @@ public class PerformanceIssueTests
         // Arrange
         var issues = new List<PerformanceIssue>
         {
-            new PerformanceIssue { Type = "Low", Count = 1 },
-            new PerformanceIssue { Type = "High", Count = 10 },
-            new PerformanceIssue { Type = "Medium", Count = 5 }
+            new() { Type = "Low", Count = 1 },
+            new() { Type = "High", Count = 10 },
+            new() { Type = "Medium", Count = 5 }
         };
 
         // Act
@@ -313,10 +313,10 @@ public class PerformanceIssueTests
         // Arrange
         var issues = new List<PerformanceIssue>
         {
-            new PerformanceIssue { Type = "Memory", Count = 2 },
-            new PerformanceIssue { Type = "CPU", Count = 3 },
-            new PerformanceIssue { Type = "Memory", Count = 4 },
-            new PerformanceIssue { Type = "I/O", Count = 1 }
+            new() { Type = "Memory", Count = 2 },
+            new() { Type = "CPU", Count = 3 },
+            new() { Type = "Memory", Count = 4 },
+            new() { Type = "I/O", Count = 1 }
         };
 
         // Act
@@ -461,9 +461,9 @@ public class PerformanceIssueTests
         // Arrange
         var issues = new List<PerformanceIssue>
         {
-            new PerformanceIssue { Type = "Memory", Count = 5, Severity = "High" },
-            new PerformanceIssue { Type = "CPU", Count = 3, Severity = "Medium" },
-            new PerformanceIssue { Type = "Memory", Count = 2, Severity = "Low" }
+            new() { Type = "Memory", Count = 5, Severity = "High" },
+            new() { Type = "CPU", Count = 3, Severity = "Medium" },
+            new() { Type = "Memory", Count = 2, Severity = "Low" }
         };
 
         // Act
@@ -505,8 +505,7 @@ public class PerformanceIssueTests
         // Arrange
         var issues = new List<PerformanceIssue>
         {
-            new PerformanceIssue
-            {
+            new() {
                 Type = "Memory Leak",
                 Severity = "Critical",
                 Count = 1,
@@ -514,8 +513,7 @@ public class PerformanceIssueTests
                 Recommendation = "Fix disposal pattern",
                 PotentialImprovement = "50% memory reduction"
             },
-            new PerformanceIssue
-            {
+            new() {
                 Type = "Slow Query",
                 Severity = "High",
                 Count = 5,
@@ -529,7 +527,7 @@ public class PerformanceIssueTests
         var report = issues.Select(i => new
         {
             IssueType = i.Type,
-            Severity = i.Severity,
+            i.Severity,
             Occurrences = i.Count,
             Impact = i.PotentialImprovement
         }).ToList();

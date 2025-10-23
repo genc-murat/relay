@@ -22,10 +22,11 @@ public class MigrationChangeTests
     public void MigrationChange_CanSetCategory()
     {
         // Arrange
-        var change = new MigrationChange();
-
-        // Act
-        change.Category = "Using Directives";
+        MigrationChange change = new()
+        {
+            // Act
+            Category = "Using Directives"
+        };
 
         // Assert
         Assert.Equal("Using Directives", change.Category);
@@ -35,10 +36,11 @@ public class MigrationChangeTests
     public void MigrationChange_CanSetType()
     {
         // Arrange
-        var change = new MigrationChange();
-
-        // Act
-        change.Type = ChangeType.Remove;
+        MigrationChange change = new()
+        {
+            // Act
+            Type = ChangeType.Remove
+        };
 
         // Assert
         Assert.Equal(ChangeType.Remove, change.Type);
@@ -48,10 +50,11 @@ public class MigrationChangeTests
     public void MigrationChange_CanSetDescription()
     {
         // Arrange
-        var change = new MigrationChange();
-
-        // Act
-        change.Description = "Added Relay using directive";
+        MigrationChange change = new()
+        {
+            // Act
+            Description = "Added Relay using directive"
+        };
 
         // Assert
         Assert.Equal("Added Relay using directive", change.Description);
@@ -61,10 +64,11 @@ public class MigrationChangeTests
     public void MigrationChange_CanSetFilePath()
     {
         // Arrange
-        var change = new MigrationChange();
-
-        // Act
-        change.FilePath = "/src/Handler.cs";
+        MigrationChange change = new()
+        {
+            // Act
+            FilePath = "/src/Handler.cs"
+        };
 
         // Assert
         Assert.Equal("/src/Handler.cs", change.FilePath);

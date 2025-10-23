@@ -23,10 +23,11 @@ public class MigrationIssueTests
     public void MigrationIssue_CanSetSeverity()
     {
         // Arrange
-        var issue = new MigrationIssue();
-
-        // Act
-        issue.Severity = IssueSeverity.Error;
+        MigrationIssue issue = new()
+        {
+            // Act
+            Severity = IssueSeverity.Error
+        };
 
         // Assert
         Assert.Equal(IssueSeverity.Error, issue.Severity);
@@ -36,10 +37,11 @@ public class MigrationIssueTests
     public void MigrationIssue_CanSetMessage()
     {
         // Arrange
-        var issue = new MigrationIssue();
-
-        // Act
-        issue.Message = "Handler not found";
+        MigrationIssue issue = new()
+        {
+            // Act
+            Message = "Handler not found"
+        };
 
         // Assert
         Assert.Equal("Handler not found", issue.Message);
@@ -49,10 +51,11 @@ public class MigrationIssueTests
     public void MigrationIssue_CanSetCode()
     {
         // Arrange
-        var issue = new MigrationIssue();
-
-        // Act
-        issue.Code = "MIG001";
+        MigrationIssue issue = new()
+        {
+            // Act
+            Code = "MIG001"
+        };
 
         // Assert
         Assert.Equal("MIG001", issue.Code);
@@ -62,10 +65,11 @@ public class MigrationIssueTests
     public void MigrationIssue_CanSetFilePath()
     {
         // Arrange
-        var issue = new MigrationIssue();
-
-        // Act
-        issue.FilePath = "/src/Handler.cs";
+        MigrationIssue issue = new()
+        {
+            // Act
+            FilePath = "/src/Handler.cs"
+        };
 
         // Assert
         Assert.Equal("/src/Handler.cs", issue.FilePath);
@@ -75,10 +79,11 @@ public class MigrationIssueTests
     public void MigrationIssue_CanSetLineNumber()
     {
         // Arrange
-        var issue = new MigrationIssue();
-
-        // Act
-        issue.LineNumber = 25;
+        MigrationIssue issue = new()
+        {
+            // Act
+            LineNumber = 25
+        };
 
         // Assert
         Assert.Equal(25, issue.LineNumber);

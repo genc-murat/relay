@@ -159,7 +159,7 @@ public class DiffDisplayUtilityTests
         var modified = "line1\nline2\nline3";
 
         // Act
-        var (added, removed, modifiedLines) = DiffDisplayUtility.GetChangeSummary(original, modified);
+        var (added, removed, _) = DiffDisplayUtility.GetChangeSummary(original, modified);
 
         // Assert
         Assert.Equal(2, added);
@@ -174,7 +174,7 @@ public class DiffDisplayUtilityTests
         var modified = "line1";
 
         // Act
-        var (added, removed, modifiedLines) = DiffDisplayUtility.GetChangeSummary(original, modified);
+        var (added, removed, _) = DiffDisplayUtility.GetChangeSummary(original, modified);
 
         // Assert
         Assert.Equal(0, added);

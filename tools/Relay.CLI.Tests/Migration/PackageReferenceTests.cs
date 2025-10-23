@@ -22,10 +22,11 @@ public class PackageReferenceTests
     public void PackageReference_CanSetName()
     {
         // Arrange
-        var packageRef = new PackageReference();
-
-        // Act
-        packageRef.Name = "MediatR";
+        PackageReference packageRef = new()
+        {
+            // Act
+            Name = "MediatR"
+        };
 
         // Assert
         Assert.Equal("MediatR", packageRef.Name);
@@ -35,10 +36,11 @@ public class PackageReferenceTests
     public void PackageReference_CanSetCurrentVersion()
     {
         // Arrange
-        var packageRef = new PackageReference();
-
-        // Act
-        packageRef.CurrentVersion = "12.0.0";
+        PackageReference packageRef = new()
+        {
+            // Act
+            CurrentVersion = "12.0.0"
+        };
 
         // Assert
         Assert.Equal("12.0.0", packageRef.CurrentVersion);
@@ -48,10 +50,11 @@ public class PackageReferenceTests
     public void PackageReference_CanSetTargetVersion()
     {
         // Arrange
-        var packageRef = new PackageReference();
-
-        // Act
-        packageRef.TargetVersion = "13.0.0";
+        PackageReference packageRef = new()
+        {
+            // Act
+            TargetVersion = "13.0.0"
+        };
 
         // Assert
         Assert.Equal("13.0.0", packageRef.TargetVersion);
@@ -61,10 +64,11 @@ public class PackageReferenceTests
     public void PackageReference_CanSetProjectFile()
     {
         // Arrange
-        var packageRef = new PackageReference();
-
-        // Act
-        packageRef.ProjectFile = "/src/MyProject.csproj";
+        PackageReference packageRef = new()
+        {
+            // Act
+            ProjectFile = "/src/MyProject.csproj"
+        };
 
         // Assert
         Assert.Equal("/src/MyProject.csproj", packageRef.ProjectFile);

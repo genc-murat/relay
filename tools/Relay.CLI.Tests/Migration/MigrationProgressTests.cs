@@ -29,10 +29,11 @@ public class MigrationProgressTests
     public void MigrationProgress_CanSetStage()
     {
         // Arrange
-        var progress = new MigrationProgress();
-
-        // Act
-        progress.Stage = MigrationStage.TransformingCode;
+        MigrationProgress progress = new()
+        {
+            // Act
+            Stage = MigrationStage.TransformingCode
+        };
 
         // Assert
         Assert.Equal(MigrationStage.TransformingCode, progress.Stage);
@@ -42,10 +43,11 @@ public class MigrationProgressTests
     public void MigrationProgress_CanSetCurrentFile()
     {
         // Arrange
-        var progress = new MigrationProgress();
-
-        // Act
-        progress.CurrentFile = "/src/Handler.cs";
+        MigrationProgress progress = new()
+        {
+            // Act
+            CurrentFile = "/src/Handler.cs"
+        };
 
         // Assert
         Assert.Equal("/src/Handler.cs", progress.CurrentFile);
@@ -55,10 +57,11 @@ public class MigrationProgressTests
     public void MigrationProgress_CanSetTotalFiles()
     {
         // Arrange
-        var progress = new MigrationProgress();
-
-        // Act
-        progress.TotalFiles = 100;
+        MigrationProgress progress = new()
+        {
+            // Act
+            TotalFiles = 100
+        };
 
         // Assert
         Assert.Equal(100, progress.TotalFiles);
@@ -68,10 +71,11 @@ public class MigrationProgressTests
     public void MigrationProgress_CanSetProcessedFiles()
     {
         // Arrange
-        var progress = new MigrationProgress();
-
-        // Act
-        progress.ProcessedFiles = 25;
+        MigrationProgress progress = new()
+        {
+            // Act
+            ProcessedFiles = 25
+        };
 
         // Assert
         Assert.Equal(25, progress.ProcessedFiles);
@@ -81,10 +85,11 @@ public class MigrationProgressTests
     public void MigrationProgress_CanSetMessage()
     {
         // Arrange
-        var progress = new MigrationProgress();
-
-        // Act
-        progress.Message = "Processing handlers";
+        MigrationProgress progress = new()
+        {
+            // Act
+            Message = "Processing handlers"
+        };
 
         // Assert
         Assert.Equal("Processing handlers", progress.Message);
@@ -122,10 +127,11 @@ public class MigrationProgressTests
     public void MigrationProgress_CanSetFilesModified()
     {
         // Arrange
-        var progress = new MigrationProgress();
-
-        // Act
-        progress.FilesModified = 15;
+        MigrationProgress progress = new()
+        {
+            // Act
+            FilesModified = 15
+        };
 
         // Assert
         Assert.Equal(15, progress.FilesModified);
@@ -135,10 +141,11 @@ public class MigrationProgressTests
     public void MigrationProgress_CanSetHandlersMigrated()
     {
         // Arrange
-        var progress = new MigrationProgress();
-
-        // Act
-        progress.HandlersMigrated = 8;
+        MigrationProgress progress = new()
+        {
+            // Act
+            HandlersMigrated = 8
+        };
 
         // Assert
         Assert.Equal(8, progress.HandlersMigrated);
@@ -148,10 +155,11 @@ public class MigrationProgressTests
     public void MigrationProgress_CanSetIsParallel()
     {
         // Arrange
-        var progress = new MigrationProgress();
-
-        // Act
-        progress.IsParallel = true;
+        MigrationProgress progress = new()
+        {
+            // Act
+            IsParallel = true
+        };
 
         // Assert
         Assert.True(progress.IsParallel);

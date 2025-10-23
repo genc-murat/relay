@@ -13,8 +13,8 @@ public class MigrationResultTests
 
         // Assert
         Assert.Equal(MigrationStatus.NotStarted, result.Status);
-        Assert.Equal(default(DateTime), result.StartTime);
-        Assert.Equal(default(DateTime), result.EndTime);
+        Assert.Equal(default, result.StartTime);
+        Assert.Equal(default, result.EndTime);
         Assert.Equal(TimeSpan.Zero, result.Duration);
         Assert.Equal(0, result.FilesModified);
         Assert.Equal(0, result.LinesChanged);
@@ -33,10 +33,11 @@ public class MigrationResultTests
     public void MigrationResult_CanSetStatus()
     {
         // Arrange
-        var result = new MigrationResult();
-
-        // Act
-        result.Status = MigrationStatus.Success;
+        MigrationResult result = new()
+        {
+            // Act
+            Status = MigrationStatus.Success
+        };
 
         // Assert
         Assert.Equal(MigrationStatus.Success, result.Status);
@@ -88,10 +89,11 @@ public class MigrationResultTests
     public void MigrationResult_CanSetFilesModified()
     {
         // Arrange
-        var result = new MigrationResult();
-
-        // Act
-        result.FilesModified = 25;
+        MigrationResult result = new()
+        {
+            // Act
+            FilesModified = 25
+        };
 
         // Assert
         Assert.Equal(25, result.FilesModified);
@@ -101,10 +103,11 @@ public class MigrationResultTests
     public void MigrationResult_CanSetLinesChanged()
     {
         // Arrange
-        var result = new MigrationResult();
-
-        // Act
-        result.LinesChanged = 150;
+        MigrationResult result = new()
+        {
+            // Act
+            LinesChanged = 150
+        };
 
         // Assert
         Assert.Equal(150, result.LinesChanged);
@@ -114,10 +117,11 @@ public class MigrationResultTests
     public void MigrationResult_CanSetHandlersMigrated()
     {
         // Arrange
-        var result = new MigrationResult();
-
-        // Act
-        result.HandlersMigrated = 12;
+        MigrationResult result = new()
+        {
+            // Act
+            HandlersMigrated = 12
+        };
 
         // Assert
         Assert.Equal(12, result.HandlersMigrated);
@@ -127,10 +131,11 @@ public class MigrationResultTests
     public void MigrationResult_CanSetCreatedBackup()
     {
         // Arrange
-        var result = new MigrationResult();
-
-        // Act
-        result.CreatedBackup = true;
+        MigrationResult result = new()
+        {
+            // Act
+            CreatedBackup = true
+        };
 
         // Assert
         Assert.True(result.CreatedBackup);
@@ -140,10 +145,11 @@ public class MigrationResultTests
     public void MigrationResult_CanSetBackupPath()
     {
         // Arrange
-        var result = new MigrationResult();
-
-        // Act
-        result.BackupPath = "/backup/migration";
+        MigrationResult result = new()
+        {
+            // Act
+            BackupPath = "/backup/migration"
+        };
 
         // Assert
         Assert.Equal("/backup/migration", result.BackupPath);

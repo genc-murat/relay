@@ -30,10 +30,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetSourceFramework()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.SourceFramework = "CustomFramework";
+        MigrationOptions options = new()
+        {
+            // Act
+            SourceFramework = "CustomFramework"
+        };
 
         // Assert
         Assert.Equal("CustomFramework", options.SourceFramework);
@@ -43,10 +44,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetTargetFramework()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.TargetFramework = "CustomTarget";
+        MigrationOptions options = new()
+        {
+            // Act
+            TargetFramework = "CustomTarget"
+        };
 
         // Assert
         Assert.Equal("CustomTarget", options.TargetFramework);
@@ -56,10 +58,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetProjectPath()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.ProjectPath = "/path/to/project";
+        MigrationOptions options = new()
+        {
+            // Act
+            ProjectPath = "/path/to/project"
+        };
 
         // Assert
         Assert.Equal("/path/to/project", options.ProjectPath);
@@ -69,10 +72,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetAnalyzeOnly()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.AnalyzeOnly = true;
+        MigrationOptions options = new()
+        {
+            // Act
+            AnalyzeOnly = true
+        };
 
         // Assert
         Assert.True(options.AnalyzeOnly);
@@ -82,10 +86,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetDryRun()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.DryRun = true;
+        MigrationOptions options = new()
+        {
+            // Act
+            DryRun = true
+        };
 
         // Assert
         Assert.True(options.DryRun);
@@ -95,10 +100,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetShowPreview()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.ShowPreview = true;
+        MigrationOptions options = new()
+        {
+            // Act
+            ShowPreview = true
+        };
 
         // Assert
         Assert.True(options.ShowPreview);
@@ -108,10 +114,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetCreateBackup()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.CreateBackup = false;
+        MigrationOptions options = new()
+        {
+            // Act
+            CreateBackup = false
+        };
 
         // Assert
         Assert.False(options.CreateBackup);
@@ -121,10 +128,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetBackupPath()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.BackupPath = "/custom/backup/path";
+        MigrationOptions options = new()
+        {
+            // Act
+            BackupPath = "/custom/backup/path"
+        };
 
         // Assert
         Assert.Equal("/custom/backup/path", options.BackupPath);
@@ -134,10 +142,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetInteractive()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.Interactive = true;
+        MigrationOptions options = new()
+        {
+            // Act
+            Interactive = true
+        };
 
         // Assert
         Assert.True(options.Interactive);
@@ -147,10 +156,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetAggressive()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.Aggressive = true;
+        MigrationOptions options = new()
+        {
+            // Act
+            Aggressive = true
+        };
 
         // Assert
         Assert.True(options.Aggressive);
@@ -160,10 +170,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetUseSideBySideDiff()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.UseSideBySideDiff = true;
+        MigrationOptions options = new()
+        {
+            // Act
+            UseSideBySideDiff = true
+        };
 
         // Assert
         Assert.True(options.UseSideBySideDiff);
@@ -173,10 +184,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetEnableParallelProcessing()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.EnableParallelProcessing = false;
+        MigrationOptions options = new()
+        {
+            // Act
+            EnableParallelProcessing = false
+        };
 
         // Assert
         Assert.False(options.EnableParallelProcessing);
@@ -186,10 +198,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetMaxDegreeOfParallelism()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.MaxDegreeOfParallelism = 4;
+        MigrationOptions options = new()
+        {
+            // Act
+            MaxDegreeOfParallelism = 4
+        };
 
         // Assert
         Assert.Equal(4, options.MaxDegreeOfParallelism);
@@ -199,10 +212,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetParallelBatchSize()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.ParallelBatchSize = 20;
+        MigrationOptions options = new()
+        {
+            // Act
+            ParallelBatchSize = 20
+        };
 
         // Assert
         Assert.Equal(20, options.ParallelBatchSize);
@@ -212,10 +226,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetProgressReportInterval()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.ProgressReportInterval = 1000;
+        MigrationOptions options = new()
+        {
+            // Act
+            ProgressReportInterval = 1000
+        };
 
         // Assert
         Assert.Equal(1000, options.ProgressReportInterval);
@@ -225,10 +240,11 @@ public class MigrationOptionsTests
     public void MigrationOptions_CanSetContinueOnError()
     {
         // Arrange
-        var options = new MigrationOptions();
-
-        // Act
-        options.ContinueOnError = false;
+        MigrationOptions options = new()
+        {
+            // Act
+            ContinueOnError = false
+        };
 
         // Assert
         Assert.False(options.ContinueOnError);
@@ -240,7 +256,7 @@ public class MigrationOptionsTests
         // Arrange
         var options = new MigrationOptions();
         var called = false;
-        Action<MigrationProgress> callback = _ => called = true;
+        void callback(MigrationProgress _) => called = true;
 
         // Act
         options.OnProgress = callback;

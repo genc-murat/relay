@@ -117,7 +117,7 @@ public class MigrationExceptionTests
         var exception = new MigrationException("Test");
 
         // Assert
-        Assert.IsAssignableFrom<Exception>(exception);
+        Assert.IsType<Exception>(exception, exactMatch: false);
     }
 
     [Fact]
@@ -177,6 +177,6 @@ public class MigrationExceptionTests
         var exception = new SyntaxException("Test");
 
         // Assert
-        Assert.IsAssignableFrom<MigrationException>(exception);
+        Assert.IsType<MigrationException>(exception, exactMatch: false);
     }
 }

@@ -27,10 +27,11 @@ public class TransformationResultTests
     public void TransformationResult_CanSetFilePath()
     {
         // Arrange
-        var result = new TransformationResult();
-
-        // Act
-        result.FilePath = "/src/Handler.cs";
+        TransformationResult result = new()
+        {
+            // Act
+            FilePath = "/src/Handler.cs"
+        };
 
         // Assert
         Assert.Equal("/src/Handler.cs", result.FilePath);
@@ -68,10 +69,11 @@ public class TransformationResultTests
     public void TransformationResult_CanSetWasModified()
     {
         // Arrange
-        var result = new TransformationResult();
-
-        // Act
-        result.WasModified = true;
+        TransformationResult result = new()
+        {
+            // Act
+            WasModified = true
+        };
 
         // Assert
         Assert.True(result.WasModified);
@@ -81,10 +83,11 @@ public class TransformationResultTests
     public void TransformationResult_CanSetLinesChanged()
     {
         // Arrange
-        var result = new TransformationResult();
-
-        // Act
-        result.LinesChanged = 5;
+        TransformationResult result = new()
+        {
+            // Act
+            LinesChanged = 5
+        };
 
         // Assert
         Assert.Equal(5, result.LinesChanged);
@@ -94,10 +97,11 @@ public class TransformationResultTests
     public void TransformationResult_CanSetIsHandler()
     {
         // Arrange
-        var result = new TransformationResult();
-
-        // Act
-        result.IsHandler = true;
+        TransformationResult result = new()
+        {
+            // Act
+            IsHandler = true
+        };
 
         // Assert
         Assert.True(result.IsHandler);
@@ -107,10 +111,11 @@ public class TransformationResultTests
     public void TransformationResult_CanSetError()
     {
         // Arrange
-        var result = new TransformationResult();
-
-        // Act
-        result.Error = "Syntax error on line 10";
+        TransformationResult result = new()
+        {
+            // Act
+            Error = "Syntax error on line 10"
+        };
 
         // Assert
         Assert.Equal("Syntax error on line 10", result.Error);

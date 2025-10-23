@@ -1210,7 +1210,7 @@ public class PipelineCommandTests
     {
         // Arrange
         var path = Path.Combine(Path.GetTempPath(), "test-validate");
-        var ciMode = false;
+        var ciMode = true;
         var cancellationToken = CancellationToken.None;
 
         try

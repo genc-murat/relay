@@ -18,6 +18,7 @@ public class TemplateValidatorTests : IDisposable
     public void Dispose()
     {
         // Cleanup if needed
+        GC.SuppressFinalize(this);
     }
 
     [Fact]

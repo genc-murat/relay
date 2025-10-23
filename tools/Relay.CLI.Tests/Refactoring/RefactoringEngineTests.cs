@@ -201,7 +201,7 @@ public class MixedClass
         var options = new RefactoringOptions
         {
             ProjectPath = _testProjectPath,
-            Categories = new List<RefactoringCategory> { RefactoringCategory.Readability }
+            Categories = [RefactoringCategory.Readability]
         };
 
         // Act

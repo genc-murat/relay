@@ -9,6 +9,12 @@ public class TemplatePublisherTests : IDisposable
     private readonly string _testDataPath;
     private readonly string _outputPath;
 
+    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+        WriteIndented = true
+    };
+
     public TemplatePublisherTests()
     {
         var testId = Guid.NewGuid().ToString("N");
@@ -45,6 +51,7 @@ public class TemplatePublisherTests : IDisposable
                 // Best effort cleanup
             }
         }
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -172,8 +179,8 @@ public class TemplatePublisherTests : IDisposable
     public async Task ListAvailableTemplatesAsync_WithValidTemplates_ReturnsTemplateList()
     {
         // Arrange
-        var template1 = CreateValidTemplate("template1");
-        var template2 = CreateValidTemplate("template2");
+        CreateValidTemplate("template1");
+        CreateValidTemplate("template2");
 
         // Act
         var templates = await _publisher.ListAvailableTemplatesAsync();
@@ -434,7 +441,7 @@ public class TemplatePublisherTests : IDisposable
         Directory.CreateDirectory(configPath);
         Directory.CreateDirectory(contentPath);
 
-        var shortName = "test-template" + (suffix ?? Guid.NewGuid().ToString("N").Substring(0, 8));
+        var shortName = "test-template" + (suffix ?? Guid.NewGuid().ToString("N")[..8]);
         var templateJson = $@"{{
             ""$schema"": ""http://json.schemastore.org/template"",
             ""author"": ""Test Author"",
@@ -466,7 +473,7 @@ public class TemplatePublisherTests : IDisposable
         Directory.CreateDirectory(configPath);
         Directory.CreateDirectory(contentPath);
 
-        var shortName = "test-template" + Guid.NewGuid().ToString("N").Substring(0, 8);
+        var shortName = "test-template" + Guid.NewGuid().ToString("N")[..8];
         var templateJson = $@"{{
             ""$schema"": ""http://json.schemastore.org/template"",
             ""author"": ""{author}"",
@@ -499,27 +506,23 @@ public class TemplatePublisherTests : IDisposable
         Directory.CreateDirectory(configPath);
         Directory.CreateDirectory(contentPath);
 
-        var shortName = "test-template" + Guid.NewGuid().ToString("N").Substring(0, 8);
+        var shortName = "test-template" + Guid.NewGuid().ToString("N")[..8];
 
         // Use JsonSerializer to properly escape JSON strings
         var metadata = new
         {
             schema = "http://json.schemastore.org/template",
-            author = author,
+            author,
             classifications = new[] { "Test" },
             identity = $"Test.Template.{templateName}",
             name = "Test Template",
-            shortName = shortName,
-            description = description,
+            shortName,
+            description,
             version = "1.0.0",
             sourceName = "TestProject"
         };
 
-        var templateJson = System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
+        var templateJson = System.Text.Json.JsonSerializer.Serialize(metadata, _jsonOptions);
 
         var templateJsonPath = Path.Combine(configPath, "template.json");
         File.WriteAllText(templateJsonPath, templateJson);

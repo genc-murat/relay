@@ -20,6 +20,7 @@ public class TemplateGeneratorTests : IDisposable
         {
             Directory.Delete(_tempDirectory, true);
         }
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -163,7 +164,7 @@ public class TemplateGeneratorTests : IDisposable
         var outputPath = Path.Combine(_tempDirectory, "output");
         var options = new GenerationOptions
         {
-            Modules = new[] { "Catalog", "Orders", "Users" }
+            Modules = ["Catalog", "Orders", "Users"]
         };
 
         // Act
@@ -290,11 +291,10 @@ public class TemplateGeneratorTests : IDisposable
     {
         // Arrange
         var generator = new TemplateGenerator(_templatesPath);
-        var outputPath = Path.Combine(_tempDirectory, "output");
         var options = new GenerationOptions();
 
         // Create a scenario that will cause an exception (invalid path that can't be created)
-        outputPath = "\\\\invalid\\path\\that\\does\\not\\exist";
+        var outputPath = "\\\\invalid\\path\\that\\does\\not\\exist";
 
         // Act
         var result = await generator.GenerateAsync("relay-webapi", "TestProject", outputPath, options);
@@ -319,7 +319,7 @@ public class TemplateGeneratorTests : IDisposable
         var outputPath = Path.Combine(_tempDirectory, $"output_{templateId}");
         var options = new GenerationOptions
         {
-            Modules = templateId == "relay-modular" ? new[] { "TestModule" } : null
+            Modules = templateId == "relay-modular" ? ["TestModule"] : null
         };
 
         // Act

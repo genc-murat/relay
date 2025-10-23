@@ -440,7 +440,7 @@ public class ValidationStatusTests
         var progressReport = validationSteps.Select(step => new
         {
             Step = step.StepName,
-            Status = step.Status,
+            step.Status,
             Icon = step.Status switch
             {
                 ValidationStatus.Pass => "✅",

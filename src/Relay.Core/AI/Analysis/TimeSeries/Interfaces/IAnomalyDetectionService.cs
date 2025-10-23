@@ -1,3 +1,4 @@
+using Relay.Core.AI.Analysis.Models;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;

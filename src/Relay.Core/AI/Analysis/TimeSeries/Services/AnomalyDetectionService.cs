@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
+using Relay.Core.AI.Analysis.Models;
 using Relay.Core.AI.Optimization.Models;
 
 namespace Relay.Core.AI.Analysis.TimeSeries;

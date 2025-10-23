@@ -1,6 +1,6 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Analysis.Models
 {
     /// <summary>
     /// Anomaly detection result

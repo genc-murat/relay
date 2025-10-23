@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Analysis.Models;
 
 namespace Relay.Core.AI.Analysis.TimeSeries;
 

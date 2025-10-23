@@ -1132,7 +1132,6 @@ public class Test
         var root = await tree.GetRootAsync();
 
         var rule = new DisposablePatternRule();
-        var options = new RefactoringOptions();
 
         // Create a suggestion with non-LocalDeclarationStatementSyntax context
         var suggestion = new RefactoringSuggestion

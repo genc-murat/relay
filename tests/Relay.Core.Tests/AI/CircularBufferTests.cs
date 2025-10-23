@@ -11,10 +11,12 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Enumerator_Should_Iterate_In_Order()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2,
+                3
+            };
 
             var list = buffer.ToList();
             Assert.Equal(new[] { 1, 2, 3 }, list);
@@ -36,12 +38,14 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Where_Should_Filter_Without_Copying()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4);
-            buffer.Add(5);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2,
+                3,
+                4,
+                5
+            };
 
             var even = buffer.Where(x => x % 2 == 0).ToList();
             Assert.Equal(new[] { 2, 4 }, even);
@@ -67,10 +71,12 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Indexer_Should_Work()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(10);
-            buffer.Add(20);
-            buffer.Add(30);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                10,
+                20,
+                30
+            };
 
             Assert.Equal(10, buffer[0]);
             Assert.Equal(20, buffer[1]);
@@ -80,11 +86,13 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Indexer_Should_Work_After_Overflow()
         {
-            var buffer = new CircularBuffer<int>(3);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4); // overflow, now 2,3,4
+            var buffer = new CircularBuffer<int>(3)
+            {
+                1,
+                2,
+                3,
+                4 // overflow, now 2,3,4
+            };
 
             Assert.Equal(2, buffer[0]);
             Assert.Equal(3, buffer[1]);
@@ -94,11 +102,13 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void RemoveFront_Should_Work()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2,
+                3,
+                4
+            };
 
             buffer.RemoveFront(2);
             Assert.Equal(2, buffer.Count);
@@ -109,11 +119,13 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void RemoveFront_After_Overflow_Should_Work()
         {
-            var buffer = new CircularBuffer<int>(3);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4); // now 2,3,4
+            var buffer = new CircularBuffer<int>(3)
+            {
+                1,
+                2,
+                3,
+                4 // now 2,3,4
+            };
 
             buffer.RemoveFront(1); // remove 2, now 3,4
             Assert.Equal(2, buffer.Count);
@@ -124,10 +136,12 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Clear_Should_Remove_All_Elements()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2,
+                3
+            };
 
             Assert.Equal(3, buffer.Count);
 
@@ -151,11 +165,13 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Clear_Should_Work_After_Overflow()
         {
-            var buffer = new CircularBuffer<int>(3);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4); // overflow
+            var buffer = new CircularBuffer<int>(3)
+            {
+                1,
+                2,
+                3,
+                4 // overflow
+            };
 
             Assert.Equal(3, buffer.Count);
 
@@ -168,11 +184,13 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Clear_Should_Work_After_RemoveFront()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2,
+                3,
+                4
+            };
             buffer.RemoveFront(2); // remove 1,2
 
             Assert.Equal(2, buffer.Count);
@@ -186,26 +204,30 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void ToArray_Should_Return_Correct_Array_When_Not_Wrapped()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2,
+                3
+            };
 
             var array = buffer.ToArray();
-            Assert.Equal(new[] { 1, 2, 3 }, array);
+            Assert.Equal([1, 2, 3], array);
         }
 
         [Fact]
         public void ToArray_Should_Return_Correct_Array_When_Wrapped()
         {
-            var buffer = new CircularBuffer<int>(3);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4); // overflow, now contains 2,3,4
+            var buffer = new CircularBuffer<int>(3)
+            {
+                1,
+                2,
+                3,
+                4 // overflow, now contains 2,3,4
+            };
 
             var array = buffer.ToArray();
-            Assert.Equal(new[] { 2, 3, 4 }, array);
+            Assert.Equal([2, 3, 4], array);
         }
 
         [Fact]
@@ -220,31 +242,37 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void ToArray_Should_Return_Full_Array_When_Buffer_Is_Full()
         {
-            var buffer = new CircularBuffer<int>(3);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
+            var buffer = new CircularBuffer<int>(3)
+            {
+                1,
+                2,
+                3
+            };
 
             var array = buffer.ToArray();
-            Assert.Equal(new[] { 1, 2, 3 }, array);
+            Assert.Equal([1, 2, 3], array);
         }
 
         [Fact]
         public void ToArray_Should_Work_With_Single_Element()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(42);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                42
+            };
 
             var array = buffer.ToArray();
-            Assert.Equal(new[] { 42 }, array);
+            Assert.Equal([42], array);
         }
 
         [Fact]
         public void ToArray_Should_Work_After_Clear()
         {
-            var buffer = new CircularBuffer<int>(3);
-            buffer.Add(1);
-            buffer.Add(2);
+            var buffer = new CircularBuffer<int>(3)
+            {
+                1,
+                2
+            };
             buffer.Clear();
 
             var array = buffer.ToArray();
@@ -254,15 +282,17 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void ToArray_Should_Work_After_RemoveFront()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2,
+                3,
+                4
+            };
             buffer.RemoveFront(2); // remove 1,2, now 3,4
 
             var array = buffer.ToArray();
-            Assert.Equal(new[] { 3, 4 }, array);
+            Assert.Equal([3, 4], array);
         }
 
         [Fact]
@@ -288,9 +318,10 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Add_Should_Add_Elements_To_Buffer()
         {
-            var buffer = new CircularBuffer<int>(3);
-
-            buffer.Add(1);
+            var buffer = new CircularBuffer<int>(3)
+            {
+                1
+            };
             Assert.Single(buffer);
             Assert.Equal(1, buffer[0]);
 
@@ -306,12 +337,13 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Add_Should_Overwrite_Oldest_Element_When_Full()
         {
-            var buffer = new CircularBuffer<int>(3);
-
-            buffer.Add(1);
-            buffer.Add(2);
-            buffer.Add(3);
-            buffer.Add(4); // should overwrite 1
+            var buffer = new CircularBuffer<int>(3)
+            {
+                1,
+                2,
+                3,
+                4 // should overwrite 1
+            };
 
             Assert.Equal(3, buffer.Count);
             Assert.Equal(2, buffer[0]);
@@ -322,8 +354,10 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Indexer_Should_Throw_OutOfRange_For_Negative_Index()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1
+            };
 
             Assert.Throws<ArgumentOutOfRangeException>(() => _ = buffer[-1]);
         }
@@ -331,9 +365,11 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void Indexer_Should_Throw_OutOfRange_For_Index_Greater_Than_Or_Equal_To_Count()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2
+            };
 
             Assert.Throws<ArgumentOutOfRangeException>(() => _ = buffer[2]);
             Assert.Throws<ArgumentOutOfRangeException>(() => _ = buffer[3]);
@@ -342,8 +378,10 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void RemoveFront_Should_Throw_OutOfRange_For_Negative_Count()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1
+            };
 
             Assert.Throws<ArgumentOutOfRangeException>(() => buffer.RemoveFront(-1));
         }
@@ -351,9 +389,11 @@ namespace Relay.Core.Tests.AI
         [Fact]
         public void RemoveFront_Should_Throw_OutOfRange_For_Count_Greater_Than_Current_Count()
         {
-            var buffer = new CircularBuffer<int>(5);
-            buffer.Add(1);
-            buffer.Add(2);
+            var buffer = new CircularBuffer<int>(5)
+            {
+                1,
+                2
+            };
 
             Assert.Throws<ArgumentOutOfRangeException>(() => buffer.RemoveFront(3));
         }

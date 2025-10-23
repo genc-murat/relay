@@ -25,10 +25,11 @@ public class MachineLearningEnhancementTests
     public void AlternativeStrategy_CanBeSetAndRetrieved()
     {
         // Arrange
-        var enhancement = new MachineLearningEnhancement();
-
-        // Act
-        enhancement.AlternativeStrategy = OptimizationStrategy.EnableCaching;
+        var enhancement = new MachineLearningEnhancement
+        {
+            // Act
+            AlternativeStrategy = OptimizationStrategy.EnableCaching
+        };
 
         // Assert
         Assert.Equal(OptimizationStrategy.EnableCaching, enhancement.AlternativeStrategy);
@@ -38,10 +39,11 @@ public class MachineLearningEnhancementTests
     public void EnhancedConfidence_CanBeSetAndRetrieved()
     {
         // Arrange
-        var enhancement = new MachineLearningEnhancement();
-
-        // Act
-        enhancement.EnhancedConfidence = 0.85;
+        var enhancement = new MachineLearningEnhancement
+        {
+            // Act
+            EnhancedConfidence = 0.85
+        };
 
         // Assert
         Assert.Equal(0.85, enhancement.EnhancedConfidence);
@@ -166,10 +168,11 @@ public class MachineLearningEnhancementTests
     public void AlternativeStrategy_AllEnumValuesSupported(OptimizationStrategy strategy)
     {
         // Arrange
-        var enhancement = new MachineLearningEnhancement();
-
-        // Act
-        enhancement.AlternativeStrategy = strategy;
+        var enhancement = new MachineLearningEnhancement
+        {
+            // Act
+            AlternativeStrategy = strategy
+        };
 
         // Assert
         Assert.Equal(strategy, enhancement.AlternativeStrategy);
@@ -184,10 +187,11 @@ public class MachineLearningEnhancementTests
     public void EnhancedConfidence_AcceptsValidValues(double value)
     {
         // Arrange
-        var enhancement = new MachineLearningEnhancement();
-
-        // Act
-        enhancement.EnhancedConfidence = value;
+        var enhancement = new MachineLearningEnhancement
+        {
+            // Act
+            EnhancedConfidence = value
+        };
 
         // Assert
         Assert.Equal(value, enhancement.EnhancedConfidence);
@@ -200,10 +204,11 @@ public class MachineLearningEnhancementTests
     public void EnhancedConfidence_AcceptsAnyDoubleValue(double value)
     {
         // Arrange
-        var enhancement = new MachineLearningEnhancement();
-
-        // Act
-        enhancement.EnhancedConfidence = value;
+        var enhancement = new MachineLearningEnhancement
+        {
+            // Act
+            EnhancedConfidence = value
+        };
 
         // Assert
         Assert.Equal(value, enhancement.EnhancedConfidence);
@@ -213,10 +218,11 @@ public class MachineLearningEnhancementTests
     public void Reasoning_CanBeSetToNull()
     {
         // Arrange
-        var enhancement = new MachineLearningEnhancement();
-
-        // Act
-        enhancement.Reasoning = null!;
+        var enhancement = new MachineLearningEnhancement
+        {
+            // Act
+            Reasoning = null!
+        };
 
         // Assert
         Assert.Null(enhancement.Reasoning);
@@ -333,18 +339,19 @@ public class MachineLearningEnhancementTests
 
         // Assert
         Assert.IsType<MachineLearningEnhancement>(enhancement);
-        Assert.IsAssignableFrom<object>(enhancement);
+        Assert.IsType<object>(enhancement, exactMatch: false);
     }
 
     [Fact]
     public void CanBeUsedInCollections()
     {
         // Arrange
-        var enhancements = new System.Collections.Generic.List<MachineLearningEnhancement>();
-
-        // Act
-        enhancements.Add(new MachineLearningEnhancement { AlternativeStrategy = OptimizationStrategy.EnableCaching });
-        enhancements.Add(new MachineLearningEnhancement { AlternativeStrategy = OptimizationStrategy.CircuitBreaker });
+        List<MachineLearningEnhancement> enhancements =
+        [
+            // Act
+            new MachineLearningEnhancement { AlternativeStrategy = OptimizationStrategy.EnableCaching },
+            new MachineLearningEnhancement { AlternativeStrategy = OptimizationStrategy.CircuitBreaker }
+        ];
 
         // Assert
         Assert.Equal(2, enhancements.Count);

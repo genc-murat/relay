@@ -143,7 +143,7 @@ namespace Relay.Core.Tests.AI.Analysis.TimeSeries.Predictors
             var metricName = "test.metric";
             var hasModelCallCount = 0;
             _modelManagerMock.Setup(m => m.HasModel(metricName))
-                .Returns(() => hasModelCallCount++ == 0 ? false : true); // Return false first, then true
+                .Returns(() => hasModelCallCount++ != 0); // Return false first, then true
 
             _trainerMock.Setup(t => t.TrainModel(metricName)).Verifiable();
 
@@ -201,7 +201,7 @@ namespace Relay.Core.Tests.AI.Analysis.TimeSeries.Predictors
             var metricName = "test.metric";
             _modelManagerMock.Setup(m => m.HasModel(metricName)).Returns(true);
             _modelManagerMock.Setup(m => m.GetModel(metricName)).Returns(Mock.Of<ITransformer>());
-            _repositoryMock.Setup(r => r.GetHistory(metricName, It.IsAny<TimeSpan>())).Returns(new List<MetricDataPoint>());
+            _repositoryMock.Setup(r => r.GetHistory(metricName, It.IsAny<TimeSpan>())).Returns([]);
 
             // Act
             var result = _predictor.Predict(metricName);
@@ -390,7 +390,7 @@ namespace Relay.Core.Tests.AI.Analysis.TimeSeries.Predictors
         [Fact]
         public void PredictBatch_Should_Throw_When_Horizon_Is_Invalid()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => _predictor.PredictBatch(new[] { "test.metric" }, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => _predictor.PredictBatch(["test.metric"], 0));
         }
 
         [Fact]
@@ -497,7 +497,7 @@ namespace Relay.Core.Tests.AI.Analysis.TimeSeries.Predictors
 
             // Act & Assert
             await Assert.ThrowsAsync<OperationCanceledException>(() =>
-                _predictor.PredictBatchAsync(new[] { "test.metric" }, cancellationToken: cts.Token));
+                _predictor.PredictBatchAsync(["test.metric"], cancellationToken: cts.Token));
         }
 
         #endregion

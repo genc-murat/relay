@@ -29,10 +29,11 @@ public class OpenApiServerVariableTests
     public void OpenApiServerVariable_CanSetDefaultValue()
     {
         // Arrange
-        var variable = new OpenApiServerVariable();
-
-        // Act
-        variable.Default = "https";
+        var variable = new OpenApiServerVariable
+        {
+            // Act
+            Default = "https"
+        };
 
         // Assert
         Assert.Equal("https", variable.Default);
@@ -42,10 +43,11 @@ public class OpenApiServerVariableTests
     public void OpenApiServerVariable_CanSetDescription()
     {
         // Arrange
-        var variable = new OpenApiServerVariable();
-
-        // Act
-        variable.Description = "Protocol to use";
+        var variable = new OpenApiServerVariable
+        {
+            // Act
+            Description = "Protocol to use"
+        };
 
         // Assert
         Assert.Equal("Protocol to use", variable.Description);
@@ -87,7 +89,7 @@ public class OpenApiServerVariableTests
         {
             Default = "production",
             Description = "Environment selection",
-            Enum = new List<string> { "development", "staging", "production" }
+            Enum = ["development", "staging", "production"]
         };
 
         // Assert
@@ -125,7 +127,7 @@ public class OpenApiServerVariableTests
         {
             Default = "prod",
             Description = "Environment name",
-            Enum = new List<string> { "dev", "staging", "prod" }
+            Enum = ["dev", "staging", "prod"]
         };
 
         // Act
@@ -153,13 +155,13 @@ public class OpenApiServerVariableTests
         server.Variables["protocol"] = new OpenApiServerVariable
         {
             Default = "https",
-            Enum = new List<string> { "http", "https" }
+            Enum = ["http", "https"]
         };
 
         server.Variables["environment"] = new OpenApiServerVariable
         {
             Default = "prod",
-            Enum = new List<string> { "dev", "staging", "prod" }
+            Enum = ["dev", "staging", "prod"]   
         };
 
         server.Variables["port"] = new OpenApiServerVariable
@@ -210,7 +212,7 @@ public class OpenApiServerVariableTests
         {
             Default = "prod",
             Description = "Target environment",
-            Enum = new List<string> { "dev", "staging", "prod" }
+            Enum = ["dev", "staging", "prod"]
         };
 
         // Act
@@ -255,7 +257,7 @@ public class OpenApiServerVariableTests
         {
             Default = "https",
             Description = "Communication protocol",
-            Enum = new List<string> { "http", "https" }
+            Enum = ["http", "https"]
         };
 
         // Act
@@ -278,7 +280,7 @@ public class OpenApiServerVariableTests
         {
             Default = "prod",
             Description = "Environment",
-            Enum = new List<string> { "dev", "prod" }
+            Enum = ["dev", "prod"]
         };
 
         // Act
@@ -307,7 +309,7 @@ public class OpenApiServerVariableTests
         server.Variables["env"] = new OpenApiServerVariable
         {
             Default = "prod",
-            Enum = new List<string> { "dev", "prod" }
+            Enum = ["dev", "prod"]
         };
 
         // Act
@@ -354,7 +356,7 @@ public class OpenApiServerVariableTests
         {
             Default = "default",
             Description = "Variable with no enum constraints",
-            Enum = new List<string>() // Explicitly empty
+            Enum = [] // Explicitly empty
         };
 
         // Act & Assert
@@ -402,7 +404,7 @@ public class OpenApiServerVariableTests
         var variable = new OpenApiServerVariable
         {
             Default = "a",
-            Enum = new List<string> { "a", "a", "b" }
+            Enum = ["a", "a", "b"]
         };
 
         // Act & Assert
@@ -426,7 +428,7 @@ public class OpenApiServerVariableTests
         {
             Default = "https",
             Description = "Communication protocol",
-            Enum = new List<string> { "http", "https" }
+            Enum = ["http", "https"]
         };
 
         // Region variable
@@ -434,7 +436,7 @@ public class OpenApiServerVariableTests
         {
             Default = "us-east",
             Description = "AWS region",
-            Enum = new List<string> { "us-east", "us-west", "eu-central" }
+            Enum = ["us-east", "us-west", "eu-central"]
         };
 
         // Environment variable
@@ -442,7 +444,7 @@ public class OpenApiServerVariableTests
         {
             Default = "prod",
             Description = "Deployment environment",
-            Enum = new List<string> { "dev", "staging", "prod" }
+            Enum = ["dev", "staging", "prod"]
         };
 
         // Port variable
@@ -457,7 +459,7 @@ public class OpenApiServerVariableTests
         {
             Default = "v1",
             Description = "API version",
-            Enum = new List<string> { "v1", "v2" }
+            Enum = ["v1", "v2"]
         };
 
         // Act & Assert

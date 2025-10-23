@@ -369,7 +369,7 @@ public class EfCoreEventStoreTests : IDisposable
         };
 
         // Act
-        await _eventStore.SaveEventsAsync(aggregateId, new[] { originalEvent }, -1);
+        await _eventStore.SaveEventsAsync(aggregateId, [originalEvent], -1);
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId).ToListAsync();
 
         // Assert
@@ -394,7 +394,7 @@ public class EfCoreEventStoreTests : IDisposable
         var originalTimestamp = @event.Timestamp;
 
         // Act
-        await _eventStore.SaveEventsAsync(aggregateId, new[] { @event }, -1);
+        await _eventStore.SaveEventsAsync(aggregateId, [@event], -1);
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId).ToListAsync();
 
         // Assert
@@ -406,5 +406,6 @@ public class EfCoreEventStoreTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

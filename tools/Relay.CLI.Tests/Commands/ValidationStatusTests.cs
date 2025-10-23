@@ -236,13 +236,24 @@ public class ValidationStatusTests
         var status = ValidationStatus.Warning;
 
         // Act & Assert
-        Assert.NotEqual(ValidationStatus.Pass, status);
-        Assert.NotEqual(ValidationStatus.Warning, status);
-        Assert.NotEqual(ValidationStatus.Fail, status);
-        Assert.NotEqual(ValidationStatus.Warning, status);
-        Assert.NotEqual(ValidationStatus.Fail, status);
-        Assert.NotEqual(ValidationStatus.Pass, status);
-        Assert.NotEqual(ValidationStatus.Fail, status);
+        Assert.True(status != ValidationStatus.Pass);
+        Assert.True(status == ValidationStatus.Warning);
+        Assert.True(status != ValidationStatus.Fail);
+
+        // Test conditional logic
+        bool isWarning = false;
+        if (status == ValidationStatus.Warning)
+        {
+            isWarning = true;
+        }
+        Assert.True(isWarning);
+
+        bool isNotFail = false;
+        if (status != ValidationStatus.Fail)
+        {
+            isNotFail = true;
+        }
+        Assert.True(isNotFail);
     }
 
     [Fact]

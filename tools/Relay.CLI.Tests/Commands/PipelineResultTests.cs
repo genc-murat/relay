@@ -57,7 +57,7 @@ public class PipelineResultTests
     }
 
     [Fact]
-    public void PipelineResult_CanSetAllPropertiesViaInitializer()
+    public void PipelineResult_CanSetStagesViaInitializer()
     {
         // Arrange
         var stages = new List<PipelineStageResult>
@@ -65,7 +65,8 @@ public class PipelineResultTests
             new() { StageName = "Compile", Success = true, Duration = TimeSpan.FromSeconds(10) },
             new() { StageName = "Test", Success = true, Duration = TimeSpan.FromSeconds(20) }
         };
-        var totalDuration = TimeSpan.FromSeconds(35);
+
+        var totalDuration = TimeSpan.FromSeconds(30);
 
         // Act
         var result = new PipelineResult
@@ -286,9 +287,11 @@ public class PipelineResultTests
                     StageEmoji = "🧪",
                     Success = true,
                     Message = "All tests passed",
-                    Duration = TimeSpan.FromSeconds(10)
+                    Duration = TimeSpan.FromSeconds(25)
                 }
-            ]
+            ],
+            TotalDuration = TimeSpan.FromSeconds(42),
+            Success = true
         };
 
         // Assert

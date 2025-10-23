@@ -17,6 +17,42 @@ public class LinqSimplificationRule : IRefactoringRule
     {
         var suggestions = new List<RefactoringSuggestion>();
 
+        var memberAccesses = root.DescendantNodes().OfType<MemberAccessExpressionSyntax>();
+
+        foreach (var memberAccess in memberAccesses)
+        {
+            var memberName = memberAccess.Name.ToString();
+
+            // Where().Count => Count()
+            if (memberName == "Count" &&
+                memberAccess.Expression is InvocationExpressionSyntax whereInvocationCount &&
+                whereInvocationCount.Expression is MemberAccessExpressionSyntax whereMemberCount &&
+                whereMemberCount.Name.ToString() == "Where")
+            {
+                var wherePredicate = whereInvocationCount.ArgumentList.Arguments.FirstOrDefault();
+                if (wherePredicate != null)
+                {
+                    var suggestedCode = $"{whereMemberCount.Expression}.Count({wherePredicate})";
+
+                    suggestions.Add(new RefactoringSuggestion
+                    {
+                        RuleName = RuleName,
+                        Description = "Replace Where().Count with Count(predicate)",
+                        Category = Category,
+                        Severity = RefactoringSeverity.Suggestion,
+                        FilePath = filePath,
+                        LineNumber = GetLineNumber(root, memberAccess),
+                        StartPosition = memberAccess.Span.Start,
+                        EndPosition = memberAccess.Span.End,
+                        OriginalCode = memberAccess.ToString(),
+                        SuggestedCode = suggestedCode,
+                        Rationale = "Combining Where().Count into Count(predicate) is more efficient.",
+                        Context = memberAccess
+                    });
+                }
+            }
+        }
+
         var invocations = root.DescendantNodes().OfType<InvocationExpressionSyntax>();
 
         foreach (var invocation in invocations)
@@ -83,35 +119,6 @@ public class LinqSimplificationRule : IRefactoringRule
                     }
                 }
 
-                // Where().Count() => Count()
-                if (methodName == "Count" &&
-                    memberAccess.Expression is InvocationExpressionSyntax whereInvocationCount &&
-                    whereInvocationCount.Expression is MemberAccessExpressionSyntax whereMemberCount &&
-                    whereMemberCount.Name.ToString() == "Where")
-                {
-                    var wherePredicate = whereInvocationCount.ArgumentList.Arguments.FirstOrDefault();
-                    if (wherePredicate != null)
-                    {
-                        var suggestedCode = $"{whereMemberCount.Expression}.Count({wherePredicate})";
-
-                        suggestions.Add(new RefactoringSuggestion
-                        {
-                            RuleName = RuleName,
-                            Description = "Replace Where().Count() with Count(predicate)",
-                            Category = Category,
-                            Severity = RefactoringSeverity.Suggestion,
-                            FilePath = filePath,
-                            LineNumber = GetLineNumber(root, invocation),
-                            StartPosition = invocation.Span.Start,
-                            EndPosition = invocation.Span.End,
-                            OriginalCode = invocation.ToString(),
-                            SuggestedCode = suggestedCode,
-                            Rationale = "Combining Where().Count() into Count(predicate) is more efficient.",
-                            Context = invocation
-                        });
-                    }
-                }
-
                 // Select(x => x) can be removed
                 if (methodName == "Select" && invocation.ArgumentList.Arguments.Count == 1)
                 {
@@ -157,6 +164,14 @@ public class LinqSimplificationRule : IRefactoringRule
                 .WithTrailingTrivia(invocation.GetTrailingTrivia());
 
             root = root.ReplaceNode(invocation, newExpression);
+        }
+        else if (suggestion.Context is MemberAccessExpressionSyntax memberAccess)
+        {
+            var newExpression = SyntaxFactory.ParseExpression(suggestion.SuggestedCode)
+                .WithLeadingTrivia(memberAccess.GetLeadingTrivia())
+                .WithTrailingTrivia(memberAccess.GetTrailingTrivia());
+
+            root = root.ReplaceNode(memberAccess, newExpression);
         }
 
         return await Task.FromResult(root);

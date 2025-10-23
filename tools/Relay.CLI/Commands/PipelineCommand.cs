@@ -95,7 +95,6 @@ public static class PipelineCommand
 
             stopwatch.Stop();
             pipelineResult.TotalDuration = stopwatch.Elapsed;
-            pipelineResult.Success = pipelineResult.Stages.All(s => s.Success);
 
             // Display results
             DisplayPipelineResults(pipelineResult, ciMode);

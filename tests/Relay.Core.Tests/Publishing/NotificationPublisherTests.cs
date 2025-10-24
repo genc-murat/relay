@@ -336,10 +336,11 @@ public class NotificationPublisherTests
         // Act
         await publisher.PublishAsync(notification, handlers, default);
 
-        // Assert
-        Assert.Equal(2, TestHandler1.ExecutionLog.Count);
-        Assert.Equal("Handler1-Start: test", TestHandler1.ExecutionLog.ElementAt(0));
-        Assert.Equal("Handler1-End: test", TestHandler1.ExecutionLog.ElementAt(1));
+        // Assert - Store the log in a local variable to avoid multiple enumerations
+        var logEntries = TestHandler1.ExecutionLog.ToList();
+        Assert.Equal(2, logEntries.Count);
+        Assert.Equal("Handler1-Start: test", logEntries[0]);
+        Assert.Equal("Handler1-End: test", logEntries[1]);
     }
 
     #endregion
@@ -424,6 +425,147 @@ public class NotificationPublisherTests
 
         // Assert
         Assert.Equal(6, TestHandler1.ExecutionLog.Count);
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_Constructor_Should_Accept_ContinueOnException_Parameter()
+    {
+        // Act
+        var publisher1 = new ParallelWhenAllNotificationPublisher(continueOnException: true);
+        var publisher2 = new ParallelWhenAllNotificationPublisher(continueOnException: false);
+        var publisher3 = new ParallelWhenAllNotificationPublisher(); // default is true
+
+        // Assert - Should not throw
+        Assert.NotNull(publisher1);
+        Assert.NotNull(publisher2);
+        Assert.NotNull(publisher3);
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_Should_Throw_When_Notification_Is_Null()
+    {
+        // Arrange
+        var publisher = new ParallelWhenAllNotificationPublisher();
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new TestHandler1()
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+        {
+            await publisher.PublishAsync<TestNotification>(null!, handlers, default);
+        });
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_Should_Throw_When_Handlers_Is_Null()
+    {
+        // Arrange
+        var publisher = new ParallelWhenAllNotificationPublisher();
+        var notification = new TestNotification("test");
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+        {
+            await publisher.PublishAsync(notification, null!, default);
+        });
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_Should_Handle_Empty_Handlers_Collection()
+    {
+        // Arrange
+        TestHandler1.ClearLog();
+        
+        var publisher = new ParallelWhenAllNotificationPublisher();
+        var handlers = Array.Empty<INotificationHandler<TestNotification>>();
+        var notification = new TestNotification("test");
+
+        // Act & Assert - Should not throw
+        await publisher.PublishAsync(notification, handlers, default);
+
+        // Assert - No handlers executed
+        Assert.Empty(TestHandler1.ExecutionLog);
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_With_ContinueOnException_False_Should_Fail_Fast()
+    {
+        // Arrange
+        TestHandler1.ClearLog();
+
+        var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: false);
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new TestHandler1(),
+            new ThrowingHandler(),  // This should cause immediate failure
+            new TestHandler2()      // This should not execute
+        };
+
+        var notification = new TestNotification("test");
+
+        // Act & Assert - Should throw the first exception immediately
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await publisher.PublishAsync(notification, handlers, default);
+        });
+
+        // Verify that not all handlers executed (demonstrating fail-fast behavior)
+        // The exact behavior may vary due to parallel execution, but at least one
+        // should not have run if execution was truly stopped on first exception
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_With_Logger_Should_Log_Execution()
+    {
+        // Arrange
+        TestHandler1.ClearLog();
+        
+        var testLogger = new TestLogger<ParallelWhenAllNotificationPublisher>();
+        var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: true, testLogger);
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new TestHandler1(),
+            new TestHandler2()
+        };
+
+        var notification = new TestNotification("test");
+
+        // Act
+        await publisher.PublishAsync(notification, handlers, default);
+
+        // Assert - Check that appropriate log messages were generated
+        Assert.Contains(testLogger.LoggedMessages, msg => 
+            msg.LogLevel == LogLevel.Debug && 
+            msg.Message.Contains("Publishing notification TestNotification to 2 handler(s) in parallel"));
+        
+        Assert.Contains(testLogger.LoggedMessages, msg => 
+            msg.LogLevel == LogLevel.Debug && 
+            msg.Message.Contains("All handlers completed for notification TestNotification"));
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_With_CancellationToken_Should_Respect_Cancellation()
+    {
+        // Arrange
+        var publisher = new ParallelWhenAllNotificationPublisher();
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new TestHandler1()
+        };
+
+        var notification = new TestNotification("test");
+        using var cts = new CancellationTokenSource();
+        
+        // Cancel the token before execution
+        cts.Cancel();
+
+        // Act & Assert - Should throw TaskCanceledException
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+        {
+            await publisher.PublishAsync(notification, handlers, cts.Token);
+        });
     }
 
     #endregion

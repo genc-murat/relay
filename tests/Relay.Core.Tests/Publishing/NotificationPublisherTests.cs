@@ -136,6 +136,121 @@ public class NotificationPublisherTests
         Assert.DoesNotContain(TestHandler1.ExecutionLog, x => x.Contains("Handler2"));
     }
 
+    [Fact]
+    public async Task SequentialPublisher_Constructor_Should_Accept_Null_Logger()
+    {
+        // Act
+        var publisher = new SequentialNotificationPublisher();
+
+        // Assert - Should not throw
+        Assert.NotNull(publisher);
+    }
+
+    [Fact]
+    public async Task SequentialPublisher_Should_Throw_When_Notification_Is_Null()
+    {
+        // Arrange
+        var publisher = new SequentialNotificationPublisher();
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new TestHandler1()
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+        {
+            await publisher.PublishAsync<TestNotification>(null!, handlers, default);
+        });
+    }
+
+    [Fact]
+    public async Task SequentialPublisher_Should_Throw_When_Handlers_Is_Null()
+    {
+        // Arrange
+        var publisher = new SequentialNotificationPublisher();
+        var notification = new TestNotification("test");
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+        {
+            await publisher.PublishAsync(notification, null!, default);
+        });
+    }
+
+    [Fact]
+    public async Task SequentialPublisher_Should_Handle_Empty_Handlers_Collection()
+    {
+        // Arrange
+        TestHandler1.ClearLog();
+        
+        var publisher = new SequentialNotificationPublisher();
+        var handlers = Array.Empty<INotificationHandler<TestNotification>>();
+        var notification = new TestNotification("test");
+
+        // Act & Assert - Should not throw
+        await publisher.PublishAsync(notification, handlers, default);
+
+        // Assert - No handlers executed (log should remain empty)
+        var finalLog = TestHandler1.ExecutionLog.ToList();
+        Assert.Empty(finalLog);
+    }
+
+    [Fact]
+    public async Task SequentialPublisher_With_Logger_Should_Log_Execution()
+    {
+        // Arrange
+        TestHandler1.ClearLog();
+        
+        var testLogger = new TestLogger<SequentialNotificationPublisher>();
+        var publisher = new SequentialNotificationPublisher(testLogger);
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new TestHandler1(),
+            new TestHandler2()
+        };
+
+        var notification = new TestNotification("test");
+
+        // Act
+        await publisher.PublishAsync(notification, handlers, default);
+
+        // Assert - Check that appropriate log messages were generated
+        Assert.Contains(testLogger.LoggedMessages, msg => 
+            msg.LogLevel == LogLevel.Debug && 
+            msg.Message.Contains("Publishing notification TestNotification to 2 handler(s) sequentially"));
+        
+        Assert.Contains(testLogger.LoggedMessages, msg => 
+            msg.LogLevel == LogLevel.Debug && 
+            msg.Message.Contains("All handlers completed for notification TestNotification"));
+    }
+
+    [Fact]
+    public async Task SequentialPublisher_With_CancellationToken_Should_Respect_Cancellation()
+    {
+        // Arrange
+        TestHandler1.ExecutionDelay = 100; // Ensure delay is used
+        var publisher = new SequentialNotificationPublisher();
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new TestHandler1()
+        };
+
+        var notification = new TestNotification("test");
+        using var cts = new CancellationTokenSource();
+        
+        // Cancel the token before execution
+        cts.Cancel();
+
+        // Act & Assert - Should throw TaskCanceledException
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+        {
+            await publisher.PublishAsync(notification, handlers, cts.Token);
+        });
+        
+        // Reset delay for other tests
+        TestHandler1.ExecutionDelay = 0;
+    }
+
     #endregion
 
     #region Parallel Publisher Tests

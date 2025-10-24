@@ -7,62 +7,61 @@ using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Publishing.Interfaces;
 
-namespace Relay.Core.Publishing.Strategies
+namespace Relay.Core.Publishing.Strategies;
+
+/// <summary>
+/// Sequential notification publisher that executes handlers one at a time in order.
+/// If a handler throws an exception, execution stops and the exception propagates.
+/// This is the safest strategy but slowest for multiple handlers.
+/// </summary>
+public class SequentialNotificationPublisher : INotificationPublisher
 {
+    private readonly ILogger<SequentialNotificationPublisher>? _logger;
+
     /// <summary>
-    /// Sequential notification publisher that executes handlers one at a time in order.
-    /// If a handler throws an exception, execution stops and the exception propagates.
-    /// This is the safest strategy but slowest for multiple handlers.
+    /// Initializes a new instance of the SequentialNotificationPublisher class.
     /// </summary>
-    public class SequentialNotificationPublisher : INotificationPublisher
+    /// <param name="logger">Optional logger for diagnostic information.</param>
+    public SequentialNotificationPublisher(ILogger<SequentialNotificationPublisher>? logger = null)
     {
-        private readonly ILogger<SequentialNotificationPublisher>? _logger;
+        _logger = logger;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the SequentialNotificationPublisher class.
-        /// </summary>
-        /// <param name="logger">Optional logger for diagnostic information.</param>
-        public SequentialNotificationPublisher(ILogger<SequentialNotificationPublisher>? logger = null)
+    /// <inheritdoc />
+    public async ValueTask PublishAsync<TNotification>(
+        TNotification notification,
+        IEnumerable<INotificationHandler<TNotification>> handlers,
+        CancellationToken cancellationToken)
+        where TNotification : INotification
+    {
+        if (notification == null)
+            throw new ArgumentNullException(nameof(notification));
+        if (handlers == null)
+            throw new ArgumentNullException(nameof(handlers));
+
+        var handlersList = handlers as IList<INotificationHandler<TNotification>> ?? new List<INotificationHandler<TNotification>>(handlers);
+
+        _logger?.LogDebug(
+            "Publishing notification {NotificationType} to {HandlerCount} handler(s) sequentially",
+            typeof(TNotification).Name,
+            handlersList.Count);
+
+        foreach (var handler in handlersList)
         {
-            _logger = logger;
-        }
-
-        /// <inheritdoc />
-        public async ValueTask PublishAsync<TNotification>(
-            TNotification notification,
-            IEnumerable<INotificationHandler<TNotification>> handlers,
-            CancellationToken cancellationToken)
-            where TNotification : INotification
-        {
-            if (notification == null)
-                throw new ArgumentNullException(nameof(notification));
-            if (handlers == null)
-                throw new ArgumentNullException(nameof(handlers));
-
-            var handlersList = handlers as IList<INotificationHandler<TNotification>> ?? new List<INotificationHandler<TNotification>>(handlers);
-
-            _logger?.LogDebug(
-                "Publishing notification {NotificationType} to {HandlerCount} handler(s) sequentially",
-                typeof(TNotification).Name,
-                handlersList.Count);
-
-            foreach (var handler in handlersList)
-            {
-                _logger?.LogTrace(
-                    "Executing handler {HandlerType} for notification {NotificationType}",
-                    handler.GetType().Name,
-                    typeof(TNotification).Name);
-
-                await handler.HandleAsync(notification, cancellationToken).ConfigureAwait(false);
-
-                _logger?.LogTrace(
-                    "Handler {HandlerType} completed successfully",
-                    handler.GetType().Name);
-            }
-
-            _logger?.LogDebug(
-                "All handlers completed for notification {NotificationType}",
+            _logger?.LogTrace(
+                "Executing handler {HandlerType} for notification {NotificationType}",
+                handler.GetType().Name,
                 typeof(TNotification).Name);
+
+            await handler.HandleAsync(notification, cancellationToken).ConfigureAwait(false);
+
+            _logger?.LogTrace(
+                "Handler {HandlerType} completed successfully",
+                handler.GetType().Name);
         }
+
+        _logger?.LogDebug(
+            "All handlers completed for notification {NotificationType}",
+            typeof(TNotification).Name);
     }
 }

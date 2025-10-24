@@ -23,6 +23,9 @@ public class UniqueUsernameValidationRule : IValidationRule<string>
         string request,
         CancellationToken cancellationToken = default)
     {
+        // Check for cancellation before doing any work
+        cancellationToken.ThrowIfCancellationRequested();
+
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(request))
@@ -39,10 +42,26 @@ public class UniqueUsernameValidationRule : IValidationRule<string>
                 errors.Add("Username is already taken. Please choose a different username.");
             }
         }
+        catch (OperationCanceledException)
+        {
+            // OperationCanceledException (including TaskCanceledException) that reaches this point 
+            // could be due to our token being cancelled or the checker's own cancellation
+            // If our token is cancelled, we re-throw; otherwise it's from the checker
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // This exception is related to our cancellation token
+                throw;
+            }
+            else
+            {
+                // Exception from checker, not due to our token - treat as service error
+                errors.Add("Unable to verify username uniqueness. Please try again later.");
+            }
+        }
         catch (Exception)
         {
-            // Log the error but don't fail validation - allow registration to proceed
-            // In production, you might want to have a fallback behavior
+            // For any other exception (timeouts, network issues, etc.), 
+            // return an error message instead of throwing
             errors.Add("Unable to verify username uniqueness. Please try again later.");
         }
 

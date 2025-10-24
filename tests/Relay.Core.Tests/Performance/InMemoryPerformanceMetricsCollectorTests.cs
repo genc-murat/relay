@@ -307,4 +307,97 @@ public class InMemoryPerformanceMetricsCollectorTests
         Assert.Equal(1, stats.TotalRequests);
         Assert.Equal(TimeSpan.FromMilliseconds(150), stats.AverageExecutionTime);
     }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_GetPercentile_WithVariousPercentiles()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Add metrics with various execution times to test percentiles (sorted: 10, 20, ..., 100)
+        var executionTimes = new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+        foreach (var time in executionTimes)
+        {
+            collector.RecordMetrics(new RequestPerformanceMetrics
+            {
+                RequestType = "TestRequest",
+                ExecutionTime = TimeSpan.FromMilliseconds(time),
+                Success = true,
+                Timestamp = DateTimeOffset.UtcNow
+            });
+        }
+
+        // Act
+        var stats = collector.GetStatistics("TestRequest");
+
+        // For 10 values [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+        // P50: index = ceil(50/100*10)-1 = ceil(5)-1 = 4 (0-indexed), so value at index 4 = 50
+        // P95: index = ceil(95/100*10)-1 = ceil(9.5)-1 = 10-1 = 9, so value at index 9 = 100
+        // P99: index = ceil(99/100*10)-1 = ceil(9.9)-1 = 10-1 = 9, so value at index 9 = 100
+        
+        // Assert various percentiles
+        Assert.Equal(TimeSpan.FromMilliseconds(55), stats.AverageExecutionTime); // Average of 10-100
+        Assert.Equal(TimeSpan.FromMilliseconds(50), stats.P50ExecutionTime);     // 50th percentile - median
+        Assert.Equal(TimeSpan.FromMilliseconds(100), stats.P95ExecutionTime);    // 95th percentile - 9.5 -> 10th value (100)
+        Assert.Equal(TimeSpan.FromMilliseconds(100), stats.P99ExecutionTime);    // 99th percentile - 9.9 -> 10th value (100)
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_GetStatistics_ForNonExistentRequestType()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+        // Don't add any metrics
+
+        // Act
+        var stats = collector.GetStatistics("NonExistentType");
+
+        // Assert
+        Assert.Equal("NonExistentType", stats.RequestType);
+        Assert.Equal(0, stats.TotalRequests);
+        Assert.Equal(0, stats.SuccessfulRequests);
+        Assert.Equal(0, stats.FailedRequests);
+        Assert.Equal(TimeSpan.Zero, stats.AverageExecutionTime);
+        Assert.Equal(TimeSpan.Zero, stats.MinExecutionTime);
+        Assert.Equal(TimeSpan.Zero, stats.MaxExecutionTime);
+        Assert.Equal(0, stats.TotalMemoryAllocated);
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_GetStatistics_AfterReset()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Add some metrics
+        collector.RecordMetrics(new RequestPerformanceMetrics
+        {
+            RequestType = "TestRequest",
+            ExecutionTime = TimeSpan.FromMilliseconds(100),
+            MemoryAllocated = 1024,
+            Gen0Collections = 1,
+            Gen1Collections = 0,
+            Gen2Collections = 0,
+            Success = true,
+            Timestamp = DateTimeOffset.UtcNow
+        });
+
+        // Verify metrics exist before reset
+        var statsBefore = collector.GetStatistics("TestRequest");
+        Assert.Equal(1, statsBefore.TotalRequests);
+
+        // Act - Reset the collector
+        collector.Reset();
+        var statsAfter = collector.GetStatistics("TestRequest");
+
+        // Assert - All metrics should be cleared
+        Assert.Equal(0, statsAfter.TotalRequests);
+        Assert.Equal(0, statsAfter.SuccessfulRequests);
+        Assert.Equal(0, statsAfter.FailedRequests);
+        Assert.Equal(TimeSpan.Zero, statsAfter.AverageExecutionTime);
+        Assert.Equal(0, statsAfter.TotalMemoryAllocated);
+        Assert.Equal(0, statsAfter.TotalGen0Collections);
+        Assert.Equal(0, statsAfter.TotalGen1Collections);
+        Assert.Equal(0, statsAfter.TotalGen2Collections);
+    }
 }

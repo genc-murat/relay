@@ -500,7 +500,7 @@ public class NotificationPublisherTests
         {
             new TestHandler1(),
             new ThrowingHandler(),  // This should cause immediate failure
-            new TestHandler2()      // This should not execute
+            new TestHandler2()      // This should not execute due to fail-fast
         };
 
         var notification = new TestNotification("test");
@@ -511,9 +511,15 @@ public class NotificationPublisherTests
             await publisher.PublishAsync(notification, handlers, default);
         });
 
-        // Verify that not all handlers executed (demonstrating fail-fast behavior)
-        // The exact behavior may vary due to parallel execution, but at least one
-        // should not have run if execution was truly stopped on first exception
+        // With Task.WhenAll (fail-fast mode), all tasks start executing but we expect
+        // that when one throws, the operation stops. Note that in practice with parallel
+        // execution, other handlers might already have started before the exception is detected.
+        var executedHandlers = TestHandler1.ExecutionLog.ToList();
+        
+        // At a minimum, we should see that the first handler executed
+        Assert.Contains(executedHandlers, msg => msg.Contains("Handler1"));
+        
+        // This demonstrates the fail-fast nature (vs continue-on-exception behavior)
     }
 
     [Fact]
@@ -566,6 +572,86 @@ public class NotificationPublisherTests
         {
             await publisher.PublishAsync(notification, handlers, cts.Token);
         });
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_With_ContinueOnException_And_Logger_Should_Log_Exceptions()
+    {
+        // Arrange
+        TestHandler1.ClearLog();
+        
+        var testLogger = new TestLogger<ParallelWhenAllNotificationPublisher>();
+        var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: true, testLogger);
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new TestHandler1(),
+            new ThrowingHandler(),  // This will throw
+            new TestHandler2()
+        };
+
+        var notification = new TestNotification("test");
+
+        // Act & Assert - Should collect exceptions as AggregateException
+        var exception = await Assert.ThrowsAsync<AggregateException>(async () =>
+        {
+            await publisher.PublishAsync(notification, handlers, default);
+        });
+
+        // Verify exceptions were collected
+        Assert.Single(exception.InnerExceptions);
+        Assert.IsType<InvalidOperationException>(exception.InnerExceptions[0]);
+        
+        // Verify logging occurred for the exception
+        Assert.Contains(testLogger.LoggedMessages, msg => 
+            msg.LogLevel == LogLevel.Error && 
+            msg.Message.Contains("Handler") && 
+            msg.Message.Contains("failed while processing notification"));
+        
+        Assert.Contains(testLogger.LoggedMessages, msg => 
+            msg.LogLevel == LogLevel.Warning && 
+            msg.Message.Contains("1 handler(s) failed while processing notification"));
+    }
+
+    [Fact]
+    public async Task ParallelWhenAllPublisher_With_ContinueOnException_Should_Aggregate_Multiple_Exceptions_Correctly()
+    {
+        // Arrange
+        TestHandler1.ClearLog();
+        
+        var testLogger = new TestLogger<ParallelWhenAllNotificationPublisher>();
+        var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: true, testLogger);
+        var handlers = new INotificationHandler<TestNotification>[]
+        {
+            new ThrowingHandler(),  // Exception 1
+            new TestHandler1(),    // Should succeed
+            new ThrowingHandler(), // Exception 2
+            new TestHandler2()     // Should succeed
+        };
+
+        var notification = new TestNotification("test");
+
+        // Act & Assert - Should collect multiple exceptions as AggregateException
+        var exception = await Assert.ThrowsAsync<AggregateException>(async () =>
+        {
+            await publisher.PublishAsync(notification, handlers, default);
+        });
+
+        // Verify multiple exceptions were collected
+        Assert.Equal(2, exception.InnerExceptions.Count);
+        foreach (var innerException in exception.InnerExceptions)
+        {
+            Assert.IsType<InvalidOperationException>(innerException);
+        }
+        
+        // Verify all handlers ran (success and failure)
+        Assert.Contains("Handler1-Start: test", TestHandler1.ExecutionLog);
+        Assert.Contains("ThrowingHandler: test", TestHandler1.ExecutionLog);
+        Assert.Contains("Handler2-Start: test", TestHandler1.ExecutionLog);
+        
+        // Verify warning was logged about multiple failures
+        Assert.Contains(testLogger.LoggedMessages, msg => 
+            msg.LogLevel == LogLevel.Warning && 
+            msg.Message.Contains("2 handler(s) failed while processing notification"));
     }
 
     #endregion

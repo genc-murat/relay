@@ -58,14 +58,9 @@ namespace Relay.Core.Validation.Rules
                     return new ValueTask<IEnumerable<string>>(new[] { "Invalid 12-hour time format." });
                 }
             }
-            else
-            {
-                // 24-hour format validation
-                if (!Time24HourRegex.IsMatch(time))
-                {
-                    return new ValueTask<IEnumerable<string>>(new[] { "Invalid 24-hour time format." });
-                }
-            }
+            // Note: 24-hour validation is omitted as it's redundant. Any time without AM/PM
+            // that passes the initial TimeRegex check will also pass the Time24HourRegex check.
+            // The DateTime parsing step ensures the values are within valid ranges.
 
             return new ValueTask<IEnumerable<string>>(Array.Empty<string>());
         }

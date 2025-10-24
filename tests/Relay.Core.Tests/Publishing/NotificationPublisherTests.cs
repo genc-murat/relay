@@ -6,6 +6,7 @@ using Relay.Core.Publishing.Extensions;
 using Relay.Core.Publishing.Interfaces;
 using Relay.Core.Publishing.Strategies;
 using System;
+using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
@@ -345,16 +346,16 @@ public class NotificationPublisherTests
             $"Parallel execution took {duration.TotalMilliseconds}ms, expected less than 250ms for parallel execution");
 
         // Assert - All handlers should have started and completed (3 handlers * 2 messages each = 6)
-        var initialLogCount = TestHandler1.ExecutionLog.Count;
-        Assert.Equal(6, initialLogCount);
+        var logEntries = TestHandler1.ExecutionLog.ToList(); // Convert to list to avoid multiple enumerations
+        Assert.Equal(6, logEntries.Count);
         
         // Check that both start and end messages exist for all handlers
-        Assert.Contains(TestHandler1.ExecutionLog, msg => msg.StartsWith("Handler1-Start"));
-        Assert.Contains(TestHandler1.ExecutionLog, msg => msg.StartsWith("Handler2-Start"));
-        Assert.Contains(TestHandler1.ExecutionLog, msg => msg.StartsWith("Handler3-Start"));
-        Assert.Contains(TestHandler1.ExecutionLog, msg => msg.StartsWith("Handler1-End"));
-        Assert.Contains(TestHandler1.ExecutionLog, msg => msg.StartsWith("Handler2-End"));
-        Assert.Contains(TestHandler1.ExecutionLog, msg => msg.StartsWith("Handler3-End"));
+        Assert.Contains(logEntries, msg => msg.StartsWith("Handler1-Start"));
+        Assert.Contains(logEntries, msg => msg.StartsWith("Handler2-Start"));
+        Assert.Contains(logEntries, msg => msg.StartsWith("Handler3-Start"));
+        Assert.Contains(logEntries, msg => msg.StartsWith("Handler1-End"));
+        Assert.Contains(logEntries, msg => msg.StartsWith("Handler2-End"));
+        Assert.Contains(logEntries, msg => msg.StartsWith("Handler3-End"));
     }
 
     [Fact]
@@ -859,5 +860,138 @@ public class NotificationPublisherTests
         Assert.Same(customPublisher, publisher);
     }
 
+    [Fact]
+    public void UseCustomNotificationPublisher_Generic_Should_Register_Correctly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.UseCustomNotificationPublisher<TestCustomNotificationPublisher>();
+        var provider = services.BuildServiceProvider();
+        var publisher = provider.GetService<INotificationPublisher>();
+
+        // Assert
+        Assert.NotNull(publisher);
+        Assert.IsType<TestCustomNotificationPublisher>(publisher);
+    }
+
+    [Fact]
+    public void UseCustomNotificationPublisher_WithFactory_Should_Register_Correctly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.UseCustomNotificationPublisher(sp => new TestCustomNotificationPublisher());
+        var provider = services.BuildServiceProvider();
+        var publisher = provider.GetService<INotificationPublisher>();
+
+        // Assert
+        Assert.NotNull(publisher);
+        Assert.IsType<TestCustomNotificationPublisher>(publisher);
+    }
+
+    [Fact]
+    public void UseOrderedNotificationPublisher_Should_Register_Correctly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.UseOrderedNotificationPublisher();
+        var provider = services.BuildServiceProvider();
+        var publisher = provider.GetService<INotificationPublisher>();
+
+        // Assert
+        Assert.NotNull(publisher);
+        Assert.IsType<OrderedNotificationPublisher>(publisher);
+    }
+
+    [Fact]
+    public void UseOrderedNotificationPublisher_WithOptions_Should_Register_Correctly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.UseOrderedNotificationPublisher(continueOnException: false, maxDegreeOfParallelism: 4);
+        var provider = services.BuildServiceProvider();
+        var publisher = provider.GetService<INotificationPublisher>();
+
+        // Assert
+        Assert.NotNull(publisher);
+        Assert.IsType<OrderedNotificationPublisher>(publisher);
+    }
+
+    [Fact]
+    public void UseSequentialNotificationPublisher_With_Custom_Lifetime_Should_Register_With_Correct_Lifetime()
+    {
+        // Test Singleton lifetime (default)
+        var services1 = new ServiceCollection();
+        services1.UseSequentialNotificationPublisher(ServiceLifetime.Singleton);
+        var provider1 = services1.BuildServiceProvider();
+        var publisher1a = provider1.GetService<INotificationPublisher>();
+        var publisher1b = provider1.GetService<INotificationPublisher>();
+        Assert.Same(publisher1a, publisher1b); // Should be same instance for singleton
+
+        // Test Transient lifetime
+        var services2 = new ServiceCollection();
+        services2.UseSequentialNotificationPublisher(ServiceLifetime.Transient);
+        var provider2 = services2.BuildServiceProvider();
+        var publisher2a = provider2.GetService<INotificationPublisher>();
+        var publisher2b = provider2.GetService<INotificationPublisher>();
+        Assert.NotSame(publisher2a, publisher2b); // Should be different instances for transient
+
+        // Test Scoped lifetime
+        var services3 = new ServiceCollection();
+        services3.UseSequentialNotificationPublisher(ServiceLifetime.Scoped);
+        var provider3 = services3.BuildServiceProvider();
+        
+        using (var scope = provider3.CreateScope())
+        {
+            var publisher3a = scope.ServiceProvider.GetService<INotificationPublisher>();
+            var publisher3b = scope.ServiceProvider.GetService<INotificationPublisher>();
+            Assert.Same(publisher3a, publisher3b); // Should be same instance within scope
+        }
+    }
+
+    [Fact]
+    public void UseParallelNotificationPublisher_With_Custom_Lifetime_Should_Register_With_Correct_Lifetime()
+    {
+        // Test Singleton lifetime (default)
+        var services1 = new ServiceCollection();
+        services1.UseParallelNotificationPublisher(ServiceLifetime.Singleton);
+        var provider1 = services1.BuildServiceProvider();
+        var publisher1a = provider1.GetService<INotificationPublisher>();
+        var publisher1b = provider1.GetService<INotificationPublisher>();
+        Assert.Same(publisher1a, publisher1b); // Should be same instance for singleton
+    }
+
+    [Fact]
+    public void UseParallelWhenAllNotificationPublisher_With_Custom_Lifetime_Should_Register_With_Correct_Lifetime()
+    {
+        // Test Singleton lifetime (default)
+        var services1 = new ServiceCollection();
+        services1.UseParallelWhenAllNotificationPublisher(continueOnException: true, ServiceLifetime.Singleton);
+        var provider1 = services1.BuildServiceProvider();
+        var publisher1a = provider1.GetService<INotificationPublisher>();
+        var publisher1b = provider1.GetService<INotificationPublisher>();
+        Assert.Same(publisher1a, publisher1b); // Should be same instance for singleton
+    }
+
     #endregion
+}
+
+// Custom publisher for testing
+internal class TestCustomNotificationPublisher : INotificationPublisher
+{
+    public ValueTask PublishAsync<TNotification>(
+        TNotification notification,
+        IEnumerable<INotificationHandler<TNotification>> handlers,
+        CancellationToken cancellationToken) where TNotification : INotification
+    {
+        // Implementation not needed for registration test
+        return new ValueTask();
+    }
 }

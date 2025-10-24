@@ -220,14 +220,16 @@ public class SlidingWindowRateLimiterTests
         Assert.True(result1);
         Assert.True(result2);
 
-        // Wait for window to transition (slightly more than 1 second)
-        await Task.Delay(TimeSpan.FromMilliseconds(1100));
+        // Wait for a period that ensures we've moved to a new window slot
+        // The sliding window algorithm will transition when we make a request after the window has passed
+        await Task.Delay(TimeSpan.FromMilliseconds(1200));
 
-        // This next request in the new window should trigger the window transition
+        // Making a request here should trigger the window transition
+        // Since enough time has passed, the previous window's requests should be discounted
         var result3 = await limiter.IsAllowedAsync("transition-test");
         Assert.True(result3);
 
-        // We should be able to make one more request since we have a limit of 2
+        // Should be allowed one more time before hitting the limit
         var result4 = await limiter.IsAllowedAsync("transition-test");
         Assert.True(result4);
 

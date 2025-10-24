@@ -1,110 +1,104 @@
+using Microsoft.Extensions.Logging;
+using Relay.Core.Telemetry;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Relay.Core.Telemetry;
-using Xunit;
 
-namespace Relay.Core.Tests.Telemetry
+namespace Relay.Core.Tests.Telemetry;
+
+/// <summary>
+/// Shared test utilities for telemetry tests
+/// </summary>
+public static class TestUtilities
 {
-    /// <summary>
-    /// Shared test utilities for telemetry tests
-    /// </summary>
-    public static class TestUtilities
+    // Supporting test classes shared across multiple test files
+}
+
+// Supporting test classes
+public class TestNotification { }
+public class TestMessage { }
+
+/// <summary>
+/// Test logger for capturing log messages
+/// </summary>
+public class TestLogger : ILogger<Relay.Core.Telemetry.RelayTelemetryProvider>
+{
+    public List<string> LoggedMessages { get; } = new();
+
+    public IDisposable BeginScope<TState>(TState state) => null;
+
+    public bool IsEnabled(LogLevel logLevel) => true;
+
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
     {
-        // Supporting test classes shared across multiple test files
+        var message = formatter(state, exception);
+        LoggedMessages.Add(message);
+    }
+}
+
+/// <summary>
+/// Custom metrics provider for testing
+/// </summary>
+public class CustomMetricsProvider : IMetricsProvider
+{
+    private readonly object _lock = new();
+    private int _callCount;
+    public int CallCount => _callCount;
+    public List<HandlerExecutionMetrics> HandlerExecutions { get; } = new();
+    public List<NotificationPublishMetrics> NotificationPublishes { get; } = new();
+    public List<StreamingOperationMetrics> StreamingOperations { get; } = new();
+
+    public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
+    {
+        lock (_lock)
+        {
+            HandlerExecutions.Add(metrics);
+            _callCount++;
+        }
     }
 
-    // Supporting test classes
-    public class TestNotification { }
-    public class TestMessage { }
-
-    /// <summary>
-    /// Test logger for capturing log messages
-    /// </summary>
-    public class TestLogger : ILogger<RelayTelemetryProvider>
+    public void RecordNotificationPublish(NotificationPublishMetrics metrics)
     {
-        public List<string> LoggedMessages { get; } = new();
-
-        public IDisposable BeginScope<TState>(TState state) => null;
-
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        lock (_lock)
         {
-            var message = formatter(state, exception);
-            LoggedMessages.Add(message);
+            NotificationPublishes.Add(metrics);
         }
     }
 
-    /// <summary>
-    /// Custom metrics provider for testing
-    /// </summary>
-    public class CustomMetricsProvider : IMetricsProvider
+    public void RecordStreamingOperation(StreamingOperationMetrics metrics)
     {
-        private readonly object _lock = new();
-        private int _callCount;
-        public int CallCount => _callCount;
-        public List<HandlerExecutionMetrics> HandlerExecutions { get; } = new();
-        public List<NotificationPublishMetrics> NotificationPublishes { get; } = new();
-        public List<StreamingOperationMetrics> StreamingOperations { get; } = new();
-
-        public void RecordHandlerExecution(HandlerExecutionMetrics metrics)
+        lock (_lock)
         {
-            lock (_lock)
-            {
-                HandlerExecutions.Add(metrics);
-                _callCount++;
-            }
+            StreamingOperations.Add(metrics);
         }
+    }
 
-        public void RecordNotificationPublish(NotificationPublishMetrics metrics)
-        {
-            lock (_lock)
-            {
-                NotificationPublishes.Add(metrics);
-            }
-        }
+    public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
+    {
+        return new HandlerExecutionStats { RequestType = requestType, HandlerName = handlerName };
+    }
 
-        public void RecordStreamingOperation(StreamingOperationMetrics metrics)
-        {
-            lock (_lock)
-            {
-                StreamingOperations.Add(metrics);
-            }
-        }
+    public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
+    {
+        return new NotificationPublishStats { NotificationType = notificationType };
+    }
 
-        public HandlerExecutionStats GetHandlerExecutionStats(Type requestType, string? handlerName = null)
-        {
-            return new HandlerExecutionStats { RequestType = requestType, HandlerName = handlerName };
-        }
+    public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
+    {
+        return new StreamingOperationStats { RequestType = requestType, HandlerName = handlerName };
+    }
 
-        public NotificationPublishStats GetNotificationPublishStats(Type notificationType)
-        {
-            return new NotificationPublishStats { NotificationType = notificationType };
-        }
+    public IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
+    {
+        return new List<PerformanceAnomaly>();
+    }
 
-        public StreamingOperationStats GetStreamingOperationStats(Type requestType, string? handlerName = null)
-        {
-            return new StreamingOperationStats { RequestType = requestType, HandlerName = handlerName };
-        }
+    public TimingBreakdown GetTimingBreakdown(string operationId)
+    {
+        return new TimingBreakdown { OperationId = operationId };
+    }
 
-        public IEnumerable<PerformanceAnomaly> DetectAnomalies(TimeSpan lookbackPeriod)
-        {
-            return new List<PerformanceAnomaly>();
-        }
-
-        public TimingBreakdown GetTimingBreakdown(string operationId)
-        {
-            return new TimingBreakdown { OperationId = operationId };
-        }
-
-        public void RecordTimingBreakdown(TimingBreakdown breakdown)
-        {
-            // Implementation not needed for tests
-        }
+    public void RecordTimingBreakdown(TimingBreakdown breakdown)
+    {
+        // Implementation not needed for tests
     }
 }

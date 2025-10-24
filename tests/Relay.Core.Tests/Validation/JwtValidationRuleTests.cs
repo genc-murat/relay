@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Validation.Rules;
 using Xunit;
@@ -49,5 +51,58 @@ public class JwtValidationRuleTests
             Assert.Single(result);
             Assert.Equal("Invalid JWT token format.", result.Single());
         }
+    }
+    
+    [Fact]
+    public async Task ValidateAsync_CancellationTokenCancelled_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+        
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            async () => await _rule.ValidateAsync("valid.token.format", cancellationTokenSource.Token));
+    }
+    
+    [Theory]
+    [InlineData("   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c   ")] // JWT with leading/trailing whitespace
+    [InlineData("  header.payload  ")] // Simple format with leading/trailing whitespace
+    public async Task ValidateAsync_JwtWithWhitespace_ReturnsEmptyErrors(string jwt)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(jwt);
+
+        // Assert
+        Assert.Empty(result);
+    }
+    
+    [Theory]
+    [InlineData("...")] // Three dots only
+    [InlineData("..")] // Two dots only
+    [InlineData("...extra")] // Three dots with extra
+    [InlineData("header.payload..signature")] // Two consecutive dots
+    public async Task ValidateAsync_MalformedJwtWithDots_ReturnsError(string jwt)
+    {
+        // Act
+        var result = await _rule.ValidateAsync(jwt);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("Invalid JWT token format.", result.Single());
+    }
+    
+    [Fact]
+    public async Task ValidateAsync_EmptyParts_ReturnsError()
+    {
+        // Arrange
+        var jwtWithEmptyParts = "header..signature"; // Empty payload
+        
+        // Act
+        var result = await _rule.ValidateAsync(jwtWithEmptyParts);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("Invalid JWT token format.", result.Single());
     }
 }

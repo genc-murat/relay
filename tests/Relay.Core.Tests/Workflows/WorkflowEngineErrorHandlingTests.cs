@@ -313,6 +313,43 @@ public class WorkflowEngineErrorHandlingTests
     }
 
     [Fact]
+    public async Task FindRequestType_AssemblySearch_WithTypeThatDoesNotImplementIRequest_ShouldFailWorkflow()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "Step1",
+                    Type = StepType.Request,
+                    RequestType = "String" // Just "String" should trigger assembly search path, not Type.GetType
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Workflow should fail because String doesn't implement IRequest (found via assembly search)
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
     public async Task FailWorkflow_ShouldSetFailedStatusAndError()
     {
         // Arrange

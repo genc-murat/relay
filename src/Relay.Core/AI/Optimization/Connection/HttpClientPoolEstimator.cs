@@ -15,6 +15,9 @@ internal class HttpClientPoolEstimator
     private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb;
     private readonly SystemMetricsCalculator _systemMetrics;
     private readonly Stopwatch _reflectionStopwatch = new();
+    private readonly ConcurrentDictionary<string, System.Net.Http.HttpClient> _trackedHttpClients = new();
+    private readonly ConcurrentDictionary<string, DateTime> _httpClientLastUsed = new();
+    private DateTime _lastHttpClientDiscovery = DateTime.MinValue;
 
     public HttpClientPoolEstimator(
         ILogger logger,
@@ -285,11 +288,214 @@ internal class HttpClientPoolEstimator
         return 0;
     }
 
+    /// <summary>
+    /// Retrieves tracked HttpClient instances, discovering new ones periodically
+    /// </summary>
     private IEnumerable<System.Net.Http.HttpClient> GetHttpClientInstances()
     {
-        // In a real implementation, this would track HttpClient instances
-        // For now, return empty - would need DI integration to track instances
-        return Enumerable.Empty<System.Net.Http.HttpClient>();
+        try
+        {
+            // Perform discovery every 5 minutes to find new HttpClient instances
+            var timeSinceLastDiscovery = DateTime.UtcNow - _lastHttpClientDiscovery;
+            if (timeSinceLastDiscovery.TotalMinutes >= 5)
+            {
+                DiscoverHttpClientInstances();
+                _lastHttpClientDiscovery = DateTime.UtcNow;
+            }
+
+            // Return tracked clients, filtering out stale instances
+            var now = DateTime.UtcNow;
+            var activeClients = _trackedHttpClients
+                .Where(kvp =>
+                {
+                    // Keep clients that were used in the last hour or are still active
+                    if (_httpClientLastUsed.TryGetValue(kvp.Key, out var lastUsed))
+                    {
+                        return (now - lastUsed).TotalHours < 1;
+                    }
+                    return true; // Keep if we don't know when it was last used
+                })
+                .Select(kvp => kvp.Value)
+                .ToList();
+
+            if (activeClients.Count > 0)
+            {
+                _logger.LogDebug("Found {Count} tracked HttpClient instances", activeClients.Count);
+            }
+
+            return activeClients;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving HttpClient instances, returning cached instances");
+            return _trackedHttpClients.Values.ToList();
+        }
+    }
+
+    /// <summary>
+    /// Discovers HttpClient instances via reflection from the AppDomain
+    /// </summary>
+    private void DiscoverHttpClientInstances()
+    {
+        try
+        {
+            // Get all loaded assemblies and find HttpClient instances
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            int discoveredCount = 0;
+
+            foreach (var assembly in assemblies)
+            {
+                try
+                {
+                    // Look for static HttpClient instances in common patterns
+                    var types = assembly.GetTypes();
+                    foreach (var type in types)
+                    {
+                        try
+                        {
+                            // Check static fields for HttpClient instances
+                            var fields = type.GetFields(
+                                System.Reflection.BindingFlags.Public |
+                                System.Reflection.BindingFlags.Static |
+                                System.Reflection.BindingFlags.Instance);
+
+                            foreach (var field in fields)
+                            {
+                                if (field.FieldType == typeof(System.Net.Http.HttpClient) ||
+                                    field.FieldType.IsAssignableFrom(typeof(System.Net.Http.HttpClient)))
+                                {
+                                    try
+                                    {
+                                        object? instance = null;
+
+                                        // Static fields: get from null instance
+                                        if (field.IsStatic)
+                                        {
+                                            instance = field.GetValue(null);
+                                        }
+
+                                        if (instance is System.Net.Http.HttpClient httpClient)
+                                        {
+                                            var key = $"{type.FullName}.{field.Name}";
+                                            if (_trackedHttpClients.TryAdd(key, httpClient))
+                                            {
+                                                discoveredCount++;
+                                                _logger.LogTrace("Discovered HttpClient instance: {Key}", key);
+                                            }
+                                            else
+                                            {
+                                                // Update last used time
+                                                _httpClientLastUsed[key] = DateTime.UtcNow;
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogTrace(ex, "Error accessing field {FieldName}", field.Name);
+                                    }
+                                }
+                            }
+
+                            // Also check for properties that expose HttpClient
+                            var properties = type.GetProperties(
+                                System.Reflection.BindingFlags.Public |
+                                System.Reflection.BindingFlags.Static |
+                                System.Reflection.BindingFlags.Instance);
+
+                            foreach (var property in properties)
+                            {
+                                if (property.PropertyType == typeof(System.Net.Http.HttpClient) ||
+                                    property.PropertyType.IsAssignableFrom(typeof(System.Net.Http.HttpClient)))
+                                {
+                                    try
+                                    {
+                                        if (property.GetGetMethod() != null)
+                                        {
+                                            object? instance = null;
+
+                                            // Static properties: get from null instance
+                                            if (property.GetGetMethod()?.IsStatic == true)
+                                            {
+                                                instance = property.GetValue(null);
+                                            }
+
+                                            if (instance is System.Net.Http.HttpClient httpClient)
+                                            {
+                                                var key = $"{type.FullName}.{property.Name}";
+                                                if (_trackedHttpClients.TryAdd(key, httpClient))
+                                                {
+                                                    discoveredCount++;
+                                                    _logger.LogTrace("Discovered HttpClient property: {Key}", key);
+                                                }
+                                                else
+                                                {
+                                                    _httpClientLastUsed[key] = DateTime.UtcNow;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogTrace(ex, "Error accessing property {PropertyName}", property.Name);
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogTrace(ex, "Error inspecting type {TypeName}", type.FullName);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogTrace(ex, "Error scanning assembly {AssemblyName}", assembly.GetName().Name);
+                }
+            }
+
+            if (discoveredCount > 0)
+            {
+                _logger.LogDebug("Discovery cycle found {Count} new HttpClient instances", discoveredCount);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error discovering HttpClient instances via reflection");
+        }
+    }
+
+    /// <summary>
+    /// Registers an HttpClient instance for tracking
+    /// </summary>
+    public void RegisterHttpClient(System.Net.Http.HttpClient httpClient, string? identifier = null)
+    {
+        if (httpClient == null)
+        {
+            throw new ArgumentNullException(nameof(httpClient));
+        }
+
+        var key = identifier ?? $"HttpClient_{httpClient.GetHashCode()}";
+        _trackedHttpClients.AddOrUpdate(key, httpClient, (_, _) => httpClient);
+        _httpClientLastUsed[key] = DateTime.UtcNow;
+
+        _logger.LogDebug("Registered HttpClient instance: {Key}", key);
+    }
+
+    /// <summary>
+    /// Records usage of an HttpClient instance
+    /// </summary>
+    public void RecordHttpClientUsage(System.Net.Http.HttpClient httpClient)
+    {
+        if (httpClient == null) return;
+
+        var key = _trackedHttpClients
+            .FirstOrDefault(kvp => kvp.Value == httpClient)
+            .Key;
+
+        if (key != null)
+        {
+            _httpClientLastUsed[key] = DateTime.UtcNow;
+        }
     }
 
     private int GetActiveRequestCount() => _systemMetrics.GetActiveRequestCount();

@@ -1,15 +1,14 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Relay.MessageBroker.AzureServiceBus;
+using Microsoft.Extensions.Options;
+using Relay.Core.ContractValidation;
+using Relay.Core.Extensions;
 using Relay.MessageBroker.AwsSqsSns;
+using Relay.MessageBroker.AzureServiceBus;
 using Relay.MessageBroker.Kafka;
 using Relay.MessageBroker.Nats;
 using Relay.MessageBroker.RabbitMQ;
 using Relay.MessageBroker.RedisStreams;
-using Relay.Core.ContractValidation;
-using Relay.Core.Extensions;
 
 namespace Relay.MessageBroker;
 

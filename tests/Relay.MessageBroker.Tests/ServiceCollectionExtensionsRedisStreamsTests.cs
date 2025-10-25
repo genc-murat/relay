@@ -104,4 +104,136 @@ public class ServiceCollectionExtensionsRedisStreamsTests
         Assert.Equal("testserver:6379", configuredOptions.Value.RedisStreams.ConnectionString);
         Assert.Equal("test-stream", configuredOptions.Value.RedisStreams.DefaultStreamName);
     }
+
+    [Fact]
+    public void AddRedisStreams_WithNullConnectionString_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddRedisStreams(options =>
+            {
+                options.ConnectionString = null!;
+            }));
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithEmptyConnectionString_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddRedisStreams(options =>
+            {
+                options.ConnectionString = "";
+            }));
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithNullDefaultStreamName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddRedisStreams(options =>
+            {
+                options.ConnectionString = "localhost:6379";
+                options.DefaultStreamName = null!;
+            }));
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithEmptyDefaultStreamName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddRedisStreams(options =>
+            {
+                options.ConnectionString = "localhost:6379";
+                options.DefaultStreamName = "";
+            }));
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithNullConsumerGroupName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddRedisStreams(options =>
+            {
+                options.ConnectionString = "localhost:6379";
+                options.DefaultStreamName = "test-stream";
+                options.ConsumerGroupName = null!;
+            }));
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithEmptyConsumerGroupName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddRedisStreams(options =>
+            {
+                options.ConnectionString = "localhost:6379";
+                options.DefaultStreamName = "test-stream";
+                options.ConsumerGroupName = "";
+            }));
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithNullConsumerName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddRedisStreams(options =>
+            {
+                options.ConnectionString = "localhost:6379";
+                options.DefaultStreamName = "test-stream";
+                options.ConsumerGroupName = "test-group";
+                options.ConsumerName = null!;
+            }));
+    }
+
+    [Fact]
+    public void AddRedisStreams_WithEmptyConsumerName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddRedisStreams(options =>
+            {
+                options.ConnectionString = "localhost:6379";
+                options.DefaultStreamName = "test-stream";
+                options.ConsumerGroupName = "test-group";
+                options.ConsumerName = "";
+            }));
+    }
 }

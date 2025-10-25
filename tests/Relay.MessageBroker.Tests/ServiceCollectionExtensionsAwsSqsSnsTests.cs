@@ -101,4 +101,34 @@ public class ServiceCollectionExtensionsAwsSqsSnsTests
         Assert.Equal("us-west-2", configuredOptions.Value.AwsSqsSns.Region);
         Assert.Equal("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue", configuredOptions.Value.AwsSqsSns.DefaultQueueUrl);
     }
+
+    [Fact]
+    public void AddAwsSqsSns_WithNullRegion_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddAwsSqsSns(options =>
+            {
+                options.Region = null!;
+            }));
+    }
+
+    [Fact]
+    public void AddAwsSqsSns_WithEmptyRegion_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddAwsSqsSns(options =>
+            {
+                options.Region = "";
+            }));
+    }
 }

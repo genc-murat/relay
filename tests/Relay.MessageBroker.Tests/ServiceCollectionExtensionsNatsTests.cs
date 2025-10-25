@@ -104,4 +104,34 @@ public class ServiceCollectionExtensionsNatsTests
         Assert.Equal(new[] { "nats://testserver:4222" }, configuredOptions.Value.Nats.Servers);
         Assert.Equal("test-connection", configuredOptions.Value.Nats.Name);
     }
+
+    [Fact]
+    public void AddNats_WithNullServers_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddNats(options =>
+            {
+                options.Servers = null!;
+            }));
+    }
+
+    [Fact]
+    public void AddNats_WithEmptyServers_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddNats(options =>
+            {
+                options.Servers = Array.Empty<string>();
+            }));
+    }
 }

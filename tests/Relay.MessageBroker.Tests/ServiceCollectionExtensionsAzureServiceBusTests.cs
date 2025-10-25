@@ -108,4 +108,68 @@ public class ServiceCollectionExtensionsAzureServiceBusTests
         Assert.Equal("test-connection-string", configuredOptions.Value.AzureServiceBus.ConnectionString);
         Assert.Equal("test-queue", configuredOptions.Value.AzureServiceBus.DefaultEntityName);
     }
+
+    [Fact]
+    public void AddAzureServiceBus_WithNullConnectionString_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddAzureServiceBus(options =>
+            {
+                options.ConnectionString = null!;
+            }));
+    }
+
+    [Fact]
+    public void AddAzureServiceBus_WithEmptyConnectionString_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddAzureServiceBus(options =>
+            {
+                options.ConnectionString = "";
+            }));
+    }
+
+    [Fact]
+    public void AddAzureServiceBus_WithTopicEntityTypeAndNullSubscriptionName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddAzureServiceBus(options =>
+            {
+                options.ConnectionString = "test-connection-string";
+                options.EntityType = AzureEntityType.Topic;
+                options.SubscriptionName = null!;
+            }));
+    }
+
+    [Fact]
+    public void AddAzureServiceBus_WithTopicEntityTypeAndEmptySubscriptionName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddAzureServiceBus(options =>
+            {
+                options.ConnectionString = "test-connection-string";
+                options.EntityType = AzureEntityType.Topic;
+                options.SubscriptionName = "";
+            }));
+    }
 }

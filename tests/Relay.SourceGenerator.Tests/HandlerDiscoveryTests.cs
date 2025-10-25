@@ -565,6 +565,107 @@ namespace TestProject
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
+    [Fact]
+    public void ProcessMethodsSequentially_Catches_Exception_In_AnalyzeHandlerMethod()
+    {
+        // Arrange
+        var source = @"
+using Relay.Core;
+
+namespace TestProject
+{
+    public class TestHandler
+    {
+        [Handle]
+        public string HandleTest(string request)
+        {
+            return request;
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var throwingContext = new ThrowingRelayCompilationContext(compilation, default);
+
+        // Parse and collect candidate methods
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var receiver = new RelaySyntaxReceiver();
+        foreach (var node in syntaxTree.GetRoot().DescendantNodes())
+        {
+            receiver.OnVisitSyntaxNode(node);
+        }
+
+        // Create a mock diagnostic reporter to collect diagnostics
+        var diagnostics = new List<Diagnostic>();
+        var mockReporter = new MockDiagnosticReporter(diagnostics);
+
+        // Run discovery with throwing context
+        var discoveryEngine = new HandlerDiscoveryEngine(throwingContext);
+        var result = discoveryEngine.DiscoverHandlers(receiver.CandidateMethods, mockReporter);
+
+        // Assert
+        Assert.Empty(result.Handlers); // No handlers discovered due to exception
+        Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_001" && d.GetMessage(null).Contains("Error analyzing handler method"));
+    }
+
+    [Fact]
+    public void ProcessMethodsInParallel_Catches_Exception_In_AnalyzeHandlerMethod()
+    {
+        // Arrange - Create source with more than 10 methods to trigger parallel processing
+        var methods = string.Join("\n", Enumerable.Range(1, 15).Select(i => $@"
+        [Handle]
+        public string HandleTest{i}(string request{i})
+        {{
+            return request{i};
+        }}"));
+        var source = $@"
+using Relay.Core;
+
+namespace TestProject
+{{
+    public class TestHandler
+    {{
+        {methods}
+    }}
+}}";
+
+        var compilation = CreateTestCompilation(source);
+        var throwingContext = new ThrowingRelayCompilationContext(compilation, default);
+
+        // Parse and collect candidate methods
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var receiver = new RelaySyntaxReceiver();
+        foreach (var node in syntaxTree.GetRoot().DescendantNodes())
+        {
+            receiver.OnVisitSyntaxNode(node);
+        }
+
+        // Create a mock diagnostic reporter to collect diagnostics
+        var diagnostics = new List<Diagnostic>();
+        var mockReporter = new MockDiagnosticReporter(diagnostics);
+
+        // Run discovery with throwing context
+        var discoveryEngine = new HandlerDiscoveryEngine(throwingContext);
+        var result = discoveryEngine.DiscoverHandlers(receiver.CandidateMethods, mockReporter);
+
+        // Assert
+        Assert.Empty(result.Handlers); // No handlers discovered due to exception
+        Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_001" && d.GetMessage(null).Contains("Error analyzing handler method"));
+    }
+
+    private class ThrowingRelayCompilationContext : RelayCompilationContext
+    {
+        public ThrowingRelayCompilationContext(Compilation compilation, CancellationToken cancellationToken)
+            : base(compilation, cancellationToken)
+        {
+        }
+
+        public override SemanticModel GetSemanticModel(SyntaxTree syntaxTree)
+        {
+            throw new InvalidOperationException("Simulated exception in GetSemanticModel");
+        }
+    }
+
     private class MockDiagnosticReporter : IDiagnosticReporter
     {
         private readonly List<Diagnostic> _diagnostics;

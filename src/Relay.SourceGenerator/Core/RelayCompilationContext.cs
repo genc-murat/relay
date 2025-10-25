@@ -32,7 +32,7 @@ public class RelayCompilationContext
     /// Gets the semantic model for a syntax tree with thread-safe caching.
     /// Uses Lazy&lt;T&gt; to ensure semantic model is created only once per syntax tree.
     /// </summary>
-    public SemanticModel GetSemanticModel(SyntaxTree syntaxTree)
+    public virtual SemanticModel GetSemanticModel(SyntaxTree syntaxTree)
     {
         var lazy = _semanticModelCache.GetOrAdd(
             syntaxTree,

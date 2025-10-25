@@ -13,5 +13,6 @@ namespace Relay.SourceGenerator
         public string? Name { get; set; }
         public int Priority { get; set; }
         public Location Location { get; set; } = null!;
+        public AttributeData? Attribute { get; set; }
     }
 }

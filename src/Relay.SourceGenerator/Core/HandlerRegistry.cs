@@ -33,7 +33,8 @@ namespace Relay.SourceGenerator
                 RequestType = requestType,
                 Name = name,
                 Priority = priority,
-                Location = methodDeclaration.Identifier.GetLocation()
+                Location = methodDeclaration.Identifier.GetLocation(),
+                Attribute = handleAttribute
             });
         }
     }

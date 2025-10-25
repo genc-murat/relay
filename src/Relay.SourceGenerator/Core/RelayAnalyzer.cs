@@ -194,6 +194,9 @@ namespace Relay.SourceGenerator
 
                 // Validate for duplicate pipeline orders
                 PipelineValidator.ValidateDuplicatePipelineOrders(context, pipelineRegistry);
+
+                // Validate attribute parameter conflicts for all handlers
+                ValidateAttributeParameterConflicts(context, handlerRegistry);
             }
             catch (OperationCanceledException)
             {
@@ -250,6 +253,69 @@ namespace Relay.SourceGenerator
                 errorMessage);
 
             context.ReportDiagnostic(diagnostic);
+#pragma warning restore RS1005
+        }
+
+        /// <summary>
+        /// Validates attribute parameter conflicts for all handlers.
+        /// </summary>
+        private static void ValidateAttributeParameterConflicts(
+            CompilationAnalysisContext context,
+            HandlerRegistry handlerRegistry)
+        {
+            try
+            {
+                // Convert AnalyzerHandlerInfo to HandlerRegistration for validation
+                var handlerRegistrations = ConvertToHandlerRegistrations(handlerRegistry);
+
+                // Create a diagnostic reporter for the compilation analysis context
+                var diagnosticReporter = new CompilationAnalysisContextDiagnosticReporter(context);
+
+                // Use ConfigurationValidator to validate attribute parameter conflicts
+                var validator = new ConfigurationValidator(diagnosticReporter);
+                validator.ValidateAttributeParameterConflicts(handlerRegistrations);
+            }
+            catch (Exception ex)
+            {
+                ReportAnalyzerError(context, ex);
+            }
+        }
+
+        /// <summary>
+        /// Converts AnalyzerHandlerInfo objects to HandlerRegistration objects for validation.
+        /// </summary>
+        private static IEnumerable<HandlerRegistration> ConvertToHandlerRegistrations(HandlerRegistry handlerRegistry)
+        {
+            return handlerRegistry.Handlers.Select(handler => new HandlerRegistration
+            {
+                RequestType = handler.RequestType,
+                ResponseType = null, // We don't have response type info in AnalyzerHandlerInfo
+                Method = handler.MethodSymbol,
+                Name = handler.Name,
+                Priority = handler.Priority,
+                Kind = HandlerKind.Request, // Default to Request kind
+                Location = handler.Location,
+                Attribute = handler.Attribute
+            }).ToList();
+        }
+    }
+
+    /// <summary>
+    /// Adapter for IDiagnosticReporter that uses CompilationAnalysisContext.
+    /// </summary>
+    internal class CompilationAnalysisContextDiagnosticReporter : IDiagnosticReporter
+    {
+        private readonly CompilationAnalysisContext _context;
+
+        public CompilationAnalysisContextDiagnosticReporter(CompilationAnalysisContext context)
+        {
+            _context = context;
+        }
+
+        public void ReportDiagnostic(Diagnostic diagnostic)
+        {
+#pragma warning disable RS1005 // ReportDiagnostic invoked with an unsupported DiagnosticDescriptor
+            _context.ReportDiagnostic(diagnostic);
 #pragma warning restore RS1005
         }
     }

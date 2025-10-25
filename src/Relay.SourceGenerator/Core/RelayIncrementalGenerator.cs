@@ -28,6 +28,10 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
     private const int DefaultStringBuilderCapacity = 1024;      // 1KB initial
     private const int MaxPooledCapacity = 16 * 1024;             // 16KB maximum
 
+    // Test hook to force exception for coverage
+    [ThreadStatic]
+    internal static bool TestForceException;
+
     private static StringBuilder GetStringBuilder()
     {
         var sb = t_cachedStringBuilder;
@@ -257,7 +261,7 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
                (interfaceSymbol.Name == "IStreamHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core.Contracts.Handlers");
     }
 
-    private static void Execute(SourceProductionContext context, (Compilation Left, ImmutableArray<HandlerClassInfo?> Right) source)
+    internal static void Execute(SourceProductionContext context, (Compilation Left, ImmutableArray<HandlerClassInfo?> Right) source)
     {
         try
         {
@@ -350,6 +354,12 @@ namespace Microsoft.Extensions.DependencyInjection
 
     private static string GenerateDIRegistrationSource(List<HandlerClassInfo> handlerClasses)
     {
+        // Test hook to force exception for coverage
+        if (TestForceException)
+        {
+            throw new InvalidOperationException("Test exception");
+        }
+
         var sb = GetStringBuilder();
         
         try

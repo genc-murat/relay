@@ -592,6 +592,54 @@ namespace Relay.Core.Contracts.Handlers
         Assert.True(RelayIncrementalGenerator.IsStreamHandlerInterface(streamHandlerInterface));
     }
 
+    [Fact]
+    public void Execute_Should_Catch_Exceptions_And_Report_Diagnostic()
+    {
+        // Arrange - Use test hook to force exception in generation
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Contracts.Handlers;
+
+namespace TestProject
+{
+    public class TestRequest : IRequest<string> { }
+    
+    public class TestHandler : IRequestHandler<TestRequest, string>
+    {
+        public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(""test"");
+        }
+    }
+}";
+
+        RelayIncrementalGenerator.TestForceException = true;
+
+        try
+        {
+            var generator = new RelayIncrementalGenerator();
+            var compilation = CreateTestCompilation(source);
+
+            // Act
+            var driver = CSharpGeneratorDriver.Create(generator);
+            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+                compilation,
+                out var outputCompilation,
+                out var diagnostics);
+
+            // Assert
+            var errorDiagnostic = diagnostics.FirstOrDefault(d => d.Id == "RELAY_GEN_001"); // GeneratorError
+            Assert.NotNull(errorDiagnostic);
+            Assert.Contains("Source generator error", errorDiagnostic.GetMessage());
+        }
+        finally
+        {
+            RelayIncrementalGenerator.TestForceException = false;
+        }
+    }
+
     private static Compilation CreateTestCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);

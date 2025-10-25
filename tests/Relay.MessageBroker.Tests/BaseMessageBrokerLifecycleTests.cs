@@ -19,6 +19,10 @@ public class BaseMessageBrokerLifecycleTests
         public bool StopCalled { get; private set; }
         public bool DisposeCalled { get; private set; }
 
+        // Expose protected properties for testing
+        public new bool IsStarted => base.IsStarted;
+        public new bool IsDisposed => base.IsDisposed;
+
         public TestableMessageBroker(
             IOptions<MessageBrokerOptions> options,
             ILogger logger,
@@ -160,5 +164,76 @@ public class BaseMessageBrokerLifecycleTests
 
         // Assert - Should not throw
         Assert.True(broker.DisposeCalled);
+    }
+
+    [Fact]
+    public async Task IsStarted_ShouldReturnFalseInitially()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        // Act & Assert
+        Assert.False(broker.IsStarted);
+    }
+
+    [Fact]
+    public async Task IsStarted_ShouldReturnTrueAfterStart()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        // Act
+        await broker.StartAsync();
+
+        // Assert
+        Assert.True(broker.IsStarted);
+    }
+
+    [Fact]
+    public async Task IsStarted_ShouldReturnFalseAfterStop()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        await broker.StartAsync();
+
+        // Act
+        await broker.StopAsync();
+
+        // Assert
+        Assert.False(broker.IsStarted);
+    }
+
+    [Fact]
+    public async Task IsDisposed_ShouldReturnFalseInitially()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        // Act & Assert
+        Assert.False(broker.IsDisposed);
+    }
+
+    [Fact]
+    public async Task IsDisposed_ShouldReturnTrueAfterDispose()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        // Act
+        await broker.DisposeAsync();
+
+        // Assert
+        Assert.True(broker.IsDisposed);
     }
 }

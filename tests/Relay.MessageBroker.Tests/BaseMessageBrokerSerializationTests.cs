@@ -81,6 +81,11 @@ public class BaseMessageBrokerSerializationTests
         {
             return await DecompressMessageAsync(data);
         }
+
+        public TMessage? TestDeserializeMessage<TMessage>(byte[] data)
+        {
+            return DeserializeMessage<TMessage>(data);
+        }
     }
 
     [Fact]
@@ -150,6 +155,45 @@ public class BaseMessageBrokerSerializationTests
 
         // Assert
         Assert.Equal(data, result);
+    }
+
+    [Fact]
+    public void DeserializeMessage_ShouldHandleComplexObjects()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        var originalMessage = new ComplexMessage
+        {
+            Id = Guid.NewGuid(),
+            Name = "Complex Test",
+            Items = new List<string> { "item1", "item2", "item3" },
+            Metadata = new Dictionary<string, object>
+            {
+                { "key1", "value1" },
+                { "key2", 123 },
+                { "key3", true }
+            },
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        // First serialize the message
+        var serializedData = broker.GetType()
+            .GetMethod("SerializeMessage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .MakeGenericMethod(typeof(ComplexMessage))
+            .Invoke(broker, new object[] { originalMessage }) as byte[];
+
+        // Act
+        var deserializedMessage = broker.TestDeserializeMessage<ComplexMessage>(serializedData!);
+
+        // Assert
+        Assert.NotNull(deserializedMessage);
+        Assert.Equal(originalMessage.Id, deserializedMessage.Id);
+        Assert.Equal(originalMessage.Name, deserializedMessage.Name);
+        Assert.Equal(originalMessage.Items, deserializedMessage.Items);
+        Assert.Equal(originalMessage.Timestamp, deserializedMessage.Timestamp);
     }
 
     private class ComplexMessage

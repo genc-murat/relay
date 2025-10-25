@@ -243,6 +243,98 @@ public class WorkflowStateStoreTests
     }
 
     [Fact]
+    public async Task InMemoryWorkflowStateStore_SaveExecutionAsync_ShouldThrowArgumentNullException_WhenExecutionIsNull()
+    {
+        // Arrange
+        var store = new InMemoryWorkflowStateStore();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SaveExecutionAsync(null!));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task InMemoryWorkflowStateStore_SaveExecutionAsync_ShouldThrowArgumentException_WhenExecutionIdIsEmpty(string executionId)
+    {
+        // Arrange
+        var store = new InMemoryWorkflowStateStore();
+        var execution = CreateTestExecution();
+        execution.Id = executionId!;
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(async () => await store.SaveExecutionAsync(execution));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task InMemoryWorkflowStateStore_GetExecutionAsync_ShouldReturnNull_WhenExecutionIdIsEmpty(string executionId)
+    {
+        // Arrange
+        var store = new InMemoryWorkflowStateStore();
+
+        // Act
+        var result = await store.GetExecutionAsync(executionId!);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task InMemoryWorkflowStateStore_Clear_ShouldRemoveAllExecutions()
+    {
+        // Arrange
+        var store = new InMemoryWorkflowStateStore();
+        var execution1 = CreateTestExecution();
+        var execution2 = CreateTestExecution();
+        await store.SaveExecutionAsync(execution1);
+        await store.SaveExecutionAsync(execution2);
+
+        // Verify executions are stored
+        Assert.Equal(2, store.Count);
+
+        // Act
+        store.Clear();
+
+        // Assert
+        Assert.Equal(0, store.Count);
+        Assert.Null(await store.GetExecutionAsync(execution1.Id));
+        Assert.Null(await store.GetExecutionAsync(execution2.Id));
+    }
+
+    [Fact]
+    public async Task InMemoryWorkflowStateStore_Count_ShouldReturnCorrectNumberOfExecutions()
+    {
+        // Arrange
+        var store = new InMemoryWorkflowStateStore();
+
+        // Initially empty
+        Assert.Equal(0, store.Count);
+
+        // Add one execution
+        var execution1 = CreateTestExecution();
+        await store.SaveExecutionAsync(execution1);
+        Assert.Equal(1, store.Count);
+
+        // Add another execution
+        var execution2 = CreateTestExecution();
+        await store.SaveExecutionAsync(execution2);
+        Assert.Equal(2, store.Count);
+
+        // Update existing execution (should not change count)
+        execution1.Status = WorkflowStatus.Completed;
+        await store.SaveExecutionAsync(execution1);
+        Assert.Equal(2, store.Count);
+
+        // Clear
+        store.Clear();
+        Assert.Equal(0, store.Count);
+    }
+
+    [Fact]
     public void EfCoreWorkflowStateStore_Constructor_ShouldThrowArgumentNullException_WhenContextIsNull()
     {
         // Act & Assert

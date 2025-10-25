@@ -236,21 +236,21 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
         };
     }
 
-    private static bool IsRequestHandlerInterface(INamedTypeSymbol interfaceSymbol)
+    internal static bool IsRequestHandlerInterface(INamedTypeSymbol interfaceSymbol)
     {
         var fullName = interfaceSymbol.ToDisplayString();
         return fullName.StartsWith("Relay.Core.Contracts.Handlers.IRequestHandler<") ||
                (interfaceSymbol.Name == "IRequestHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core.Contracts.Handlers");
     }
 
-    private static bool IsNotificationHandlerInterface(INamedTypeSymbol interfaceSymbol)
+    internal static bool IsNotificationHandlerInterface(INamedTypeSymbol interfaceSymbol)
     {
         var fullName = interfaceSymbol.ToDisplayString();
         return fullName.StartsWith("Relay.Core.Contracts.Handlers.INotificationHandler<") ||
                (interfaceSymbol.Name == "INotificationHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core.Contracts.Handlers");
     }
 
-    private static bool IsStreamHandlerInterface(INamedTypeSymbol interfaceSymbol)
+    internal static bool IsStreamHandlerInterface(INamedTypeSymbol interfaceSymbol)
     {
         var fullName = interfaceSymbol.ToDisplayString();
         return fullName.StartsWith("Relay.Core.Contracts.Handlers.IStreamHandler<") ||

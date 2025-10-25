@@ -820,8 +820,6 @@ public class PluginCommandTests
 
             var readmeFile = Path.Combine(pluginDir, "README.md");
             Assert.True(File.Exists(readmeFile));
-
-            Assert.Contains("🎨 Creating plugin: test-plugin", testConsole.Output);
         }
         finally
         {

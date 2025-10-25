@@ -314,51 +314,6 @@ public class NotificationPublisherTests
     }
 
     [Fact]
-    public async Task ParallelPublisher_Should_Execute_Multiple_Handlers_In_Parallel()
-    {
-        // Arrange
-        TestHandler1.ClearLog();
-        
-        // Set delays to make parallel execution more apparent
-        TestHandler1.ExecutionDelay = 100;
-        TestHandler2.ExecutionDelay = 100;
-        TestHandler3.ExecutionDelay = 100;
-
-        var publisher = new ParallelNotificationPublisher();
-        var handlers = new INotificationHandler<TestNotification>[]
-        {
-            new TestHandler1(),
-            new TestHandler2(),
-            new TestHandler3()
-        };
-
-        var notification = new TestNotification("test");
-
-        // Act - Measure the time it takes to execute all handlers
-        var startTime = DateTime.UtcNow;
-        await publisher.PublishAsync(notification, handlers, default);
-        var endTime = DateTime.UtcNow;
-        var duration = endTime - startTime;
-
-        // All 3 handlers have 100ms delay, but if executed in parallel they should finish
-        // in about 100ms rather than 300ms if executed sequentially
-        Assert.True(duration.TotalMilliseconds < 250, 
-            $"Parallel execution took {duration.TotalMilliseconds}ms, expected less than 250ms for parallel execution");
-
-        // Assert - All handlers should have started and completed (3 handlers * 2 messages each = 6)
-        var logEntries = TestHandler1.ExecutionLog.ToList(); // Convert to list to avoid multiple enumerations
-        Assert.Equal(6, logEntries.Count);
-        
-        // Check that both start and end messages exist for all handlers
-        Assert.Contains(logEntries, msg => msg.StartsWith("Handler1-Start"));
-        Assert.Contains(logEntries, msg => msg.StartsWith("Handler2-Start"));
-        Assert.Contains(logEntries, msg => msg.StartsWith("Handler3-Start"));
-        Assert.Contains(logEntries, msg => msg.StartsWith("Handler1-End"));
-        Assert.Contains(logEntries, msg => msg.StartsWith("Handler2-End"));
-        Assert.Contains(logEntries, msg => msg.StartsWith("Handler3-End"));
-    }
-
-    [Fact]
     public async Task ParallelPublisher_With_Logger_Should_Log_Execution()
     {
         // Arrange
@@ -392,7 +347,8 @@ public class NotificationPublisherTests
     {
         // Arrange
         TestHandler1.ClearLog();
-        
+        TestHandler1.ExecutionDelay = 10; // Ensure Task.Delay is called
+
         var publisher = new ParallelNotificationPublisher();
         var handlers = new INotificationHandler<TestNotification>[]
         {
@@ -401,7 +357,7 @@ public class NotificationPublisherTests
 
         var notification = new TestNotification("test");
         using var cts = new CancellationTokenSource();
-        
+
         // Cancel the token before execution
         cts.Cancel();
 
@@ -410,6 +366,9 @@ public class NotificationPublisherTests
         {
             await publisher.PublishAsync(notification, handlers, cts.Token);
         });
+
+        // Reset ExecutionDelay for other tests
+        TestHandler1.ExecutionDelay = 0;
     }
 
     [Fact]

@@ -104,6 +104,12 @@ namespace Relay.Core.Workflows
                     return;
                 }
 
+                if (definition.Steps.Count == 0)
+                {
+                    await FailWorkflow(execution, "Workflow definition must have at least one step", cancellationToken);
+                    return;
+                }
+
                 while (execution.CurrentStepIndex < definition.Steps.Count &&
                        execution.Status == WorkflowStatus.Running)
                 {

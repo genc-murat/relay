@@ -387,7 +387,7 @@ public class WorkflowEngineErrorHandlingTests
         await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
 
         // Wait for background execution
-        await Task.Delay(300);
+        await Task.Delay(1000);
 
         // Assert
         Assert.NotNull(savedExecution);

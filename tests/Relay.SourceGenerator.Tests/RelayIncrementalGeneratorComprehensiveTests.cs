@@ -557,6 +557,41 @@ namespace TestProject
         Assert.Contains("ServiceProvider.GetRequiredService<IRequestHandler<TestProject.VoidRequest1>>().HandleAsync(req, cancellationToken)", generatedCode);
     }
 
+    [Fact]
+    public void IsStreamHandlerInterface_Should_Return_True_For_StreamHandler_Interfaces()
+    {
+        // Arrange
+        var source = @"
+using System.Collections.Generic;
+using System.Threading;
+
+namespace Relay.Core.Contracts.Handlers
+{
+    public interface IStreamHandler<in TRequest, TResponse>
+    {
+        IAsyncEnumerable<TResponse> HandleStreamAsync(TRequest request, CancellationToken cancellationToken);
+    }
+}";
+
+        var compilation = CSharpCompilation.Create(
+            assemblyName: "TestAssembly",
+            syntaxTrees: new[] { CSharpSyntaxTree.ParseText(source) },
+            references: new[]
+            {
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Collections.Generic.IAsyncEnumerable<>).Assembly.Location),
+            },
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        // Get the IStreamHandler interface symbol
+        var streamHandlerInterface = compilation.GetTypeByMetadataName("Relay.Core.Contracts.Handlers.IStreamHandler`2");
+        Assert.NotNull(streamHandlerInterface);
+
+        // Act & Assert
+        Assert.True(RelayIncrementalGenerator.IsStreamHandlerInterface(streamHandlerInterface));
+    }
+
     private static Compilation CreateTestCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);

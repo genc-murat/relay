@@ -34,7 +34,7 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Act
-        var score = CalculateScore(analysis);
+        var score = AnalysisScorer.CalculateOverallScore(analysis);
 
         // Assert
         Assert.True(score > 9.0); // Perfect score with bonuses
@@ -253,7 +253,7 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Act
-        var score = CalculateScore(analysis);
+        var score = AnalysisScorer.CalculateOverallScore(analysis);
 
         // Assert
         Assert.Equal(10.0, score);
@@ -268,7 +268,7 @@ public class AnalyzeCommandTests : IDisposable
             PerformanceIssues =
             [
                 new() { Severity = "High" },
-                new() { Severity = "High" }
+                new() { Severity = "Medium" }
             ],
             ReliabilityIssues =
             [
@@ -277,10 +277,10 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Act
-        var score = CalculateScore(analysis);
+        var score = AnalysisScorer.CalculateOverallScore(analysis);
 
-        // Assert - Should deduct: 2*2.0 + 1*1.5 = 5.5 points
-        Assert.True(score < 5.0);
+        // Assert - Should deduct: 1*2.0 + 1*1.0 + 1*1.5 = 4.5 points
+        Assert.Equal(5.5, score);
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public class AnalyzeCommandTests : IDisposable
         };
 
         // Act
-        var score = CalculateScore(analysis);
+        var score = AnalysisScorer.CalculateOverallScore(analysis);
 
         // Assert - Should be: 10 + 0.5 + 0.3 + 0.3 + 0.2 = 11.3, capped at 10
         Assert.Equal(10.0, score);
@@ -367,28 +367,7 @@ public record TestRequest({validation} string Name) : IRequest<string>;";
         await CreateTestHandler();
     }
 
-    private double CalculateScore(ProjectAnalysis analysis)
-    {
-        double score = 10.0;
 
-        // Deduct for performance issues
-        score -= analysis.PerformanceIssues.Count(i => i.Severity == "High") * 2.0;
-        score -= analysis.PerformanceIssues.Count(i => i.Severity == "Medium") * 1.0;
-        score -= analysis.PerformanceIssues.Count(i => i.Severity == "Low") * 0.5;
-
-        // Deduct for reliability issues
-        score -= analysis.ReliabilityIssues.Count(i => i.Severity == "High") * 1.5;
-        score -= analysis.ReliabilityIssues.Count(i => i.Severity == "Medium") * 0.8;
-        score -= analysis.ReliabilityIssues.Count(i => i.Severity == "Low") * 0.3;
-
-        // Bonus for good practices
-        if (analysis.HasRelayCore) score += 0.5;
-        if (analysis.HasLogging) score += 0.3;
-        if (analysis.HasValidation) score += 0.3;
-        if (analysis.HasCaching) score += 0.2;
-
-        return Math.Max(0, Math.Min(10, score));
-    }
 
     [Fact]
     public void AnalyzeCommand_ShouldDetectCodeComplexity()
@@ -1188,8 +1167,9 @@ public record SecondRequest(string Value) : IRequest<string>;";
             await File.WriteAllTextAsync(Path.Combine(testPath, "Test.csproj"), csproj);
 
             // Act
-            await AnalyzeCommand.DiscoverProjectFiles(analysis, null, null);
-            await AnalyzeCommand.AnalyzeDependencies(analysis, null, null);
+            var analyzer = new ProjectAnalyzer();
+            await analyzer.DiscoverProjectFiles(analysis, null, null);
+            await analyzer.AnalyzeDependencies(analysis, null, null);
 
             // Assert
             Assert.Single(analysis.ProjectFiles);
@@ -1232,7 +1212,8 @@ public class RegularHandler : INotificationHandler<TestNotification>
             analysis.SourceFiles.Add(Path.Combine(testPath, "Handlers.cs"));
 
             // Act
-            await AnalyzeCommand.AnalyzeHandlers(analysis, null, null);
+            var analyzer = new ProjectAnalyzer();
+            await analyzer.AnalyzeHandlers(analysis, null, null);
 
             // Assert
             Assert.Equal(2, analysis.Handlers.Count);
@@ -1269,7 +1250,8 @@ public record UserDto(int Id, string Name, string Email);";
             analysis.SourceFiles.Add(Path.Combine(testPath, "Requests.cs"));
 
             // Act
-            await AnalyzeCommand.AnalyzeRequests(analysis, null, null);
+            var analyzer = new ProjectAnalyzer();
+            await analyzer.AnalyzeRequests(analysis, null, null);
 
             // Assert
             Assert.Equal(2, analysis.Requests.Count);
@@ -1291,24 +1273,27 @@ public record UserDto(int Id, string Name, string Email);";
         {
             Handlers =
             [
-                new() { Name = "GetUserQueryHandler", UsesValueTask = false, HasCancellationToken = false, LineCount = 150 },
-                new() { UsesValueTask = true, HasCancellationToken = true, LineCount = 20 }
+                new() { UsesValueTask = false }, // for Task Usage
+                new() { HasCancellationToken = false }, // for Cancellation Support
+                new() { LineCount = 150 }, // for Handler Complexity
+                new() { Name = "GetDataQueryHandler" } // for Caching Opportunity
             ],
             Requests =
             [
-                new() { HasCaching = false }
+                new() { Name = "GetDataQuery" }, // for Caching Opportunity
             ]
         };
 
         // Act
-        await AnalyzeCommand.CheckPerformanceOpportunities(analysis, null, null);
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckPerformanceOpportunities(analysis, null, null);
 
         // Assert
         Assert.NotEmpty(analysis.PerformanceIssues);
-            Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Task Usage"));
-            Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Cancellation Support"));
-            Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Handler Complexity"));
-            Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Caching Opportunity"));
+        Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Task Usage"));
+        Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Cancellation Support"));
+        Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Handler Complexity"));
+        Assert.Contains(analysis.PerformanceIssues, i => i.Type.Contains("Caching Opportunity"));
     }
 
     [Fact]
@@ -1330,7 +1315,8 @@ public record UserDto(int Id, string Name, string Email);";
         };
 
         // Act
-        await AnalyzeCommand.CheckReliabilityPatterns(analysis, null, null);
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckReliabilityPatterns(analysis, null, null);
 
         // Assert
         Assert.NotEmpty(analysis.ReliabilityIssues);
@@ -1364,7 +1350,8 @@ public record UserDto(int Id, string Name, string Email);";
             analysis.ProjectFiles.Add(Path.Combine(testPath, "Test.csproj"));
 
             // Act
-            await AnalyzeCommand.AnalyzeDependencies(analysis, null, null);
+            var analyzer = new ProjectAnalyzer();
+            await analyzer.AnalyzeDependencies(analysis, null, null);
 
             // Assert
             Assert.True(analysis.HasRelayCore);
@@ -1397,7 +1384,8 @@ public record UserDto(int Id, string Name, string Email);";
         };
 
         // Act
-        await AnalyzeCommand.GenerateRecommendations(analysis, null, null);
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.GenerateRecommendations(analysis, null, null);
 
         // Assert
         Assert.NotEmpty(analysis.Recommendations);
@@ -1438,7 +1426,7 @@ public record UserDto(int Id, string Name, string Email);";
         };
 
         // Act & Assert - Should not throw
-        AnalyzeCommand.DisplayAnalysisResults(analysis, "console");
+        AnalysisDisplay.DisplayAnalysisResults(analysis, "console");
     }
 
     [Fact]
@@ -1549,7 +1537,7 @@ public record UserDto(int Id, string Name, string Email);";
         var content = className.Contains("Handler") ? "[Handle]" : "";
 
         // Act
-        var result = AnalyzeCommand.IsHandler(classDecl, content);
+        var result = AnalysisHelpers.IsHandler(classDecl, content);
 
         // Assert
         Assert.Equal(expected, result);
@@ -1567,7 +1555,7 @@ public record UserDto(int Id, string Name, string Email);";
         var content = "";
 
         // Act
-        var result = AnalyzeCommand.IsRequest(classDecl, content);
+        var result = AnalysisHelpers.IsRequest(classDecl, content);
 
         // Assert
         Assert.Equal(expected, result);
@@ -1588,7 +1576,7 @@ public record UserDto(int Id, string Name, string Email);";
         };
 
         // Act
-        var score = AnalyzeCommand.CalculateOverallScore(analysis);
+        var score = AnalysisScorer.CalculateOverallScore(analysis);
 
         // Assert
         Assert.Equal(10.0, score);
@@ -1612,7 +1600,7 @@ public record UserDto(int Id, string Name, string Email);";
         };
 
         // Act
-        var score = AnalyzeCommand.CalculateOverallScore(analysis);
+        var score = AnalysisScorer.CalculateOverallScore(analysis);
 
         // Assert - Should deduct: 2.0 + 1.0 + 1.5 = 4.5 points
         Assert.True(score < 6.0);

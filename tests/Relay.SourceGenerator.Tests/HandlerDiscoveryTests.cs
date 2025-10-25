@@ -1,6 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
+using System.Reflection;
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference
 
@@ -705,6 +707,46 @@ namespace TestProject
         Assert.Equal(12, result.Handlers.Count()); // All valid methods discovered, nulls ignored
         Assert.Empty(diagnostics); // No diagnostics for null methods
     }
+
+    [Fact]
+    public void AnalyzeHandlerMethod_Returns_Null_For_Method_Without_Relay_Attributes()
+    {
+        // Arrange
+        var source = @"
+using Relay.Core;
+
+namespace TestProject
+{
+    public class TestHandler
+    {
+        public string HandleTest(string request)
+        {
+            return request;
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var context = new RelayCompilationContext(compilation, default);
+
+        // Parse and find the method without attributes
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var method = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First();
+
+        var diagnostics = new List<Diagnostic>();
+        var mockReporter = new MockDiagnosticReporter(diagnostics);
+
+        // Use reflection to call the private method
+        var engine = new HandlerDiscoveryEngine(context);
+        var analyzeMethod = typeof(HandlerDiscoveryEngine).GetMethod("AnalyzeHandlerMethod", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var result = (HandlerInfo?)analyzeMethod.Invoke(engine, new object[] { method, mockReporter });
+
+        // Assert
+        Assert.Null(result); // No handler info for method without attributes
+        Assert.Empty(diagnostics); // No diagnostics reported
+    }
+
+
 
     private class ThrowingRelayCompilationContext : RelayCompilationContext
     {

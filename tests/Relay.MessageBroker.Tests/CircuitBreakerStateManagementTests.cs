@@ -276,4 +276,35 @@ public class CircuitBreakerStateManagementTests
         Assert.Contains(CircuitBreakerState.HalfOpen, stateChanges);
         Assert.Contains(CircuitBreakerState.Closed, stateChanges);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_ShouldOpenCircuitOnConsecutiveFailures_WithoutRateCheck()
+    {
+        // Arrange - Use high minimum throughput to ensure consecutive failures path is taken
+        var options = new CircuitBreakerOptions
+        {
+            Enabled = true,
+            FailureThreshold = 3,
+            MinimumThroughput = 100, // High value to prevent rate-based opening
+            SamplingDuration = TimeSpan.FromHours(1) // Long duration to prevent rate calculation
+        };
+        var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
+
+        // Act - Exceed consecutive failure threshold
+        for (int i = 0; i < 3; i++)
+        {
+            try
+            {
+                await circuitBreaker.ExecuteAsync<string>(ct => throw new InvalidOperationException("Test failure"));
+            }
+            catch (InvalidOperationException)
+            {
+                // Expected
+            }
+        }
+
+        // Assert - Circuit should be open due to consecutive failures
+        Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);
+        Assert.Equal(3, circuitBreaker.Metrics.FailedCalls);
+    }
 }

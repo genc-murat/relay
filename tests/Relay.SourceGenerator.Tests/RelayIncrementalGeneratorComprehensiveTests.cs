@@ -593,6 +593,84 @@ namespace Relay.Core.Contracts.Handlers
     }
 
     [Fact]
+    public void IsNotificationHandlerInterface_Should_Return_True_For_NotificationHandler_Interfaces()
+    {
+        // Arrange
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Relay.Core.Contracts.Notifications
+{
+    public interface INotification { }
+}
+
+namespace Relay.Core.Contracts.Handlers
+{
+    public interface INotificationHandler<in TNotification>
+    {
+        ValueTask HandleAsync(TNotification notification, CancellationToken cancellationToken);
+    }
+}";
+
+        var compilation = CSharpCompilation.Create(
+            assemblyName: "TestAssembly",
+            syntaxTrees: new[] { CSharpSyntaxTree.ParseText(source) },
+            references: new[]
+            {
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
+            },
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        // Get the INotificationHandler interface symbol
+        var notificationHandlerInterface = compilation.GetTypeByMetadataName("Relay.Core.Contracts.Handlers.INotificationHandler`1");
+        Assert.NotNull(notificationHandlerInterface);
+
+        // Act & Assert
+        Assert.True(RelayIncrementalGenerator.IsNotificationHandlerInterface(notificationHandlerInterface));
+    }
+
+    [Fact]
+    public void IsRequestHandlerInterface_Should_Return_True_For_RequestHandler_Interfaces()
+    {
+        // Arrange
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Relay.Core.Contracts.Requests
+{
+    public interface IRequest<out TResponse> { }
+}
+
+namespace Relay.Core.Contracts.Handlers
+{
+    public interface IRequestHandler<in TRequest, TResponse>
+    {
+        ValueTask<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken);
+    }
+}";
+
+        var compilation = CSharpCompilation.Create(
+            assemblyName: "TestAssembly",
+            syntaxTrees: new[] { CSharpSyntaxTree.ParseText(source) },
+            references: new[]
+            {
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
+            },
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        // Get the IRequestHandler interface symbol
+        var requestHandlerInterface = compilation.GetTypeByMetadataName("Relay.Core.Contracts.Handlers.IRequestHandler`2");
+        Assert.NotNull(requestHandlerInterface);
+
+        // Act & Assert
+        Assert.True(RelayIncrementalGenerator.IsRequestHandlerInterface(requestHandlerInterface));
+    }
+
+    [Fact]
     public void Execute_Should_Catch_Exceptions_And_Report_Diagnostic()
     {
         // Arrange - Use test hook to force exception in generation

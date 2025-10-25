@@ -262,5 +262,31 @@ public class ValidationRuleBuilderFluentMethodsTests
         Assert.NotEmpty(errors3);
     }
 
+    [Fact]
+    public void ValidationRuleBuilder_GetPropertyName_ShouldThrowArgumentException_ForInvalidExpression()
+    {
+        // Arrange
+        var builder = new ValidationRuleBuilder<TestRequest>();
+
+        // Act & Assert - Invalid expression (method call instead of property access)
+        Assert.Throws<ArgumentException>(() =>
+            builder.RuleFor(x => x.Status!.ToString()));
+    }
+
+    [Fact]
+    public void ValidationRuleBuilder_GetPropertyName_ShouldHandleValueTypeProperties()
+    {
+        // Arrange
+        var builder = new ValidationRuleBuilder<TestRequest>();
+
+        // Act - This should work for value types (Age is int)
+        var ruleBuilder = builder.RuleFor(x => x.Age);
+
+        // Assert - Should not throw and should have correct property name
+        Assert.NotNull(ruleBuilder);
+        // The property name is extracted internally, so we can't directly test it,
+        // but if it works without throwing, the UnaryExpression case is handled
+    }
+
     #endregion
 }

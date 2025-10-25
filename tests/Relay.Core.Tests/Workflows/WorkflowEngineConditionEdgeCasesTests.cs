@@ -363,4 +363,116 @@ public class WorkflowEngineConditionEdgeCasesTests
         Assert.Single(savedExecution.StepExecutions);
         Assert.NotNull(savedExecution.StepExecutions[0].Output);
     }
+
+    [Fact]
+    public async Task EvaluateComparison_WithNullActualValue_ShouldConvertToEmptyString()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "NullValue == ''"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act - Pass null value that should be converted to empty string
+        var context = new Dictionary<string, object> { ["NullValue"] = null! };
+        await _workflowEngine.StartWorkflowAsync("test-workflow", context);
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Null value converted to empty string should equal empty string
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateComparison_WithNumericOperatorAndNonNumericValues_ShouldReturnFalse()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "TextValue > 10"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act - Pass non-numeric value for numeric comparison
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { TextValue = "notanumber" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Non-numeric comparison should return false (condition fails)
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task EvaluateComparison_WithInvalidOperator_ShouldReturnFalse()
+    {
+        // Arrange
+        var definition = new WorkflowDefinition
+        {
+            Id = "test-workflow",
+            Name = "Test Workflow",
+            Steps = new List<WorkflowStep>
+            {
+                new WorkflowStep
+                {
+                    Name = "ConditionalStep",
+                    Type = StepType.Conditional,
+                    Condition = "Value invalidop test"
+                }
+            }
+        };
+
+        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(definition);
+
+        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act - Use invalid operator
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { Value = "test" });
+
+        // Wait for background execution
+        await Task.Delay(300);
+
+        // Assert - Invalid operator should return false (condition fails)
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(
+            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
+            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
 }

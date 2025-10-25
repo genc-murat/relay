@@ -109,6 +109,37 @@ public class ProcessPaymentStep : ISagaStep<OrderSagaData>
             throw new InvalidOperationException($"Compensation failed at {Name}");
         }
 
+        if (!string.IsNullOrEmpty(data.CompensationExceptionType))
+        {
+            // Track retry attempts
+            data.CompensationRetryCount = (data.CompensationRetryCount ?? 0) + 1;
+
+            // For non-retryable exceptions, throw immediately without retry logic
+            if (data.CompensationExceptionType == "InvalidOperationException")
+            {
+                throw new InvalidOperationException($"Compensation failed at {Name}");
+            }
+
+            // Throw specific exception types for testing retry logic
+            // The saga will retry these exceptions up to 3 times, then succeed
+            if ((data.CompensationRetryCount ?? 0) <= 3) // Allow up to 3 retries
+            {
+                switch (data.CompensationExceptionType)
+                {
+                    case "TimeoutException":
+                        throw new TimeoutException($"Compensation timeout at {Name}");
+                    case "HttpRequestException":
+                        throw new System.Net.Http.HttpRequestException($"HTTP error during compensation at {Name}");
+                    case "IOException":
+                        throw new System.IO.IOException($"IO error during compensation at {Name}");
+                    case "SocketException":
+                        throw new System.Net.Sockets.SocketException(10060); // Connection timeout
+                    default:
+                        throw new InvalidOperationException($"Compensation failed at {Name}");
+                }
+            }
+        }
+
         data.ProcessPaymentCompensated = true;
         data.CompensationOrder.Add($"{Name}-Compensation");
         return ValueTask.CompletedTask;
@@ -121,6 +152,9 @@ public partial class OrderSagaData
     public string? FailCompensationAtStep { get; set; }
     public string? TimeoutAtStep { get; set; }
     public string[]? SkipSteps { get; set; }
+    public string? CompensationExceptionType { get; set; }
+    public bool CompensationFailAfterRetries { get; set; }
+    public int? CompensationRetryCount { get; set; }
 }
 
 // Additional test classes for edge cases

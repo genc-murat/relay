@@ -86,4 +86,124 @@ public class SagaExecutionCompensationTests
         Assert.True(result.Data.ReserveInventoryExecuted);
         Assert.True(result.Data.ReserveInventoryCompensated);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_CompensationWithTimeoutException_ShouldRetry()
+    {
+        // Arrange
+        var saga = new TestOrderSaga();
+        var data = new OrderSagaData
+        {
+            OrderId = "ORDER-017",
+            Amount = 100m,
+            FailAtStep = "ProcessPayment",
+            CompensationExceptionType = "TimeoutException" // Throw TimeoutException during compensation
+        };
+
+        // Act
+        var result = await saga.ExecuteAsync(data);
+
+        // Assert - Compensation should retry TimeoutException and eventually succeed
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SagaState.Compensated, result.Data.State);
+        Assert.Equal("ProcessPayment", result.FailedStep);
+        // Since TimeoutException is retryable, compensation should succeed after retries
+        Assert.True(result.CompensationSucceeded);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_CompensationWithHttpRequestException_ShouldRetry()
+    {
+        // Arrange
+        var saga = new TestOrderSaga();
+        var data = new OrderSagaData
+        {
+            OrderId = "ORDER-018",
+            Amount = 100m,
+            FailAtStep = "ProcessPayment",
+            CompensationExceptionType = "HttpRequestException" // Throw HttpRequestException during compensation
+        };
+
+        // Act
+        var result = await saga.ExecuteAsync(data);
+
+        // Assert - Compensation should retry HttpRequestException and eventually succeed
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SagaState.Compensated, result.Data.State);
+        Assert.Equal("ProcessPayment", result.FailedStep);
+        // Since HttpRequestException is retryable, compensation should succeed after retries
+        Assert.True(result.CompensationSucceeded);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_CompensationWithIOException_ShouldRetry()
+    {
+        // Arrange
+        var saga = new TestOrderSaga();
+        var data = new OrderSagaData
+        {
+            OrderId = "ORDER-019",
+            Amount = 100m,
+            FailAtStep = "ProcessPayment",
+            CompensationExceptionType = "IOException" // Throw IOException during compensation
+        };
+
+        // Act
+        var result = await saga.ExecuteAsync(data);
+
+        // Assert - Compensation should retry IOException and eventually succeed
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SagaState.Compensated, result.Data.State);
+        Assert.Equal("ProcessPayment", result.FailedStep);
+        // Since IOException is retryable, compensation should succeed after retries
+        Assert.True(result.CompensationSucceeded);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_CompensationWithSocketException_ShouldRetry()
+    {
+        // Arrange
+        var saga = new TestOrderSaga();
+        var data = new OrderSagaData
+        {
+            OrderId = "ORDER-020",
+            Amount = 100m,
+            FailAtStep = "ProcessPayment",
+            CompensationExceptionType = "SocketException" // Throw SocketException during compensation
+        };
+
+        // Act
+        var result = await saga.ExecuteAsync(data);
+
+        // Assert - Compensation should retry SocketException and eventually succeed
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SagaState.Compensated, result.Data.State);
+        Assert.Equal("ProcessPayment", result.FailedStep);
+        // Since SocketException is retryable, compensation should succeed after retries
+        Assert.True(result.CompensationSucceeded);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_CompensationWithInvalidOperationException_ShouldNotRetry()
+    {
+        // Arrange
+        var saga = new TestOrderSaga();
+        var data = new OrderSagaData
+        {
+            OrderId = "ORDER-021",
+            Amount = 100m,
+            FailAtStep = "ShipOrder", // Fail at the last step so first two steps execute and need compensation
+            CompensationExceptionType = "InvalidOperationException" // Throw InvalidOperationException during ProcessPayment compensation
+        };
+
+        // Act
+        var result = await saga.ExecuteAsync(data);
+
+        // Assert - Compensation should not retry InvalidOperationException and should fail
+        Assert.False(result.IsSuccess);
+        Assert.Equal(SagaState.Compensated, result.Data.State);
+        Assert.Equal("ShipOrder", result.FailedStep);
+        // Since InvalidOperationException is not retryable, compensation should fail
+        Assert.False(result.CompensationSucceeded);
+    }
 }

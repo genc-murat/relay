@@ -1039,7 +1039,7 @@ public class MyExceptionHandler : IRequestExceptionHandler<MyRequest, MyResponse
         {
             // Act & Assert - Should not throw but should show error message
             // The method validates frameworks and exits with error code
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "invalid", // Invalid source
                 "Relay",
                 tempPath,
@@ -1065,7 +1065,7 @@ public class MyExceptionHandler : IRequestExceptionHandler<MyRequest, MyResponse
         try
         {
             // Act & Assert - Should not throw but should show error message
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "InvalidFramework", // Invalid target
                 tempPath,
@@ -1102,7 +1102,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1152,7 +1152,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1209,7 +1209,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act & Assert - Method should complete without throwing
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1265,7 +1265,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act & Assert - Method should complete without throwing when output file is specified
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1321,7 +1321,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act & Assert - Method should complete without throwing when JSON output is specified
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1377,7 +1377,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act & Assert - Method should complete without throwing when HTML output is specified
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1408,7 +1408,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         var nonExistentPath = Path.Combine(Path.GetTempPath(), $"non-existent-{Guid.NewGuid()}");
 
         // Act & Assert - Should not throw exception
-        await MigrateCommand.ExecuteMigrate(
+        await MigrateCommandExecutor.ExecuteMigrate(
             "MediatR",
             "Relay",
             nonExistentPath,
@@ -1474,7 +1474,7 @@ public class OrderCreatedHandler : INotificationHandler<OrderCreatedEvent> {
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1534,7 +1534,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act & Assert - Method should complete without throwing with custom backup path
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1582,7 +1582,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1632,7 +1632,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1683,7 +1683,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         {
             // Act - Interactive mode would normally prompt, but in tests we can't easily simulate user input
             // This test verifies the method can be called with interactive=true without throwing
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1736,7 +1736,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1789,7 +1789,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
             File.SetAttributes(handlerFile, FileAttributes.ReadOnly);
 
             // Act & Assert - Should handle the error gracefully
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1841,7 +1841,7 @@ public class GetUserHandler : IRequestHandler<GetUserQuery, User>
         try
         {
             // Act & Assert - Should handle XML parsing errors gracefully
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1909,7 +1909,7 @@ public class UserHandlerTests
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -1968,7 +1968,7 @@ public class Handler{i} : IRequestHandler<Query{i}, Result{i}>
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -2008,7 +2008,7 @@ public class Handler{i} : IRequestHandler<Query{i}, Result{i}>
         {
             // Act & Assert - Should handle invalid format gracefully
             // Note: The current implementation doesn't validate format, but this test ensures it doesn't crash
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,
@@ -2052,7 +2052,7 @@ public class Handler{i} : IRequestHandler<Query{i}, Result{i}>
         try
         {
             // Act
-            await MigrateCommand.ExecuteMigrate(
+            await MigrateCommandExecutor.ExecuteMigrate(
                 "MediatR",
                 "Relay",
                 tempPath,

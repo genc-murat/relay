@@ -1,4 +1,5 @@
 using System.Reflection;
+using Relay.CLI.Commands;
 using Relay.CLI.Migration;
 using Xunit;
 
@@ -8,8 +9,8 @@ public class MigrateCommandHtmlReportTests
 {
     private static string InvokeGenerateHtmlReport(MigrationResult result)
     {
-        var migrateCommandType = typeof(Relay.CLI.Commands.MigrateCommand);
-        var method = migrateCommandType.GetMethod("GenerateHtmlReport",
+        var migrationReportGeneratorType = typeof(MigrationReportGenerator);
+        var method = migrationReportGeneratorType.GetMethod("GenerateHtmlReport",
             BindingFlags.NonPublic | BindingFlags.Static);
 
         if (method == null)

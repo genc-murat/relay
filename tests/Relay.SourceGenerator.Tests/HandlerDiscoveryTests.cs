@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference
 
@@ -651,6 +652,58 @@ namespace TestProject
         // Assert
         Assert.Empty(result.Handlers); // No handlers discovered due to exception
         Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_001" && d.GetMessage(null).Contains("Error analyzing handler method"));
+    }
+
+    [Fact]
+    public void ProcessMethodsInParallel_Handles_Null_Methods()
+    {
+        // Arrange - Create source with methods of different types to avoid duplicates
+        var types = new[] { "string", "int", "bool", "double", "char", "long", "short", "byte", "float", "decimal", "DateTime", "Guid" };
+        var methods = string.Join("\n", types.Select((type, i) => $@"
+        [Handle]
+        public string HandleTest{i}({type} request{i})
+        {{
+            return request{i}.ToString();
+        }}"));
+        var source = $@"
+using Relay.Core;
+using System;
+
+namespace TestProject
+{{
+    public class TestHandler
+    {{
+        {methods}
+    }}
+}}";
+
+        var compilation = CreateTestCompilation(source);
+        var context = new RelayCompilationContext(compilation, default);
+
+        // Parse and collect candidate methods
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var receiver = new RelaySyntaxReceiver();
+        foreach (var node in syntaxTree.GetRoot().DescendantNodes())
+        {
+            receiver.OnVisitSyntaxNode(node);
+        }
+
+        // Add some null methods to the list
+        var methodsWithNulls = new List<MethodDeclarationSyntax?>(receiver.CandidateMethods);
+        methodsWithNulls.Add(null);
+        methodsWithNulls.Add(null);
+
+        // Create a mock diagnostic reporter to collect diagnostics
+        var diagnostics = new List<Diagnostic>();
+        var mockReporter = new MockDiagnosticReporter(diagnostics);
+
+        // Run discovery
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var result = discoveryEngine.DiscoverHandlers(methodsWithNulls, mockReporter);
+
+        // Assert
+        Assert.Equal(12, result.Handlers.Count()); // All valid methods discovered, nulls ignored
+        Assert.Empty(diagnostics); // No diagnostics for null methods
     }
 
     private class ThrowingRelayCompilationContext : RelayCompilationContext

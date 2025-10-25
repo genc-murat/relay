@@ -17,16 +17,26 @@ public static class EventSourcingExtensions
     /// <summary>
     /// Adds EF Core event store services to the service collection with automatic provider detection.
     /// Detects the database provider based on the connection string format.
+    /// Falls back to PostgreSQL if provider cannot be detected from the connection string.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="connectionString">The database connection string.</param>
     /// <returns>The service collection for chaining.</returns>
-    /// <exception cref="ArgumentException">Thrown when provider cannot be detected from connection string.</exception>
     public static IServiceCollection AddEfCoreEventStore(
         this IServiceCollection services,
         string connectionString)
     {
-        var provider = DbProviderFactory.CreateProviderFromConnectionString(connectionString);
+        IDbProvider provider;
+        try
+        {
+            provider = DbProviderFactory.CreateProviderFromConnectionString(connectionString);
+        }
+        catch (ArgumentException)
+        {
+            // If provider cannot be detected from connection string, fall back to PostgreSQL
+            provider = DbProviderFactory.CreateProvider(DatabaseProvider.PostgreSQL);
+        }
+
         return AddEfCoreEventStore(services, provider, connectionString);
     }
 

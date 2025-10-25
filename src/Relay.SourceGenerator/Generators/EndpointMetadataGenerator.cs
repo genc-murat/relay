@@ -160,12 +160,28 @@ namespace Relay.SourceGenerator
 
         private string? GetAttributeValue(AttributeData attribute, string propertyName)
         {
+            // First try named arguments
             var namedArgument = attribute.NamedArguments
                 .FirstOrDefault(arg => arg.Key == propertyName);
 
             if (namedArgument.Key == propertyName && namedArgument.Value.Value != null)
             {
                 return namedArgument.Value.Value.ToString();
+            }
+
+            // For backward compatibility, try constructor arguments
+            // Some attributes might be parsed differently
+            if (attribute.ConstructorArguments.Length > 0)
+            {
+                // For ExposeAsEndpoint, Route is first, HttpMethod is second
+                if (propertyName == "Route" && attribute.ConstructorArguments.Length > 0)
+                {
+                    return attribute.ConstructorArguments[0].Value?.ToString();
+                }
+                if (propertyName == "HttpMethod" && attribute.ConstructorArguments.Length > 1)
+                {
+                    return attribute.ConstructorArguments[1].Value?.ToString();
+                }
             }
 
             return null;

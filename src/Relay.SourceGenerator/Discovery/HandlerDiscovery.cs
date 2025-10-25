@@ -283,7 +283,7 @@ public class HandlerDiscoveryEngine
     {
         // Request handlers should have:
         // - Exactly one parameter (the request)
-        // - Return Task<T>, ValueTask<T>, Task, ValueTask, or T
+        // - Return Task<T>, ValueTask<T>, Task, ValueTask, or T (void allowed for endpoint handlers)
         // - Be public or internal
 
         if (method.Parameters.Length != 1)
@@ -300,7 +300,7 @@ public class HandlerDiscoveryEngine
             return false;
         }
 
-        if (!IsValidReturnType(method.ReturnType))
+        if (!IsValidReturnType(method.ReturnType) && !IsEndpointHandler(method))
         {
             var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
                 "request handler",
@@ -371,8 +371,35 @@ public class HandlerDiscoveryEngine
 
     private bool ValidateEndpointHandlerSignature(IMethodSymbol method, Location location, IDiagnosticReporter diagnosticReporter)
     {
-        // Endpoint handlers follow the same rules as request handlers
-        return ValidateRequestHandlerSignature(method, location, diagnosticReporter);
+        // Endpoint handlers should have:
+        // - Exactly one parameter (the request)
+        // - Return Task<T>, ValueTask<T>, Task, ValueTask, void, or T
+        // - Be public or internal
+
+        if (method.Parameters.Length != 1)
+        {
+            var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                "endpoint handler",
+                method.Name, "Endpoint handlers must have exactly one parameter");
+            diagnosticReporter.ReportDiagnostic(diagnostic);
+            return false;
+        }
+
+        if (!ValidateAccessibility(method, location, diagnosticReporter))
+        {
+            return false;
+        }
+
+        if (!IsValidEndpointReturnType(method.ReturnType))
+        {
+            var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InvalidHandlerSignature, location,
+                "endpoint handler",
+                method.Name, "Endpoint handlers must return Task<T>, ValueTask<T>, Task, ValueTask, void, or a concrete type");
+            diagnosticReporter.ReportDiagnostic(diagnostic);
+            return false;
+        }
+
+        return true;
     }
 
     private bool ValidateAccessibility(IMethodSymbol method, Location location, IDiagnosticReporter diagnosticReporter)
@@ -409,6 +436,40 @@ public class HandlerDiscoveryEngine
         if (returnType.SpecialType == SpecialType.System_Void)
         {
             return false;
+        }
+
+        // Check for Task<T>, ValueTask<T>, Task, ValueTask
+        if (typeName.StartsWith("System.Threading.Tasks.Task") ||
+            typeName.StartsWith("System.Threading.Tasks.ValueTask"))
+        {
+            return true;
+        }
+
+        // Check for IAsyncEnumerable<T> (streaming handlers)
+        if (typeName.StartsWith("System.Collections.Generic.IAsyncEnumerable"))
+        {
+            return true;
+        }
+
+        // Any other concrete type is valid
+        return true;
+    }
+
+    private bool IsEndpointHandler(IMethodSymbol method)
+    {
+        return method.GetAttributes().Any(attr =>
+            attr.AttributeClass?.Name == "ExposeAsEndpointAttribute" ||
+            attr.AttributeClass?.Name == "ExposeAsEndpoint");
+    }
+
+    private bool IsValidEndpointReturnType(ITypeSymbol returnType)
+    {
+        var typeName = returnType.ToDisplayString();
+
+        // Check for void (allowed for endpoint handlers)
+        if (returnType.SpecialType == SpecialType.System_Void)
+        {
+            return true;
         }
 
         // Check for Task<T>, ValueTask<T>, Task, ValueTask

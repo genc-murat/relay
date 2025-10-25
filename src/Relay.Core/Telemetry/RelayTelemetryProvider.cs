@@ -1,11 +1,9 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Threading;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Relay.Core.Telemetry;
 

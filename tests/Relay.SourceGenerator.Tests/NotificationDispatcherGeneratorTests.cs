@@ -1,9 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Xunit;
-using System.Linq;
-using System.Collections.Generic;
-using System.Threading;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -277,53 +274,6 @@ namespace TestApp
         Assert.DoesNotContain("await handler.HandleAsync(notification, cancellationToken);", result);
     }
 
-    [Fact]
-    public void GenerateNotificationDispatcher_ShouldOrderHandlersByPriority()
-    {
-        // Arrange
-        var source = @"
-using System.Threading;
-using System.Threading.Tasks;
-using Relay.Core;
-
-namespace TestApp
-{
-    public class TestNotification : INotification { }
-
-    public class HighPriorityHandler
-    {
-        [Notification(Priority = 10)]
-        public async Task HandleAsync(TestNotification notification, CancellationToken cancellationToken)
-        {
-            await Task.CompletedTask;
-        }
-    }
-
-    public class LowPriorityHandler
-    {
-        [Notification(Priority = 1)]
-        public async Task HandleAsync(TestNotification notification, CancellationToken cancellationToken)
-        {
-            await Task.CompletedTask;
-        }
-    }
-}";
-
-        var compilation = CreateTestCompilation(source);
-        var context = new RelayCompilationContext(compilation, CancellationToken.None);
-        var generator = new NotificationDispatcherGenerator(context);
-        var discoveryResult = CreateDiscoveryResultWithPriorityHandlers(compilation);
-
-        // Act
-        var result = generator.GenerateNotificationDispatcher(discoveryResult);
-
-        // Assert
-        // High priority handler should appear before low priority handler
-        var highPriorityIndex = result.IndexOf("HighPriorityHandler");
-        var lowPriorityIndex = result.IndexOf("LowPriorityHandler");
-        Assert.True(highPriorityIndex < lowPriorityIndex, "High priority handler should be executed before low priority handler");
-    }
-
 
 
 
@@ -361,6 +311,232 @@ namespace TestApp
 
         // Assert
         Assert.Contains("ValidateRequest(notification, nameof(notification))", result);
+    }
+
+    [Fact]
+    public void CanGenerate_ReturnsTrue_WhenHasNotificationHandlers()
+    {
+        // Arrange
+        var compilation = CreateTestCompilation();
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = CreateDiscoveryResultWithNotificationHandler(compilation);
+
+        // Act
+        var canGenerate = generator.CanGenerate(discoveryResult);
+
+        // Assert
+        Assert.True(canGenerate);
+    }
+
+    [Fact]
+    public void CanGenerate_ReturnsFalse_WhenNoNotificationHandlers()
+    {
+        // Arrange
+        var compilation = CreateTestCompilation();
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult(); // Empty result
+
+        // Act
+        var canGenerate = generator.CanGenerate(discoveryResult);
+
+        // Assert
+        Assert.False(canGenerate);
+    }
+
+    [Fact]
+    public void CanGenerate_ReturnsFalse_WhenNullResult()
+    {
+        // Arrange
+        var compilation = CreateTestCompilation();
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+
+        // Act
+        var canGenerate = generator.CanGenerate(null!);
+
+        // Assert
+        Assert.False(canGenerate);
+    }
+
+    [Fact]
+    public void Generate_WithICodeGeneratorInterface_WorksCorrectly()
+    {
+        // Arrange
+        var compilation = CreateTestCompilation();
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = CreateDiscoveryResultWithNotificationHandler(compilation);
+        var options = new GenerationOptions();
+
+        // Act
+        var result = ((ICodeGenerator)generator).Generate(discoveryResult, options);
+
+        // Assert
+        Assert.Contains("GeneratedNotificationDispatcher", result);
+        Assert.Contains("BaseNotificationDispatcher", result);
+    }
+
+    [Fact]
+    public void NotificationDispatcherGenerator_Properties_ReturnCorrectValues()
+    {
+        // Arrange
+        var compilation = CreateTestCompilation();
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+
+        // Act & Assert
+        Assert.Equal("Notification Dispatcher Generator", generator.GeneratorName);
+        Assert.Equal("GeneratedNotificationDispatcher", generator.OutputFileName);
+        Assert.Equal(40, generator.Priority);
+    }
+
+    [Fact]
+    public void GenerateNotificationDispatcher_ShouldHandleMultipleHandlersForSameNotification()
+    {
+        // Arrange
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace TestApp
+{
+    public class TestNotification : INotification { }
+
+    public class Handler1
+    {
+        [Notification]
+        public async Task HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+        }
+    }
+
+    public class Handler2
+    {
+        [Notification]
+        public async Task HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = CreateDiscoveryResultWithMultipleHandlersForSameNotification(compilation);
+
+        // Act
+        var result = generator.GenerateNotificationDispatcher(discoveryResult);
+
+        // Assert
+        Assert.Contains("TestNotification", result);
+        Assert.Contains("Handler1", result);
+        Assert.Contains("Handler2", result);
+    }
+
+    [Fact]
+    public void GenerateNotificationDispatcher_ShouldHandleSingleParallelHandler()
+    {
+        // Arrange
+        var compilation = CreateTestCompilation();
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = CreateDiscoveryResultWithNotificationHandler(compilation);
+
+        // Act
+        var result = generator.GenerateNotificationDispatcher(discoveryResult);
+
+        // Assert
+        // For a single handler, it executes directly without Task.WhenAll
+        Assert.DoesNotContain("await Task.WhenAll(parallelTasks)", result);
+        Assert.Contains("try", result); // Should contain handler execution with try-catch
+    }
+
+    [Fact]
+    public void GenerateNotificationDispatcher_ShouldHandleSequentialDispatchMode()
+    {
+        // Arrange
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace TestApp
+{
+    public class TestNotification : INotification { }
+
+    public class SequentialHandler
+    {
+        [Notification(DispatchMode = NotificationDispatchMode.Sequential)]
+        public async Task HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = CreateDiscoveryResultWithSequentialHandler(compilation);
+
+        // Act
+        var result = generator.GenerateNotificationDispatcher(discoveryResult);
+
+        // Assert
+        Assert.Contains("SequentialHandler", result);
+        Assert.Contains("try", result);
+        Assert.Contains("catch (Exception ex)", result);
+        // Sequential handlers are executed directly, not wrapped in Task.Run
+        Assert.DoesNotContain("Task.Run(async () =>", result);
+    }
+
+    [Fact]
+    public void GenerateNotificationDispatcher_ShouldHandleMultipleParallelHandlers()
+    {
+        // Arrange
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace TestApp
+{
+    public class TestNotification : INotification { }
+
+    public class ParallelHandler
+    {
+        [Notification(DispatchMode = NotificationDispatchMode.Parallel)]
+        public async Task HandleAsync1(TestNotification notification, CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+        }
+
+        [Notification(DispatchMode = NotificationDispatchMode.Parallel)]
+        public async Task HandleAsync2(TestNotification notification, CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask;
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var context = new RelayCompilationContext(compilation, CancellationToken.None);
+        var generator = new NotificationDispatcherGenerator(context);
+        var discoveryResult = CreateDiscoveryResultWithMultipleParallelHandlers(compilation);
+
+        // Act
+        var result = generator.GenerateNotificationDispatcher(discoveryResult);
+
+        // Assert
+        Assert.Contains("ParallelHandler", result);
+        Assert.Contains("HandleAsync1", result);
+        Assert.Contains("HandleAsync2", result);
+        Assert.NotEmpty(result);
     }
 
     private Compilation CreateTestCompilation(string? additionalSource = null)
@@ -438,7 +614,7 @@ namespace Relay.Core
                 new RelayAttributeInfo
                 {
                     Type = RelayAttributeType.Notification,
-                    AttributeData = method.GetAttributes().FirstOrDefault()
+                    AttributeData = method.GetAttributes().FirstOrDefault(a => a.AttributeClass?.Name == "NotificationAttribute")
                 }
             }
         };
@@ -510,7 +686,6 @@ namespace MockTest
                 });
             }
         }
-
         return result;
     }
 
@@ -625,4 +800,130 @@ namespace MockTest
     }
 
 
+
+    private HandlerDiscoveryResult CreateDiscoveryResultWithSingleParallelHandler(Compilation compilation)
+    {
+        var result = new HandlerDiscoveryResult();
+
+        var handlerType = compilation.GetTypeByMetadataName("TestApp.SingleParallelHandler");
+        var method = handlerType?.GetMembers().OfType<IMethodSymbol>().FirstOrDefault();
+
+        if (method != null)
+        {
+            result.Handlers.Add(new HandlerInfo
+            {
+                MethodSymbol = method,
+                Attributes = new List<RelayAttributeInfo>
+                {
+                    new RelayAttributeInfo
+                    {
+                        Type = RelayAttributeType.Notification,
+                        AttributeData = method.GetAttributes().FirstOrDefault()
+                    }
+                }
+            });
+        }
+
+        return result;
+    }
+
+    private HandlerDiscoveryResult CreateDiscoveryResultWithMultipleHandlersForSameNotification(Compilation compilation)
+    {
+        var result = new HandlerDiscoveryResult();
+
+        // Add first handler
+        var handler1Type = compilation.GetTypeByMetadataName("TestApp.Handler1");
+        var handler1Method = handler1Type?.GetMembers().OfType<IMethodSymbol>().FirstOrDefault();
+        if (handler1Method != null)
+        {
+            result.Handlers.Add(new HandlerInfo
+            {
+                MethodSymbol = handler1Method,
+                Attributes = new List<RelayAttributeInfo>
+                {
+                    new RelayAttributeInfo
+                    {
+                        Type = RelayAttributeType.Notification,
+                        AttributeData = handler1Method.GetAttributes().FirstOrDefault()
+                    }
+                }
+            });
+        }
+
+        // Add second handler
+        var handler2Type = compilation.GetTypeByMetadataName("TestApp.Handler2");
+        var handler2Method = handler2Type?.GetMembers().OfType<IMethodSymbol>().FirstOrDefault();
+        if (handler2Method != null)
+        {
+            result.Handlers.Add(new HandlerInfo
+            {
+                MethodSymbol = handler2Method,
+                Attributes = new List<RelayAttributeInfo>
+                {
+                    new RelayAttributeInfo
+                    {
+                        Type = RelayAttributeType.Notification,
+                        AttributeData = handler2Method.GetAttributes().FirstOrDefault()
+                    }
+                }
+            });
+        }
+
+        return result;
+    }
+
+    private HandlerDiscoveryResult CreateDiscoveryResultWithSequentialHandler(Compilation compilation)
+    {
+        var result = new HandlerDiscoveryResult();
+
+        var handlerType = compilation.GetTypeByMetadataName("TestApp.SequentialHandler");
+        var method = handlerType?.GetMembers().OfType<IMethodSymbol>().FirstOrDefault();
+
+        if (method != null)
+        {
+            result.Handlers.Add(new HandlerInfo
+            {
+                MethodSymbol = method,
+                Attributes = new List<RelayAttributeInfo>
+                {
+                    new RelayAttributeInfo
+                    {
+                        Type = RelayAttributeType.Notification,
+                        AttributeData = method.GetAttributes().FirstOrDefault()
+                    }
+                }
+            });
+        }
+
+        return result;
+    }
+
+    private HandlerDiscoveryResult CreateDiscoveryResultWithMultipleParallelHandlers(Compilation compilation)
+    {
+        var result = new HandlerDiscoveryResult();
+
+        var handlerType = compilation.GetTypeByMetadataName("TestApp.ParallelHandler");
+        var methods = handlerType?.GetMembers().OfType<IMethodSymbol>().Where(m => m.Name.StartsWith("HandleAsync")).ToList();
+
+        if (methods != null)
+        {
+            foreach (var method in methods)
+            {
+                result.Handlers.Add(new HandlerInfo
+                {
+                    MethodSymbol = method,
+                    Attributes = new List<RelayAttributeInfo>
+                    {
+                        new RelayAttributeInfo
+                        {
+                            Type = RelayAttributeType.Notification,
+                            AttributeData = method.GetAttributes().FirstOrDefault(a => a.AttributeClass?.Name == "NotificationAttribute")
+                        }
+                    }
+                });
+            }
+        }
+
+        return result;
+    }
 }

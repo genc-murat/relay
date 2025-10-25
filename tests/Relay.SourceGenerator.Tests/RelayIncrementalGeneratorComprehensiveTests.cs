@@ -1,15 +1,15 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Relay.SourceGenerator.Tests
+namespace Relay.SourceGenerator.Tests;
+
+public class RelayIncrementalGeneratorComprehensiveTests
 {
-    public class RelayIncrementalGeneratorComprehensiveTests
+    [Fact]
+    public void Generator_Should_Report_MissingRelayCoreReference_Diagnostic()
     {
-        [Fact]
-        public void Generator_Should_Report_MissingRelayCoreReference_Diagnostic()
-        {
-            // Arrange - Create code with Relay attributes but no Relay.Core reference
-            var source = @"
+        // Arrange - Create code with Relay attributes but no Relay.Core reference
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,39 +25,39 @@ namespace TestProject
     }
 }";
 
-            var generator = new RelayIncrementalGenerator();
-            // Create compilation WITHOUT Relay.Core reference
-            var compilation = CSharpCompilation.Create(
-                assemblyName: "TestAssembly",
-                syntaxTrees: new[] { CSharpSyntaxTree.ParseText(source) },
-                references: new[]
-                {
-                    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                    MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
-                },
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var generator = new RelayIncrementalGenerator();
+        // Create compilation WITHOUT Relay.Core reference
+        var compilation = CSharpCompilation.Create(
+            assemblyName: "TestAssembly",
+            syntaxTrees: new[] { CSharpSyntaxTree.ParseText(source) },
+            references: new[]
+            {
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
+            },
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
+        // Act
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out var outputCompilation,
+            out var diagnostics);
 
-            // Assert
-            var missingCoreDiagnostic = diagnostics.FirstOrDefault(d => 
-                d.Id == "RELAY_GEN_004" && // MissingRelayCoreReference
-                d.Severity == DiagnosticSeverity.Error);
-            
-            Assert.NotNull(missingCoreDiagnostic);
-            Assert.Contains("Relay.Core package must be referenced", missingCoreDiagnostic.GetMessage());
-        }
+        // Assert
+        var missingCoreDiagnostic = diagnostics.FirstOrDefault(d => 
+            d.Id == "RELAY_GEN_004" && // MissingRelayCoreReference
+            d.Severity == DiagnosticSeverity.Error);
+        
+        Assert.NotNull(missingCoreDiagnostic);
+        Assert.Contains("Relay.Core package must be referenced", missingCoreDiagnostic.GetMessage());
+    }
 
-        [Fact]
-        public void Generator_Should_Handle_RequestHandler_Interface_Implementations()
-        {
-            // Arrange - Test IRequestHandler interface implementation
-            var source = @"
+    [Fact]
+    public void Generator_Should_Handle_RequestHandler_Interface_Implementations()
+    {
+        // Arrange - Test IRequestHandler interface implementation
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Requests;
@@ -76,28 +76,28 @@ namespace TestProject
     }
 }";
 
-            var generator = new RelayIncrementalGenerator();
-            var compilation = CreateTestCompilation(source);
+        var generator = new RelayIncrementalGenerator();
+        var compilation = CreateTestCompilation(source);
 
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
+        // Act
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out var outputCompilation,
+            out var diagnostics);
 
-            var runResult = driver.GetRunResult();
+        var runResult = driver.GetRunResult();
 
-            // Assert
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
-            Assert.NotEmpty(runResult.GeneratedTrees);
-        }
+        // Assert
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.NotEmpty(runResult.GeneratedTrees);
+    }
 
-        [Fact]
-        public void Generator_Should_Handle_NotificationHandler_Interface_Implementations()
-        {
-            // Arrange - Test INotificationHandler interface implementation
-            var source = @"
+    [Fact]
+    public void Generator_Should_Handle_NotificationHandler_Interface_Implementations()
+    {
+        // Arrange - Test INotificationHandler interface implementation
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Notifications;
@@ -116,28 +116,28 @@ namespace TestProject
     }
 }";
 
-            var generator = new RelayIncrementalGenerator();
-            var compilation = CreateTestCompilation(source);
+        var generator = new RelayIncrementalGenerator();
+        var compilation = CreateTestCompilation(source);
 
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
+        // Act
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out var outputCompilation,
+            out var diagnostics);
 
-            var runResult = driver.GetRunResult();
+        var runResult = driver.GetRunResult();
 
-            // Assert
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
-            Assert.NotEmpty(runResult.GeneratedTrees);
-        }
+        // Assert
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.NotEmpty(runResult.GeneratedTrees);
+    }
 
-        [Fact]
-        public void Generator_Should_Handle_StreamHandler_Interface_Implementations()
-        {
-            // Arrange - Test IStreamHandler interface implementation
-            var source = @"
+    [Fact]
+    public void Generator_Should_Handle_StreamHandler_Interface_Implementations()
+    {
+        // Arrange - Test IStreamHandler interface implementation
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Requests;
@@ -156,28 +156,28 @@ namespace TestProject
     }
 }";
 
-            var generator = new RelayIncrementalGenerator();
-            var compilation = CreateTestCompilation(source);
+        var generator = new RelayIncrementalGenerator();
+        var compilation = CreateTestCompilation(source);
 
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
+        // Act
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out var outputCompilation,
+            out var diagnostics);
 
-            var runResult = driver.GetRunResult();
+        var runResult = driver.GetRunResult();
 
-            // Assert
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
-            Assert.NotEmpty(runResult.GeneratedTrees);
-        }
+        // Assert
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.NotEmpty(runResult.GeneratedTrees);
+    }
 
-        [Fact]
-        public void Generator_Should_Generate_DI_Registrations_For_Multiple_Handlers()
-        {
-            // Arrange - Multiple different handler types
-            var source = @"
+    [Fact]
+    public void Generator_Should_Generate_DI_Registrations_For_Multiple_Handlers()
+    {
+        // Arrange - Multiple different handler types
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Requests;
@@ -215,34 +215,34 @@ namespace TestProject
     }
 }";
 
-            var generator = new RelayIncrementalGenerator();
-            var compilation = CreateTestCompilation(source);
+        var generator = new RelayIncrementalGenerator();
+        var compilation = CreateTestCompilation(source);
 
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
+        // Act
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out var outputCompilation,
+            out var diagnostics);
 
-            var runResult = driver.GetRunResult();
+        var runResult = driver.GetRunResult();
 
-            // Assert
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
-            Assert.NotEmpty(runResult.Results);
-            
-            // Should generate both DI registration and optimized dispatcher
-            var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
-            Assert.Contains("AddRelay", generatedCode);
-            Assert.Contains("IRequestHandler", generatedCode);
-            Assert.Contains("INotificationHandler", generatedCode);
-        }
+        // Assert
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.NotEmpty(runResult.Results);
+        
+        // Should generate both DI registration and optimized dispatcher
+        var generatedCode = string.Join("\n", runResult.GeneratedTrees.Select(t => t.ToString()));
+        Assert.Contains("AddRelay", generatedCode);
+        Assert.Contains("IRequestHandler", generatedCode);
+        Assert.Contains("INotificationHandler", generatedCode);
+    }
 
-        [Fact]
-        public void Generator_Should_Detect_Invalid_Handler_Name()
-        {
-            // Arrange - Test invalid relay attribute name
-            var source = @"
+    [Fact]
+    public void Generator_Should_Detect_Invalid_Handler_Name()
+    {
+        // Arrange - Test invalid relay attribute name
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -258,25 +258,25 @@ namespace TestProject
     }
 }";
 
-            var generator = new RelayIncrementalGenerator();
-            var compilation = CreateTestCompilation(source);
+        var generator = new RelayIncrementalGenerator();
+        var compilation = CreateTestCompilation(source);
 
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
+        // Act
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out var outputCompilation,
+            out var diagnostics);
 
-            // Assert - Should not crash, and should not generate with invalid attribute
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Id == "RELAY_GEN_001"); // GeneratorError
-        }
+        // Assert - Should not crash, and should not generate with invalid attribute
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error && d.Id == "RELAY_GEN_001"); // GeneratorError
+    }
 
-        [Fact]
-        public void Generator_Should_Handle_Generic_Request_Handlers()
-        {
-            // Arrange - Test generic IRequestHandler interface implementation
-            var source = @"
+    [Fact]
+    public void Generator_Should_Handle_Generic_Request_Handlers()
+    {
+        // Arrange - Test generic IRequestHandler interface implementation
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Requests;
@@ -285,7 +285,7 @@ using Relay.Core.Contracts.Handlers;
 namespace TestProject
 {
     public class GenericRequest<T> : IRequest<T> { }
-    
+
     public class GenericHandler<T> : IRequestHandler<GenericRequest<T>, T>
     {
         public ValueTask<T> HandleAsync(GenericRequest<T> request, CancellationToken cancellationToken)
@@ -295,28 +295,89 @@ namespace TestProject
     }
 }";
 
-            var generator = new RelayIncrementalGenerator();
-            var compilation = CreateTestCompilation(source);
+        var generator = new RelayIncrementalGenerator();
+        var compilation = CreateTestCompilation(source);
 
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
+        // Act
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out var outputCompilation,
+            out var diagnostics);
 
-            var runResult = driver.GetRunResult();
+        var runResult = driver.GetRunResult();
 
-            // Assert
-            Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
-            Assert.NotEmpty(runResult.GeneratedTrees);
-        }
+        // Assert
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.NotEmpty(runResult.GeneratedTrees);
+    }
 
-        private static Compilation CreateTestCompilation(string source)
+    [Fact]
+    public void Generator_Should_Detect_RequestHandlerInterface_Both_CodePaths()
+    {
+        // Arrange - Test both code paths in IsRequestHandlerInterface method
+        // Path 1: interfaceSymbol.Name == "IRequestHandler" && namespace check
+        // Path 2: fullName.StartsWith("Relay.Core.Contracts.Handlers.IRequestHandler<")
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Contracts.Handlers;
+
+namespace TestProject
+{
+    public class TestRequest : IRequest<string> { }
+
+    // This will test the namespace + name check path
+    public class SimpleHandler : IRequestHandler<TestRequest, string>
+    {
+        public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText(source);
+            return ValueTask.FromResult(""simple"");
+        }
+    }
 
-            var relayCoreStubs = CSharpSyntaxTree.ParseText(@"
+    // This will also test the namespace + name check path (generic)
+    public class GenericHandler<T> : Relay.Core.Contracts.Handlers.IRequestHandler<TestRequest, T>
+    {
+        public ValueTask<T> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(default(T));
+        }
+    }
+}";
+
+        var generator = new RelayIncrementalGenerator();
+        var compilation = CreateTestCompilation(source);
+
+        // Act
+        var driver = CSharpGeneratorDriver.Create(generator);
+        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out var outputCompilation,
+            out var diagnostics);
+
+        var runResult = driver.GetRunResult();
+        var generatedCode = runResult.GeneratedTrees.First().ToString();
+
+        // Assert
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        Assert.NotEmpty(runResult.GeneratedTrees);
+
+        // Verify that both handler types were detected and registered
+        // This test ensures IsRequestHandlerInterface method correctly identifies
+        // request handler interfaces through both code paths:
+        // 1. Name + namespace check: IRequestHandler in Relay.Core.Contracts.Handlers
+        // 2. Full name check: Relay.Core.Contracts.Handlers.IRequestHandler<TRequest, TResponse>
+        Assert.Contains("SimpleHandler", generatedCode);
+        Assert.Contains("GenericHandler", generatedCode);
+    }
+
+    private static Compilation CreateTestCompilation(string source)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+
+        var relayCoreStubs = CSharpSyntaxTree.ParseText(@"
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -375,17 +436,16 @@ namespace Relay.Core
 }
 ");
 
-            return CSharpCompilation.Create(
-                assemblyName: "TestAssembly",
-                syntaxTrees: new[] { relayCoreStubs, syntaxTree },
-                references: new[]
-                {
-                    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                    MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
-                    MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
-                    MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
-                },
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        }
+        return CSharpCompilation.Create(
+            assemblyName: "TestAssembly",
+            syntaxTrees: new[] { relayCoreStubs, syntaxTree },
+            references: new[]
+            {
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
+            },
+            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 }

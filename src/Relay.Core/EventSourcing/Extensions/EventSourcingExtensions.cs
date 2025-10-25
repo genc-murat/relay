@@ -4,30 +4,63 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Infrastructure;
+using Relay.Core.EventSourcing.Infrastructure.Database;
 
 namespace Relay.Core.EventSourcing.Extensions;
 
 /// <summary>
 /// Extension methods for configuring event sourcing with EF Core.
+/// Supports multiple database providers (PostgreSQL, SQL Server, SQLite).
 /// </summary>
 public static class EventSourcingExtensions
 {
     /// <summary>
-    /// Adds EF Core event store services to the service collection.
+    /// Adds EF Core event store services to the service collection with automatic provider detection.
+    /// Detects the database provider based on the connection string format.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="connectionString">The PostgreSQL connection string.</param>
+    /// <param name="connectionString">The database connection string.</param>
     /// <returns>The service collection for chaining.</returns>
+    /// <exception cref="ArgumentException">Thrown when provider cannot be detected from connection string.</exception>
     public static IServiceCollection AddEfCoreEventStore(
         this IServiceCollection services,
         string connectionString)
     {
-        services.AddDbContext<EventStoreDbContext>(options =>
-            options.UseNpgsql(connectionString));
+        var provider = DbProviderFactory.CreateProviderFromConnectionString(connectionString);
+        return AddEfCoreEventStore(services, provider, connectionString);
+    }
 
-        services.AddScoped<IEventStore, EfCoreEventStore>();
+    /// <summary>
+    /// Adds EF Core event store services to the service collection with explicit provider specification (enum).
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="provider">The database provider enumeration (DatabaseProvider.PostgreSQL, etc.).</param>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddEfCoreEventStore(
+        this IServiceCollection services,
+        DatabaseProvider provider,
+        string connectionString)
+    {
+        var dbProvider = DbProviderFactory.CreateProvider(provider);
+        return AddEfCoreEventStore(services, dbProvider, connectionString);
+    }
 
-        return services;
+    /// <summary>
+    /// Adds EF Core event store services to the service collection with explicit provider specification (string).
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="providerType">The database provider type (PostgreSQL, SqlServer, Sqlite, MySQL, MariaDB).</param>
+    /// <param name="connectionString">The database connection string.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <exception cref="ArgumentException">Thrown when provider type is not supported.</exception>
+    public static IServiceCollection AddEfCoreEventStore(
+        this IServiceCollection services,
+        string providerType,
+        string connectionString)
+    {
+        var provider = DbProviderFactory.CreateProvider(providerType);
+        return AddEfCoreEventStore(services, provider, connectionString);
     }
 
     /// <summary>
@@ -41,6 +74,22 @@ public static class EventSourcingExtensions
         Action<DbContextOptionsBuilder> optionsAction)
     {
         services.AddDbContext<EventStoreDbContext>(optionsAction);
+        services.AddScoped<IEventStore, EfCoreEventStore>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds EF Core event store services with a specific database provider.
+    /// </summary>
+    private static IServiceCollection AddEfCoreEventStore(
+        this IServiceCollection services,
+        IDbProvider provider,
+        string connectionString)
+    {
+        services.AddDbContext<EventStoreDbContext>(options =>
+            provider.Configure((DbContextOptionsBuilder<EventStoreDbContext>)(object)options, connectionString));
+
         services.AddScoped<IEventStore, EfCoreEventStore>();
 
         return services;

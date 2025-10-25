@@ -4,6 +4,7 @@ using Relay.CLI.Commands.Models.Performance;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
@@ -1604,6 +1605,362 @@ public record UserDto(int Id, string Name, string Email);";
 
         // Assert - Should deduct: 2.0 + 1.0 + 1.5 = 4.5 points
         Assert.True(score < 6.0);
+    }
+
+    [Fact]
+    public void HasAsyncMethods_WithAsyncMethod_ShouldReturnTrue()
+    {
+        // Arrange
+        var method = SyntaxFactory.MethodDeclaration(SyntaxFactory.IdentifierName("Task"), "TestMethod")
+            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.AsyncKeyword)));
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass")
+            .WithMembers(SyntaxFactory.SingletonList<MemberDeclarationSyntax>(method));
+
+        // Act
+        var result = AnalysisHelpers.HasAsyncMethods(classDecl);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasAsyncMethods_WithoutAsyncMethod_ShouldReturnFalse()
+    {
+        // Arrange
+        var method = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "TestMethod");
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass")
+            .WithMembers(SyntaxFactory.SingletonList<MemberDeclarationSyntax>(method));
+
+        // Act
+        var result = AnalysisHelpers.HasAsyncMethods(classDecl);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasConstructorDependencies_WithParameters_ShouldReturnTrue()
+    {
+        // Arrange
+        var parameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier("service"))
+            .WithType(SyntaxFactory.IdentifierName("IService"));
+        var constructor = SyntaxFactory.ConstructorDeclaration("TestClass")
+            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(parameter)));
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass")
+            .WithMembers(SyntaxFactory.SingletonList<MemberDeclarationSyntax>(constructor));
+
+        // Act
+        var result = AnalysisHelpers.HasConstructorDependencies(classDecl);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasConstructorDependencies_WithoutParameters_ShouldReturnFalse()
+    {
+        // Arrange
+        var constructor = SyntaxFactory.ConstructorDeclaration("TestClass")
+            .WithParameterList(SyntaxFactory.ParameterList());
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass")
+            .WithMembers(SyntaxFactory.SingletonList<MemberDeclarationSyntax>(constructor));
+
+        // Act
+        var result = AnalysisHelpers.HasConstructorDependencies(classDecl);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void UsesValueTask_WithValueTask_ShouldReturnTrue()
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass");
+        var content = "public async ValueTask Handle() { }";
+
+        // Act
+        var result = AnalysisHelpers.UsesValueTask(classDecl, content);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void UsesValueTask_WithoutValueTask_ShouldReturnFalse()
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass");
+        var content = "public async Task Handle() { }";
+
+        // Act
+        var result = AnalysisHelpers.UsesValueTask(classDecl, content);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void UsesCancellationToken_WithCancellationToken_ShouldReturnTrue()
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass");
+        var content = "public async Task Handle(CancellationToken token) { }";
+
+        // Act
+        var result = AnalysisHelpers.UsesCancellationToken(classDecl, content);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void UsesCancellationToken_WithoutCancellationToken_ShouldReturnFalse()
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass");
+        var content = "public async Task Handle() { }";
+
+        // Act
+        var result = AnalysisHelpers.UsesCancellationToken(classDecl, content);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasLogging_WithILogger_ShouldReturnTrue()
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass");
+        var content = "private readonly ILogger _logger;";
+
+        // Act
+        var result = AnalysisHelpers.HasLogging(classDecl, content);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasLogging_WithoutILogger_ShouldReturnFalse()
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass");
+        var content = "private readonly string _name;";
+
+        // Act
+        var result = AnalysisHelpers.HasLogging(classDecl, content);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasValidation_WithValidationAttribute_ShouldReturnTrue()
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass");
+        var content = "[Required] public string Name { get; set; }";
+
+        // Act
+        var result = AnalysisHelpers.HasValidation(classDecl, content);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasValidation_WithoutValidationAttribute_ShouldReturnFalse()
+    {
+        // Arrange
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass");
+        var content = "public string Name { get; set; }";
+
+        // Act
+        var result = AnalysisHelpers.HasValidation(classDecl, content);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void GetMethodLineCount_WithMethods_ShouldReturnCorrectCount()
+    {
+        // Arrange
+        var method1 = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Method1")
+            .WithBody(SyntaxFactory.Block(
+                SyntaxFactory.ExpressionStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(1))),
+                SyntaxFactory.ExpressionStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(2)))
+            ));
+        var method2 = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Method2")
+            .WithBody(SyntaxFactory.Block(
+                SyntaxFactory.ExpressionStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(3)))
+            ));
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass")
+            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(new[] { method1, method2 }));
+
+        // Act
+        var result = AnalysisHelpers.GetMethodLineCount(classDecl);
+
+        // Assert
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public void HasResponseType_WithIRequestOfT_ShouldReturnTrue()
+    {
+        // Arrange
+        var baseType = SyntaxFactory.SimpleBaseType(SyntaxFactory.GenericName("IRequest")
+            .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(SyntaxFactory.SingletonSeparatedList<TypeSyntax>(SyntaxFactory.IdentifierName("Response")))));
+        var typeDecl = SyntaxFactory.ClassDeclaration("TestRequest")
+            .WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(baseType)));
+        var content = "";
+
+        // Act
+        var result = AnalysisHelpers.HasResponseType(typeDecl, content);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasResponseType_WithoutIRequestOfT_ShouldReturnFalse()
+    {
+        // Arrange
+        var typeDecl = SyntaxFactory.ClassDeclaration("TestRequest");
+        var content = "";
+
+        // Act
+        var result = AnalysisHelpers.HasResponseType(typeDecl, content);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasValidationAttributes_WithRequired_ShouldReturnTrue()
+    {
+        // Arrange
+        var typeDecl = SyntaxFactory.ClassDeclaration("TestRequest");
+        var content = "[Required] public string Name { get; set; }";
+
+        // Act
+        var result = AnalysisHelpers.HasValidationAttributes(typeDecl, content);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasValidationAttributes_WithoutValidation_ShouldReturnFalse()
+    {
+        // Arrange
+        var typeDecl = SyntaxFactory.ClassDeclaration("TestRequest");
+        var content = "public string Name { get; set; }";
+
+        // Act
+        var result = AnalysisHelpers.HasValidationAttributes(typeDecl, content);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void GetParameterCount_WithRecordParameters_ShouldReturnCorrectCount()
+    {
+        // Arrange
+        var parameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier("name"))
+            .WithType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)));
+        var recordDecl = SyntaxFactory.RecordDeclaration(SyntaxFactory.Token(SyntaxKind.RecordKeyword), "TestRecord")
+            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(parameter)));
+
+        // Act
+        var result = AnalysisHelpers.GetParameterCount(recordDecl);
+
+        // Assert
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public void GetParameterCount_WithClassProperties_ShouldReturnCorrectCount()
+    {
+        // Arrange
+        var property = SyntaxFactory.PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), "Name")
+            .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.List([
+                SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
+                SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+            ])));
+        var classDecl = SyntaxFactory.ClassDeclaration("TestClass")
+            .WithMembers(SyntaxFactory.SingletonList<MemberDeclarationSyntax>(property));
+
+        // Act
+        var result = AnalysisHelpers.GetParameterCount(classDecl);
+
+        // Assert
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public void HasCachingAttributes_WithCacheable_ShouldReturnTrue()
+    {
+        // Arrange
+        var attribute = SyntaxFactory.Attribute(SyntaxFactory.IdentifierName("Cacheable"));
+        var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(attribute));
+        var typeDecl = SyntaxFactory.ClassDeclaration("TestRequest")
+            .WithAttributeLists(SyntaxFactory.SingletonList(attributeList));
+        var content = "";
+
+        // Act
+        var result = AnalysisHelpers.HasCachingAttributes(typeDecl, content);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasCachingAttributes_WithoutCacheable_ShouldReturnFalse()
+    {
+        // Arrange
+        var typeDecl = SyntaxFactory.ClassDeclaration("TestRequest");
+        var content = "";
+
+        // Act
+        var result = AnalysisHelpers.HasCachingAttributes(typeDecl, content);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasAuthorizationAttributes_WithAuthorize_ShouldReturnTrue()
+    {
+        // Arrange
+        var attribute = SyntaxFactory.Attribute(SyntaxFactory.IdentifierName("Authorize"));
+        var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(attribute));
+        var typeDecl = SyntaxFactory.ClassDeclaration("TestRequest")
+            .WithAttributeLists(SyntaxFactory.SingletonList(attributeList));
+        var content = "";
+
+        // Act
+        var result = AnalysisHelpers.HasAuthorizationAttributes(typeDecl, content);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasAuthorizationAttributes_WithoutAuthorize_ShouldReturnFalse()
+    {
+        // Arrange
+        var typeDecl = SyntaxFactory.ClassDeclaration("TestRequest");
+        var content = "";
+
+        // Act
+        var result = AnalysisHelpers.HasAuthorizationAttributes(typeDecl, content);
+
+        // Assert
+        Assert.False(result);
     }
 
     public void Dispose()

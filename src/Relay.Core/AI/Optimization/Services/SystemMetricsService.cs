@@ -265,9 +265,124 @@ namespace Relay.Core.AI.Optimization.Services
 
         private double CalculateSecurityScore(Dictionary<string, double> metrics)
         {
-            // Placeholder - in real implementation would check security metrics
-            // For now, return high score assuming security is maintained
-            return 0.9;
+            // Calculate security score based on multiple security dimensions
+            var authenticationScore = CalculateAuthenticationSecurityScore(metrics);
+            var authorizationScore = CalculateAuthorizationSecurityScore(metrics);
+            var encryptionScore = CalculateEncryptionScore(metrics);
+            var vulnerabilityScore = CalculateVulnerabilityScore(metrics);
+            var attackPreventionScore = CalculateAttackPreventionScore(metrics);
+            var complianceScore = CalculateComplianceScore(metrics);
+
+            // Weight each component (authentication and encryption are critical)
+            var weightedScore = (
+                authenticationScore * 0.20 +      // 20%
+                authorizationScore * 0.15 +       // 15%
+                encryptionScore * 0.20 +          // 20%
+                vulnerabilityScore * 0.20 +       // 20%
+                attackPreventionScore * 0.15 +    // 15%
+                complianceScore * 0.10            // 10%
+            );
+
+            return Math.Min(Math.Max(weightedScore, 0.0), 1.0);
+        }
+
+        private double CalculateAuthenticationSecurityScore(Dictionary<string, double> metrics)
+        {
+            // Score based on failed authentication attempts and security protocols
+            var failedAuthAttempts = metrics.GetValueOrDefault("FailedAuthAttempts", 0);
+            var mfaEnabled = metrics.GetValueOrDefault("MFAEnabled", 1); // 1 = enabled, 0 = disabled
+            var secureProtocolsUsed = metrics.GetValueOrDefault("SecureProtocolsUsed", 1);
+
+            // Lower failed attempts = higher score
+            var failureScore = Math.Max(0, 1.0 - (failedAuthAttempts / 100.0));
+            var mfaScore = mfaEnabled * 0.5 + 0.5; // At least 0.5 even without MFA
+            var protocolScore = secureProtocolsUsed;
+
+            return (failureScore + mfaScore + protocolScore) / 3.0;
+        }
+
+        private double CalculateAuthorizationSecurityScore(Dictionary<string, double> metrics)
+        {
+            // Score based on unauthorized access attempts and privilege escalation
+            var unauthorizedAttempts = metrics.GetValueOrDefault("UnauthorizedAccessAttempts", 0);
+            var privilegeEscalationAttempts = metrics.GetValueOrDefault("PrivilegeEscalationAttempts", 0);
+            var rbacConfigured = metrics.GetValueOrDefault("RBACConfigured", 1); // Role-Based Access Control
+
+            // Lower unauthorized attempts = higher score
+            var accessScore = Math.Max(0, 1.0 - (unauthorizedAttempts / 50.0));
+            var escalationScore = Math.Max(0, 1.0 - (privilegeEscalationAttempts / 10.0));
+            var rbacScore = rbacConfigured;
+
+            return (accessScore + escalationScore + rbacScore) / 3.0;
+        }
+
+        private double CalculateEncryptionScore(Dictionary<string, double> metrics)
+        {
+            // Score based on data encryption status and encryption strength
+            var dataEncryptionEnabled = metrics.GetValueOrDefault("DataEncryptionEnabled", 1);
+            var transitEncryptionEnabled = metrics.GetValueOrDefault("TransitEncryptionEnabled", 1);
+            var encryptionStrengthScore = metrics.GetValueOrDefault("EncryptionStrengthScore", 1); // 0-1 based on key strength
+            var certificateValidity = metrics.GetValueOrDefault("CertificateValidityDays", 365);
+
+            // Higher certificate validity is better (not expired)
+            var certScore = Math.Min(certificateValidity / 365.0, 1.0);
+
+            return (dataEncryptionEnabled + transitEncryptionEnabled + encryptionStrengthScore + certScore) / 4.0;
+        }
+
+        private double CalculateVulnerabilityScore(Dictionary<string, double> metrics)
+        {
+            // Score based on known vulnerabilities and security patches
+            var knownVulnerabilities = metrics.GetValueOrDefault("KnownVulnerabilities", 0);
+            var securityPatchesApplied = metrics.GetValueOrDefault("SecurityPatchesApplied", 1); // 0-1
+            var dependencyAuditScore = metrics.GetValueOrDefault("DependencyAuditScore", 0.8); // 0-1
+            var outdatedDependencies = metrics.GetValueOrDefault("OutdatedDependencies", 0);
+
+            // Lower vulnerabilities and outdated dependencies = higher score
+            var vulnScore = Math.Max(0, 1.0 - (knownVulnerabilities / 10.0));
+            var patchScore = securityPatchesApplied;
+            var outdatedScore = Math.Max(0, 1.0 - (outdatedDependencies / 20.0));
+
+            return (vulnScore + patchScore + dependencyAuditScore + outdatedScore) / 4.0;
+        }
+
+        private double CalculateAttackPreventionScore(Dictionary<string, double> metrics)
+        {
+            // Score based on attack prevention measures
+            var ddosProtectionEnabled = metrics.GetValueOrDefault("DDoSProtectionEnabled", 1);
+            var sqlInjectionProtection = metrics.GetValueOrDefault("SQLInjectionProtectionEnabled", 1);
+            var xssProtectionEnabled = metrics.GetValueOrDefault("XSSProtectionEnabled", 1);
+            var rateLimitingEnabled = metrics.GetValueOrDefault("RateLimitingEnabled", 1);
+            var suspiciousRequestsDetected = metrics.GetValueOrDefault("SuspiciousRequestsDetected", 0);
+
+            // Lower suspicious requests = higher score
+            var suspicionScore = Math.Max(0, 1.0 - (suspiciousRequestsDetected / 100.0));
+
+            return (
+                ddosProtectionEnabled * 0.25 +
+                sqlInjectionProtection * 0.25 +
+                xssProtectionEnabled * 0.25 +
+                rateLimitingEnabled * 0.15 +
+                suspicionScore * 0.10
+            );
+        }
+
+        private double CalculateComplianceScore(Dictionary<string, double> metrics)
+        {
+            // Score based on compliance with standards (GDPR, PCI-DSS, etc.)
+            var gdprCompliant = metrics.GetValueOrDefault("GDPRCompliant", 1);
+            var pciDssCompliant = metrics.GetValueOrDefault("PCIDSSCompliant", 1);
+            var hipaaCompliant = metrics.GetValueOrDefault("HIPAACompliant", 1);
+            var auditLogsEnabled = metrics.GetValueOrDefault("AuditLogsEnabled", 1);
+            var dataBackupEnabled = metrics.GetValueOrDefault("DataBackupEnabled", 1);
+
+            return (
+                gdprCompliant * 0.25 +
+                pciDssCompliant * 0.25 +
+                hipaaCompliant * 0.15 +
+                auditLogsEnabled * 0.20 +
+                dataBackupEnabled * 0.15
+            );
         }
 
         private double CalculateMaintainabilityScore(Dictionary<string, double> metrics)

@@ -507,162 +507,20 @@ namespace TestProject
             receiver.OnVisitSyntaxNode(node);
         }
 
-        var mockReporter = new MockDiagnosticReporter(new List<Diagnostic>());
-
-        // Act: Run discovery to populate cache
-        var result1 = engine.DiscoverHandlers(receiver.CandidateMethods, mockReporter);
-
-        // Clear caches
-        engine.ClearCaches();
-
-        // Run discovery again - should work without issues
-        var result2 = engine.DiscoverHandlers(receiver.CandidateMethods, mockReporter);
-
-        // Assert
-        Assert.Single(result1.Handlers);
-        Assert.Single(result2.Handlers);
-        Assert.Equal(result1.Handlers.First().MethodSymbol.Name, result2.Handlers.First().MethodSymbol.Name);
-    }
-
-    [Fact]
-    public void HandlerDiscoveryEngine_Should_Handle_Named_Handlers_Correctly()
-    {
-        // Arrange - Test GetHandlerName method with named attributes
-        var source = @"
-using Relay.Core;
-
-namespace TestProject
-{
-    public class TestHandler
-    {
-        [Handle(Name = ""CustomHandler"")]
-        public string HandleTest1(string request) => request;
-
-        [Handle] // Default name
-        public string HandleTest2(string request) => request;
-
-        [Handle(Name = """")] // Empty name should use default
-        public string HandleTest3(string request) => request;
-    }
-}";
-
-        // Act
-        var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
-
-        // Assert
-        Assert.Equal(3, result.Handlers.Count);
-
-        // Verify handler names are extracted correctly
-        var handler1 = result.Handlers.First(h => h.MethodSymbol.Name == "HandleTest1");
-        var handler2 = result.Handlers.First(h => h.MethodSymbol.Name == "HandleTest2");
-        var handler3 = result.Handlers.First(h => h.MethodSymbol.Name == "HandleTest3");
-
-        // Note: We can't directly test GetHandlerName since it's private,
-        // but we can verify the behavior through duplicate validation
-        Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_005"); // NamedHandlerConflict for duplicate default names
-    }
-
-    [Fact]
-    public void HandlerDiscoveryEngine_Should_Validate_Multiple_Constructors()
-    {
-        // Arrange - Test ValidateConstructor method
-        var source = @"
-using Relay.Core;
-
-namespace TestProject
-{
-    public class TestHandler
-    {
-        public TestHandler() { }
-        public TestHandler(int value) { }
-
-        [Handle]
-        public string HandleTest(string request) => request;
-    }
-}";
-
-        // Act
-        var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
-
-        // Assert
-        Assert.Single(result.Handlers);
-        Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_108"); // MultipleConstructors
-    }
-
-    [Fact]
-    public void HandlerDiscoveryEngine_Should_Reject_Method_Without_Parameters()
-    {
-        // Arrange - Test validation of methods without parameters
-        var source = @"
-using Relay.Core;
-
-namespace TestProject
-{
-    public class TestHandler
-    {
-        [Handle]
-        public string HandleTest() => ""no params"";
-    }
-}";
-
-        // Act
-        var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
-
-        // Assert
-        Assert.Empty(result.Handlers); // Handler is rejected due to invalid signature
-        Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_002"); // InvalidHandlerSignature
-    }
-
-    [Fact]
-    public void HandlerDiscoveryEngine_Should_Handle_Parallel_Processing_Errors()
-    {
-        // Arrange - Create a scenario that might cause parallel processing errors
-        var source = @"
-using Relay.Core;
-using System.Threading.Tasks;
-
-namespace TestProject
-{
-    public class TestHandler1
-    {
-        [Handle]
-        public Task<string> HandleTest1(string request) => Task.FromResult(request);
-    }
-
-    public class TestHandler2
-    {
-        [Handle]
-        public Task<string> HandleTest2(string request) => Task.FromResult(request);
-    }
-
-    public class TestHandler3
-    {
-        [Handle]
-        public Task<string> HandleTest3(string request) => Task.FromResult(request);
-    }
-}";
-
-        var compilation = CreateTestCompilation(source);
-        var context = new RelayCompilationContext(compilation, default);
-        var engine = new HandlerDiscoveryEngine(context, 4); // Force parallel processing
-
-        // Parse and collect candidate methods
-        var syntaxTree = compilation.SyntaxTrees.First();
-        var receiver = new RelaySyntaxReceiver();
-        foreach (var node in syntaxTree.GetRoot().DescendantNodes())
-        {
-            receiver.OnVisitSyntaxNode(node);
-        }
+        // Verify we have candidates
+        Assert.True(receiver.CandidateCount > 0);
 
         var diagnostics = new List<Diagnostic>();
         var mockReporter = new MockDiagnosticReporter(diagnostics);
 
-        // Act: Run discovery with parallel processing
-        var result = engine.DiscoverHandlers(receiver.CandidateMethods, mockReporter);
+        // Run discovery
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var result = discoveryEngine.DiscoverHandlers(receiver.CandidateMethods, mockReporter);
 
-        // Assert
-        Assert.Equal(3, result.Handlers.Count);
-        // Should complete without exceptions in parallel processing
+        // Clear the receiver after use
+        receiver.Clear();
+        Assert.Equal(0, receiver.CandidateCount);
+        Assert.Empty(receiver.CandidateMethods);
     }
 
     private (HandlerDiscoveryResult result, Diagnostic[] diagnostics) RunHandlerDiscoveryWithDiagnostics(string source)

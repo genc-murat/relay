@@ -136,6 +136,35 @@ namespace TestProject
     }
 
     [Fact]
+    public void DiscoverHandlers_Should_Reject_Endpoint_Handler_With_No_Parameters()
+    {
+        // Arrange
+        var source = @"
+using Relay.Core;
+
+namespace TestProject
+{
+    public class TestHandler
+    {
+        [ExposeAsEndpoint]
+        public string HandleEndpoint()
+        {
+            return ""test"";
+        }
+    }
+}";
+
+        // Act
+        var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
+
+        // Assert
+        Assert.Empty(result.Handlers);
+        Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_002" && d.GetMessage(null).Contains("exactly one parameter"));
+    }
+
+
+
+    [Fact]
     public void DiscoverHandlers_Should_Reject_Request_Handler_With_No_Parameters()
     {
         // Arrange

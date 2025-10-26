@@ -560,5 +560,88 @@ namespace Relay.Core.Tests.RateLimiting
         }
 
         #endregion
+
+        #region Error Handling Tests
+
+        [Fact]
+        public async Task HandleAsync_WhenRateLimiterThrowsException_ShouldPropagateException()
+        {
+            // Arrange
+            _relayOptions.DefaultRateLimitingOptions.EnableAutomaticRateLimiting = true;
+            var behavior = CreateBehavior<NonRateLimitedRequest, TestResponse>();
+            var request = new NonRateLimitedRequest();
+
+            _rateLimiterMock.Setup(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("Rate limiter error"));
+
+            var next = new RequestHandlerDelegate<TestResponse>(() =>
+                new ValueTask<TestResponse>(new TestResponse()));
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                behavior.HandleAsync(request, next, CancellationToken.None).AsTask());
+
+            Assert.Equal("Rate limiter error", exception.Message);
+        }
+
+        [Fact]
+        public async Task HandleAsync_WhenGetRetryAfterThrowsException_ShouldPropagateException()
+        {
+            // Arrange
+            _relayOptions.DefaultRateLimitingOptions.EnableAutomaticRateLimiting = true;
+            _relayOptions.DefaultRateLimitingOptions.ThrowOnRateLimitExceeded = true;
+            var behavior = CreateBehavior<NonRateLimitedRequest, TestResponse>();
+            var request = new NonRateLimitedRequest();
+
+            _rateLimiterMock.Setup(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            _rateLimiterMock.Setup(r => r.GetRetryAfterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("GetRetryAfter error"));
+
+            var next = new RequestHandlerDelegate<TestResponse>(() =>
+                new ValueTask<TestResponse>());
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                behavior.HandleAsync(request, next, CancellationToken.None).AsTask());
+
+            Assert.Equal("GetRetryAfter error", exception.Message);
+        }
+
+        [Fact]
+        public async Task HandleAsync_WhenRateLimitExceededAndThrowDisabled_ShouldLogWarning()
+        {
+            // Arrange
+            _relayOptions.DefaultRateLimitingOptions.EnableAutomaticRateLimiting = true;
+            _relayOptions.DefaultRateLimitingOptions.ThrowOnRateLimitExceeded = false;
+            var logger = new Mock<ILogger<RateLimitingPipelineBehavior<NonRateLimitedRequest, TestResponse>>>();
+            var behavior = new RateLimitingPipelineBehavior<NonRateLimitedRequest, TestResponse>(
+                _rateLimiterMock.Object,
+                logger.Object,
+                _optionsMock.Object);
+            var request = new NonRateLimitedRequest();
+
+            _rateLimiterMock.Setup(r => r.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            var next = new RequestHandlerDelegate<TestResponse>(() =>
+                new ValueTask<TestResponse>(new TestResponse { Data = "success" }));
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.Equal("success", result.Data);
+            logger.Verify(
+                l => l.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Rate limit exceeded")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        #endregion
     }
 }

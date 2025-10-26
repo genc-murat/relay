@@ -614,7 +614,7 @@ await _messageBroker.SubscribeAsync<UserCreatedEvent>("my-topic", async (message
 ### Advanced Features
 
 #### Circuit Breaker Pattern
-Automatic failure detection and recovery:
+Automatic failure detection and recovery with comprehensive telemetry:
 
 ```csharp
 services.AddMessageBroker(options =>
@@ -627,7 +627,16 @@ services.AddMessageBroker(options =>
         SuccessThreshold = 2
     };
 });
+
+// Circuit breaker telemetry integration
+services.AddRelayCircuitBreakerTelemetry(); // Automatic metrics and events
 ```
+
+**Telemetry Features:**
+- **State Change Events**: Track circuit breaker state transitions (Closed → Open → Half-Open → Closed)
+- **Request Metrics**: Success/failure counts, rejection rates, and response times
+- **Health Monitoring**: Real-time circuit breaker health status and recovery progress
+- **OpenTelemetry Integration**: Built-in tracing and metrics for distributed monitoring
 
 #### Message Compression
 Reduce bandwidth with automatic compression:
@@ -781,19 +790,40 @@ var harness = RelayTestHarness.Create()
 
 var result = await harness.SendAsync(new GetUserQuery(123));
 Assert.NotNull(result);
+
+// NEW: Streaming request testing
+var streamingHarness = RelayTestFramework.Create()
+    .WithHandler<StreamingHandler>();
+
+var scenario = streamingHarness.Scenario("Stream Data Processing")
+    .StreamRequest(new GetDataStreamQuery())
+    .Verify(async stream =>
+    {
+        var count = 0;
+        await foreach (var item in stream)
+        {
+            count++;
+            Assert.NotNull(item);
+        }
+        Assert.Equal(100, count); // Verify expected number of items
+    });
+
+await streamingHarness.RunScenarioAsync(scenario);
 ```
 
-The framework itself is thoroughly tested with **754 passing tests** (558 core + 196 message broker) covering:
+The framework itself is thoroughly tested with **1600+ passing tests** (868 source generator + 500+ core + 196 message broker + 19 packaging) covering:
 - Core mediator functionality
 - Source generator behavior
 - Configuration system
 - Pipeline behaviors
 - Error handling and edge cases
 - Message broker integrations
-- Circuit breaker patterns
+- Circuit breaker patterns with telemetry
 - Compression algorithms
 - OpenTelemetry integration
 - Saga orchestration
+- Streaming request processing
+- Advanced testing framework scenarios
 
 ## 🧠 AI-Powered Optimization
 
@@ -1763,7 +1793,8 @@ relay benchmark --format html --output results.html
 
 ### 🧪 **Enterprise Testing**
 - **Load Testing**: Performance and stress testing capabilities
-- **Scenario Testing**: Behavior-driven test scenarios
+- **Scenario Testing**: Behavior-driven test scenarios with streaming support
+- **Streaming Request Testing**: Full IAsyncEnumerable testing with backpressure simulation
 - **Advanced Metrics**: P95, P99, throughput analysis
 - **Test Automation**: Comprehensive test orchestration
 
@@ -1778,11 +1809,11 @@ relay benchmark --format html --output results.html
 | **Auto Optimization** | ✅ **One-click performance tuning** | ❌ None | ❌ None | ❌ None |
 | **Benchmarking** | ✅ **Professional HTML reports** | ❌ None | ❌ Basic | ❌ None |
 | **Observability** | ✅ Built-in OpenTelemetry | ❌ Manual setup | ✅ Commercial only | ✅ Limited |
-| **Circuit Breaker** | ✅ Advanced patterns | ❌ Not included | ✅ Basic | ✅ Basic |
+| **Circuit Breaker** | ✅ Advanced patterns + telemetry | ❌ Not included | ✅ Basic | ✅ Basic |
 | **Security** | ✅ Multi-layer + encryption | ❌ Manual | ✅ Enterprise features | ❌ Basic |
 | **Caching** | ✅ Distributed + smart keys | ❌ Manual | ❌ Not included | ❌ Not included |
 | **Workflows** | ✅ Built-in engine | ❌ Not included | ✅ Saga patterns | ✅ Saga patterns |
-| **Testing** | ✅ Load + scenario testing | ❌ Basic mocking | ❌ Manual | ❌ Manual |
+| **Testing** | ✅ Load + scenario + streaming | ❌ Basic mocking | ❌ Manual | ❌ Manual |
 | **Learning Curve** | 🟢 **Easy + CLI assistance** | 🟢 Easy | 🔴 Complex | 🟡 Moderate |
 | **Dependencies** | 🟢 Minimal | 🟢 Minimal | 🔴 Heavy | 🔴 Heavy |
 | **Developer Experience** | 🚀 **Revolutionary** | 🟡 Standard | 🔴 Complex | 🟡 Moderate |

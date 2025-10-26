@@ -201,6 +201,9 @@ public class RelayTestFramework
                 case StepType.PublishNotification:
                     await ExecutePublishNotificationStep(step, result, cancellationToken);
                     break;
+                case StepType.StreamRequest:
+                    await ExecuteStreamRequestStep(step, result, cancellationToken);
+                    break;
                 case StepType.Verify:
                     await ExecuteVerifyStep(step, result, cancellationToken);
                     break;
@@ -245,6 +248,51 @@ public class RelayTestFramework
 
         dynamic task = publishMethod.Invoke(_relay, new object[] { step.Notification, cancellationToken })!;
         await task;
+    }
+
+    private async Task ExecuteStreamRequestStep(TestStep step, StepResult result, CancellationToken cancellationToken)
+    {
+        if (step.StreamRequest == null)
+            throw new InvalidOperationException("StreamRequest is required for StreamRequest step");
+
+        // Use reflection to invoke the correct generic StreamAsync method
+        var requestType = step.StreamRequest.GetType();
+        var responseType = requestType.GetGenericArguments()[0];
+        var streamMethod = typeof(IRelay).GetMethod(nameof(IRelay.StreamAsync))?.MakeGenericMethod(responseType);
+        if (streamMethod == null)
+            throw new InvalidOperationException($"Cannot find StreamAsync method for request type {requestType}");
+
+        var enumerable = streamMethod.Invoke(_relay, new object[] { step.StreamRequest, cancellationToken });
+
+        // Use reflection to iterate over the async enumerable
+        var enumeratorMethod = enumerable!.GetType().GetMethod("GetAsyncEnumerator");
+        if (enumeratorMethod == null)
+            throw new InvalidOperationException("Cannot get async enumerator for stream");
+
+        var enumerator = enumeratorMethod.Invoke(enumerable, new object[] { cancellationToken });
+
+        try
+        {
+            var moveNextMethod = enumerator.GetType().GetMethod("MoveNextAsync");
+            if (moveNextMethod == null)
+                throw new InvalidOperationException("Cannot move next on async enumerator");
+
+            while (true)
+            {
+                var moveNextTask = (ValueTask<bool>)moveNextMethod.Invoke(enumerator, Array.Empty<object>())!;
+                if (!await moveNextTask)
+                    break;
+            }
+        }
+        finally
+        {
+            var disposeMethod = enumerator.GetType().GetMethod("DisposeAsync");
+            if (disposeMethod != null)
+            {
+                var disposeTask = (ValueTask)disposeMethod.Invoke(enumerator, Array.Empty<object>())!;
+                await disposeTask;
+            }
+        }
     }
 
     private async Task ExecuteVerifyStep(TestStep step, StepResult result, CancellationToken cancellationToken)

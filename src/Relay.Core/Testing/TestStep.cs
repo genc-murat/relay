@@ -9,6 +9,7 @@ namespace Relay.Core.Testing
         public StepType Type { get; set; }
         public object? Request { get; set; }
         public object? Notification { get; set; }
+        public object? StreamRequest { get; set; }
         public Func<Task<bool>>? VerificationFunc { get; set; }
         public TimeSpan? WaitTime { get; set; }
 
@@ -26,6 +27,10 @@ namespace Relay.Core.Testing
                 case StepType.PublishNotification:
                     if (Notification == null)
                         throw new InvalidOperationException($"Notification is required for {Type} step: {Name}");
+                    break;
+                case StepType.StreamRequest:
+                    if (StreamRequest == null)
+                        throw new InvalidOperationException($"StreamRequest is required for {Type} step: {Name}");
                     break;
                 case StepType.Verify:
                     if (VerificationFunc == null)

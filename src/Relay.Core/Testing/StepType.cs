@@ -4,6 +4,7 @@ namespace Relay.Core.Testing
     {
         SendRequest,
         PublishNotification,
+        StreamRequest,
         Verify,
         Wait
     }

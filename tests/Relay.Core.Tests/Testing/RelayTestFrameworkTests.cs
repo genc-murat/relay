@@ -228,6 +228,19 @@ namespace Relay.Core.Tests.Testing
         }
 
         [Fact]
+        public void TestStep_Validate_WithInvalidStreamRequestStep_ThrowsException()
+        {
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.StreamRequest,
+                StreamRequest = null
+            };
+
+            Assert.Throws<InvalidOperationException>(() => step.Validate());
+        }
+
+        [Fact]
         public void TestStep_Validate_WithInvalidVerifyStep_ThrowsException()
         {
             var step = new TestStep
@@ -296,9 +309,46 @@ namespace Relay.Core.Tests.Testing
             Assert.Equal(8, result.RequestsPerSecond, 0.01);
         }
 
+        [Fact]
+        public void TestScenarioBuilder_StreamRequest_WithValidRequest_AddsStep()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestStreamRequest();
+
+            // Act
+            framework.Scenario("Test Scenario")
+                .StreamRequest(request, "Stream Step");
+
+            // Access private field for testing
+            var scenariosField = typeof(RelayTestFramework).GetField("_scenarios", BindingFlags.NonPublic | BindingFlags.Instance);
+            var scenarios = (List<TestScenario>)scenariosField!.GetValue(framework)!;
+
+            // Assert
+            Assert.Single(scenarios);
+            Assert.Equal("Test Scenario", scenarios[0].Name);
+            Assert.Single(scenarios[0].Steps);
+            Assert.Equal("Stream Step", scenarios[0].Steps[0].Name);
+            Assert.Equal(StepType.StreamRequest, scenarios[0].Steps[0].Type);
+            Assert.Equal(request, scenarios[0].Steps[0].StreamRequest);
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_StreamRequest_WithNullRequest_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                framework.Scenario("Test Scenario").StreamRequest<TestStreamRequest>(null!));
+        }
+
         // Test data classes
         public class TestRequest : IRequest<string>, IRequest { }
 
         public class TestNotification : INotification { }
+
+        public class TestStreamRequest : IStreamRequest<string> { }
     }
 }

@@ -49,6 +49,21 @@ namespace Relay.Core.Testing
             return this;
         }
 
+        public TestScenarioBuilder StreamRequest<TRequest>(TRequest request, string stepName = "Stream Request")
+            where TRequest : class
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (string.IsNullOrWhiteSpace(stepName)) throw new ArgumentException("Step name cannot be empty", nameof(stepName));
+
+            _scenario.Steps.Add(new TestStep
+            {
+                Name = stepName,
+                Type = StepType.StreamRequest,
+                StreamRequest = request
+            });
+            return this;
+        }
+
         public TestScenarioBuilder Verify(Func<Task<bool>> verificationFunc, string stepName = "Verify")
         {
             _scenario.Steps.Add(new TestStep

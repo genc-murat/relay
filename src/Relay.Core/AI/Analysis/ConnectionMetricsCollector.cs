@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Models;
 
 namespace Relay.Core.AI
 {
@@ -13,6 +14,7 @@ namespace Relay.Core.AI
         private readonly ILogger<ConnectionMetricsCollector> _logger;
         private readonly AIOptimizationOptions _options;
         private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics;
+        private readonly PeakConnectionMetrics _peakMetrics;
 
         public ConnectionMetricsCollector(
             ILogger<ConnectionMetricsCollector> logger,
@@ -22,6 +24,7 @@ namespace Relay.Core.AI
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
+            _peakMetrics = new PeakConnectionMetrics();
         }
 
         public int GetActiveConnectionCount(
@@ -43,6 +46,9 @@ namespace Relay.Core.AI
 
                 connectionCount = filterHealthyConnections(connectionCount);
                 cacheConnectionCount(connectionCount);
+
+                // Update peak metrics
+                UpdatePeakConnectionMetrics(connectionCount);
 
                 _logger.LogTrace("Active connection count calculated: {ConnectionCount}", connectionCount);
 
@@ -418,6 +424,54 @@ namespace Relay.Core.AI
         private int GetFallbackWebSocketConnectionCount()
         {
             return Math.Min(Environment.ProcessorCount, 10);
+        }
+
+        /// <summary>
+        /// Update peak connection metrics with current connection count
+        /// </summary>
+        private void UpdatePeakConnectionMetrics(int currentConnectionCount)
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+
+                // Update all-time peak
+                if (currentConnectionCount > _peakMetrics.AllTimePeak)
+                {
+                    _peakMetrics.AllTimePeak = currentConnectionCount;
+                    _peakMetrics.LastPeakTimestamp = now;
+                    _logger.LogInformation("New all-time connection peak recorded: {PeakCount} at {Timestamp}",
+                        currentConnectionCount, now);
+                }
+
+                // Update daily peak
+                if (now.Date != _peakMetrics.LastPeakTimestamp.Date || currentConnectionCount > _peakMetrics.DailyPeak)
+                {
+                    _peakMetrics.DailyPeak = currentConnectionCount;
+                    _peakMetrics.LastPeakTimestamp = now;
+                    _logger.LogDebug("New daily connection peak recorded: {PeakCount}", currentConnectionCount);
+                }
+
+                // Update hourly peak
+                if (now.Hour != _peakMetrics.LastPeakTimestamp.Hour || currentConnectionCount > _peakMetrics.HourlyPeak)
+                {
+                    _peakMetrics.HourlyPeak = currentConnectionCount;
+                    _peakMetrics.LastPeakTimestamp = now;
+                    _logger.LogTrace("New hourly connection peak recorded: {PeakCount}", currentConnectionCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error updating peak connection metrics");
+            }
+        }
+
+        /// <summary>
+        /// Get current peak connection metrics
+        /// </summary>
+        public PeakConnectionMetrics GetPeakMetrics()
+        {
+            return _peakMetrics;
         }
     }
 }

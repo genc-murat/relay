@@ -283,4 +283,261 @@ public class EventStoreDbContextFactoryTests
         Assert.NotNull(context2);
         Assert.NotSame(context1, context2);
     }
+
+    [Fact]
+    public void CreateDbContext_WithUnrecognizedConnectionString_ThrowsArgumentException()
+    {
+        // Arrange - Connection string that cannot be recognized as any supported provider
+        var args = new[] { "--connection=ThisIsNotAValidConnectionString" };
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            _factory.CreateDbContext(args));
+    }
+
+    [Fact]
+    public void CreateDbContext_WithConnectionStringMissingRequiredParts_Succeeds()
+    {
+        // Arrange - PostgreSQL connection string missing database
+        var args = new[] { "--connection=Host=localhost;Username=user;Password=pass" };
+
+        // Act & Assert - Context creation succeeds, validation happens later
+        var context = _factory.CreateDbContext(args);
+        Assert.NotNull(context);
+        Assert.Contains("Npgsql", context.Database.ProviderName);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithMalformedConnectionString_ThrowsArgumentException()
+    {
+        // Arrange
+        var args = new[] { "--connection=ThisIsNotAValidConnectionString" };
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            _factory.CreateDbContext(args));
+    }
+
+    [Fact]
+    public void CreateDbContext_WithProviderNameCaseVariations_HandlesCorrectly()
+    {
+        // Arrange - Test various case combinations
+        var testCases = new[]
+        {
+            new[] { "--provider=POSTGRESQL" },
+            new[] { "--provider=postgresql" },
+            new[] { "--provider=PostgreSQL" },
+            new[] { "--provider=postgres" }
+        };
+
+        foreach (var args in testCases)
+        {
+            // Act
+            var context = _factory.CreateDbContext(args);
+
+            // Assert
+            Assert.NotNull(context);
+            Assert.Contains("Npgsql", context.Database.ProviderName);
+        }
+    }
+
+    [Fact]
+    public void CreateDbContext_WithMalformedArgumentFormat_IgnoresMalformedArguments()
+    {
+        // Arrange - Arguments with missing values or invalid format
+        var args = new[]
+        {
+            "--provider", // Missing value
+            "--connection=Host=localhost;Database=test;",
+            "--unknown" // Unknown argument
+        };
+
+        // Act
+        var context = _factory.CreateDbContext(args);
+
+        // Assert - Should still work by detecting from connection string
+        Assert.NotNull(context);
+        Assert.Contains("Npgsql", context.Database.ProviderName);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithEmptyArgumentValues_UsesDefaults()
+    {
+        // Arrange
+        var args = new[]
+        {
+            "--provider=",
+            "--connection="
+        };
+
+        // Act
+        var context = _factory.CreateDbContext(args);
+
+        // Assert - Should create context with default configuration
+        Assert.NotNull(context);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithConflictingProviders_UsesExplicitProvider()
+    {
+        // Arrange - Provider in connection string vs explicit provider
+        var args = new[]
+        {
+            "--provider=PostgreSQL",
+            "--connection=Host=localhost;Database=test;" // PostgreSQL-style connection
+        };
+
+        // Act
+        var context = _factory.CreateDbContext(args);
+
+        // Assert
+        Assert.NotNull(context);
+        Assert.Contains("Npgsql", context.Database.ProviderName);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithMultipleProviders_LastOneWins()
+    {
+        // Arrange
+        var args = new[]
+        {
+            "--provider=PostgreSQL",
+            "--provider=PostgreSQL", // Same provider again
+            "--connection=Host=localhost;Database=test;"
+        };
+
+        // Act
+        var context = _factory.CreateDbContext(args);
+
+        // Assert
+        Assert.NotNull(context);
+        Assert.Contains("Npgsql", context.Database.ProviderName);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithArgumentsContainingSpaces_HandlesCorrectly()
+    {
+        // Arrange - Arguments with spaces (simulating command line)
+        var args = new[]
+        {
+            "--connection=Host=localhost; Database=test; Username=user; Password=pass;"
+        };
+
+        // Act
+        var context = _factory.CreateDbContext(args);
+
+        // Assert
+        Assert.NotNull(context);
+        Assert.Contains("Npgsql", context.Database.ProviderName);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithArgumentsContainingSpecialCharacters_HandlesCorrectly()
+    {
+        // Arrange - Connection string with special characters in password
+        var args = new[]
+        {
+            "--connection=Host=localhost;Database=test;Username=user;Password=p@ssw0rd!#$%^&*()"
+        };
+
+        // Act
+        var context = _factory.CreateDbContext(args);
+
+        // Assert
+        Assert.NotNull(context);
+        Assert.Contains("Npgsql", context.Database.ProviderName);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithExtremelyLongArguments_HandlesCorrectly()
+    {
+        // Arrange - Very long connection string
+        var longDatabaseName = new string('a', 1000);
+        var args = new[]
+        {
+            $"--connection=Host=localhost;Database={longDatabaseName};Username=user;Password=pass"
+        };
+
+        // Act
+        var context = _factory.CreateDbContext(args);
+
+        // Assert
+        Assert.NotNull(context);
+        Assert.Contains("Npgsql", context.Database.ProviderName);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithUnicodeCharactersInArguments_HandlesCorrectly()
+    {
+        // Arrange - Connection string with Unicode characters
+        var args = new[]
+        {
+            "--connection=Host=localhost;Database=tëst;Username=üsér;Password=päss"
+        };
+
+        // Act
+        var context = _factory.CreateDbContext(args);
+
+        // Assert
+        Assert.NotNull(context);
+        Assert.Contains("Npgsql", context.Database.ProviderName);
+    }
+
+    [Fact]
+    public void CreateDbContext_WithEnvironmentVariablesAndMalformedArgs_UsesEnvironmentVariables()
+    {
+        // Arrange
+        Environment.SetEnvironmentVariable("EVENTSTORE_DB_PROVIDER", "PostgreSQL");
+        Environment.SetEnvironmentVariable("EVENTSTORE_CONNECTION_STRING", "Host=env-localhost;Database=test;");
+
+        var args = new[]
+        {
+            "--provider", // Malformed - missing value
+            "--connection", // Malformed - missing value
+        };
+
+        try
+        {
+            // Act
+            var context = _factory.CreateDbContext(args);
+
+            // Assert
+            Assert.NotNull(context);
+            Assert.Contains("Npgsql", context.Database.ProviderName);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("EVENTSTORE_DB_PROVIDER", null);
+            Environment.SetEnvironmentVariable("EVENTSTORE_CONNECTION_STRING", null);
+        }
+    }
+
+    [Fact]
+    public void CreateDbContext_WithArgumentsOverrideEnvironmentVariables_EvenIfMalformed()
+    {
+        // Arrange
+        Environment.SetEnvironmentVariable("EVENTSTORE_DB_PROVIDER", "SomeOtherProvider");
+        Environment.SetEnvironmentVariable("EVENTSTORE_CONNECTION_STRING", "SomeOtherConnection");
+
+        var args = new[]
+        {
+            "--provider=PostgreSQL",
+            "--connection=Host=localhost;Database=test;"
+        };
+
+        try
+        {
+            // Act
+            var context = _factory.CreateDbContext(args);
+
+            // Assert - Should use args, not environment variables
+            Assert.NotNull(context);
+            Assert.Contains("Npgsql", context.Database.ProviderName);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("EVENTSTORE_DB_PROVIDER", null);
+            Environment.SetEnvironmentVariable("EVENTSTORE_CONNECTION_STRING", null);
+        }
+    }
 }

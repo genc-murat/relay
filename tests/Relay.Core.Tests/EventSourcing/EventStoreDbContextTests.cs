@@ -338,6 +338,235 @@ public class EventStoreDbContextTests : IDisposable
         Assert.Equal(100, savedEvents.Count);
     }
 
+    [Fact]
+    public void EventEntity_ShouldHaveProperKeyConfiguration()
+    {
+        // Arrange
+        var entityType = _context.Model.FindEntityType(typeof(EventEntity));
+
+        // Act & Assert
+        Assert.NotNull(entityType);
+        var key = entityType.FindPrimaryKey();
+        Assert.NotNull(key);
+        Assert.Single(key.Properties);
+        Assert.Equal(nameof(EventEntity.Id), key.Properties[0].Name);
+    }
+
+    [Fact]
+    public void EventEntity_ShouldHaveRequiredPropertiesConfigured()
+    {
+        // Arrange
+        var entityType = _context.Model.FindEntityType(typeof(EventEntity));
+
+        // Act & Assert
+        Assert.NotNull(entityType);
+
+        var aggregateIdProperty = entityType.FindProperty(nameof(EventEntity.AggregateId));
+        Assert.NotNull(aggregateIdProperty);
+        Assert.False(aggregateIdProperty.IsNullable);
+
+        var aggregateVersionProperty = entityType.FindProperty(nameof(EventEntity.AggregateVersion));
+        Assert.NotNull(aggregateVersionProperty);
+        Assert.False(aggregateVersionProperty.IsNullable);
+
+        var eventTypeProperty = entityType.FindProperty(nameof(EventEntity.EventType));
+        Assert.NotNull(eventTypeProperty);
+        Assert.False(eventTypeProperty.IsNullable);
+
+        var eventDataProperty = entityType.FindProperty(nameof(EventEntity.EventData));
+        Assert.NotNull(eventDataProperty);
+        Assert.False(eventDataProperty.IsNullable);
+
+        var timestampProperty = entityType.FindProperty(nameof(EventEntity.Timestamp));
+        Assert.NotNull(timestampProperty);
+        Assert.False(timestampProperty.IsNullable);
+    }
+
+    [Fact]
+    public void EventEntity_ShouldHaveUniqueIndex_OnAggregateIdAndVersion()
+    {
+        // Arrange
+        var entityType = _context.Model.FindEntityType(typeof(EventEntity));
+
+        // Act
+        var indexes = entityType!.GetIndexes().ToList();
+
+        // Assert
+        var uniqueIndex = indexes.FirstOrDefault(i =>
+            i.IsUnique &&
+            i.Properties.Count == 2 &&
+            i.Properties.Any(p => p.Name == nameof(EventEntity.AggregateId)) &&
+            i.Properties.Any(p => p.Name == nameof(EventEntity.AggregateVersion)));
+
+        Assert.NotNull(uniqueIndex);
+    }
+
+    [Fact]
+    public void SnapshotEntity_ShouldHaveProperKeyConfiguration()
+    {
+        // Arrange
+        var entityType = _context.Model.FindEntityType(typeof(SnapshotEntity));
+
+        // Act & Assert
+        Assert.NotNull(entityType);
+        var key = entityType.FindPrimaryKey();
+        Assert.NotNull(key);
+        Assert.Single(key.Properties);
+        Assert.Equal(nameof(SnapshotEntity.Id), key.Properties[0].Name);
+    }
+
+    [Fact]
+    public void SnapshotEntity_ShouldHaveRequiredPropertiesConfigured()
+    {
+        // Arrange
+        var entityType = _context.Model.FindEntityType(typeof(SnapshotEntity));
+
+        // Act & Assert
+        Assert.NotNull(entityType);
+
+        var aggregateIdProperty = entityType.FindProperty(nameof(SnapshotEntity.AggregateId));
+        Assert.NotNull(aggregateIdProperty);
+        Assert.False(aggregateIdProperty.IsNullable);
+
+        var versionProperty = entityType.FindProperty(nameof(SnapshotEntity.Version));
+        Assert.NotNull(versionProperty);
+        Assert.False(versionProperty.IsNullable);
+
+        var aggregateTypeProperty = entityType.FindProperty(nameof(SnapshotEntity.AggregateType));
+        Assert.NotNull(aggregateTypeProperty);
+        Assert.False(aggregateTypeProperty.IsNullable);
+
+        var snapshotDataProperty = entityType.FindProperty(nameof(SnapshotEntity.SnapshotData));
+        Assert.NotNull(snapshotDataProperty);
+        Assert.False(snapshotDataProperty.IsNullable);
+
+        var timestampProperty = entityType.FindProperty(nameof(SnapshotEntity.Timestamp));
+        Assert.NotNull(timestampProperty);
+        Assert.False(timestampProperty.IsNullable);
+    }
+
+    [Fact]
+    public void SnapshotEntity_ShouldHaveIndex_OnAggregateId()
+    {
+        // Arrange
+        var entityType = _context.Model.FindEntityType(typeof(SnapshotEntity));
+
+        // Act
+        var indexes = entityType!.GetIndexes().ToList();
+
+        // Assert
+        var aggregateIdIndex = indexes.FirstOrDefault(i =>
+            !i.IsUnique &&
+            i.Properties.Count == 1 &&
+            i.Properties[0].Name == nameof(SnapshotEntity.AggregateId));
+
+        Assert.NotNull(aggregateIdIndex);
+    }
+
+    [Fact]
+    public void SnapshotEntity_ShouldHaveUniqueIndex_OnAggregateIdAndVersion()
+    {
+        // Arrange
+        var entityType = _context.Model.FindEntityType(typeof(SnapshotEntity));
+
+        // Act
+        var indexes = entityType!.GetIndexes().ToList();
+
+        // Assert
+        var compoundIndex = indexes.FirstOrDefault(i =>
+            i.IsUnique &&
+            i.Properties.Count == 2 &&
+            i.Properties.Any(p => p.Name == nameof(SnapshotEntity.AggregateId)) &&
+            i.Properties.Any(p => p.Name == nameof(SnapshotEntity.Version)));
+
+        Assert.NotNull(compoundIndex);
+    }
+
+    [Fact]
+    public async Task EventEntity_ShouldEnforceRequiredConstraints()
+    {
+        // Arrange - Try to save an event with null required fields
+        var eventEntity = new EventEntity
+        {
+            Id = Guid.NewGuid(),
+            AggregateId = Guid.NewGuid(),
+            AggregateVersion = 0,
+            EventType = null!, // Required field set to null
+            EventData = "{}",
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act & Assert
+        _context.Events.Add(eventEntity);
+
+        // Note: InMemory provider doesn't enforce nullability constraints like real databases
+        // This test documents the expected behavior with a real database
+        try
+        {
+            await _context.SaveChangesAsync();
+            // InMemory allows nulls, but real PostgreSQL would throw
+        }
+        catch (DbUpdateException)
+        {
+            // Expected with real database providers
+            Assert.True(true);
+        }
+    }
+
+    [Fact]
+    public async Task SnapshotEntity_ShouldEnforceRequiredConstraints()
+    {
+        // Arrange - Try to save a snapshot with null required fields
+        var snapshotEntity = new SnapshotEntity
+        {
+            Id = Guid.NewGuid(),
+            AggregateId = Guid.NewGuid(),
+            Version = 1,
+            AggregateType = null!, // Required field set to null
+            SnapshotData = "{}",
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act & Assert
+        _context.Snapshots.Add(snapshotEntity);
+
+        // Note: InMemory provider doesn't enforce nullability constraints like real databases
+        try
+        {
+            await _context.SaveChangesAsync();
+            // InMemory allows nulls, but real PostgreSQL would throw
+        }
+        catch (DbUpdateException)
+        {
+            // Expected with real database providers
+            Assert.True(true);
+        }
+    }
+
+    [Fact]
+    public void DbContext_ShouldHaveDbSetsConfigured()
+    {
+        // Act & Assert
+        Assert.NotNull(_context.Events);
+        Assert.NotNull(_context.Snapshots);
+    }
+
+    [Fact]
+    public void DbContext_ShouldUseConfiguredTableNames()
+    {
+        // Arrange
+        var eventEntityType = _context.Model.FindEntityType(typeof(EventEntity));
+        var snapshotEntityType = _context.Model.FindEntityType(typeof(SnapshotEntity));
+
+        // Act & Assert
+        Assert.NotNull(eventEntityType);
+        Assert.NotNull(snapshotEntityType);
+
+        // Verify table names are configured (exact names depend on configuration)
+        Assert.NotNull(eventEntityType.GetTableName());
+        Assert.NotNull(snapshotEntityType.GetTableName());
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();

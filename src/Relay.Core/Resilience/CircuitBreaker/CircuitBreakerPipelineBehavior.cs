@@ -50,14 +50,18 @@ public class CircuitBreakerPipelineBehavior<TRequest, TResponse> : IPipelineBeha
         try
         {
             var result = await next();
-            
-            // Success - record and potentially close circuit
+
+            // Success - record and potentially transition states
             circuitBreaker.RecordSuccess();
-            
+
             if (circuitBreaker.State == CircuitState.HalfOpen)
             {
-                circuitBreaker.TransitionToClosed();
-                _logger.LogInformation("Circuit breaker CLOSED for {RequestType}", requestType);
+                // Check if we should close the circuit after successful half-open trial
+                if (circuitBreaker.ShouldCloseCircuit())
+                {
+                    circuitBreaker.TransitionToClosed();
+                    _logger.LogInformation("Circuit breaker CLOSED for {RequestType}", requestType);
+                }
             }
 
             return result;

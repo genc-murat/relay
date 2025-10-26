@@ -49,6 +49,12 @@ public class CircuitBreakerState
         return failureRate >= _options.FailureThreshold;
     }
 
+    public bool ShouldCloseCircuit()
+    {
+        // In HalfOpen state, close circuit after minimum number of consecutive successes
+        return _state == CircuitState.HalfOpen && _successCount >= _options.MinimumThroughput;
+    }
+
     public void TransitionToOpen()
     {
         _state = CircuitState.Open;

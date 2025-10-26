@@ -261,12 +261,12 @@ namespace TestNamespace
         var sourceCode = @"
 using System.Threading.Tasks;
 
-namespace TestNamespace 
+namespace TestNamespace
 {
-    public class TestHelper 
-    { 
+    public class TestHelper
+    {
         public ValueTask GetValueTask() => default;
-    } 
+    }
 }";
 
         var compilation = CSharpCompilation.Create("test")
@@ -284,5 +284,93 @@ namespace TestNamespace
 
         // Assert
         Assert.True(result);
+    }
+
+    /// <summary>
+    /// Tests that IsValidRequestType returns true for a class implementing a single request interface.
+    /// </summary>
+    [Fact]
+    public void IsValidRequestType_SingleRequestInterface_ReturnsTrue()
+    {
+        // Setup compilation with test code
+        var sourceCode = @"
+using Relay.Core;
+
+namespace TestNamespace
+{
+    public interface IRequest<T> { }
+    public class TestRequest : IRequest<string> { }
+}";
+
+        var compilation = CSharpCompilation.Create("test")
+            .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceCode))
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+
+        var requestType = compilation.GetTypeByMetadataName("TestNamespace.TestRequest");
+
+        // Act
+        var result = TypeValidator.IsValidRequestType(requestType);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    /// <summary>
+    /// Tests that IsValidRequestType returns false for a class implementing multiple request interfaces.
+    /// </summary>
+    [Fact]
+    public void IsValidRequestType_MultipleRequestInterfaces_ReturnsFalse()
+    {
+        // Setup compilation with test code
+        var sourceCode = @"
+using Relay.Core;
+
+namespace TestNamespace
+{
+    public interface IRequest<T> { }
+    public interface IStreamRequest<T> { }
+    public class TestRequest : IRequest<string>, IStreamRequest<int> { }
+}";
+
+        var compilation = CSharpCompilation.Create("test")
+            .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceCode))
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+
+        var requestType = compilation.GetTypeByMetadataName("TestNamespace.TestRequest");
+
+        // Act
+        var result = TypeValidator.IsValidRequestType(requestType);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    /// <summary>
+    /// Tests that IsValidRequestType returns false for a class not implementing any request interface.
+    /// </summary>
+    [Fact]
+    public void IsValidRequestType_NoRequestInterface_ReturnsFalse()
+    {
+        // Setup compilation with test code
+        var sourceCode = @"
+namespace TestNamespace
+{
+    public class TestClass { }
+}";
+
+        var compilation = CSharpCompilation.Create("test")
+            .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceCode))
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+
+        var testType = compilation.GetTypeByMetadataName("TestNamespace.TestClass");
+
+        // Act
+        var result = TypeValidator.IsValidRequestType(testType);
+
+        // Assert
+        Assert.False(result);
     }
 }

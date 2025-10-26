@@ -37,7 +37,7 @@ namespace Relay.SourceGenerator.Validators
                 var requestTypeName = group.Key.ToDisplayString();
 
                 // Check for unnamed duplicate handlers
-                var unnamedHandlers = handlers.Where(h => string.IsNullOrWhiteSpace(h.Name)).ToList();
+                var unnamedHandlers = handlers.Where(h => string.IsNullOrWhiteSpace(h.Name) || h.Name == "default").ToList();
                 if (unnamedHandlers.Count > 1)
                 {
                     var handlerLocations = string.Join(", ", unnamedHandlers.Select(h =>
@@ -53,7 +53,7 @@ namespace Relay.SourceGenerator.Validators
                 }
 
                 // Check for named handler conflicts
-                var namedHandlers = handlers.Where(h => !string.IsNullOrWhiteSpace(h.Name))
+                var namedHandlers = handlers.Where(h => !string.IsNullOrWhiteSpace(h.Name) && h.Name != "default")
                     .GroupBy(h => h.Name);
 
                 foreach (var namedGroup in namedHandlers)
@@ -74,7 +74,7 @@ namespace Relay.SourceGenerator.Validators
                 }
 
                 // Check for mixed named and unnamed handlers (potential issue)
-                if (unnamedHandlers.Count > 0 && handlers.Any(h => !string.IsNullOrWhiteSpace(h.Name)))
+                if (unnamedHandlers.Count > 0 && handlers.Any(h => !string.IsNullOrWhiteSpace(h.Name) && h.Name != "default"))
                 {
                     foreach (var unnamedHandler in unnamedHandlers)
                     {
@@ -127,8 +127,7 @@ namespace Relay.SourceGenerator.Validators
                 // Check for potential naming conflicts with common patterns
                 foreach (var handler in handlers.Where(h => !string.IsNullOrWhiteSpace(h.Name)))
                 {
-                    if (handler.Name!.Equals("default", System.StringComparison.OrdinalIgnoreCase) ||
-                        handler.Name.Equals("main", System.StringComparison.OrdinalIgnoreCase))
+                    if (handler.Name.Equals("main", System.StringComparison.OrdinalIgnoreCase))
                     {
                         ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.PerformanceWarning,
                             handler.Location,

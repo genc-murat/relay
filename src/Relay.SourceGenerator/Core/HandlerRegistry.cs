@@ -23,7 +23,19 @@ namespace Relay.SourceGenerator
             var priorityArg = handleAttribute.NamedArguments
                 .FirstOrDefault(arg => arg.Key == "Priority");
 
-            var name = nameArg.Key != null ? nameArg.Value.Value?.ToString() : null;
+            string name;
+            if (nameArg.Key != null)
+            {
+                name = nameArg.Value.Value?.ToString() ?? "default";
+            }
+            else if (handleAttribute.ConstructorArguments.Length > 0)
+            {
+                name = handleAttribute.ConstructorArguments[0].Value?.ToString() ?? "default";
+            }
+            else
+            {
+                name = "default";
+            }
             var priority = priorityArg.Key != null && priorityArg.Value.Value is int p ? p : 0;
 
             Handlers.Add(new AnalyzerHandlerInfo
@@ -33,7 +45,7 @@ namespace Relay.SourceGenerator
                 RequestType = requestType,
                 Name = name,
                 Priority = priority,
-                Location = methodDeclaration.Identifier.GetLocation(),
+                Location = Location.None,
                 Attribute = handleAttribute
             });
         }

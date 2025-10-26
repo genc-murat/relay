@@ -154,4 +154,56 @@ public class TestHandler
 
         await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
     }
+
+    /// <summary>
+    /// Tests HasCancellationTokenParameter with CancellationToken in complex parameter order.
+    /// </summary>
+    [Fact]
+    public async Task HandlerWithCancellationToken_NoDiagnostics()
+    {
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
+
+    /// <summary>
+    /// Tests HasCancellationTokenParameter with custom CancellationToken type (should not match).
+    /// </summary>
+    [Fact]
+    public async Task HandlerWithCustomCancellationTokenType_ProducesDiagnostic()
+    {
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class CustomCancellationToken { }
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    public ValueTask<string> {|RELAY_GEN_002:HandleAsync|}{|RELAY_GEN_207:HandleAsync|}(TestRequest request, CustomCancellationToken token)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 }

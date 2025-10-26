@@ -225,6 +225,40 @@ public class TestClass
     }
 
     [Fact]
+    public async Task AttributeValidator_Valid_Pipeline_Scope_Zero_No_Diagnostic()
+    {
+        var source = @"
+using System.Threading;
+using Relay.Core;
+
+public class TestClass
+{
+    [Pipeline(Scope = 0)]
+    public void ValidPipeline(string context, CancellationToken token) { }
+}";
+
+        // Should pass without diagnostics (boundary value 0)
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
+
+    [Fact]
+    public async Task AttributeValidator_Valid_Pipeline_Scope_Three_No_Diagnostic()
+    {
+        var source = @"
+using System.Threading;
+using Relay.Core;
+
+public class TestClass
+{
+    [Pipeline(Scope = 3)]
+    public void ValidPipeline(string context, CancellationToken token) { }
+}";
+
+        // Should pass without diagnostics (boundary value 3)
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
+
+    [Fact]
     public async Task AttributeValidator_Pipeline_No_Parameters_No_Diagnostic()
     {
         var source = @"

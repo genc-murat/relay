@@ -15,19 +15,13 @@ namespace Relay.SourceGenerator.Validators
         {
             var interfaces = type.AllInterfaces;
 
-            // Check for IRequest interface
-            if (interfaces.Any(i => i.Name == "IRequest" && i.TypeArguments.Length == 0))
-                return true;
+            var requestInterfaceCount = interfaces.Count(i =>
+                (i.Name == "IRequest" && i.TypeArguments.Length == 0) ||
+                (i.Name == "IRequest" && i.TypeArguments.Length == 1) ||
+                (i.Name == "IStreamRequest" && i.TypeArguments.Length == 1));
 
-            // Check for IRequest<T> interface
-            if (interfaces.Any(i => i.Name == "IRequest" && i.TypeArguments.Length == 1))
-                return true;
-
-            // Check for IStreamRequest<T> interface
-            if (interfaces.Any(i => i.Name == "IStreamRequest" && i.TypeArguments.Length == 1))
-                return true;
-
-            return false;
+            // A type is valid if it implements exactly one request interface
+            return requestInterfaceCount == 1;
         }
 
         /// <summary>

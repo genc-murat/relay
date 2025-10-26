@@ -1,23 +1,18 @@
 extern alias RelayCore;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
-using System.Collections.Immutable;
+namespace Relay.SourceGenerator.Tests;
 
-namespace Relay.SourceGenerator.Tests
+/// <summary>
+/// Tests for attribute validation in the RelayAnalyzer.
+/// </summary>
+public class RelayAnalyzerAttributeTests
 {
     /// <summary>
-    /// Tests for attribute validation in the RelayAnalyzer.
+    /// Tests that invalid priority values produce diagnostics.
     /// </summary>
-    public class RelayAnalyzerAttributeTests
+    [Fact]
+    public async Task InvalidPriorityValue_ProducesDiagnostic()
     {
-        /// <summary>
-        /// Tests that invalid priority values produce diagnostics.
-        /// </summary>
-        [Fact]
-        public async Task InvalidPriorityValue_ProducesDiagnostic()
-        {
-            var source = @"
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -40,16 +35,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that named handler conflicts produce diagnostics.
-        /// </summary>
-        [Fact]
-        public async Task NamedHandlerConflict_ProducesDiagnostic()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that named handler conflicts produce diagnostics.
+    /// </summary>
+    [Fact]
+    public async Task NamedHandlerConflict_ProducesDiagnostic()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -74,16 +69,16 @@ public class TestHandler2
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that mixed named and unnamed handlers produce configuration conflict diagnostics.
-        /// </summary>
-        [Fact]
-        public async Task MixedNamedUnnamedHandlers_ProducesDiagnostic()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that mixed named and unnamed handlers produce configuration conflict diagnostics.
+    /// </summary>
+    [Fact]
+    public async Task MixedNamedUnnamedHandlers_ProducesDiagnostic()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -108,16 +103,16 @@ public class TestHandler2
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that non-async methods with invalid return types produce performance warnings.
-        /// </summary>
-        [Fact]
-        public async Task NonAsyncMethodInvalidReturnType_ProducesWarning()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that non-async methods with invalid return types produce performance warnings.
+    /// </summary>
+    [Fact]
+    public async Task NonAsyncMethodInvalidReturnType_ProducesWarning()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -133,16 +128,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with very high priority values produce warnings.
-        /// </summary>
-        [Fact]
-        public async Task HandlerVeryHighPriority_ProducesWarning()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with very high priority values produce warnings.
+    /// </summary>
+    [Fact]
+    public async Task HandlerVeryHighPriority_ProducesWarning()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -158,16 +153,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with very low priority values produce warnings.
-        /// </summary>
-        [Fact]
-        public async Task HandlerVeryLowPriority_ProducesWarning()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with very low priority values produce warnings.
+    /// </summary>
+    [Fact]
+    public async Task HandlerVeryLowPriority_ProducesWarning()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -183,16 +178,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with common naming conflicts produce warnings.
-        /// </summary>
-        [Fact]
-        public async Task HandlerCommonNamingConflicts_ProducesWarning()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with common naming conflicts produce warnings.
+    /// </summary>
+    [Fact]
+    public async Task HandlerCommonNamingConflicts_ProducesWarning()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -215,16 +210,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with common naming conflicts produce warnings.
-        /// </summary>
-        [Fact]
-        public async Task HandlerCommonNamingConflictsCompilation_ProducesWarning()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with common naming conflicts produce warnings.
+    /// </summary>
+    [Fact]
+    public async Task HandlerCommonNamingConflictsCompilation_ProducesWarning()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -234,7 +229,7 @@ public class TestRequest : IRequest<string> { }
 public class TestHandler1
 {
     [Handle(Name = ""default"")]
-    public ValueTask<string> {|RELAY_GEN_102:HandleDefaultAsync|}(TestRequest request, CancellationToken cancellationToken)
+    public ValueTask<string> {|RELAY_GEN_102:HandleDefaultAsync|}{|RELAY_GEN_211:HandleDefaultAsync|}(TestRequest request, CancellationToken cancellationToken)
     {
         return ValueTask.FromResult(""default"");
     }
@@ -249,16 +244,16 @@ public class TestHandler2
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with invalid attribute priority types produce diagnostics.
-        /// </summary>
-        [Fact]
-        public async Task HandlerInvalidAttributePriorityType_ProducesDiagnostic()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with invalid attribute priority types produce diagnostics.
+    /// </summary>
+    [Fact]
+    public async Task HandlerInvalidAttributePriorityType_ProducesDiagnostic()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -274,16 +269,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with multiple Relay attributes produce diagnostics.
-        /// </summary>
-        [Fact]
-        public async Task HandlerMultipleRelayAttributes_ProducesDiagnostic()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with multiple Relay attributes produce diagnostics.
+    /// </summary>
+    [Fact]
+    public async Task HandlerMultipleRelayAttributes_ProducesDiagnostic()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -301,16 +296,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that methods with multiple Relay attributes work correctly.
-        /// </summary>
-        [Fact]
-        public async Task MethodMultipleRelayAttributes_NoDiagnostics()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that methods with multiple Relay attributes work correctly.
+    /// </summary>
+    [Fact]
+    public async Task MethodMultipleRelayAttributes_NoDiagnostics()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -327,16 +322,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with empty names work correctly.
-        /// </summary>
-        [Fact]
-        public async Task HandlerEmptyNameAttribute_NoDiagnostics()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with empty names work correctly.
+    /// </summary>
+    [Fact]
+    public async Task HandlerEmptyNameAttribute_NoDiagnostics()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -352,16 +347,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with whitespace names work correctly.
-        /// </summary>
-        [Fact]
-        public async Task HandlerWhitespaceNameAttribute_NoDiagnostics()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with whitespace names work correctly.
+    /// </summary>
+    [Fact]
+    public async Task HandlerWhitespaceNameAttribute_NoDiagnostics()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -377,16 +372,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with null names work correctly.
-        /// </summary>
-        [Fact]
-        public async Task HandlerNullNameAttribute_NoDiagnostics()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with null names work correctly.
+    /// </summary>
+    [Fact]
+    public async Task HandlerNullNameAttribute_NoDiagnostics()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -402,16 +397,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with zero priority work correctly.
-        /// </summary>
-        [Fact]
-        public async Task HandlerZeroPriorityAttribute_NoDiagnostics()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with zero priority work correctly.
+    /// </summary>
+    [Fact]
+    public async Task HandlerZeroPriorityAttribute_NoDiagnostics()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -427,16 +422,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with negative priority work correctly.
-        /// </summary>
-        [Fact]
-        public async Task HandlerNegativePriorityAttribute_NoDiagnostics()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with negative priority work correctly.
+    /// </summary>
+    [Fact]
+    public async Task HandlerNegativePriorityAttribute_NoDiagnostics()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -452,16 +447,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with positive priority work correctly.
-        /// </summary>
-        [Fact]
-        public async Task HandlerPositivePriorityAttribute_NoDiagnostics()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with positive priority work correctly.
+    /// </summary>
+    [Fact]
+    public async Task HandlerPositivePriorityAttribute_NoDiagnostics()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -477,16 +472,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with custom attribute combinations work correctly.
-        /// </summary>
-        [Fact]
-        public async Task HandlerCustomAttributes_NoDiagnostics()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with custom attribute combinations work correctly.
+    /// </summary>
+    [Fact]
+    public async Task HandlerCustomAttributes_NoDiagnostics()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -502,16 +497,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with extreme negative priorities produce warnings.
-        /// </summary>
-        [Fact]
-        public async Task HandlerExtremeNegativePriority_ProducesWarning()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with extreme negative priorities produce warnings.
+    /// </summary>
+    [Fact]
+    public async Task HandlerExtremeNegativePriority_ProducesWarning()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -527,16 +522,16 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
 
-        /// <summary>
-        /// Tests that handlers with extreme positive priorities produce warnings.
-        /// </summary>
-        [Fact]
-        public async Task HandlerExtremePositivePriority_ProducesWarning()
-        {
-            var source = @"
+    /// <summary>
+    /// Tests that handlers with extreme positive priorities produce warnings.
+    /// </summary>
+    [Fact]
+    public async Task HandlerExtremePositivePriority_ProducesWarning()
+    {
+        var source = @"
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core;
@@ -552,7 +547,6 @@ public class TestHandler
     }
 }";
 
-            await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
-        }
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
     }
 }

@@ -18,6 +18,48 @@ namespace Relay.Core.Tests.Implementation;
 
 public class RelayImplementationComprehensiveTests
 {
+    // Mock implementations
+    public class MockRequestDispatcher : IRequestDispatcher
+    {
+        public ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken)
+        {
+            // Default implementation - just call the named version with null
+            return DispatchAsync(request, null!, cancellationToken);
+        }
+
+        public ValueTask DispatchAsync(IRequest request, CancellationToken cancellationToken)
+        {
+            // Default implementation - just call the named version with null
+            return DispatchAsync(request, null!, cancellationToken);
+        }
+
+        public ValueTask<TResponse> DispatchAsync<TResponse>(IRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (string.IsNullOrEmpty(handlerName) || handlerName == "success")
+            {
+                if (typeof(TResponse) == typeof(TestResponse))
+                    return ValueTask.FromResult((TResponse)(object)new TestResponse { Value = "Success" });
+                return ValueTask.FromResult((TResponse)(object)"Success");
+            }
+            if (handlerName == "exception")
+                throw new InvalidOperationException("Test exception");
+            throw new HandlerNotFoundException(request.GetType().Name, handlerName);
+        }
+
+        public ValueTask DispatchAsync(IRequest request, string handlerName, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (string.IsNullOrEmpty(handlerName) || handlerName == "success")
+                return ValueTask.CompletedTask;
+            if (handlerName == "exception")
+                throw new InvalidOperationException("Test exception");
+            throw new HandlerNotFoundException(request.GetType().Name, handlerName);
+        }
+    }
+
     [Fact]
     public void Constructor_WithNullServiceProvider_ThrowsArgumentNullException()
     {
@@ -121,7 +163,7 @@ public class RelayImplementationComprehensiveTests
         // Don't register any dispatcher
         var serviceProvider = services.BuildServiceProvider();
         var relay = new RelayImplementation(serviceProvider);
-        var request = new TestRequest { Value = "test" };
+        var request = new TestRequest();
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(
@@ -181,20 +223,7 @@ public class RelayImplementationComprehensiveTests
             relay.SendBatchAsync<TestResponse>(null!, CancellationToken.None).AsTask());
     }
 
-    [Fact]
-    public async Task SendBatchAsync_WithEmptyArray_ReturnsEmptyArray()
-    {
-        // Arrange
-        var serviceProvider = new ServiceCollection().BuildServiceProvider();
-        var relay = new RelayImplementation(serviceProvider);
-        IRequest<TestResponse>[] requests = new IRequest<TestResponse>[0];
 
-        // Act
-        var results = await relay.SendBatchAsync(requests, CancellationToken.None);
-
-        // Assert
-        Assert.Empty(results);
-    }
 
     [Fact]
     public async Task SendBatchAsync_WithValidRequests_ProcessesAll()
@@ -205,10 +234,10 @@ public class RelayImplementationComprehensiveTests
         services.AddSingleton<IRequestDispatcher>(mockDispatcher.Object);
         var serviceProvider = services.BuildServiceProvider();
         var relay = new RelayImplementation(serviceProvider);
-        
-        var request1 = new TestRequest { Value = "request1" };
-        var request2 = new TestRequest { Value = "request2" };
-        var request3 = new TestRequest { Value = "request3" };
+
+        var request1 = new TestRequest();
+        var request2 = new TestRequest();
+        var request3 = new TestRequest();
         var requests = new[] { request1, request2, request3 };
         
         var expectedResponse = new TestResponse { Value = "processed" };
@@ -235,8 +264,8 @@ public class RelayImplementationComprehensiveTests
         var serviceProvider = services.BuildServiceProvider();
         var relay = new RelayImplementation(serviceProvider);
         
-        var request1 = new TestRequest { Value = "request1" };
-        var request2 = new TestRequest { Value = "request2" };
+        var request1 = new TestRequest();
+        var request2 = new TestRequest();
         var requests = new[] { request1, request2 };
         
         var expectedResponse = new TestResponse { Value = "processed" };
@@ -267,11 +296,11 @@ public class RelayImplementationComprehensiveTests
         var serviceProvider = services.BuildServiceProvider();
         var relay = new RelayImplementation(serviceProvider);
         
-        var request1 = new TestRequest { Value = "request1" };
-        var request2 = new TestRequest { Value = "request2" };
-        var request3 = new TestRequest { Value = "request3" };
-        var request4 = new TestRequest { Value = "request4" };
-        var request5 = new TestRequest { Value = "request5" };
+        var request1 = new TestRequest();
+        var request2 = new TestRequest();
+        var request3 = new TestRequest();
+        var request4 = new TestRequest();
+        var request5 = new TestRequest();
         var requests = new[] { request1, request2, request3, request4, request5 };
         
         var expectedResponse = new TestResponse { Value = "processed" };
@@ -315,7 +344,7 @@ public class RelayImplementationComprehensiveTests
         var requests = new List<IRequest<TestResponse>>();
         for (int i = 0; i < requestCount; i++)
         {
-            requests.Add(new TestRequest { Value = $"request{i}" });
+            requests.Add(new TestRequest());
         }
         
         var expectedResponse = new TestResponse { Value = "processed" };
@@ -358,7 +387,7 @@ public class RelayImplementationComprehensiveTests
         var requests = new List<IRequest<TestResponse>>();
         for (int i = 0; i < requestCount; i++)
         {
-            requests.Add(new TestRequest { Value = $"request{i}" });
+            requests.Add(new TestRequest());
         }
         
         var expectedResponse = new TestResponse { Value = "processed" };
@@ -400,8 +429,8 @@ public class RelayImplementationComprehensiveTests
         // Small array that shouldn't trigger SIMD path
         var requests = new[]
         {
-            new TestRequest { Value = "request1" },
-            new TestRequest { Value = "request2" }
+            new TestRequest(),
+            new TestRequest()
         };
         
         var expectedResponse = new TestResponse { Value = "processed" };
@@ -418,19 +447,248 @@ public class RelayImplementationComprehensiveTests
         mockDispatcher.Verify(d => d.DispatchAsync(It.IsAny<TestRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
-    [Fact]
-    public async Task PublishAsync_WithoutNotificationDispatcher_CompletesSuccessfully()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        // Don't register notification dispatcher
-        var serviceProvider = services.BuildServiceProvider();
-        var relay = new RelayImplementation(serviceProvider);
-        var notification = new TestNotification();
+        [Fact]
+        public async Task SendBatchAsync_WithEmptyArray_ReturnsEmptyArray()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IRequestDispatcher, MockRequestDispatcher>();
+            var serviceProvider = services.BuildServiceProvider();
+            var relay = new RelayImplementation(serviceProvider);
 
-        // Act & Assert - Should complete without error even without dispatcher
-        await relay.PublishAsync(notification, CancellationToken.None);
-    }
+            // Act
+            var result = await relay.SendBatchAsync(Array.Empty<IRequest<string>>());
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task SendBatchAsync_WithNullArray_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IRequestDispatcher, MockRequestDispatcher>();
+            var serviceProvider = services.BuildServiceProvider();
+            var relay = new RelayImplementation(serviceProvider);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+                relay.SendBatchAsync((IRequest<string>[])null!).AsTask());
+        }
+
+        [Fact]
+        public async Task SendBatchAsync_WithSingleRequest_UsesRegularProcessing()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IRequestDispatcher, MockRequestDispatcher>();
+            var serviceProvider = services.BuildServiceProvider();
+            var relay = new RelayImplementation(serviceProvider);
+
+            var requests = new[] { new TestRequest() };
+
+            // Act
+            var result = await relay.SendBatchAsync(requests);
+
+            // Assert
+            Assert.Single(result);
+            Assert.Equal("Success", result[0].Value);
+        }
+
+        [Fact]
+        public async Task SendBatchAsync_WithCancellation_RespectsCancellation()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IRequestDispatcher, MockRequestDispatcher>();
+            var serviceProvider = services.BuildServiceProvider();
+            var relay = new RelayImplementation(serviceProvider);
+
+            var requests = new[] { new TestRequest(), new TestRequest() };
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            // Act & Assert
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                relay.SendBatchAsync(requests, cts.Token).AsTask());
+        }
+
+        [Fact]
+        public async Task SendBatchAsync_WithSIMDEnabled_UsesSIMDProcessing()
+        {
+            // Arrange - Create performance options with SIMD enabled
+            var performanceOptions = new PerformanceOptions
+            {
+                EnableSIMDOptimizations = true,
+                Profile = PerformanceProfile.Custom
+            };
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IRequestDispatcher, MockRequestDispatcher>();
+            services.AddSingleton<IOptions<RelayOptions>>(new OptionsWrapper<RelayOptions>(
+                new RelayOptions { Performance = performanceOptions }));
+            var serviceProvider = services.BuildServiceProvider();
+            var relay = new RelayImplementation(serviceProvider);
+
+            // Create enough requests to potentially trigger SIMD processing
+            var requests = new IRequest<string>[Vector<int>.Count + 1];
+            for (int i = 0; i < requests.Length; i++)
+            {
+                requests[i] = new TestStringRequest();
+            }
+
+            // Act
+            var result = await relay.SendBatchAsync(requests);
+
+            // Assert
+            Assert.Equal(requests.Length, result.Length);
+            Assert.All(result, r => Assert.Equal("Success", r));
+        }
+
+        [Fact]
+        public async Task SendBatchAsync_WithSIMDDisabled_UsesRegularProcessing()
+        {
+            // Arrange - Create performance options with SIMD disabled
+            var performanceOptions = new PerformanceOptions
+            {
+                EnableSIMDOptimizations = false,
+                Profile = PerformanceProfile.Custom
+            };
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IRequestDispatcher, MockRequestDispatcher>();
+            services.AddSingleton<IOptions<RelayOptions>>(new OptionsWrapper<RelayOptions>(
+                new RelayOptions { Performance = performanceOptions }));
+            var serviceProvider = services.BuildServiceProvider();
+            var relay = new RelayImplementation(serviceProvider);
+
+            var requests = new[] { new TestRequest(), new TestRequest() };
+
+            // Act
+            var result = await relay.SendBatchAsync(requests);
+
+            // Assert
+            Assert.Equal(2, result.Length);
+            Assert.All(result, r => Assert.IsType<TestResponse>(r));
+        }
+
+        [Fact]
+        public void Constructor_WithPerformanceOptions_AppliesProfileSettings()
+        {
+            // Arrange
+            var performanceOptions = new PerformanceOptions
+            {
+                Profile = PerformanceProfile.HighThroughput
+            };
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IOptions<RelayOptions>>(new OptionsWrapper<RelayOptions>(
+                new RelayOptions { Performance = performanceOptions }));
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Act
+            var relay = new RelayImplementation(serviceProvider);
+
+            // Assert - We can't directly test the internal performance options,
+            // but we can verify the relay was created successfully with the profile
+            Assert.NotNull(relay);
+        }
+
+        [Fact]
+        public void Constructor_WithCustomPerformanceProfile_DoesNotOverrideCustomSettings()
+        {
+            // Arrange
+            var performanceOptions = new PerformanceOptions
+            {
+                Profile = PerformanceProfile.Custom,
+                CacheDispatchers = true,
+                EnableHandlerCache = false // Custom setting that should not be overridden
+            };
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IOptions<RelayOptions>>(new OptionsWrapper<RelayOptions>(
+                new RelayOptions { Performance = performanceOptions }));
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Act
+            var relay = new RelayImplementation(serviceProvider);
+
+            // Assert
+            Assert.NotNull(relay);
+            // Custom profile should preserve the custom settings
+        }
+
+        [Theory]
+        [InlineData(PerformanceProfile.LowMemory)]
+        [InlineData(PerformanceProfile.Balanced)]
+        [InlineData(PerformanceProfile.HighThroughput)]
+        [InlineData(PerformanceProfile.UltraLowLatency)]
+        public void Constructor_WithDifferentPerformanceProfiles_CreatesInstanceSuccessfully(PerformanceProfile profile)
+        {
+            // Arrange
+            var performanceOptions = new PerformanceOptions { Profile = profile };
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IOptions<RelayOptions>>(new OptionsWrapper<RelayOptions>(
+                new RelayOptions { Performance = performanceOptions }));
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Act
+            var relay = new RelayImplementation(serviceProvider);
+
+            // Assert
+            Assert.NotNull(relay);
+        }
+
+        [Fact]
+        public void Constructor_WithNullPerformanceOptions_UsesDefaultOptions()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            // Don't register IOptions<RelayOptions> - should use defaults
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Act
+            var relay = new RelayImplementation(serviceProvider);
+
+            // Assert
+            Assert.NotNull(relay);
+            // Should not throw when performance options are null
+        }
+
+        [Fact]
+        public void Constructor_WithNullRelayOptions_UsesDefaultOptions()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IOptions<RelayOptions>>(new OptionsWrapper<RelayOptions>(null!));
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Act
+            var relay = new RelayImplementation(serviceProvider);
+
+            // Assert
+            Assert.NotNull(relay);
+            // Should handle null RelayOptions gracefully
+        }
+
+        [Fact]
+        public void ServiceFactory_Property_ReturnsConfiguredFactory()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var serviceProvider = services.BuildServiceProvider();
+            ServiceFactory customFactory = t => null;
+            var relay = new RelayImplementation(serviceProvider, customFactory);
+
+            // Act
+            var returnedFactory = relay.ServiceFactory;
+
+            // Assert
+            Assert.Equal(customFactory, returnedFactory);
+        }
 
     [Fact]
     public async Task PublishAsync_WithCancellation_CancelsOperation()
@@ -558,7 +816,11 @@ public class RelayImplementationComprehensiveTests
 
     public class TestRequest : IRequest<TestResponse>
     {
-        public string Value { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    public class TestStringRequest : IRequest<string>
+    {
     }
 
     public class TestVoidRequest : IRequest

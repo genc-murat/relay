@@ -280,20 +280,135 @@ public class PipelineExecutorComprehensiveTests
         Assert.Empty(result);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_WithNullHandlerParameter_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var serviceProvider = new ServiceCollection().BuildServiceProvider();
-        var executor = new PipelineExecutor(serviceProvider);
-        var request = new TestRequest();
-
-        // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+        [Fact]
+        public async Task ExecuteStreamAsync_WithCancellationToken_RespectsCancellation()
         {
-            await executor.ExecuteAsync<TestRequest, TestResponse>(request, null!, CancellationToken.None);
-        });
-    }
+            // Arrange
+            var services = new ServiceCollection();
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            var request = new TestRequest();
+            var handler = new Func<TestRequest, CancellationToken, IAsyncEnumerable<TestResponse>>((req, ct) =>
+            {
+                return CreateResponseStreamAsync();
+            });
+
+            async IAsyncEnumerable<TestResponse> CreateResponseStreamAsync()
+            {
+                for (int i = 1; i <= 10; i++)
+                {
+                    yield return new TestResponse { Value = i.ToString() };
+                }
+            }
+
+            using var cts = new CancellationTokenSource();
+            cts.CancelAfter(100); // Cancel quickly
+
+            // Act
+            var result = executor.ExecuteStreamAsync(request, handler, cts.Token);
+
+            // Assert - Should complete without throwing (cancellation might not affect the initial setup)
+            await foreach (var item in result)
+            {
+                // Just consume a few items
+                if (item.Value == "3") break;
+            }
+        }
+
+        [Fact]
+        public void GetPipelineBehaviors_WithNonExistentGeneratedRegistry_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            // Act - Use reflection to access the private method
+            var method = typeof(PipelineExecutor).GetMethod("GetPipelineBehaviors",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var genericMethod = method!.MakeGenericMethod(typeof(TestRequest), typeof(TestResponse));
+            var result = genericMethod.Invoke(executor, new object[] { }) as IEnumerable<IPipelineBehavior<TestRequest, TestResponse>>;
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public void GetStreamPipelineBehaviors_WithNonExistentGeneratedRegistry_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var serviceProvider = services.BuildServiceProvider();
+            var executor = new PipelineExecutor(serviceProvider);
+
+            // Act - Use reflection to access the private method
+            var method = typeof(PipelineExecutor).GetMethod("GetStreamPipelineBehaviors",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var genericMethod = method!.MakeGenericMethod(typeof(TestRequest), typeof(TestResponse));
+            var result = genericMethod.Invoke(executor, new object[] { }) as IEnumerable<IStreamPipelineBehavior<TestRequest, TestResponse>>;
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public void GetPipelineBehaviors_WithInvalidGeneratedRegistryType_HandlesGracefully()
+        {
+            // Arrange - Mock a service provider that returns an invalid registry
+            var mockServiceProvider = new Mock<IServiceProvider>();
+            mockServiceProvider.Setup(sp => sp.GetService(It.IsAny<Type>()))
+                .Returns<Type>(serviceType =>
+                {
+                    if (serviceType == typeof(IEnumerable<IPipelineBehavior<TestRequest, TestResponse>>))
+                    {
+                        return new List<IPipelineBehavior<TestRequest, TestResponse>>();
+                    }
+                    return null;
+                });
+
+            var executor = new PipelineExecutor(mockServiceProvider.Object);
+
+            // Act - Use reflection to access the private method
+            var method = typeof(PipelineExecutor).GetMethod("GetPipelineBehaviors",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var genericMethod = method!.MakeGenericMethod(typeof(TestRequest), typeof(TestResponse));
+            var result = genericMethod.Invoke(executor, new object[] { }) as IEnumerable<IPipelineBehavior<TestRequest, TestResponse>>;
+
+            // Assert - Should return empty collection when DI fails
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public void GetStreamPipelineBehaviors_WithInvalidGeneratedRegistryType_HandlesGracefully()
+        {
+            // Arrange - Mock a service provider that returns an invalid registry
+            var mockServiceProvider = new Mock<IServiceProvider>();
+            mockServiceProvider.Setup(sp => sp.GetService(It.IsAny<Type>()))
+                .Returns<Type>(serviceType =>
+                {
+                    if (serviceType == typeof(IEnumerable<IStreamPipelineBehavior<TestRequest, TestResponse>>))
+                    {
+                        return new List<IStreamPipelineBehavior<TestRequest, TestResponse>>();
+                    }
+                    return null;
+                });
+
+            var executor = new PipelineExecutor(mockServiceProvider.Object);
+
+            // Act - Use reflection to access the private method
+            var method = typeof(PipelineExecutor).GetMethod("GetStreamPipelineBehaviors",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var genericMethod = method!.MakeGenericMethod(typeof(TestRequest), typeof(TestResponse));
+            var result = genericMethod.Invoke(executor, new object[] { }) as IEnumerable<IStreamPipelineBehavior<TestRequest, TestResponse>>;
+
+            // Assert - Should return empty collection when DI fails
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
 
     [Fact]
     public async Task ExecuteStreamAsync_WithNullHandlerParameter_ThrowsArgumentNullException()

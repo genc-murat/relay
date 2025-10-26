@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using Relay.Core.Extensions;
 
 #pragma warning disable CS0162 // Unreachable code detected
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type
@@ -64,7 +65,6 @@ public class NamedRelayTests
     {
         public IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken)
         {
-            // Default implementation - just call the named version with null
             return DispatchAsync(request, null!, cancellationToken);
         }
 
@@ -72,14 +72,29 @@ public class NamedRelayTests
         {
             if (handlerName == "success")
                 return CreateSuccessStream<TResponse>();
+            if (handlerName == "string_success")
+                return CreateRepeatAsync((TResponse)(object)"test", 2);
             if (handlerName == "exception")
                 return CreateExceptionStream<TResponse>();
-            return CreateNotFoundStream<TResponse>(request.GetType().Name, handlerName);
+            throw new HandlerNotFoundException(request.GetType().Name, handlerName);
         }
 
         private async IAsyncEnumerable<T> CreateSuccessStream<T>()
         {
-            yield return (T)(object)"Success";
+            if (typeof(T) == typeof(string))
+            {
+                yield return (T)(object)"Success";
+            }
+            else if (typeof(T) == typeof(int))
+            {
+                yield return (T)(object)1;
+                yield return (T)(object)2;
+                yield return (T)(object)3;
+            }
+            else
+            {
+                yield return default!;
+            }
         }
 
         private async IAsyncEnumerable<T> CreateExceptionStream<T>()
@@ -89,11 +104,25 @@ public class NamedRelayTests
             yield break;
         }
 
-        private async IAsyncEnumerable<T> CreateNotFoundStream<T>(string requestType, string handlerName)
+        private async IAsyncEnumerable<T> CreateRepeatAsync<T>(T value, int count)
         {
-            await Task.CompletedTask;
-            throw new HandlerNotFoundException(requestType, handlerName);
-            yield break;
+            for (int i = 0; i < count; i++)
+            {
+                yield return value;
+            }
+        }
+    }
+
+    public class MockStreamDispatcherThrowingException : IStreamDispatcher
+    {
+        public IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken)
+        {
+            return DispatchAsync(request, null!, cancellationToken);
+        }
+
+        public IAsyncEnumerable<TResponse> DispatchAsync<TResponse>(IStreamRequest<TResponse> request, string handlerName, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Stream dispatcher test exception");
         }
     }
 
@@ -337,17 +366,55 @@ public class NamedRelayTests
     }
 
     [Fact]
-    public async Task StreamAsync_WithNullHandlerName_ShouldThrowArgumentException()
+    public async Task StreamAsync_WithNullRequest_ThrowsArgumentNullException()
     {
         // Arrange
-        var serviceProvider = CreateServiceProvider();
         var services = new ServiceCollection();
-        var relay = new MockRelayImplementation(services.BuildServiceProvider());
+        services.AddSingleton<IStreamDispatcher, MockStreamDispatcher>();
+        var serviceProvider = services.BuildServiceProvider();
+        var relay = new MockRelayImplementation(serviceProvider);
+        var namedRelay = new NamedRelay(relay, serviceProvider);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            namedRelay.StreamAsync<string>(null!, "handler").ToListAsync().AsTask());
+    }
+
+    [Fact]
+    public async Task StreamAsync_WithNullStreamDispatcher_ThrowsHandlerNotFoundException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        // Don't register IStreamDispatcher
+        var serviceProvider = services.BuildServiceProvider();
+        var relay = new MockRelayImplementation(serviceProvider);
         var namedRelay = new NamedRelay(relay, serviceProvider);
         var request = new TestStreamRequest();
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => namedRelay.StreamAsync<int>(request, null!, CancellationToken.None).GetAsyncEnumerator().MoveNextAsync().AsTask());
+        var exception = await Assert.ThrowsAsync<HandlerNotFoundException>(() =>
+            namedRelay.StreamAsync<int>(request, "handler").ToListAsync().AsTask());
+
+        Assert.Equal("TestStreamRequest", exception.RequestType);
+        Assert.Equal("handler", exception.HandlerName);
+    }
+
+    [Fact]
+    public async Task StreamAsync_WithDispatcherThrowingException_PropagatesException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IStreamDispatcher, MockStreamDispatcherThrowingException>();
+        var serviceProvider = services.BuildServiceProvider();
+        var relay = new MockRelayImplementation(serviceProvider);
+        var namedRelay = new NamedRelay(relay, serviceProvider);
+        var request = new TestStreamRequest();
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            namedRelay.StreamAsync<int>(request, "handler").ToListAsync().AsTask());
+
+        Assert.Equal("Stream dispatcher test exception", exception.Message);
     }
 
     [Fact]

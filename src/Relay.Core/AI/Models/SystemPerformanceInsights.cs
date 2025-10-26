@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Relay.Core.AI.Optimization.Services;
 
 namespace Relay.Core.AI
 {
@@ -38,6 +39,6 @@ namespace Relay.Core.AI
         /// <summary>
         /// Risk assessment for current optimization strategies
         /// </summary>
-        public RiskAssessmentResult RiskAssessment { get; init; } = new();
+        public Optimization.Services.RiskAssessment RiskAssessment { get; init; } = new();
     }
 }

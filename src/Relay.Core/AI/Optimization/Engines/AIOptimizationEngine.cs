@@ -485,7 +485,7 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         return _systemMetricsService.CollectSystemMetrics();
     }
 
-    private RiskAssessmentResult AssessSystemRisk(Dictionary<string, double> systemMetrics)
+    private RiskAssessment AssessSystemRisk(Dictionary<string, double> systemMetrics)
     {
         // Assess risk for the most common optimization strategy (EnableCaching as representative)
         // In a more sophisticated implementation, this could assess risks for all active strategies
@@ -509,7 +509,7 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
         analysisData.AddMetrics(metrics);
 
-        return _riskAssessmentService.AssessOptimizationRisk(representativeStrategy, analysisData, systemMetrics);
+        return _riskAssessmentService.AssessOptimizationRiskDetailed(representativeStrategy, analysisData, systemMetrics);
     }
 
     private void UpdateModelCallback(object? state)

@@ -4,7 +4,12 @@ using Relay.Core.AI;
 using Relay.Core.AI.Optimization.Services;
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Relay.Core.AI;
+using Relay.Core.AI.Optimization.Services;
 using Xunit;
+using System.Linq;
 
 namespace Relay.Core.Tests.AI.Optimization.Services;
 
@@ -327,6 +332,63 @@ public class RiskAssessmentServiceTests
 
         // This test ensures very high risk conditions are tested
         Assert.NotNull(result);
+    }
+
+    [Fact]
+    public void AssessOptimizationRiskDetailed_Should_Return_RiskAssessment_With_All_Details()
+    {
+        // Arrange
+        var analysisData = CreateTestAnalysisData(totalExecutions: 30, errorRate: 0.08, executionTimesCount: 10); // Low executions and high error rate
+        var systemMetrics = CreateTestSystemMetrics(cpuUtil: 0.8, memoryUtil: 0.6, errorRate: 0.02);
+
+        // Act
+        var result = _service.AssessOptimizationRiskDetailed(OptimizationStrategy.EnableCaching, analysisData, systemMetrics);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.IsType<RiskAssessment>(result);
+        Assert.Equal(OptimizationStrategy.EnableCaching, result.Strategy);
+        Assert.True(Enum.IsDefined(typeof(RiskLevel), result.RiskLevel));
+        Assert.True(result.AssessmentConfidence >= 0.0 && result.AssessmentConfidence <= 1.0);
+        Assert.NotNull(result.RiskFactors);
+        Assert.NotNull(result.MitigationStrategies);
+        Assert.True(result.LastAssessment <= DateTime.UtcNow && result.LastAssessment > DateTime.UtcNow.AddMinutes(-1));
+
+        // Should have at least some risk factors and mitigation strategies
+        Assert.True(result.RiskFactors.Count >= 0); // May be empty depending on conditions
+        Assert.True(result.MitigationStrategies.Count > 0); // Should always have at least baseline mitigation
+        Assert.Contains(result.MitigationStrategies, m => m.Contains("baseline"));
+    }
+
+    [Fact]
+    public void AssessOptimizationRiskDetailed_Should_Include_Insufficient_Data_Risk_Factors()
+    {
+        // Arrange
+        var analysisData = CreateTestAnalysisData(totalExecutions: 30, errorRate: 0.01, executionTimesCount: 5);
+        var systemMetrics = CreateTestSystemMetrics();
+
+        // Act
+        var result = _service.AssessOptimizationRiskDetailed(OptimizationStrategy.BatchProcessing, analysisData, systemMetrics);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains(result.RiskFactors, f => f.Contains("Insufficient historical data"));
+        Assert.Contains(result.MitigationStrategies, m => m.Contains("conservative") || m.Contains("monitoring"));
+    }
+
+    [Fact]
+    public void AssessOptimizationRiskDetailed_Should_Include_Custom_Strategy_Risk_Factors()
+    {
+        // Arrange
+        var analysisData = CreateTestAnalysisData(totalExecutions: 100, errorRate: 0.01, executionTimesCount: 50);
+        var systemMetrics = CreateTestSystemMetrics();
+
+        // Act
+        var result = _service.AssessOptimizationRiskDetailed(OptimizationStrategy.Custom, analysisData, systemMetrics);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains(result.RiskFactors, f => f.Contains("Custom optimizations require thorough testing"));
     }
 
     private static RequestAnalysisData CreateTestAnalysisData(

@@ -18,6 +18,9 @@ public class DefaultTelemetryContextPool : ITelemetryContextPool
     /// <param name="provider">The object pool provider</param>
     public DefaultTelemetryContextPool(ObjectPoolProvider provider)
     {
+        if (provider == null)
+            throw new ArgumentNullException(nameof(provider));
+
         var policy = new TelemetryContextPooledObjectPolicy();
         _pool = provider.Create(policy);
     }

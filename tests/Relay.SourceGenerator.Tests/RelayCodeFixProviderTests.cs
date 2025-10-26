@@ -1,10 +1,5 @@
-using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
-using Microsoft.CodeAnalysis.Testing.Verifiers;
-using Xunit;
 
 namespace Relay.SourceGenerator.Tests
 {
@@ -252,6 +247,18 @@ public class TestHandler
 }";
 
             await VerifyCodeFixAsync(source, expected);
+        }
+
+        /// <summary>
+        /// Tests that AddCancellationTokenAsync method exists and is accessible.
+        /// </summary>
+        [Fact]
+        public void AddCancellationTokenAsync_MethodExists()
+        {
+            // This test verifies that the AddCancellationTokenAsync method exists
+            // The actual functionality is tested in integration tests
+            var method = typeof(RelayCodeFixProvider).GetMethod("AddCancellationTokenAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Assert.NotNull(method);
         }
 
         /// <summary>

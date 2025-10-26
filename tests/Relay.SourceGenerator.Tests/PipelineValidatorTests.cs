@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 using Relay.SourceGenerator.Validators;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -933,6 +934,32 @@ public class TestClass
 
         // Assert
         Assert.False(result);
+    }
+
+    #endregion
+
+    #region PipelineInfo Tests
+
+    [Fact]
+    public void PipelineInfo_Struct_Properties_Can_Be_Set_And_Retrieved()
+    {
+        // Arrange
+        var location = Location.Create("test.cs", new TextSpan(0, 10), new LinePositionSpan(LinePosition.Zero, new LinePosition(0, 10)));
+        var pipelineInfo = new PipelineInfo
+        {
+            MethodName = "TestMethod",
+            Order = 5,
+            Scope = 1,
+            Location = location,
+            ContainingType = "TestNamespace.TestClass"
+        };
+
+        // Assert
+        Assert.Equal("TestMethod", pipelineInfo.MethodName);
+        Assert.Equal(5, pipelineInfo.Order);
+        Assert.Equal(1, pipelineInfo.Scope);
+        Assert.Equal(location, pipelineInfo.Location);
+        Assert.Equal("TestNamespace.TestClass", pipelineInfo.ContainingType);
     }
 
     #endregion

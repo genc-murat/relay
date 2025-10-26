@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -20,10 +21,10 @@ public class GetHandlerPriorityTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = null,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
 
         // Use reflection to access the private GetHandlerPriority method
@@ -50,10 +51,10 @@ public class GetHandlerPriorityTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = null,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle, AttributeData = null }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle, AttributeData = null }
+            ]
         };
 
         // Use reflection to access the private GetHandlerPriority method
@@ -113,7 +114,7 @@ namespace TestProject
             MethodSymbol = methodSymbol,
             Attributes = new List<RelayAttributeInfo>
             {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle, AttributeData = attributeData }
+                new() { Type = RelayAttributeType.Handle, AttributeData = attributeData }
             }
         };
 
@@ -148,7 +149,7 @@ namespace TestProject
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
         // Act
-        var result = getHandlerPriorityMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getHandlerPriorityMethod?.Invoke(generator, [handlerInfo]);
 
         // Assert
         Assert.Equal(0, result);

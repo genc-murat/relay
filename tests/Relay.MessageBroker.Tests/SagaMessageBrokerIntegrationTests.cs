@@ -3,9 +3,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Relay.MessageBroker.Saga;
 using Relay.MessageBroker.Saga.Interfaces;
-using Relay.MessageBroker.Saga.Services;
 using System.Collections.Concurrent;
-using Xunit;
 
 namespace Relay.MessageBroker.Tests;
 
@@ -20,7 +18,7 @@ public class SagaMessageBrokerIntegrationTests
             _messageBroker = messageBroker;
 
             // Subscribe to order messages to start saga
-            _messageBroker.SubscribeAsync<OrderMessage>(HandleOrderReceived).GetAwaiter().GetResult();
+            _messageBroker.SubscribeAsync<OrderMessage>(HandleOrderReceived).AsTask().Wait();
 
             // Define steps
             AddStep(new ValidateOrderStep(_messageBroker));
@@ -48,17 +46,12 @@ public class SagaMessageBrokerIntegrationTests
         }
     }
 
-    public class TestableMessageBroker : BaseMessageBroker
+    public class TestableMessageBroker(
+        IOptions<MessageBrokerOptions> options,
+        ILogger logger) : BaseMessageBroker(options, logger)
     {
         public ConcurrentBag<object> PublishedMessages { get; } = new();
         public List<(Type MessageType, SubscriptionInfo SubscriptionInfo)> SubscribedMessages { get; } = new();
-
-        public TestableMessageBroker(
-            IOptions<MessageBrokerOptions> options,
-            ILogger logger)
-            : base(options, logger)
-        {
-        }
 
         protected override async ValueTask PublishInternalAsync<TMessage>(
             TMessage message,
@@ -125,11 +118,11 @@ public class SagaMessageBrokerIntegrationTests
             OrderId = "ORDER-001",
             CustomerId = "CUST-001",
             Amount = 150.00m,
-            Items = new List<OrderItem>
-            {
-                new OrderItem { ProductId = "PROD-001", Quantity = 2, UnitPrice = 50.00m },
-                new OrderItem { ProductId = "PROD-002", Quantity = 1, UnitPrice = 50.00m }
-            }
+            Items =
+            [
+                new() { ProductId = "PROD-001", Quantity = 2, UnitPrice = 50.00m },
+                new() { ProductId = "PROD-002", Quantity = 1, UnitPrice = 50.00m }
+            ]
         };
 
         // Act
@@ -176,7 +169,7 @@ public class SagaMessageBrokerIntegrationTests
             OrderId = "ORDER-002",
             CustomerId = "CUST-002",
             Amount = -50.00m, // Invalid amount
-            Items = new List<OrderItem>()
+            Items = []
         };
 
         // Act
@@ -214,7 +207,7 @@ public class SagaMessageBrokerIntegrationTests
             OrderId = "ORDER-003",
             CustomerId = "CUST-003",
             Amount = 200.00m,
-            Items = new List<OrderItem> { new OrderItem { ProductId = "PROD-003", Quantity = 1, UnitPrice = 200.00m } }
+            Items = [new() { ProductId = "PROD-003", Quantity = 1, UnitPrice = 200.00m }]
         };
 
         // Act
@@ -245,7 +238,7 @@ public class SagaMessageBrokerIntegrationTests
         public string OrderId { get; set; } = string.Empty;
         public string CustomerId { get; set; } = string.Empty;
         public decimal Amount { get; set; }
-        public List<OrderItem> Items { get; set; } = new();
+        public List<OrderItem> Items { get; set; } = [];
         public bool ValidationCompleted { get; set; }
         public bool InventoryReserved { get; set; }
         public bool PaymentProcessed { get; set; }
@@ -283,7 +276,7 @@ public class SagaMessageBrokerIntegrationTests
         public FailingPaymentSaga(TestableMessageBroker messageBroker)
         {
             // Subscribe to order messages to start saga
-            messageBroker.SubscribeAsync<OrderMessage>(HandleOrderReceived).GetAwaiter().GetResult();
+            messageBroker.SubscribeAsync<OrderMessage>(HandleOrderReceived).AsTask().Wait();
 
             // Define steps
             AddStep(new ValidateOrderStep(messageBroker));
@@ -315,10 +308,7 @@ public class SagaMessageBrokerIntegrationTests
     {
         private readonly TestableMessageBroker _messageBroker;
 
-        public ValidateOrderStep(TestableMessageBroker messageBroker)
-        {
-            _messageBroker = messageBroker;
-        }
+        public ValidateOrderStep(TestableMessageBroker messageBroker) => _messageBroker = messageBroker;
 
         public string Name => "ValidateOrder";
 

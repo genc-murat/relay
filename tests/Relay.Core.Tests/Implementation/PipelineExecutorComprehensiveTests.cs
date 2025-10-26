@@ -328,7 +328,7 @@ public class PipelineExecutorComprehensiveTests
             var method = typeof(PipelineExecutor).GetMethod("GetPipelineBehaviors",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var genericMethod = method!.MakeGenericMethod(typeof(TestRequest), typeof(TestResponse));
-            var result = genericMethod.Invoke(executor, new object[] { }) as IEnumerable<IPipelineBehavior<TestRequest, TestResponse>>;
+            var result = genericMethod.Invoke(executor, []) as IEnumerable<IPipelineBehavior<TestRequest, TestResponse>>;
 
             // Assert
             Assert.NotNull(result);
@@ -347,7 +347,7 @@ public class PipelineExecutorComprehensiveTests
             var method = typeof(PipelineExecutor).GetMethod("GetStreamPipelineBehaviors",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var genericMethod = method!.MakeGenericMethod(typeof(TestRequest), typeof(TestResponse));
-            var result = genericMethod.Invoke(executor, new object[] { }) as IEnumerable<IStreamPipelineBehavior<TestRequest, TestResponse>>;
+            var result = genericMethod.Invoke(executor, []) as IEnumerable<IStreamPipelineBehavior<TestRequest, TestResponse>>;
 
             // Assert
             Assert.NotNull(result);
@@ -375,7 +375,7 @@ public class PipelineExecutorComprehensiveTests
             var method = typeof(PipelineExecutor).GetMethod("GetPipelineBehaviors",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var genericMethod = method!.MakeGenericMethod(typeof(TestRequest), typeof(TestResponse));
-            var result = genericMethod.Invoke(executor, new object[] { }) as IEnumerable<IPipelineBehavior<TestRequest, TestResponse>>;
+            var result = genericMethod.Invoke(executor, []) as IEnumerable<IPipelineBehavior<TestRequest, TestResponse>>;
 
             // Assert - Should return empty collection when DI fails
             Assert.NotNull(result);
@@ -403,7 +403,7 @@ public class PipelineExecutorComprehensiveTests
             var method = typeof(PipelineExecutor).GetMethod("GetStreamPipelineBehaviors",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var genericMethod = method!.MakeGenericMethod(typeof(TestRequest), typeof(TestResponse));
-            var result = genericMethod.Invoke(executor, new object[] { }) as IEnumerable<IStreamPipelineBehavior<TestRequest, TestResponse>>;
+            var result = genericMethod.Invoke(executor, []) as IEnumerable<IStreamPipelineBehavior<TestRequest, TestResponse>>;
 
             // Assert - Should return empty collection when DI fails
             Assert.NotNull(result);

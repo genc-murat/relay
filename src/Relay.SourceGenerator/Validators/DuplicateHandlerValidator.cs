@@ -127,7 +127,7 @@ namespace Relay.SourceGenerator.Validators
                 // Check for potential naming conflicts with common patterns
                 foreach (var handler in handlers.Where(h => !string.IsNullOrWhiteSpace(h.Name)))
                 {
-                    if (handler.Name.Equals("main", System.StringComparison.OrdinalIgnoreCase))
+                    if (handler.Name!.Equals("main", System.StringComparison.OrdinalIgnoreCase))
                     {
                         ValidationHelper.ReportDiagnostic(context, DiagnosticDescriptors.PerformanceWarning,
                             handler.Location,

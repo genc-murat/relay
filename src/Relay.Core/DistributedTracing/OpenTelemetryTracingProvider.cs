@@ -8,21 +8,15 @@ namespace Relay.Core.DistributedTracing;
 /// <summary>
 /// OpenTelemetry implementation of IDistributedTracingProvider.
 /// </summary>
-public class OpenTelemetryTracingProvider : IDistributedTracingProvider
+/// <remarks>
+/// Initializes a new instance of the <see cref="OpenTelemetryTracingProvider"/> class.
+/// </remarks>
+/// <param name="tracerProvider">The OpenTelemetry tracer provider.</param>
+/// <param name="serviceName">The name of the service.</param>
+public class OpenTelemetryTracingProvider(TracerProvider? tracerProvider = null, string serviceName = "Relay") : IDistributedTracingProvider
 {
-    private readonly TracerProvider? _tracerProvider;
-    private readonly string _serviceName;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="OpenTelemetryTracingProvider"/> class.
-    /// </summary>
-    /// <param name="tracerProvider">The OpenTelemetry tracer provider.</param>
-    /// <param name="serviceName">The name of the service.</param>
-    public OpenTelemetryTracingProvider(TracerProvider? tracerProvider = null, string serviceName = "Relay")
-    {
-        _tracerProvider = tracerProvider;
-        _serviceName = serviceName;
-    }
+    private readonly TracerProvider? _tracerProvider = tracerProvider;
+    private readonly string _serviceName = serviceName;
 
     /// <inheritdoc />
     public Activity? StartActivity(string operationName, Type requestType, string? correlationId = null, IDictionary<string, object?>? tags = null)
@@ -101,10 +95,7 @@ public class OpenTelemetryTracingProvider : IDistributedTracingProvider
     public void SetActivityStatus(ActivityStatusCode status, string? description = null)
     {
         var activity = Activity.Current;
-        if (activity != null)
-        {
-            activity.SetStatus(status, description);
-        }
+        activity?.SetStatus(status, description);
     }
 
     /// <inheritdoc />

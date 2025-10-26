@@ -232,7 +232,7 @@ namespace Relay.Core
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
@@ -246,7 +246,7 @@ namespace Relay.Core
             .OfType<MethodDeclarationSyntax>()
             .First(m => m.Identifier.ValueText == methodName);
 
-        return semanticModel.GetDeclaredSymbol(methodDeclaration) as IMethodSymbol;
+        return (semanticModel.GetDeclaredSymbol(methodDeclaration) as IMethodSymbol)!;
     }
 
     private static MethodDeclarationSyntax GetMethodDeclaration(Compilation compilation, string methodName)

@@ -39,10 +39,7 @@ public static class FallbackDispatcherBase
             var castedHandler = Expression.Convert(handlerParam, handlerInterface);
             var castedRequest = Expression.Convert(requestParam, requestType);
 
-            var method = handlerInterface.GetMethod("HandleAsync");
-            if (method == null)
-                throw new MissingMethodException(handlerInterface.FullName, "HandleAsync");
-
+            var method = handlerInterface.GetMethod("HandleAsync") ?? throw new MissingMethodException(handlerInterface.FullName, "HandleAsync");
             var call = Expression.Call(castedHandler, method, castedRequest, ctParam);
             var lambda = Expression.Lambda<Func<object, object, CancellationToken, ValueTask<TResponse>>>(call, handlerParam, requestParam, ctParam);
             return new Entry { HandlerInterfaceType = handlerInterface, Invoke = lambda.Compile() };
@@ -73,10 +70,7 @@ public static class FallbackDispatcherBase
             var castedHandler = Expression.Convert(handlerParam, handlerInterface);
             var castedRequest = Expression.Convert(requestParam, requestType);
 
-            var method = handlerInterface.GetMethod("HandleAsync");
-            if (method == null)
-                throw new MissingMethodException(handlerInterface.FullName, "HandleAsync");
-
+            var method = handlerInterface.GetMethod("HandleAsync") ?? throw new MissingMethodException(handlerInterface.FullName, "HandleAsync");
             var call = Expression.Call(castedHandler, method, castedRequest, ctParam);
             var lambda = Expression.Lambda<Func<object, object, CancellationToken, ValueTask>>(call, handlerParam, requestParam, ctParam);
             return new Entry { HandlerInterfaceType = handlerInterface, Invoke = lambda.Compile() };

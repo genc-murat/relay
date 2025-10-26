@@ -161,7 +161,7 @@ public class EfCoreEventStoreEdgeCasesTests : IDisposable
         };
 
         // Save the event normally
-        await _eventStore.SaveEventsAsync(aggregateId, new List<Event> { testEvent }, -1);
+        await _eventStore.SaveEventsAsync(aggregateId, [testEvent], -1);
 
         // Act - Retrieve the event
         var retrievedEvents = await _eventStore.GetEventsAsync(aggregateId).ToListAsync();
@@ -356,6 +356,7 @@ public class EfCoreEventStoreEdgeCasesTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
 

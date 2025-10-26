@@ -6,10 +6,10 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Relay.Core.AI;
 using Relay.Core.AI.Optimization.Services;
 using Xunit;
 using System.Linq;
+using Relay.Core.AI.Models;
 
 namespace Relay.Core.Tests.AI.Optimization.Services;
 

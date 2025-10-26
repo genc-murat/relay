@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
-using Relay.SourceGenerator;
+using Relay.SourceGenerator.Core;
 using System;
 using System.Collections.Immutable;
 using System.Linq;

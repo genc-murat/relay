@@ -60,14 +60,13 @@ namespace TestApp
             var handlerInfo1 = new HandlerInfo
             {
                 MethodSymbol = method1,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo 
-                    { 
+                Attributes =
+                [
+                    new() { 
                         Type = RelayAttributeType.Notification,
                         AttributeData = attribute1
                     }
-                }
+                ]
             };
             discoveryResult.Handlers.Add(handlerInfo1);
         }
@@ -80,8 +79,7 @@ namespace TestApp
                 MethodSymbol = method2,
                 Attributes = new List<RelayAttributeInfo>
                 {
-                    new RelayAttributeInfo 
-                    { 
+                    new() {
                         Type = RelayAttributeType.Notification,
                         AttributeData = attribute2
                     }
@@ -167,14 +165,13 @@ namespace TestApp
             var handlerInfo = new HandlerInfo
             {
                 MethodSymbol = methodSymbol,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo 
-                    { 
+                Attributes =
+                [
+                    new() {
                         Type = RelayAttributeType.Notification, 
                         AttributeData = attributeData 
                     }
-                }
+                ]
             };
             
             discoveryResult.Handlers.Add(handlerInfo);
@@ -251,14 +248,13 @@ namespace TestApp
             var handlerInfo = new HandlerInfo
             {
                 MethodSymbol = methodSymbol,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo 
-                    { 
+                Attributes =
+                [
+                    new() {
                         Type = RelayAttributeType.Notification, 
                         AttributeData = attributeData 
                     }
-                }
+                ]
             };
             
             discoveryResult.Handlers.Add(handlerInfo);

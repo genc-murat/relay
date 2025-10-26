@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.Core.AI;
 using Relay.Core.AI.Analysis.TimeSeries;
+using Relay.Core.AI.Models;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Services;
 using System;

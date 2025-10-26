@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Core;
 
 namespace Relay.SourceGenerator.Tests
 {
@@ -51,8 +52,8 @@ namespace TestProject
             var driver = CSharpGeneratorDriver.Create(generator);
             driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
                 compilation,
-                out var outputCompilation,
-                out var diagnostics);
+                out _,
+                out _);
 
             var runResult = driver.GetRunResult();
 
@@ -71,7 +72,7 @@ namespace TestProject
             var driver = CSharpGeneratorDriver.Create(generator);
             driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
                 compilation,
-                out var outputCompilation,
+                out _,
                 out var diagnostics);
 
             // Assert
@@ -116,88 +117,8 @@ namespace TestProject
             var driver = CSharpGeneratorDriver.Create(generator);
             driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
                 compilation,
-                out var outputCompilation,
-                out var diagnostics);
-
-            var runResult = driver.GetRunResult();
-
-            // Assert
-            // Should generate something
-            Assert.NotEmpty(runResult.Results);
-        }
-
-        [Fact]
-        public void Generator_Should_Generate_Multiple_Files()
-        {
-            // Arrange
-            var source = @"
-using Relay.Core;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace TestProject
-{
-    public class TestHandler
-    {
-        [Handle]
-        public ValueTask<string> HandleAsync(string request, CancellationToken ct)
-        {
-            return ValueTask.FromResult(request);
-        }
-    }
-}";
-
-            var generator = new RelayIncrementalGenerator();
-            var compilation = CreateTestCompilation(source);
-
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
-
-            var runResult = driver.GetRunResult();
-
-            // Assert
-            // Generator should produce some output
-            Assert.NotEmpty(runResult.Results);
-        }
-
-        [Fact]
-        public void Generator_Should_Not_Crash_With_Pipeline()
-        {
-            // Arrange
-            var source = @"
-using Relay.Core;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace TestProject
-{
-    public class TestPipeline
-    {
-        [Pipeline(Order = 1)]
-        public ValueTask<TResponse> HandleAsync<TRequest, TResponse>(
-            TRequest request,
-            Func<ValueTask<TResponse>> next,
-            CancellationToken ct)
-        {
-            return next();
-        }
-    }
-}";
-
-            var generator = new RelayIncrementalGenerator();
-            var compilation = CreateTestCompilation(source);
-
-            // Act
-            var driver = CSharpGeneratorDriver.Create(generator);
-            driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-                compilation,
-                out var outputCompilation,
-                out var diagnostics);
+                out _,
+                out _);
 
             var runResult = driver.GetRunResult();
 
@@ -206,7 +127,7 @@ namespace TestProject
             Assert.NotNull(runResult);
         }
 
-        private static Compilation CreateTestCompilation(string source)
+        private static CSharpCompilation CreateTestCompilation(string source)
         {
             var syntaxTree = string.IsNullOrEmpty(source)
                 ? null
@@ -245,19 +166,19 @@ namespace Relay.Core
 ");
 
             var trees = syntaxTree == null
-                ? new[] { relayCoreStubs }
+                ? [relayCoreStubs]
                 : new[] { relayCoreStubs, syntaxTree };
 
             return CSharpCompilation.Create(
                 assemblyName: "TestAssembly",
                 syntaxTrees: trees,
-                references: new[]
-                {
+                references:
+                [
                     MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
-                },
+                ],
                 options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         }
     }

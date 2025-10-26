@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Relay.Core.AI.Models;
 using Relay.Core.AI.Optimization.Services;
 
 namespace Relay.Core.AI

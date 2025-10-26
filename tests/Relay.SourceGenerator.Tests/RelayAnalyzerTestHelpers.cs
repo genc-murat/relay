@@ -2,6 +2,7 @@ extern alias RelayCore;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Relay.SourceGenerator.Core;
 using System.Collections.Immutable;
 
 namespace Relay.SourceGenerator.Tests;
@@ -32,7 +33,7 @@ public static class RelayAnalyzerTestHelpers
 
         // Create compilation with analyzers
         var compilationWithAnalyzers = compilation.WithAnalyzers(
-            ImmutableArray.Create<DiagnosticAnalyzer>(analyzer));
+            [analyzer]);
 
         // Get analyzer diagnostics
         var analyzerDiagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
@@ -131,13 +132,13 @@ namespace Relay.Core
             var endIndex = result.IndexOf("|}", startIndex);
             if (endIndex == -1) break;
 
-            var beforeMarkup = result.Substring(0, startIndex);
-            var afterMarkup = result.Substring(endIndex + 2);
+            var beforeMarkup = result[..startIndex];
+            var afterMarkup = result[(endIndex + 2)..];
 
             // Find the content between the markup (the actual code)
             var markupContent = result.Substring(startIndex + 2, endIndex - startIndex - 2);
             var colonIndex = markupContent.IndexOf(':');
-            var content = colonIndex >= 0 ? markupContent.Substring(colonIndex + 1) : "";
+            var content = colonIndex >= 0 ? markupContent[(colonIndex + 1)..] : "";
 
             result = beforeMarkup + content + afterMarkup;
             startIndex = beforeMarkup.Length + content.Length;
@@ -169,7 +170,7 @@ namespace Relay.Core
 
                 if (colonIndex != -1)
                 {
-                    diagnosticId = diagnosticId.Substring(0, colonIndex);
+                    diagnosticId = diagnosticId[..colonIndex];
                 }
 
                 expectedDiagnostics.Add(new ExpectedDiagnostic

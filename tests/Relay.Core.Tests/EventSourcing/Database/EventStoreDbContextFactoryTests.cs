@@ -24,7 +24,7 @@ public class EventStoreDbContextFactoryTests
 
         // Assert
         Assert.NotNull(context);
-        Assert.IsAssignableFrom<EventStoreDbContext>(context);
+        Assert.IsType<EventStoreDbContext>(context, exactMatch: false);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class EventStoreDbContextFactoryTests
 
         // Assert
         Assert.NotNull(context);
-        Assert.IsAssignableFrom<EventStoreDbContext>(context);
+        Assert.IsType<EventStoreDbContext>(context, exactMatch: false);
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public class EventStoreDbContextFactoryTests
     public void CreateDbContext_ReturnsContextWithDbSets()
     {
         // Act
-        var context = _factory.CreateDbContext(Array.Empty<string>());
+        var context = _factory.CreateDbContext([]);
 
         // Assert
         Assert.NotNull(context.Events);

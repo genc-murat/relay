@@ -1,4 +1,5 @@
 using Relay.Core.AI;
+using Relay.Core.AI.Models;
 using System;
 using Xunit;
 

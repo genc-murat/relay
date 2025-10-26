@@ -33,20 +33,19 @@ public class WorkflowEngineStepExecutionTests
     public async Task ExecuteRequestStep_WithValidRequest_ShouldCallSendAsync()
     {
         // Arrange
-        var definition = new WorkflowDefinition
+        WorkflowDefinition definition = new()
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
+            Steps =
+            [
+                new() {
                     Name = "RequestStep",
                     Type = StepType.Request,
                     RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineStepExecutionTests+TestWorkflowRequest", // Use a valid type that exists
                     OutputKey = "Result"
                 }
-            }
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -79,20 +78,20 @@ public class WorkflowEngineStepExecutionTests
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
+            Steps =
+            [
                 new WorkflowStep
                 {
                     Name = "ParallelStep",
                     Type = StepType.Parallel,
-                    ParallelSteps = new List<WorkflowStep>
-                    {
-                        new WorkflowStep { Name = "ParallelStep1", Type = StepType.Wait, WaitTimeMs = 50 },
-                        new WorkflowStep { Name = "ParallelStep2", Type = StepType.Wait, WaitTimeMs = 50 },
-                        new WorkflowStep { Name = "ParallelStep3", Type = StepType.Wait, WaitTimeMs = 50 }
-                    }
+                    ParallelSteps =
+                    [
+                        new() { Name = "ParallelStep1", Type = StepType.Wait, WaitTimeMs = 50 },
+                        new() { Name = "ParallelStep2", Type = StepType.Wait, WaitTimeMs = 50 },
+                        new() { Name = "ParallelStep3", Type = StepType.Wait, WaitTimeMs = 50 }
+                    ]
                 }
-            }
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -121,10 +120,10 @@ public class WorkflowEngineStepExecutionTests
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep { Name = "UnsupportedStep", Type = (StepType)999 } // Invalid enum value
-            }
+            Steps =
+            [
+                new() { Name = "UnsupportedStep", Type = (StepType)999 } // Invalid enum value
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -153,15 +152,14 @@ public class WorkflowEngineStepExecutionTests
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
+            Steps =
+            [
+                new() {
                     Name = "RequestStep",
                     Type = StepType.Request,
                     RequestType = null // Null RequestType should cause ArgumentException
                 }
-            }
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -190,15 +188,14 @@ public class WorkflowEngineStepExecutionTests
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
+            Steps =
+            [
+                new() {
                     Name = "RequestStep",
                     Type = StepType.Request,
                     RequestType = "" // Empty RequestType should cause ArgumentException
                 }
-            }
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -223,20 +220,19 @@ public class WorkflowEngineStepExecutionTests
     public async Task ExecuteRequestStep_WithOutputKey_ShouldUpdateContext()
     {
         // Arrange
-        var definition = new WorkflowDefinition
+        WorkflowDefinition definition = new()
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
+            Steps =
+            [
+                new() {
                     Name = "RequestStep",
                     Type = StepType.Request,
                     RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineStepExecutionTests+TestWorkflowRequest",
                     OutputKey = "CustomKey"
                 }
-            }
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -266,20 +262,19 @@ public class WorkflowEngineStepExecutionTests
     public async Task ExecuteRequestStep_WithoutOutputKey_ShouldUseStepNameAsKey()
     {
         // Arrange
-        var definition = new WorkflowDefinition
+        WorkflowDefinition definition = new()
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
+            Steps =
+            [
+                new() {
                     Name = "MyRequestStep",
                     Type = StepType.Request,
                     RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineStepExecutionTests+TestWorkflowRequest"
                     // No OutputKey specified
                 }
-            }
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -313,15 +308,14 @@ public class WorkflowEngineStepExecutionTests
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
+            Steps =
+            [
+                new() {
                     Name = "ParallelStep",
                     Type = StepType.Parallel,
                     ParallelSteps = new List<WorkflowStep>() // Empty list (validation requires at least one, so this will fail validation)
                 }
-            }
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -352,8 +346,7 @@ public class WorkflowEngineStepExecutionTests
             Name = "Test Workflow",
             Steps = new List<WorkflowStep>
             {
-                new WorkflowStep
-                {
+                new() {
                     Name = "RequestStep",
                     Type = StepType.Request,
                     RequestType = "Relay.Core.Tests.Workflows.WorkflowEngineStepExecutionTests+TestWorkflowRequestWithReadOnly",
@@ -391,16 +384,15 @@ public class WorkflowEngineStepExecutionTests
         {
             Id = "test-workflow",
             Name = "Test Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep
-                {
+            Steps =
+            [
+                new() {
                     Name = "RequestStep",
                     Type = StepType.Request,
                     RequestType = typeof(TestWorkflowRequestWithProperties).AssemblyQualifiedName,
                     OutputKey = "Result"
                 }
-            }
+            ]
         };
 
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
@@ -447,8 +439,7 @@ public class WorkflowEngineStepExecutionTests
             Name = "Test Workflow",
             Steps = new List<WorkflowStep>
             {
-                new WorkflowStep
-                {
+                new() {
                     Name = "RequestStep",
                     Type = StepType.Request,
                     RequestType = typeof(TestWorkflowRequestWithProperties).AssemblyQualifiedName,

@@ -196,7 +196,7 @@ public class DbProviderImplementationTests
 
         // Assert
         Assert.NotNull(provider);
-        Assert.IsAssignableFrom<IDbProvider>(provider);
+        Assert.IsType<IDbProvider>(provider, exactMatch: false);
     }
 
     [Theory]

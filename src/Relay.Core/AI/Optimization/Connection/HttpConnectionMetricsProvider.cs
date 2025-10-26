@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -21,7 +22,7 @@ internal class HttpConnectionMetricsProvider
     public HttpConnectionMetricsProvider(
         ILogger logger,
         Relay.Core.AI.AIOptimizationOptions options,
-        ConcurrentDictionary<Type, Relay.Core.AI.RequestAnalysisData> requestAnalytics,
+        ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
         Relay.Core.AI.Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
         Relay.Core.AI.SystemMetricsCalculator systemMetrics)
     {

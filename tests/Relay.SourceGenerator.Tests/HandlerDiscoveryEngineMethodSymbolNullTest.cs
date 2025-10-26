@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Discovery;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -55,7 +57,7 @@ namespace TestProject
                  d.GetMessage().Contains("Could not get symbol for method"));
     }
 
-    private static Compilation CreateTestCompilation(string source)
+    private static CSharpCompilation CreateTestCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
@@ -79,13 +81,13 @@ namespace Relay.Core
 
         return CSharpCompilation.Create(
             assemblyName: "TestAssembly",
-            syntaxTrees: new[] { relayCoreStubs, syntaxTree },
-            references: new[]
-            {
+            syntaxTrees: [relayCoreStubs, syntaxTree],
+            references:
+            [
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
-            },
+            ],
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 }
@@ -93,7 +95,7 @@ namespace Relay.Core
 // Simple test diagnostic reporter that captures diagnostics
 internal class TestDiagnosticReporter : IDiagnosticReporter
 {
-    public List<Diagnostic> Diagnostics { get; } = new List<Diagnostic>();
+    public List<Diagnostic> Diagnostics { get; } = [];
     
     public void ReportDiagnostic(Diagnostic diagnostic)
     {

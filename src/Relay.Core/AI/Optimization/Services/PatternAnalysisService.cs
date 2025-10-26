@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Models;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Models;
 using System;

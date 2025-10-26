@@ -179,11 +179,11 @@ public class UniqueValidationRuleTests
 
         // Test with complex objects
         var objRule = new UniqueValidationRule<TestObject>();
-        var objCollection = new List<TestObject> 
-        { 
-            new TestObject { Id = 1, Name = "Test1" }, 
-            new TestObject { Id = 2, Name = "Test2" } // Different objects are unique
-        };
+        List<TestObject> objCollection =
+        [
+            new() { Id = 1, Name = "Test1" }, 
+            new() { Id = 2, Name = "Test2" } // Different objects are unique
+        ];
 
         var objResult = await objRule.ValidateAsync(objCollection);
         Assert.Empty(objResult);
@@ -278,7 +278,7 @@ public class UniqueValidationRuleTests
         public int Id { get; set; }
         public string Name { get; set; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is TestObjectWithOverride other)
             {

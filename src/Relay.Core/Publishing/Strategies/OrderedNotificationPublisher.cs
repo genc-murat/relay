@@ -59,8 +59,7 @@ public class OrderedNotificationPublisher : INotificationPublisher
     {
         if (notification == null)
             throw new ArgumentNullException(nameof(notification));
-        if (handlers == null)
-            throw new ArgumentNullException(nameof(handlers));
+        ArgumentNullException.ThrowIfNull(handlers);
 
         var handlersList = handlers.ToList();
         if (handlersList.Count == 0)
@@ -160,7 +159,7 @@ public class OrderedNotificationPublisher : INotificationPublisher
             }
 
             // Execute parallel handlers concurrently
-            if (parallelHandlers.Any())
+            if (parallelHandlers.Count != 0)
             {
                 await ExecuteHandlersInParallel(notification, parallelHandlers, cancellationToken);
             }
@@ -274,7 +273,7 @@ public class OrderedNotificationPublisher : INotificationPublisher
         }
 
         // ExecuteBefore creates reverse dependencies
-        var executeBeforeAttrs = handlerType.GetCustomAttributes<ExecuteBeforeAttribute>();
+        _ = handlerType.GetCustomAttributes<ExecuteBeforeAttribute>();
         // These are handled in TopologicalSort
 
         return dependencies;
@@ -309,7 +308,7 @@ public class OrderedNotificationPublisher : INotificationPublisher
 
         foreach (var handler in handlers)
         {
-            graph[handler.HandlerType] = new HashSet<Type>(handler.Dependencies);
+            graph[handler.HandlerType] = [.. handler.Dependencies];
             if (!reverseDependencies.ContainsKey(handler.HandlerType))
             {
                 reverseDependencies[handler.HandlerType] = new HashSet<Type>();
@@ -337,7 +336,7 @@ public class OrderedNotificationPublisher : INotificationPublisher
         // Start with handlers that have no dependencies
         foreach (var handler in handlers.OrderBy(h => h.GroupOrder).ThenBy(h => h.Order))
         {
-            if (!graph[handler.HandlerType].Any())
+            if (graph[handler.HandlerType].Count == 0)
             {
                 queue.Enqueue(handler);
                 visited.Add(handler.HandlerType);
@@ -359,7 +358,7 @@ public class OrderedNotificationPublisher : INotificationPublisher
                 {
                     graph[other.HandlerType].Remove(handler.HandlerType);
 
-                    if (!graph[other.HandlerType].Any())
+                    if (graph[other.HandlerType].Count == 0)
                     {
                         queue.Enqueue(other);
                         visited.Add(other.HandlerType);
@@ -397,7 +396,7 @@ public class OrderedNotificationPublisher : INotificationPublisher
         public string? Group { get; set; }
         public int GroupOrder { get; set; }
         public NotificationExecutionMode ExecutionMode { get; set; }
-        public HashSet<Type> Dependencies { get; set; } = new HashSet<Type>();
+        public HashSet<Type> Dependencies { get; set; } = [];
         public bool AllowParallelExecution { get; set; }
         public bool SuppressExceptions { get; set; }
     }

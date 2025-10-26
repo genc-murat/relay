@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Core;
 using System.Linq;
 using Xunit;
 
@@ -30,19 +31,19 @@ namespace TestProject
             // Create compilation WITHOUT Relay.Core reference
             var compilation = CSharpCompilation.Create(
                 assemblyName: "TestAssembly",
-                syntaxTrees: new[] { 
+                syntaxTrees: [
                     CSharpSyntaxTree.ParseText(@"
                         [System.AttributeUsage(System.AttributeTargets.Method)]
                         public class HandleAttribute : System.Attribute { }
                     "),
                     CSharpSyntaxTree.ParseText(source) 
-                },
-                references: new[]
-                {
+                ],
+                references:
+                [
                     MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
-                },
+                ],
                 options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
             var generator = new RelayIncrementalGenerator();
@@ -85,15 +86,15 @@ namespace TestProject
             // Create compilation WITHOUT Relay.Core reference
             var compilation = CSharpCompilation.Create(
                 assemblyName: "TestAssembly",
-                syntaxTrees: new[] { 
+                syntaxTrees: [ 
                     CSharpSyntaxTree.ParseText(source) 
-                },
-                references: new[]
-                {
+                ],
+                references:
+                [
                     MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
-                },
+                ],
                 options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
             var generator = new RelayIncrementalGenerator();
@@ -163,7 +164,7 @@ namespace TestProject
             Assert.DoesNotContain("SimpleClass", generatedCode);
         }
 
-        private static Compilation CreateTestCompilation(string source)
+        private static CSharpCompilation CreateTestCompilation(string source)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
@@ -228,14 +229,14 @@ namespace Relay.Core
 
             return CSharpCompilation.Create(
                 assemblyName: "TestAssembly",
-                syntaxTrees: new[] { relayCoreStubs, syntaxTree },
-                references: new[]
-                {
+                syntaxTrees: [relayCoreStubs, syntaxTree],
+                references:
+                [
                     MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
                     MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location),
-                },
+                ],
                 options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         }
     }

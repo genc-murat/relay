@@ -128,8 +128,8 @@ public void GetSemanticModel_WithInvalidSyntaxTree_ShouldStillReturnModel()
         // Arrange
         var compilation = CSharpCompilation.Create(
             null, // null assembly name
-            System.Array.Empty<SyntaxTree>(),
-            new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) });
+            [],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
 
         // Act
         var context = new RelayCompilationContext(compilation, default);
@@ -169,7 +169,7 @@ public void GetSemanticModel_WithInvalidSyntaxTree_ShouldStillReturnModel()
 
         return CSharpCompilation.Create(
             assemblyName,
-            System.Array.Empty<SyntaxTree>(),
+            [],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }

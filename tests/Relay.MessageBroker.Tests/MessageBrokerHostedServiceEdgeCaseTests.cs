@@ -10,10 +10,12 @@ namespace Relay.MessageBroker.Tests;
 
 public class MessageBrokerHostedServiceEdgeCaseTests
 {
-    public class TestableHostedService : IHostedService
+    public class TestableHostedService(
+        IMessageBroker messageBroker,
+        ILogger logger) : IHostedService
     {
-        private readonly IMessageBroker _messageBroker;
-        private readonly ILogger _logger;
+        private readonly IMessageBroker _messageBroker = messageBroker;
+        private readonly ILogger _logger = logger;
 
         public bool StartShouldFail { get; set; }
         public bool StopShouldFail { get; set; }
@@ -22,14 +24,6 @@ public class MessageBrokerHostedServiceEdgeCaseTests
         public Exception? StartException { get; set; }
         public Exception? StopException { get; set; }
         public ConcurrentBag<string> LifecycleEvents { get; } = new();
-
-        public TestableHostedService(
-            IMessageBroker messageBroker,
-            ILogger logger)
-        {
-            _messageBroker = messageBroker;
-            _logger = logger;
-        }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {

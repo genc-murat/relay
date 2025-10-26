@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Relay.SourceGenerator.Discovery;
 using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
@@ -124,17 +125,17 @@ public class TestHandler
         var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
 
         // Use reflection to access the private ToKebabCase method
-        var toKebabCaseMethod = typeof(EndpointMetadataGenerator).GetMethod("ToKebabCase", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var toKebabCaseMethod = typeof(EndpointMetadataGenerator).GetMethod("ToKebabCase",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
 
         // Act & Assert
-        Assert.Equal("simple", toKebabCaseMethod.Invoke(generator, new object[] { "Simple" }));
-        Assert.Equal("hello-world", toKebabCaseMethod.Invoke(generator, new object[] { "HelloWorld" }));
-        Assert.Equal("convert-camel-case", toKebabCaseMethod.Invoke(generator, new object[] { "ConvertCamelCase" }));
-        Assert.Equal("", toKebabCaseMethod.Invoke(generator, new object[] { "" }));
-        Assert.Null(toKebabCaseMethod.Invoke(generator, new object[] { null }));  // Method returns input if null/whitespace
-        Assert.Equal("a", toKebabCaseMethod.Invoke(generator, new object[] { "A" }));
-        Assert.Equal("multiple-upper-case", toKebabCaseMethod.Invoke(generator, new object[] { "MultipleUpperCase" }));
+        Assert.Equal("simple", toKebabCaseMethod.Invoke(generator, ["Simple"]));
+        Assert.Equal("hello-world", toKebabCaseMethod.Invoke(generator, ["HelloWorld"]));
+        Assert.Equal("convert-camel-case", toKebabCaseMethod.Invoke(generator, ["ConvertCamelCase"]));
+        Assert.Equal("", toKebabCaseMethod.Invoke(generator, [""]));
+        Assert.Null(toKebabCaseMethod.Invoke(generator, [null]));  // Method returns input if null/whitespace
+        Assert.Equal("a", toKebabCaseMethod.Invoke(generator, ["A"]));
+        Assert.Equal("multiple-upper-case", toKebabCaseMethod.Invoke(generator, ["MultipleUpperCase"]));
     }
 
     [Fact]

@@ -43,7 +43,7 @@ public class CompressionLargeMessageTests
                     var context = new MessageContext();
                     await ProcessMessageAsync(deserialized, typeof(TMessage), context, cancellationToken);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Log decompression failure but don't crash - simulate graceful handling
                     // In real scenarios, this would be logged and the message might be retried or dead-lettered

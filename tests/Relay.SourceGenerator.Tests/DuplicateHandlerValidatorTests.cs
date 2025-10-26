@@ -1,10 +1,12 @@
 using Microsoft.CodeAnalysis;
+#pragma warning disable CS0618 // CompilationAnalysisContext constructor is obsolete but still used in tests
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using Moq;
 using Relay.SourceGenerator.Validators;
+using Relay.SourceGenerator.Diagnostics;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -45,7 +47,7 @@ public class DuplicateHandlerValidatorTests
         registry.AddHandler(method1, attribute1, methodDecl1);
         registry.AddHandler(method2, attribute2, methodDecl2);
 
-        var options = new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty);
+        var options = new AnalyzerOptions([]);
         var context = new CompilationAnalysisContext(compilation, options, d => _mockReporter.Object.ReportDiagnostic(d), _ => true, default);
 
         // Act
@@ -124,7 +126,7 @@ public class DuplicateHandlerValidatorTests
         registry.Handlers[0].Name = "default";
         registry.Handlers[1].Name = "Named";
 
-        var options = new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty);
+        var options = new AnalyzerOptions([]);
         var context = new CompilationAnalysisContext(compilation, options, d => _mockReporter.Object.ReportDiagnostic(d), _ => true, default);
 
         // Act
@@ -261,7 +263,7 @@ using Relay.Core;
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
@@ -269,20 +271,15 @@ using Relay.Core;
     private static INamedTypeSymbol GetTypeSymbol(Compilation compilation, string typeName)
     {
         // Handle C# builtin aliases
-        switch (typeName)
+        return typeName switch
         {
-            case "string":
-                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_String);
-            case "int":
-                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Int32);
-            case "bool":
-                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Boolean);
-            case "void":
-                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Void);
-        }
-
-        return compilation.GetTypeByMetadataName(typeName) ??
-               compilation.GetSymbolsWithName(typeName).OfType<INamedTypeSymbol>().First();
+            "string" => (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_String),
+            "int" => (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Int32),
+            "bool" => (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Boolean),
+            "void" => (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Void),
+            _ => compilation.GetTypeByMetadataName(typeName) ??
+                           compilation.GetSymbolsWithName(typeName).OfType<INamedTypeSymbol>().First(),
+        };
     }
 
     private static MethodDeclarationSyntax GetMethodDeclaration(Compilation compilation, string methodName)

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Relay.SourceGenerator;
 using Xunit;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -29,7 +30,7 @@ namespace Test
         return new RelayCompilationContext(compilation, System.Threading.CancellationToken.None);
     }
 
-    private Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
         var references = AppDomain.CurrentDomain.GetAssemblies()
@@ -39,7 +40,7 @@ namespace Test
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
@@ -61,26 +62,25 @@ namespace Test {{
 
         var methodSymbol = handlerTypeSymbol?.GetMembers(methodName).OfType<IMethodSymbol>().FirstOrDefault();
 
-        var handler = new HandlerInfo
+        HandlerInfo handler = new()
         {
             MethodSymbol = methodSymbol,
             HandlerTypeSymbol = handlerTypeSymbol,
             RequestTypeSymbol = requestTypeSymbol,
             ResponseTypeSymbol = responseTypeSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo
-                {
+            Attributes =
+            [
+                new() {
                     Type = RelayAttributeType.Handle,
                     AttributeData = CreateMockAttributeData(handlerName, priority)
                 }
-            }
+            ]
         };
 
         return handler;
     }
 
-    private AttributeData CreateMockAttributeData(string? handlerName, int priority)
+    private static AttributeData CreateMockAttributeData(string? _, int __)
     {
         // For testing purposes, we'll create a mock attribute data
         // In a real scenario, this would be created from actual syntax
@@ -155,15 +155,15 @@ namespace Test {
             var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName($"Test.{handlerName}");
             var methodSymbol = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
 
-            var handler = new HandlerInfo
+            HandlerInfo handler = new()
             {
                 MethodSymbol = methodSymbol,
                 HandlerTypeSymbol = handlerTypeSymbol,
                 RequestTypeSymbol = requestTypeSymbol,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-                }
+                Attributes =
+                [
+                    new() { Type = RelayAttributeType.Handle }
+                ]
             };
 
             discoveryResult.Handlers.Add(handler);
@@ -282,15 +282,15 @@ namespace Test {
         var streamHandlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.StreamHandler");
         var streamMethodSymbol = streamHandlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
 
-        var streamHandler = new HandlerInfo
+        HandlerInfo streamHandler = new()
         {
             MethodSymbol = streamMethodSymbol,
             HandlerTypeSymbol = streamHandlerTypeSymbol,
             RequestTypeSymbol = streamRequestTypeSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(streamHandler);
 
@@ -307,15 +307,15 @@ namespace Test {
         var notificationHandlerTypeSymbol = notificationSemanticModel.Compilation.GetTypeByMetadataName("Test.NotificationHandler");
         var notificationMethodSymbol = notificationHandlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
 
-        var notificationHandler = new HandlerInfo
+        HandlerInfo notificationHandler = new()
         {
             MethodSymbol = notificationMethodSymbol,
             HandlerTypeSymbol = notificationHandlerTypeSymbol,
             RequestTypeSymbol = notificationTypeSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Notification }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Notification }
+            ]
         };
         discoveryResult.Handlers.Add(notificationHandler);
 

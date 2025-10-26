@@ -151,14 +151,13 @@ public class DataClassesTests
         // Arrange
         var handlerInfo = new HandlerInfo
         {
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo
-                {
+            Attributes =
+            [
+                new() {
                     Type = RelayAttributeType.ExposeAsEndpoint,
                     AttributeData = Mock.Of<AttributeData>()
                 }
-            }
+            ]
         };
 
         // Act
@@ -193,8 +192,7 @@ public class DataClassesTests
         {
             Attributes = new List<RelayAttributeInfo>
             {
-                new RelayAttributeInfo
-                {
+                new() {
                     Type = RelayAttributeType.ExposeAsEndpoint,
                     AttributeData = attributeData
                 }

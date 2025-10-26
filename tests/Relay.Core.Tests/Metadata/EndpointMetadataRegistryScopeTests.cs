@@ -79,10 +79,10 @@ public class EndpointMetadataRegistryScopeTests
 
         // Assert
         Assert.Single(endpointsInScope1);
-        Assert.Equal(metadata1, endpointsInScope1.First());
+        Assert.Equal(metadata1, endpointsInScope1[0]);
         Assert.Empty(endpointsAfterClear);
         Assert.Single(endpointsInScope2);
-        Assert.Equal(metadata2, endpointsInScope2.First());
+        Assert.Equal(metadata2, endpointsInScope2[0]);
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public class EndpointMetadataRegistryScopeTests
 
         // Assert
         Assert.Single(mainContextEndpoints);
-        Assert.Equal(metadata1, mainContextEndpoints.First());
+        Assert.Equal(metadata1, mainContextEndpoints[0]);
 
         // Task1 should see both endpoints (same scope as main)
         Assert.Equal(2, task1Result.Count);

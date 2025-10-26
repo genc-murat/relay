@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -83,13 +84,13 @@ public class DIRegistrationGeneratorTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.GetUserHandler", "HandleAsync");
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -122,13 +123,13 @@ public class DIRegistrationGeneratorTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.UserCreatedHandler", "HandleAsync");
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Notification }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Notification }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -161,13 +162,13 @@ public class DIRegistrationGeneratorTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.GetUserQueryHandler", "HandleAsync");
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -200,13 +201,13 @@ public class DIRegistrationGeneratorTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.CreateUserCommandHandler", "HandleAsync");
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -242,10 +243,10 @@ public class DIRegistrationGeneratorTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -275,18 +276,18 @@ public class DIRegistrationGeneratorTests
                     }
                 }");
 
-        var context = new RelayCompilationContext(compilation, default);
-        var generator = new DIRegistrationGenerator(context);
+        RelayCompilationContext context = new(compilation, default);
+        DIRegistrationGenerator generator = new(context);
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.GetUserHandler", "HandleAsync");
-        var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerDiscoveryResult discoveryResult = new();
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -320,13 +321,13 @@ public class DIRegistrationGeneratorTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.GetUserHandler", "HandleAsync");
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -429,13 +430,13 @@ public class DIRegistrationGeneratorTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.DataReaderHandler", "HandleAsync");
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -468,13 +469,13 @@ public class DIRegistrationGeneratorTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.DataWriterHandler", "HandleAsync");
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -527,7 +528,7 @@ public class DIRegistrationGeneratorTests
         discoveryResult.Handlers.Add(new HandlerInfo
         {
             MethodSymbol = queryMethod,
-            Attributes = new List<RelayAttributeInfo> { new RelayAttributeInfo { Type = RelayAttributeType.Handle } }
+            Attributes = [new() { Type = RelayAttributeType.Handle }]
         });
 
         // Add command handler (should be scoped)
@@ -535,7 +536,7 @@ public class DIRegistrationGeneratorTests
         discoveryResult.Handlers.Add(new HandlerInfo
         {
             MethodSymbol = commandMethod,
-            Attributes = new List<RelayAttributeInfo> { new RelayAttributeInfo { Type = RelayAttributeType.Handle } }
+            Attributes = [new() { Type = RelayAttributeType.Handle }]
         });
 
         // Add notification handler
@@ -543,7 +544,7 @@ public class DIRegistrationGeneratorTests
         discoveryResult.Handlers.Add(new HandlerInfo
         {
             MethodSymbol = notificationMethod,
-            Attributes = new List<RelayAttributeInfo> { new RelayAttributeInfo { Type = RelayAttributeType.Notification } }
+            Attributes = [new() { Type = RelayAttributeType.Notification }]
         });
 
         // Act
@@ -577,13 +578,13 @@ public class DIRegistrationGeneratorTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.PipelineBehavior", "ProcessAsync");
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Pipeline }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Pipeline }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -612,18 +613,18 @@ public class DIRegistrationGeneratorTests
                     }
                 }");
 
-        var context = new RelayCompilationContext(compilation, default);
-        var generator = new DIRegistrationGenerator(context);
+        RelayCompilationContext context = new(compilation, default);
+        DIRegistrationGenerator generator = new(context);
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.EndpointHandler", "HandleAsync");
-        var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerDiscoveryResult discoveryResult = new();
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.ExposeAsEndpoint }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.ExposeAsEndpoint }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -667,13 +668,13 @@ public class DIRegistrationGeneratorTests
         discoveryResult.Handlers.Add(new HandlerInfo
         {
             MethodSymbol = method1,
-            Attributes = new List<RelayAttributeInfo> { new RelayAttributeInfo { Type = RelayAttributeType.Handle } }
+            Attributes = [new() { Type = RelayAttributeType.Handle }]
         });
 
         discoveryResult.Handlers.Add(new HandlerInfo
         {
             MethodSymbol = method2,
-            Attributes = new List<RelayAttributeInfo> { new RelayAttributeInfo { Type = RelayAttributeType.Handle } }
+            Attributes = [new() { Type = RelayAttributeType.Handle }]
         });
 
         // Act
@@ -717,7 +718,7 @@ public class DIRegistrationGeneratorTests
         Assert.Throws<NullReferenceException>(() => generator.GenerateDIRegistrations(null!));
     }
 
-    private Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
@@ -732,12 +733,12 @@ public class DIRegistrationGeneratorTests
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    private IMethodSymbol GetMethodSymbol(Compilation compilation, string typeName, string methodName)
+    private static IMethodSymbol GetMethodSymbol(Compilation compilation, string typeName, string methodName)
     {
         var typeSymbol = compilation.GetTypeByMetadataName(typeName);
         if (typeSymbol == null) return null!;

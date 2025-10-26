@@ -78,7 +78,7 @@ public class MariaDbProvider : IDbProvider
                     var autoVersionProperty = serverVersionType.GetProperty("AutoDetect",
                         BindingFlags.Static | BindingFlags.Public);
 
-                    object? serverVersion = null;
+                    object? serverVersion;
 
                     if (autoVersionProperty?.GetValue(null) is object autoVersion)
                     {

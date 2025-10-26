@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Xunit;
 using System.Linq;
+using Relay.SourceGenerator.Diagnostics;
 
 namespace Relay.SourceGenerator.Tests;
 

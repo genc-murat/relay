@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Diagnostics;
 
 /// <summary>
 /// Alias for SourceOutputDiagnosticReporter to make the naming more explicit.

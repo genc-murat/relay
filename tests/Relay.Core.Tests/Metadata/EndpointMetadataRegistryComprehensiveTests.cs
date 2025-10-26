@@ -260,7 +260,7 @@ public class EndpointMetadataRegistryComprehensiveTests
         // Assert
         Assert.Single(endpoints);
         Assert.Equal("/api/test", endpoints.First().Route);
-        Assert.IsAssignableFrom<IReadOnlyList<EndpointMetadata>>(endpoints);
+        Assert.IsType<IReadOnlyList<EndpointMetadata>>(endpoints, exactMatch: false);
     }
 
     [Fact]
@@ -282,7 +282,7 @@ public class EndpointMetadataRegistryComprehensiveTests
         // Assert
         Assert.Single(endpoints);
         Assert.Equal("/api/test", endpoints.First().Route);
-        Assert.IsAssignableFrom<IReadOnlyList<EndpointMetadata>>(endpoints);
+        Assert.IsType<IReadOnlyList<EndpointMetadata>>(endpoints, exactMatch: false);
     }
 
     [Fact]

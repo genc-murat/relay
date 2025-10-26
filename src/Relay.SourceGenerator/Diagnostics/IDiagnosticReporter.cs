@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Diagnostics;
 
 /// <summary>
 /// Interface for reporting diagnostics in the modern incremental source generator.

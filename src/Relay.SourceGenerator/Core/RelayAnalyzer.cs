@@ -1,14 +1,15 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Relay.SourceGenerator.Core;
+using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Validation;
 using Relay.SourceGenerator.Validators;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Core;
 
 /// <summary>
 /// Roslyn analyzer for Relay framework that provides compile-time validation
@@ -286,7 +287,7 @@ public class RelayAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private static IEnumerable<HandlerRegistration> ConvertToHandlerRegistrations(HandlerRegistry handlerRegistry)
     {
-        return handlerRegistry.Handlers.Select(handler => new HandlerRegistration
+        return [.. handlerRegistry.Handlers.Select(handler => new HandlerRegistration
         {
             RequestType = handler.RequestType,
             ResponseType = null, // We don't have response type info in AnalyzerHandlerInfo
@@ -296,7 +297,7 @@ public class RelayAnalyzer : DiagnosticAnalyzer
             Kind = HandlerKind.Request, // Default to Request kind
             Location = handler.Location,
             Attribute = handler.Attribute
-        }).ToList();
+        })];
     }
 }
 

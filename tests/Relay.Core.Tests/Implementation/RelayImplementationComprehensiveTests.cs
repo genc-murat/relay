@@ -95,7 +95,7 @@ public class RelayImplementationComprehensiveTests
     {
         // Arrange
         var serviceProvider = new ServiceCollection().BuildServiceProvider();
-        ServiceFactory serviceFactory = t => serviceProvider.GetService(t);
+        object? serviceFactory(Type t) => serviceProvider.GetService(t);
 
         // Act
         var relay = new RelayImplementation(serviceProvider, serviceFactory);

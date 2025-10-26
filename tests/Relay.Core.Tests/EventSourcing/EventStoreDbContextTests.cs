@@ -283,7 +283,7 @@ public class EventStoreDbContextTests : IDisposable
         Assert.NotEqual(Guid.Empty, savedEvent.AggregateId);
         Assert.False(string.IsNullOrEmpty(savedEvent.EventType));
         Assert.False(string.IsNullOrEmpty(savedEvent.EventData));
-        Assert.NotEqual(default(DateTime), savedEvent.Timestamp);
+        Assert.NotEqual(default, savedEvent.Timestamp);
     }
 
     [Fact]
@@ -571,5 +571,6 @@ public class EventStoreDbContextTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

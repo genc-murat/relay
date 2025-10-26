@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Relay.SourceGenerator;
+using Relay.SourceGenerator.Generators;
 using System.Linq;
 using Xunit;
 
@@ -151,7 +152,7 @@ public class TestPipelineHandlers
             Assert.Contains("OrderBy(m => m.Order)", result);
         }
 
-        private Compilation CreateTestCompilation(string sourceCode)
+        private static CSharpCompilation CreateTestCompilation(string sourceCode)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
 
@@ -164,12 +165,12 @@ public class TestPipelineHandlers
 
             return CSharpCompilation.Create(
                 "TestAssembly",
-                new[] { syntaxTree },
+                [syntaxTree],
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         }
 
-        private HandlerDiscoveryResult CreateDiscoveryResultWithPipelineHandler(Compilation compilation, string sourceCode)
+        private HandlerDiscoveryResult CreateDiscoveryResultWithPipelineHandler(Compilation compilation, string _)
         {
             var result = new HandlerDiscoveryResult();
 
@@ -188,18 +189,17 @@ public class TestPipelineHandlers
                 var methodSymbol = semanticModel.GetDeclaredSymbol(method);
                 if (methodSymbol != null)
                 {
-                    var handlerInfo = new HandlerInfo
+                    HandlerInfo handlerInfo = new()
                     {
                         Method = method,
                         MethodSymbol = methodSymbol,
-                        Attributes = new System.Collections.Generic.List<RelayAttributeInfo>
-                        {
-                            new RelayAttributeInfo
-                            {
+                        Attributes =
+                        [
+                            new() {
                                 Type = RelayAttributeType.Pipeline,
                                 AttributeData = CreateMockAttributeData()
                             }
-                        }
+                        ]
                     };
                     result.Handlers.Add(handlerInfo);
                 }
@@ -208,7 +208,7 @@ public class TestPipelineHandlers
             return result;
         }
 
-        private AttributeData CreateMockAttributeData()
+        private static AttributeData CreateMockAttributeData()
         {
             // Create a mock AttributeData for testing
             // This is a simplified version for testing purposes
@@ -222,13 +222,14 @@ public class TestPipelineHandlers
             protected override SyntaxReference? CommonApplicationSyntaxReference => null;
 
             protected override System.Collections.Immutable.ImmutableArray<TypedConstant> CommonConstructorArguments =>
-                System.Collections.Immutable.ImmutableArray<TypedConstant>.Empty;
+                [];
 
             protected override System.Collections.Immutable.ImmutableArray<System.Collections.Generic.KeyValuePair<string, TypedConstant>> CommonNamedArguments =>
-                System.Collections.Immutable.ImmutableArray.Create(
+                [
                     new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Order", new TypedConstant()),
                     new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Scope", new TypedConstant())
-                );
+,
+                ];
         }
     }
 }

@@ -93,10 +93,10 @@ public class HandlerRegistryGeneratorTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -136,10 +136,10 @@ public class HandlerRegistryGeneratorTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Notification }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Notification }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -178,10 +178,10 @@ public class HandlerRegistryGeneratorTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -220,7 +220,7 @@ public class HandlerRegistryGeneratorTests
             MethodSymbol = methodSymbol,
             Attributes = new List<RelayAttributeInfo>
             {
-                new RelayAttributeInfo { Type = RelayAttributeType.Pipeline }
+                new() { Type = RelayAttributeType.Pipeline }
             }
         };
         discoveryResult.Handlers.Add(handlerInfo);
@@ -266,18 +266,18 @@ public class HandlerRegistryGeneratorTests
         discoveryResult.Handlers.Add(new HandlerInfo
         {
             MethodSymbol = methodSymbol1,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         });
         discoveryResult.Handlers.Add(new HandlerInfo
         {
             MethodSymbol = methodSymbol2,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         });
 
         // Act
@@ -316,10 +316,10 @@ public class HandlerRegistryGeneratorTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -358,10 +358,10 @@ public class HandlerRegistryGeneratorTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -396,10 +396,10 @@ public class HandlerRegistryGeneratorTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -437,7 +437,7 @@ public class HandlerRegistryGeneratorTests
             MethodSymbol = methodSymbol,
             Attributes = new List<RelayAttributeInfo>
             {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
+                new() { Type = RelayAttributeType.Handle }
             }
         };
         discoveryResult.Handlers.Add(handlerInfo);
@@ -526,7 +526,7 @@ public class HandlerRegistryGeneratorTests
             MethodSymbol = methodSymbol,
             Attributes = new List<RelayAttributeInfo>
             {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
+                new() { Type = RelayAttributeType.Handle }
             }
         };
         discoveryResult.Handlers.Add(handlerInfo);
@@ -566,10 +566,10 @@ public class HandlerRegistryGeneratorTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -606,7 +606,7 @@ public class HandlerRegistryGeneratorTests
             MethodSymbol = methodSymbol,
             Attributes = new List<RelayAttributeInfo>
             {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
+                new() { Type = RelayAttributeType.Handle }
             }
         };
         discoveryResult.Handlers.Add(handlerInfo);

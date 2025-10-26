@@ -102,7 +102,7 @@ internal static class ReportGenerator
             md.AppendLine($"- Requests Found: {analysis.Requests.Count}");
             md.AppendLine();
 
-            if (analysis.PerformanceIssues.Any())
+            if (analysis.PerformanceIssues.Count != 0)
             {
                 md.AppendLine("## ⚡ Performance Issues");
                 foreach (var issue in analysis.PerformanceIssues)
@@ -115,7 +115,7 @@ internal static class ReportGenerator
                 }
             }
 
-            if (analysis.Recommendations.Any())
+            if (analysis.Recommendations.Count != 0)
             {
                 md.AppendLine("## 🎯 Recommendations");
                 foreach (var rec in analysis.Recommendations)

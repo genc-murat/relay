@@ -227,7 +227,7 @@ public class DefaultContractValidator : IContractValidator
         }
 
         // If no detailed errors were found but validation failed, add a generic error
-        if (!results.IsValid && !errors.Any())
+        if (!results.IsValid && errors.Count == 0)
         {
             errors.Add("Validation failed: The data does not match the schema");
         }

@@ -1,10 +1,10 @@
 using Microsoft.CodeAnalysis;
-using Relay.SourceGenerator.Generators;
+using Relay.SourceGenerator.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Generators;
 
 /// <summary>
 /// Generates endpoint metadata registration code for handlers marked with ExposeAsEndpoint attribute.

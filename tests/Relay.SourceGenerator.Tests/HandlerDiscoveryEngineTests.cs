@@ -2,6 +2,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Moq;
+using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Discovery;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -36,9 +38,9 @@ public class HandlerDiscoveryEngineTests
         var methodInfo = engine.GetType().GetMethod("AnalyzeHandlerMethodWithSymbol",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
             null,
-            new System.Type[] { typeof(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax), typeof(Microsoft.CodeAnalysis.IMethodSymbol), typeof(Relay.SourceGenerator.IDiagnosticReporter) },
+            [typeof(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax), typeof(Microsoft.CodeAnalysis.IMethodSymbol), typeof(IDiagnosticReporter)],
             null);
-        var result = methodInfo!.Invoke(engine, new object[] { methodSyntax, null!, _mockReporter.Object });
+        var result = methodInfo!.Invoke(engine, [methodSyntax, null!, _mockReporter.Object]);
 
         // Assert
         Assert.Null(result);
@@ -74,14 +76,14 @@ public class TestHandler
         // Act
         var result = engine.GetType().GetMethod("AnalyzeHandlerMethodWithSymbol",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(engine, new object[] { methodSyntax, methodSymbol, _mockReporter.Object });
+            .Invoke(engine, [methodSyntax, methodSymbol, _mockReporter.Object]);
 
         // Assert
         Assert.NotNull(result);
         Assert.IsType<HandlerInfo>(result);
     }
 
-    private static Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText($@"
 using System;
@@ -124,7 +126,7 @@ namespace Relay.Core
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }

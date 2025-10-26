@@ -14,14 +14,9 @@ public class MSBuildConfigurationHelperTests
     /// <summary>
     /// Mock implementation of AnalyzerConfigOptions for testing.
     /// </summary>
-    private class MockAnalyzerConfigOptions : AnalyzerConfigOptions
+    private class MockAnalyzerConfigOptions(Dictionary<string, string> options) : AnalyzerConfigOptions
     {
-        private readonly Dictionary<string, string> _options;
-
-        public MockAnalyzerConfigOptions(Dictionary<string, string> options)
-        {
-            _options = options ?? new Dictionary<string, string>();
-        }
+        private readonly Dictionary<string, string> _options = options ?? [];
 
         public override bool TryGetValue(string key, out string value)
         {
@@ -32,25 +27,20 @@ public class MSBuildConfigurationHelperTests
     /// <summary>
     /// Mock implementation of AnalyzerConfigOptionsProvider for testing.
     /// </summary>
-    private class MockAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
+    private class MockAnalyzerConfigOptionsProvider(Dictionary<string, string> globalOptions) : AnalyzerConfigOptionsProvider
     {
-        private readonly AnalyzerConfigOptions _globalOptions;
-
-        public MockAnalyzerConfigOptionsProvider(Dictionary<string, string> globalOptions)
-        {
-            _globalOptions = new MockAnalyzerConfigOptions(globalOptions);
-        }
+        private readonly AnalyzerConfigOptions _globalOptions = new MockAnalyzerConfigOptions(globalOptions);
 
         public override AnalyzerConfigOptions GlobalOptions => _globalOptions;
 
         public override AnalyzerConfigOptions GetOptions(SyntaxTree tree)
         {
-            return new MockAnalyzerConfigOptions(new Dictionary<string, string>());
+            return new MockAnalyzerConfigOptions([]);
         }
 
         public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
         {
-            return new MockAnalyzerConfigOptions(new Dictionary<string, string>());
+            return new MockAnalyzerConfigOptions([]);
         }
     }
 
@@ -205,7 +195,7 @@ public class MSBuildConfigurationHelperTests
         // Arrange
         var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>
         {
-            ["build_property.RelayIncludeDebugInfo"] = null // Null string
+            ["build_property.RelayIncludeDebugInfo"] = null! // Null string
         });
 
         // Act
@@ -268,7 +258,7 @@ public class MSBuildConfigurationHelperTests
     public void CreateFromMSBuildProperties_AssemblyName_NotSet_ReturnsDefault()
     {
         // Arrange
-        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>());
+        var options = new MockAnalyzerConfigOptionsProvider([]);
 
         // Act
         var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
@@ -381,7 +371,7 @@ public class MSBuildConfigurationHelperTests
     public void CreateFromMSBuildProperties_AllGenerators_NotSet_ReturnsTrueByDefault()
     {
         // Arrange
-        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>());
+        var options = new MockAnalyzerConfigOptionsProvider([]);
 
         // Act
         var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);

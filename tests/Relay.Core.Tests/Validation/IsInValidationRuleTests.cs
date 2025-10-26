@@ -55,7 +55,7 @@ public class IsInValidationRuleTests
     public async Task ValidateAsync_WithEmptyAllowedValues_And_Matching_Value()
     {
         // Arrange
-        var rule = new IsInValidationRule<string>(new string[0]);
+        var rule = new IsInValidationRule<string>([]);
 
         // Act
         var result = await rule.ValidateAsync("anyValue");
@@ -68,7 +68,7 @@ public class IsInValidationRuleTests
     public async Task ValidateAsync_WithEmptyAllowedValues_And_Null_Value()
     {
         // Arrange
-        var rule = new IsInValidationRule<string>(new string[0]);
+        var rule = new IsInValidationRule<string>([]);
 
         // Act
         var result = await rule.ValidateAsync((string)null);
@@ -81,7 +81,7 @@ public class IsInValidationRuleTests
     public async Task ValidateAsync_WithNullValue_And_Null_In_AllowedList()
     {
         // Arrange
-        var rule = new IsInValidationRule<string>(new string[] { null, "option1", "option2" });
+        var rule = new IsInValidationRule<string>([null, "option1", "option2"]);
 
         // Act
         var result = await rule.ValidateAsync((string)null);
@@ -283,7 +283,7 @@ public class IsInValidationRuleTests
         public int Id { get; set; }
         public string Name { get; set; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is TestObject other)
             {

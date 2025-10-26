@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using Relay.Core.AI;
+using Relay.Core.AI.Models;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Models;
 using System;
@@ -24,12 +24,12 @@ public class RiskAssessmentService
         RequestAnalysisData analysisData,
         Dictionary<string, double> systemMetrics)
     {
-        if (analysisData == null) throw new ArgumentNullException(nameof(analysisData));
-        if (systemMetrics == null) throw new ArgumentNullException(nameof(systemMetrics));
+        ArgumentNullException.ThrowIfNull(analysisData);
+        ArgumentNullException.ThrowIfNull(systemMetrics);
 
         var riskLevel = CalculateRiskLevel(strategy, analysisData, systemMetrics);
         var riskFactors = IdentifyRiskFactors(strategy, analysisData, systemMetrics);
-        var mitigationStrategies = GenerateMitigationStrategies(riskLevel, riskFactors);
+        _ = GenerateMitigationStrategies(riskLevel, riskFactors);
         var confidence = CalculateAssessmentConfidence(analysisData);
 
         // Adjust confidence based on risk factors and mitigation strategies
@@ -50,8 +50,8 @@ public class RiskAssessmentService
         RequestAnalysisData analysisData,
         Dictionary<string, double> systemMetrics)
     {
-        if (analysisData == null) throw new ArgumentNullException(nameof(analysisData));
-        if (systemMetrics == null) throw new ArgumentNullException(nameof(systemMetrics));
+        ArgumentNullException.ThrowIfNull(analysisData);
+        ArgumentNullException.ThrowIfNull(systemMetrics);
 
         var riskLevel = CalculateRiskLevel(strategy, analysisData, systemMetrics);
         var riskFactors = IdentifyRiskFactors(strategy, analysisData, systemMetrics);

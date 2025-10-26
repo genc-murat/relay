@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Models;
 
 namespace Relay.Core.AI
 {

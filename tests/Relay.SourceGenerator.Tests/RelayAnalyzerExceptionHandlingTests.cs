@@ -2,6 +2,7 @@ extern alias RelayCore;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Relay.SourceGenerator.Core;
 using System.Collections.Immutable;
 
 namespace Relay.SourceGenerator.Tests;
@@ -47,11 +48,11 @@ namespace TestProject
 
         // This test verifies normal operation doesn't throw exceptions
         var compilationWithAnalyzers = compilation.WithAnalyzers(
-            ImmutableArray.Create<DiagnosticAnalyzer>(analyzer),
+            [analyzer],
             options: null);
 
         // The analyzer should handle normal operations gracefully
-        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+        await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
         
         // Check that no exception was thrown (the test would fail otherwise)
         // Note: We're not asserting anything specific about the diagnostics, just that no exception occurred
@@ -64,14 +65,11 @@ namespace TestProject
     [Fact]
     public async Task RelayAnalyzer_AnalyzeCompilation_SyntaxTreeProcessingException_HandledGracefully()
     {
-        // Create a compilation with valid code that should not cause exceptions
-        // This test is to ensure the analyzer doesn't crash when processing syntax trees
+        // Arrange
         var source = @"
-using System.Threading;
 using System.Threading.Tasks;
-using RelayCore;
 
-namespace TestProject
+namespace TestNamespace
 {
     public class TestRequest : IRequest<string> { }
     
@@ -90,11 +88,11 @@ namespace TestProject
 
         // Create compilation with analyzers
         var compilationWithAnalyzers = compilation.WithAnalyzers(
-            ImmutableArray.Create<DiagnosticAnalyzer>(analyzer),
+            [analyzer],
             options: null);
 
         // Run analysis - this should not throw any exceptions
-        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+        await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
         // Should complete without exceptions - no specific assertion other than no exception being thrown
     }
@@ -106,22 +104,17 @@ namespace TestProject
     [Fact]
     public async Task RelayAnalyzer_AnalyzeCompilation_GeneralException_HandledGracefully()
     {
-        // Create a simple compilation
+        // Arrange
         var source = @"
-using System.Threading;
 using System.Threading.Tasks;
-using RelayCore;
 
-namespace TestProject
+namespace TestNamespace
 {
-    public class TestRequest : IRequest<string> { }
-    
-    public class TestHandler
+    public class TestClass
     {
-        [Handle]
-        public Task<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        public async Task<string> {|RELAY_GEN_000:HandleAsync|}(TestRequest request, CancellationToken cancellationToken)
         {
-            return Task.FromResult(""test"");
+            return ""test"";
         }
     }
 }";
@@ -131,11 +124,11 @@ namespace TestProject
 
         // Create compilation with analyzers
         var compilationWithAnalyzers = compilation.WithAnalyzers(
-            ImmutableArray.Create<DiagnosticAnalyzer>(analyzer),
+            [analyzer],
             options: null);
 
         // Run analysis - this should not throw any exceptions
-        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+        await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
         // Should complete without exceptions - no specific assertion other than no exception being thrown
     }

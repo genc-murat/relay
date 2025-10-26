@@ -14,19 +14,12 @@ namespace Relay.Core.Testing;
 /// Advanced testing framework for Relay-based applications.
 /// Provides scenario-based testing, load testing, and behavior verification.
 /// </summary>
-public class RelayTestFramework
+public class RelayTestFramework(IServiceProvider serviceProvider)
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IRelay _relay;
-    private readonly ILogger<RelayTestFramework>? _logger;
+    private readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+    private readonly IRelay _relay = (IRelay)serviceProvider.GetRequiredService(typeof(IRelay));
+    private readonly ILogger<RelayTestFramework>? _logger = (ILogger<RelayTestFramework>?)serviceProvider.GetService(typeof(ILogger<RelayTestFramework>));
     private readonly List<TestScenario> _scenarios = new();
-
-    public RelayTestFramework(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-        _relay = (IRelay)serviceProvider.GetRequiredService(typeof(IRelay));
-        _logger = (ILogger<RelayTestFramework>?)serviceProvider.GetService(typeof(ILogger<RelayTestFramework>));
-    }
 
     /// <summary>
     /// Creates a new test scenario.
@@ -67,7 +60,7 @@ public class RelayTestFramework
         where TRequest : IRequest
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
-        if (config == null) throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
         ValidateLoadTestConfiguration(config);
 
         var result = new LoadTestResult
@@ -97,7 +90,7 @@ public class RelayTestFramework
 
         result.CompletedAt = DateTime.UtcNow;
         result.TotalDuration = result.CompletedAt.Value - result.StartedAt;
-        result.AverageResponseTime = result.ResponseTimes.Any() ? result.ResponseTimes.Average() : 0;
+        result.AverageResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.Average() : 0;
         result.MedianResponseTime = CalculateMedian(result.ResponseTimes);
         result.P95ResponseTime = CalculatePercentile(result.ResponseTimes, 0.95);
         result.P99ResponseTime = CalculatePercentile(result.ResponseTimes, 0.99);
@@ -242,10 +235,7 @@ public class RelayTestFramework
 
         // Use reflection to invoke the correct generic PublishAsync method
         var notificationType = step.Notification.GetType();
-        var publishMethod = typeof(IRelay).GetMethod(nameof(IRelay.PublishAsync))?.MakeGenericMethod(notificationType);
-        if (publishMethod == null)
-            throw new InvalidOperationException($"Cannot find PublishAsync method for notification type {notificationType}");
-
+        var publishMethod = (typeof(IRelay).GetMethod(nameof(IRelay.PublishAsync))?.MakeGenericMethod(notificationType)) ?? throw new InvalidOperationException($"Cannot find PublishAsync method for notification type {notificationType}");
         dynamic task = publishMethod.Invoke(_relay, new object[] { step.Notification, cancellationToken })!;
         await task;
     }
@@ -258,30 +248,27 @@ public class RelayTestFramework
         // Use reflection to invoke the correct generic StreamAsync method
         var requestType = step.StreamRequest.GetType();
         var responseType = requestType.GetGenericArguments()[0];
-        var streamMethod = typeof(IRelay).GetMethod(nameof(IRelay.StreamAsync))?.MakeGenericMethod(responseType);
-        if (streamMethod == null)
-            throw new InvalidOperationException($"Cannot find StreamAsync method for request type {requestType}");
-
+        var streamMethod = (typeof(IRelay).GetMethod(nameof(IRelay.StreamAsync))?.MakeGenericMethod(responseType)) ?? throw new InvalidOperationException($"Cannot find StreamAsync method for request type {requestType}");
         var enumerable = streamMethod.Invoke(_relay, new object[] { step.StreamRequest, cancellationToken });
 
         // Use reflection to iterate over the async enumerable
-        var enumeratorMethod = enumerable!.GetType().GetMethod("GetAsyncEnumerator");
-        if (enumeratorMethod == null)
-            throw new InvalidOperationException("Cannot get async enumerator for stream");
-
-        var enumerator = enumeratorMethod.Invoke(enumerable, new object[] { cancellationToken });
-
+        var enumeratorMethod = enumerable!.GetType().GetMethod("GetAsyncEnumerator") ?? throw new InvalidOperationException("Cannot get async enumerator for stream");
+        var enumerator = enumeratorMethod.Invoke(enumerable, new object[] { cancellationToken }) ?? throw new InvalidOperationException("Cannot get async enumerator");
         try
         {
-            var moveNextMethod = enumerator.GetType().GetMethod("MoveNextAsync");
-            if (moveNextMethod == null)
-                throw new InvalidOperationException("Cannot move next on async enumerator");
-
+            var moveNextMethod = enumerator.GetType().GetMethod("MoveNextAsync") ?? throw new InvalidOperationException("Cannot move next on async enumerator");
             while (true)
             {
-                var moveNextTask = (ValueTask<bool>)moveNextMethod.Invoke(enumerator, Array.Empty<object>())!;
-                if (!await moveNextTask)
+                var invokeResult = moveNextMethod.Invoke(enumerator, Array.Empty<object>());
+                if (invokeResult is ValueTask<bool> moveNextTask)
+                {
+                    if (!await moveNextTask)
+                        break;
+                }
+                else
+                {
                     break;
+                }
             }
         }
         finally
@@ -289,8 +276,11 @@ public class RelayTestFramework
             var disposeMethod = enumerator.GetType().GetMethod("DisposeAsync");
             if (disposeMethod != null)
             {
-                var disposeTask = (ValueTask)disposeMethod.Invoke(enumerator, Array.Empty<object>())!;
-                await disposeTask;
+                var invokeResult = disposeMethod.Invoke(enumerator, Array.Empty<object>());
+                if (invokeResult is ValueTask disposeTask)
+                {
+                    await disposeTask;
+                }
             }
         }
     }
@@ -319,7 +309,7 @@ public class RelayTestFramework
 
     private double CalculateMedian(List<double> values)
     {
-        if (!values.Any()) return 0;
+        if (values.Count == 0) return 0;
 
         var sorted = values.OrderBy(x => x).ToList();
         var count = sorted.Count;
@@ -336,7 +326,7 @@ public class RelayTestFramework
 
     private double CalculatePercentile(List<double> values, double percentile)
     {
-        if (!values.Any()) return 0;
+        if (values.Count == 0) return 0;
         if (percentile < 0 || percentile > 1)
             throw new ArgumentOutOfRangeException(nameof(percentile), "Percentile must be between 0 and 1");
 

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
-using Relay.SourceGenerator.Generators;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Generators;
 
 /// <summary>
 /// Generates DI container registration code for handlers.

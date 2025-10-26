@@ -86,9 +86,9 @@ public class InMemoryPerformanceMetricsCollector : IPerformanceMetricsCollector
             TotalRequests = _totalRequests,
             SuccessfulRequests = totalSuccesses,
             FailedRequests = allMetrics.Length - totalSuccesses,
-            AverageExecutionTime = allMetrics.Any() ? TimeSpan.FromMilliseconds(allMetrics.Average(m => m.ExecutionTime.TotalMilliseconds)) : TimeSpan.Zero,
-            MinExecutionTime = allMetrics.Any() ? allMetrics.Min(m => m.ExecutionTime) : TimeSpan.Zero,
-            MaxExecutionTime = allMetrics.Any() ? allMetrics.Max(m => m.ExecutionTime) : TimeSpan.Zero,
+            AverageExecutionTime = allMetrics.Length != 0 ? TimeSpan.FromMilliseconds(allMetrics.Average(m => m.ExecutionTime.TotalMilliseconds)) : TimeSpan.Zero,
+            MinExecutionTime = allMetrics.Length != 0 ? allMetrics.Min(m => m.ExecutionTime) : TimeSpan.Zero,
+            MaxExecutionTime = allMetrics.Length != 0 ? allMetrics.Max(m => m.ExecutionTime) : TimeSpan.Zero,
             TotalMemoryAllocated = allMetrics.Sum(m => m.MemoryAllocated)
         };
     }
@@ -105,8 +105,8 @@ public class InMemoryPerformanceMetricsCollector : IPerformanceMetricsCollector
     /// </summary>
     private class RequestMetricsAggregate
     {
-        private readonly object _lock = new object();
-        private readonly ConcurrentBag<TimeSpan> _executionTimes = new ConcurrentBag<TimeSpan>();
+        private readonly object _lock = new();
+        private readonly ConcurrentBag<TimeSpan> _executionTimes = [];
 
         public long Count { get; private set; }
         public long SuccessCount { get; private set; }
@@ -146,7 +146,7 @@ public class InMemoryPerformanceMetricsCollector : IPerformanceMetricsCollector
         public TimeSpan GetAverageExecutionTime()
         {
             var times = _executionTimes.ToArray();
-            return times.Any() ? TimeSpan.FromMilliseconds(times.Average(t => t.TotalMilliseconds)) : TimeSpan.Zero;
+            return times.Length != 0 ? TimeSpan.FromMilliseconds(times.Average(t => t.TotalMilliseconds)) : TimeSpan.Zero;
         }
 
         public long GetAverageMemoryAllocated()

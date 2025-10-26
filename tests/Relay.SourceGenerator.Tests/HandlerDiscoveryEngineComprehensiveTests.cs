@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Discovery;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -9,7 +11,7 @@ public class HandlerDiscoveryEngineComprehensiveTests
     public void HandlerDiscoveryEngine_Constructor_With_Null_Context_Throws_ArgumentNullException()
     {
         // Act and Assert
-        Assert.Throws<ArgumentNullException>(() => new HandlerDiscoveryEngine(null));
+        Assert.Throws<ArgumentNullException>(() => new HandlerDiscoveryEngine(null!));
     }
 
     [Fact]
@@ -21,12 +23,12 @@ public class HandlerDiscoveryEngineComprehensiveTests
         var context = new RelayCompilationContext(compilation, default);
         
         var engine = new HandlerDiscoveryEngine(context, 1); // Below minimum of 2
-        
+
         // Use reflection to access the private field to verify the clamping
         var maxDegreeOfParallelismField = typeof(HandlerDiscoveryEngine)
-            .GetField("_maxDegreeOfParallelism", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        
-        var actualParallelism = (int)maxDegreeOfParallelismField.GetValue(engine);
+            .GetField("_maxDegreeOfParallelism", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        var actualParallelism = (int)maxDegreeOfParallelismField.GetValue(engine)!;
         
         // Assert
         Assert.Equal(2, actualParallelism); // Minimum value
@@ -41,12 +43,12 @@ public class HandlerDiscoveryEngineComprehensiveTests
         var context = new RelayCompilationContext(compilation, default);
         
         var engine = new HandlerDiscoveryEngine(context, 10); // Above maximum of 8
-        
+
         // Use reflection to access the private field to verify the clamping
         var maxDegreeOfParallelismField = typeof(HandlerDiscoveryEngine)
-            .GetField("_maxDegreeOfParallelism", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        
-        var actualParallelism = (int)maxDegreeOfParallelismField.GetValue(engine);
+            .GetField("_maxDegreeOfParallelism", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        var actualParallelism = (int)maxDegreeOfParallelismField.GetValue(engine)!;
         
         // Assert
         Assert.Equal(8, actualParallelism); // Maximum value
@@ -61,12 +63,12 @@ public class HandlerDiscoveryEngineComprehensiveTests
         var context = new RelayCompilationContext(compilation, default);
         
         var engine = new HandlerDiscoveryEngine(context, 5); // Within range 2-8
-        
+
         // Use reflection to access the private field to verify the value
         var maxDegreeOfParallelismField = typeof(HandlerDiscoveryEngine)
-            .GetField("_maxDegreeOfParallelism", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        
-        var actualParallelism = (int)maxDegreeOfParallelismField.GetValue(engine);
+            .GetField("_maxDegreeOfParallelism", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        var actualParallelism = (int)maxDegreeOfParallelismField.GetValue(engine)!;
         
         // Assert
         Assert.Equal(5, actualParallelism);
@@ -112,39 +114,39 @@ namespace TestProject
         
         // Test each attribute type using reflection to test the private method
         var engine = new HandlerDiscoveryEngine(context, 4);
-        var method = typeof(HandlerDiscoveryEngine).GetMethod("GetRelayAttributeType", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var method = typeof(HandlerDiscoveryEngine).GetMethod("GetRelayAttributeType",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         
         // Test Handle attributes
-        var handleResult = (RelayAttributeType)method.Invoke(engine, new object[] { "HandleAttribute" });
+        var handleResult = (RelayAttributeType)method.Invoke(engine, new object[] { "HandleAttribute" })!;
         Assert.Equal(RelayAttributeType.Handle, handleResult);
         
-        var handleResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Handle" });
+        var handleResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Handle" })!;
         Assert.Equal(RelayAttributeType.Handle, handleResult2);
         
         // Test Notification attributes
-        var notificationResult = (RelayAttributeType)method.Invoke(engine, new object[] { "NotificationAttribute" });
+        var notificationResult = (RelayAttributeType)method.Invoke(engine, new object[] { "NotificationAttribute" })!;
         Assert.Equal(RelayAttributeType.Notification, notificationResult);
         
-        var notificationResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Notification" });
+        var notificationResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Notification" })!;
         Assert.Equal(RelayAttributeType.Notification, notificationResult2);
         
         // Test Pipeline attributes
-        var pipelineResult = (RelayAttributeType)method.Invoke(engine, new object[] { "PipelineAttribute" });
+        var pipelineResult = (RelayAttributeType)method.Invoke(engine, new object[] { "PipelineAttribute" })!;
         Assert.Equal(RelayAttributeType.Pipeline, pipelineResult);
         
-        var pipelineResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Pipeline" });
+        var pipelineResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Pipeline" })!;
         Assert.Equal(RelayAttributeType.Pipeline, pipelineResult2);
         
         // Test ExposeAsEndpoint attributes
-        var endpointResult = (RelayAttributeType)method.Invoke(engine, new object[] { "ExposeAsEndpointAttribute" });
+        var endpointResult = (RelayAttributeType)method.Invoke(engine, new object[] { "ExposeAsEndpointAttribute" })!;
         Assert.Equal(RelayAttributeType.ExposeAsEndpoint, endpointResult);
         
-        var endpointResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "ExposeAsEndpoint" });
+        var endpointResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "ExposeAsEndpoint" })!;
         Assert.Equal(RelayAttributeType.ExposeAsEndpoint, endpointResult2);
         
         // Test unknown attribute
-        var unknownResult = (RelayAttributeType)method.Invoke(engine, new object[] { "UnknownAttribute" });
+        var unknownResult = (RelayAttributeType)method.Invoke(engine, new object[] { "UnknownAttribute" })!;
         Assert.Equal(RelayAttributeType.None, unknownResult);
     }
 
@@ -175,7 +177,7 @@ namespace TestProject
 
         // Check if there are any validation errors
         var errorDiagnostics = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-        if (errorDiagnostics.Any())
+        if (errorDiagnostics.Count != 0)
         {
             Assert.Fail($"Unexpected diagnostic errors: {string.Join(", ", errorDiagnostics.Select(d => d.GetMessage(null)))}");
         }
@@ -218,7 +220,7 @@ namespace TestProject
 
         // Check if there are any validation errors
         var errorDiagnostics = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-        if (errorDiagnostics.Any())
+        if (errorDiagnostics.Count != 0)
         {
             Assert.Fail($"Unexpected diagnostic errors: {string.Join(", ", errorDiagnostics.Select(d => d.GetMessage(null)))}");
         }
@@ -273,12 +275,14 @@ namespace TestProject
         var engine = new HandlerDiscoveryEngine(context);
         
         // Use reflection to access the private GetResponseType method
-        var getResponseTypeMethod = typeof(HandlerDiscoveryEngine).GetMethod("GetResponseType", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var getResponseTypeMethod = typeof(HandlerDiscoveryEngine).GetMethod("GetResponseType",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         
         // Act - Call GetResponseType twice to test caching
-        var responseType1 = (ITypeSymbol)getResponseTypeMethod.Invoke(engine, new object[] { methodSymbol });
-        var responseType2 = (ITypeSymbol)getResponseTypeMethod.Invoke(engine, new object[] { methodSymbol });
+#pragma warning disable CS8601 // Possible null reference assignment - expected in test scenario
+        var responseType1 = (ITypeSymbol)getResponseTypeMethod.Invoke(engine, new object[] { methodSymbol })!;
+        var responseType2 = (ITypeSymbol)getResponseTypeMethod.Invoke(engine, new object[] { methodSymbol })!;
+#pragma warning restore CS8601
         
         // Assert
         Assert.Equal(responseType1?.ToDisplayString(), responseType2?.ToDisplayString());
@@ -310,7 +314,7 @@ namespace TestProject
         var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
 
         // Assert
-        Assert.Equal(2, result.Handlers.Count()); // Both handlers should be discovered
+        Assert.Equal(2, result.Handlers.Count); // Both handlers should be discovered
         // No duplicate diagnostics should be reported since they handle different request types
         Assert.DoesNotContain(diagnostics, d => d.Id == "RELAY_GEN_005");
     }
@@ -343,7 +347,7 @@ namespace TestProject
         var (result, diagnostics) = RunHandlerDiscoveryWithDiagnostics(source);
 
         // Assert
-        Assert.Equal(2, result.Handlers.Count()); // Both handlers should be discovered
+        Assert.Equal(2, result.Handlers.Count); // Both handlers should be discovered
         // Should report named handler conflicts since they have the same custom name for the same request type
         Assert.Contains(diagnostics, d => d.Id == "RELAY_GEN_005");
     }
@@ -377,7 +381,7 @@ namespace TestProject
         // They handle different request types, so they should not conflict
         
         // Assert
-        Assert.Equal(2, result2.Handlers.Count()); // Both handlers should be discovered
+        Assert.Equal(2, result2.Handlers.Count); // Both handlers should be discovered
         // No conflict should be reported since they handle different request types
         Assert.DoesNotContain(diagnostics2, d => d.Id == "RELAY_GEN_005");
     }
@@ -537,14 +541,9 @@ namespace TestProject
 }";
     }
 
-    private class MockDiagnosticReporter : IDiagnosticReporter
+    private class MockDiagnosticReporter(List<Diagnostic> diagnostics) : IDiagnosticReporter
     {
-        private readonly List<Diagnostic> _diagnostics;
-
-        public MockDiagnosticReporter(List<Diagnostic> diagnostics)
-        {
-            _diagnostics = diagnostics;
-        }
+        private readonly List<Diagnostic> _diagnostics = diagnostics;
 
         public void ReportDiagnostic(Diagnostic diagnostic)
         {

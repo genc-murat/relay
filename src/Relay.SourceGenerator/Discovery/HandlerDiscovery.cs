@@ -6,8 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Relay.SourceGenerator.Diagnostics;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Discovery;
 
 /// <summary>
 /// Discovers and validates handler methods in the compilation with parallel processing support.
@@ -302,23 +303,14 @@ public class HandlerDiscoveryEngine
         if (handlerInfo.Method == null || method == null) return false;
         var location = handlerInfo.Method.GetLocation();
 
-        switch (attributeInfo.Type)
+        return attributeInfo.Type switch
         {
-            case RelayAttributeType.Handle:
-                return ValidateRequestHandlerSignature(method, location, diagnosticReporter);
-
-            case RelayAttributeType.Notification:
-                return ValidateNotificationHandlerSignature(method, location, diagnosticReporter);
-
-            case RelayAttributeType.Pipeline:
-                return ValidatePipelineHandlerSignature(method, location, diagnosticReporter);
-
-            case RelayAttributeType.ExposeAsEndpoint:
-                return ValidateEndpointHandlerSignature(method, location, diagnosticReporter);
-
-            default:
-                return false;
-        }
+            RelayAttributeType.Handle => ValidateRequestHandlerSignature(method, location, diagnosticReporter),
+            RelayAttributeType.Notification => ValidateNotificationHandlerSignature(method, location, diagnosticReporter),
+            RelayAttributeType.Pipeline => ValidatePipelineHandlerSignature(method, location, diagnosticReporter),
+            RelayAttributeType.ExposeAsEndpoint => ValidateEndpointHandlerSignature(method, location, diagnosticReporter),
+            _ => false,
+        };
     }
 
     private bool ValidateRequestHandlerSignature(IMethodSymbol method, Location location, IDiagnosticReporter diagnosticReporter)
@@ -583,7 +575,7 @@ public class HandlerDiscoveryEngine
 
             if (!handlersByName.ContainsKey(handlerName))
             {
-                handlersByName[handlerName] = new List<HandlerInfo>();
+                handlersByName[handlerName] = [];
             }
             handlersByName[handlerName].Add(handler);
         }

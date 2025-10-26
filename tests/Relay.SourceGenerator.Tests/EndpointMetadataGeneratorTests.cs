@@ -1,4 +1,6 @@
 using Microsoft.CodeAnalysis;
+using Relay.SourceGenerator.Discovery;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
 

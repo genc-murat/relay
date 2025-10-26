@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Core;
 
 /// <summary>
 /// Modern incremental source generator for the Relay mediator framework.
@@ -142,16 +142,11 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
             : attributeName;
 
         // Optimized switch statement - most common cases first
-        switch (name)
+        return name switch
         {
-            case "Handle":
-            case "Notification":
-            case "Pipeline":
-            case "ExposeAsEndpoint":
-                return true;
-            default:
-                return false;
-        }
+            "Handle" or "Notification" or "Pipeline" or "ExposeAsEndpoint" => true,
+            _ => false,
+        };
     }
 
     private static void CheckForMissingRelayCoreReference(SourceProductionContext context, (Compilation Left, ImmutableArray<SyntaxNode> Right) source)

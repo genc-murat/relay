@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Relay.SourceGenerator;
 using Xunit;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -29,7 +30,7 @@ namespace Test
         return new RelayCompilationContext(compilation, System.Threading.CancellationToken.None);
     }
 
-    private Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
         var references = AppDomain.CurrentDomain.GetAssemblies()
@@ -39,7 +40,7 @@ namespace Test
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
@@ -61,26 +62,25 @@ namespace Test {{
 
         var methodSymbol = handlerTypeSymbol?.GetMembers(methodName).OfType<IMethodSymbol>().FirstOrDefault();
 
-        var handler = new HandlerInfo
+        HandlerInfo handler = new()
         {
             MethodSymbol = methodSymbol,
             HandlerTypeSymbol = handlerTypeSymbol,
             RequestTypeSymbol = requestTypeSymbol,
             ResponseTypeSymbol = responseTypeSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo
-                {
+            Attributes =
+            [
+                new() {
                     Type = RelayAttributeType.Handle,
                     AttributeData = CreateMockAttributeData(handlerName, priority)
                 }
-            }
+            ]
         };
 
         return handler;
     }
 
-    private AttributeData CreateMockAttributeData(string? handlerName, int priority)
+    private static AttributeData CreateMockAttributeData(string? _, int __)
     {
         // For testing purposes, we'll create a mock attribute data
         // In a real scenario, this would be created from actual syntax
@@ -266,7 +266,6 @@ namespace Test {{
         var context = CreateTestContext();
         var generator = new OptimizedDispatcherGenerator(context);
         var discoveryResult = new HandlerDiscoveryResult();
-        var beforeGeneration = DateTime.UtcNow;
 
         // Act
         var source = generator.GenerateOptimizedDispatcher(discoveryResult);
@@ -368,7 +367,7 @@ namespace Test {{
 
         // Act
         var source = generator.GenerateOptimizedDispatcher(discoveryResult);
-        var lines = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        var lines = source.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
 
         // Assert
         Assert.DoesNotContain("\r\n\r\n\r\n", source); // No triple newlines

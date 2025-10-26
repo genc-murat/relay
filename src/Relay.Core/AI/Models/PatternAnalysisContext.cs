@@ -1,3 +1,4 @@
+using Relay.Core.AI.Models;
 using System;
 
 namespace Relay.Core.AI

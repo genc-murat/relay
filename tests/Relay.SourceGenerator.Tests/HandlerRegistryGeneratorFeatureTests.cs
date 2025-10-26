@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Generators;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -32,16 +33,15 @@ namespace Relay.SourceGenerator.Tests
             var methodSymbol = GetMethodSymbol(compilation, "TestApp.GetUserHandler", "HandleAsync");
 
             // Create a mock attribute info with a named argument
-            var handlerInfo = new HandlerInfo
+            HandlerInfo handlerInfo = new()
             {
                 MethodSymbol = methodSymbol,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo
-                    {
+                Attributes =
+                [
+                    new() {
                         Type = RelayAttributeType.Handle
                     }
-                }
+                ]
             };
 
             var discoveryResult = new HandlerDiscoveryResult();
@@ -78,16 +78,15 @@ namespace Relay.SourceGenerator.Tests
 
             var methodSymbol = GetMethodSymbol(compilation, "TestApp.GetUserHandler", "HandleAsync");
 
-            var handlerInfo = new HandlerInfo
+            HandlerInfo handlerInfo = new()
             {
                 MethodSymbol = methodSymbol,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo
-                    {
+                Attributes =
+                [
+                    new() {
                         Type = RelayAttributeType.Handle
                     }
-                }
+                ]
             };
 
             var discoveryResult = new HandlerDiscoveryResult();
@@ -122,13 +121,13 @@ namespace Relay.SourceGenerator.Tests
 
             var methodSymbol = GetMethodSymbol(compilation, "Test.GetUserHandler", "HandleAsync");
             var discoveryResult = new HandlerDiscoveryResult();
-            var handlerInfo = new HandlerInfo
+            HandlerInfo handlerInfo = new()
             {
                 MethodSymbol = methodSymbol,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-                }
+                Attributes =
+                [
+                    new() { Type = RelayAttributeType.Handle }
+                ]
             };
             discoveryResult.Handlers.Add(handlerInfo);
 
@@ -161,13 +160,13 @@ namespace Relay.SourceGenerator.Tests
 
             var methodSymbol = GetMethodSymbol(compilation, "Test.GetUserHandler", "HandleAsync");
             var discoveryResult = new HandlerDiscoveryResult();
-            var handlerInfo = new HandlerInfo
+            HandlerInfo handlerInfo = new()
             {
                 MethodSymbol = methodSymbol,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-                }
+                Attributes =
+                [
+                    new() { Type = RelayAttributeType.Handle }
+                ]
             };
             discoveryResult.Handlers.Add(handlerInfo);
 
@@ -198,13 +197,13 @@ namespace Relay.SourceGenerator.Tests
 
             var methodSymbol = GetMethodSymbol(compilation, "Test.VoidHandler", "Handle");
             var discoveryResult = new HandlerDiscoveryResult();
-            var handlerInfo = new HandlerInfo
+            HandlerInfo handlerInfo = new()
             {
                 MethodSymbol = methodSymbol,
-                Attributes = new List<RelayAttributeInfo>
-                {
-                    new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-                }
+                Attributes =
+                [
+                    new() { Type = RelayAttributeType.Handle }
+                ]
             };
             discoveryResult.Handlers.Add(handlerInfo);
 
@@ -215,7 +214,7 @@ namespace Relay.SourceGenerator.Tests
             Assert.DoesNotContain("ResponseType =", result); // No response type for void
         }
 
-        private Compilation CreateCompilation(string source)
+        private CSharpCompilation CreateCompilation(string source)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
@@ -230,12 +229,12 @@ namespace Relay.SourceGenerator.Tests
 
             return CSharpCompilation.Create(
                 "TestAssembly",
-                new[] { syntaxTree },
+                [syntaxTree],
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         }
 
-        private IMethodSymbol GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
+        private static IMethodSymbol GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
         {
             var syntaxTree = compilation.SyntaxTrees.First();
             var semanticModel = compilation.GetSemanticModel(syntaxTree);

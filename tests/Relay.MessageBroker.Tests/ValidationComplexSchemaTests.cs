@@ -13,7 +13,7 @@ public class ValidationComplexSchemaTests
 {
     public class TestableMessageBroker : BaseMessageBroker
     {
-        public List<object> PublishedMessages { get; } = new();
+        public List<object> PublishedMessages { get; } = [];
 
         public TestableMessageBroker(
             IOptions<MessageBrokerOptions> options,
@@ -57,7 +57,7 @@ public class ValidationComplexSchemaTests
         // Arrange
         var contractValidatorMock = new Mock<IContractValidator>();
         contractValidatorMock.Setup(cv => cv.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<string>()); // Valid
+            .ReturnsAsync([]); // Valid
 
         var options = Options.Create(new MessageBrokerOptions());
         var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
@@ -78,11 +78,11 @@ public class ValidationComplexSchemaTests
                     PostalCode = "12345"
                 }
             },
-            Items = new List<OrderItem>
-            {
-                new OrderItem { ProductId = "PROD-001", Quantity = 2, Price = 29.99m },
-                new OrderItem { ProductId = "PROD-002", Quantity = 1, Price = 49.99m }
-            },
+            Items =
+            [
+                new() { ProductId = "PROD-001", Quantity = 2, Price = 29.99m },
+                new() { ProductId = "PROD-002", Quantity = 1, Price = 49.99m }
+            ],
             TotalAmount = 109.97m
         };
 
@@ -172,10 +172,10 @@ public class ValidationComplexSchemaTests
                     // Missing postalCode
                 }
             },
-            Items = new List<OrderItem>
-            {
-                new OrderItem { ProductId = "PROD-003", Quantity = 0, Price = 19.99m } // Invalid quantity
-            },
+            Items =
+            [
+                new() { ProductId = "PROD-003", Quantity = 0, Price = 19.99m } // Invalid quantity
+            ],
             TotalAmount = -10.00m // Invalid amount
         };
 
@@ -196,7 +196,7 @@ public class ValidationComplexSchemaTests
         // Arrange
         var contractValidatorMock = new Mock<IContractValidator>();
         contractValidatorMock.Setup(cv => cv.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<string>()); // Valid
+            .ReturnsAsync([]); // Valid
 
         var options = Options.Create(new MessageBrokerOptions());
         var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
@@ -327,12 +327,12 @@ public class ValidationComplexSchemaTests
         var batchOrderMessage = new BatchOrderMessage
         {
             BatchId = "BATCH-001",
-            Orders = new List<OrderMessage>
-            {
-                new OrderMessage { OrderId = "ORDER-006", Amount = 50.00m, CustomerId = "CUST-005" },
-                new OrderMessage { OrderId = "ORDER-007", Amount = 75.00m, CustomerId = "CUST-006" },
-                new OrderMessage { OrderId = "ORDER-008", Amount = 25.00m, CustomerId = "CUST-007" }
-            },
+            Orders =
+            [
+                new() { OrderId = "ORDER-006", Amount = 50.00m, CustomerId = "CUST-005" },
+                new() { OrderId = "ORDER-007", Amount = 75.00m, CustomerId = "CUST-006" },
+                new() { OrderId = "ORDER-008", Amount = 25.00m, CustomerId = "CUST-007" }
+            ],
             TotalBatchValue = 150.00m
         };
 
@@ -381,26 +381,25 @@ public class ValidationComplexSchemaTests
             .ReturnsAsync(new List<string>()); // Valid
 
         var options = Options.Create(new MessageBrokerOptions());
-        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        ILogger<TestableMessageBroker> logger = new Mock<ILogger<TestableMessageBroker>>().Object;
         var broker = new TestableMessageBroker(options, logger, contractValidatorMock.Object);
 
         var treeMessage = new TreeNodeMessage
         {
             Id = "root",
             Value = "Root Node",
-            Children = new List<TreeNodeMessage>
-            {
-                new TreeNodeMessage
-                {
+            Children =
+            [
+                new() {
                     Id = "child1",
                     Value = "Child 1",
-                    Children = new List<TreeNodeMessage>
-                    {
-                        new TreeNodeMessage { Id = "leaf1", Value = "Leaf 1", Children = new List<TreeNodeMessage>() }
-                    }
+                    Children =
+                    [
+                        new() { Id = "leaf1", Value = "Leaf 1", Children = new List<TreeNodeMessage>() }
+                    ]
                 },
-                new TreeNodeMessage { Id = "child2", Value = "Child 2", Children = new List<TreeNodeMessage>() }
-            }
+                new() { Id = "child2", Value = "Child 2", Children = new List<TreeNodeMessage>() }
+            ]
         };
 
         var recursiveSchema = new JsonSchemaContract
@@ -442,7 +441,7 @@ public class ValidationComplexSchemaTests
     {
         public string OrderId { get; set; } = string.Empty;
         public CustomerInfo Customer { get; set; } = new();
-        public List<OrderItem> Items { get; set; } = new();
+        public List<OrderItem> Items { get; set; } = [];
         public decimal TotalAmount { get; set; }
     }
 
@@ -488,6 +487,6 @@ public class ValidationComplexSchemaTests
     {
         public string Id { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
-        public List<TreeNodeMessage> Children { get; set; } = new();
+        public List<TreeNodeMessage> Children { get; set; } = [];
     }
 }

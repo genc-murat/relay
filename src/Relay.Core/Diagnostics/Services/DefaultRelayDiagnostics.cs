@@ -211,10 +211,10 @@ public class DefaultRelayDiagnostics : IRelayDiagnostics
         var totalFailed = metrics.Sum(m => m.ErrorCount);
 
         var avgExecutionTime = TimeSpan.Zero;
-        if (metrics.Any())
+        if (metrics.Count != 0)
         {
             var totalTicks = metrics.Sum(m => m.TotalExecutionTime.Ticks);
-            avgExecutionTime = TimeSpan.FromTicks(totalTicks / metrics.Count());
+            avgExecutionTime = TimeSpan.FromTicks(totalTicks / metrics.Count);
         }
 
         return new DiagnosticSummary

@@ -1,6 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Discovery;
 using System.Linq;
 using System.Reflection;
 

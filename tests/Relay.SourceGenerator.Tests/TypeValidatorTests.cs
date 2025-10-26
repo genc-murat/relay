@@ -34,8 +34,8 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .AddReferences(MetadataReference.CreateFromFile(typeof(Task).Assembly.Location));
 
-        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper");
-        var method = (IMethodSymbol)helperClass.GetMembers("GetTask").First();
+        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper")!;
+        var method = (IMethodSymbol)helperClass.GetMembers("GetTask").First()!;
         var returnType = method.ReturnType;
 
         // Act
@@ -55,12 +55,12 @@ namespace TestNamespace
         var sourceCode = @"
 using System.Threading.Tasks;
 
-namespace TestNamespace 
+namespace TestNamespace
 {
-    public class TestHelper 
-    { 
+    public class TestHelper
+    {
         public ValueTask GetValueTask() => default;
-    } 
+    }
 }";
 
         var compilation = CSharpCompilation.Create("test")
@@ -69,8 +69,8 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .AddReferences(MetadataReference.CreateFromFile(typeof(ValueTask).Assembly.Location));
 
-        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper");
-        var method = (IMethodSymbol)helperClass.GetMembers("GetValueTask").First();
+        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper")!;
+        var method = (IMethodSymbol)helperClass.GetMembers("GetValueTask").First()!;
         var returnType = method.ReturnType;
 
         // Act
@@ -104,8 +104,8 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .AddReferences(MetadataReference.CreateFromFile(typeof(Task<>).Assembly.Location));
 
-        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper");
-        var method = (IMethodSymbol)helperClass.GetMembers("GetTaskOfString").First();
+        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper")!;
+        var method = (IMethodSymbol)helperClass.GetMembers("GetTaskOfString").First()!;
         var returnType = method.ReturnType;
 
         // Act
@@ -139,8 +139,8 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .AddReferences(MetadataReference.CreateFromFile(typeof(ValueTask<>).Assembly.Location));
 
-        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper");
-        var method = (IMethodSymbol)helperClass.GetMembers("GetValueTaskOfString").First();
+        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper")!;
+        var method = (IMethodSymbol)helperClass.GetMembers("GetValueTaskOfString").First()!;
         var returnType = method.ReturnType;
 
         // Act
@@ -171,8 +171,8 @@ namespace TestNamespace
             .AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceCode))
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
 
-        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper");
-        var method = (IMethodSymbol)helperClass.GetMembers("GetString").First();
+        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper")!;
+        var method = (IMethodSymbol)helperClass.GetMembers("GetString").First()!;
         var returnType = method.ReturnType;
 
         // Act
@@ -203,8 +203,8 @@ namespace TestNamespace
             .AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceCode))
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
 
-        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper");
-        var method = (IMethodSymbol)helperClass.GetMembers("GetVoid").First();
+        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper")!;
+        var method = (IMethodSymbol)helperClass.GetMembers("GetVoid").First()!;
         var returnType = method.ReturnType;
 
         // Act
@@ -228,9 +228,9 @@ using System.Threading.Tasks;
 namespace TestNamespace 
 {
     public class TestHelper 
-    { 
+    {
         public Task GetTask() => null;
-    } 
+    }
 }";
 
         var compilation = CSharpCompilation.Create("test")
@@ -239,8 +239,8 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .AddReferences(MetadataReference.CreateFromFile(typeof(Task).Assembly.Location));
 
-        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper");
-        var method = (IMethodSymbol)helperClass.GetMembers("GetTask").First();
+        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper")!;
+        var method = (IMethodSymbol)helperClass.GetMembers("GetTask").First()!;
         var returnType = method.ReturnType;
 
         // Act
@@ -275,8 +275,8 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .AddReferences(MetadataReference.CreateFromFile(typeof(ValueTask).Assembly.Location));
 
-        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper");
-        var method = (IMethodSymbol)helperClass.GetMembers("GetValueTask").First();
+        var helperClass = compilation.GetTypeByMetadataName("TestNamespace.TestHelper")!;
+        var method = (IMethodSymbol)helperClass.GetMembers("GetValueTask").First()!;
         var returnType = method.ReturnType;
 
         // Act
@@ -308,9 +308,10 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
 
         var requestType = compilation.GetTypeByMetadataName("TestNamespace.TestRequest");
+        Assert.NotNull(requestType);
 
         // Act
-        var result = TypeValidator.IsValidRequestType(requestType);
+        var result = TypeValidator.IsValidRequestType(requestType!);
 
         // Assert
         Assert.True(result);
@@ -339,9 +340,10 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
 
         var requestType = compilation.GetTypeByMetadataName("TestNamespace.TestRequest");
+        Assert.NotNull(requestType);
 
         // Act
-        var result = TypeValidator.IsValidRequestType(requestType);
+        var result = TypeValidator.IsValidRequestType(requestType!);
 
         // Assert
         Assert.False(result);
@@ -366,9 +368,10 @@ namespace TestNamespace
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
 
         var testType = compilation.GetTypeByMetadataName("TestNamespace.TestClass");
+        Assert.NotNull(testType);
 
         // Act
-        var result = TypeValidator.IsValidRequestType(testType);
+        var result = TypeValidator.IsValidRequestType(testType!);
 
         // Assert
         Assert.False(result);

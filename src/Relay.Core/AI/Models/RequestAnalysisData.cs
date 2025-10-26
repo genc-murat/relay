@@ -2,142 +2,140 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Models;
+
+/// <summary>
+/// Request analysis data for tracking execution metrics and patterns
+/// </summary>
+public class RequestAnalysisData
 {
-    /// <summary>
-    /// Request analysis data for tracking execution metrics and patterns
-    /// </summary>
-    public class RequestAnalysisData
+    public long TotalExecutions { get; private set; }
+    public long SuccessfulExecutions { get; private set; }
+    public long FailedExecutions { get; private set; }
+    public TimeSpan AverageExecutionTime { get; private set; }
+    public long RepeatRequestCount { get; private set; }
+    public int ConcurrentExecutionPeaks { get; private set; }
+    public double ErrorRate => TotalExecutions > 0 ? (double)FailedExecutions / TotalExecutions : 0;
+    public double SuccessRate => TotalExecutions > 0 ? (double)SuccessfulExecutions / TotalExecutions : 0;
+    public DateTime LastActivityTime { get; private set; } = DateTime.UtcNow;
+
+    public int ExecutionTimesCount => _executionTimes.Count;
+    public int OptimizationResultsCount => _optimizationResults.Count;
+    public int HistoricalMetricsCount => _historicalMetrics.Count;
+
+    // Additional metrics for ML.NET
+    public double DatabaseCalls { get; set; }
+    public double ExternalApiCalls { get; set; }
+    public double CacheHitRatio { get; set; }
+    public double RepeatRequestRate { get; set; }
+
+    private readonly List<TimeSpan> _executionTimes = [];
+    private readonly List<OptimizationResult> _optimizationResults = [];
+    private readonly Dictionary<DateTime, RequestExecutionMetrics> _historicalMetrics = [];
+
+    public void AddMetrics(RequestExecutionMetrics metrics)
     {
-        public long TotalExecutions { get; private set; }
-        public long SuccessfulExecutions { get; private set; }
-        public long FailedExecutions { get; private set; }
-        public TimeSpan AverageExecutionTime { get; private set; }
-        public long RepeatRequestCount { get; private set; }
-        public int ConcurrentExecutionPeaks { get; private set; }
-        public double ErrorRate => TotalExecutions > 0 ? (double)FailedExecutions / TotalExecutions : 0;
-        public double SuccessRate => TotalExecutions > 0 ? (double)SuccessfulExecutions / TotalExecutions : 0;
-        public DateTime LastActivityTime { get; private set; } = DateTime.UtcNow;
+        TotalExecutions += metrics.TotalExecutions;
+        SuccessfulExecutions += metrics.SuccessfulExecutions;
+        FailedExecutions += metrics.FailedExecutions;
+        LastActivityTime = DateTime.UtcNow;
 
-        public int ExecutionTimesCount => _executionTimes.Count;
-        public int OptimizationResultsCount => _optimizationResults.Count;
-        public int HistoricalMetricsCount => _historicalMetrics.Count;
+        _executionTimes.Add(metrics.AverageExecutionTime);
+        AverageExecutionTime = _executionTimes.Count > 0
+            ? TimeSpan.FromMilliseconds(_executionTimes.Average(t => t.TotalMilliseconds))
+            : TimeSpan.Zero;
 
-        // Additional metrics for ML.NET
-        public double DatabaseCalls { get; set; }
-        public double ExternalApiCalls { get; set; }
-        public double CacheHitRatio { get; set; }
-        public double RepeatRequestRate { get; set; }
+        ConcurrentExecutionPeaks = Math.Max(ConcurrentExecutionPeaks, metrics.ConcurrentExecutions);
+        _historicalMetrics[DateTime.UtcNow] = metrics;
 
-        private readonly List<TimeSpan> _executionTimes = new();
-        private readonly List<OptimizationResult> _optimizationResults = new();
-        private readonly Dictionary<DateTime, RequestExecutionMetrics> _historicalMetrics = new();
+        UpdateRepeatRequestCount(metrics);
+    }
 
-        public void AddMetrics(RequestExecutionMetrics metrics)
+    public void AddOptimizationResult(OptimizationResult result)
+    {
+        _optimizationResults.Add(result);
+        LastActivityTime = DateTime.UtcNow;
+    }
+
+    public double CalculateExecutionVariance()
+    {
+        if (_executionTimes.Count < 2) return 0;
+
+        var avg = _executionTimes.Average(t => t.TotalMilliseconds);
+        var variance = _executionTimes.Sum(t => Math.Pow(t.TotalMilliseconds - avg, 2)) / _executionTimes.Count;
+        return Math.Sqrt(variance) / avg;
+    }
+
+    public double CalculatePerformanceTrend()
+    {
+        if (_historicalMetrics.Count < 2) return 0;
+
+        var sortedMetrics = _historicalMetrics.OrderBy(kvp => kvp.Key).ToArray();
+        var oldAvg = sortedMetrics.Take(sortedMetrics.Length / 2)
+            .Average(kvp => kvp.Value.AverageExecutionTime.TotalMilliseconds);
+        var newAvg = sortedMetrics.Skip(sortedMetrics.Length / 2)
+            .Average(kvp => kvp.Value.AverageExecutionTime.TotalMilliseconds);
+
+        return (newAvg - oldAvg) / oldAvg;
+    }
+
+    public OptimizationStrategy[] GetMostEffectiveStrategies()
+    {
+        if (_optimizationResults.Count == 0) return [];
+
+        return [.. _optimizationResults
+            .GroupBy(r => r.Strategy)
+            .OrderByDescending(g => g.Average(r => r.ActualMetrics.SuccessRate))
+            .Select(g => g.Key)
+            .Take(3)];
+    }
+
+    public int CleanupOldData(DateTime cutoffTime)
+    {
+        var itemsRemoved = 0;
+        var metricsKeysToRemove = _historicalMetrics.Keys.Where(k => k < cutoffTime).ToArray();
+        foreach (var key in metricsKeysToRemove)
         {
-            TotalExecutions += metrics.TotalExecutions;
-            SuccessfulExecutions += metrics.SuccessfulExecutions;
-            FailedExecutions += metrics.FailedExecutions;
-            LastActivityTime = DateTime.UtcNow;
-
-            _executionTimes.Add(metrics.AverageExecutionTime);
-            AverageExecutionTime = _executionTimes.Count > 0
-                ? TimeSpan.FromMilliseconds(_executionTimes.Average(t => t.TotalMilliseconds))
-                : TimeSpan.Zero;
-
-            ConcurrentExecutionPeaks = Math.Max(ConcurrentExecutionPeaks, metrics.ConcurrentExecutions);
-            _historicalMetrics[DateTime.UtcNow] = metrics;
-
-            UpdateRepeatRequestCount(metrics);
+            if (_historicalMetrics.Remove(key))
+                itemsRemoved++;
         }
+        return itemsRemoved;
+    }
 
-        public void AddOptimizationResult(OptimizationResult result)
+    public int TrimExecutionTimes(int maxCount)
+    {
+        if (_executionTimes.Count <= maxCount) return 0;
+
+        var itemsToRemove = _executionTimes.Count - maxCount;
+        _executionTimes.RemoveRange(0, itemsToRemove);
+
+        AverageExecutionTime = _executionTimes.Count > 0
+            ? TimeSpan.FromMilliseconds(_executionTimes.Average(t => t.TotalMilliseconds))
+            : TimeSpan.Zero;
+
+        return itemsToRemove;
+    }
+
+    public int CleanupOptimizationResults(DateTime cutoffTime)
+    {
+        var initialCount = _optimizationResults.Count;
+
+        for (int i = _optimizationResults.Count - 1; i >= 0; i--)
         {
-            _optimizationResults.Add(result);
-            LastActivityTime = DateTime.UtcNow;
-        }
-
-        public double CalculateExecutionVariance()
-        {
-            if (_executionTimes.Count < 2) return 0;
-
-            var avg = _executionTimes.Average(t => t.TotalMilliseconds);
-            var variance = _executionTimes.Sum(t => Math.Pow(t.TotalMilliseconds - avg, 2)) / _executionTimes.Count;
-            return Math.Sqrt(variance) / avg;
-        }
-
-        public double CalculatePerformanceTrend()
-        {
-            if (_historicalMetrics.Count < 2) return 0;
-
-            var sortedMetrics = _historicalMetrics.OrderBy(kvp => kvp.Key).ToArray();
-            var oldAvg = sortedMetrics.Take(sortedMetrics.Length / 2)
-                .Average(kvp => kvp.Value.AverageExecutionTime.TotalMilliseconds);
-            var newAvg = sortedMetrics.Skip(sortedMetrics.Length / 2)
-                .Average(kvp => kvp.Value.AverageExecutionTime.TotalMilliseconds);
-
-            return (newAvg - oldAvg) / oldAvg;
-        }
-
-        public OptimizationStrategy[] GetMostEffectiveStrategies()
-        {
-            if (_optimizationResults.Count == 0) return Array.Empty<OptimizationStrategy>();
-
-            return _optimizationResults
-                .GroupBy(r => r.Strategy)
-                .OrderByDescending(g => g.Average(r => r.ActualMetrics.SuccessRate))
-                .Select(g => g.Key)
-                .Take(3)
-                .ToArray();
-        }
-
-        public int CleanupOldData(DateTime cutoffTime)
-        {
-            var itemsRemoved = 0;
-            var metricsKeysToRemove = _historicalMetrics.Keys.Where(k => k < cutoffTime).ToArray();
-            foreach (var key in metricsKeysToRemove)
+            if (_optimizationResults[i].Timestamp < cutoffTime)
             {
-                if (_historicalMetrics.Remove(key))
-                    itemsRemoved++;
+                _optimizationResults.RemoveAt(i);
             }
-            return itemsRemoved;
         }
 
-        public int TrimExecutionTimes(int maxCount)
+        return initialCount - _optimizationResults.Count;
+    }
+
+    private void UpdateRepeatRequestCount(RequestExecutionMetrics metrics)
+    {
+        if (metrics.AverageExecutionTime.TotalMilliseconds < 10)
         {
-            if (_executionTimes.Count <= maxCount) return 0;
-
-            var itemsToRemove = _executionTimes.Count - maxCount;
-            _executionTimes.RemoveRange(0, itemsToRemove);
-
-            AverageExecutionTime = _executionTimes.Count > 0
-                ? TimeSpan.FromMilliseconds(_executionTimes.Average(t => t.TotalMilliseconds))
-                : TimeSpan.Zero;
-
-            return itemsToRemove;
-        }
-
-        public int CleanupOptimizationResults(DateTime cutoffTime)
-        {
-            var initialCount = _optimizationResults.Count;
-
-            for (int i = _optimizationResults.Count - 1; i >= 0; i--)
-            {
-                if (_optimizationResults[i].Timestamp < cutoffTime)
-                {
-                    _optimizationResults.RemoveAt(i);
-                }
-            }
-
-            return initialCount - _optimizationResults.Count;
-        }
-
-        private void UpdateRepeatRequestCount(RequestExecutionMetrics metrics)
-        {
-            if (metrics.AverageExecutionTime.TotalMilliseconds < 10)
-            {
-                RepeatRequestCount++;
-            }
+            RepeatRequestCount++;
         }
     }
 }

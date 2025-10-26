@@ -1,15 +1,14 @@
 using System;
 
-namespace Relay.Core.AI
+namespace Relay.Core.AI.Models;
+
+/// <summary>
+/// Peak connection metrics
+/// </summary>
+internal class PeakConnectionMetrics
 {
-    /// <summary>
-    /// Peak connection metrics
-    /// </summary>
-    internal class PeakConnectionMetrics
-    {
-        public int DailyPeak { get; set; }
-        public int HourlyPeak { get; set; }
-        public int AllTimePeak { get; set; }
-        public DateTime LastPeakTimestamp { get; set; }
-    }
+    public int DailyPeak { get; set; }
+    public int HourlyPeak { get; set; }
+    public int AllTimePeak { get; set; }
+    public DateTime LastPeakTimestamp { get; set; }
 }

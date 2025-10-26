@@ -1,5 +1,6 @@
 extern alias RelayCore;
 using Microsoft.CodeAnalysis;
+using Relay.SourceGenerator.Core;
 using System.Reflection;
 
 namespace Relay.SourceGenerator.Tests;

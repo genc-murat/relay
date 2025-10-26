@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Relay.Core.AI;
+using Relay.Core.AI.Models;
 using Xunit;
 
 namespace Relay.Core.Tests.AI

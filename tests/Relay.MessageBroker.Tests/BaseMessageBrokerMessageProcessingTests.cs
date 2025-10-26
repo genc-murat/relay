@@ -9,22 +9,17 @@ namespace Relay.MessageBroker.Tests;
 
 public class BaseMessageBrokerMessageProcessingTests
 {
-    public class TestableMessageBroker : BaseMessageBroker
+    public class TestableMessageBroker(
+        IOptions<MessageBrokerOptions> options,
+        ILogger logger,
+        Relay.MessageBroker.Compression.IMessageCompressor? compressor = null,
+        IContractValidator? contractValidator = null) : BaseMessageBroker(options, logger, compressor, contractValidator)
     {
-        public List<(object Message, byte[] SerializedMessage, PublishOptions? Options)> PublishedMessages { get; } = new();
-        public List<(Type MessageType, SubscriptionInfo SubscriptionInfo)> SubscribedMessages { get; } = new();
+        public List<(object Message, byte[] SerializedMessage, PublishOptions? Options)> PublishedMessages { get; } = [];
+        public List<(Type MessageType, SubscriptionInfo SubscriptionInfo)> SubscribedMessages { get; } = [];
         public bool StartCalled { get; private set; }
         public bool StopCalled { get; private set; }
         public bool DisposeCalled { get; private set; }
-
-        public TestableMessageBroker(
-            IOptions<MessageBrokerOptions> options,
-            ILogger logger,
-            Relay.MessageBroker.Compression.IMessageCompressor? compressor = null,
-            IContractValidator? contractValidator = null)
-            : base(options, logger, compressor, contractValidator)
-        {
-        }
 
         protected override async ValueTask PublishInternalAsync<TMessage>(
             TMessage message,

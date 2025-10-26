@@ -58,7 +58,7 @@ public class NotInValidationRuleTests
     public async Task ValidateAsync_WithEmptyForbiddenList_ReturnsEmptyErrors()
     {
         // Arrange
-        var rule = new NotInValidationRule<string>(new string[0]);
+        var rule = new NotInValidationRule<string>([]);
 
         // Act
         var result = await rule.ValidateAsync("any_value");
@@ -71,7 +71,7 @@ public class NotInValidationRuleTests
     public async Task ValidateAsync_WithNullForbiddenList()
     {
         // Arrange
-        var rule = new NotInValidationRule<string>(new string[0]);
+        var rule = new NotInValidationRule<string>([]);
 
         // Act
         var result = await rule.ValidateAsync((string)null);
@@ -84,7 +84,7 @@ public class NotInValidationRuleTests
     public async Task ValidateAsync_WithNullValue_And_Null_In_ForbiddenList()
     {
         // Arrange
-        var rule = new NotInValidationRule<string>(new string[] { null, "forbidden1", "forbidden2" });
+        var rule = new NotInValidationRule<string>([null, "forbidden1", "forbidden2"]);
 
         // Act
         var result = await rule.ValidateAsync((string)null);
@@ -284,7 +284,7 @@ public class NotInValidationRuleTests
         public int Id { get; set; }
         public string Name { get; set; }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is TestObject other)
             {

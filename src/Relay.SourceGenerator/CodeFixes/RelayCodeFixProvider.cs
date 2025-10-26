@@ -1,23 +1,22 @@
-using System;
-using System.Collections.Immutable;
-using System.Composition;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Immutable;
+using System.Composition;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Relay.SourceGenerator
+namespace Relay.SourceGenerator.CodeFixes
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(RelayCodeFixProvider)), Shared]
     public class RelayCodeFixProvider : CodeFixProvider
     {
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(DiagnosticDescriptors.HandlerMissingCancellationToken.Id); }
+            get { return [DiagnosticDescriptors.HandlerMissingCancellationToken.Id]; }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()

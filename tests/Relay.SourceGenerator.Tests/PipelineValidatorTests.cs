@@ -65,23 +65,23 @@ public class TestClass
     {
         // Act & Assert
         var result0 = (string)typeof(PipelineValidator).GetMethod("GetScopeName", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, new object[] { 0 });
+            .Invoke(null, [0]);
         Assert.Equal("All", result0);
 
         var result1 = (string)typeof(PipelineValidator).GetMethod("GetScopeName", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, new object[] { 1 });
+            .Invoke(null, [1]);
         Assert.Equal("Requests", result1);
 
         var result2 = (string)typeof(PipelineValidator).GetMethod("GetScopeName", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, new object[] { 2 });
+            .Invoke(null, [2]);
         Assert.Equal("Streams", result2);
 
         var result3 = (string)typeof(PipelineValidator).GetMethod("GetScopeName", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, new object[] { 3 });
+            .Invoke(null, [3]);
         Assert.Equal("Notifications", result3);
 
         var resultUnknown = (string)typeof(PipelineValidator).GetMethod("GetScopeName", BindingFlags.NonPublic | BindingFlags.Static)!
-            .Invoke(null, new object[] { 99 });
+            .Invoke(null, [99]);
         Assert.Equal("Unknown", resultUnknown);
     }
 
@@ -412,8 +412,8 @@ namespace Test
         // Create test pipeline info with duplicates
         var pipelineRegistry = new List<PipelineInfo>
         {
-            new PipelineInfo { MethodName = "Pipeline1", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
-            new PipelineInfo { MethodName = "Pipeline2", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
+            new() { MethodName = "Pipeline1", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
+            new() { MethodName = "Pipeline2", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
         };
 
         // Since CompilationAnalysisContext is sealed, we'll test the logic directly
@@ -434,8 +434,8 @@ namespace Test
         // Create test pipeline info with same order but different scopes
         var pipelineRegistry = new List<PipelineInfo>
         {
-            new PipelineInfo { MethodName = "Pipeline1", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
-            new PipelineInfo { MethodName = "Pipeline2", Order = 1, Scope = 1, ContainingType = "Test.TestClass", Location = Location.None },
+            new() { MethodName = "Pipeline1", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
+            new() { MethodName = "Pipeline2", Order = 1, Scope = 1, ContainingType = "Test.TestClass", Location = Location.None },
         };
 
         // Check that no duplicates are found
@@ -453,11 +453,11 @@ namespace Test
     public void ValidateDuplicatePipelineOrders_Allows_Same_Order_In_Different_Classes()
     {
         // Create test pipeline info with same order but different classes
-        var pipelineRegistry = new List<PipelineInfo>
-        {
-            new PipelineInfo { MethodName = "Pipeline1", Order = 1, Scope = 0, ContainingType = "Test.TestClass1", Location = Location.None },
-            new PipelineInfo { MethodName = "Pipeline2", Order = 1, Scope = 0, ContainingType = "Test.TestClass2", Location = Location.None },
-        };
+        List<PipelineInfo> pipelineRegistry =
+        [
+            new() { MethodName = "Pipeline1", Order = 1, Scope = 0, ContainingType = "Test.TestClass1", Location = Location.None },
+            new() { MethodName = "Pipeline2", Order = 1, Scope = 0, ContainingType = "Test.TestClass2", Location = Location.None },
+        ];
 
         // Check that no duplicates are found
         var duplicates = pipelineRegistry
@@ -581,7 +581,7 @@ namespace Relay.Core
         }
 
         // For generic types without namespace, try common namespaces
-        if (typeName.Contains("`"))
+        if (typeName.Contains('`'))
         {
             var baseName = typeName.Split('`')[0];
             var possibleNames = new[]

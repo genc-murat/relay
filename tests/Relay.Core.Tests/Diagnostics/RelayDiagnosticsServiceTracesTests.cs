@@ -201,7 +201,7 @@ public class RelayDiagnosticsServiceTracesTests
         Assert.True(response.IsSuccess);
         Assert.NotNull(response.Data);
         // Should be the traces collection directly, not wrapped in content object
-        Assert.IsAssignableFrom<IEnumerable<RequestTrace>>(response.Data);
+        Assert.IsType<IEnumerable<RequestTrace>>(response.Data, exactMatch: false);
     }
 
     [Fact]

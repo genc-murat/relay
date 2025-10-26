@@ -7,6 +7,7 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 using Relay.Core.AI;
+using Relay.Core.AI.Models;
 
 namespace Relay.Core.Tests.AI.Services
 {
@@ -65,7 +66,7 @@ namespace Relay.Core.Tests.AI.Services
             // Assert
             Assert.Equal(OptimizationStrategy.CircuitBreaker, result.Strategy);
             Assert.True(result.ConfidenceScore > 0);
-            Assert.True(result.Risk == Relay.Core.AI.RiskLevel.Low);
+            Assert.Equal(result.Risk, Relay.Core.AI.RiskLevel.Low);
         }
 
         [Fact]

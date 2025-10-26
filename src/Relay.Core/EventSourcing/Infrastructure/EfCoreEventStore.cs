@@ -35,7 +35,7 @@ public class EfCoreEventStore : IEventStore
     public async ValueTask SaveEventsAsync(Guid aggregateId, IEnumerable<Event> events, int expectedVersion, CancellationToken cancellationToken = default)
     {
         var eventsList = events.ToList();
-        if (!eventsList.Any())
+        if (eventsList.Count == 0)
         {
             return;
         }
@@ -93,12 +93,7 @@ public class EfCoreEventStore : IEventStore
                 }
 
                 var @event = JsonSerializer.Deserialize(entity.EventData, eventType, _jsonOptions) as Event;
-                if (@event == null)
-                {
-                    throw new InvalidOperationException($"Failed to deserialize event of type '{entity.EventType}'.");
-                }
-
-                yield return @event;
+                yield return @event == null ? throw new InvalidOperationException($"Failed to deserialize event of type '{entity.EventType}'.") : @event;
             }
         }
     }
@@ -119,19 +114,9 @@ public class EfCoreEventStore : IEventStore
 
             await foreach (var entity in entities.WithCancellation(cancellationToken))
             {
-                var eventType = FindEventType(entity.EventType);
-                if (eventType == null)
-                {
-                    throw new InvalidOperationException($"Event type '{entity.EventType}' not found.");
-                }
-
+                var eventType = FindEventType(entity.EventType) ?? throw new InvalidOperationException($"Event type '{entity.EventType}' not found.");
                 var @event = JsonSerializer.Deserialize(entity.EventData, eventType, _jsonOptions) as Event;
-                if (@event == null)
-                {
-                    throw new InvalidOperationException($"Failed to deserialize event of type '{entity.EventType}'.");
-                }
-
-                yield return @event;
+                yield return @event == null ? throw new InvalidOperationException($"Failed to deserialize event of type '{entity.EventType}'.") : @event;
             }
         }
     }

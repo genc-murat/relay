@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Models;
 using Relay.Core.AI.Optimization.Services;
 using System;
 using System.Collections.Generic;

@@ -11,7 +11,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
     public void HandlerRegistryGenerator_Constructor_With_Null_Context_Throws_ArgumentNullException()
     {
         // Act and Assert
-        var exception = Assert.Throws<ArgumentNullException>(() => new HandlerRegistryGenerator(null));
+        var exception = Assert.Throws<ArgumentNullException>(() => new HandlerRegistryGenerator(null!));
         Assert.Equal("context", exception.ParamName);
     }
 
@@ -167,13 +167,13 @@ public class HandlerRegistryGeneratorComprehensiveTests
 
         // Create a handler with handle attribute - in a real scenario this would have the Name property
         // Since we can't easily mock the AttributeData with named arguments, let's just test the default case
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = null, // Not needed for this test
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
 
         var result = getHandlerNameMethod?.Invoke(generator, new object[] { handlerInfo });
@@ -342,10 +342,10 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol, // Has method symbol but no parameters
-            Attributes = new List<RelayAttributeInfo>
-            {
+            Attributes =
+            [
                 new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            ]
         };
 
         var sourceBuilder = new StringBuilder();
@@ -422,7 +422,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
             .GetMethod("AppendUsings", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
         // Act 
-        appendUsingsMethod?.Invoke(generator, new object[] { builder, discoveryResult, options });
+        appendUsingsMethod?.Invoke(generator, [builder, discoveryResult, options]);
 
         var result = builder.ToString();
 
@@ -459,10 +459,10 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
+            Attributes =
+            [
                 new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -474,7 +474,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
             .GetMethod("GenerateContent", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
         // Act 
-        generateContentMethod?.Invoke(generator, new object[] { builder, discoveryResult, options });
+        generateContentMethod?.Invoke(generator, [builder, discoveryResult, options]);
 
         var result = builder.ToString();
 
@@ -500,12 +500,12 @@ public class HandlerRegistryGeneratorComprehensiveTests
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    private IMethodSymbol GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
+    private IMethodSymbol? GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
     {
         var syntaxTree = compilation.SyntaxTrees.First();
         var semanticModel = compilation.GetSemanticModel(syntaxTree);
@@ -529,10 +529,10 @@ public class HandlerRegistryGeneratorComprehensiveTests
             }
         }
 
-        return null;
+        return null!;
     }
 
-    private AttributeData GetAttributeData(Compilation compilation, string sourceTypeName, string methodName, string attributeName)
+    private AttributeData? GetAttributeData(Compilation compilation, string sourceTypeName, string methodName, string attributeName)
     {
         var syntaxTree = compilation.SyntaxTrees.First();
         var semanticModel = compilation.GetSemanticModel(syntaxTree);
@@ -553,8 +553,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
             if (methodDeclaration != null)
             {
                 // Get the semantic model for the method
-                var methodSymbol = semanticModel.GetDeclaredSymbol(methodDeclaration) as IMethodSymbol;
-                if (methodSymbol != null)
+                if (semanticModel.GetDeclaredSymbol(methodDeclaration) is IMethodSymbol methodSymbol)
                 {
                     // Look for the specific attribute on the method symbol
                     var attribute = methodSymbol.GetAttributes()
@@ -564,6 +563,6 @@ public class HandlerRegistryGeneratorComprehensiveTests
             }
         }
 
-        return null;
+        return null!;
     }
 }

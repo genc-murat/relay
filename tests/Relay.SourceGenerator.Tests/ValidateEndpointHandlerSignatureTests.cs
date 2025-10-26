@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Discovery;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -67,7 +68,9 @@ namespace TestProject
                       System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         
         var location = methodDeclaration.GetLocation();
-        var result = (bool)validateMethod?.Invoke(discoveryEngine, new object[] { methodSymbol, location, diagnosticReporter });
+#pragma warning disable CS8601 // Possible null reference assignment - expected in test scenario
+        var result = (bool)validateMethod!.Invoke(discoveryEngine, [methodSymbol, location, diagnosticReporter])!;
+#pragma warning restore CS8601
 
         // Assert: The validation should fail because private methods are not allowed
         Assert.False(result); // Should return false due to private access modifier
@@ -119,13 +122,13 @@ namespace Relay.Core
 
         return CSharpCompilation.Create(
             assemblyName: "TestAssembly",
-            syntaxTrees: new[] { relayCoreStubs, syntaxTree },
-            references: new[]
-            {
+            syntaxTrees: [relayCoreStubs, syntaxTree],
+            references:
+            [
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
-            },
+            ],
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 }

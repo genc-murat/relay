@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Relay.Core.AI.Models;
 using System;
 using System.Collections.Generic;
 

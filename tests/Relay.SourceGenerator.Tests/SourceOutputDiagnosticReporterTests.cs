@@ -4,6 +4,7 @@ using Xunit;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Relay.SourceGenerator.Diagnostics;
 
 namespace Relay.SourceGenerator.Tests;
 

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Relay.Core.AI.Analysis.TimeSeries;
+using Relay.Core.AI.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,14 +12,14 @@ internal class WebSocketConnectionMetricsProvider
 {
     private readonly ILogger _logger;
     private readonly Relay.Core.AI.AIOptimizationOptions _options;
-    private readonly ConcurrentDictionary<Type, Relay.Core.AI.RequestAnalysisData> _requestAnalytics;
+    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics;
     private readonly TimeSeriesDatabase _timeSeriesDb;
     private readonly Relay.Core.AI.SystemMetricsCalculator _systemMetrics;
 
     public WebSocketConnectionMetricsProvider(
         ILogger logger,
         Relay.Core.AI.AIOptimizationOptions options,
-        ConcurrentDictionary<Type, Relay.Core.AI.RequestAnalysisData> requestAnalytics,
+        ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
         TimeSeriesDatabase timeSeriesDb,
         Relay.Core.AI.SystemMetricsCalculator systemMetrics)
     {

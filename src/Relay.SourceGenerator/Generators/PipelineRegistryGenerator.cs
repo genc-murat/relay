@@ -5,10 +5,9 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Relay.SourceGenerator.Generators;
 using Relay.SourceGenerator.Core;
 
-namespace Relay.SourceGenerator
+namespace Relay.SourceGenerator.Generators
 {
     /// <summary>
     /// Generates pipeline registration code for discovered pipeline behaviors.

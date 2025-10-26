@@ -1,9 +1,10 @@
 using Microsoft.CodeAnalysis;
+using Relay.SourceGenerator.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Validation;
 
 /// <summary>
 /// Validates configuration at compile time and reports configuration conflicts and issues.

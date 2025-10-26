@@ -9,15 +9,10 @@ namespace Relay.Core.Tests.Telemetry;
 /// <summary>
 /// Test class for DefaultMetricsProvider with access to protected methods
 /// </summary>
-public class TestableDefaultMetricsProvider : DefaultMetricsProvider
+public class TestableDefaultMetricsProvider(ILogger<DefaultMetricsProvider>? logger = null) : DefaultMetricsProvider(logger)
 {
-    public TestableDefaultMetricsProvider(ILogger<DefaultMetricsProvider>? logger = null)
-        : base(logger)
-    {
-    }
-
-    public int MaxRecordsPerHandler => base.MaxRecordsPerHandler;
-    public int MaxTimingBreakdowns => base.MaxTimingBreakdowns;
+    public new int MaxRecordsPerHandler => base.MaxRecordsPerHandler;
+    public new int MaxTimingBreakdowns => base.MaxTimingBreakdowns;
 
     public new IEnumerable<List<HandlerExecutionMetrics>> GetHandlerExecutionsSnapshot(DateTimeOffset cutoff)
     {
@@ -29,7 +24,7 @@ public class TestableDefaultMetricsProvider : DefaultMetricsProvider
         return base.GetStreamingOperationsSnapshot(cutoff);
     }
 
-    public new static TimeSpan GetPercentileInternal(List<TimeSpan> sortedDurations, double percentile)
+    public static TimeSpan GetPercentileInternal(List<TimeSpan> sortedDurations, double percentile)
     {
         return GetPercentile(sortedDurations, percentile);
     }

@@ -22,17 +22,17 @@ public class OptimizedDispatcherGeneratorComprehensiveTests
 
         // Act & Assert
         Assert.Equal("System_Collections_Generic_List_System_String_", 
-            sanitizeMethod?.Invoke(generator, new object[] { "System.Collections.Generic.List<System.String>" }));
+            sanitizeMethod?.Invoke(generator, ["System.Collections.Generic.List<System.String>"]));
         Assert.Equal("Test_MyClass__", 
-            sanitizeMethod?.Invoke(generator, new object[] { "Test.MyClass[]" }));
+            sanitizeMethod?.Invoke(generator, ["Test.MyClass[]"]));
         Assert.Equal("Test_GenericClass_System_Int32_", 
-            sanitizeMethod?.Invoke(generator, new object[] { "Test.GenericClass<System.Int32>" }));
+            sanitizeMethod?.Invoke(generator, ["Test.GenericClass<System.Int32>"]));
         Assert.Equal("Test_MyClass_System_String_System_Int32_", 
-            sanitizeMethod?.Invoke(generator, new object[] { "Test.MyClass<System.String,System.Int32>" }));
+            sanitizeMethod?.Invoke(generator, ["Test.MyClass<System.String,System.Int32>"]));
         Assert.Equal("", 
-            sanitizeMethod?.Invoke(generator, new object[] { "" }));
+            sanitizeMethod?.Invoke(generator, [""]));
         // The method throws NullReferenceException when called with null
-        Assert.ThrowsAny<Exception>(() => sanitizeMethod?.Invoke(generator, new object[] { null }));
+        Assert.ThrowsAny<Exception>(() => sanitizeMethod?.Invoke(generator, [null!]));
     }
 
     [Fact]
@@ -68,74 +68,74 @@ namespace Test
 
         // Test Task<T>
         var taskMethod = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
-        var taskHandlerInfo = new HandlerInfo
+        HandlerInfo taskHandlerInfo = new()
         {
             MethodSymbol = taskMethod,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("Test.StringResponse", getResponseTypeMethod?.Invoke(generator, new object[] { taskHandlerInfo }));
+        Assert.Equal("Test.StringResponse", getResponseTypeMethod?.Invoke(generator, [taskHandlerInfo]));
 
         // Test ValueTask<T>
         var valueTaskMethod = handlerTypeSymbol?.GetMembers("HandleValueAsync").OfType<IMethodSymbol>().FirstOrDefault();
-        var valueTaskHandlerInfo = new HandlerInfo
+        HandlerInfo valueTaskHandlerInfo = new()
         {
             MethodSymbol = valueTaskMethod,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("Test.StringResponse", getResponseTypeMethod?.Invoke(generator, new object[] { valueTaskHandlerInfo }));
+        Assert.Equal("Test.StringResponse", getResponseTypeMethod?.Invoke(generator, [valueTaskHandlerInfo]));
 
         // Test IAsyncEnumerable<T>
         var streamMethod = handlerTypeSymbol?.GetMembers("HandleStreamAsync").OfType<IMethodSymbol>().FirstOrDefault();
-        var streamHandlerInfo = new HandlerInfo
+        HandlerInfo streamHandlerInfo = new()
         {
             MethodSymbol = streamMethod,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("Test.StringResponse", getResponseTypeMethod?.Invoke(generator, new object[] { streamHandlerInfo }));
+        Assert.Equal("Test.StringResponse", getResponseTypeMethod?.Invoke(generator, [streamHandlerInfo]));
 
         // Test direct return
         var directMethod = handlerTypeSymbol?.GetMembers("HandleDirect").OfType<IMethodSymbol>().FirstOrDefault();
-        var directHandlerInfo = new HandlerInfo
+        HandlerInfo directHandlerInfo = new()
         {
             MethodSymbol = directMethod,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("Test.StringResponse", getResponseTypeMethod?.Invoke(generator, new object[] { directHandlerInfo }));
+        Assert.Equal("Test.StringResponse", getResponseTypeMethod?.Invoke(generator, [directHandlerInfo]));
 
         // Test void return
         var voidMethod = handlerTypeSymbol?.GetMembers("HandleVoid").OfType<IMethodSymbol>().FirstOrDefault();
-        var voidHandlerInfo = new HandlerInfo
+        HandlerInfo voidHandlerInfo = new()
         {
             MethodSymbol = voidMethod,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("void", getResponseTypeMethod?.Invoke(generator, new object[] { voidHandlerInfo }));
+        Assert.Equal("void", getResponseTypeMethod?.Invoke(generator, [voidHandlerInfo]));
 
         // Test Task (non-generic)
         var taskVoidMethod = handlerTypeSymbol?.GetMembers("HandleTaskVoid").OfType<IMethodSymbol>().FirstOrDefault();
-        var taskVoidHandlerInfo = new HandlerInfo
+        HandlerInfo taskVoidHandlerInfo = new()
         {
             MethodSymbol = taskVoidMethod,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("void", getResponseTypeMethod?.Invoke(generator, new object[] { taskVoidHandlerInfo }));
+        Assert.Equal("void", getResponseTypeMethod?.Invoke(generator, [taskVoidHandlerInfo]));
 
         // Test ValueTask (non-generic)
         var valueTaskVoidMethod = handlerTypeSymbol?.GetMembers("HandleValueTaskVoid").OfType<IMethodSymbol>().FirstOrDefault();
         var valueTaskVoidHandlerInfo = new HandlerInfo
         {
             MethodSymbol = valueTaskVoidMethod,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("void", getResponseTypeMethod?.Invoke(generator, new object[] { valueTaskVoidHandlerInfo }));
+        Assert.Equal("void", getResponseTypeMethod?.Invoke(generator, [valueTaskVoidHandlerInfo]));
 
         // Test null MethodSymbol
-        var nullHandlerInfo = new HandlerInfo
+        HandlerInfo nullHandlerInfo = new()
         {
             MethodSymbol = null,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("void", getResponseTypeMethod?.Invoke(generator, new object[] { nullHandlerInfo }));
+        Assert.Equal("void", getResponseTypeMethod?.Invoke(generator, [nullHandlerInfo]));
     }
 
     [Fact]
@@ -154,24 +154,24 @@ namespace Test
         var defaultHandlerInfo = new HandlerInfo
         {
             MethodSymbol = null,
-            Attributes = new List<RelayAttributeInfo>
-            {
+            Attributes =
+            [
                 new RelayAttributeInfo 
                 { 
                     Type = RelayAttributeType.Handle,
                     AttributeData = null  // Null AttributeData means no named arguments
                 }
-            }
+            ]
         };
-        Assert.Equal("default", getHandlerNameMethod?.Invoke(generator, new object[] { defaultHandlerInfo }));
+        Assert.Equal("default", getHandlerNameMethod?.Invoke(generator, [defaultHandlerInfo]));
 
         // Test with empty attributes list
-        var emptyHandlerInfo = new HandlerInfo
+        HandlerInfo emptyHandlerInfo = new()
         {
             MethodSymbol = null,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal("default", getHandlerNameMethod?.Invoke(generator, new object[] { emptyHandlerInfo }));
+        Assert.Equal("default", getHandlerNameMethod?.Invoke(generator, [emptyHandlerInfo]));
     }
 
     [Fact]
@@ -190,39 +190,38 @@ namespace Test
         var defaultHandlerInfo = new HandlerInfo
         {
             MethodSymbol = null,
-            Attributes = new List<RelayAttributeInfo>
-            {
+            Attributes =
+            [
                 new RelayAttributeInfo 
                 { 
                     Type = RelayAttributeType.Handle,
                     AttributeData = null  // Null AttributeData means no named arguments
                 }
-            }
+            ]
         };
-        Assert.Equal(0, getHandlerPriorityMethod?.Invoke(generator, new object[] { defaultHandlerInfo }));
+        Assert.Equal(0, getHandlerPriorityMethod?.Invoke(generator, [defaultHandlerInfo]));
 
         // Test with null AttributeData
-        var nullAttributeHandlerInfo = new HandlerInfo
+        HandlerInfo nullAttributeHandlerInfo = new()
         {
             MethodSymbol = null,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo 
-                { 
+            Attributes =
+            [
+                new() { 
                     Type = RelayAttributeType.Handle,
                     AttributeData = null
                 }
-            }
+            ]
         };
-        Assert.Equal(0, getHandlerPriorityMethod?.Invoke(generator, new object[] { nullAttributeHandlerInfo }));
+        Assert.Equal(0, getHandlerPriorityMethod?.Invoke(generator, [nullAttributeHandlerInfo]));
 
         // Test with empty attributes list
         var emptyHandlerInfo = new HandlerInfo
         {
             MethodSymbol = null,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
-        Assert.Equal(0, getHandlerPriorityMethod?.Invoke(generator, new object[] { emptyHandlerInfo }));
+        Assert.Equal(0, getHandlerPriorityMethod?.Invoke(generator, [emptyHandlerInfo]));
     }
 
     [Fact]
@@ -234,13 +233,13 @@ namespace Test
         var generator = new OptimizedDispatcherGenerator(context);
 
         var discoveryResult = new HandlerDiscoveryResult();
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = null, // Null MethodSymbol
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -302,7 +301,7 @@ namespace Test
             .GetMethod("AppendUsings", BindingFlags.NonPublic | BindingFlags.Instance);
 
         // Act
-        appendUsingsMethod?.Invoke(generator, new object[] { builder, discoveryResult, options });
+        appendUsingsMethod?.Invoke(generator, [builder, discoveryResult, options]);
 
         var result = builder.ToString();
 
@@ -333,7 +332,7 @@ namespace Test
             .GetMethod("GenerateContent", BindingFlags.NonPublic | BindingFlags.Instance);
 
         // Act
-        generateContentMethod?.Invoke(generator, new object[] { builder, discoveryResult, options });
+        generateContentMethod?.Invoke(generator, [builder, discoveryResult, options]);
 
         var result = builder.ToString();
 
@@ -438,12 +437,12 @@ namespace Test
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    private IMethodSymbol GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
+    private IMethodSymbol? GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
     {
         var syntaxTree = compilation.SyntaxTrees.First();
         var semanticModel = compilation.GetSemanticModel(syntaxTree);

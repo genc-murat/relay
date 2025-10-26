@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Relay.SourceGenerator;
 using Xunit;
+using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -29,7 +30,7 @@ namespace Test
         return new RelayCompilationContext(compilation, System.Threading.CancellationToken.None);
     }
 
-    private Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
         var references = AppDomain.CurrentDomain.GetAssemblies()
@@ -39,12 +40,12 @@ namespace Test
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    private HandlerInfo CreateMockHandler(string requestType, string responseType, string handlerType = "TestHandler", string methodName = "HandleAsync", bool isStatic = false, string? handlerName = null, int priority = 0)
+    private static HandlerInfo CreateMockHandler(string requestType, string responseType, string handlerType = "TestHandler", string methodName = "HandleAsync", bool isStatic = false, string? handlerName = null, int priority = 0)
     {
         var compilation = CreateCompilation($@"
 namespace Test {{
@@ -61,26 +62,25 @@ namespace Test {{
 
         var methodSymbol = handlerTypeSymbol?.GetMembers(methodName).OfType<IMethodSymbol>().FirstOrDefault();
 
-        var handler = new HandlerInfo
+        HandlerInfo handler = new()
         {
             MethodSymbol = methodSymbol,
             HandlerTypeSymbol = handlerTypeSymbol,
             RequestTypeSymbol = requestTypeSymbol,
             ResponseTypeSymbol = responseTypeSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo
-                {
+            Attributes =
+            [
+                new() {
                     Type = RelayAttributeType.Handle,
                     AttributeData = CreateMockAttributeData(handlerName, priority)
                 }
-            }
+            ]
         };
 
         return handler;
     }
 
-    private AttributeData CreateMockAttributeData(string? handlerName, int priority)
+    private static AttributeData CreateMockAttributeData(string? _, int __)
     {
         // For testing purposes, we'll create a mock attribute data
         // In a real scenario, this would be created from actual syntax
@@ -109,15 +109,15 @@ namespace Test {
         var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.ComplexHandler");
         var methodSymbol = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
 
-        var handler = new HandlerInfo
+        HandlerInfo handler = new()
         {
             MethodSymbol = methodSymbol,
             HandlerTypeSymbol = handlerTypeSymbol,
             RequestTypeSymbol = requestTypeSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
 
         discoveryResult.Handlers.Add(handler);
@@ -182,7 +182,7 @@ namespace Test {
         var source = generator.GenerateOptimizedDispatcher(discoveryResult);
 
         // Assert
-        var inlineCount = source.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None)
+        var inlineCount = source.Split(["\r\n", "\r", "\n"], StringSplitOptions.None)
             .Count(line => line.Contains("MethodImpl(MethodImplOptions.AggressiveInlining)"));
 
         Assert.True(inlineCount >= 2); // Should have at least 2 methods with inlining

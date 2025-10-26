@@ -57,5 +57,5 @@ public class EndpointMetadata
     /// <summary>
     /// Gets or sets additional properties for the endpoint.
     /// </summary>
-    public Dictionary<string, object> Properties { get; set; } = new();
+    public Dictionary<string, object> Properties { get; set; } = [];
 }

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using Relay.Core.AI;
+using Relay.Core.AI.Models;
 
 namespace Relay.Core.AI.Optimization.Services;
 

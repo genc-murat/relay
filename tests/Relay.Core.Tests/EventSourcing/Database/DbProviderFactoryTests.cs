@@ -175,7 +175,7 @@ public class DbProviderFactoryTests
 
         // Assert - Should not throw and should detect some provider
         Assert.NotNull(provider);
-        Assert.IsAssignableFrom<IDbProvider>(provider);
+        Assert.IsType<IDbProvider>(provider, exactMatch: false);
     }
 
     [Fact]

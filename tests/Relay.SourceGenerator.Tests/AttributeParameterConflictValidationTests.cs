@@ -1,6 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Moq;
+using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Validation;
 
 namespace Relay.SourceGenerator.Tests;
 
@@ -446,7 +448,7 @@ public class AttributeParameterConflictValidationTests
         _mockReporter.Verify(r => r.ReportDiagnostic(It.IsAny<Diagnostic>()), Times.Never);
     }
 
-    private static Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText($@"
 using System;
@@ -489,7 +491,7 @@ namespace Relay.Core
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
@@ -497,19 +499,14 @@ namespace Relay.Core
     private static INamedTypeSymbol GetTypeSymbol(Compilation compilation, string typeName)
     {
         // Handle C# builtin aliases
-        switch (typeName)
+        return typeName switch
         {
-            case "string":
-                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_String);
-            case "int":
-                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Int32);
-            case "bool":
-                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Boolean);
-            case "void":
-                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Void);
-        }
-
-        return compilation.GetTypeByMetadataName(typeName) ??
-               compilation.GetSymbolsWithName(typeName).OfType<INamedTypeSymbol>().First();
+            "string" => (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_String),
+            "int" => (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Int32),
+            "bool" => (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Boolean),
+            "void" => (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Void),
+            _ => compilation.GetTypeByMetadataName(typeName) ??
+                           compilation.GetSymbolsWithName(typeName).OfType<INamedTypeSymbol>().First(),
+        };
     }
 }

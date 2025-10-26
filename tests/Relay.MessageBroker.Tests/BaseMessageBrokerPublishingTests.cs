@@ -10,22 +10,17 @@ namespace Relay.MessageBroker.Tests;
 
 public class BaseMessageBrokerPublishingTests
 {
-    public class TestableMessageBroker : BaseMessageBroker
+    public class TestableMessageBroker(
+        IOptions<MessageBrokerOptions> options,
+        ILogger logger,
+        Relay.MessageBroker.Compression.IMessageCompressor? compressor = null,
+        IContractValidator? contractValidator = null) : BaseMessageBroker(options, logger, compressor, contractValidator)
     {
-        public List<(object Message, byte[] SerializedMessage, PublishOptions? Options)> PublishedMessages { get; } = new();
-        public List<(Type MessageType, SubscriptionInfo SubscriptionInfo)> SubscribedMessages { get; } = new();
+        public List<(object Message, byte[] SerializedMessage, PublishOptions? Options)> PublishedMessages { get; } = [];
+        public List<(Type MessageType, SubscriptionInfo SubscriptionInfo)> SubscribedMessages { get; } = [];
         public bool StartCalled { get; private set; }
         public bool StopCalled { get; private set; }
         public bool DisposeCalled { get; private set; }
-
-        public TestableMessageBroker(
-            IOptions<MessageBrokerOptions> options,
-            ILogger logger,
-            Relay.MessageBroker.Compression.IMessageCompressor? compressor = null,
-            IContractValidator? contractValidator = null)
-            : base(options, logger, compressor, contractValidator)
-        {
-        }
 
         protected override async ValueTask PublishInternalAsync<TMessage>(
             TMessage message,
@@ -210,17 +205,17 @@ public class BaseMessageBrokerPublishingTests
         var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
         var broker = new TestableMessageBroker(options, logger);
 
-        var complexMessage = new ComplexNestedMessage
+        ComplexNestedMessage complexMessage = new()
         {
             Id = Guid.NewGuid(),
             Root = new NestedObject
             {
                 Name = "Root",
-                Children = new List<NestedObject>
-                {
-                    new NestedObject { Name = "Child1", Value = 1 },
-                    new NestedObject { Name = "Child2", Value = 2 }
-                }
+                Children =
+                [
+                    new() { Name = "Child1", Value = 1 },
+                    new() { Name = "Child2", Value = 2 }
+                ]
             },
             Metadata = new Dictionary<string, object>
             {
@@ -298,7 +293,7 @@ public class BaseMessageBrokerPublishingTests
         var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
         var contractValidatorMock = new Mock<IContractValidator>();
         contractValidatorMock.Setup(cv => cv.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<string>()); // Valid
+            .ReturnsAsync([]); // Valid
 
         var broker = new TestableMessageBroker(options, logger, contractValidator: contractValidatorMock.Object);
 

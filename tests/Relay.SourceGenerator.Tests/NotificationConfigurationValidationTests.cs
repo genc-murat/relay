@@ -1,6 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Moq;
+using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Validation;
 
 namespace Relay.SourceGenerator.Tests;
 

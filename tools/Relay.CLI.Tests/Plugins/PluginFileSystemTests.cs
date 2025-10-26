@@ -25,7 +25,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = [Path.GetDirectoryName(tempFile)]
+                AllowedPaths = [Path.GetDirectoryName(tempFile)!]
             }
         };
         
@@ -104,7 +104,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = [Path.GetDirectoryName(tempFile)]
+                AllowedPaths = [Path.GetDirectoryName(tempFile)!]
             }
         };
         
@@ -159,7 +159,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = [Path.GetDirectoryName(tempFile)]
+                AllowedPaths = [Path.GetDirectoryName(tempFile)!]
             }
         };
         
@@ -218,7 +218,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Delete = true,
-                AllowedPaths = [Path.GetDirectoryName(tempFile)]
+                AllowedPaths = [Path.GetDirectoryName(tempFile)!]
             }
         };
         
@@ -237,7 +237,7 @@ public class PluginFileSystemTests
     {
         // Arrange
         var sourceFile = Path.GetTempFileName();
-        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile), "dest_copy.txt");
+        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile)!, "dest_copy.txt");
         var content = "test copy content";
         await File.WriteAllTextAsync(sourceFile, content);
         
@@ -247,7 +247,7 @@ public class PluginFileSystemTests
             {
                 Read = true,
                 Write = true,
-                AllowedPaths = [Path.GetDirectoryName(sourceFile)]
+                AllowedPaths = [Path.GetDirectoryName(sourceFile)!]
             }
         };
         
@@ -279,7 +279,7 @@ public class PluginFileSystemTests
     {
         // Arrange
         var sourceFile = Path.GetTempFileName();
-        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile), "dest_copy.txt");
+        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile)!, "dest_copy.txt");
         await File.WriteAllTextAsync(sourceFile, "test content");
         
         var permissions = new PluginPermissions
@@ -315,7 +315,7 @@ public class PluginFileSystemTests
     {
         // Arrange
         var sourceFile = Path.GetTempFileName();
-        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile), "dest_copy.txt");
+        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile)!, "dest_copy.txt");
         await File.WriteAllTextAsync(sourceFile, "test content");
 
         var permissions = new PluginPermissions
@@ -358,7 +358,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = [Path.GetDirectoryName(tempDir)]
+                AllowedPaths = [Path.GetDirectoryName(tempDir)!]
             }
         };
 
@@ -614,7 +614,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = [Path.GetDirectoryName(tempDir)]
+                AllowedPaths = [Path.GetDirectoryName(tempDir)!]
             }
         };
 
@@ -671,7 +671,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Delete = true,
-                AllowedPaths = [Path.GetDirectoryName(tempDir)]
+                AllowedPaths = [Path.GetDirectoryName(tempDir)!]
             }
         };
 
@@ -701,7 +701,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Delete = true,
-                AllowedPaths = [Path.GetDirectoryName(tempDir)]
+                AllowedPaths = [Path.GetDirectoryName(tempDir)!]
             }
         };
 
@@ -752,7 +752,7 @@ public class PluginFileSystemTests
     {
         // Arrange
         var sourceFile = Path.GetTempFileName();
-        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile), "moved_file.txt");
+        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile)!, "moved_file.txt");
         var content = "test move content";
         await File.WriteAllTextAsync(sourceFile, content);
 
@@ -761,7 +761,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = [Path.GetDirectoryName(sourceFile)]
+                AllowedPaths = [Path.GetDirectoryName(sourceFile)!]
             }
         };
 
@@ -794,7 +794,7 @@ public class PluginFileSystemTests
     {
         // Arrange
         var sourceFile = Path.GetTempFileName();
-        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile), "moved_file.txt");
+        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile)!, "moved_file.txt");
         await File.WriteAllTextAsync(sourceFile, "test content");
 
         var permissions = new PluginPermissions
@@ -829,7 +829,7 @@ public class PluginFileSystemTests
     {
         // Arrange
         var sourceFile = Path.GetTempFileName();
-        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile), "moved_file.txt");
+        var destFile = Path.Combine(Path.GetDirectoryName(sourceFile)!, "moved_file.txt");
         await File.WriteAllTextAsync(sourceFile, "test content");
 
         var permissions = new PluginPermissions
@@ -872,7 +872,7 @@ public class PluginFileSystemTests
             {
                 Read = true,
                 AllowedPaths = [@"C:\AllowedPath"],
-                DeniedPaths = [Path.GetDirectoryName(tempFile)]
+                DeniedPaths = [Path.GetDirectoryName(tempFile)!]
             }
         };
 
@@ -903,7 +903,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Read = true,
-                AllowedPaths = [Path.GetDirectoryName(nonExistentFile)]
+                AllowedPaths = [Path.GetDirectoryName(nonExistentFile)!]
             }
         };
 
@@ -928,7 +928,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Write = true,
-                AllowedPaths = [Path.GetDirectoryName(tempFile)]
+                AllowedPaths = [Path.GetDirectoryName(tempFile)!]
             }
         };
 
@@ -963,7 +963,7 @@ public class PluginFileSystemTests
             FileSystem = new FileSystemPermissions
             {
                 Delete = true,
-                AllowedPaths = [Path.GetDirectoryName(nonExistentFile)]
+                AllowedPaths = [Path.GetDirectoryName(nonExistentFile)!]
             }
         };
 

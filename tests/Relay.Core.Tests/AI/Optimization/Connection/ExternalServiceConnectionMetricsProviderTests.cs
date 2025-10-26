@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Analysis.TimeSeries;
+using Relay.Core.AI.Models;
 using Relay.Core.AI.Optimization.Connection;
 using System;
 using System.Collections.Concurrent;

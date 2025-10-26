@@ -90,13 +90,13 @@ public class BackpressureStreamDispatcherAdvancedTests
         var request = new TestStreamRequest();
 
         // Act
-        Func<Task> act = async () =>
+        async Task act()
         {
             await foreach (var item in dispatcher.DispatchAsync(request, null!, CancellationToken.None))
             {
                 // Should not reach here
             }
-        };
+        }
 
         // Assert
         await Assert.ThrowsAsync<ArgumentException>(act);
@@ -138,13 +138,13 @@ public class BackpressureStreamDispatcherAdvancedTests
         var request = new NoHandlerRequest();
 
         // Act
-        Func<Task> act = async () =>
+        async Task act()
         {
             await foreach (var item in dispatcher.DispatchAsync(request, "TestHandler", CancellationToken.None))
             {
                 // Should not reach here
             }
-        };
+        }
 
         // Assert
         await Assert.ThrowsAsync<HandlerNotFoundException>(act);

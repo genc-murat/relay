@@ -2,6 +2,7 @@ extern alias RelayCore;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Relay.SourceGenerator.Core;
 using System.Collections.Immutable;
 using System.Reflection;
 
@@ -45,7 +46,7 @@ namespace TestProject
         var analyzer = new RelayAnalyzer();
 
         var compilationWithAnalyzers = compilation.WithAnalyzers(
-            ImmutableArray.Create<DiagnosticAnalyzer>(analyzer),
+            [analyzer],
             options: null);
 
         var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
@@ -97,7 +98,7 @@ namespace TestProject
         var analyzer = new RelayAnalyzer();
 
         var compilationWithAnalyzers = compilation.WithAnalyzers(
-            ImmutableArray.Create<DiagnosticAnalyzer>(analyzer),
+            [analyzer],
             options: null);
 
         var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
@@ -128,7 +129,7 @@ namespace TestProject
         // The actual functionality is tested in integration tests
         var type = typeof(CompilationAnalysisContextDiagnosticReporter);
         Assert.NotNull(type);
-        var constructor = type.GetConstructor(new[] { typeof(CompilationAnalysisContext) });
+        var constructor = type.GetConstructor([typeof(CompilationAnalysisContext)]);
         Assert.NotNull(constructor);
     }
 
@@ -157,7 +158,7 @@ namespace TestProject
         var convertMethod = typeof(RelayAnalyzer).GetMethod("ConvertToHandlerRegistrations", BindingFlags.NonPublic | BindingFlags.Static);
         Assert.NotNull(convertMethod);
 
-        var result = (IEnumerable<HandlerRegistration>)convertMethod.Invoke(null, new object[] { handlerRegistry });
+        var result = (IEnumerable<HandlerRegistration>)convertMethod.Invoke(null!, [handlerRegistry])!;
 
         // Assert
         Assert.NotNull(result);

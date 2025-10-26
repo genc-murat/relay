@@ -2,9 +2,8 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
 using System.Text;
-using Relay.SourceGenerator.Generators;
 
-namespace Relay.SourceGenerator;
+namespace Relay.SourceGenerator.Generators;
 
 /// <summary>
 /// Generates handler registry code for compile-time request routing.

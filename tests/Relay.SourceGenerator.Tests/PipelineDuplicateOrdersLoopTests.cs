@@ -21,8 +21,8 @@ public class PipelineDuplicateOrdersLoopTests
         // Create pipeline registry with true duplicates - same method name, same order, same containing type/scope
         var pipelineRegistry = new List<PipelineInfo>
         {
-            new PipelineInfo { MethodName = "SameMethod", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
-            new PipelineInfo { MethodName = "SameMethod", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None }, // Same name and order - this should trigger the diagnostic
+            new() { MethodName = "SameMethod", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
+            new() { MethodName = "SameMethod", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None }, // Same name and order - this should trigger the diagnostic
         };
 
         // Verify the condition that would trigger the foreach loop in ValidateDuplicatePipelineOrders
@@ -52,9 +52,9 @@ public class PipelineDuplicateOrdersLoopTests
         // Create pipeline registry with multiple duplicates
         var pipelineRegistry = new List<PipelineInfo>
         {
-            new PipelineInfo { MethodName = "IdenticalMethod", Order = 5, Scope = 1, ContainingType = "Test.AnotherClass", Location = Location.None },
-            new PipelineInfo { MethodName = "IdenticalMethod", Order = 5, Scope = 1, ContainingType = "Test.AnotherClass", Location = Location.None },
-            new PipelineInfo { MethodName = "IdenticalMethod", Order = 5, Scope = 1, ContainingType = "Test.AnotherClass", Location = Location.None }, // 3 identical methods
+            new() { MethodName = "IdenticalMethod", Order = 5, Scope = 1, ContainingType = "Test.AnotherClass", Location = Location.None },
+            new() { MethodName = "IdenticalMethod", Order = 5, Scope = 1, ContainingType = "Test.AnotherClass", Location = Location.None },
+            new() { MethodName = "IdenticalMethod", Order = 5, Scope = 1, ContainingType = "Test.AnotherClass", Location = Location.None }, // 3 identical methods
         };
 
         // Same logic verification

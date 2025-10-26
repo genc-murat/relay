@@ -481,7 +481,7 @@ public class RelayTelemetryProvider : ITelemetryProvider, IDisposable
                 _ => "circuit_breaker.state_changed"
             };
 
-            activity.AddEvent(new ActivityEvent(eventName, tags: new ActivityTagsCollection(tagList)));
+            activity.AddEvent(new ActivityEvent(eventName, tags: [.. tagList]));
             activity.SetTag(RelayTelemetryConstants.Attributes.CircuitBreakerState, newState);
         }
 
@@ -532,5 +532,6 @@ public class RelayTelemetryProvider : ITelemetryProvider, IDisposable
     {
         _activitySource?.Dispose();
         _meter?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

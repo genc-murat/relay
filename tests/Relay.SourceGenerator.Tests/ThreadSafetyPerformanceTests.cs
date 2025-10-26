@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Discovery;
 using Xunit;
 
 namespace Relay.SourceGenerator.Tests;
@@ -163,7 +165,7 @@ public class ThreadSafetyPerformanceTests
 
     #region Helper Methods
 
-    private static Compilation CreateTestCompilation()
+    private static CSharpCompilation CreateTestCompilation()
     {
         var source = @"
 using System;
@@ -178,8 +180,8 @@ namespace TestNamespace
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
-            new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) },
+            [syntaxTree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
@@ -200,8 +202,8 @@ namespace TestNamespace
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
-            new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) },
+            [syntaxTree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
@@ -225,12 +227,11 @@ namespace TestNamespace
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
-            new[]
-            {
+            [syntaxTree],
+            [
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Task<>).Assembly.Location)
-            },
+            ],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
@@ -258,18 +259,17 @@ namespace TestNamespace
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
-            new[]
-            {
+            [syntaxTree],
+            [
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Task<>).Assembly.Location)
-            },
+            ],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
     private class TestDiagnosticReporter : IDiagnosticReporter
     {
-        private readonly ConcurrentBag<Diagnostic> _diagnostics = new();
+        private readonly ConcurrentBag<Diagnostic> _diagnostics = [];
 
         public void ReportDiagnostic(Diagnostic diagnostic)
         {

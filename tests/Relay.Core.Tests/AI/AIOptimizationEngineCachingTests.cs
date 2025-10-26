@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Models;
 using System;
 using System.Threading.Tasks;
 using Xunit;

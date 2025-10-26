@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
+using Relay.SourceGenerator.Diagnostics;
 
 namespace Relay.SourceGenerator
 {

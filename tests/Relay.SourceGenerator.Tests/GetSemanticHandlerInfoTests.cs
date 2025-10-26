@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Relay.SourceGenerator.Core;
 
 namespace Relay.SourceGenerator.Tests;
 

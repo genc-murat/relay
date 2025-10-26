@@ -63,7 +63,7 @@ public class StreamDispatcherBasicTests
     public void StreamDispatcher_Constructor_WithNullServiceProvider_ShouldThrowArgumentNullException()
     {
         // Act
-        Action act = () => new StreamDispatcher(null!);
+        static void act() => new StreamDispatcher(null!);
 
         // Assert
         var ex = Assert.Throws<ArgumentNullException>(act);
@@ -112,13 +112,13 @@ public class StreamDispatcherBasicTests
         var request = new NoHandlerRequest();
 
         // Act
-        Func<Task> act = async () =>
+        async Task act()
         {
             await foreach (var item in dispatcher.DispatchAsync(request, CancellationToken.None))
             {
                 // Should not reach here
             }
-        };
+        }
 
         // Assert
         await Assert.ThrowsAsync<HandlerNotFoundException>(act);

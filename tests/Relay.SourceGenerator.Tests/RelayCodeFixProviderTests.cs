@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
+using Relay.SourceGenerator.CodeFixes;
+using Relay.SourceGenerator.Core;
 
 namespace Relay.SourceGenerator.Tests
 {

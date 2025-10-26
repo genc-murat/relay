@@ -35,7 +35,7 @@ namespace Relay.Core.Implementation.Core
             CancellationToken cancellationToken)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            ArgumentNullException.ThrowIfNull(handler);
             cancellationToken.ThrowIfCancellationRequested();
 
             // Get all system modules and sort by order
@@ -87,7 +87,7 @@ namespace Relay.Core.Implementation.Core
             CancellationToken cancellationToken)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
-            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            ArgumentNullException.ThrowIfNull(handler);
             cancellationToken.ThrowIfCancellationRequested();
 
             // Get all system modules and sort by order
@@ -217,7 +217,7 @@ namespace Relay.Core.Implementation.Core
                 // Fall back to empty collection if generated code is not available
             }
 
-            return Enumerable.Empty<IStreamPipelineBehavior<TRequest, TResponse>>();
+            return [];
         }
     }
 }

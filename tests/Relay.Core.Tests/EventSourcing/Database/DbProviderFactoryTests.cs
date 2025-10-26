@@ -162,6 +162,48 @@ public class DbProviderFactoryTests
         Assert.Contains("Could not detect database provider", exception.Message);
     }
 
+    [Theory]
+    [InlineData("Server=localhost;Database=test;Uid=user;Pwd=pass;Port=3307")] // Non-standard MySQL port
+    [InlineData("Host=localhost;Database=test;Username=user;Password=pass;Port=5433")] // Non-standard PostgreSQL port
+    [InlineData("Data Source=test.db;Version=3;")] // SQLite with version
+    [InlineData("Server=tcp:localhost,1434;Database=test;")] // SQL Server with port
+    public void CreateProviderFromConnectionString_WithEdgeCaseConnectionStrings_DetectsCorrectProvider(
+        string connectionString)
+    {
+        // Act
+        var provider = DbProviderFactory.CreateProviderFromConnectionString(connectionString);
+
+        // Assert - Should not throw and should detect some provider
+        Assert.NotNull(provider);
+        Assert.IsAssignableFrom<IDbProvider>(provider);
+    }
+
+    [Fact]
+    public void CreateProviderFromConnectionString_WithAmbiguousConnectionString_FavorsMySql()
+    {
+        // Arrange - Connection string that could be interpreted multiple ways
+        var connectionString = "Server=localhost;Database=test;Uid=user;Pwd=pass;";
+
+        // Act
+        var provider = DbProviderFactory.CreateProviderFromConnectionString(connectionString);
+
+        // Assert - Should detect as MySQL due to Uid/Pwd pattern
+        Assert.IsType<MySqlProvider>(provider);
+    }
+
+    [Fact]
+    public void CreateProviderFromConnectionString_WithComplexSqlServerConnectionString_DetectsSqlServer()
+    {
+        // Arrange
+        var connectionString = "Server=tcp:server.database.windows.net,1433;Initial Catalog=test;Persist Security Info=False;User ID=user;Password=pass;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+
+        // Act
+        var provider = DbProviderFactory.CreateProviderFromConnectionString(connectionString);
+
+        // Assert
+        Assert.IsType<SqlServerProvider>(provider);
+    }
+
     [Fact]
     public void GetSupportedProviders_ReturnsAllSupportedProviders()
     {

@@ -664,12 +664,3 @@ public class HandlerRegistryGeneratorTests
 
 }
 
-public class TestDiagnosticReporter : IDiagnosticReporter
-{
-    public List<Diagnostic> Diagnostics { get; } = new();
-
-    public void ReportDiagnostic(Diagnostic diagnostic)
-    {
-        Diagnostics.Add(diagnostic);
-    }
-}

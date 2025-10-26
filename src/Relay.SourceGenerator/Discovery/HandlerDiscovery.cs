@@ -179,6 +179,48 @@ public class HandlerDiscoveryEngine
         return handlerInfo;
     }
 
+    // Test helper method to allow direct testing of the methodSymbol null check
+    internal HandlerInfo? AnalyzeHandlerMethodWithSymbol(MethodDeclarationSyntax method, IMethodSymbol? methodSymbol, IDiagnosticReporter diagnosticReporter)
+    {
+        if (methodSymbol == null)
+        {
+            var diagnostic = Diagnostic.Create(DiagnosticDescriptors.GeneratorError, Location.None, $"Could not get symbol for method '{method.Identifier.ValueText}'");
+            diagnosticReporter.ReportDiagnostic(diagnostic);
+            return null;
+        }
+
+        // Find Relay attributes
+        var relayAttributes = GetRelayAttributes(methodSymbol);
+        if (!relayAttributes.Any())
+        {
+            return null; // No Relay attributes found
+        }
+
+        var handlerInfo = new HandlerInfo
+        {
+            Method = method,
+            MethodSymbol = methodSymbol,
+            Attributes = relayAttributes,
+            HandlerTypeSymbol = methodSymbol.ContainingType,
+            MethodName = methodSymbol.Name,
+            RequestTypeSymbol = methodSymbol.Parameters.FirstOrDefault()?.Type,
+            ResponseTypeSymbol = GetResponseType(methodSymbol)
+        };
+
+        // Validate method signature based on attribute type
+        foreach (var attribute in relayAttributes)
+        {
+            if (!ValidateHandlerSignature(handlerInfo, attribute, diagnosticReporter))
+            {
+                return null; // Invalid signature
+            }
+        }
+
+        ValidateConstructor(handlerInfo.HandlerTypeSymbol, diagnosticReporter);
+
+        return handlerInfo;
+    }
+
     /// <summary>
     /// Gets the response type for a handler method with thread-safe caching.
     /// Uses Lazy&lt;T&gt; to ensure expensive type analysis is performed only once per method.

@@ -1,15 +1,13 @@
+using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Fallback;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Relay.Core;
-using Relay.Core.Contracts.Requests;
-using Relay.Core.Contracts.Handlers;
-using Relay.Core.Implementation.Fallback;
 
 namespace Relay.Core.Tests.Dispatchers;
 

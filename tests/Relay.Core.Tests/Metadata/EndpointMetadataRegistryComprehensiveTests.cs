@@ -1,8 +1,10 @@
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Metadata.Endpoints;
 using Relay.Core.Metadata.MessageQueue;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.Metadata;
@@ -310,7 +312,7 @@ public class EndpointMetadataRegistryComprehensiveTests
 
         // Assert
         Assert.Empty(EndpointMetadataRegistry.AllEndpoints);
-        
+
         // Now add some endpoints after multiple clears
         var metadata = new EndpointMetadata
         {
@@ -318,9 +320,76 @@ public class EndpointMetadataRegistryComprehensiveTests
             RequestType = typeof(string),
             HandlerType = typeof(EndpointMetadataRegistryComprehensiveTests)
         };
-        
+
         EndpointMetadataRegistry.RegisterEndpoint(metadata);
         Assert.Single(EndpointMetadataRegistry.AllEndpoints);
+    }
+
+    [Fact]
+    public void RegisterEndpoint_WithNullMetadata_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => EndpointMetadataRegistry.RegisterEndpoint(null!));
+    }
+
+    [Fact]
+    public void EndpointMetadata_DefaultValues_AreCorrect()
+    {
+        // Act
+        var metadata = new EndpointMetadata();
+
+        // Assert
+        Assert.Equal(string.Empty, metadata.Route);
+        Assert.Equal("POST", metadata.HttpMethod);
+        Assert.Null(metadata.Version);
+        Assert.Null(metadata.RequestType);
+        Assert.Null(metadata.ResponseType);
+        Assert.Null(metadata.HandlerType);
+        Assert.Equal(string.Empty, metadata.HandlerMethodName);
+        Assert.Null(metadata.RequestSchema);
+        Assert.Null(metadata.ResponseSchema);
+        Assert.NotNull(metadata.Properties);
+        Assert.Empty(metadata.Properties);
+    }
+
+    [Fact]
+    public async Task EndpointMetadataRegistry_ConcurrentAccess_IsThreadSafe()
+    {
+        // Arrange
+        EndpointMetadataRegistry.Clear();
+        const int numTasks = 10;
+        const int endpointsPerTask = 5;
+        var tasks = new List<Task>();
+
+        // Act - Start multiple tasks registering endpoints concurrently
+        for (int i = 0; i < numTasks; i++)
+        {
+            var taskId = i;
+            tasks.Add(Task.Run(() =>
+            {
+                for (int j = 0; j < endpointsPerTask; j++)
+                {
+                    var metadata = new EndpointMetadata
+                    {
+                        Route = $"/api/task{taskId}/endpoint{j}",
+                        RequestType = typeof(string),
+                        HandlerType = typeof(EndpointMetadataRegistryComprehensiveTests),
+                        HandlerMethodName = $"Handler{taskId}_{j}"
+                    };
+                    EndpointMetadataRegistry.RegisterEndpoint(metadata);
+                }
+            }));
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Assert - All endpoints should be registered
+        var allEndpoints = EndpointMetadataRegistry.AllEndpoints;
+        Assert.Equal(numTasks * endpointsPerTask, allEndpoints.Count);
+
+        // Verify all endpoints are unique and properly registered
+        var routes = allEndpoints.Select(e => e.Route).ToHashSet();
+        Assert.Equal(numTasks * endpointsPerTask, routes.Count);
     }
 }
 

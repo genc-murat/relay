@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,10 +63,21 @@ namespace Relay.Core.Tests.Publishing
             Assert.Contains(Handler1.ExecutionLog, x => x.Contains("Handler1-Start"));
             Assert.Contains(Handler1.ExecutionLog, x => x.Contains("Handler2-Start"));
 
-            // Handler2 should complete before Handler1 due to shorter delay
-            var handler2EndIndex = Handler1.ExecutionLog.FindIndex(x => x.Contains("Handler2-End"));
-            var handler1EndIndex = Handler1.ExecutionLog.FindIndex(x => x.Contains("Handler1-End"));
-            Assert.True(handler2EndIndex < handler1EndIndex);
+            // Verify parallel execution by checking that both handlers started before the first one finished
+            var handler1StartIndex = Handler1.ExecutionLog.FindIndex(x => x.Contains("Handler1-Start"));
+            var handler2StartIndex = Handler1.ExecutionLog.FindIndex(x => x.Contains("Handler2-Start"));
+            var firstEndIndex = Math.Min(
+                Handler1.ExecutionLog.FindIndex(x => x.Contains("Handler1-End")),
+                Handler1.ExecutionLog.FindIndex(x => x.Contains("Handler2-End"))
+            );
+
+            // Both handlers should have started before the first handler finished
+            Assert.True(handler1StartIndex < firstEndIndex, "Handler1 should start before any handler finishes");
+            Assert.True(handler2StartIndex < firstEndIndex, "Handler2 should start before any handler finishes");
+
+            // Verify both handlers completed
+            Assert.Contains(Handler1.ExecutionLog, x => x.Contains("Handler1-End"));
+            Assert.Contains(Handler1.ExecutionLog, x => x.Contains("Handler2-End"));
         }
 
         [Fact]

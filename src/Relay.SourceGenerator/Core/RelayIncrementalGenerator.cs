@@ -183,7 +183,7 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
                typeName.Contains("IStreamHandler");
     }
 
-    private static HandlerClassInfo? GetSemanticHandlerInfo(GeneratorSyntaxContext context)
+    internal static HandlerClassInfo? GetSemanticHandlerInfo(GeneratorSyntaxContext context)
     {
         var classDeclaration = (ClassDeclarationSyntax)context.Node;
 
@@ -193,6 +193,59 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
         var implementedInterfaces = new List<HandlerInterfaceInfo>();
 
         // Analyze implemented interfaces
+        foreach (var interfaceSymbol in classSymbol.AllInterfaces)
+        {
+            if (IsRequestHandlerInterface(interfaceSymbol))
+            {
+                var genericArgs = interfaceSymbol.TypeArguments;
+                implementedInterfaces.Add(new HandlerInterfaceInfo
+                {
+                    InterfaceType = HandlerType.Request,
+                    InterfaceSymbol = interfaceSymbol,
+                    RequestType = genericArgs.Length > 0 ? genericArgs[0] : null,
+                    ResponseType = genericArgs.Length > 1 ? genericArgs[1] : null
+                });
+            }
+            else if (IsNotificationHandlerInterface(interfaceSymbol))
+            {
+                var genericArgs = interfaceSymbol.TypeArguments;
+                implementedInterfaces.Add(new HandlerInterfaceInfo
+                {
+                    InterfaceType = HandlerType.Notification,
+                    InterfaceSymbol = interfaceSymbol,
+                    RequestType = genericArgs.Length > 0 ? genericArgs[0] : null
+                });
+            }
+            else if (IsStreamHandlerInterface(interfaceSymbol))
+            {
+                var genericArgs = interfaceSymbol.TypeArguments;
+                implementedInterfaces.Add(new HandlerInterfaceInfo
+                {
+                    InterfaceType = HandlerType.Stream,
+                    InterfaceSymbol = interfaceSymbol,
+                    RequestType = genericArgs.Length > 0 ? genericArgs[0] : null,
+                    ResponseType = genericArgs.Length > 1 ? genericArgs[1] : null
+                });
+            }
+        }
+
+        if (implementedInterfaces.Count == 0)
+            return null;
+
+        return new HandlerClassInfo
+        {
+            ClassDeclaration = classDeclaration,
+            ClassSymbol = classSymbol,
+            ImplementedInterfaces = implementedInterfaces
+        };
+    }
+
+    // Test helper method to allow direct testing of the logic that processes classSymbol.AllInterfaces
+    internal static HandlerClassInfo? ProcessClassSymbol(INamedTypeSymbol classSymbol, ClassDeclarationSyntax classDeclaration)
+    {
+        var implementedInterfaces = new List<HandlerInterfaceInfo>();
+
+        // Analyze implemented interfaces - this is the key foreach loop that processes classSymbol.AllInterfaces
         foreach (var interfaceSymbol in classSymbol.AllInterfaces)
         {
             if (IsRequestHandlerInterface(interfaceSymbol))

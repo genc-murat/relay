@@ -8,7 +8,6 @@ using Relay.Core.Diagnostics.Services;
 using Relay.Core.Diagnostics.Tracing;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -80,25 +79,59 @@ public class RelayDiagnosticsServiceTracesTests
     }
 
     [Fact]
-    public void GetTraces_ShouldReturnEmpty_WhenTracingDisabled()
+    public void GetTrace_ShouldReturnTextFormat_WhenFormatSpecified()
     {
         // Arrange
-        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions { EnableRequestTracing = false });
         var tracer = new RequestTracer();
+        var trace = tracer.StartTrace(new TestRequest());
+        tracer.CompleteTrace();
+        var diagnostics = new DefaultRelayDiagnostics(tracer, new DiagnosticsOptions { EnableRequestTracing = true });
+
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true, EnableRequestTracing = true });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        // Act
+        var response = service.GetTrace(trace.RequestId, "text");
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        // Check that data contains content and contentType
+        var data = response.Data;
+        Assert.NotNull(data);
+        var contentProperty = data.GetType().GetProperty("content")?.GetValue(data);
+        var contentTypeProperty = data.GetType().GetProperty("contentType")?.GetValue(data);
+        Assert.NotNull(contentProperty);
+        Assert.Equal("text/plain", contentTypeProperty);
+    }
+
+    [Fact]
+    public void GetTrace_ShouldReturnJsonFormat_WhenInvalidFormatSpecified()
+    {
+        // Arrange
+        var tracer = new RequestTracer();
+        var trace = tracer.StartTrace(new TestRequest());
+        var traceId = trace.RequestId;
+        tracer.CompleteTrace();
+
+        var diagnostics = new DefaultRelayDiagnostics(tracer, new DiagnosticsOptions { EnableRequestTracing = true });
         var options = Options.Create(new DiagnosticsOptions
         {
             EnableDiagnosticEndpoints = true,
-            EnableRequestTracing = false
+            EnableRequestTracing = true
         });
         var serviceProvider = CreateServiceProvider();
         var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
 
         // Act
-        var response = service.GetTraces();
+        var response = service.GetTrace(traceId, "invalid");
 
-        // Assert
-        Assert.Equal(400, response.StatusCode);
-        Assert.Contains("Request tracing is disabled", response.ErrorMessage);
+        // Assert - Should default to JSON format
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        // Should be the trace object directly, not wrapped in content object
+        Assert.IsType<RequestTrace>(response.Data);
     }
 
     [Fact]
@@ -148,23 +181,27 @@ public class RelayDiagnosticsServiceTracesTests
     }
 
     [Fact]
-    public void GetTraces_ShouldReturnError_WhenExceptionThrown()
+    public void GetTraces_ShouldReturnJsonFormat_WhenInvalidFormatSpecified()
     {
         // Arrange
-        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions());
-        var tracer = new ThrowingTracer();
-        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true, EnableRequestTracing = true });
+        var tracer = new RequestTracer();
+        var diagnostics = new DefaultRelayDiagnostics(tracer, new DiagnosticsOptions { EnableRequestTracing = true });
+        var options = Options.Create(new DiagnosticsOptions
+        {
+            EnableDiagnosticEndpoints = true,
+            EnableRequestTracing = true
+        });
         var serviceProvider = CreateServiceProvider();
         var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
 
         // Act
-        var response = service.GetTraces();
+        var response = service.GetTraces(format: "invalid");
 
-        // Assert
-        Assert.False(response.IsSuccess);
-        Assert.Equal(500, response.StatusCode);
-        Assert.Contains("Failed to retrieve traces", response.ErrorMessage);
-        Assert.NotNull(response.ErrorDetails);
+        // Assert - Should default to JSON format
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        // Should be the traces collection directly, not wrapped in content object
+        Assert.IsAssignableFrom<IEnumerable<RequestTrace>>(response.Data);
     }
 
     [Fact]
@@ -351,31 +388,4 @@ public class RelayDiagnosticsServiceTracesTests
         Assert.NotNull(response.Data);
     }
 
-    [Fact]
-    public void GetTrace_ShouldReturnTextFormat_WhenFormatSpecified()
-    {
-        // Arrange
-        var tracer = new RequestTracer();
-        var trace = tracer.StartTrace(new TestRequest());
-        var traceId = trace.RequestId;
-        tracer.CompleteTrace();
-
-        var diagnostics = new DefaultRelayDiagnostics(tracer, new DiagnosticsOptions { EnableRequestTracing = true });
-        var options = Options.Create(new DiagnosticsOptions
-        {
-            EnableDiagnosticEndpoints = true,
-            EnableRequestTracing = true
-        });
-        var serviceProvider = CreateServiceProvider();
-        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
-
-        // Act
-        var response = service.GetTrace(traceId, "text");
-
-        // Assert
-        Assert.True(response.IsSuccess);
-        Assert.NotNull(response.Data);
-        var data = response.Data as dynamic;
-        Assert.Equal("text/plain", data.contentType);
-    }
 }

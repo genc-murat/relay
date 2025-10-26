@@ -1,19 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Diagnostics;
 using Relay.Core.Diagnostics.Configuration;
+using Relay.Core.Diagnostics.Metrics;
 using Relay.Core.Diagnostics.Services;
 using Relay.Core.Diagnostics.Tracing;
-using Relay.Core.Diagnostics.Core;
-using Relay.Core.Diagnostics.Metrics;
-using Relay.Core.Diagnostics.Registry;
-using Relay.Core.Diagnostics.Validation;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.Diagnostics;
@@ -257,6 +253,33 @@ public class RelayDiagnosticsServiceBenchmarkTests
         // Assert
         Assert.Equal(400, response.StatusCode);
         Assert.Contains("Failed to create instance", response.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task RunBenchmark_ShouldReturnSuccess_WhenValidJsonRequestDataProvided()
+    {
+        // Arrange
+        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions());
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        var benchmarkRequest = new BenchmarkRequest
+        {
+            RequestType = "TestRequest",
+            RequestData = "{\"Data\":\"custom data\"}", // Valid JSON for TestRequest
+            Iterations = 3
+        };
+
+        // Act
+        var response = await service.RunBenchmark(benchmarkRequest);
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        Assert.Equal("TestRequest", response.Data.RequestType);
+        Assert.Equal(3, response.Data.Iterations);
     }
 
     [Fact]

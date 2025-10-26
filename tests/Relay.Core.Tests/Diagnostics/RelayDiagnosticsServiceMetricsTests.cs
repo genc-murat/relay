@@ -200,4 +200,28 @@ public class RelayDiagnosticsServiceMetricsTests
         Assert.Equal("TestRequest", response.Data.RequestType);
         Assert.Equal(1, response.Data.InvocationCount);
     }
+
+    [Fact]
+    public void GetHandlerMetrics_ShouldReturnSuccess_WhenRequestTypeMatchesCaseInsensitively()
+    {
+        // Arrange
+        var diagnostics = new DefaultRelayDiagnostics(new RequestTracer(), new DiagnosticsOptions { EnablePerformanceMetrics = true });
+        // Add some metrics using reflection
+        var recordMethod = typeof(DefaultRelayDiagnostics).GetMethod("RecordHandlerMetrics", BindingFlags.Public | BindingFlags.Instance);
+        recordMethod?.Invoke(diagnostics, new object[] { "TestRequest", "TestHandler", TimeSpan.FromMilliseconds(100), true, 1024L });
+
+        var tracer = new RequestTracer();
+        var options = Options.Create(new DiagnosticsOptions { EnableDiagnosticEndpoints = true });
+        var serviceProvider = CreateServiceProvider();
+        var service = new RelayDiagnosticsService(diagnostics, tracer, options, serviceProvider);
+
+        // Act - Use different case
+        var response = service.GetHandlerMetrics("testrequest");
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.NotNull(response.Data);
+        Assert.Equal("TestRequest", response.Data.RequestType);
+        Assert.Equal(1, response.Data.InvocationCount);
+    }
 }

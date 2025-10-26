@@ -1,7 +1,6 @@
-using System.Linq;
-using System.Threading.Tasks;
 using Relay.Core.ContractValidation;
 using Relay.Core.Metadata.MessageQueue;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.ContractValidation;
@@ -265,6 +264,6 @@ public class DefaultContractValidatorDataTypeTests
         // Assert
         Assert.NotEmpty(errors);
         // Should contain either detailed errors or the generic error message
-        Assert.True(errors.Any(e => e.Contains("Validation failed") || e.Contains("const")));
+        Assert.Contains(errors, e => e.Contains("Validation failed") || e.Contains("const"));
     }
 }

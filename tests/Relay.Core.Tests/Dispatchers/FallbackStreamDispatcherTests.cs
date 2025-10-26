@@ -98,6 +98,35 @@ public class FallbackStreamDispatcherTests
         Assert.Equal("namedHandler", exception.HandlerName);
     }
 
+    [Fact]
+    public void FallbackStreamDispatcher_Constructor_WithNullServiceProvider_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new FallbackStreamDispatcher(null!));
+    }
+
+    [Fact]
+    public async Task FallbackStreamDispatcher_DispatchAsync_WithHandlerExceptionDuringEnumeration_ThrowsException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IStreamHandler<TestStreamRequest, string>, ThrowingTestStreamHandler>();
+        var serviceProvider = services.BuildServiceProvider();
+        var dispatcher = new FallbackStreamDispatcher(serviceProvider);
+        var request = new TestStreamRequest { Count = 3 };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await foreach (var item in dispatcher.DispatchAsync(request, CancellationToken.None))
+            {
+                // Should not reach here
+            }
+        });
+
+        Assert.Contains("Test stream handler exception", exception.Message);
+    }
+
     // Test classes
     private class TestStreamRequest : IStreamRequest<string>
     {
@@ -114,6 +143,18 @@ public class FallbackStreamDispatcherTests
                 yield return $"Item {i}";
                 await Task.Yield();
             }
+        }
+    }
+
+    private class ThrowingTestStreamHandler : IStreamHandler<TestStreamRequest, string>
+    {
+        public async IAsyncEnumerable<string> HandleAsync(TestStreamRequest request, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await Task.Yield();
+            throw new InvalidOperationException("Test stream handler exception");
+#pragma warning disable CS0162 // Unreachable code detected
+            yield break; // Never reached, but required for compiler
+#pragma warning restore CS0162 // Unreachable code detected
         }
     }
 }

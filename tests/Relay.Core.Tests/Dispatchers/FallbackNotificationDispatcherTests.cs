@@ -1,15 +1,11 @@
+using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Fallback;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Relay.Core;
-using Relay.Core.Contracts.Requests;
-using Relay.Core.Contracts.Handlers;
-using Relay.Core.Implementation.Fallback;
 
 namespace Relay.Core.Tests.Dispatchers;
 
@@ -108,6 +104,39 @@ public class FallbackNotificationDispatcherTests
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             dispatcher.DispatchAsync<TestNotification>(null!, CancellationToken.None).AsTask());
+    }
+
+    [Fact]
+    public void FallbackNotificationDispatcher_Constructor_WithNullServiceProvider_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new FallbackNotificationDispatcher(null!));
+    }
+
+    [Fact]
+    public async Task FallbackNotificationDispatcher_DispatchAsync_WithMultipleHandlers_OneThrowsException_WrapsException()
+    {
+        // Arrange
+        var handler1 = new TestNotificationHandler();
+        var handler2 = new ThrowingTestNotificationHandler();
+        var handler3 = new TestNotificationHandler();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<INotificationHandler<TestNotification>>(handler1);
+        services.AddSingleton<INotificationHandler<TestNotification>>(handler2);
+        services.AddSingleton<INotificationHandler<TestNotification>>(handler3);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var dispatcher = new FallbackNotificationDispatcher(serviceProvider);
+        var notification = new TestNotification { Message = "Test" };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<RelayException>(() =>
+            dispatcher.DispatchAsync(notification, CancellationToken.None).AsTask());
+
+        Assert.Equal("TestNotification", exception.RequestType);
+        Assert.Contains("Test notification handler exception", exception.Message);
+        Assert.IsType<InvalidOperationException>(exception.InnerException);
     }
 
     // Test classes

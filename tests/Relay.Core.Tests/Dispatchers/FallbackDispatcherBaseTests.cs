@@ -1,15 +1,11 @@
+using Microsoft.Extensions.DependencyInjection;
+using Relay.Core.Contracts.Handlers;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Fallback;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Relay.Core;
-using Relay.Core.Contracts.Requests;
-using Relay.Core.Contracts.Handlers;
-using Relay.Core.Implementation.Fallback;
 
 namespace Relay.Core.Tests.Dispatchers;
 
@@ -260,6 +256,48 @@ public class FallbackDispatcherBaseTests
         Assert.Equal(handlerName, relayException.HandlerName);
     }
 
+    [Fact]
+    public async Task ExecuteWithCache_WithHandlerExecutionException_ThrowsRelayException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IRequestHandler<TestRequest, string>, ThrowingTestRequestHandler>();
+        var serviceProvider = services.BuildServiceProvider();
+        var request = new TestRequest { Message = "Test" };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<RelayException>(() =>
+            FallbackDispatcherBase.ExecuteWithCache(
+                request,
+                serviceProvider,
+                rt => FallbackDispatcherBase.ResponseInvokerCache<string>.Create(rt)).AsTask());
+
+        Assert.Equal("TestRequest", exception.RequestType);
+        Assert.Contains("Test handler execution exception", exception.Message);
+        Assert.IsType<InvalidOperationException>(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task ExecuteVoidWithCache_WithHandlerExecutionException_ThrowsRelayException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddSingleton<IRequestHandler<TestVoidRequest>, ThrowingTestVoidRequestHandler>();
+        var serviceProvider = services.BuildServiceProvider();
+        var request = new TestVoidRequest { Message = "Test" };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<RelayException>(() =>
+            FallbackDispatcherBase.ExecuteVoidWithCache(
+                request,
+                serviceProvider,
+                rt => FallbackDispatcherBase.VoidInvokerCache.Create(rt)).AsTask());
+
+        Assert.Equal("TestVoidRequest", exception.RequestType);
+        Assert.Contains("Test void handler execution exception", exception.Message);
+        Assert.IsType<InvalidOperationException>(exception.InnerException);
+    }
+
     // Test classes
     private class TestRequest : IRequest<string>
     {
@@ -289,6 +327,22 @@ public class FallbackDispatcherBaseTests
         public ValueTask HandleAsync(TestVoidRequest request, CancellationToken cancellationToken)
         {
             return ValueTask.CompletedTask;
+        }
+    }
+
+    private class ThrowingTestRequestHandler : IRequestHandler<TestRequest, string>
+    {
+        public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Test handler execution exception");
+        }
+    }
+
+    private class ThrowingTestVoidRequestHandler : IRequestHandler<TestVoidRequest>
+    {
+        public ValueTask HandleAsync(TestVoidRequest request, CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException("Test void handler execution exception");
         }
     }
 }

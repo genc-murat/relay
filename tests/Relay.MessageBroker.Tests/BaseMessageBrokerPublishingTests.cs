@@ -2,10 +2,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.ContractValidation;
-using Relay.Core;
-using Relay.MessageBroker.Compression;
+using Relay.Core.Metadata.MessageQueue;
 using Relay.Core.Validation.Interfaces;
-using Xunit;
+using Relay.MessageBroker.Compression;
 
 namespace Relay.MessageBroker.Tests;
 
@@ -28,14 +27,23 @@ public class BaseMessageBrokerPublishingTests
         {
         }
 
-        protected override ValueTask PublishInternalAsync<TMessage>(
+        protected override async ValueTask PublishInternalAsync<TMessage>(
             TMessage message,
             byte[] serializedMessage,
             PublishOptions? options,
             CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             PublishedMessages.Add((message!, serializedMessage, options));
-            return ValueTask.CompletedTask;
+
+            // For testing publish-subscribe, process the message if started
+            if (IsStarted)
+            {
+                var decompressed = await DecompressMessageAsync(serializedMessage, cancellationToken);
+                var deserialized = DeserializeMessage<TMessage>(decompressed);
+                var context = new MessageContext();
+                await ProcessMessageAsync(deserialized, typeof(TMessage), context, cancellationToken);
+            }
         }
 
         protected override ValueTask SubscribeInternalAsync(
@@ -236,6 +244,191 @@ public class BaseMessageBrokerPublishingTests
         Assert.Equal(complexMessage.Root.Children.Count, deserialized.Root.Children.Count);
     }
 
+    [Fact]
+    public async Task PublishAsync_WithValidator_ShouldValidateMessage()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var contractValidatorMock = new Mock<IContractValidator>();
+        var broker = new TestableMessageBroker(options, logger, contractValidator: contractValidatorMock.Object);
+
+        var validatorMock = new Mock<IValidator<object>>();
+        validatorMock.Setup(v => v.ValidateAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string>()); // Valid
+
+        var message = new TestMessage { Id = 123, Name = "Test" };
+        var publishOptions = new PublishOptions { Validator = validatorMock.Object };
+
+        // Act
+        await broker.PublishAsync(message, publishOptions);
+
+        // Assert
+        Assert.Single(broker.PublishedMessages);
+        validatorMock.Verify(v => v.ValidateAsync(message, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithValidatorThatFails_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var contractValidatorMock = new Mock<IContractValidator>();
+        var broker = new TestableMessageBroker(options, logger, contractValidator: contractValidatorMock.Object);
+
+        var validatorMock = new Mock<IValidator<object>>();
+        validatorMock.Setup(v => v.ValidateAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string> { "Validation error" });
+
+        var message = new TestMessage { Id = 123, Name = "Test" };
+        var publishOptions = new PublishOptions { Validator = validatorMock.Object };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await broker.PublishAsync(message, publishOptions));
+        Assert.Contains("Message validation failed", exception.Message);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithSchema_ShouldValidateAgainstSchema()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var contractValidatorMock = new Mock<IContractValidator>();
+        contractValidatorMock.Setup(cv => cv.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string>()); // Valid
+
+        var broker = new TestableMessageBroker(options, logger, contractValidator: contractValidatorMock.Object);
+
+        var message = new TestMessage { Id = 123, Name = "Test" };
+        var schema = new JsonSchemaContract { Schema = "{\"type\":\"object\"}" };
+        var publishOptions = new PublishOptions { Schema = schema };
+
+        // Act
+        await broker.PublishAsync(message, publishOptions);
+
+        // Assert
+        Assert.Single(broker.PublishedMessages);
+        contractValidatorMock.Verify(cv => cv.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithSchemaThatFails_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var contractValidatorMock = new Mock<IContractValidator>();
+        contractValidatorMock.Setup(cv => cv.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string> { "Schema validation error" });
+
+        var broker = new TestableMessageBroker(options, logger, contractValidator: contractValidatorMock.Object);
+
+        var message = new TestMessage { Id = 123, Name = "Test" };
+        var schema = new JsonSchemaContract { Schema = "{\"type\":\"object\"}" };
+        var publishOptions = new PublishOptions { Schema = schema };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await broker.PublishAsync(message, publishOptions));
+        Assert.Contains("Message schema validation failed", exception.Message);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithNonSerializableMessage_ShouldThrowJsonException()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        // Create a message that causes circular reference or other serialization issues
+        var message = new CircularReferenceMessage();
+        message.Self = message; // Circular reference
+
+        // Act & Assert
+        await Assert.ThrowsAsync<System.Text.Json.JsonException>(
+            async () => await broker.PublishAsync(message));
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithCompressionEnabledAndCompressorFails_ShouldUseUncompressedData()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions
+        {
+            Compression = new Compression.CompressionOptions
+            {
+                Enabled = true,
+                Algorithm = Relay.Core.Caching.Compression.CompressionAlgorithm.GZip
+            }
+        });
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+
+        var compressorMock = new Mock<Relay.MessageBroker.Compression.IMessageCompressor>();
+        compressorMock.Setup(c => c.CompressAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null); // Simulate compression failure
+        compressorMock.Setup(c => c.DecompressAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .Returns((byte[] data, CancellationToken ct) => ValueTask.FromResult(data)); // Return input as is for decompression
+
+        var broker = new TestableMessageBroker(options, logger, compressorMock.Object);
+
+        var message = new TestMessage { Id = 123, Name = "Test" };
+
+        // Act
+        await broker.PublishAsync(message);
+
+        // Assert
+        Assert.Single(broker.PublishedMessages);
+        var (_, serializedData, _) = broker.PublishedMessages[0];
+
+        // Should have uncompressed JSON data
+        var deserialized = System.Text.Json.JsonSerializer.Deserialize<TestMessage>(serializedData);
+        Assert.NotNull(deserialized);
+        Assert.Equal(message.Id, deserialized.Id);
+        Assert.Equal(message.Name, deserialized.Name);
+
+        compressorMock.Verify(c => c.CompressAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PublishAsync_ShouldRecordTelemetryOnSuccess()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        var message = new TestMessage { Id = 123, Name = "Test" };
+
+        // Act
+        await broker.PublishAsync(message);
+
+        // Assert
+        // Telemetry is recorded internally, we can't easily mock it without changing the constructor
+        // This test ensures no exceptions are thrown during telemetry recording
+        Assert.Single(broker.PublishedMessages);
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithCancelledToken_ShouldThrowOperationCanceledException()
+    {
+        // Arrange
+        var options = Options.Create(new MessageBrokerOptions());
+        var logger = new Mock<ILogger<TestableMessageBroker>>().Object;
+        var broker = new TestableMessageBroker(options, logger);
+
+        var message = new TestMessage { Id = 123, Name = "Test" };
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            async () => await broker.PublishAsync(message, cancellationToken: cts.Token));
+    }
+
     public class ThrowingTestableMessageBroker : BaseMessageBroker
     {
         public ThrowingTestableMessageBroker(
@@ -280,30 +473,36 @@ public class BaseMessageBrokerPublishingTests
         }
     }
 
-    private class TestMessage
+    public class TestMessage
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
     }
 
-    private class LargeTestMessage
+    public class LargeTestMessage
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public byte[] Data { get; set; } = Array.Empty<byte>();
     }
 
-    private class ComplexNestedMessage
+    public class ComplexNestedMessage
     {
         public Guid Id { get; set; }
         public NestedObject Root { get; set; } = new();
         public Dictionary<string, object> Metadata { get; set; } = new();
     }
 
-    private class NestedObject
+    public class NestedObject
     {
         public string Name { get; set; } = string.Empty;
         public int Value { get; set; }
         public List<NestedObject> Children { get; set; } = new();
+    }
+
+    public class CircularReferenceMessage
+    {
+        public CircularReferenceMessage? Self { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 }

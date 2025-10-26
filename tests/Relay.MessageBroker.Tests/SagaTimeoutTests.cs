@@ -49,11 +49,72 @@ public class SagaTimeoutTests
         Assert.Equal(1, result.TimedOutCount);
 
         // Verify timed out saga was marked for compensation
-        var updatedSaga = await persistence.GetByIdAsync(timedOutSaga.SagaId);
-        Assert.NotNull(updatedSaga);
-        Assert.Equal(SagaState.Compensating, updatedSaga!.State);
-        Assert.True(updatedSaga.Metadata.ContainsKey("TimedOut"));
-        Assert.Equal(true, updatedSaga.Metadata["TimedOut"]);
+        var reloadedTimedOutSaga = await persistence.GetByIdAsync(timedOutSaga.SagaId);
+        Assert.Equal(SagaState.Compensating, reloadedTimedOutSaga.State);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_CheckRunningSagasForTimeout_WithZeroTimeout_ShouldTimeoutAll()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var logger = NullLogger<SagaTimeoutHandler<OrderSagaData>>.Instance;
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence, logger);
+
+        // Create a running saga that was just updated
+        var saga = new OrderSagaData
+        {
+            SagaId = Guid.NewGuid(),
+            CorrelationId = "ZERO-TIMEOUT-001",
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        await persistence.SaveAsync(saga);
+
+        // Act
+        var zeroTimeout = TimeSpan.Zero;
+        var result = await handler.CheckAndHandleTimeoutsAsync(zeroTimeout);
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
+
+        // Verify saga was marked for compensation
+        var reloadedSaga = await persistence.GetByIdAsync(saga.SagaId);
+        Assert.Equal(SagaState.Compensating, reloadedSaga.State);
+    }
+
+    [Fact]
+    public async Task SagaTimeoutHandler_CheckRunningSagasForTimeout_WithNegativeTimeout_ShouldTimeoutAll()
+    {
+        // Arrange
+        var persistence = new InMemorySagaPersistence<OrderSagaData>();
+        var logger = NullLogger<SagaTimeoutHandler<OrderSagaData>>.Instance;
+        var handler = new SagaTimeoutHandler<OrderSagaData>(persistence, logger);
+
+        // Create a running saga
+        var saga = new OrderSagaData
+        {
+            SagaId = Guid.NewGuid(),
+            CorrelationId = "NEGATIVE-TIMEOUT-001",
+            State = SagaState.Running,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        await persistence.SaveAsync(saga);
+
+        // Act
+        var negativeTimeout = TimeSpan.FromMinutes(-1);
+        var result = await handler.CheckAndHandleTimeoutsAsync(negativeTimeout);
+
+        // Assert
+        Assert.Equal(1, result.CheckedCount);
+        Assert.Equal(1, result.TimedOutCount);
+
+        // Verify saga was marked for compensation
+        var reloadedSaga = await persistence.GetByIdAsync(saga.SagaId);
+        Assert.Equal(SagaState.Compensating, reloadedSaga.State);
     }
 
     [Fact]

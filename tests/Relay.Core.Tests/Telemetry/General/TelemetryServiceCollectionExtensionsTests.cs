@@ -219,6 +219,8 @@ public class TelemetryServiceCollectionExtensionsTests
         public void RecordHandlerExecution(Type requestType, Type? responseType, string? handlerName, TimeSpan duration, bool success, Exception? exception) { }
         public void RecordNotificationPublish(Type notificationType, int subscriberCount, TimeSpan duration, bool success, Exception? exception) { }
         public void RecordStreamingOperation(Type requestType, Type responseType, string? handlerName, TimeSpan duration, long itemsProcessed, bool success, Exception? exception) { }
+        public void RecordCircuitBreakerStateChange(string circuitBreakerName, string oldState, string newState) { }
+        public void RecordCircuitBreakerOperation(string circuitBreakerName, string operation, bool success, Exception? exception = null) { }
         public Activity? StartActivity(string operationName, Type requestType, string? handlerName) => null;
         public void SetCorrelationId(string correlationId) { }
         public string? GetCorrelationId() => null;

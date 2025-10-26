@@ -100,6 +100,7 @@ public static class RelayTelemetryConstants
         // Circuit breaker attributes
         public const string CircuitBreakerState = "relay.circuit_breaker.state";
         public const string CircuitBreakerName = "relay.circuit_breaker.name";
+        public const string Operation = "relay.operation";
 
         // Error attributes
         public const string ErrorType = "error.type";

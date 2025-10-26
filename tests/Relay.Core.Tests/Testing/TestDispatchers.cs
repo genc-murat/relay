@@ -303,6 +303,16 @@ public class NullTelemetryProvider : ITelemetryProvider
         // No-op
     }
 
+    public void RecordCircuitBreakerStateChange(string circuitBreakerName, string oldState, string newState)
+    {
+        // No-op
+    }
+
+    public void RecordCircuitBreakerOperation(string circuitBreakerName, string operation, bool success, Exception? exception = null)
+    {
+        // No-op
+    }
+
     public void SetCorrelationId(string correlationId)
     {
         // No-op

@@ -4,6 +4,7 @@ using Moq;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Resilience.CircuitBreaker;
+using Relay.Core.Telemetry;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,20 +16,25 @@ namespace Relay.Core.Tests.Resilience
     {
         private readonly Mock<ILogger<CircuitBreakerPipelineBehavior<TestRequest, TestResponse>>> _mockLogger;
         private readonly Mock<IOptions<CircuitBreakerOptions>> _mockOptions;
+        private readonly Mock<ITelemetryProvider> _mockTelemetryProvider;
 
-        public CircuitBreakerPipelineBehaviorTests()
+    public CircuitBreakerPipelineBehaviorTests()
+    {
+        _mockLogger = new Mock<ILogger<CircuitBreakerPipelineBehavior<TestRequest, TestResponse>>>();
+        _mockOptions = new Mock<IOptions<CircuitBreakerOptions>>();
+        _mockTelemetryProvider = new Mock<ITelemetryProvider>();
+
+        var options = new CircuitBreakerOptions
         {
-            _mockLogger = new Mock<ILogger<CircuitBreakerPipelineBehavior<TestRequest, TestResponse>>>();
-            _mockOptions = new Mock<IOptions<CircuitBreakerOptions>>();
-            
-            var options = new CircuitBreakerOptions
-            {
-                FailureThreshold = 0.5,
-                MinimumThroughput = 3,
-                OpenCircuitDuration = TimeSpan.FromMilliseconds(100)
-            };
-            _mockOptions.Setup(x => x.Value).Returns(options);
-        }
+            FailureThreshold = 0.5,
+            MinimumThroughput = 3,
+            OpenCircuitDuration = TimeSpan.FromMilliseconds(100)
+        };
+        _mockOptions.Setup(x => x.Value).Returns(options);
+
+        // Clear circuit breakers between tests
+        CircuitBreakerPipelineBehavior<TestRequest, TestResponse>.ClearCircuitBreakers();
+    }
 
         [Fact]
         public async Task HandleAsync_ShouldExecuteSuccessfully_WhenCircuitIsClosed()
@@ -257,6 +263,108 @@ namespace Relay.Core.Tests.Resilience
             // Assert
             Assert.Equal(requestType, exception.RequestType);
             Assert.Contains(requestType, exception.Message);
+        }
+
+        [Fact]
+        public async Task HandleAsync_ShouldRecordTelemetryForSuccessfulOperation()
+        {
+            // Arrange
+            var behavior = new CircuitBreakerPipelineBehavior<TestRequest, TestResponse>(_mockLogger.Object, _mockOptions.Object, _mockTelemetryProvider.Object);
+            var request = new TestRequest { Value = "test" };
+            var expectedResponse = new TestResponse { Result = "result" };
+            var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
+
+            // Act
+            var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+            // Assert
+            Assert.Equal(expectedResponse, result);
+            _mockTelemetryProvider.Verify(x => x.RecordCircuitBreakerOperation("TestRequest", "request_succeeded", true), Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleAsync_ShouldRecordTelemetryForFailedOperation()
+        {
+            // Arrange
+            var behavior = new CircuitBreakerPipelineBehavior<TestRequest, TestResponse>(_mockLogger.Object, _mockOptions.Object, _mockTelemetryProvider.Object);
+            var request = new TestRequest { Value = "test" };
+            var expectedException = new InvalidOperationException("Test failure");
+            var next = new RequestHandlerDelegate<TestResponse>(() => throw expectedException);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await behavior.HandleAsync(request, next, CancellationToken.None));
+
+            _mockTelemetryProvider.Verify(x => x.RecordCircuitBreakerOperation("TestRequest", "request_failed", false, expectedException), Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleAsync_ShouldRecordTelemetryForCircuitOpening()
+        {
+            // Arrange
+            var behavior = new CircuitBreakerPipelineBehavior<TestRequest, TestResponse>(_mockLogger.Object, _mockOptions.Object, _mockTelemetryProvider.Object);
+            var request = new TestRequest { Value = "test" };
+
+            // Open the circuit
+            for (int i = 0; i < 3; i++)
+            {
+                var failNext = new RequestHandlerDelegate<TestResponse>(() => throw new InvalidOperationException("Test failure"));
+                try
+                {
+                    await behavior.HandleAsync(request, failNext, CancellationToken.None);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Expected
+                }
+            }
+
+            // Act - Next request should be rejected
+            var finalNext = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(new TestResponse()));
+            await Assert.ThrowsAsync<CircuitBreakerOpenException>(async () =>
+                await behavior.HandleAsync(request, finalNext, CancellationToken.None));
+
+            // Assert
+            _mockTelemetryProvider.Verify(x => x.RecordCircuitBreakerStateChange("TestRequest", "Closed", "Open"), Times.Once);
+            _mockTelemetryProvider.Verify(x => x.RecordCircuitBreakerOperation("TestRequest", "request_rejected", false), Times.Once);
+        }
+
+        [Fact]
+        public async Task HandleAsync_ShouldRecordTelemetryForStateTransitions()
+        {
+            // Arrange
+            var behavior = new CircuitBreakerPipelineBehavior<TestRequest, TestResponse>(_mockLogger.Object, _mockOptions.Object, _mockTelemetryProvider.Object);
+            var request = new TestRequest { Value = "test" };
+            var expectedResponse = new TestResponse { Result = "result" };
+
+            // Open the circuit
+            for (int i = 0; i < 3; i++)
+            {
+                var failNext = new RequestHandlerDelegate<TestResponse>(() => throw new InvalidOperationException("Test failure"));
+                try
+                {
+                    await behavior.HandleAsync(request, failNext, CancellationToken.None);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Expected
+                }
+            }
+
+            // Wait for timeout
+            await Task.Delay(150);
+
+            // Act - Execute enough successful requests to close the circuit
+            for (int i = 0; i < 3; i++)
+            {
+                var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
+                var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+                Assert.Equal(expectedResponse, result);
+            }
+
+            // Assert
+            _mockTelemetryProvider.Verify(x => x.RecordCircuitBreakerStateChange("TestRequest", "Open", "HalfOpen"), Times.Once);
+            _mockTelemetryProvider.Verify(x => x.RecordCircuitBreakerStateChange("TestRequest", "HalfOpen", "Closed"), Times.Once);
         }
 
         public class TestRequest : IRequest<TestResponse>

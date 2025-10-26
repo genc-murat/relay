@@ -37,6 +37,10 @@ public class RelayTelemetryProvider : ITelemetryProvider, IDisposable
     private readonly Histogram<double> _messageProcessDurationHistogram;
     private readonly Histogram<long> _messagePayloadSizeHistogram;
 
+    // Circuit breaker metrics
+    private readonly Counter<long> _circuitBreakerOperationsCounter;
+    private readonly Counter<long> _circuitBreakerStateChangesCounter;
+
     private readonly IMetricsProvider? _metricsProvider;
 
     public RelayTelemetryProvider(
@@ -121,6 +125,15 @@ public class RelayTelemetryProvider : ITelemetryProvider, IDisposable
         _messagePayloadSizeHistogram = _meter.CreateHistogram<long>(
             RelayTelemetryConstants.Metrics.MessagePayloadSize,
             description: "Size of message payloads in bytes");
+
+        // Initialize circuit breaker metrics
+        _circuitBreakerOperationsCounter = _meter.CreateCounter<long>(
+            "relay.circuit_breaker.operations",
+            description: "Number of circuit breaker operations");
+
+        _circuitBreakerStateChangesCounter = _meter.CreateCounter<long>(
+            "relay.circuit_breaker.state_changes",
+            description: "Number of circuit breaker state changes");
     }
 
     public IMetricsProvider? MetricsProvider => _metricsProvider;
@@ -438,6 +451,81 @@ public class RelayTelemetryProvider : ITelemetryProvider, IDisposable
     public string? GetCorrelationId()
     {
         return _correlationIdContext.Value;
+    }
+
+    /// <summary>
+    /// Records circuit breaker state change
+    /// </summary>
+    public void RecordCircuitBreakerStateChange(string circuitBreakerName, string oldState, string newState)
+    {
+        var activity = Activity.Current;
+
+        // Record metrics
+        var tagList = new TagList
+        {
+            { RelayTelemetryConstants.Attributes.Component, _options.Component },
+            { RelayTelemetryConstants.Attributes.CircuitBreakerName, circuitBreakerName },
+            { RelayTelemetryConstants.Attributes.CircuitBreakerState, newState }
+        };
+
+        _circuitBreakerStateChangesCounter.Add(1, tagList);
+
+        // Record state change event
+        if (activity != null)
+        {
+            var eventName = newState.ToLower() switch
+            {
+                "open" => RelayTelemetryConstants.Events.CircuitBreakerOpened,
+                "closed" => RelayTelemetryConstants.Events.CircuitBreakerClosed,
+                "halfopen" => RelayTelemetryConstants.Events.CircuitBreakerHalfOpened,
+                _ => "circuit_breaker.state_changed"
+            };
+
+            activity.AddEvent(new ActivityEvent(eventName, tags: new ActivityTagsCollection(tagList)));
+            activity.SetTag(RelayTelemetryConstants.Attributes.CircuitBreakerState, newState);
+        }
+
+        _logger?.LogInformation("Circuit breaker '{CircuitBreakerName}' state changed from {OldState} to {NewState}",
+            circuitBreakerName, oldState, newState);
+    }
+
+    /// <summary>
+    /// Records circuit breaker operation
+    /// </summary>
+    public void RecordCircuitBreakerOperation(string circuitBreakerName, string operation, bool success, Exception? exception = null)
+    {
+        var activity = Activity.Current;
+
+        // Record metrics
+        var tagList = new TagList
+        {
+            { RelayTelemetryConstants.Attributes.Component, _options.Component },
+            { RelayTelemetryConstants.Attributes.CircuitBreakerName, circuitBreakerName },
+            { RelayTelemetryConstants.Attributes.Operation, operation },
+            { RelayTelemetryConstants.Attributes.Success, success }
+        };
+
+        _circuitBreakerOperationsCounter.Add(1, tagList);
+
+        // Update activity
+        if (activity != null)
+        {
+            activity.SetTag(RelayTelemetryConstants.Attributes.Success, success);
+
+            if (exception != null)
+            {
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionType, exception.GetType().FullName);
+                activity.SetTag(RelayTelemetryConstants.Attributes.ExceptionMessage, exception.Message);
+                activity.SetStatus(ActivityStatusCode.Error, exception.Message);
+            }
+            else if (success)
+            {
+                activity.SetStatus(ActivityStatusCode.Ok);
+            }
+        }
+
+        _logger?.LogDebug("Circuit breaker '{CircuitBreakerName}' operation '{Operation}' (Success: {Success})",
+            circuitBreakerName, operation, success);
     }
 
     public void Dispose()

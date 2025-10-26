@@ -42,6 +42,16 @@ public interface ITelemetryProvider
     string? GetCorrelationId();
 
     /// <summary>
+    /// Records circuit breaker state change
+    /// </summary>
+    void RecordCircuitBreakerStateChange(string circuitBreakerName, string oldState, string newState);
+
+    /// <summary>
+    /// Records circuit breaker operation
+    /// </summary>
+    void RecordCircuitBreakerOperation(string circuitBreakerName, string operation, bool success, Exception? exception = null);
+
+    /// <summary>
     /// Gets the metrics provider for detailed metrics collection
     /// </summary>
     IMetricsProvider? MetricsProvider { get; }

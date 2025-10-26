@@ -12,6 +12,8 @@ public class TestTelemetryProvider : ITelemetryProvider
     public List<HandlerExecution> HandlerExecutions { get; } = new();
     public List<NotificationPublish> NotificationPublishes { get; } = new();
     public List<StreamingOperation> StreamingOperations { get; } = new();
+    public List<CircuitBreakerStateChange> CircuitBreakerStateChanges { get; } = new();
+    public List<CircuitBreakerOperation> CircuitBreakerOperations { get; } = new();
 
     private string? _correlationId;
 
@@ -90,6 +92,27 @@ public class TestTelemetryProvider : ITelemetryProvider
         });
     }
 
+    public void RecordCircuitBreakerStateChange(string circuitBreakerName, string oldState, string newState)
+    {
+        CircuitBreakerStateChanges.Add(new CircuitBreakerStateChange
+        {
+            CircuitBreakerName = circuitBreakerName,
+            OldState = oldState,
+            NewState = newState
+        });
+    }
+
+    public void RecordCircuitBreakerOperation(string circuitBreakerName, string operation, bool success, Exception? exception = null)
+    {
+        CircuitBreakerOperations.Add(new CircuitBreakerOperation
+        {
+            CircuitBreakerName = circuitBreakerName,
+            Operation = operation,
+            Success = success,
+            Exception = exception
+        });
+    }
+
     public void SetCorrelationId(string correlationId)
     {
         _correlationId = correlationId;
@@ -133,6 +156,21 @@ public class StreamingOperation
     public string? HandlerName { get; set; }
     public TimeSpan Duration { get; set; }
     public long ItemCount { get; set; }
+    public bool Success { get; set; }
+    public Exception? Exception { get; set; }
+}
+
+public class CircuitBreakerStateChange
+{
+    public string CircuitBreakerName { get; set; } = string.Empty;
+    public string OldState { get; set; } = string.Empty;
+    public string NewState { get; set; } = string.Empty;
+}
+
+public class CircuitBreakerOperation
+{
+    public string CircuitBreakerName { get; set; } = string.Empty;
+    public string Operation { get; set; } = string.Empty;
     public bool Success { get; set; }
     public Exception? Exception { get; set; }
 }

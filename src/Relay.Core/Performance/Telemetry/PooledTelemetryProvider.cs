@@ -262,4 +262,51 @@ public class PooledTelemetryProvider : ITelemetryProvider
     {
         return CorrelationIdContext.Value ?? Activity.Current?.GetTagItem("relay.correlation_id")?.ToString();
     }
+
+    public void RecordCircuitBreakerStateChange(string circuitBreakerName, string oldState, string newState)
+    {
+        var activity = Activity.Current;
+
+        if (activity != null)
+        {
+            var eventName = newState.ToLower() switch
+            {
+                "open" => "circuit_breaker.opened",
+                "closed" => "circuit_breaker.closed",
+                "halfopen" => "circuit_breaker.half_opened",
+                _ => "circuit_breaker.state_changed"
+            };
+
+            activity.AddEvent(new ActivityEvent(eventName));
+            activity.SetTag("relay.circuit_breaker.state", newState);
+        }
+
+        _logger?.LogInformation("Circuit breaker '{CircuitBreakerName}' state changed from {OldState} to {NewState}",
+            circuitBreakerName, oldState, newState);
+    }
+
+    public void RecordCircuitBreakerOperation(string circuitBreakerName, string operation, bool success, Exception? exception = null)
+    {
+        var activity = Activity.Current;
+
+        if (activity != null)
+        {
+            activity.SetTag("relay.circuit_breaker.operation", operation);
+            activity.SetTag("relay.success", success);
+
+            if (exception != null)
+            {
+                activity.SetTag("relay.exception_type", exception.GetType().FullName);
+                activity.SetTag("relay.exception_message", exception.Message);
+                activity.SetStatus(ActivityStatusCode.Error, exception.Message);
+            }
+            else if (success)
+            {
+                activity.SetStatus(ActivityStatusCode.Ok);
+            }
+        }
+
+        _logger?.LogDebug("Circuit breaker '{CircuitBreakerName}' operation '{Operation}' (Success: {Success})",
+            circuitBreakerName, operation, success);
+    }
 }

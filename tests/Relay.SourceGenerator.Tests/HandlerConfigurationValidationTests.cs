@@ -1,30 +1,25 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Moq;
-using Relay.SourceGenerator;
-using Xunit;
 
-namespace Relay.SourceGenerator.Tests
+namespace Relay.SourceGenerator.Tests;
+
+public class HandlerConfigurationValidationTests
 {
-    public class HandlerConfigurationValidationTests
+    private readonly Mock<IDiagnosticReporter> _mockReporter;
+    private readonly ConfigurationValidator _validator;
+
+    public HandlerConfigurationValidationTests()
     {
-        private readonly Mock<IDiagnosticReporter> _mockReporter;
-        private readonly ConfigurationValidator _validator;
+        _mockReporter = new Mock<IDiagnosticReporter>();
+        _validator = new ConfigurationValidator(_mockReporter.Object);
+    }
 
-        public HandlerConfigurationValidationTests()
-        {
-            _mockReporter = new Mock<IDiagnosticReporter>();
-            _validator = new ConfigurationValidator(_mockReporter.Object);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_WithDuplicateUnnamedHandlers_ReportsDuplicateHandler()
-        {
-            // Arrange
-            var compilation = CreateCompilation(@"
+    [Fact]
+    public void ValidateHandlerConfigurations_WithDuplicateUnnamedHandlers_ReportsDuplicateHandler()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class TestHandler
                 {
@@ -33,49 +28,49 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method1 = handlerType.GetMembers("Handle1").OfType<IMethodSymbol>().First();
-            var method2 = handlerType.GetMembers("Handle2").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method1 = handlerType.GetMembers("Handle1").OfType<IMethodSymbol>().First();
+        var method2 = handlerType.GetMembers("Handle2").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method1,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                },
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method2,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Descriptor.Id == "RELAY_GEN_003")), Times.Exactly(2));
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_WithDuplicateNamedHandlers_ReportsDuplicateNamedHandler()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method1,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            },
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method2,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Descriptor.Id == "RELAY_GEN_003")), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_WithDuplicateNamedHandlers_ReportsDuplicateNamedHandler()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class TestHandler
                 {
@@ -84,49 +79,49 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method1 = handlerType.GetMembers("Handle1").OfType<IMethodSymbol>().First();
-            var method2 = handlerType.GetMembers("Handle2").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method1 = handlerType.GetMembers("Handle1").OfType<IMethodSymbol>().First();
+        var method2 = handlerType.GetMembers("Handle2").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method1,
-                    Name = "SameName",
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                },
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method2,
-                    Name = "SameName",
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Descriptor.Id == "RELAY_GEN_005")), Times.Exactly(2));
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_WithValidConfiguration_DoesNotReportErrors()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method1,
+                Name = "SameName",
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            },
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method2,
+                Name = "SameName",
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Descriptor.Id == "RELAY_GEN_005")), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_WithValidConfiguration_DoesNotReportErrors()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class TestHandler
                 {
@@ -134,38 +129,38 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert - No error diagnostics should be reported
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Severity == DiagnosticSeverity.Error)), Times.Never);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_InvalidHandlerReturnType_ShouldReportError()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert - No error diagnostics should be reported
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Severity == DiagnosticSeverity.Error)), Times.Never);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_InvalidHandlerReturnType_ShouldReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class TestHandler
                 {
@@ -173,38 +168,38 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Id == "RELAY_GEN_202")), Times.Once);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_HandlerMissingRequestParameter_ShouldReportError()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Id == "RELAY_GEN_202")), Times.Once);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_HandlerMissingRequestParameter_ShouldReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class TestHandler
                 {
@@ -212,38 +207,38 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Id == "RELAY_GEN_205")), Times.Once);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_InvalidStreamHandlerReturnType_ShouldReportError()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Id == "RELAY_GEN_205")), Times.Once);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_InvalidStreamHandlerReturnType_ShouldReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestStreamRequest : IStreamRequest<string> { }
                 public class TestStreamHandler
                 {
@@ -251,38 +246,38 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestStreamRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestStreamHandler");
-            var method = handlerType.GetMembers("HandleStream").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestStreamRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestStreamHandler");
+        var method = handlerType.GetMembers("HandleStream").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Stream,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Id == "RELAY_GEN_203")), Times.Once);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_HandlerInvalidRequestParameter_ShouldReportError()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Stream,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Id == "RELAY_GEN_203")), Times.Once);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_HandlerInvalidRequestParameter_ShouldReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class WrongRequest { }
                 public class TestHandler
@@ -291,38 +286,38 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Id == "RELAY_GEN_206")), Times.Once);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_HandlerMissingCancellationToken_ShouldReportWarning()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Id == "RELAY_GEN_206")), Times.Once);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_HandlerMissingCancellationToken_ShouldReportWarning()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class TestHandler
                 {
@@ -330,38 +325,38 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Id == "RELAY_GEN_207")), Times.Once);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_ValidHandlerWithCancellationToken_ShouldNotReportError()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Id == "RELAY_GEN_207")), Times.Once);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_ValidHandlerWithCancellationToken_ShouldNotReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class TestHandler
                 {
@@ -369,38 +364,38 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert - No error diagnostics should be reported
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Severity == DiagnosticSeverity.Error)), Times.Never);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_ValidStreamHandler_ShouldNotReportError()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert - No error diagnostics should be reported
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Severity == DiagnosticSeverity.Error)), Times.Never);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_ValidStreamHandler_ShouldNotReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestStreamRequest : IStreamRequest<string> { }
                 public class TestStreamHandler
                 {
@@ -408,38 +403,38 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestStreamRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestStreamHandler");
-            var method = handlerType.GetMembers("HandleStream").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestStreamRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestStreamHandler");
+        var method = handlerType.GetMembers("HandleStream").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Stream,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert - No error diagnostics should be reported
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Severity == DiagnosticSeverity.Error)), Times.Never);
-        }
-
-        [Fact]
-        public void ValidateHandlerConfigurations_MultipleValidationErrors_ShouldReportAll()
+        var handlers = new[]
         {
-            // Arrange
-            var compilation = CreateCompilation(@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Stream,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert - No error diagnostics should be reported
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Severity == DiagnosticSeverity.Error)), Times.Never);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_MultipleValidationErrors_ShouldReportAll()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
                 public class TestRequest : IRequest<string> { }
                 public class TestHandler
                 {
@@ -448,51 +443,114 @@ namespace Relay.SourceGenerator.Tests
                 }
             ");
 
-            var requestType = GetTypeSymbol(compilation, "TestRequest");
-            var responseType = GetTypeSymbol(compilation, "string");
-            var handlerType = GetTypeSymbol(compilation, "TestHandler");
-            var method1 = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
-            var method2 = handlerType.GetMembers("Handle2").OfType<IMethodSymbol>().First();
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method1 = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+        var method2 = handlerType.GetMembers("Handle2").OfType<IMethodSymbol>().First();
 
-            var handlers = new[]
-            {
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method1,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                },
-                new HandlerRegistration
-                {
-                    RequestType = requestType,
-                    ResponseType = responseType,
-                    Method = method2,
-                    Name = null,
-                    Priority = 0,
-                    Kind = HandlerKind.Request,
-                    Location = Location.None
-                }
-            };
-
-            // Act
-            _validator.ValidateHandlerConfigurations(handlers);
-
-            // Assert
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Id == "RELAY_GEN_003")), Times.Exactly(2)); // Duplicate handlers
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Id == "RELAY_GEN_205")), Times.Once); // Missing request parameter
-            _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-                d.Id == "RELAY_GEN_207")), Times.Exactly(2)); // Missing CancellationToken (both handlers)
-        }
-
-        private static Compilation CreateCompilation(string source)
+        var handlers = new[]
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText($@"
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method1,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            },
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method2,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Id == "RELAY_GEN_003")), Times.Exactly(2)); // Duplicate handlers
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Id == "RELAY_GEN_205")), Times.Once); // Missing request parameter
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Id == "RELAY_GEN_207")), Times.Exactly(2)); // Missing CancellationToken (both handlers)
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_WithMixedNamedAndUnnamedHandlers_NoDuplicatesReported()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
+                public class TestRequest : IRequest<string> { }
+                public class TestHandler
+                {
+                    [Handle] public string HandleUnnamed(TestRequest request) => string.Empty;
+                    [Handle(Name = ""Named1"")] public string HandleNamed1(TestRequest request) => string.Empty;
+                    [Handle(Name = ""Named2"")] public string HandleNamed2(TestRequest request) => string.Empty;
+                }
+            ");
+
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var methodUnnamed = handlerType.GetMembers("HandleUnnamed").OfType<IMethodSymbol>().First();
+        var methodNamed1 = handlerType.GetMembers("HandleNamed1").OfType<IMethodSymbol>().First();
+        var methodNamed2 = handlerType.GetMembers("HandleNamed2").OfType<IMethodSymbol>().First();
+
+        var handlers = new[]
+        {
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = methodUnnamed,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            },
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = methodNamed1,
+                Name = "Named1",
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            },
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = methodNamed2,
+                Name = "Named2",
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert - No duplicate diagnostics should be reported
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Descriptor.Id == "RELAY_GEN_003" || d.Descriptor.Id == "RELAY_GEN_005")), Times.Never);
+    }
+
+    private static Compilation CreateCompilation(string source)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText($@"
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -522,39 +580,38 @@ namespace Relay.Core
 {source}
 ");
 
-            var references = new[]
-            {
-                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Collections.Generic.IEnumerable<>).Assembly.Location)
-            };
-
-            return CSharpCompilation.Create(
-                "TestAssembly",
-                new[] { syntaxTree },
-                references,
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        }
-
-        private static INamedTypeSymbol GetTypeSymbol(Compilation compilation, string typeName)
+        var references = new[]
         {
-            // Handle C# builtin aliases
-            switch (typeName)
-            {
-                case "string":
-                    return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_String);
-                case "int":
-                    return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Int32);
-                case "bool":
-                    return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Boolean);
-                case "void":
-                    return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Void);
-            }
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Threading.CancellationToken).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Collections.Generic.IEnumerable<>).Assembly.Location)
+        };
 
-            return compilation.GetTypeByMetadataName(typeName) ??
-                   compilation.GetSymbolsWithName(typeName).OfType<INamedTypeSymbol>().First();
+        return CSharpCompilation.Create(
+            "TestAssembly",
+            new[] { syntaxTree },
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+    }
+
+    private static INamedTypeSymbol GetTypeSymbol(Compilation compilation, string typeName)
+    {
+        // Handle C# builtin aliases
+        switch (typeName)
+        {
+            case "string":
+                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_String);
+            case "int":
+                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Int32);
+            case "bool":
+                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Boolean);
+            case "void":
+                return (INamedTypeSymbol)compilation.GetSpecialType(SpecialType.System_Void);
         }
+
+        return compilation.GetTypeByMetadataName(typeName) ??
+               compilation.GetSymbolsWithName(typeName).OfType<INamedTypeSymbol>().First();
     }
 }

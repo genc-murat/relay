@@ -400,4 +400,217 @@ public class InMemoryPerformanceMetricsCollectorTests
         Assert.Equal(0, statsAfter.TotalGen1Collections);
         Assert.Equal(0, statsAfter.TotalGen2Collections);
     }
+
+
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_RecordMetrics_WithWhitespaceRequestType_ThrowsArgumentException()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            collector.RecordMetrics(new RequestPerformanceMetrics
+            {
+                RequestType = "   ",
+                ExecutionTime = TimeSpan.FromMilliseconds(100),
+                Success = true
+            }));
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_GetStatistics_WithNullRequestType_ReturnsOverallStatistics()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Act
+        var stats = collector.GetStatistics(null);
+
+        // Assert
+        Assert.NotNull(stats);
+        Assert.Equal("All Requests", stats.RequestType);
+        Assert.Equal(0, stats.TotalRequests);
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_GetStatistics_WithWhitespaceRequestType_ThrowsArgumentException()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => collector.GetStatistics("   "));
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_RecordMetrics_WithNegativeExecutionTime_HandlesCorrectly()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Act
+        collector.RecordMetrics(new RequestPerformanceMetrics
+        {
+            RequestType = "NegativeTimeRequest",
+            ExecutionTime = TimeSpan.FromMilliseconds(-100), // Unusual but possible
+            MemoryAllocated = 512,
+            Success = false
+        });
+
+        // Assert
+        var stats = collector.GetStatistics("NegativeTimeRequest");
+        Assert.Equal(1, stats.TotalRequests);
+        Assert.Equal(0, stats.SuccessfulRequests);
+        Assert.Equal(1, stats.FailedRequests);
+        Assert.Equal(TimeSpan.FromMilliseconds(-100), stats.AverageExecutionTime);
+        Assert.Equal(TimeSpan.FromMilliseconds(-100), stats.MinExecutionTime);
+        Assert.Equal(TimeSpan.FromMilliseconds(-100), stats.MaxExecutionTime);
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_RecordMetrics_WithZeroMemoryAllocation_HandlesCorrectly()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Act
+        collector.RecordMetrics(new RequestPerformanceMetrics
+        {
+            RequestType = "ZeroMemoryRequest",
+            ExecutionTime = TimeSpan.FromMilliseconds(50),
+            MemoryAllocated = 0,
+            Success = true
+        });
+
+        // Assert
+        var stats = collector.GetStatistics("ZeroMemoryRequest");
+        Assert.Equal(1, stats.TotalRequests);
+        Assert.Equal(1, stats.SuccessfulRequests);
+        Assert.Equal(0, stats.TotalMemoryAllocated);
+        Assert.Equal(0, stats.AverageMemoryAllocated);
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_RecordMetrics_WithLargeMemoryAllocation_HandlesCorrectly()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Act
+        collector.RecordMetrics(new RequestPerformanceMetrics
+        {
+            RequestType = "LargeMemoryRequest",
+            ExecutionTime = TimeSpan.FromMilliseconds(100),
+            MemoryAllocated = long.MaxValue,
+            Success = true
+        });
+
+        // Assert
+        var stats = collector.GetStatistics("LargeMemoryRequest");
+        Assert.Equal(1, stats.TotalRequests);
+        Assert.Equal(1, stats.SuccessfulRequests);
+        Assert.Equal(long.MaxValue, stats.TotalMemoryAllocated);
+        Assert.Equal(long.MaxValue, stats.AverageMemoryAllocated);
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_RecordMetrics_WithExtremeGenCollectionCounts_HandlesCorrectly()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Act
+        collector.RecordMetrics(new RequestPerformanceMetrics
+        {
+            RequestType = "ExtremeCollectionsRequest",
+            ExecutionTime = TimeSpan.FromMilliseconds(200),
+            MemoryAllocated = 2048,
+            Gen0Collections = int.MaxValue,
+            Gen1Collections = int.MaxValue,
+            Gen2Collections = int.MaxValue,
+            Success = true
+        });
+
+        // Assert
+        var stats = collector.GetStatistics("ExtremeCollectionsRequest");
+        Assert.Equal(1, stats.TotalRequests);
+        Assert.Equal(1, stats.SuccessfulRequests);
+        Assert.Equal(int.MaxValue, stats.TotalGen0Collections);
+        Assert.Equal(int.MaxValue, stats.TotalGen1Collections);
+        Assert.Equal(int.MaxValue, stats.TotalGen2Collections);
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_MultipleResets_WorkCorrectly()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+
+        // Add metrics, reset, add again, reset again
+        collector.RecordMetrics(new RequestPerformanceMetrics
+        {
+            RequestType = "TestRequest",
+            ExecutionTime = TimeSpan.FromMilliseconds(100),
+            Success = true
+        });
+
+        collector.Reset();
+        Assert.Equal(0, collector.GetStatistics("TestRequest").TotalRequests);
+
+        collector.RecordMetrics(new RequestPerformanceMetrics
+        {
+            RequestType = "TestRequest",
+            ExecutionTime = TimeSpan.FromMilliseconds(200),
+            Success = true
+        });
+
+        collector.Reset();
+        Assert.Equal(0, collector.GetStatistics("TestRequest").TotalRequests);
+
+        // Final check - should still be empty
+        Assert.Equal(0, collector.GetStatistics("TestRequest").TotalRequests);
+    }
+
+    [Fact]
+    public void InMemoryPerformanceMetricsCollector_RecordMetrics_ConcurrentAccess_IsThreadSafe()
+    {
+        // Arrange
+        var collector = new InMemoryPerformanceMetricsCollector();
+        const int numTasks = 10;
+        const int metricsPerTask = 50;
+        var tasks = new System.Collections.Generic.List<Task>();
+
+        // Act - Start multiple tasks recording metrics concurrently
+        for (int i = 0; i < numTasks; i++)
+        {
+            var taskId = i;
+            tasks.Add(Task.Run(() =>
+            {
+                for (int j = 0; j < metricsPerTask; j++)
+                {
+                    collector.RecordMetrics(new RequestPerformanceMetrics
+                    {
+                        RequestType = $"ConcurrentRequest{taskId}",
+                        ExecutionTime = TimeSpan.FromMilliseconds(10 + j),
+                        MemoryAllocated = 100 * (j + 1),
+                        Success = j % 2 == 0, // Alternate success/failure
+                        Timestamp = DateTimeOffset.UtcNow
+                    });
+                }
+            }));
+        }
+
+        Task.WaitAll(tasks.ToArray());
+
+        // Assert - All metrics should be recorded correctly
+        for (int i = 0; i < numTasks; i++)
+        {
+            var stats = collector.GetStatistics($"ConcurrentRequest{i}");
+            Assert.Equal(metricsPerTask, stats.TotalRequests);
+            Assert.Equal(metricsPerTask / 2, stats.SuccessfulRequests); // Half should be successful
+            Assert.Equal(metricsPerTask / 2, stats.FailedRequests); // Half should be failed
+        }
+    }
 }

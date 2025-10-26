@@ -24,6 +24,12 @@ public class InMemoryPerformanceMetricsCollector : IPerformanceMetricsCollector
 
     public void RecordMetrics(RequestPerformanceMetrics metrics)
     {
+        if (metrics.RequestType == null)
+            throw new ArgumentNullException(nameof(metrics.RequestType));
+
+        if (metrics.RequestType.Length > 0 && string.IsNullOrWhiteSpace(metrics.RequestType))
+            throw new ArgumentException("RequestType cannot be whitespace.", nameof(metrics.RequestType));
+
         Interlocked.Increment(ref _totalRequests);
 
         // Update aggregates
@@ -40,6 +46,9 @@ public class InMemoryPerformanceMetricsCollector : IPerformanceMetricsCollector
 
     public PerformanceStatistics GetStatistics(string? requestType = null)
     {
+        if (requestType != null && requestType.Length > 0 && string.IsNullOrWhiteSpace(requestType))
+            throw new ArgumentException("RequestType cannot be whitespace.", nameof(requestType));
+
         if (requestType != null)
         {
             if (_aggregates.TryGetValue(requestType, out var aggregate))

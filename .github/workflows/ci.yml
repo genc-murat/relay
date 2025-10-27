@@ -52,7 +52,7 @@ jobs:
           --logger "trx;LogFileName=test_results.trx"
     
     - name: Upload test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: test-results
@@ -96,7 +96,7 @@ jobs:
         ls -la ./artifacts/
     
     - name: Upload NuGet artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: nuget-packages
         path: ./artifacts/*.nupkg

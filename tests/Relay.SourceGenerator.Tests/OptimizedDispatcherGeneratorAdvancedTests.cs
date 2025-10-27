@@ -133,6 +133,48 @@ namespace Test {
     }
 
     [Fact]
+    public void GenerateOptimizedDispatcher_WithStaticStreamingHandlers_ShouldGenerateStaticStreamingMethods()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+
+        // Create a mock static streaming handler
+        var compilation = CreateCompilation(@"
+namespace Test {
+    public class StreamRequest : Relay.Core.IStreamRequest<string> { }
+    public static class StaticStreamHandler {
+        public static async System.Collections.Generic.IAsyncEnumerable<string> HandleAsync(StreamRequest request, System.Threading.CancellationToken cancellationToken) => default;
+    }
+}");
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
+        var requestTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.StreamRequest");
+        var handlerTypeSymbol = semanticModel.Compilation.GetTypeByMetadataName("Test.StaticStreamHandler");
+        var methodSymbol = handlerTypeSymbol?.GetMembers("HandleAsync").OfType<IMethodSymbol>().FirstOrDefault();
+
+        var handler = new HandlerInfo
+        {
+            MethodSymbol = methodSymbol,
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle, AttributeData = null }
+            ]
+        };
+
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        Assert.Contains("DispatchStreamAsync<TRequest, TResponse>", source);
+        Assert.Contains("Test.StaticStreamHandler.HandleAsync", source);
+        Assert.DoesNotContain("serviceProvider.GetRequiredService", source);
+    }
+
+    [Fact]
     public void GenerateOptimizedDispatcher_WithNotificationHandlers_ShouldGenerateNotificationMethods()
     {
         // Arrange

@@ -389,5 +389,104 @@ namespace Test {{
         Assert.DoesNotContain("TODO", source);
         Assert.DoesNotContain("HACK", source);
         Assert.Contains("public static class OptimizedDispatcher", source);
+        }
+
+    [Fact]
+    public void GeneratorName_ReturnsExpectedValue()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+
+        // Act
+        var result = generator.GeneratorName;
+
+        // Assert
+        Assert.Equal("Optimized Dispatcher Generator", result);
+    }
+
+    [Fact]
+    public void OutputFileName_ReturnsExpectedValue()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+
+        // Act
+        var result = generator.OutputFileName;
+
+        // Assert
+        Assert.Equal("OptimizedDispatcher", result);
+    }
+
+    [Fact]
+    public void Priority_ReturnsExpectedValue()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+
+        // Act
+        var result = generator.Priority;
+
+        // Assert
+        Assert.Equal(30, result);
+    }
+
+    [Fact]
+    public void CanGenerate_WithHandlers_ReturnsTrue()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        discoveryResult.Handlers.Add(new HandlerInfo
+        {
+            Attributes = [new() { Type = RelayAttributeType.Handle }]
+        });
+
+        // Act
+        var result = generator.CanGenerate(discoveryResult);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CanGenerate_WithoutHandlers_ReturnsFalse()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+
+        // Act
+        var result = generator.CanGenerate(discoveryResult);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void Generate_WithHandlers_GeneratesValidCode()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+        discoveryResult.Handlers.Add(new HandlerInfo
+        {
+            Attributes = [new() { Type = RelayAttributeType.Handle }]
+        });
+        var options = new GenerationOptions();
+
+        // Act
+        var result = generator.Generate(discoveryResult, options);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("namespace Relay.Generated", result);
+        Assert.Contains("public static class OptimizedDispatcher", result);
+        Assert.Contains("// Generator: Optimized Dispatcher Generator", result);
     }
 }

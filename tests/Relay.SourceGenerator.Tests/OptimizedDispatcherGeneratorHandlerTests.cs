@@ -128,6 +128,25 @@ namespace Test {{
     }
 
     [Fact]
+    public void GenerateOptimizedDispatcher_WithStaticVoidHandler_ShouldGenerateStaticVoidInvocation()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+
+        var handler = CreateMockHandler("TestRequest", "void", "TestHandler", "HandleAsync", true);
+        discoveryResult.Handlers.Add(handler);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        Assert.DoesNotContain("serviceProvider.GetRequiredService", source);
+        Assert.Contains("await Test.TestHandler.HandleAsync(request, cancellationToken);", source);
+    }
+
+    [Fact]
     public void GenerateOptimizedDispatcher_WithMultipleHandlers_ShouldGenerateSelectionLogic()
     {
         // Arrange
@@ -237,6 +256,32 @@ namespace Test {
         Assert.Contains("Dispatch_Test_Request2", source);
         Assert.Contains("ValueTask<string> Dispatch_Test_Request1(", source);
         Assert.Contains("ValueTask<int> Dispatch_Test_Request2(", source);
+    }
+
+    [Fact]
+    public void GenerateOptimizedDispatcher_WithMultipleStaticHandlers_ShouldGenerateStaticSelectionLogic()
+    {
+        // Arrange
+        var context = CreateTestContext();
+        var generator = new OptimizedDispatcherGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+
+        // Create multiple static handlers with different names
+        var handler1 = CreateMockHandler("TestRequest", "string", "TestHandler1", "HandleAsync", true, "handler1");
+        var handler2 = CreateMockHandler("TestRequest", "string", "TestHandler2", "HandleAsync", true, "handler2");
+        discoveryResult.Handlers.Add(handler1);
+        discoveryResult.Handlers.Add(handler2);
+
+        // Act
+        var source = generator.GenerateOptimizedDispatcher(discoveryResult);
+
+        // Assert
+        Assert.DoesNotContain("serviceProvider.GetRequiredService", source);
+        // Since CreateMockHandler doesn't set up handler names, they default to "default"
+        // For multiple handlers with same name, it should still generate selection logic
+        Assert.Contains("handlerName == null || handlerName == \"default\"", source);
+        Assert.Contains("Test.TestHandler1.HandleAsync", source);
+        Assert.Contains("Test.TestHandler2.HandleAsync", source);
     }
 
     [Fact]

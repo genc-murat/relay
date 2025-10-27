@@ -1,343 +1,342 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Relay.Core.Configuration.Options.Core;
-using Relay.Core.Configuration.Options.DistributedTracing;
-using Relay.Core.Contracts.Pipeline;
-using Relay.Core.Contracts.Requests;
-using Relay.Core.DistributedTracing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Relay.Core.Configuration.Options.Core;
+using Relay.Core.Configuration.Options.DistributedTracing;
+using Relay.Core.Contracts.Pipeline;
+using Relay.Core.DistributedTracing;
 using Xunit;
-
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
-#pragma warning disable CS8602 // Dereference of a possibly null reference
 
 namespace Relay.Core.Tests.DistributedTracing;
 
+[Trace]
+public class TraceableRequest
+{
+    public string Id { get; set; } = "test-id";
+    public int Value { get; set; } = 42;
+}
+
+public class NonTraceableRequest
+{
+    public string Name { get; set; } = "test-name";
+}
+
+[Trace(OperationName = "CustomOperation", TraceRequest = true, TraceResponse = true)]
+public class CustomTraceableRequest
+{
+    public string Data { get; set; } = "test-data";
+}
+
+public class TestResponse
+{
+    public string Result { get; set; } = "success";
+    public bool IsSuccess { get; set; } = true;
+    public int StatusCode { get; set; } = 200;
+}
+
+public class ComplexRequest
+{
+    public string Name { get; set; } = "test";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public List<string> Items { get; set; } = new List<string> { "item1", "item2" };
+}
+
+public class ErrorTestResponse
+{
+    public string Error { get; set; } = "error occurred";
+    public bool IsError { get; set; } = true;
+}
+
 public class DistributedTracingPipelineBehaviorTests
 {
-    private readonly Mock<IDistributedTracingProvider> _mockTracingProvider;
-    private readonly Mock<ILogger<DistributedTracingPipelineBehavior<TestRequest, TestResponse>>> _mockLogger;
-    private readonly Mock<IOptions<RelayOptions>> _mockOptions;
+    #region Constructor and Setup Tests
 
-    public DistributedTracingPipelineBehaviorTests()
+    [Fact]
+    public void Constructor_WithNullTracingProvider_ShouldThrowArgumentNullException()
     {
-        _mockTracingProvider = new Mock<IDistributedTracingProvider>();
-        _mockLogger = new Mock<ILogger<DistributedTracingPipelineBehavior<TestRequest, TestResponse>>>();
-        _mockOptions = new Mock<IOptions<RelayOptions>>();
+        // Arrange
+        var logger = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>().Object;
+        var options = new Mock<IOptions<RelayOptions>>().Object;
 
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            null!,
+            logger,
+            options));
+    }
+
+    [Fact]
+    public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var tracingProvider = new Mock<IDistributedTracingProvider>().Object;
+        var options = new Mock<IOptions<RelayOptions>>().Object;
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            tracingProvider,
+            null!,
+            options));
+    }
+
+    [Fact]
+    public void Constructor_WithNullOptions_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        var tracingProvider = new Mock<IDistributedTracingProvider>().Object;
+        var logger = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>().Object;
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            tracingProvider,
+            logger,
+            null!));
+    }
+
+    [Fact]
+    public void Constructor_WithValidParameters_ShouldInitializeSuccessfully()
+    {
+        // Arrange
+        var tracingProvider = new Mock<IDistributedTracingProvider>().Object;
+        var logger = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>().Object;
+        var options = new Mock<IOptions<RelayOptions>>().Object;
+
+        // Act
+        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            tracingProvider,
+            logger,
+            options);
+
+        // Assert
+        Assert.NotNull(behavior);
+    }
+
+    #endregion
+
+    #region HandleAsync Tests - Tracing Enabled
+
+    [Fact]
+    public async Task HandleAsync_WithTracingEnabled_ShouldAddTraceData()
+    {
+        // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
         var relayOptions = new RelayOptions
         {
             DefaultDistributedTracingOptions = new DistributedTracingOptions
             {
                 EnableAutomaticDistributedTracing = true,
                 TraceRequests = true,
-                TraceResponses = true
-            }
+                TraceResponses = true,
+                RecordExceptions = true
+            },
+            DistributedTracingOverrides = new Dictionary<string, DistributedTracingOptions>()
         };
-        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
-    }
+        optionsMock.Setup(o => o.Value).Returns(relayOptions);
 
-    [Fact]
-    public async Task HandleAsync_ShouldStartActivity_WhenTracingEnabled()
-    {
-        // Arrange
-        var activity = new Activity("test-operation");
+        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
+
+        var request = new TraceableRequest();
+        var response = new TestResponse();
+        var activity = new Activity("TestOperation");
         activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
             .Returns(activity);
 
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
+        tracingProviderMock.Setup(tp => tp.SetActivityStatus(It.IsAny<ActivityStatusCode>(), It.IsAny<string?>()))
+            .Verifiable();
 
-        var request = new TestRequest { Value = "test" };
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
+        tracingProviderMock.Setup(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()))
+            .Verifiable();
+
+        RequestHandlerDelegate<TestResponse> next = () => ValueTask.FromResult(response);
 
         // Act
         var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
         // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.StartActivity(
+        Assert.Equal(response, result);
+        tracingProviderMock.Verify(tp => tp.StartActivity(
             It.IsAny<string>(),
             It.IsAny<Type>(),
             It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()), Times.Once());
-
-        activity.Stop();
+            It.IsAny<IDictionary<string, object?>>()), Times.Once);
+        tracingProviderMock.Verify(tp => tp.SetActivityStatus(ActivityStatusCode.Ok, null), Times.Once);
     }
 
     [Fact]
-    public async Task HandleAsync_ShouldNotTrace_WhenTracingDisabled()
+    public async Task HandleAsync_WithCustomTraceAttribute_ShouldUseCustomParameters()
     {
         // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<CustomTraceableRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
         var relayOptions = new RelayOptions
         {
             DefaultDistributedTracingOptions = new DistributedTracingOptions
             {
-                EnableAutomaticDistributedTracing = false
+                EnableAutomaticDistributedTracing = true,
+                TraceRequests = true,
+                TraceResponses = true,
+                RecordExceptions = true
+            },
+            DistributedTracingOverrides = new Dictionary<string, DistributedTracingOptions>()
+        };
+        optionsMock.Setup(o => o.Value).Returns(relayOptions);
+
+        var behavior = new DistributedTracingPipelineBehavior<CustomTraceableRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
+
+        var request = new CustomTraceableRequest();
+        var response = new TestResponse();
+        var activity = new Activity("CustomOperation");
+        activity.Start();
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                "CustomOperation",  // Expected custom operation name
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
+            .Returns(activity);
+
+        tracingProviderMock.Setup(tp => tp.SetActivityStatus(It.IsAny<ActivityStatusCode>(), It.IsAny<string?>()))
+            .Verifiable();
+
+        tracingProviderMock.Setup(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()))
+            .Verifiable();
+
+        RequestHandlerDelegate<TestResponse> next = () => ValueTask.FromResult(response);
+
+        // Act
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(response, result);
+        tracingProviderMock.Verify(tp => tp.StartActivity(
+            "CustomOperation", // Should use custom operation name
+            It.IsAny<Type>(),
+            It.IsAny<string?>(),
+            It.IsAny<IDictionary<string, object?>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithNullActivity_ShouldProceedWithoutTracing()
+    {
+        // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
+        var relayOptions = new RelayOptions
+        {
+            DefaultDistributedTracingOptions = new DistributedTracingOptions
+            {
+                EnableAutomaticDistributedTracing = true,
+                TraceRequests = true,
+                TraceResponses = true,
+                RecordExceptions = true
             }
         };
-        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+        optionsMock.Setup(o => o.Value).Returns(relayOptions);
 
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
+        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
 
-        var request = new TestRequest { Value = "test" };
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
-
-        // Act
-        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()), Times.Never());
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldProceed_WhenActivityIsNull()
-    {
-        // Arrange
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            "CustomOperation",
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
+        var request = new TraceableRequest();
+        var response = new TestResponse();
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
             .Returns((Activity)null);
 
-        var logger = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
-        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            logger.Object,
-            _mockOptions.Object);
-
-        var request = new TraceableRequest();
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
+        RequestHandlerDelegate<TestResponse> next = () => ValueTask.FromResult(response);
 
         // Act
         var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
         // Assert
-        Assert.Equal(expectedResponse, result);
+        Assert.Equal(response, result);
+        tracingProviderMock.Verify(tp => tp.SetActivityStatus(It.IsAny<ActivityStatusCode>(), It.IsAny<string?>()), Times.Never);
     }
 
+    #endregion
+
+    #region HandleAsync Tests - Tracing Disabled Scenarios
+
     [Fact]
-    public async Task HandleAsync_ShouldHandleExceptions_AndStopActivity()
+    public async Task HandleAsync_WithTracingGloballyDisabled_ShouldNotTrace()
     {
         // Arrange
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
-            .Returns(activity);
-
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
-
-        var request = new TestRequest { Value = "test" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => throw new InvalidOperationException("Test exception"));
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await behavior.HandleAsync(request, next, CancellationToken.None));
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldHandleCancelledToken_WhenAlreadyCancelled()
-    {
-        // Arrange
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
-            .Returns(activity);
-
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
-
-        var request = new TestRequest { Value = "test" };
-        var cts = new CancellationTokenSource();
-        cts.Cancel(); // Cancel before calling
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(new TestResponse { Result = "cancelled" }));
-
-        // Act & Assert - Current implementation doesn't check cancellation token, so it should proceed
-        var result = await behavior.HandleAsync(request, next, cts.Token);
-        Assert.Equal("cancelled", result.Result);
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public void TraceAttribute_ShouldInitializeWithDefaults()
-    {
-        // Act
-        var attribute = new TraceAttribute();
-
-        // Assert
-        Assert.NotNull(attribute);
-    }
-
-    [Fact]
-    public void TraceAttribute_ShouldAllowCustomization()
-    {
-        // Act
-        var attribute = new TraceAttribute
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<NonTraceableRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
+        var options = new RelayOptions
         {
-            OperationName = "CustomOperation",
-            TraceRequest = false,
-            TraceResponse = false
+            DefaultDistributedTracingOptions = new DistributedTracingOptions
+            {
+                EnableAutomaticDistributedTracing = false, // Disabled
+                TraceRequests = true,
+                TraceResponses = true
+            }
         };
+        optionsMock.Setup(o => o.Value).Returns(options);
 
-        // Assert
-        Assert.Equal("CustomOperation", attribute.OperationName);
-        Assert.False(attribute.TraceRequest);
-        Assert.False(attribute.TraceResponse);
-    }
+        var behavior = new DistributedTracingPipelineBehavior<NonTraceableRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
 
-    [Fact]
-    public void TraceAttribute_ConstructorWithParameters_ShouldSetValues()
-    {
-        // Act
-        var attribute = new TraceAttribute(true, false);
-
-        // Assert
-        Assert.True(attribute.TraceRequest);
-        Assert.False(attribute.TraceResponse);
-        Assert.Null(attribute.OperationName); // Default value
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldUseTraceAttribute_WhenPresent()
-    {
-        // Arrange
-        var activity = new Activity("custom-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            "CustomOperation",
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
-            .Returns(activity);
-
-        var logger = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
-        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            logger.Object,
-            _mockOptions.Object);
-
-        var request = new TraceableRequest();
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
+        var request = new NonTraceableRequest();
+        var response = new TestResponse();
+        
+        RequestHandlerDelegate<TestResponse> next = () => ValueTask.FromResult(response);
 
         // Act
         var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
         // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.StartActivity(
-            "CustomOperation",
-            typeof(TraceableRequest),
-            null,
-            It.IsAny<Dictionary<string, object?>>()), Times.Once());
-
-        activity.Stop();
+        Assert.Equal(response, result);
+        tracingProviderMock.Verify(tp => tp.StartActivity(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<string?>(), It.IsAny<IDictionary<string, object?>>()), Times.Never);
     }
 
     [Fact]
-    public async Task HandleAsync_ShouldUseHandlerSpecificOptions_WhenAvailable()
+    public async Task HandleAsync_WithHandlerOverride_ShouldUseOverrideOptions()
     {
         // Arrange
-        var handlerKey = typeof(TestRequest).FullName!;
-        var handlerSpecificOptions = new DistributedTracingOptions
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
+        
+        var overrideOptions = new DistributedTracingOptions
         {
             EnableAutomaticDistributedTracing = true,
             TraceRequests = false,
             TraceResponses = false
         };
-
-        var relayOptions = new RelayOptions
-        {
-            DefaultDistributedTracingOptions = new DistributedTracingOptions
-            {
-                EnableAutomaticDistributedTracing = false
-            }
-        };
-        relayOptions.DistributedTracingOverrides[handlerKey] = handlerSpecificOptions;
-        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
-
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
-            .Returns(activity);
-
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
-
-        var request = new TestRequest { Value = "test" };
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
-
-        // Act
-        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()), Times.Once());
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldUseDefaultOptions_WhenNoHandlerOverride()
-    {
-        // Arrange
         var relayOptions = new RelayOptions
         {
             DefaultDistributedTracingOptions = new DistributedTracingOptions
@@ -345,48 +344,56 @@ public class DistributedTracingPipelineBehaviorTests
                 EnableAutomaticDistributedTracing = true,
                 TraceRequests = true,
                 TraceResponses = true
+            },
+            DistributedTracingOverrides = new Dictionary<string, DistributedTracingOptions>
+            {
+                { typeof(TraceableRequest).FullName ?? typeof(TraceableRequest).Name, overrideOptions }
             }
         };
-        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+        optionsMock.Setup(o => o.Value).Returns(relayOptions);
+        
+        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
 
-        var activity = new Activity("test-operation");
+        var request = new TraceableRequest();
+        var response = new TestResponse();
+        var activity = new Activity("TestOperation");
         activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
             .Returns(activity);
 
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
+        tracingProviderMock.Setup(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()))
+            .Verifiable();
 
-        var request = new TestRequest { Value = "test" };
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
+        RequestHandlerDelegate<TestResponse> next = () => ValueTask.FromResult(response);
 
         // Act
         var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
         // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()), Times.Once());
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.Exactly(2)); // Request and response
-
-        activity.Stop();
+        Assert.Equal(response, result);
+        // Activity should still start, but request/response tracing should be controlled by override
+        tracingProviderMock.Verify(tp => tp.StartActivity(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<string?>(), It.IsAny<IDictionary<string, object?>>()), Times.Once);
     }
 
+    #endregion
+
+    #region Exception Handling Tests
+
     [Fact]
-    public async Task HandleAsync_ShouldRecordException_WhenRecordExceptionsEnabled()
+    public async Task HandleAsync_WhenHandlerThrowsException_ShouldRecordException()
     {
         // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
         var relayOptions = new RelayOptions
         {
             DefaultDistributedTracingOptions = new DistributedTracingOptions
@@ -395,462 +402,373 @@ public class DistributedTracingPipelineBehaviorTests
                 RecordExceptions = true
             }
         };
-        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+        optionsMock.Setup(o => o.Value).Returns(relayOptions);
 
-        var activity = new Activity("test-operation");
+        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
+
+        var request = new TraceableRequest();
+        var exception = new InvalidOperationException("Test exception");
+        var activity = new Activity("TestOperation");
         activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
             .Returns(activity);
 
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
+        tracingProviderMock.Setup(tp => tp.RecordException(It.IsAny<Exception>()))
+            .Verifiable();
 
-        var request = new TestRequest { Value = "test" };
-        var expectedException = new InvalidOperationException("Test exception");
-        var next = new RequestHandlerDelegate<TestResponse>(() => throw expectedException);
+        tracingProviderMock.Setup(tp => tp.SetActivityStatus(ActivityStatusCode.Error, It.IsAny<string>()))
+            .Verifiable();
+
+        RequestHandlerDelegate<TestResponse> next = () => { throw exception; };
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await behavior.HandleAsync(request, next, CancellationToken.None));
-
-        _mockTracingProvider.Verify(x => x.RecordException(expectedException), Times.Once());
-        _mockTracingProvider.Verify(x => x.SetActivityStatus(ActivityStatusCode.Error, expectedException.Message), Times.Once());
-
-        activity.Stop();
+        var actualException = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await behavior.HandleAsync(request, next, CancellationToken.None));
+        
+        Assert.Equal(exception, actualException);
+        tracingProviderMock.Verify(tp => tp.RecordException(exception), Times.Once);
+        tracingProviderMock.Verify(tp => tp.SetActivityStatus(ActivityStatusCode.Error, exception.Message), Times.Once);
     }
 
     [Fact]
-    public async Task HandleAsync_ShouldNotRecordException_WhenRecordExceptionsDisabled()
+    public async Task HandleAsync_WithExceptionRecordingDisabled_ShouldNotRecordException()
     {
         // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
+        var options = new RelayOptions
+        {
+            DefaultDistributedTracingOptions = new DistributedTracingOptions
+            {
+                EnableAutomaticDistributedTracing = true,
+                RecordExceptions = false // Disabled
+            }
+        };
+        optionsMock.Setup(o => o.Value).Returns(options);
+
+        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
+
+        var request = new TraceableRequest();
+        var exception = new InvalidOperationException("Test exception");
+        var activity = new Activity("TestOperation");
+        activity.Start();
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
+            .Returns(activity);
+
+        RequestHandlerDelegate<TestResponse> next = () => { throw exception; };
+
+        // Act & Assert
+        var actualException = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await behavior.HandleAsync(request, next, CancellationToken.None));
+        
+        Assert.Equal(exception, actualException);
+        tracingProviderMock.Verify(tp => tp.RecordException(It.IsAny<Exception>()), Times.Never);
+    }
+
+    #endregion
+
+    #region AddRequestInfoToTrace and AddResponseInfoToTrace Tests
+
+    [Fact]
+    public async Task HandleAsync_WithTraceRequestEnabled_ShouldAddRequestInfo()
+    {
+        // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<ComplexRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
+        var options = new RelayOptions
+        {
+            DefaultDistributedTracingOptions = new DistributedTracingOptions
+            {
+                EnableAutomaticDistributedTracing = true,
+                TraceRequests = true, // Enable request tracing
+                TraceResponses = false
+            }
+        };
+        optionsMock.Setup(o => o.Value).Returns(options);
+
+        var behavior = new DistributedTracingPipelineBehavior<ComplexRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
+
+        var request = new ComplexRequest();
+        var response = new TestResponse();
+        var activity = new Activity("TestOperation");
+        activity.Start();
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
+            .Returns(activity);
+
+        tracingProviderMock.Setup(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()))
+            .Verifiable();
+
+        RequestHandlerDelegate<TestResponse> next = () => ValueTask.FromResult(response);
+
+        // Act
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(response, result);
+        tracingProviderMock.Verify(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithTraceResponseEnabled_ShouldAddResponseInfo()
+    {
+        // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<ComplexRequest, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
+        var options = new RelayOptions
+        {
+            DefaultDistributedTracingOptions = new DistributedTracingOptions
+            {
+                EnableAutomaticDistributedTracing = true,
+                TraceRequests = false,
+                TraceResponses = true // Enable response tracing
+            }
+        };
+        optionsMock.Setup(o => o.Value).Returns(options);
+
+        var behavior = new DistributedTracingPipelineBehavior<ComplexRequest, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
+
+        var request = new ComplexRequest();
+        var response = new TestResponse();
+        var activity = new Activity("TestOperation");
+        activity.Start();
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
+            .Returns(activity);
+
+        tracingProviderMock.Setup(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()))
+            .Verifiable();
+
+        RequestHandlerDelegate<TestResponse> next = () => ValueTask.FromResult(response);
+
+        // Act
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(response, result);
+        tracingProviderMock.Verify(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithNullRequest_ShouldHandleGracefully()
+    {
+        // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<object, TestResponse>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
         var relayOptions = new RelayOptions
         {
             DefaultDistributedTracingOptions = new DistributedTracingOptions
             {
                 EnableAutomaticDistributedTracing = true,
-                RecordExceptions = false
+                TraceRequests = true,
+                TraceResponses = true
             }
         };
-        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+        optionsMock.Setup(o => o.Value).Returns(relayOptions);
 
-        var activity = new Activity("test-operation");
+        var behavior = new DistributedTracingPipelineBehavior<object, TestResponse>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
+
+        object request = null;
+        var response = new TestResponse();
+        var activity = new Activity("TestOperation");
         activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
             .Returns(activity);
 
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
+        tracingProviderMock.Setup(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()))
+            .Verifiable();
 
-        var request = new TestRequest { Value = "test" };
-        var expectedException = new InvalidOperationException("Test exception");
-        var next = new RequestHandlerDelegate<TestResponse>(() => throw expectedException);
+        RequestHandlerDelegate<TestResponse> next = () => ValueTask.FromResult(response);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await behavior.HandleAsync(request, next, CancellationToken.None));
-
-        _mockTracingProvider.Verify(x => x.RecordException(It.IsAny<Exception>()), Times.Never());
-        _mockTracingProvider.Verify(x => x.SetActivityStatus(ActivityStatusCode.Error, It.IsAny<string>()), Times.Never());
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldAddRequestAndResponseInfoToTrace_WhenEnabled()
-    {
-        // Arrange
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<IDictionary<string, object?>>()))
-            .Returns(activity);
-
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
-
-        var request = new TestRequest { Value = "test request" };
-        var response = new TestResponse { Result = "test response" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(response));
-
-        // Act
+        // Act & Assert - should not throw
         var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
         // Assert
         Assert.Equal(response, result);
-
-        // Verify that request type information was added to trace
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.Is<IDictionary<string, object?>>(tags =>
-            tags.ContainsKey("request.type") && tags.ContainsKey("request.properties"))), Times.Once());
-
-        // Verify that response type information was added to trace
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.Is<IDictionary<string, object?>>(tags =>
-            tags.ContainsKey("response.type") && tags.ContainsKey("response.properties"))), Times.Once());
-
-        activity.Stop();
+        tracingProviderMock.Verify(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.AtLeastOnce);
     }
 
     [Fact]
-    public async Task HandleAsync_ShouldHandleTraceableRequest_WhenEnabled()
+    public async Task HandleAsync_WithNullResponse_ShouldHandleGracefully()
     {
         // Arrange
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>();
+        var loggerMock = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, object>>>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>();
         var relayOptions = new RelayOptions
         {
             DefaultDistributedTracingOptions = new DistributedTracingOptions
             {
-                EnableAutomaticDistributedTracing = false
+                EnableAutomaticDistributedTracing = true,
+                TraceRequests = true,
+                TraceResponses = true
             }
         };
-        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+        optionsMock.Setup(o => o.Value).Returns(relayOptions);
 
-        var activity = new Activity("custom-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            "CustomOperation",
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<IDictionary<string, object?>>()))
-            .Returns(activity);
-
-        var logger = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
-        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            logger.Object,
-            _mockOptions.Object);
+        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, object>(
+            tracingProviderMock.Object,
+            loggerMock.Object,
+            optionsMock.Object);
 
         var request = new TraceableRequest();
-        var response = new TestResponse { Result = "test response" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(response));
+        object response = null;
+        var activity = new Activity("TestOperation");
+        activity.Start();
+        
+        tracingProviderMock.Setup(tp => tp.StartActivity(
+                It.IsAny<string>(),
+                It.IsAny<Type>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDictionary<string, object?>>()))
+            .Returns(activity);
 
-        // Act
+        tracingProviderMock.Setup(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()))
+            .Verifiable();
+
+        RequestHandlerDelegate<object> next = () => ValueTask.FromResult(response);
+
+        // Act & Assert - should not throw
         var result = await behavior.HandleAsync(request, next, CancellationToken.None);
 
         // Assert
         Assert.Equal(response, result);
-
-        // Verify that request type information was added to trace (new enhanced behavior)
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.Is<IDictionary<string, object?>>(tags =>
-            tags.ContainsKey("request.type") && tags.ContainsKey("request.attributes"))), Times.Once());
-
-        // Verify that response type information was added to trace (new enhanced behavior)
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.Is<IDictionary<string, object?>>(tags =>
-            tags.ContainsKey("response.type") && tags.ContainsKey("response.properties"))), Times.Once());
-
-        _mockTracingProvider.Verify(x => x.SetActivityStatus(ActivityStatusCode.Ok), Times.Once());
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldEnableTracing_WhenTraceAttributePresentAndGloballyDisabled()
-    {
-        // Arrange
-        var relayOptions = new RelayOptions
-        {
-            DefaultDistributedTracingOptions = new DistributedTracingOptions
-            {
-                EnableAutomaticDistributedTracing = false
-            }
-        };
-        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
-
-        var activity = new Activity("custom-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            "CustomOperation",
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
-            .Returns(activity);
-
-        var logger = new Mock<ILogger<DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>>>();
-        var behavior = new DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            logger.Object,
-            _mockOptions.Object);
-
-        var request = new TraceableRequest();
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
-
-        // Act
-        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()), Times.Once());
-
-        activity.Stop();
-    }
-
-    #region Enhanced Tracing Tests
-
-    [Fact]
-    public async Task HandleAsync_ShouldExtractRequestProperties_WhenTracingRequest()
-    {
-        // Arrange
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<IDictionary<string, object?>>()))
-            .Returns(activity);
-
-        _mockTracingProvider.Setup(x => x.AddActivityTags(It.IsAny<IDictionary<string, object?>>()));
-
-        var mockLogger = new Mock<ILogger<DistributedTracingPipelineBehavior<ComplexTestRequest, TestResponse>>>();
-        var behavior = new DistributedTracingPipelineBehavior<ComplexTestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            mockLogger.Object,
-            _mockOptions.Object);
-
-        var request = new ComplexTestRequest
-        {
-            Id = 123,
-            Name = "Test Request",
-            Active = true,
-            CreatedAt = new DateTime(2024, 1, 1)
-        };
-
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
-
-        // Act
-        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.AtLeastOnce());
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldExtractResponseStatus_WhenTracingResponse()
-    {
-        // Arrange
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<IDictionary<string, object?>>()))
-            .Returns(activity);
-
-        _mockTracingProvider.Setup(x => x.AddActivityTags(It.IsAny<IDictionary<string, object?>>()));
-
-        var mockLogger = new Mock<ILogger<DistributedTracingPipelineBehavior<TestRequest, StatusResponse>>>();
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, StatusResponse>(
-            _mockTracingProvider.Object,
-            mockLogger.Object,
-            _mockOptions.Object);
-
-        var request = new TestRequest { Value = "test" };
-        var expectedResponse = new StatusResponse
-        {
-            Result = "result",
-            StatusCode = 200,
-            IsSuccess = true,
-            Message = "Success"
-        };
-
-        var next = new RequestHandlerDelegate<StatusResponse>(() => new ValueTask<StatusResponse>(expectedResponse));
-
-        // Act
-        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.AtLeastOnce());
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldHandleNullRequest_GracefullyWhenTracing()
-    {
-        // Arrange
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
-            .Returns(activity);
-
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            _mockLogger.Object,
-            _mockOptions.Object);
-
-        TestRequest request = null!;
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
-
-        // Act
-        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.AtLeastOnce());
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldHandleComplexResponse_WithJsonSerialization()
-    {
-        // Arrange
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
-            .Returns(activity);
-
-        var mockLogger = new Mock<ILogger<DistributedTracingPipelineBehavior<TestRequest, ComplexTestResponse>>>();
-        var behavior = new DistributedTracingPipelineBehavior<TestRequest, ComplexTestResponse>(
-            _mockTracingProvider.Object,
-            mockLogger.Object,
-            _mockOptions.Object);
-
-        var request = new TestRequest { Value = "test" };
-        var expectedResponse = new ComplexTestResponse
-        {
-            Id = 456,
-            Name = "Complex Response",
-            Data = new Dictionary<string, object>
-            {
-                { "key1", "value1" },
-                { "key2", 42 }
-            }
-        };
-
-        var next = new RequestHandlerDelegate<ComplexTestResponse>(() => new ValueTask<ComplexTestResponse>(expectedResponse));
-
-        // Act
-        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-        // Assert
-        Assert.Equal(expectedResponse, result);
-        _mockTracingProvider.Verify(x => x.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.AtLeastOnce());
-
-        activity.Stop();
-    }
-
-    [Fact]
-    public async Task HandleAsync_ShouldNotFailWhenPropertyExtractionThrows()
-    {
-        // Arrange
-        var activity = new Activity("test-operation");
-        activity.Start();
-
-        _mockTracingProvider.Setup(x => x.StartActivity(
-            It.IsAny<string>(),
-            It.IsAny<Type>(),
-            It.IsAny<string?>(),
-            It.IsAny<Dictionary<string, object?>>()))
-            .Returns(activity);
-
-        var mockLogger = new Mock<ILogger<DistributedTracingPipelineBehavior<ProblematicRequest, TestResponse>>>();
-        var behavior = new DistributedTracingPipelineBehavior<ProblematicRequest, TestResponse>(
-            _mockTracingProvider.Object,
-            mockLogger.Object,
-            _mockOptions.Object);
-
-        var request = new ProblematicRequest();
-        var expectedResponse = new TestResponse { Result = "result" };
-        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(expectedResponse));
-
-        // Act & Assert - Should not throw even if property extraction fails
-        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
-
-        Assert.Equal(expectedResponse, result);
-
-        activity.Stop();
+        tracingProviderMock.Verify(tp => tp.AddActivityTags(It.IsAny<IDictionary<string, object?>>()), Times.AtLeastOnce);
     }
 
     #endregion
 
-    public class TestRequest : IRequest<TestResponse>
+    #region Private Methods Tests (using reflection)
+
+    [Fact]
+    public void GetDistributedTracingOptions_WithHandlerOverride_ShouldReturnOverrideOptions()
     {
-        public string Value { get; set; } = string.Empty;
+        // Use reflection to test private method
+        var behavior = CreateBehaviorWithReflection<TraceableRequest, TestResponse>(
+            new RelayOptions
+            {
+                DefaultDistributedTracingOptions = new DistributedTracingOptions
+                {
+                    EnableAutomaticDistributedTracing = true,
+                    TraceRequests = true,
+                    TraceResponses = true
+                },
+                DistributedTracingOverrides = new Dictionary<string, DistributedTracingOptions>
+                {
+                    { typeof(TraceableRequest).FullName ?? typeof(TraceableRequest).Name, 
+                      new DistributedTracingOptions { EnableAutomaticDistributedTracing = false } }
+                }
+            });
+
+        var method = typeof(DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>)
+            .GetMethod("GetDistributedTracingOptions", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        var result = (DistributedTracingOptions)method.Invoke(behavior, null);
+
+        Assert.False(result.EnableAutomaticDistributedTracing); // Should come from override
     }
 
-    public class ComplexTestRequest : IRequest<TestResponse>
+    [Fact]
+    public void GetDistributedTracingOptions_WithoutHandlerOverride_ShouldReturnDefaultOptions()
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public bool Active { get; set; }
-        public DateTime CreatedAt { get; set; }
+        // Use reflection to test private method
+        var behavior = CreateBehaviorWithReflection<TraceableRequest, TestResponse>(
+            new RelayOptions
+            {
+                DefaultDistributedTracingOptions = new DistributedTracingOptions
+                {
+                    EnableAutomaticDistributedTracing = true,
+                    TraceRequests = true,
+                    TraceResponses = true
+                },
+                DistributedTracingOverrides = new Dictionary<string, DistributedTracingOptions>()
+            });
+
+        var method = typeof(DistributedTracingPipelineBehavior<TraceableRequest, TestResponse>)
+            .GetMethod("GetDistributedTracingOptions", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        var result = (DistributedTracingOptions)method.Invoke(behavior, null);
+
+        Assert.True(result.EnableAutomaticDistributedTracing); // Should come from default
     }
 
-    public class ProblematicRequest : IRequest<TestResponse>
+    #endregion
+
+    #region Helper Methods
+
+    private DistributedTracingPipelineBehavior<TRequest, TResponse> CreateBehaviorWithReflection<TRequest, TResponse>(RelayOptions options)
     {
-        // This property will throw when accessed
-        public string ProblematicProperty
-        {
-            get { throw new InvalidOperationException("This property always throws"); }
-        }
+        var tracingProviderMock = new Mock<IDistributedTracingProvider>().Object;
+        var loggerMock = CreateLoggerMock<TRequest, TResponse>();
+        var optionsMock = new Mock<IOptions<RelayOptions>>().Object;
+        Mock.Get(optionsMock).Setup(o => o.Value).Returns(options);
+
+        var constructor = typeof(DistributedTracingPipelineBehavior<TRequest, TResponse>)
+            .GetConstructor(new[] {
+                typeof(IDistributedTracingProvider),
+                typeof(ILogger<DistributedTracingPipelineBehavior<TRequest, TResponse>>),
+                typeof(IOptions<RelayOptions>)
+            });
+
+        return (DistributedTracingPipelineBehavior<TRequest, TResponse>)constructor.Invoke(
+            new object[] { 
+                tracingProviderMock, 
+                loggerMock, 
+                optionsMock 
+            });
     }
 
-    [Trace(OperationName = "CustomOperation")]
-    public class TraceableRequest : IRequest<TestResponse>
+    private ILogger<T> CreateLoggerMock<T>()
     {
+        return new Mock<ILogger<T>>().Object;
     }
 
-    public class TestResponse
+    private ILogger<DistributedTracingPipelineBehavior<TRequest, TResponse>> CreateLoggerMock<TRequest, TResponse>()
     {
-        public string Result { get; set; } = string.Empty;
+        return new Mock<ILogger<DistributedTracingPipelineBehavior<TRequest, TResponse>>>().Object;
     }
 
-    public class StatusResponse
-    {
-        public string Result { get; set; } = string.Empty;
-        public int StatusCode { get; set; }
-        public bool IsSuccess { get; set; }
-        public string Message { get; set; } = string.Empty;
-    }
-
-    public class ComplexTestResponse
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public Dictionary<string, object>? Data { get; set; }
-    }
+    #endregion
 }

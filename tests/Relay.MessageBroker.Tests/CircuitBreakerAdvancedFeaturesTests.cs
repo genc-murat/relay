@@ -135,9 +135,9 @@ public class CircuitBreakerAdvancedFeaturesTests
         var circuitBreaker = new CircuitBreaker.CircuitBreaker(options);
 
         // Act - Execute operations where 2 out of 3 are slow (66% > 60% threshold)
-        await circuitBreaker.ExecuteAsync(async ct => { await Task.Delay(10, ct); }); // Fast
-        await circuitBreaker.ExecuteAsync(async ct => { await Task.Delay(60, ct); }); // Slow
-        await circuitBreaker.ExecuteAsync(async ct => { await Task.Delay(60, ct); }); // Slow
+        await circuitBreaker.ExecuteAsync(async ct => { await Task.CompletedTask; }); // Fast
+        await circuitBreaker.ExecuteAsync(async ct => { await Task.Delay(100, ct); }); // Slow
+        await circuitBreaker.ExecuteAsync(async ct => { await Task.Delay(100, ct); }); // Slow
 
         // Assert - Circuit should be open due to slow call rate threshold
         Assert.Equal(CircuitBreakerState.Open, circuitBreaker.State);

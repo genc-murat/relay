@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Relay.SourceGenerator.Core;
+using Relay.SourceGenerator.Diagnostics;
 using System.Collections.Immutable;
 using System.Reflection;
 
@@ -134,6 +135,22 @@ namespace TestProject
     }
 
     /// <summary>
+    /// Tests that CompilationAnalysisContextDiagnosticReporter implements IDiagnosticReporter.
+    /// </summary>
+    [Fact]
+    public void CompilationAnalysisContextDiagnosticReporter_Implements_IDiagnosticReporter()
+    {
+        // Arrange
+        var type = typeof(CompilationAnalysisContextDiagnosticReporter);
+
+        // Act
+        var interfaces = type.GetInterfaces();
+
+        // Assert
+        Assert.Contains(typeof(IDiagnosticReporter), interfaces);
+    }
+
+    /// <summary>
     /// Tests that ValidateAttributeParameterConflicts handles exceptions gracefully.
     /// </summary>
     [Fact]
@@ -163,6 +180,46 @@ namespace TestProject
         // Assert
         Assert.NotNull(result);
         Assert.Empty(result); // Since we didn't add any handlers
+    }
+
+    /// <summary>
+    /// Tests that ConvertToHandlerRegistrations properly converts AnalyzerHandlerInfo with actual handlers.
+    /// </summary>
+    [Fact]
+    public void RelayAnalyzer_ConvertToHandlerRegistrations_WithHandlers_ConvertsCorrectly()
+    {
+    // Arrange
+    var handlerRegistry = new HandlerRegistry();
+
+    // Create a mock handler info directly in the registry
+    var analyzerHandlerInfo = new AnalyzerHandlerInfo
+    {
+    MethodSymbol = null!, // This will remain null, so we shouldn't access .Method.Name
+    MethodName = "TestMethod",
+    RequestType = null!, // We'll set this to null for the test
+            Name = "TestHandler",
+        Priority = 1,
+        Location = Location.None,
+    Attribute = null
+    };
+
+    // Add the handler info directly to the registry (this is internal behavior)
+    handlerRegistry.Handlers.Add(analyzerHandlerInfo);
+
+    // Act
+    var convertMethod = typeof(RelayAnalyzer).GetMethod("ConvertToHandlerRegistrations", BindingFlags.NonPublic | BindingFlags.Static);
+    Assert.NotNull(convertMethod);
+
+        var result = (IEnumerable<HandlerRegistration>)convertMethod.Invoke(null!, [handlerRegistry])!;
+
+    // Assert
+    Assert.NotNull(result);
+        Assert.Single(result); // Should have converted one handler
+
+    var handlerRegistration = result.First();
+    Assert.Equal("TestHandler", handlerRegistration.Name);
+    Assert.Equal(1, handlerRegistration.Priority);
+    // We can't test handlerRegistration.Method.Name since MethodSymbol was null in the input
     }
 
     /// <summary>

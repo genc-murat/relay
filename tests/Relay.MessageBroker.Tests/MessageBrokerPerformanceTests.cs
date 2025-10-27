@@ -19,7 +19,7 @@ public class MessageBrokerPerformanceTests
 
     public class PerformanceTestableMessageBroker : BaseMessageBroker
     {
-        public ConcurrentBag<object> PublishedMessages { get; } = new();
+        public ConcurrentBag<int> PublishedMessageIds { get; } = new();
         public ConcurrentBag<object> ProcessedMessages { get; } = new();
         public long TotalProcessingTimeMs;
         public int MessageCount;
@@ -39,7 +39,15 @@ public class MessageBrokerPerformanceTests
         {
             var stopwatch = Stopwatch.StartNew();
 
-            PublishedMessages.Add(message!);
+            // Store message id for verification (assumes message has Id property)
+            if (message is TestMessage tm)
+            {
+                PublishedMessageIds.Add(tm.Id);
+            }
+            else
+            {
+                PublishedMessageIds.Add(PublishedMessageIds.Count);
+            }
 
             // Process message for subscribers if started and there are subscriptions
             if (IsStarted && _subscriptions.ContainsKey(typeof(TMessage)))
@@ -120,7 +128,7 @@ public class MessageBrokerPerformanceTests
         Assert.True(messagesPerSecond >= minMessagesPerSecond,
             $"Throughput {messagesPerSecond:F0} msg/s below minimum {minMessagesPerSecond} msg/s");
 
-        Assert.Equal(messageCount, broker.PublishedMessages.Count);
+        Assert.Equal(messageCount, broker.PublishedMessageIds.Count);
     }
 
     [Fact]
@@ -168,12 +176,10 @@ public class MessageBrokerPerformanceTests
         _output.WriteLine($"Concurrent publishing: {totalMessages} messages in {totalTimeSeconds:F2} seconds");
         _output.WriteLine($"Concurrent throughput: {messagesPerSecond:F0} messages/second");
 
-        Assert.Equal(totalMessages, broker.PublishedMessages.Count);
+        Assert.Equal(totalMessages, broker.PublishedMessageIds.Count);
 
         // Verify all messages are unique
-        var messageIds = broker.PublishedMessages
-            .OfType<TestMessage>()
-            .Select(m => m.Id)
+        var messageIds = broker.PublishedMessageIds
             .OrderBy(id => id)
             .ToList();
 
@@ -278,7 +284,7 @@ public class MessageBrokerPerformanceTests
         Assert.True(scalingFactor <= 10.0,
             $"Large message processing scaled {scalingFactor:F2}x, which is excessive");
 
-        Assert.Equal(3, broker.PublishedMessages.Count);
+        Assert.Equal(3, broker.PublishedMessageIds.Count);
     }
 
     [Fact]
@@ -320,7 +326,7 @@ public class MessageBrokerPerformanceTests
         Assert.True(memoryPerMessage <= 1000,
             $"Memory usage {memoryPerMessage:F2} bytes per message is too high");
 
-        Assert.Equal(messageCount, broker.PublishedMessages.Count);
+        Assert.Equal(messageCount, broker.PublishedMessageIds.Count);
     }
 
     [Fact]

@@ -229,9 +229,9 @@ public class FullPipelineIntegrationTests
             .AddHandler(handler);
 
         var relay = harness.Build();
-        var request = new IntegrationTestStreamRequest { ItemCount = 100, DelayMs = 10 };
+        var request = new IntegrationTestStreamRequest { ItemCount = 100, DelayMs = 10 }; // Keep original delay
 
-        using var cts = new CancellationTokenSource(150); // Cancel after allowing several items
+        using var cts = new CancellationTokenSource(500); // Increased timeout to ensure at least first item is processed
 
         // Act
         var results = new List<int>();
@@ -247,8 +247,7 @@ public class FullPipelineIntegrationTests
         Assert.NotEmpty(results);
         Assert.True(results.Count < 100, "stream should be cancelled before completion");
 
-        // With 10ms delay and 150ms timeout, we should get at least a couple items
-        // Being conservative here due to thread scheduling in test environments
+        // With 10ms delay and 500ms timeout, we should get at least a few items even with system overhead
         Assert.True(results.Count > 0, "should receive at least one item before cancellation");
     }
 

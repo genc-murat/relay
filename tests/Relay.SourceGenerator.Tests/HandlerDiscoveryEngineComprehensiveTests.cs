@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Relay.SourceGenerator.Diagnostics;
 using Relay.SourceGenerator.Discovery;
 
@@ -118,35 +119,35 @@ namespace TestProject
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         
         // Test Handle attributes
-        var handleResult = (RelayAttributeType)method.Invoke(engine, new object[] { "HandleAttribute" })!;
+        var handleResult = (RelayAttributeType)method.Invoke(engine, ["HandleAttribute"])!;
         Assert.Equal(RelayAttributeType.Handle, handleResult);
         
-        var handleResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Handle" })!;
+        var handleResult2 = (RelayAttributeType)method.Invoke(engine, ["Handle"])!;
         Assert.Equal(RelayAttributeType.Handle, handleResult2);
         
         // Test Notification attributes
-        var notificationResult = (RelayAttributeType)method.Invoke(engine, new object[] { "NotificationAttribute" })!;
+        var notificationResult = (RelayAttributeType)method.Invoke(engine, ["NotificationAttribute"])!;
         Assert.Equal(RelayAttributeType.Notification, notificationResult);
         
-        var notificationResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Notification" })!;
+        var notificationResult2 = (RelayAttributeType)method.Invoke(engine, ["Notification"])!;
         Assert.Equal(RelayAttributeType.Notification, notificationResult2);
         
         // Test Pipeline attributes
-        var pipelineResult = (RelayAttributeType)method.Invoke(engine, new object[] { "PipelineAttribute" })!;
+        var pipelineResult = (RelayAttributeType)method.Invoke(engine, ["PipelineAttribute"])!;
         Assert.Equal(RelayAttributeType.Pipeline, pipelineResult);
         
-        var pipelineResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "Pipeline" })!;
+        var pipelineResult2 = (RelayAttributeType)method.Invoke(engine, ["Pipeline"])!;
         Assert.Equal(RelayAttributeType.Pipeline, pipelineResult2);
         
         // Test ExposeAsEndpoint attributes
-        var endpointResult = (RelayAttributeType)method.Invoke(engine, new object[] { "ExposeAsEndpointAttribute" })!;
+        var endpointResult = (RelayAttributeType)method.Invoke(engine, ["ExposeAsEndpointAttribute"])!;
         Assert.Equal(RelayAttributeType.ExposeAsEndpoint, endpointResult);
         
-        var endpointResult2 = (RelayAttributeType)method.Invoke(engine, new object[] { "ExposeAsEndpoint" })!;
+        var endpointResult2 = (RelayAttributeType)method.Invoke(engine, ["ExposeAsEndpoint"])!;
         Assert.Equal(RelayAttributeType.ExposeAsEndpoint, endpointResult2);
         
         // Test unknown attribute
-        var unknownResult = (RelayAttributeType)method.Invoke(engine, new object[] { "UnknownAttribute" })!;
+        var unknownResult = (RelayAttributeType)method.Invoke(engine, ["UnknownAttribute"])!;
         Assert.Equal(RelayAttributeType.None, unknownResult);
     }
 
@@ -280,8 +281,8 @@ namespace TestProject
         
         // Act - Call GetResponseType twice to test caching
 #pragma warning disable CS8601 // Possible null reference assignment - expected in test scenario
-        var responseType1 = (ITypeSymbol)getResponseTypeMethod.Invoke(engine, new object[] { methodSymbol })!;
-        var responseType2 = (ITypeSymbol)getResponseTypeMethod.Invoke(engine, new object[] { methodSymbol })!;
+        var responseType1 = (ITypeSymbol)getResponseTypeMethod.Invoke(engine, [methodSymbol])!;
+        var responseType2 = (ITypeSymbol)getResponseTypeMethod.Invoke(engine, [methodSymbol])!;
 #pragma warning restore CS8601
         
         // Assert
@@ -462,9 +463,12 @@ namespace TestProject
         }
 
         // Add null methods to the list to test handling of nulls
-        var methodsWithNulls = new List<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax?>(receiver.CandidateMethods);
-        methodsWithNulls.Add(null);
-        methodsWithNulls.Add(null);
+        List<MethodDeclarationSyntax?> methodsWithNulls =
+        [
+            .. receiver.CandidateMethods,
+            null,
+            null
+        ];
 
         var diagnostics = new List<Diagnostic>();
         var mockReporter = new MockDiagnosticReporter(diagnostics);
@@ -478,7 +482,7 @@ namespace TestProject
         Assert.Empty(diagnostics); // No error diagnostics for null methods
     }
 
-    private (HandlerDiscoveryResult result, Diagnostic[] diagnostics) RunHandlerDiscoveryWithDiagnostics(string source)
+    private static (HandlerDiscoveryResult result, Diagnostic[] diagnostics) RunHandlerDiscoveryWithDiagnostics(string source)
     {
         var compilation = CreateTestCompilation(source);
         var context = new RelayCompilationContext(compilation, default);
@@ -515,12 +519,12 @@ namespace TestProject
 
         return CSharpCompilation.Create(
             "TestAssembly",
-            new[] { syntaxTree },
+            [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
     
-    private string CreateMinimalHandlerSource()
+    private static string CreateMinimalHandlerSource()
     {
         return @"
 using Relay.Core;

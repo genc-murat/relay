@@ -7,30 +7,20 @@ using System.Linq;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal class AspNetCoreConnectionEstimator
+internal class AspNetCoreConnectionEstimator(
+    ILogger logger,
+    AIOptimizationOptions options,
+    ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+    Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+    SystemMetricsCalculator systemMetrics,
+    ProtocolMetricsCalculator protocolCalculator)
 {
-    private readonly ILogger _logger;
-    private readonly AIOptimizationOptions _options;
-    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics;
-    private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb;
-    private readonly SystemMetricsCalculator _systemMetrics;
-    private readonly ProtocolMetricsCalculator _protocolCalculator;
-
-    public AspNetCoreConnectionEstimator(
-        ILogger logger,
-        AIOptimizationOptions options,
-        ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
-        Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
-        SystemMetricsCalculator systemMetrics,
-        ProtocolMetricsCalculator protocolCalculator)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
-        _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
-        _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
-        _protocolCalculator = protocolCalculator ?? throw new ArgumentNullException(nameof(protocolCalculator));
-    }
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly AIOptimizationOptions _options = options ?? throw new ArgumentNullException(nameof(options));
+    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
+    private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
+    private readonly SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
+    private readonly ProtocolMetricsCalculator _protocolCalculator = protocolCalculator ?? throw new ArgumentNullException(nameof(protocolCalculator));
 
     public int GetAspNetCoreConnectionCount()
     {
@@ -154,7 +144,7 @@ internal class AspNetCoreConnectionEstimator
             foreach (var metricName in metricNames)
             {
                 var recentMetrics = _timeSeriesDb.GetRecentMetrics(metricName, 10);
-                if (recentMetrics.Any())
+                if (recentMetrics.Count != 0)
                 {
                     // Use weighted average of recent values for stability
                     var weights = Enumerable.Range(1, recentMetrics.Count).Select(i => (double)i).ToArray();
@@ -179,7 +169,7 @@ internal class AspNetCoreConnectionEstimator
     {
         try
         {
-            if (!_requestAnalytics.Any())
+            if (_requestAnalytics.IsEmpty)
                 return 0;
 
             // Analyze concurrent execution patterns
@@ -187,7 +177,7 @@ internal class AspNetCoreConnectionEstimator
                 .Select(a => a.ConcurrentExecutionPeaks)
                 .ToList();
 
-            if (!concurrentPeaks.Any() || concurrentPeaks.All(p => p == 0))
+            if (concurrentPeaks.Count == 0 || concurrentPeaks.All(p => p == 0))
                 return 0;
 
             // Use 90th percentile of concurrent execution as estimate
@@ -225,7 +215,7 @@ internal class AspNetCoreConnectionEstimator
 
             // Check if we have any connection-related metrics in time-series
             var connectionMetrics = _timeSeriesDb.GetRecentMetrics("ConnectionMetrics", 5);
-            if (connectionMetrics.Any())
+            if (connectionMetrics.Count != 0)
             {
                 return (int)connectionMetrics.Last().Value;
             }
@@ -259,7 +249,7 @@ internal class AspNetCoreConnectionEstimator
                 .Where(m => Math.Abs(m.Timestamp.Hour - hourOfDay) <= 1)
                 .ToList();
 
-            if (similarTimeData.Any())
+            if (similarTimeData.Count != 0)
             {
                 // Use median of similar time periods
                 var sortedValues = similarTimeData.Select(m => m.Value).OrderBy(v => v).ToList();
@@ -278,7 +268,7 @@ internal class AspNetCoreConnectionEstimator
             }
 
             // Fallback: Use exponential moving average of all historical data
-            var ema = CalculateEMA(historicalData.Select(m => (double)m.Value).ToList(), alpha: 0.3);
+            var ema = CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.3);
             return Math.Max(1, (int)ema);
         }
         catch (Exception ex)
@@ -361,7 +351,7 @@ internal class AspNetCoreConnectionEstimator
             if (metrics.Count >= 5)
             {
                 // Use exponential moving average for recent trend
-                var ema = CalculateEMA(metrics.Select(m => (double)m.Value).ToList(), alpha: 0.3);
+                var ema = CalculateEMA([.. metrics.Select(m => (double)m.Value)], alpha: 0.3);
                 return ema;
             }
 

@@ -148,7 +148,7 @@ public class MSBuildConfigurationHelperTests
     public void CreateFromMSBuildProperties_BooleanProperty_NotSet_ReturnsDefault()
     {
         // Arrange
-        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>());
+        var options = new MockAnalyzerConfigOptionsProvider([]);
 
         // Act
         var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
@@ -229,7 +229,7 @@ public class MSBuildConfigurationHelperTests
     public void CreateFromMSBuildProperties_StringProperty_NotSet_ReturnsNull()
     {
         // Arrange
-        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>());
+        var options = new MockAnalyzerConfigOptionsProvider([]);
 
         // Act
         var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);

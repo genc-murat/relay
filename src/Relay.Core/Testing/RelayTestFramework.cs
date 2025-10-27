@@ -19,7 +19,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
     private readonly IServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     private readonly IRelay _relay = (IRelay)serviceProvider.GetRequiredService(typeof(IRelay));
     private readonly ILogger<RelayTestFramework>? _logger = (ILogger<RelayTestFramework>?)serviceProvider.GetService(typeof(ILogger<RelayTestFramework>));
-    private readonly List<TestScenario> _scenarios = new();
+    private readonly List<TestScenario> _scenarios = [];
 
     /// <summary>
     /// Creates a new test scenario.
@@ -219,7 +219,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         return result;
     }
 
-    private async Task ExecuteSendRequestStep(TestStep step, StepResult result, CancellationToken cancellationToken)
+    private async Task ExecuteSendRequestStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
     {
         if (step.Request == null)
             throw new InvalidOperationException("Request is required for SendRequest step");
@@ -228,7 +228,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         await _relay.SendAsync((IRequest)step.Request, cancellationToken);
     }
 
-    private async Task ExecutePublishNotificationStep(TestStep step, StepResult result, CancellationToken cancellationToken)
+    private async Task ExecutePublishNotificationStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
     {
         if (step.Notification == null)
             throw new InvalidOperationException("Notification is required for PublishNotification step");
@@ -236,11 +236,11 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         // Use reflection to invoke the correct generic PublishAsync method
         var notificationType = step.Notification.GetType();
         var publishMethod = (typeof(IRelay).GetMethod(nameof(IRelay.PublishAsync))?.MakeGenericMethod(notificationType)) ?? throw new InvalidOperationException($"Cannot find PublishAsync method for notification type {notificationType}");
-        dynamic task = publishMethod.Invoke(_relay, new object[] { step.Notification, cancellationToken })!;
+        dynamic task = publishMethod.Invoke(_relay, [step.Notification, cancellationToken])!;
         await task;
     }
 
-    private async Task ExecuteStreamRequestStep(TestStep step, StepResult result, CancellationToken cancellationToken)
+    private async Task ExecuteStreamRequestStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
     {
         if (step.StreamRequest == null)
             throw new InvalidOperationException("StreamRequest is required for StreamRequest step");
@@ -249,17 +249,17 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         var requestType = step.StreamRequest.GetType();
         var responseType = requestType.GetGenericArguments()[0];
         var streamMethod = (typeof(IRelay).GetMethod(nameof(IRelay.StreamAsync))?.MakeGenericMethod(responseType)) ?? throw new InvalidOperationException($"Cannot find StreamAsync method for request type {requestType}");
-        var enumerable = streamMethod.Invoke(_relay, new object[] { step.StreamRequest, cancellationToken });
+        var enumerable = streamMethod.Invoke(_relay, [step.StreamRequest, cancellationToken]);
 
         // Use reflection to iterate over the async enumerable
         var enumeratorMethod = enumerable!.GetType().GetMethod("GetAsyncEnumerator") ?? throw new InvalidOperationException("Cannot get async enumerator for stream");
-        var enumerator = enumeratorMethod.Invoke(enumerable, new object[] { cancellationToken }) ?? throw new InvalidOperationException("Cannot get async enumerator");
+        var enumerator = enumeratorMethod.Invoke(enumerable, [cancellationToken]) ?? throw new InvalidOperationException("Cannot get async enumerator");
         try
         {
             var moveNextMethod = enumerator.GetType().GetMethod("MoveNextAsync") ?? throw new InvalidOperationException("Cannot move next on async enumerator");
             while (true)
             {
-                var invokeResult = moveNextMethod.Invoke(enumerator, Array.Empty<object>());
+                var invokeResult = moveNextMethod.Invoke(enumerator, []);
                 if (invokeResult is ValueTask<bool> moveNextTask)
                 {
                     if (!await moveNextTask)
@@ -276,7 +276,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
             var disposeMethod = enumerator.GetType().GetMethod("DisposeAsync");
             if (disposeMethod != null)
             {
-                var invokeResult = disposeMethod.Invoke(enumerator, Array.Empty<object>());
+                var invokeResult = disposeMethod.Invoke(enumerator, []);
                 if (invokeResult is ValueTask disposeTask)
                 {
                     await disposeTask;
@@ -285,7 +285,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         }
     }
 
-    private async Task ExecuteVerifyStep(TestStep step, StepResult result, CancellationToken cancellationToken)
+    private static async Task ExecuteVerifyStep(TestStep step, StepResult _result, CancellationToken _cancellationToken)
     {
         if (step.VerificationFunc == null)
             throw new InvalidOperationException("VerificationFunc is required for Verify step");
@@ -297,17 +297,17 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         }
     }
 
-    private void ValidateLoadTestConfiguration(LoadTestConfiguration config)
+    private static void ValidateLoadTestConfiguration(LoadTestConfiguration config)
     {
         if (config.TotalRequests <= 0)
-            throw new ArgumentException("TotalRequests must be greater than 0", nameof(config.TotalRequests));
+            throw new ArgumentOutOfRangeException(nameof(config.TotalRequests));
         if (config.MaxConcurrency <= 0)
-            throw new ArgumentException("MaxConcurrency must be greater than 0", nameof(config.MaxConcurrency));
+            throw new ArgumentOutOfRangeException(nameof(config.MaxConcurrency));
         if (config.RampUpDelayMs < 0)
-            throw new ArgumentException("RampUpDelayMs cannot be negative", nameof(config.RampUpDelayMs));
+            throw new ArgumentOutOfRangeException(nameof(config.RampUpDelayMs));
     }
 
-    private double CalculateMedian(List<double> values)
+    private static double CalculateMedian(List<double> values)
     {
         if (values.Count == 0) return 0;
 
@@ -324,7 +324,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         }
     }
 
-    private double CalculatePercentile(List<double> values, double percentile)
+    private static double CalculatePercentile(List<double> values, double percentile)
     {
         if (values.Count == 0) return 0;
         if (percentile < 0 || percentile > 1)

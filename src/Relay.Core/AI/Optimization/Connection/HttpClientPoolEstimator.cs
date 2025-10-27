@@ -8,31 +8,22 @@ using System.Linq;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal class HttpClientPoolEstimator
+internal class HttpClientPoolEstimator(
+    ILogger logger,
+    AIOptimizationOptions options,
+    ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+    Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+    SystemMetricsCalculator systemMetrics)
 {
-    private readonly ILogger _logger;
-    private readonly AIOptimizationOptions _options;
-    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics;
-    private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb;
-    private readonly SystemMetricsCalculator _systemMetrics;
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly AIOptimizationOptions _options = options ?? throw new ArgumentNullException(nameof(options));
+    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
+    private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
+    private readonly SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
     private readonly Stopwatch _reflectionStopwatch = new();
     private readonly ConcurrentDictionary<string, System.Net.Http.HttpClient> _trackedHttpClients = new();
     private readonly ConcurrentDictionary<string, DateTime> _httpClientLastUsed = new();
     private DateTime _lastHttpClientDiscovery = DateTime.MinValue;
-
-    public HttpClientPoolEstimator(
-        ILogger logger,
-        AIOptimizationOptions options,
-        ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
-        Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
-        SystemMetricsCalculator systemMetrics)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
-        _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
-        _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
-    }
 
     public int GetHttpClientPoolConnectionCount()
     {
@@ -42,10 +33,10 @@ internal class HttpClientPoolEstimator
 
             // Try to get from stored metrics first
             var storedMetrics = _timeSeriesDb.GetRecentMetrics("HttpClientPool_ConnectionCount", 20);
-            if (storedMetrics.Any())
+            if (storedMetrics.Count != 0)
             {
                 var avgCount = (int)storedMetrics.Average(m => m.Value);
-                var recentTrend = storedMetrics.Count() > 1
+                var recentTrend = storedMetrics.Count > 1
                     ? storedMetrics.Last().Value - storedMetrics.First().Value
                     : 0;
 
@@ -109,7 +100,7 @@ internal class HttpClientPoolEstimator
 
             // Calculate active connections based on throughput
             var activeRequests = GetActiveRequestCount();
-            var externalRequestRatio = requestAnalytics.Any()
+            var externalRequestRatio = requestAnalytics.Length != 0
                 ? (double)totalExternalCalls / Math.Max(1, requestAnalytics.Sum(x => x.TotalExecutions))
                 : 0.2; // Default: 20% of requests make external calls
 
@@ -167,7 +158,7 @@ internal class HttpClientPoolEstimator
 
             // Try to get from time series database (populated by DiagnosticListener)
             var diagnosticMetrics = _timeSeriesDb.GetRecentMetrics("HttpClient_ActiveConnections_Diagnostic", 5);
-            if (diagnosticMetrics.Any())
+            if (diagnosticMetrics.Count != 0)
             {
                 var latestCount = (int)diagnosticMetrics.Last().Value;
                 return Math.Max(0, latestCount);
@@ -175,7 +166,7 @@ internal class HttpClientPoolEstimator
 
             // Alternative: Check if we have recent metrics in the cache
             var cachedDiagnostics = _timeSeriesDb.GetRecentMetrics("HttpClient_Diagnostic_Cache", 3);
-            if (cachedDiagnostics.Any())
+            if (cachedDiagnostics.Count != 0)
             {
                 return (int)cachedDiagnostics.Last().Value;
             }
@@ -329,7 +320,7 @@ internal class HttpClientPoolEstimator
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error retrieving HttpClient instances, returning cached instances");
-            return _trackedHttpClients.Values.ToList();
+            return [.. _trackedHttpClients.Values];
         }
     }
 
@@ -470,10 +461,7 @@ internal class HttpClientPoolEstimator
     /// </summary>
     public void RegisterHttpClient(System.Net.Http.HttpClient httpClient, string? identifier = null)
     {
-        if (httpClient == null)
-        {
-            throw new ArgumentNullException(nameof(httpClient));
-        }
+        ArgumentNullException.ThrowIfNull(httpClient);
 
         var key = identifier ?? $"HttpClient_{httpClient.GetHashCode()}";
         _trackedHttpClients.AddOrUpdate(key, httpClient, (_, _) => httpClient);

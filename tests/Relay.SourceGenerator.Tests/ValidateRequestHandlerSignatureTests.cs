@@ -69,7 +69,7 @@ namespace TestProject
                  d.GetMessage().Contains("Request handlers must return"));
     }
 
-    private static Compilation CreateTestCompilation(string source)
+    private static CSharpCompilation CreateTestCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 

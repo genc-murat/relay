@@ -5,24 +5,16 @@ using System.Linq;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal class LoadBalancerConnectionEstimator
+internal class LoadBalancerConnectionEstimator(
+    ILogger logger,
+    AIOptimizationOptions options,
+    Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+    SystemMetricsCalculator systemMetrics)
 {
-    private readonly ILogger _logger;
-    private readonly AIOptimizationOptions _options;
-    private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb;
-    private readonly SystemMetricsCalculator _systemMetrics;
-
-    public LoadBalancerConnectionEstimator(
-        ILogger logger,
-        AIOptimizationOptions options,
-        Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
-        SystemMetricsCalculator systemMetrics)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
-        _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
-    }
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly AIOptimizationOptions _options = options ?? throw new ArgumentNullException(nameof(options));
+    private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
+    private readonly SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
 
     public int GetLoadBalancerConnectionCount()
     {
@@ -33,7 +25,7 @@ internal class LoadBalancerConnectionEstimator
 
             // Try to get from stored metrics first
             var storedLbMetrics = _timeSeriesDb.GetRecentMetrics("LoadBalancer_ConnectionCount", 10);
-            if (storedLbMetrics.Any())
+            if (storedLbMetrics.Count != 0)
             {
                 var avgCount = (int)storedLbMetrics.Average(m => m.Value);
                 var latestCount = (int)storedLbMetrics.Last().Value;
@@ -165,7 +157,7 @@ internal class LoadBalancerConnectionEstimator
         }
     }
 
-    private int CalculatePersistentLBConnections(int processorCount, int activeRequests)
+    private static int CalculatePersistentLBConnections(int processorCount, int activeRequests)
     {
         try
         {
@@ -207,7 +199,7 @@ internal class LoadBalancerConnectionEstimator
 
             // Check historical patterns for sticky session usage
             var historicalAffinity = _timeSeriesDb.GetRecentMetrics("LoadBalancer_AffinityRate", 20);
-            if (historicalAffinity.Any())
+            if (historicalAffinity.Count != 0)
             {
                 var avgAffinityRate = historicalAffinity.Average(m => m.Value);
                 affinityConnections = (int)(activeRequests * avgAffinityRate);
@@ -222,7 +214,7 @@ internal class LoadBalancerConnectionEstimator
         }
     }
 
-    private int CalculateBackendPoolConnections(double throughput)
+    private static int CalculateBackendPoolConnections(double throughput)
     {
         try
         {
@@ -282,7 +274,7 @@ internal class LoadBalancerConnectionEstimator
 
             // Check if service mesh indicators exist
             var serviceMeshMetrics = _timeSeriesDb.GetRecentMetrics("ServiceMesh_Active", 5);
-            if (!serviceMeshMetrics.Any() || serviceMeshMetrics.Last().Value == 0)
+            if (serviceMeshMetrics.Count == 0 || serviceMeshMetrics.Last().Value == 0)
             {
                 return 0; // No service mesh
             }
@@ -318,7 +310,7 @@ internal class LoadBalancerConnectionEstimator
 
             // Check for LB type hints in configuration or environment
             var lbTypeMetrics = _timeSeriesDb.GetRecentMetrics("LoadBalancer_Type", 1);
-            if (lbTypeMetrics.Any())
+            if (lbTypeMetrics.Count != 0)
             {
                 var lbType = (int)lbTypeMetrics.Last().Value;
                 return lbType switch
@@ -349,7 +341,7 @@ internal class LoadBalancerConnectionEstimator
 
             // Check for topology hints
             var topologyMetrics = _timeSeriesDb.GetRecentMetrics("Deployment_Topology", 1);
-            if (topologyMetrics.Any())
+            if (topologyMetrics.Count != 0)
             {
                 var topology = (int)topologyMetrics.Last().Value;
                 return topology switch
@@ -380,7 +372,7 @@ internal class LoadBalancerConnectionEstimator
 
             // Check for HA configuration
             var haMetrics = _timeSeriesDb.GetRecentMetrics("LoadBalancer_HA_Instances", 1);
-            if (haMetrics.Any())
+            if (haMetrics.Count != 0)
             {
                 var instanceCount = haMetrics.Last().Value;
                 return Math.Min(instanceCount, 3.0); // Cap at 3 instances
@@ -403,7 +395,7 @@ internal class LoadBalancerConnectionEstimator
             // Higher levels mean more telemetry connections
 
             var monitoringMetrics = _timeSeriesDb.GetRecentMetrics("Monitoring_Level", 1);
-            if (monitoringMetrics.Any())
+            if (monitoringMetrics.Count != 0)
             {
                 return Math.Min(monitoringMetrics.Last().Value, 1.0);
             }

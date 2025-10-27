@@ -86,7 +86,7 @@ public class DuplicateHandlerValidatorTests
         registry.AddHandler(method1, attribute1, methodDecl1);
         registry.AddHandler(method2, attribute2, methodDecl2);
 
-        var options = new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty);
+        var options = new AnalyzerOptions([]);
         var context = new CompilationAnalysisContext(compilation, options, d => _mockReporter.Object.ReportDiagnostic(d), _ => true, default);
 
         // Act
@@ -160,7 +160,7 @@ public class DuplicateHandlerValidatorTests
         // Manually set priority since attribute parsing doesn't work in test
         registry.Handlers[0].Priority = -1500;
 
-        var options = new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty);
+        var options = new AnalyzerOptions([]);
         var context = new CompilationAnalysisContext(compilation, options, d => _mockReporter.Object.ReportDiagnostic(d), _ => true, default);
 
         // Act
@@ -194,7 +194,7 @@ public class DuplicateHandlerValidatorTests
         // Manually set priority since attribute parsing doesn't work in test
         registry.Handlers[0].Priority = 1500;
 
-        var options = new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty);
+        var options = new AnalyzerOptions([]);
         var context = new CompilationAnalysisContext(compilation, options, d => _mockReporter.Object.ReportDiagnostic(d), _ => true, default);
 
         // Act
@@ -228,7 +228,7 @@ public class DuplicateHandlerValidatorTests
         // Manually set name since attribute parsing doesn't work in test
         registry.Handlers[0].Name = "main";
 
-        var options = new AnalyzerOptions(ImmutableArray<AdditionalText>.Empty);
+        var options = new AnalyzerOptions([]);
         var context = new CompilationAnalysisContext(compilation, options, d => _mockReporter.Object.ReportDiagnostic(d), _ => true, default);
 
         // Act
@@ -239,7 +239,7 @@ public class DuplicateHandlerValidatorTests
             d.Descriptor.Id == "RELAY_GEN_102" && d.GetMessage().Contains("might conflict with common naming patterns"))), Times.Once);
     }
 
-    private static Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText($@"
 using System;

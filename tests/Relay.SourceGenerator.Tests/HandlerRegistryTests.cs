@@ -189,7 +189,7 @@ public class TestHandler
         Assert.Single(registry.Handlers);
     }
 
-    private static Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText($@"
 using System;

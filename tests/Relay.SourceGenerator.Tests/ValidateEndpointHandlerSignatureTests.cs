@@ -77,7 +77,7 @@ namespace TestProject
         // The private method should trigger the accessibility validation to return false
     }
 
-    private static Compilation CreateTestCompilation(string source)
+    private static CSharpCompilation CreateTestCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 

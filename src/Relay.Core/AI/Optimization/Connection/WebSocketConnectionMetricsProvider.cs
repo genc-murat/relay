@@ -8,27 +8,18 @@ using System.Linq;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal class WebSocketConnectionMetricsProvider
+internal class WebSocketConnectionMetricsProvider(
+    ILogger logger,
+    Relay.Core.AI.AIOptimizationOptions options,
+    ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+    TimeSeriesDatabase timeSeriesDb,
+    Relay.Core.AI.SystemMetricsCalculator systemMetrics)
 {
-    private readonly ILogger _logger;
-    private readonly Relay.Core.AI.AIOptimizationOptions _options;
-    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics;
-    private readonly TimeSeriesDatabase _timeSeriesDb;
-    private readonly Relay.Core.AI.SystemMetricsCalculator _systemMetrics;
-
-    public WebSocketConnectionMetricsProvider(
-        ILogger logger,
-        Relay.Core.AI.AIOptimizationOptions options,
-        ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
-        TimeSeriesDatabase timeSeriesDb,
-        Relay.Core.AI.SystemMetricsCalculator systemMetrics)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
-        _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
-        _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
-    }
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly Relay.Core.AI.AIOptimizationOptions _options = options ?? throw new ArgumentNullException(nameof(options));
+    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
+    private readonly TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
+    private readonly Relay.Core.AI.SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
 
     public int GetWebSocketConnectionCount()
     {
@@ -121,7 +112,7 @@ internal class WebSocketConnectionMetricsProvider
         {
             // Try to get recent SignalR connection metrics from time series database
             var recentMetrics = _timeSeriesDb.GetRecentMetrics("signalr_connections", 30); // Last 30 data points
-            if (recentMetrics.Any())
+            if (recentMetrics.Count != 0)
             {
                 // Use median of recent values for stability
                 var values = recentMetrics.Select(m => m.Value).OrderBy(v => v).ToList();
@@ -270,7 +261,7 @@ internal class WebSocketConnectionMetricsProvider
         {
             // Analyze historical patterns to adjust predictions
             var recentMetrics = _timeSeriesDb.GetRecentMetrics("signalr_connections", 60); // Last 60 data points
-            if (!recentMetrics.Any())
+            if (recentMetrics.Count == 0)
                 return 1.0;
 
             // Calculate trend
@@ -416,7 +407,7 @@ internal class WebSocketConnectionMetricsProvider
             foreach (var metricName in metricNames)
             {
                 var recentMetrics = _timeSeriesDb.GetRecentMetrics(metricName, 10);
-                if (recentMetrics.Any())
+                if (recentMetrics.Count != 0)
                 {
                     // Use weighted average of recent values
                     var weights = Enumerable.Range(1, recentMetrics.Count).Select(i => (double)i).ToArray();
@@ -481,7 +472,7 @@ internal class WebSocketConnectionMetricsProvider
                 .Where(m => Math.Abs(m.Timestamp.Hour - currentHour) <= 1)
                 .ToList();
 
-            if (similarTimeData.Any())
+            if (similarTimeData.Count != 0)
             {
                 // Use median of similar time periods
                 var sortedValues = similarTimeData.Select(m => m.Value).OrderBy(v => v).ToList();
@@ -495,7 +486,7 @@ internal class WebSocketConnectionMetricsProvider
             }
 
             // Fallback: Use overall EMA
-            var ema = CalculateEMA(historicalData.Select(m => (double)m.Value).ToList(), alpha: 0.3);
+            var ema = CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.3);
             return Math.Max(0, (int)ema);
         }
         catch (Exception ex)
@@ -636,7 +627,7 @@ internal class WebSocketConnectionMetricsProvider
             foreach (var metricName in metricNames)
             {
                 var recentMetrics = _timeSeriesDb.GetRecentMetrics(metricName, 10);
-                if (recentMetrics.Any())
+                if (recentMetrics.Count != 0)
                 {
                     // Use weighted average for stability
                     var weights = Enumerable.Range(1, recentMetrics.Count).Select(i => (double)i).ToArray();
@@ -710,7 +701,7 @@ internal class WebSocketConnectionMetricsProvider
                 .Where(m => Math.Abs(m.Timestamp.Hour - currentHour) <= 1)
                 .ToList();
 
-            if (similarTimeData.Any())
+            if (similarTimeData.Count != 0)
             {
                 // Use median for stability (SSE connections are typically stable)
                 var sortedValues = similarTimeData.Select(m => m.Value).OrderBy(v => v).ToList();
@@ -724,7 +715,7 @@ internal class WebSocketConnectionMetricsProvider
             }
 
             // Fallback: Use EMA of all data
-            var ema = CalculateEMA(historicalData.Select(m => (double)m.Value).ToList(), alpha: 0.2);
+            var ema = CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.2);
             return Math.Max(0, (int)ema);
         }
         catch (Exception ex)
@@ -768,7 +759,7 @@ internal class WebSocketConnectionMetricsProvider
         }
     }
 
-    private double CalculateBrowserConnectionLimitFactor()
+    private static double CalculateBrowserConnectionLimitFactor()
     {
         try
         {
@@ -940,7 +931,7 @@ internal class WebSocketConnectionMetricsProvider
             foreach (var metricName in metricNames)
             {
                 var recentMetrics = _timeSeriesDb.GetRecentMetrics(metricName, 10);
-                if (recentMetrics.Any())
+                if (recentMetrics.Count != 0)
                 {
                     // Use weighted average for stability
                     var weights = Enumerable.Range(1, recentMetrics.Count).Select(i => (double)i).ToArray();
@@ -974,7 +965,7 @@ internal class WebSocketConnectionMetricsProvider
                             a.AverageExecutionTime.TotalSeconds <= 120)
                 .ToList();
 
-            if (!mediumDurationRequests.Any())
+            if (mediumDurationRequests.Count == 0)
                 return 0;
 
             // Calculate polling connection estimate
@@ -1017,7 +1008,7 @@ internal class WebSocketConnectionMetricsProvider
                 .Where(m => Math.Abs(m.Timestamp.Hour - currentHour) <= 1)
                 .ToList();
 
-            if (similarTimeData.Any())
+            if (similarTimeData.Count != 0  )
             {
                 // Use median (polling is more variable than other connection types)
                 var sortedValues = similarTimeData.Select(m => m.Value).OrderBy(v => v).ToList();
@@ -1031,7 +1022,7 @@ internal class WebSocketConnectionMetricsProvider
             }
 
             // Fallback: Use EMA with higher alpha (more responsive to changes)
-            var ema = CalculateEMA(historicalData.Select(m => (double)m.Value).ToList(), alpha: 0.4);
+            var ema = CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.4);
             return Math.Max(0, (int)ema);
         }
         catch (Exception ex)
@@ -1134,7 +1125,7 @@ internal class WebSocketConnectionMetricsProvider
 
             // Apply EMA smoothing for stability
             var ema = CalculateEMA(
-                longPollingMetrics.Select(m => (double)(m.Value / Math.Max(1, avgWebSocket + m.Value))).ToList(),
+                [.. longPollingMetrics.Select(m => (double)(m.Value / Math.Max(1, avgWebSocket + m.Value)))],
                 alpha: 0.3
             );
 
@@ -1255,7 +1246,7 @@ internal class WebSocketConnectionMetricsProvider
         {
             // Analyze system characteristics to determine environment type
             var totalRequests = _requestAnalytics.Values.Sum(a => a.TotalExecutions);
-            var avgErrorRate = _requestAnalytics.Values.Any()
+            var avgErrorRate = _requestAnalytics.Values.Count != 0
                 ? _requestAnalytics.Values.Average(a => a.ErrorRate)
                 : 0;
 
@@ -1322,7 +1313,7 @@ internal class WebSocketConnectionMetricsProvider
 
             // Try to get from stored metrics first
             var storedTrend = _timeSeriesDb.GetRecentMetrics("Technology_TrendFactor", 10);
-            if (storedTrend.Any())
+            if (storedTrend.Count != 0)
             {
                 var avgTrend = storedTrend.Average(m => m.Value);
                 return Math.Max(0.5, Math.Min(avgTrend, 1.2));
@@ -1407,7 +1398,7 @@ internal class WebSocketConnectionMetricsProvider
 
             // Apply machine learning prediction adjustment
             var mlAdjustment = ApplyMLTrendPrediction(trendFactors);
-            trendFactor = trendFactor * (0.7 + mlAdjustment * 0.3); // 70% calculated, 30% ML
+            trendFactor *= (0.7 + mlAdjustment * 0.3); // 70% calculated, 30% ML
 
             // Store calculated trend for future reference
             _timeSeriesDb.StoreMetric("Technology_TrendFactor", trendFactor, DateTime.UtcNow);
@@ -1519,7 +1510,7 @@ internal class WebSocketConnectionMetricsProvider
 
             // Simplified: analyze historical trend changes
             var historicalTrends = _timeSeriesDb.GetRecentMetrics("Technology_TrendFactor", 100);
-            if (!historicalTrends.Any())
+            if (historicalTrends.Count == 0)
             {
                 return 1.0; // Neutral if no history
             }
@@ -1549,7 +1540,7 @@ internal class WebSocketConnectionMetricsProvider
     {
         try
         {
-            var avgErrorRate = _requestAnalytics.Values.Any()
+            var avgErrorRate = _requestAnalytics.Values.Count != 0
                 ? _requestAnalytics.Values.Average(a => a.ErrorRate)
                 : 0;
 
@@ -1620,7 +1611,7 @@ internal class WebSocketConnectionMetricsProvider
         try
         {
             // Analyze error rates and timeouts as proxy for network conditions
-            var avgErrorRate = _requestAnalytics.Values.Any()
+            var avgErrorRate = _requestAnalytics.Values.Count != 0
                 ? _requestAnalytics.Values.Average(a => a.ErrorRate)
                 : 0;
 
@@ -1664,7 +1655,7 @@ internal class WebSocketConnectionMetricsProvider
                 .Select(a => a.RepeatRequestCount)
                 .ToList();
 
-            if (!repeatCounts.Any())
+            if (repeatCounts.Count == 0)
                 return 30.0; // Default 30s interval
 
             var avgRepeats = repeatCounts.Average();
@@ -1804,7 +1795,7 @@ internal class WebSocketConnectionMetricsProvider
         {
             // Try to get hub count from metrics
             var hubMetrics = _timeSeriesDb.GetRecentMetrics("active_hub_count", 10); // Last 10 data points
-            if (hubMetrics.Any())
+            if (hubMetrics.Count != 0)
             {
                 // Use most recent value
                 var latest = hubMetrics.OrderByDescending(m => m.Timestamp).First();
@@ -1824,7 +1815,7 @@ internal class WebSocketConnectionMetricsProvider
         try
         {
             // Analyze request analytics to estimate hub diversity
-            if (!_requestAnalytics.Any())
+            if (_requestAnalytics.IsEmpty)
                 return 0;
 
             var requestTypes = _requestAnalytics.Keys.Count;
@@ -1924,7 +1915,7 @@ internal class WebSocketConnectionMetricsProvider
     {
         try
         {
-            if (!_requestAnalytics.Any())
+            if (_requestAnalytics.IsEmpty)
                 return 0.0;
 
             var totalExecutions = _requestAnalytics.Values.Sum(x => x.TotalExecutions);
@@ -1961,7 +1952,7 @@ internal class WebSocketConnectionMetricsProvider
     {
         try
         {
-            if (!_requestAnalytics.Any())
+            if (_requestAnalytics.IsEmpty)
                 return 0.0;
 
             var throughputs = _requestAnalytics.Values
@@ -1995,7 +1986,7 @@ internal class WebSocketConnectionMetricsProvider
             // This suggests multiple hubs for different use cases
 
             var recentMetrics = _timeSeriesDb.GetRecentMetrics("request_patterns", 360); // Last 360 data points (6 hours if 1/min)
-            if (!recentMetrics.Any())
+            if (recentMetrics.Count == 0)
                 return false;
 
             // Group by hour and check if patterns vary significantly
@@ -2106,7 +2097,7 @@ internal class WebSocketConnectionMetricsProvider
                 }
             }
 
-            if (!disconnectionRates.Any())
+            if (disconnectionRates.Count == 0)
                 return 0;
 
             // Use EMA for recent trend sensitivity
@@ -2242,7 +2233,7 @@ internal class WebSocketConnectionMetricsProvider
 
             // Try to get from stored metrics first for consistency
             var storedPressure = _timeSeriesDb.GetRecentMetrics("Memory_Pressure", 5);
-            if (storedPressure.Any())
+            if (storedPressure.Count != 0)
             {
                 var avgPressure = storedPressure.Average(m => m.Value);
                 var latestPressure = storedPressure.Last().Value;
@@ -2305,7 +2296,7 @@ internal class WebSocketConnectionMetricsProvider
 
             // Apply error rate adjustment
             var errorAdjustment = CalculateErrorBasedMemoryPressure();
-            totalPressure = totalPressure * (1.0 + errorAdjustment);
+            totalPressure *= (1.0 + errorAdjustment);
 
             // Apply allocation rate factor
             var allocationRate = EstimateAllocationRate();
@@ -2385,7 +2376,7 @@ internal class WebSocketConnectionMetricsProvider
 
             // Calculate Gen 2 collection rate (most indicative of pressure)
             double gen2Rate = 0;
-            if (previousGen2Metrics.Any())
+            if (previousGen2Metrics.Count != 0)
             {
                 var previousCount = (int)previousGen2Metrics.First().Value;
                 var timeDiff = DateTime.UtcNow - previousGen2Metrics.First().Timestamp;
@@ -2549,7 +2540,7 @@ internal class WebSocketConnectionMetricsProvider
 
             // Get historical allocation
             var historicalAllocation = _timeSeriesDb.GetRecentMetrics("GC_TotalAllocated_MB", 10);
-            if (historicalAllocation.Any())
+            if (historicalAllocation.Count != 0)
             {
                 var previousAllocation = historicalAllocation.First().Value * 1024 * 1024; // Convert back to bytes
                 var timeDiff = DateTime.UtcNow - historicalAllocation.First().Timestamp;
@@ -2665,7 +2656,7 @@ internal class WebSocketConnectionMetricsProvider
         try
         {
             // Analyze overall system health
-            var avgErrorRate = _requestAnalytics.Values.Any()
+            var avgErrorRate = _requestAnalytics.Values.Count != 0
                 ? _requestAnalytics.Values.Average(a => a.ErrorRate)
                 : 0;
 
@@ -2938,7 +2929,7 @@ internal class WebSocketConnectionMetricsProvider
 
             var hasTimeSeriesData = recentHealthData?.Any() ?? false;
             var hasConnectionMetrics = connectionData?.Any() ?? false;
-            var hasAnalyticsData = _requestAnalytics.Count > 0;
+            var hasAnalyticsData = !_requestAnalytics.IsEmpty;
 
             var confidenceScore = 0.7; // Base confidence
 
@@ -3092,7 +3083,7 @@ internal class WebSocketConnectionMetricsProvider
         return Math.Max(0, activeRequests / 5); // Assume 20% of requests are real-time
     }
 
-    private double CalculateConnectionMultiplier()
+    private static double CalculateConnectionMultiplier()
     {
         // Account for users with multiple tabs/connections
         return 1.3; // 30% multiplier for multi-connection users

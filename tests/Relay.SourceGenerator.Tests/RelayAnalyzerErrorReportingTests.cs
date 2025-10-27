@@ -49,7 +49,7 @@ namespace TestProject
             [analyzer],
             options: null);
 
-        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+        _ = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
         // Verify that normal analysis completed without crashing
     }
@@ -101,7 +101,7 @@ namespace TestProject
             [analyzer],
             options: null);
 
-        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+        _ = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
 
         // Verify that normal analysis completed without crashing
     }

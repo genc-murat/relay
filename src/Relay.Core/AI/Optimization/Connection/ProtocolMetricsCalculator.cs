@@ -2,29 +2,20 @@ using Microsoft.Extensions.Logging;
 using Relay.Core.AI.Models;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal class ProtocolMetricsCalculator
+internal class ProtocolMetricsCalculator(
+    ILogger logger,
+    ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+    Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+    SystemMetricsCalculator systemMetrics)
 {
-    private readonly ILogger _logger;
-    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics;
-    private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb;
-    private readonly SystemMetricsCalculator _systemMetrics;
-
-    public ProtocolMetricsCalculator(
-        ILogger logger,
-        ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
-        Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
-        SystemMetricsCalculator systemMetrics)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
-        _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
-        _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
-    }
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
+    private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
+    private readonly SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
 
     public double CalculateProtocolMultiplexingFactor()
     {
@@ -43,12 +34,12 @@ internal class ProtocolMetricsCalculator
             double http3Percentage = 0.1; // Default: 10% HTTP/3
 
             // Calculate actual protocol distribution from metrics if available
-            var hasMetrics = http1Metrics.Any() || http2Metrics.Any() || http3Metrics.Any();
+            var hasMetrics = http1Metrics.Count != 0 || http2Metrics.Count != 0 || http3Metrics.Count != 0;
             if (hasMetrics)
             {
-                var http1Count = http1Metrics.Any() ? http1Metrics.Average(m => m.Value) : 0;
-                var http2Count = http2Metrics.Any() ? http2Metrics.Average(m => m.Value) : 0;
-                var http3Count = http3Metrics.Any() ? http3Metrics.Average(m => m.Value) : 0;
+                var http1Count = http1Metrics.Count != 0 ? http1Metrics.Average(m => m.Value) : 0;
+                var http2Count = http2Metrics.Count != 0 ? http2Metrics.Average(m => m.Value) : 0;
+                var http3Count = http3Metrics.Count != 0 ? http3Metrics.Average(m => m.Value) : 0;
                 var totalProtocolRequests = http1Count + http2Count + http3Count;
 
                 if (totalProtocolRequests > 0)
@@ -113,11 +104,11 @@ internal class ProtocolMetricsCalculator
             var systemLoad = GetDatabasePoolUtilization();
             if (systemLoad > 0.8)
             {
-                factor = factor * 1.2; // Increase connection need by 20% under high load
+                factor *= 1.2; // Increase connection need by 20% under high load
             }
             else if (systemLoad < 0.3)
             {
-                factor = factor * 0.9; // Decrease connection need by 10% under low load
+                factor *= 0.9; // Decrease connection need by 10% under low load
             }
 
             // Store calculated metrics for future reference

@@ -36,13 +36,13 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
 
         // Use reflection to access the private GetResponseType method
         var getResponseTypeMethod = typeof(HandlerRegistryGenerator).GetMethod("GetResponseType",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var result = getResponseTypeMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getResponseTypeMethod?.Invoke(generator, [handlerInfo]);
 
         // Assert
         Assert.Equal("void", result);
@@ -70,13 +70,13 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
 
         // Use reflection to access the private GetResponseType method
         var getResponseTypeMethod = typeof(HandlerRegistryGenerator).GetMethod("GetResponseType",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var result = getResponseTypeMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getResponseTypeMethod?.Invoke(generator, [handlerInfo]);
 
         // Assert
         Assert.Equal("void", result);
@@ -104,13 +104,13 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
 
         // Use reflection to access the private GetResponseType method
         var getResponseTypeMethod = typeof(HandlerRegistryGenerator).GetMethod("GetResponseType",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var result = getResponseTypeMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getResponseTypeMethod?.Invoke(generator, [handlerInfo]);
 
         // Assert
         Assert.Equal("void", result);
@@ -140,13 +140,13 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>()
+            Attributes = []
         };
 
         // Use reflection to access the private GetResponseType method
         var getResponseTypeMethod = typeof(HandlerRegistryGenerator).GetMethod("GetResponseType",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var result = getResponseTypeMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getResponseTypeMethod?.Invoke(generator, [handlerInfo]);
 
         // Assert
         Assert.Equal("Test.DataItem", result);
@@ -176,7 +176,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
             ]
         };
 
-        var result = getHandlerNameMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getHandlerNameMethod?.Invoke(generator, [handlerInfo]);
 
         // This will test the default case, which returns "default" when no Name is specified
         Assert.Equal("default", result);
@@ -194,16 +194,16 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var getPriorityMethod = typeof(HandlerRegistryGenerator).GetMethod("GetHandlerPriority",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = null, // Not needed for this test
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
 
-        var result = getPriorityMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getPriorityMethod?.Invoke(generator, [handlerInfo]);
 
         // Default priority when no priority attribute is found should be 0
         Assert.Equal(0, result);
@@ -235,16 +235,16 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle, AttributeData = attributeData }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle, AttributeData = attributeData }
+            ]
         };
 
         // Use reflection to access the private GetHandlerKind method
         var getHandlerKindMethod = typeof(HandlerRegistryGenerator).GetMethod("GetHandlerKind",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var result = getHandlerKindMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getHandlerKindMethod?.Invoke(generator, [handlerInfo]);
 
         // Assert
         Assert.Equal("Stream", result);
@@ -272,19 +272,19 @@ public class HandlerRegistryGeneratorComprehensiveTests
 
         var methodSymbol = GetMethodSymbol(compilation, "Test.RequestHandler", "HandleAsync");
         var attributeData = GetAttributeData(compilation, "Test.RequestHandler", "HandleAsync", "Handle");
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle, AttributeData = attributeData }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle, AttributeData = attributeData }
+            ]
         };
 
         // Use reflection to access the private GetHandlerKind method
         var getHandlerKindMethod = typeof(HandlerRegistryGenerator).GetMethod("GetHandlerKind",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var result = getHandlerKindMethod?.Invoke(generator, new object[] { handlerInfo });
+        var result = getHandlerKindMethod?.Invoke(generator, [handlerInfo]);
 
         // Assert
         Assert.Equal("Request", result);
@@ -298,13 +298,13 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var context = new RelayCompilationContext(compilation, default);
         var generator = new HandlerRegistryGenerator(context);
 
-        var handlerInfo = new HandlerInfo
+        HandlerInfo handlerInfo = new()
         {
             MethodSymbol = null, // Null method symbol
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
 
         var sourceBuilder = new StringBuilder();
@@ -314,7 +314,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         
         // Act & Assert - this should not throw
-        generateEntryMethod?.Invoke(generator, new object[] { sourceBuilder, handlerInfo });
+        generateEntryMethod?.Invoke(generator, [sourceBuilder, handlerInfo]);
 
         // The method should handle null MethodSymbol gracefully
         // The method has an early return if MethodSymbol is null or has no parameters
@@ -355,7 +355,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
         // Act & Assert - this should not throw
-        generateEntryMethod?.Invoke(generator, new object[] { sourceBuilder, handlerInfo });
+        generateEntryMethod?.Invoke(generator, [sourceBuilder, handlerInfo]);
 
         // The method should handle methods with no parameters gracefully
         Assert.NotNull(sourceBuilder); // No exception was thrown
@@ -386,10 +386,10 @@ public class HandlerRegistryGeneratorComprehensiveTests
         var handlerInfo = new HandlerInfo
         {
             MethodSymbol = methodSymbol,
-            Attributes = new List<RelayAttributeInfo>
-            {
-                new RelayAttributeInfo { Type = RelayAttributeType.Handle }
-            }
+            Attributes =
+            [
+                new() { Type = RelayAttributeType.Handle }
+            ]
         };
         discoveryResult.Handlers.Add(handlerInfo);
 
@@ -485,7 +485,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
         Assert.Contains("AllHandlers = new()", result);
     }
 
-    private Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
@@ -505,7 +505,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    private IMethodSymbol? GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
+    private static IMethodSymbol? GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
     {
         var syntaxTree = compilation.SyntaxTrees.First();
         var semanticModel = compilation.GetSemanticModel(syntaxTree);
@@ -532,7 +532,7 @@ public class HandlerRegistryGeneratorComprehensiveTests
         return null!;
     }
 
-    private AttributeData? GetAttributeData(Compilation compilation, string sourceTypeName, string methodName, string attributeName)
+    private static AttributeData? GetAttributeData(Compilation compilation, string sourceTypeName, string methodName, string attributeName)
     {
         var syntaxTree = compilation.SyntaxTrees.First();
         var semanticModel = compilation.GetSemanticModel(syntaxTree);

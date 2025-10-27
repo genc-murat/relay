@@ -423,7 +423,7 @@ namespace Test
         Assert.Equal(30, generator.Priority);
     }
 
-    private Compilation CreateCompilation(string source)
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);
 
@@ -440,40 +440,5 @@ namespace Test
             [syntaxTree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-    }
-
-    private IMethodSymbol? GetMethodSymbol(Compilation compilation, string sourceTypeName, string methodName)
-    {
-        var syntaxTree = compilation.SyntaxTrees.First();
-        var semanticModel = compilation.GetSemanticModel(syntaxTree);
-        var root = syntaxTree.GetCompilationUnitRoot();
-
-        // Find the class declaration by name
-        var className = sourceTypeName.Split('.').Last();
-        var classDeclaration = root.DescendantNodes()
-            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>()
-            .FirstOrDefault(c => c.Identifier.ValueText == className);
-
-        if (classDeclaration != null)
-        {
-            var typeSymbol = semanticModel.GetDeclaredSymbol(classDeclaration);
-            if (typeSymbol != null)
-            {
-                var methodSymbol = typeSymbol.GetMembers()
-                    .OfType<IMethodSymbol>()
-                    .FirstOrDefault(m => m.Name == methodName);
-                return methodSymbol;
-            }
-        }
-
-        return null;
-    }
-
-    private AttributeData CreateMockAttributeData(string? handlerName, int priority)
-    {
-        // This is a simplified mock for testing purposes
-        // In reality, we would need to create proper AttributeData, but for our tests,
-        // we can use reflection to create a mock object that has the expected properties
-        return null!;
     }
 }

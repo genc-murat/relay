@@ -152,6 +152,199 @@ public class TestPipelineHandlers
             Assert.Contains("OrderBy(m => m.Order)", result);
         }
 
+        [Fact]
+        public void GeneratorName_ReturnsExpectedValue()
+        {
+            // Arrange
+            var compilation = CreateTestCompilation("");
+            var context = new RelayCompilationContext(compilation, default);
+            var generator = new PipelineRegistryGenerator(context);
+
+            // Act
+            var result = generator.GeneratorName;
+
+            // Assert
+            Assert.Equal("Pipeline Registry Generator", result);
+        }
+
+        [Fact]
+        public void OutputFileName_ReturnsExpectedValue()
+        {
+            // Arrange
+            var compilation = CreateTestCompilation("");
+            var context = new RelayCompilationContext(compilation, default);
+            var generator = new PipelineRegistryGenerator(context);
+
+            // Act
+            var result = generator.OutputFileName;
+
+            // Assert
+            Assert.Equal("PipelineRegistry", result);
+        }
+
+        [Fact]
+        public void Priority_ReturnsExpectedValue()
+        {
+            // Arrange
+            var compilation = CreateTestCompilation("");
+            var context = new RelayCompilationContext(compilation, default);
+            var generator = new PipelineRegistryGenerator(context);
+
+            // Act
+            var result = generator.Priority;
+
+            // Assert
+            Assert.Equal(50, result);
+        }
+
+        [Fact]
+        public void CanGenerate_WithPipelineHandlers_ReturnsTrue()
+        {
+            // Arrange
+            var compilation = CreateTestCompilation("");
+            var context = new RelayCompilationContext(compilation, default);
+            var generator = new PipelineRegistryGenerator(context);
+            var discoveryResult = new HandlerDiscoveryResult();
+            discoveryResult.Handlers.Add(new HandlerInfo
+            {
+                Attributes = [new() { Type = RelayAttributeType.Pipeline }]
+            });
+
+            // Act
+            var result = generator.CanGenerate(discoveryResult);
+
+            // Assert
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void CanGenerate_WithoutPipelineHandlers_ReturnsFalse()
+        {
+            // Arrange
+            var compilation = CreateTestCompilation("");
+            var context = new RelayCompilationContext(compilation, default);
+            var generator = new PipelineRegistryGenerator(context);
+            var discoveryResult = new HandlerDiscoveryResult();
+            discoveryResult.Handlers.Add(new HandlerInfo
+            {
+                Attributes = [new() { Type = RelayAttributeType.Handle }] // Not Pipeline
+            });
+
+            // Act
+            var result = generator.CanGenerate(discoveryResult);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public void Generate_WithPipelineHandlers_GeneratesValidCode()
+        {
+            // Arrange
+            var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestPipelineHandler
+{
+    [Pipeline(Order = 1, Scope = PipelineScope.Requests)]
+    public async ValueTask<TResponse> HandlePipeline<TRequest, TResponse>(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        return await next();
+    }
+}";
+
+            var compilation = CreateTestCompilation(sourceCode);
+            var context = new RelayCompilationContext(compilation, default);
+            var generator = new PipelineRegistryGenerator(context);
+            var discoveryResult = CreateDiscoveryResultWithPipelineHandler(compilation, sourceCode);
+            var options = new GenerationOptions();
+
+            // Act
+            var result = generator.Generate(discoveryResult, options);
+
+            // Assert
+            Assert.NotEmpty(result);
+            Assert.Contains("namespace Relay.Generated", result);
+            Assert.Contains("internal static class PipelineRegistry", result);
+            Assert.Contains("PipelineMetadata", result);
+            Assert.Contains("GetPipelineBehaviors", result);
+            Assert.Contains("GetStreamPipelineBehaviors", result);
+            Assert.Contains("// Generator: Pipeline Registry Generator", result);
+        }
+
+        [Fact]
+        public void GeneratePipelineRegistry_WithEmptyAttributeData_UsesFallbackLogic()
+        {
+            // Arrange
+            var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestPipelineHandler
+{
+    [Pipeline(Order = 1, Scope = PipelineScope.Requests)]
+    public async ValueTask<TResponse> HandlePipeline<TRequest, TResponse>(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        return await next();
+    }
+}";
+
+            var compilation = CreateTestCompilation(sourceCode);
+            var context = new RelayCompilationContext(compilation, default);
+            var generator = new PipelineRegistryGenerator(context);
+
+            // Create discovery result with handler that has empty AttributeData
+            var discoveryResult = new HandlerDiscoveryResult();
+
+            // Parse the source and find methods with Pipeline attributes
+            var syntaxTree = compilation.SyntaxTrees.First();
+            var semanticModel = compilation.GetSemanticModel(syntaxTree);
+            var root = syntaxTree.GetRoot();
+
+            var methods = root.DescendantNodes()
+                .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+                .Where(m => m.AttributeLists.Any())
+                .ToList();
+
+            foreach (var method in methods)
+            {
+                var methodSymbol = semanticModel.GetDeclaredSymbol(method);
+                if (methodSymbol != null)
+                {
+                    HandlerInfo handlerInfo = new()
+                    {
+                        Method = method,
+                        MethodSymbol = methodSymbol,
+                        Attributes =
+                        [
+                            new() {
+                                Type = RelayAttributeType.Pipeline,
+                                AttributeData = CreateMockEmptyAttributeData() // Empty to trigger fallback
+                            }
+                        ]
+                    };
+                    discoveryResult.Handlers.Add(handlerInfo);
+                }
+            }
+
+            // Act
+            var result = generator.GeneratePipelineRegistry(discoveryResult);
+
+            // Assert
+            Assert.NotEmpty(result);
+            Assert.Contains("internal static class PipelineRegistry", result);
+            // The fallback logic should be triggered, but the exact values depend on the mock
+        }
+
         private static CSharpCompilation CreateTestCompilation(string sourceCode)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
@@ -215,6 +408,12 @@ public class TestPipelineHandlers
             return new MockAttributeData();
         }
 
+        private static AttributeData CreateMockEmptyAttributeData()
+        {
+            // Create a mock AttributeData with empty named arguments to test fallback logic
+            return new MockEmptyAttributeData();
+        }
+
         private class MockAttributeData : AttributeData
         {
             protected override INamedTypeSymbol? CommonAttributeClass => null;
@@ -228,8 +427,24 @@ public class TestPipelineHandlers
                 [
                     new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Order", new TypedConstant()),
                     new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Scope", new TypedConstant())
-,
+                ,
                 ];
+        }
+
+        private class MockEmptyAttributeData : AttributeData
+        {
+            protected override INamedTypeSymbol? CommonAttributeClass => null;
+            protected override IMethodSymbol? CommonAttributeConstructor => null;
+            protected override SyntaxReference? CommonApplicationSyntaxReference => null;
+
+            protected override System.Collections.Immutable.ImmutableArray<TypedConstant> CommonConstructorArguments =>
+                [];
+
+            protected override System.Collections.Immutable.ImmutableArray<System.Collections.Generic.KeyValuePair<string, TypedConstant>> CommonNamedArguments =>
+                [
+                    new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Order", new TypedConstant()),
+                    new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Scope", new TypedConstant())
+                ]; // Has arguments but with null values to trigger fallback
         }
     }
 }

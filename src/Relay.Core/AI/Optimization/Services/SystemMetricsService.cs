@@ -26,6 +26,13 @@ namespace Relay.Core.AI.Optimization.Services
         private DateTime _lastThroughputReset = DateTime.UtcNow;
         private double _currentThroughputPerSecond;
 
+        // CPU utilization tracking
+        private DateTime _lastCpuMeasurementTime = DateTime.UtcNow;
+        private TimeSpan _lastProcessorTime = TimeSpan.Zero;
+        private List<double> _cpuUtilizationHistory = new();
+        private const int MaxCpuHistorySize = 60; // Track last 60 measurements
+        private readonly object _cpuLock = new();
+
         public SystemMetricsService(ILogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -430,15 +437,186 @@ namespace Relay.Core.AI.Optimization.Services
             return criticalAreas;
         }
 
-        // Placeholder implementations - in real system would use platform-specific APIs
+        /// <summary>
+        /// Calculates CPU utilization using multiple strategies:
+        /// 1. Process-based CPU calculation: Process.TotalProcessorTime / elapsed time / ProcessorCount
+        /// 2. Incremental CPU calculation: Tracks CPU time changes between measurements
+        /// 3. Historical trend analysis: Smooths measurements using exponential moving average
+        /// Returns CPU utilization as a fraction (0.0 to 1.0)
+        /// </summary>
         private double GetCpuUtilization()
         {
-            // Use Process.GetCurrentProcess() or platform-specific APIs
-            var process = Process.GetCurrentProcess();
-            var totalProcessorTime = process.TotalProcessorTime.TotalMilliseconds;
-            var uptime = (DateTime.UtcNow - process.StartTime).TotalMilliseconds;
+            lock (_cpuLock)
+            {
+                try
+                {
+                    var process = Process.GetCurrentProcess();
+                    var now = DateTime.UtcNow;
+                    var currentProcessorTime = process.TotalProcessorTime;
 
-            return uptime > 0 ? Math.Min(totalProcessorTime / (uptime * Environment.ProcessorCount), 1.0) : 0.0;
+                    // Strategy 1: Calculate incremental CPU usage since last measurement
+                    var timeSinceLastMeasurement = now - _lastCpuMeasurementTime;
+                    var processorTimeDelta = currentProcessorTime - _lastProcessorTime;
+
+                    double currentCpuUtilization = 0.0;
+
+                    // Ensure meaningful time has passed (at least 100ms)
+                    if (timeSinceLastMeasurement.TotalMilliseconds >= 100)
+                    {
+                        // CPU time used / (elapsed time * processor count)
+                        // This normalizes to 0-1 range where 1 = 100% of one core
+                        var elapsedMs = timeSinceLastMeasurement.TotalMilliseconds;
+                        var processorTimeMs = processorTimeDelta.TotalMilliseconds;
+                        var processorCount = Environment.ProcessorCount;
+
+                        // Calculate utilization: actual CPU time / (wallclock time * number of cores)
+                        // Divide by ProcessorCount to get per-core utilization
+                        currentCpuUtilization = processorTimeMs / (elapsedMs * processorCount);
+
+                        // Update tracking variables
+                        _lastCpuMeasurementTime = now;
+                        _lastProcessorTime = currentProcessorTime;
+                    }
+                    else
+                    {
+                        // Not enough time passed, use last known value
+                        if (_cpuUtilizationHistory.Count > 0)
+                        {
+                            currentCpuUtilization = _cpuUtilizationHistory.Last();
+                        }
+                    }
+
+                    // Clamp to valid range [0, 1]
+                    currentCpuUtilization = Math.Clamp(currentCpuUtilization, 0.0, 1.0);
+
+                    // Strategy 2: Add to history for trend analysis
+                    _cpuUtilizationHistory.Add(currentCpuUtilization);
+                    if (_cpuUtilizationHistory.Count > MaxCpuHistorySize)
+                    {
+                        _cpuUtilizationHistory.RemoveAt(0);
+                    }
+
+                    // Strategy 3: Return smoothed average using exponential moving average
+                    var smoothedUtilization = CalculateSmoothedCpuUtilization();
+
+                    _logger.LogTrace("CPU Utilization: Current={Current:F4}, Smoothed={Smoothed:F4}, History={History}",
+                        currentCpuUtilization, smoothedUtilization, _cpuUtilizationHistory.Count);
+
+                    return smoothedUtilization;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error calculating CPU utilization");
+                    // Return last known value or 0 if no history
+                    return _cpuUtilizationHistory.Count > 0 ? _cpuUtilizationHistory.Last() : 0.0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Calculates smoothed CPU utilization using exponential moving average (EMA).
+        /// EMA gives more weight to recent measurements while preserving historical trends.
+        /// </summary>
+        private double CalculateSmoothedCpuUtilization()
+        {
+            if (_cpuUtilizationHistory.Count == 0)
+                return 0.0;
+
+            // For single measurement, return as-is
+            if (_cpuUtilizationHistory.Count == 1)
+                return _cpuUtilizationHistory[0];
+
+            // Alpha = 2 / (N + 1) where N is the period
+            // Using N = 10 for moderate smoothing
+            const double alpha = 2.0 / 11.0;
+
+            // Calculate EMA from history
+            double ema = _cpuUtilizationHistory[0];
+            for (int i = 1; i < _cpuUtilizationHistory.Count; i++)
+            {
+                ema = (_cpuUtilizationHistory[i] * alpha) + (ema * (1.0 - alpha));
+            }
+
+            return ema;
+        }
+
+        /// <summary>
+        /// Gets average CPU utilization from history (for testing/monitoring).
+        /// </summary>
+        internal double GetAverageCpuUtilization()
+        {
+            lock (_cpuLock)
+            {
+                if (_cpuUtilizationHistory.Count == 0)
+                    return 0.0;
+                return _cpuUtilizationHistory.Average();
+            }
+        }
+
+        /// <summary>
+        /// Gets maximum CPU utilization from history (for testing/monitoring).
+        /// </summary>
+        internal double GetMaxCpuUtilization()
+        {
+            lock (_cpuLock)
+            {
+                if (_cpuUtilizationHistory.Count == 0)
+                    return 0.0;
+                return _cpuUtilizationHistory.Max();
+            }
+        }
+
+        /// <summary>
+        /// Gets minimum CPU utilization from history (for testing/monitoring).
+        /// </summary>
+        internal double GetMinCpuUtilization()
+        {
+            lock (_cpuLock)
+            {
+                if (_cpuUtilizationHistory.Count == 0)
+                    return 0.0;
+                return _cpuUtilizationHistory.Min();
+            }
+        }
+
+        /// <summary>
+        /// Gets standard deviation of CPU utilization for volatility analysis.
+        /// </summary>
+        internal double GetCpuUtilizationStdDev()
+        {
+            lock (_cpuLock)
+            {
+                if (_cpuUtilizationHistory.Count < 2)
+                    return 0.0;
+
+                var average = _cpuUtilizationHistory.Average();
+                var variance = _cpuUtilizationHistory.Sum(x => Math.Pow(x - average, 2)) / _cpuUtilizationHistory.Count;
+                return Math.Sqrt(variance);
+            }
+        }
+
+        /// <summary>
+        /// Clears CPU utilization history (useful for memory management).
+        /// </summary>
+        internal void ClearCpuHistory()
+        {
+            lock (_cpuLock)
+            {
+                _cpuUtilizationHistory.Clear();
+                _lastCpuMeasurementTime = DateTime.UtcNow;
+                _logger.LogDebug("Cleared CPU utilization history");
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of CPU measurements in history.
+        /// </summary>
+        internal int GetCpuHistorySize()
+        {
+            lock (_cpuLock)
+            {
+                return _cpuUtilizationHistory.Count;
+            }
         }
 
         private (double utilization, double usedMB, double availableMB) GetMemoryInfo()

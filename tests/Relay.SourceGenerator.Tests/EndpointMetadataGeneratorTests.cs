@@ -853,4 +853,93 @@ public class TestHandler
         Assert.Contains("using Relay.Core;", result);
         Assert.Contains("internal static class GeneratedEndpointMetadata", result);
     }
+
+
+    [Fact]
+    public void GenerateEndpointMetadata_WithNoSuffixInRequestType_GeneratesCorrectRoute()
+    {
+        // Arrange
+        var source = @"
+using Relay.Core;
+
+public class User : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint]
+    public string HandleUser(User request) => ""user"";
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var context = new RelayCompilationContext(compilation, default);
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var diagnosticReporter = new TestDiagnosticReporter();
+
+        var syntaxTrees = compilation.SyntaxTrees.ToList();
+        var candidateMethods = syntaxTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Count > 0)
+            .ToList();
+
+        var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Act
+        var result = generator.GenerateEndpointMetadata(discoveryResult.Handlers);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("Route = \"/user\"", result);
+    }
+
+    [Fact]
+    public void GenerateEndpointMetadata_WithAsyncVoidReturn_ExcludesResponseType()
+    {
+        // Arrange
+        var source = @"
+using System.Threading.Tasks;
+using Relay.Core;
+
+public class TestRequest : IRequest { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint]
+    public async Task HandleTestAsync(TestRequest request)
+    {
+        await Task.CompletedTask;
+    }
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var context = new RelayCompilationContext(compilation, default);
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var diagnosticReporter = new TestDiagnosticReporter();
+
+        var syntaxTrees = compilation.SyntaxTrees.ToList();
+        var candidateMethods = syntaxTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Count > 0)
+            .ToList();
+
+        var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Act
+        var result = generator.GenerateEndpointMetadata(discoveryResult.Handlers);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("RequestType = typeof(TestRequest)", result);
+        Assert.DoesNotContain("ResponseType =", result);
+        Assert.DoesNotContain("ResponseSchema =", result);
+    }
 }

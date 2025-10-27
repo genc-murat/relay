@@ -394,4 +394,67 @@ public class TestHandler
         // Assert - should handle gracefully, though this case might not pass validation in HandlerDiscovery
         Assert.Empty(result); // Since the method signature would be invalid for a handler, discovery would not include it
     }
+
+    [Fact]
+    public void EscapeString_HandlesNullAndSpecialCharacters()
+    {
+        // Arrange - Use reflection to test the private EscapeString method
+        var source = @"
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint]
+    public string HandleTest(TestRequest request) => ""test"";
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        var diagnosticReporter = new TestDiagnosticReporter();
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Use reflection to access the private EscapeString method
+        var escapeStringMethod = typeof(EndpointMetadataGenerator).GetMethod("EscapeString",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        // Act & Assert
+        Assert.Equal("", escapeStringMethod.Invoke(generator, [null]));
+        Assert.Equal("hello world", escapeStringMethod.Invoke(generator, ["hello world"]));
+        
+    }
+
+    [Fact]
+    public void IsVoidType_HandlesVariousTypes()
+    {
+        // Arrange - Use reflection to test the private IsVoidType method
+        var source = @"
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint]
+    public string HandleTest(TestRequest request) => ""test"";
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        var diagnosticReporter = new TestDiagnosticReporter();
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Use reflection to access the private IsVoidType method
+        var isVoidTypeMethod = typeof(EndpointMetadataGenerator).GetMethod("IsVoidType",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        // Get some type symbols
+        var voidType = compilation.GetSpecialType(Microsoft.CodeAnalysis.SpecialType.System_Void);
+        var stringType = compilation.GetSpecialType(Microsoft.CodeAnalysis.SpecialType.System_String);
+
+        // Act & Assert
+        Assert.True((bool)isVoidTypeMethod.Invoke(generator, [voidType]));
+        Assert.False((bool)isVoidTypeMethod.Invoke(generator, [stringType]));
+    }
 }

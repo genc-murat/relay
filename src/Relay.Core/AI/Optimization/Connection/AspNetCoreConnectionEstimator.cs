@@ -33,7 +33,8 @@ internal class AspNetCoreConnectionEstimator(
             if (kestrelConnections > 0)
             {
                 _logger.LogTrace("Kestrel actual connections: {Count}", kestrelConnections);
-                return kestrelConnections;
+                var boundedKestrelConnections = Math.Max(1, Math.Min(kestrelConnections, _options.MaxEstimatedHttpConnections / 2));
+                return boundedKestrelConnections;
             }
 
             // 2. Fallback: Estimate from request analytics
@@ -91,6 +92,7 @@ internal class AspNetCoreConnectionEstimator(
             if (connectionCount > 0)
             {
                 _logger.LogTrace("Kestrel connections from stored metrics: {Count}", connectionCount);
+                StoreKestrelConnectionMetrics(connectionCount);
                 return connectionCount;
             }
 
@@ -99,6 +101,7 @@ internal class AspNetCoreConnectionEstimator(
             if (connectionCount > 0)
             {
                 _logger.LogTrace("Kestrel connections inferred from patterns: {Count}", connectionCount);
+                StoreKestrelConnectionMetrics(connectionCount);
                 return connectionCount;
             }
 
@@ -107,6 +110,7 @@ internal class AspNetCoreConnectionEstimator(
             if (connectionCount > 0)
             {
                 _logger.LogTrace("Kestrel connections from metrics collector: {Count}", connectionCount);
+                StoreKestrelConnectionMetrics(connectionCount);
                 return connectionCount;
             }
 
@@ -115,6 +119,7 @@ internal class AspNetCoreConnectionEstimator(
             if (connectionCount > 0)
             {
                 _logger.LogTrace("Kestrel connections predicted: {Count}", connectionCount);
+                StoreKestrelConnectionMetrics(connectionCount);
                 return connectionCount;
             }
 

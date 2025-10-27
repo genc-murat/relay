@@ -1,5 +1,6 @@
 using Relay.Core.Contracts.Dispatchers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Dispatchers;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -21,10 +22,20 @@ public class TelemetryNotificationDispatcher : INotificationDispatcher
         _telemetryProvider = telemetryProvider ?? throw new ArgumentNullException(nameof(telemetryProvider));
     }
 
+    private int GetHandlerCount(Type notificationType)
+    {
+        if (_inner is NotificationDispatcher dispatcher)
+        {
+            return dispatcher.GetHandlers(notificationType).Count;
+        }
+        return 0;
+    }
+
     public async ValueTask DispatchAsync<TNotification>(TNotification notification, CancellationToken cancellationToken)
         where TNotification : INotification
     {
         var notificationType = typeof(TNotification);
+        var handlerCount = GetHandlerCount(notificationType);
         var correlationId = _telemetryProvider.GetCorrelationId();
 
         using var activity = _telemetryProvider.StartActivity("Relay.Notification", notificationType, correlationId);
@@ -35,14 +46,12 @@ public class TelemetryNotificationDispatcher : INotificationDispatcher
             await _inner.DispatchAsync(notification, cancellationToken);
             stopwatch.Stop();
 
-            // We don't have direct access to handler count here, so we'll use 0 as a placeholder
-            // The actual implementation might need to be enhanced to track this
-            _telemetryProvider.RecordNotificationPublish(notificationType, 0, stopwatch.Elapsed, true);
+            _telemetryProvider.RecordNotificationPublish(notificationType, handlerCount, stopwatch.Elapsed, true);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _telemetryProvider.RecordNotificationPublish(notificationType, 0, stopwatch.Elapsed, false, ex);
+            _telemetryProvider.RecordNotificationPublish(notificationType, handlerCount, stopwatch.Elapsed, false, ex);
             throw;
         }
     }

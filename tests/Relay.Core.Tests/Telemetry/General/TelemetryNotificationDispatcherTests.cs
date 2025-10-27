@@ -1,9 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Relay.Core.Contracts.Dispatchers;
+using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Implementation.Configuration;
+using Relay.Core.Implementation.Dispatchers;
 using Relay.Core.Telemetry;
 using Xunit;
 
@@ -64,7 +68,7 @@ public class TelemetryNotificationDispatcherTests
         Assert.Single(_telemetryProvider.NotificationPublishes);
         var publish = _telemetryProvider.NotificationPublishes[0];
         Assert.Equal(typeof(TestNotification), publish.NotificationType);
-        Assert.Equal(0, publish.HandlerCount); // Placeholder value as noted in implementation
+        Assert.Equal(0, publish.HandlerCount); // 0 because inner dispatcher is mocked, not NotificationDispatcher
         Assert.True(publish.Success);
         Assert.True(publish.Duration > TimeSpan.Zero);
     }
@@ -119,7 +123,237 @@ public class TelemetryNotificationDispatcherTests
         Assert.Equal(correlationId, activity.Tags["relay.correlation_id"]);
     }
 
+    [Fact]
+    public async Task DispatchAsync_WithNotificationDispatcher_RecordsActualHandlerCount()
+    {
+        // Arrange
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var notificationDispatcher = new NotificationDispatcher(serviceProvider);
+        
+        // Register 3 handlers
+        for (int i = 0; i < 3; i++)
+        {
+            var registration = new NotificationHandlerRegistration
+            {
+                NotificationType = typeof(TestNotification),
+                HandlerType = typeof(TestNotificationHandler),
+                DispatchMode = NotificationDispatchMode.Parallel,
+                Priority = 0,
+                HandlerFactory = sp => new TestNotificationHandler(),
+                ExecuteHandler = (handler, notification, ct) =>
+                    ((TestNotificationHandler)handler).HandleAsync((TestNotification)notification, ct)
+            };
+            notificationDispatcher.RegisterHandler(registration);
+        }
+
+        var telemetryDispatcher = new TelemetryNotificationDispatcher(notificationDispatcher, _telemetryProvider);
+        var notification = new TestNotification();
+
+        // Act
+        await telemetryDispatcher.DispatchAsync(notification, CancellationToken.None);
+
+        // Assert
+        Assert.Single(_telemetryProvider.NotificationPublishes);
+        var publish = _telemetryProvider.NotificationPublishes[0];
+        Assert.Equal(3, publish.HandlerCount);
+        Assert.True(publish.Success);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WithNonNotificationDispatcher_RecordsZeroHandlerCount()
+    {
+        // Arrange
+        var notification = new TestNotification();
+        _innerDispatcherMock
+            .Setup(x => x.DispatchAsync(notification, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask);
+
+        // Act
+        await _dispatcher.DispatchAsync(notification, CancellationToken.None);
+
+        // Assert
+        Assert.Single(_telemetryProvider.NotificationPublishes);
+        var publish = _telemetryProvider.NotificationPublishes[0];
+        Assert.Equal(0, publish.HandlerCount);
+        Assert.True(publish.Success);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WithNoHandlers_RecordsZeroHandlerCount()
+    {
+        // Arrange
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var notificationDispatcher = new NotificationDispatcher(serviceProvider);
+        var telemetryDispatcher = new TelemetryNotificationDispatcher(notificationDispatcher, _telemetryProvider);
+        var notification = new TestNotification();
+
+        // Act
+        await telemetryDispatcher.DispatchAsync(notification, CancellationToken.None);
+
+        // Assert
+        Assert.Single(_telemetryProvider.NotificationPublishes);
+        var publish = _telemetryProvider.NotificationPublishes[0];
+        Assert.Equal(0, publish.HandlerCount);
+        Assert.True(publish.Success);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WithMultipleHandlers_RecordsCorrectCount()
+    {
+        // Arrange
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var notificationDispatcher = new NotificationDispatcher(serviceProvider);
+        
+        // Register 5 handlers with different priorities
+        for (int i = 0; i < 5; i++)
+        {
+            var registration = new NotificationHandlerRegistration
+            {
+                NotificationType = typeof(TestNotification),
+                HandlerType = typeof(TestNotificationHandler),
+                DispatchMode = NotificationDispatchMode.Sequential,
+                Priority = i,
+                HandlerFactory = sp => new TestNotificationHandler(),
+                ExecuteHandler = (handler, notification, ct) =>
+                    ((TestNotificationHandler)handler).HandleAsync((TestNotification)notification, ct)
+            };
+            notificationDispatcher.RegisterHandler(registration);
+        }
+
+        var telemetryDispatcher = new TelemetryNotificationDispatcher(notificationDispatcher, _telemetryProvider);
+        var notification = new TestNotification();
+
+        // Act
+        await telemetryDispatcher.DispatchAsync(notification, CancellationToken.None);
+
+        // Assert
+        Assert.Single(_telemetryProvider.NotificationPublishes);
+        var publish = _telemetryProvider.NotificationPublishes[0];
+        Assert.Equal(5, publish.HandlerCount);
+        Assert.True(publish.Success);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WithExceptionAndHandlerCount_RecordsCountInFailure()
+    {
+        // Arrange
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var options = new NotificationDispatchOptions { ContinueOnException = false };
+        var notificationDispatcher = new NotificationDispatcher(serviceProvider, options);
+        
+        var executionCount = 0;
+        var registration = new NotificationHandlerRegistration
+        {
+            NotificationType = typeof(TestNotification),
+            HandlerType = typeof(TestNotificationHandler),
+            DispatchMode = NotificationDispatchMode.Parallel,
+            Priority = 0,
+            HandlerFactory = sp => new TestNotificationHandler(() =>
+            {
+                executionCount++;
+                throw new InvalidOperationException("Handler failed");
+            }),
+            ExecuteHandler = (handler, notification, ct) =>
+                ((TestNotificationHandler)handler).HandleAsync((TestNotification)notification, ct)
+        };
+        notificationDispatcher.RegisterHandler(registration);
+
+        var telemetryDispatcher = new TelemetryNotificationDispatcher(notificationDispatcher, _telemetryProvider);
+        var notification = new TestNotification();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            telemetryDispatcher.DispatchAsync(notification, CancellationToken.None).AsTask());
+
+        // Assert
+        Assert.Single(_telemetryProvider.NotificationPublishes);
+        var publish = _telemetryProvider.NotificationPublishes[0];
+        Assert.Equal(1, publish.HandlerCount);
+        Assert.False(publish.Success);
+        Assert.NotNull(publish.Exception);
+        Assert.IsType<InvalidOperationException>(publish.Exception);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WithDifferentNotificationTypes_RecordsCorrectHandlerCounts()
+    {
+        // Arrange
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+        var notificationDispatcher = new NotificationDispatcher(serviceProvider);
+        
+        // Register 2 handlers for TestNotification
+        for (int i = 0; i < 2; i++)
+        {
+            var registration = new NotificationHandlerRegistration
+            {
+                NotificationType = typeof(TestNotification),
+                HandlerType = typeof(TestNotificationHandler),
+                DispatchMode = NotificationDispatchMode.Parallel,
+                Priority = 0,
+                HandlerFactory = sp => new TestNotificationHandler(),
+                ExecuteHandler = (handler, notification, ct) =>
+                    ((TestNotificationHandler)handler).HandleAsync((TestNotification)notification, ct)
+            };
+            notificationDispatcher.RegisterHandler(registration);
+        }
+
+        // Register 3 handlers for AnotherTestNotification
+        for (int i = 0; i < 3; i++)
+        {
+            var registration = new NotificationHandlerRegistration
+            {
+                NotificationType = typeof(AnotherTestNotification),
+                HandlerType = typeof(AnotherTestNotificationHandler),
+                DispatchMode = NotificationDispatchMode.Parallel,
+                Priority = 0,
+                HandlerFactory = sp => new AnotherTestNotificationHandler(),
+                ExecuteHandler = (handler, notification, ct) =>
+                    ((AnotherTestNotificationHandler)handler).HandleAsync((AnotherTestNotification)notification, ct)
+            };
+            notificationDispatcher.RegisterHandler(registration);
+        }
+
+        var telemetryDispatcher = new TelemetryNotificationDispatcher(notificationDispatcher, _telemetryProvider);
+
+        // Act
+        await telemetryDispatcher.DispatchAsync(new TestNotification(), CancellationToken.None);
+        await telemetryDispatcher.DispatchAsync(new AnotherTestNotification(), CancellationToken.None);
+
+        // Assert
+        Assert.Equal(2, _telemetryProvider.NotificationPublishes.Count);
+        Assert.Equal(2, _telemetryProvider.NotificationPublishes[0].HandlerCount);
+        Assert.Equal(3, _telemetryProvider.NotificationPublishes[1].HandlerCount);
+    }
+
     private class TestNotification : INotification
     {
+    }
+
+    private class AnotherTestNotification : INotification
+    {
+    }
+
+    private class TestNotificationHandler : INotificationHandler<TestNotification>
+    {
+        private readonly Action? _onHandle;
+
+        public TestNotificationHandler(Action? onHandle = null)
+        {
+            _onHandle = onHandle;
+        }
+
+        public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+        {
+            _onHandle?.Invoke();
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private class AnotherTestNotificationHandler : INotificationHandler<AnotherTestNotification>
+    {
+        public ValueTask HandleAsync(AnotherTestNotification notification, CancellationToken cancellationToken)
+        {
+            return ValueTask.CompletedTask;
+        }
     }
 }

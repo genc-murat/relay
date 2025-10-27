@@ -585,4 +585,216 @@ public class MessageBrokerTelemetryAdapterComprehensiveTests
         adapter.RecordMessageReceived("TestMessage", 1024, true);
         adapter.RecordMessageReceived("AnotherMessage", 2048, false);
     }
+
+    [Fact]
+    public void RecordMessagePublished_Without_Logger_Should_Not_Throw()
+    {
+        // Arrange - Create adapter without logger
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, null);
+
+        // Act & Assert - Should not throw when logger is null
+        adapter.RecordMessagePublished("TestMessage", 1024, true);
+        adapter.RecordMessagePublished("AnotherMessage", 2048, false);
+    }
+
+    [Fact]
+    public void RecordProcessingDuration_Without_Logger_Should_Not_Throw()
+    {
+        // Arrange - Create adapter without logger
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, null);
+
+        // Act & Assert - Should not throw when logger is null
+        adapter.RecordProcessingDuration("TestMessage", TimeSpan.FromMilliseconds(100));
+        adapter.RecordProcessingDuration("AnotherMessage", TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
+    public void RecordMessagePublished_With_Unicode_Message_Type_Should_Work()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, _loggerMock.Object);
+
+        // Act - Test with unicode characters
+        adapter.RecordMessagePublished("Nachricht", 1024, true);
+        adapter.RecordMessagePublished("Mensaje", 2048, false);
+        adapter.RecordMessagePublished("Сообщение", 3072, true);
+
+        // Assert - Should not throw and should log
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(3));
+    }
+
+    [Fact]
+    public void RecordMessageReceived_With_Unicode_Message_Type_Should_Work()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, _loggerMock.Object);
+
+        // Act - Test with unicode characters
+        adapter.RecordMessageReceived("Nachricht", 1024, true);
+        adapter.RecordMessageReceived("Mensaje", 2048, false);
+        adapter.RecordMessageReceived("Сообщение", 3072, true);
+
+        // Assert - Should not throw and should log
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(3));
+    }
+
+    [Fact]
+    public void RecordProcessingDuration_With_Unicode_Message_Type_Should_Work()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, _loggerMock.Object);
+
+        // Act - Test with unicode characters
+        adapter.RecordProcessingDuration("Nachricht", TimeSpan.FromMilliseconds(100));
+        adapter.RecordProcessingDuration("Mensaje", TimeSpan.FromMilliseconds(200));
+        adapter.RecordProcessingDuration("Сообщение", TimeSpan.FromMilliseconds(300));
+
+        // Assert - Should not throw and should log
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(3));
+    }
+
+    [Fact]
+    public void RecordProcessingDuration_With_Zero_Duration_Should_Work()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, _loggerMock.Object);
+
+        // Act
+        adapter.RecordProcessingDuration("TestMessage", TimeSpan.Zero);
+
+        // Assert - Verify the log message contains 0
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("0")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void RecordMessagePublished_With_Very_Small_Size_Should_Work()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, _loggerMock.Object);
+
+        // Act
+        adapter.RecordMessagePublished("SmallMessage", 1, false);
+
+        // Assert - Should log correctly
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("SmallMessage") &&
+                                               o.ToString()!.Contains("1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void RecordMessageReceived_With_Very_Small_Size_Should_Work()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, _loggerMock.Object);
+
+        // Act
+        adapter.RecordMessageReceived("SmallMessage", 1, true);
+
+        // Assert - Should log correctly
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("SmallMessage") &&
+                                               o.ToString()!.Contains("1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void RecordError_With_Empty_Message_Should_Work()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, _loggerMock.Object);
+
+        // Act - Test with empty error message
+        adapter.RecordError("EmptyMessageError", "");
+
+        // Assert - Should log correctly
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("EmptyMessageError")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void RecordMessagePublished_With_Boolean_Compressed_Flags_Should_Log_Correctly()
+    {
+        // Arrange
+        var options = Options.Create(_options);
+        var adapter = new MessageBrokerTelemetryAdapter(options, _loggerMock.Object);
+
+        // Act
+        adapter.RecordMessagePublished("CompressedMsg", 1024, true);
+        adapter.RecordMessagePublished("UncompressedMsg", 2048, false);
+
+        // Assert - Verify the log messages contain correct compressed flags
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("CompressedMsg") &&
+                                               o.ToString()!.Contains("True")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("UncompressedMsg") &&
+                                               o.ToString()!.Contains("False")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }

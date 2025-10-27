@@ -521,8 +521,122 @@ public class RequestExceptionHandlerBehaviorTests
             await behavior.HandleAsync(request, next, cts.Token));
     }
 
+    [Fact]
+    public async Task HandleAsync_Should_Handle_Null_Handlers_In_Service_Collection()
+    {
+        // Arrange - Test when GetServices returns null or contains null items
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, InvalidOperationException>>)))
+            .Returns(new[] { (object)null! }); // Contains null handler
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, SystemException>>)))
+            .Returns(Array.Empty<object>());
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, Exception>>)))
+            .Returns(Array.Empty<object>());
+
+        var loggerMock = new Mock<ILogger<RequestExceptionHandlerBehavior<TestRequest, string>>>();
+
+        var behavior = new RequestExceptionHandlerBehavior<TestRequest, string>(serviceProviderMock.Object, loggerMock.Object);
+        var request = new TestRequest();
+        var cancellationToken = CancellationToken.None;
+        var expectedException = new InvalidOperationException("Test exception");
+
+        RequestHandlerDelegate<string> next = () => throw expectedException;
+
+        // Act & Assert - Should skip null handlers and rethrow
+        var actualException = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await behavior.HandleAsync(request, next, cancellationToken));
+
+        Assert.Same(expectedException, actualException);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Should_Handle_Handler_Without_HandleAsync_Method()
+    {
+        // Arrange - Create a mock handler that doesn't have HandleAsync method
+        var invalidHandler = new InvalidHandler(); // Class without HandleAsync method
+
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, InvalidOperationException>>)))
+            .Returns(new[] { invalidHandler });
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, SystemException>>)))
+            .Returns(Array.Empty<object>());
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, Exception>>)))
+            .Returns(Array.Empty<object>());
+
+        var loggerMock = new Mock<ILogger<RequestExceptionHandlerBehavior<TestRequest, string>>>();
+
+        var behavior = new RequestExceptionHandlerBehavior<TestRequest, string>(serviceProviderMock.Object, loggerMock.Object);
+        var request = new TestRequest();
+        var cancellationToken = CancellationToken.None;
+        var expectedException = new InvalidOperationException("Test exception");
+
+        RequestHandlerDelegate<string> next = () => throw expectedException;
+
+        // Act & Assert - Should skip invalid handler and rethrow
+        var actualException = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await behavior.HandleAsync(request, next, cancellationToken));
+
+        Assert.Same(expectedException, actualException);
+    }
+
+
+
+    [Fact]
+    public async Task HandleAsync_Should_Handle_Handler_With_Non_ValueTask_Result()
+    {
+        // Arrange - Create a handler that returns Task instead of ValueTask
+        var taskReturningHandler = new TaskReturningHandler();
+
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, InvalidOperationException>>)))
+            .Returns(new[] { taskReturningHandler });
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, SystemException>>)))
+            .Returns(Array.Empty<object>());
+        serviceProviderMock
+            .Setup(x => x.GetService(typeof(IEnumerable<IRequestExceptionHandler<TestRequest, string, Exception>>)))
+            .Returns(Array.Empty<object>());
+
+        var loggerMock = new Mock<ILogger<RequestExceptionHandlerBehavior<TestRequest, string>>>();
+
+        var behavior = new RequestExceptionHandlerBehavior<TestRequest, string>(serviceProviderMock.Object, loggerMock.Object);
+        var request = new TestRequest();
+        var cancellationToken = CancellationToken.None;
+        var expectedException = new InvalidOperationException("Test exception");
+
+        RequestHandlerDelegate<string> next = () => throw expectedException;
+
+        // Act & Assert - Should handle Task results and rethrow if not handled
+        var actualException = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await behavior.HandleAsync(request, next, cancellationToken));
+
+        Assert.Same(expectedException, actualException);
+    }
+
     #endregion
 
     // Test request class
     public class TestRequest { }
+
+    // Test helper classes for edge cases
+    private class InvalidHandler
+    {
+        // No HandleAsync method
+    }
+
+    private class TaskReturningHandler : IRequestExceptionHandler<TestRequest, string, InvalidOperationException>
+    {
+        public async ValueTask<Relay.Core.Pipeline.Interfaces.ExceptionHandlerResult<string>> HandleAsync(TestRequest request, InvalidOperationException exception, CancellationToken cancellationToken)
+        {
+            await Task.Delay(1); // Simulate async work
+            return Relay.Core.Pipeline.Interfaces.ExceptionHandlerResult<string>.Unhandled();
+        }
+    }
 }

@@ -1,5 +1,6 @@
  using System;
  using System.Collections.Generic;
+ using System.Linq;
  using Microsoft.Extensions.Logging;
 
  namespace Relay.Core.AI
@@ -108,7 +109,25 @@
               Dictionary<string, double> currentMetrics,
               Dictionary<string, MovingAverageData> movingAverages)
           {
-              return _anomalyUpdater.UpdateAnomalies(currentMetrics, movingAverages);
+              var allAnomalies = _anomalyUpdater.UpdateAnomalies(currentMetrics, movingAverages);
+
+              // Deduplicate anomalies per metric: keep only the highest severity anomaly for each metric
+              // This prevents multiple detection methods from reporting the same underlying issue
+              var deduplicatedAnomalies = new Dictionary<string, MetricAnomaly>();
+
+              foreach (var anomaly in allAnomalies)
+              {
+                  if (!deduplicatedAnomalies.TryGetValue(anomaly.MetricName, out var existing))
+                  {
+                      deduplicatedAnomalies[anomaly.MetricName] = anomaly;
+                  }
+                  else if (GetSeverityLevel(anomaly.Severity) > GetSeverityLevel(existing.Severity))
+                  {
+                      deduplicatedAnomalies[anomaly.MetricName] = anomaly;
+                  }
+              }
+
+              return deduplicatedAnomalies.Values.ToList();
           }
 
            private List<TrendInsight> GenerateBasicInsights(Dictionary<string, double> currentMetrics)
@@ -221,5 +240,17 @@
 
               return insights;
           }
+
+        private int GetSeverityLevel(AnomalySeverity severity)
+        {
+            return severity switch
+            {
+                AnomalySeverity.Critical => 4,
+                AnomalySeverity.High => 3,
+                AnomalySeverity.Medium => 2,
+                AnomalySeverity.Low => 1,
+                _ => 0
+            };
+        }
     }
 }

@@ -123,7 +123,7 @@ namespace Relay.Core.AI
                         Deviation = System.Math.Abs(value - mean),
                         ZScore = zScore,
                         Severity = severity,
-                        Description = $"Z-Score anomaly: Current={value:F2}, Expected={mean:F2}, Z-Score={zScore:F2}, StdDev={stdDev:F2}",
+                        Description = $"Z-Score anomaly in {metricName}: Current={value:F2}, Expected={mean:F2}, Z-Score={zScore:F2}, StdDev={stdDev:F2}",
                         Timestamp = DateTime.UtcNow
                     };
                 }
@@ -200,7 +200,7 @@ namespace Relay.Core.AI
                 var percentageChange = System.Math.Abs(value - ma15) / ma15;
                 var spikeThreshold = 0.5; // 50% change is significant
 
-                if (percentageChange > spikeThreshold)
+                if (percentageChange >= spikeThreshold)
                 {
                     var isSpike = value > ma15;
                     var description = isSpike
@@ -288,7 +288,7 @@ namespace Relay.Core.AI
                 if (!_metricHistory.TryGetValue(metricName, out var history) || history.Count < 2)
                 {
                     // Fallback: estimate based on moving averages range
-                    return System.Math.Max(mean * 0.15, 0.1); // Use 15% of mean as baseline
+                    return System.Math.Max(mean * 0.1, 0.1); // Use 10% of mean as baseline
                 }
 
                 var variance = history.Sum(x => System.Math.Pow(x - mean, 2)) / history.Count;
@@ -309,7 +309,7 @@ namespace Relay.Core.AI
             if (absoluteZScore >= _config.HighAnomalyZScoreThreshold)
                 return AnomalySeverity.High;
 
-            if (absoluteZScore >= _config.AnomalyZScoreThreshold + 0.5)
+            if (absoluteZScore >= _config.AnomalyZScoreThreshold)
                 return AnomalySeverity.Medium;
 
             return AnomalySeverity.Low;

@@ -1,9 +1,7 @@
 using Relay.CLI.Commands;
-using System.CommandLine;
-using Spectre.Console.Testing;
 using Spectre.Console;
+using System.CommandLine;
 using System.Reflection;
-using Xunit;
 
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
 #pragma warning disable CS8602 // Dereference of a possibly null reference
@@ -1138,6 +1136,342 @@ public class RefactorCommandTests
 
         // Assert
         Assert.Equal(result.Count(c => c == '<'), result.Count(c => c == '>'));
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithSpecificRules_ShouldExecuteWithoutException()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: new[] { "TestRule" },
+                categories: new[] { "Performance", "Readability" },
+                severityStr: "Warning",
+                outputFile: null,
+                format: "markdown",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - Method executed without exception
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithOutputFile_ShouldCreateReport()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var outputFile = Path.Combine(tempDir, "report.md");
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Info",
+                outputFile: outputFile,
+                format: "markdown",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - Report file should be created
+            Assert.True(File.Exists(outputFile));
+            var content = await File.ReadAllTextAsync(outputFile);
+            Assert.Contains("# Code Refactoring Report", content);
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_SaveRefactoringReport_Json_ShouldCreateFile()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var outputFile = Path.Combine(tempDir, "report.json");
+
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow.AddSeconds(-1),
+            EndTime = DateTime.UtcNow,
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 2,
+            SuggestionsCount = 1,
+            FileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>
+            {
+                new Relay.CLI.Refactoring.FileRefactoringResult
+                {
+                    FilePath = "Test.cs",
+                    Suggestions = new List<Relay.CLI.Refactoring.RefactoringSuggestion>
+                    {
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "TestRule",
+                            Description = "Test suggestion",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Readability,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Suggestion,
+                            FilePath = "Test.cs",
+                            LineNumber = 1,
+                            Rationale = "Test rationale"
+                        }
+                    }
+                }
+            }
+        };
+
+        try
+        {
+            // Act
+            var task = (Task)typeof(Relay.CLI.Commands.RefactorCommand)
+                .GetMethod("SaveRefactoringReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .Invoke(null, new object[] { analysis, null, outputFile, "json" });
+            await task;
+
+            // Assert
+            Assert.True(File.Exists(outputFile));
+            var content = await File.ReadAllTextAsync(outputFile);
+            Assert.Contains("\"Analysis\"", content);
+            Assert.Contains("\"TestRule\"", content);
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_SaveRefactoringReport_Html_ShouldCreateFile()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var outputFile = Path.Combine(tempDir, "report.html");
+
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow.AddSeconds(-1),
+            EndTime = DateTime.UtcNow,
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 1,
+            SuggestionsCount = 1,
+            FileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>
+            {
+                new Relay.CLI.Refactoring.FileRefactoringResult
+                {
+                    FilePath = "Program.cs",
+                    Suggestions = new List<Relay.CLI.Refactoring.RefactoringSuggestion>
+                    {
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "AsyncRule",
+                            Description = "Use async/await",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.AsyncAwait,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Suggestion,
+                            FilePath = "Program.cs",
+                            LineNumber = 10,
+                            Rationale = "Improves async programming"
+                        }
+                    }
+                }
+            }
+        };
+
+        try
+        {
+            // Act
+            var task = (Task)typeof(Relay.CLI.Commands.RefactorCommand)
+                .GetMethod("SaveRefactoringReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .Invoke(null, new object[] { analysis, null, outputFile, "html" });
+            await task;
+
+            // Assert
+            Assert.True(File.Exists(outputFile));
+            var content = await File.ReadAllTextAsync(outputFile);
+            Assert.Contains("<!DOCTYPE html>", content);
+            Assert.Contains("<html lang=\"en\">", content);
+            Assert.Contains("Use async/await", content);
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_ExceptionHandling_ShouldSetExitCode()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var invalidPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "nonexistent");
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        var originalExitCode = Environment.ExitCode;
+
+        try
+        {
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                invalidPath,
+                analyzeOnly: false,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Info",
+                outputFile: null,
+                format: "markdown",
+                createBackup: false);
+
+            // Assert - Should set exit code to 1 on exception
+            Assert.Equal(1, Environment.ExitCode);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+            Environment.ExitCode = originalExitCode;
+        }
+    }
+
+    [Fact]
+    public void RefactorCommand_ShouldHaveAnalyzeOnlyOption()
+    {
+        // Arrange & Act
+        var command = RefactorCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "analyze-only");
+
+        // Assert
+        Assert.NotNull(option);
+        Assert.Equal("analyze-only", option.Name);
+        Assert.Equal("Only analyze without applying changes", option.Description);
+        Assert.IsType<Option<bool>>(option);
+    }
+
+    [Fact]
+    public void RefactorCommand_ShouldHaveDryRunOption()
+    {
+        // Arrange & Act
+        var command = RefactorCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "dry-run");
+
+        // Assert
+        Assert.NotNull(option);
+        Assert.Equal("dry-run", option.Name);
+        Assert.Equal("Show changes without applying them", option.Description);
+        Assert.IsType<Option<bool>>(option);
+    }
+
+    [Fact]
+    public void RefactorCommand_ShouldHaveInteractiveOption()
+    {
+        // Arrange & Act
+        var command = RefactorCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "interactive");
+
+        // Assert
+        Assert.NotNull(option);
+        Assert.Equal("interactive", option.Name);
+        Assert.Equal("Prompt for each refactoring", option.Description);
+        Assert.IsType<Option<bool>>(option);
+    }
+
+    [Fact]
+    public void RefactorCommand_ShouldHaveRulesOption()
+    {
+        // Arrange & Act
+        var command = RefactorCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "rules");
+
+        // Assert
+        Assert.NotNull(option);
+        Assert.Equal("rules", option.Name);
+        Assert.Equal("Specific rules to apply", option.Description);
+        Assert.IsType<Option<string[]>>(option);
+    }
+
+    [Fact]
+    public void RefactorCommand_ShouldHaveCategoryOption()
+    {
+        // Arrange & Act
+        var command = RefactorCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "category");
+
+        // Assert
+        Assert.NotNull(option);
+        Assert.Equal("category", option.Name);
+        Assert.Equal("Refactoring categories (Performance, Readability, etc.)", option.Description);
+        Assert.IsType<Option<string[]>>(option);
+    }
+
+    [Fact]
+    public void RefactorCommand_ShouldHaveSeverityOption()
+    {
+        // Arrange & Act
+        var command = RefactorCommand.Create();
+        var option = command.Options.FirstOrDefault(o => o.Name == "min-severity");
+
+        // Assert
+        Assert.NotNull(option);
+        Assert.Equal("min-severity", option.Name);
+        Assert.Equal("Minimum severity (Info, Suggestion, Warning, Error)", option.Description);
+        Assert.IsType<Option<string>>(option);
     }
 }
 

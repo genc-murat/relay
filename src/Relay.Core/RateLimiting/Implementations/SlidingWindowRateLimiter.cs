@@ -12,7 +12,7 @@ namespace Relay.Core.RateLimiting.Implementations;
 /// Uses hybrid approach: combines fixed window counters with sliding window calculation
 /// More memory efficient than sliding window log, more accurate than fixed window
 /// </summary>
-public class SlidingWindowRateLimiter : IRateLimiter
+public partial class SlidingWindowRateLimiter : IRateLimiter
 {
     private readonly ILogger<SlidingWindowRateLimiter> _logger;
     private readonly ConcurrentDictionary<string, SlidingWindowState> _windows;
@@ -221,18 +221,5 @@ public class SlidingWindowRateLimiter : IRateLimiter
         {
             _logger.LogDebug("Cleaned up {Count} expired rate limit windows", removed);
         }
-    }
-
-    /// <summary>
-    /// Internal state for sliding window tracking
-    /// </summary>
-    private class SlidingWindowState
-    {
-        public object Lock { get; } = new object();
-        public DateTimeOffset CurrentWindowStart { get; set; }
-        public DateTimeOffset PreviousWindowStart { get; set; }
-        public int CurrentWindowCount { get; set; }
-        public int PreviousWindowCount { get; set; }
-        public DateTimeOffset LastAccessTime { get; set; }
     }
 }

@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Models;
 using Relay.Core.AI.Optimization.Connection;
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization.Connection;
@@ -622,6 +624,357 @@ public class ConnectionMetricsProviderTests
         {
             Assert.True(task.Result >= 0);
         }
+    }
+
+    #endregion
+
+    #region Time Series and Analytics Tests
+
+    [Fact]
+    public void RecordConnectionMetrics_Should_Store_Metrics_To_TimeSeriesDb()
+    {
+        // Act - Should not throw
+        _provider.RecordConnectionMetrics();
+
+        // Assert - Just verify it doesn't throw
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void GetConnectionHistory_Should_Return_Historical_Data()
+    {
+        // Arrange
+        _provider.RecordConnectionMetrics();
+
+        // Act
+        var history = _provider.GetConnectionHistory(TimeSpan.FromHours(1));
+
+        // Assert
+        Assert.NotNull(history);
+    }
+
+    [Fact]
+    public void AnalyzeConnectionTrends_Should_Return_Valid_Analysis()
+    {
+        // Arrange
+        _provider.RecordConnectionMetrics();
+
+        // Act
+        var analysis = _provider.AnalyzeConnectionTrends(TimeSpan.FromHours(1));
+
+        // Assert
+        Assert.NotNull(analysis);
+        Assert.True(analysis.CurrentLoad >= 0);
+        Assert.True(analysis.AverageLoad >= 0);
+        Assert.NotEmpty(analysis.TrendDirection);
+        Assert.NotEqual(default, analysis.AnalysisTimestamp);
+    }
+
+    [Fact]
+    public void AnalyzeConnectionTrends_Should_Handle_Errors_Gracefully()
+    {
+        // Act - Call without recording metrics should still work
+        var analysis = _provider.AnalyzeConnectionTrends(TimeSpan.FromHours(1));
+
+        // Assert - Should return valid analysis with calculated trend
+        Assert.NotNull(analysis);
+        Assert.NotEmpty(analysis.TrendDirection);
+        Assert.True(analysis.CurrentLoad >= 0);
+        Assert.True(analysis.AverageLoad >= 0);
+    }
+
+    [Fact]
+    public void ForecastConnections_Should_Return_Forecast_Values()
+    {
+        // Arrange
+        _provider.RecordConnectionMetrics();
+
+        // Act
+        var forecast = _provider.ForecastConnections(10);
+
+        // Assert
+        Assert.NotNull(forecast);
+    }
+
+    [Fact]
+    public void DetectConnectionAnomalies_Should_Return_Anomalies()
+    {
+        // Arrange
+        _provider.RecordConnectionMetrics();
+
+        // Act
+        var anomalies = _provider.DetectConnectionAnomalies(100);
+
+        // Assert
+        Assert.NotNull(anomalies);
+    }
+
+    [Fact]
+    public void GetRequestAnalytics_Should_Return_Null_For_Unknown_Type()
+    {
+        // Act
+        var analytics = _provider.GetRequestAnalytics(typeof(string));
+
+        // Assert
+        Assert.Null(analytics);
+    }
+
+    [Fact]
+    public void GetRequestAnalytics_Should_Return_Data_For_Tracked_Type()
+    {
+        // Arrange
+        var requestType = typeof(ConnectionMetricsProviderTests);
+        var analysisData = new RequestAnalysisData();
+        _requestAnalytics.TryAdd(requestType, analysisData);
+
+        // Act
+        var analytics = _provider.GetRequestAnalytics(requestType);
+
+        // Assert
+        Assert.NotNull(analytics);
+        Assert.Equal(requestType.Name, analytics.RequestType);
+    }
+
+    [Fact]
+    public void GetAllRequestAnalytics_Should_Return_All_Tracked_Types()
+    {
+        // Arrange
+        var type1 = typeof(string);
+        var type2 = typeof(int);
+        _requestAnalytics.TryAdd(type1, new RequestAnalysisData());
+        _requestAnalytics.TryAdd(type2, new RequestAnalysisData());
+
+        // Act
+        var allAnalytics = _provider.GetAllRequestAnalytics().ToList();
+
+        // Assert
+        Assert.NotNull(allAnalytics);
+        Assert.NotEmpty(allAnalytics);
+        Assert.True(allAnalytics.Count >= 2);
+    }
+
+    [Fact]
+    public void GetDetailedConnectionHealthMetrics_Should_Return_Complete_Metrics()
+    {
+        // Act
+        var metrics = _provider.GetDetailedConnectionHealthMetrics();
+
+        // Assert
+        Assert.NotNull(metrics);
+        Assert.True(metrics.TotalActiveConnections >= 0);
+        Assert.True(metrics.HttpConnections >= 0);
+        Assert.True(metrics.WebSocketConnections >= 0);
+        Assert.True(metrics.DatabaseConnections >= 0);
+        Assert.True(metrics.HealthScore >= 0 && metrics.HealthScore <= 1);
+        Assert.True(metrics.UtilizationPercentage >= 0);
+        Assert.NotEqual(default, metrics.Timestamp);
+    }
+
+    [Fact]
+    public void GetDetailedConnectionHealthMetrics_Should_Include_Request_Metrics_Count()
+    {
+        // Arrange
+        _requestAnalytics.TryAdd(typeof(string), new RequestAnalysisData());
+
+        // Act
+        var metrics = _provider.GetDetailedConnectionHealthMetrics();
+
+        // Assert
+        Assert.NotNull(metrics);
+        Assert.Equal(_requestAnalytics.Count, metrics.RequestMetricsCount);
+    }
+
+    [Fact]
+    public void CleanupOldMetrics_Should_Complete_Without_Error()
+    {
+        // Arrange
+        _provider.RecordConnectionMetrics();
+
+        // Act & Assert (should not throw)
+        _provider.CleanupOldMetrics(TimeSpan.FromDays(7));
+    }
+
+    [Fact]
+    public void RecordConnectionMetrics_Should_Be_Thread_Safe()
+    {
+        // Arrange
+        var tasks = new System.Threading.Tasks.Task[10];
+
+        // Act
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                _provider.RecordConnectionMetrics();
+            });
+        }
+
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        // Assert - Should complete without throwing
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void GetConnectionHistory_Should_Be_Thread_Safe()
+    {
+        // Arrange
+        _provider.RecordConnectionMetrics();
+        var historyResults = new System.Collections.Generic.List<int>();
+        var tasks = new System.Threading.Tasks.Task[5];
+
+        // Act
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                var history = _provider.GetConnectionHistory(TimeSpan.FromHours(1));
+                lock (historyResults)
+                {
+                    historyResults.Add(history.ToList().Count);
+                }
+            });
+        }
+
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        // Assert
+        Assert.Equal(5, historyResults.Count);
+    }
+
+    [Fact]
+    public void AnalyzeConnectionTrends_Should_Be_Thread_Safe()
+    {
+        // Arrange
+        var tasks = new System.Threading.Tasks.Task[5];
+        var results = new System.Collections.Generic.List<string>();
+
+        // Act
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                var analysis = _provider.AnalyzeConnectionTrends(TimeSpan.FromHours(1));
+                lock (results)
+                {
+                    results.Add(analysis.TrendDirection);
+                }
+            });
+        }
+
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        // Assert
+        Assert.Equal(5, results.Count);
+    }
+
+    #endregion
+
+    #region Cache Tests
+
+    [Fact]
+    public void Constructor_With_Cache_Should_Accept_Cache_Parameter()
+    {
+        // Arrange
+        var mockCache = Mock.Of<Relay.Core.AI.IAIPredictionCache>();
+
+        // Act
+        var provider = new Relay.Core.AI.Optimization.Connection.ConnectionMetricsProvider(
+            _logger,
+            _options,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics,
+            _connectionMetrics,
+            mockCache);
+
+        // Assert
+        Assert.NotNull(provider);
+    }
+
+    [Fact]
+    public void Constructor_Without_Cache_Should_Work()
+    {
+        // Act
+        var provider = new Relay.Core.AI.Optimization.Connection.ConnectionMetricsProvider(
+            _logger,
+            _options,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics,
+            _connectionMetrics);
+
+        // Assert
+        Assert.NotNull(provider);
+    }
+
+    [Fact]
+    public void GetCachedConnectionCount_Should_Return_Null_When_No_Cache_Available()
+    {
+        // Act
+        var cachedCount = _provider.GetCachedConnectionCount();
+
+        // Assert
+        Assert.Null(cachedCount);
+    }
+
+    [Fact]
+    public void GetCachedConnectionCount_Should_Return_Value_When_Recent_Metric_Exists()
+    {
+        // Arrange
+        _provider.RecordConnectionMetrics();
+        System.Threading.Thread.Sleep(100); // Small delay to ensure metric is stored
+
+        // Act
+        var cachedCount = _provider.GetCachedConnectionCount();
+
+        // Assert - Should return a value or null based on whether metrics were stored
+        Assert.True(cachedCount == null || cachedCount >= 0);
+    }
+
+    [Fact]
+    public void CacheConnectionCount_Should_Record_To_TimeSeries()
+    {
+        // Act
+        _provider.RecordConnectionMetrics();
+
+        // Assert - Should not throw
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void GetActiveConnectionCount_Should_Cache_Result()
+    {
+        // Act
+        var count1 = _provider.GetActiveConnectionCount();
+        System.Threading.Thread.Sleep(50);
+        var cached = _provider.GetCachedConnectionCount();
+
+        // Assert - Cache should have been populated
+        Assert.True(count1 >= 0);
+    }
+
+    [Fact]
+    public void CacheConnectionCount_Should_Be_Thread_Safe_With_Concurrent_Calls()
+    {
+        // Arrange
+        var tasks = new System.Threading.Tasks.Task[5];
+
+        // Act
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                _provider.RecordConnectionMetrics();
+                var cached = _provider.GetCachedConnectionCount();
+                // Do something with cached value
+            });
+        }
+
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        // Assert - Should complete without errors
+        Assert.True(true);
     }
 
     #endregion

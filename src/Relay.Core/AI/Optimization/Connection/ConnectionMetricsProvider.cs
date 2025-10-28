@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Logging;
-using Relay.Core.AI;
 using Relay.Core.AI.Analysis.TimeSeries;
 using Relay.Core.AI.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
@@ -253,14 +253,25 @@ internal class ConnectionMetricsProvider
     /// <summary>
     /// Retrieves the cached connection count if available, otherwise returns null.
     /// </summary>
-    public int? GetCachedConnectionCount()
+    public async ValueTask<int?> GetCachedConnectionCountAsync()
     {
         try
         {
             if (_cache != null)
             {
-                // In a production scenario, we would retrieve from cache here
-                _logger.LogDebug("Cache is available for connection count retrieval");
+                // Try to retrieve from AI prediction cache first
+                var cacheResult = await _cache.GetCachedPredictionAsync(CONNECTION_COUNT_CACHE_KEY);
+                if (cacheResult != null)
+                {
+                    // Try to extract connection count from the recommendation
+                    // Since we don't have direct access to connection count in the optimization recommendation,
+                    // we'll have to use the time series fallback
+                    _logger.LogDebug("Cache is available for connection count retrieval but using time series fallback");
+                }
+                else
+                {
+                    _logger.LogDebug("Cache is available but no valid entry found for connection count retrieval");
+                }
             }
 
             // Fallback: Try to get recent metric from time series
@@ -269,6 +280,33 @@ internal class ConnectionMetricsProvider
 
             if (lastMetric != null && (DateTime.UtcNow - lastMetric.Timestamp).TotalMinutes < 30)
             {
+                _logger.LogDebug("Retrieved connection count from time series: {Count}", (int)lastMetric.Value);
+                return (int)lastMetric.Value;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error retrieving cached connection count");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Synchronous version of GetCachedConnectionCount for backward compatibility
+    /// </summary>
+    public int? GetCachedConnectionCount()
+    {
+        try
+        {
+            // Fallback: Try to get recent metric from time series
+            var recentMetrics = _timeSeriesDb.GetRecentMetrics(CONNECTION_COUNT_CACHE_KEY, 1);
+            var lastMetric = recentMetrics.FirstOrDefault();
+
+            if (lastMetric != null && (DateTime.UtcNow - lastMetric.Timestamp).TotalMinutes < 30)
+            {
+                _logger.LogDebug("Retrieved connection count from time series: {Count}", (int)lastMetric.Value);
                 return (int)lastMetric.Value;
             }
 

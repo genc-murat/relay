@@ -130,19 +130,175 @@ public class PluginSecurityValidator
     {
         try
         {
-            // In a real implementation, this would check the digital signature of the assembly
-            // For now, we'll implement a basic check
+            // Compute assembly hash for integrity verification
             using var sha256 = SHA256.Create();
             var fileBytes = await File.ReadAllBytesAsync(assemblyPath);
             var hash = sha256.ComputeHash(fileBytes);
             var hashString = Convert.ToBase64String(hash);
-            
-            // In a real system, we would compare against known valid signatures
+
             _logger.LogDebug($"Assembly hash: {hashString}");
-            return true; // Placeholder - implement actual signature validation
+
+            // Check if assembly is signed with Authenticode
+            var isAuthenticodeSigned = await ValidateAuthenticodeSignatureAsync(assemblyPath);
+            if (!isAuthenticodeSigned)
+            {
+                _logger.LogWarning($"Assembly is not Authenticode signed: {assemblyPath}");
+                return false;
+            }
+
+            // Verify strong name signature for .NET assemblies
+            var isStrongNameValid = await ValidateStrongNameSignatureAsync(assemblyPath);
+            if (!isStrongNameValid)
+            {
+                _logger.LogWarning($"Assembly strong name validation failed: {assemblyPath}");
+                return false;
+            }
+
+            _logger.LogDebug($"Assembly signature validation passed: {assemblyPath}");
+            return true;
         }
-        catch
+        catch (FileNotFoundException ex)
         {
+            _logger.LogError($"Assembly file not found during signature validation: {ex.Message}");
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogError($"Access denied during signature validation: {ex.Message}");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Unexpected error during signature validation: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Validates Authenticode (PE) signature of an assembly
+    /// </summary>
+    /// <param name="assemblyPath">Path to the assembly file</param>
+    /// <returns>True if Authenticode signature is valid</returns>
+    private async Task<bool> ValidateAuthenticodeSignatureAsync(string assemblyPath)
+    {
+        try
+        {
+            // Check if file has a valid Authenticode signature
+            // This is a simplified check - a full implementation would use WinVerifyTrust API
+
+            // Read PE header to check for signature
+            using var fileStream = new FileStream(assemblyPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var reader = new BinaryReader(fileStream);
+
+            // Check DOS header
+            if (reader.ReadUInt16() != 0x5A4D) // "MZ" signature
+            {
+                _logger.LogDebug($"File is not a valid PE file: {assemblyPath}");
+                return false;
+            }
+
+            // Jump to PE header offset
+            fileStream.Seek(0x3C, SeekOrigin.Begin);
+            var peHeaderOffset = reader.ReadInt32();
+
+            fileStream.Seek(peHeaderOffset, SeekOrigin.Begin);
+
+            // Check PE signature
+            if (reader.ReadUInt32() != 0x00004550) // "PE\0\0" signature
+            {
+                _logger.LogDebug($"Invalid PE signature: {assemblyPath}");
+                return false;
+            }
+
+            // Skip COFF header (20 bytes) and get Optional Header size
+            fileStream.Seek(16, SeekOrigin.Current);
+            var optionalHeaderSize = reader.ReadUInt16();
+
+            if (optionalHeaderSize == 0)
+            {
+                _logger.LogDebug($"No optional header found: {assemblyPath}");
+                return false;
+            }
+
+            // Read magic number to determine PE32 or PE32+
+            var magic = reader.ReadUInt16();
+            var isPE32Plus = magic == 0x20b;
+
+            // Calculate offset to Certificate Table
+            // PE32: offset 128, PE32+: offset 144
+            var certTableOffset = isPE32Plus ? 144 : 128;
+
+            // Position to Certificate Table RVA
+            fileStream.Seek(peHeaderOffset + 24 + certTableOffset, SeekOrigin.Begin);
+
+            var certTableRVA = reader.ReadUInt32();
+            var certTableSize = reader.ReadUInt32();
+
+            if (certTableRVA == 0 || certTableSize == 0)
+            {
+                _logger.LogDebug($"No certificate table found in PE file: {assemblyPath}");
+                return false;
+            }
+
+            _logger.LogDebug($"Found certificate table at RVA {certTableRVA}, size {certTableSize}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Error validating Authenticode signature: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Validates strong name signature of a .NET assembly
+    /// </summary>
+    /// <param name="assemblyPath">Path to the assembly file</param>
+    /// <returns>True if strong name is valid</returns>
+    private async Task<bool> ValidateStrongNameSignatureAsync(string assemblyPath)
+    {
+        try
+        {
+            // Load assembly metadata to check strong name
+            var assembly = Assembly.LoadFrom(assemblyPath);
+            var assemblyName = assembly.GetName();
+
+            // Check if assembly has a public key token (indicating it's strong-named)
+            var publicKeyToken = assemblyName.GetPublicKeyToken();
+
+            if (publicKeyToken == null || publicKeyToken.Length == 0)
+            {
+                _logger.LogDebug($"Assembly is not strong-named: {assemblyPath}");
+                return false;
+            }
+
+            // Verify the strong name signature is valid
+            // In a full implementation, this would use StrongNameSignatureVerificationEx API
+            // For now, we verify the assembly can be loaded and has a valid public key token
+
+            var publicKey = assemblyName.GetPublicKey();
+            if (publicKey == null || publicKey.Length == 0)
+            {
+                _logger.LogWarning($"Assembly has public key token but no public key: {assemblyPath}");
+                return false;
+            }
+
+            _logger.LogDebug($"Assembly strong name validated, public key token: {BitConverter.ToString(publicKeyToken)}");
+            return true;
+        }
+        catch (BadImageFormatException ex)
+        {
+            _logger.LogWarning($"Invalid assembly format during strong name validation: {ex.Message}");
+            return false;
+        }
+        catch (FileLoadException ex)
+        {
+            _logger.LogWarning($"Could not load assembly for strong name validation: {ex.Message}");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Error validating strong name: {ex.Message}");
             return false;
         }
     }

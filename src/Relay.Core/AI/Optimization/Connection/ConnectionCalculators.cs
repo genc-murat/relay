@@ -138,6 +138,10 @@ internal class ConnectionCalculators(
     {
         try
         {
+            // If there are no analytics, return safe default
+            if (_requestAnalytics.IsEmpty)
+                return LoadLevel.Medium;
+
             var cpuUsage = _systemMetrics.CalculateMemoryUsage(); // Note: would use CPU if available
             var throughput = _systemMetrics.CalculateCurrentThroughput();
 
@@ -177,7 +181,7 @@ internal class ConnectionCalculators(
             return 1.4; // Business hours - higher usage
         else if (hourOfDay >= 18 && hourOfDay <= 22)
             return 1.1; // Evening - moderate usage
-        else if (hourOfDay >= 23 || hourOfDay <= 6)
+        else if (hourOfDay >= 23 || hourOfDay <= 5)
             return 0.6; // Night - lower usage
         else
             return 0.9; // Early morning - low usage

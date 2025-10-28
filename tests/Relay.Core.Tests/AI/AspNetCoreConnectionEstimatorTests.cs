@@ -142,13 +142,17 @@ namespace Relay.Core.Tests.AI
         public void Constructor_Should_Throw_When_ProtocolCalculator_Is_Null()
         {
             var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
+            var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
             var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
             var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
+            var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
+            var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
             var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
-            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, _timeSeriesDb, systemMetrics, null!);
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
 
             Assert.Throws<ArgumentNullException>(() =>
-                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, _timeSeriesDb, systemMetrics, null!, utilities));
+                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, timeSeriesDb, systemMetrics, null!, utilities));
         }
 
         [Fact]

@@ -157,7 +157,7 @@ public class WorkflowEngineStepExecutionTests
                 new() {
                     Name = "RequestStep",
                     Type = StepType.Request,
-                    RequestType = null // Null RequestType should cause ArgumentException
+                    RequestType = null // Null RequestType should cause InvalidOperationException during validation
                 }
             ]
         };
@@ -165,16 +165,22 @@ public class WorkflowEngineStepExecutionTests
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
             .ReturnsAsync(definition);
 
+        WorkflowExecution? lastExecution = null;
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => lastExecution = exec)
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+        var execution = await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
 
-        // Wait for background execution
-        await Task.Delay(300);
+        // Wait for background execution to complete
+        await Task.Delay(1000); // Increase delay to ensure background execution completes
 
-        // Assert - Workflow should fail due to ArgumentException in CreateRequestFromStep
+        // Assert - Check if the last saved execution has Failed status
+        Assert.NotNull(lastExecution);
+        Assert.Equal(WorkflowStatus.Failed, lastExecution.Status);
+        
+        // Also verify that SaveExecutionAsync was called with a Failed status at least once
         _mockStateStore.Verify(x => x.SaveExecutionAsync(
             It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
             It.IsAny<CancellationToken>()), Times.AtLeastOnce);

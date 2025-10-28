@@ -85,58 +85,6 @@ internal class ConnectionMetricsProvider
             EstimateKeepAliveConnections);
     }
 
-    public int GetAspNetCoreConnectionCountLegacy()
-    {
-        try
-        {
-            var httpConnections = 0;
-
-            // 1. Kestrel/ASP.NET Core connection tracking
-            httpConnections += GetAspNetCoreConnectionCount();
-
-            // 2. HttpClient connection pool monitoring
-            httpConnections += GetHttpClientPoolConnectionCount();
-
-            // 3. Outbound HTTP connections (service-to-service)
-            httpConnections += GetOutboundHttpConnectionCount();
-
-            // 4. WebSocket upgrade connections (counted as HTTP initially)
-            httpConnections += GetUpgradedConnectionCount();
-
-            // 5. Load balancer connection tracking
-            httpConnections += GetLoadBalancerConnectionCount();
-
-            // 6. Estimate based on current request throughput as fallback
-            if (httpConnections == 0)
-            {
-                var throughput = CalculateConnectionThroughputFactor();
-                httpConnections = (int)(throughput * 0.7); // 70% of throughput reflects active connections
-
-                // Factor in concurrent request processing
-                var activeRequests = GetActiveRequestCount();
-                httpConnections += Math.Min(activeRequests, Environment.ProcessorCount * 2);
-
-                // Consider connection keep-alive patterns
-                var keepAliveConnections = EstimateKeepAliveConnections();
-                httpConnections += keepAliveConnections;
-            }
-
-            var finalCount = Math.Min(httpConnections, _options.MaxEstimatedHttpConnections);
-
-            _logger.LogTrace("HTTP connection count calculated: {Count} " +
-                "(ASP.NET Core: {AspNetCore}, HttpClient Pool: {HttpClientPool}, Outbound: {Outbound})",
-                finalCount, GetAspNetCoreConnectionCount(), GetHttpClientPoolConnectionCount(),
-                GetOutboundHttpConnectionCount());
-
-            return finalCount;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Error calculating HTTP connections, using fallback estimation");
-            return GetFallbackHttpConnectionCount();
-        }
-    }
-
     public int GetAspNetCoreConnectionCount()
     {
         return _httpProvider.GetAspNetCoreConnectionCount();

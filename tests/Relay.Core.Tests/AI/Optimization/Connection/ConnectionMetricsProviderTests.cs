@@ -263,86 +263,6 @@ public class ConnectionMetricsProviderTests
 
     #endregion
 
-    #region GetAspNetCoreConnectionCountLegacy Tests
-
-    [Fact]
-    public void GetAspNetCoreConnectionCountLegacy_Should_Return_Non_Negative_Value()
-    {
-        // Act
-        var result = _provider.GetAspNetCoreConnectionCountLegacy();
-
-        // Assert
-        Assert.True(result >= 0);
-    }
-
-    [Fact]
-    public void GetAspNetCoreConnectionCountLegacy_Should_Return_Value_Within_Reasonable_Range()
-    {
-        // Act
-        var result = _provider.GetAspNetCoreConnectionCountLegacy();
-
-        // Assert
-        // Should be within the configured maximum limit
-        Assert.True(result <= _options.MaxEstimatedHttpConnections);
-    }
-
-    [Fact]
-    public void GetAspNetCoreConnectionCountLegacy_Should_Handle_Exceptions_Gracefully()
-    {
-        // This test verifies that the method doesn't throw exceptions
-        // and returns a valid fallback value when internal operations fail
-
-        // Act & Assert - Should not throw
-        var result = _provider.GetAspNetCoreConnectionCountLegacy();
-        Assert.True(result >= 0);
-    }
-
-    [Fact]
-    public void GetAspNetCoreConnectionCountLegacy_Should_Execute_Fallback_Logic_When_All_Connection_Counts_Are_Zero()
-    {
-        // This test verifies the fallback logic when individual connection counts sum to zero
-        // Since the individual methods delegate to internal providers, we can't directly mock them,
-        // but we can verify that the method handles the case appropriately by ensuring
-        // system metrics are configured to produce expected behavior in the fallback calculation
-        
-        // Act
-        var result = _provider.GetAspNetCoreConnectionCountLegacy();
-
-        // Assert - The result should be a valid count, which could potentially include
-        // the fallback calculation when the sum of connection counts is zero
-        Assert.True(result >= 0);
-        
-        // Since we can't directly control the internal providers to return 0,
-        // we'll verify that the method doesn't throw and returns a non-negative value
-        // The fallback logic path will be covered by this test when the conditions are met
-    }
-
-    [Fact]
-    public void GetAspNetCoreConnectionCountLegacy_Should_Be_Thread_Safe()
-    {
-        // Arrange
-        var tasks = new System.Threading.Tasks.Task<int>[5];
-
-        for (int i = 0; i < tasks.Length; i++)
-        {
-            tasks[i] = System.Threading.Tasks.Task.Run(() =>
-            {
-                return _provider.GetAspNetCoreConnectionCountLegacy();
-            });
-        }
-
-        // Act
-        System.Threading.Tasks.Task.WaitAll(tasks);
-
-        // Assert
-        foreach (var task in tasks)
-        {
-            Assert.True(task.Result >= 0);
-        }
-    }
-
-    #endregion
-
     #region GetAspNetCoreConnectionCount Tests
 
     [Fact]
@@ -1006,6 +926,35 @@ public class ConnectionMetricsProviderTests
 
         // Assert
         Assert.True(cachedCount == null || cachedCount >= 0);
+    }
+
+    [Fact]
+    public void GetCachedConnectionCount_Should_Handle_Exception_Gracefully()
+    {
+        // Arrange - Create a provider with a TimeSeriesDatabase that will throw
+        var throwingTimeSeriesDb = new ThrowingTimeSeriesDatabase();
+        var provider = new ConnectionMetricsProvider(
+            _logger,
+            _options,
+            _requestAnalytics,
+            throwingTimeSeriesDb,
+            _systemMetrics,
+            _connectionMetrics);
+
+        // Act
+        var result = provider.GetCachedConnectionCount();
+
+        // Assert - Should catch exception and return null
+        Assert.Null(result);
+    }
+
+    // Helper class to test exception handling
+    private class ThrowingTimeSeriesDatabase : TestTimeSeriesDatabase
+    {
+        public override System.Collections.Generic.List<Relay.Core.AI.MetricDataPoint> GetRecentMetrics(string metricName, int count)
+        {
+            throw new InvalidOperationException("Simulated database error");
+        }
     }
 
     [Fact]

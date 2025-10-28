@@ -47,6 +47,7 @@ public class RefactoringEngine
             .ToList();
 
         result.FilesAnalyzed = files.Count;
+        result.FilesSkipped = 0;
 
         var semaphore = new SemaphoreSlim(Environment.ProcessorCount);
 
@@ -57,9 +58,26 @@ public class RefactoringEngine
             {
                 var content = await File.ReadAllTextAsync(file);
 
-                var parseOptions = CSharpParseOptions.Default.WithDocumentationMode(DocumentationMode.None);
-                var tree = CSharpSyntaxTree.ParseText(content, parseOptions);
-                var root = await tree.GetRootAsync();
+                SyntaxNode root;
+                try
+                {
+                    var parseOptions = CSharpParseOptions.Default.WithDocumentationMode(DocumentationMode.None);
+                    var tree = CSharpSyntaxTree.ParseText(content, parseOptions);
+                    root = await tree.GetRootAsync();
+
+                    // Check for syntax errors
+                    var diagnostics = tree.GetDiagnostics();
+                    if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
+                    {
+                        Console.WriteLine($"Skipping file with syntax errors: {file}");
+                        return new { FilePath = file, Suggestions = new List<RefactoringSuggestion>(), Skipped = true };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to parse file {file}: {ex.Message}");
+                    return new { FilePath = file, Suggestions = new List<RefactoringSuggestion>(), Skipped = true };
+                }
 
                 var fileRefactorings = new List<RefactoringSuggestion>();
 
@@ -68,11 +86,19 @@ public class RefactoringEngine
                     if (options.SpecificRules.Count > 0 && !options.SpecificRules.Contains(rule.RuleName))
                         continue;
 
-                    var suggestions = await rule.AnalyzeAsync(file, root, options);
-                    fileRefactorings.AddRange(suggestions);
+                    try
+                    {
+                        var suggestions = await rule.AnalyzeAsync(file, root, options);
+                        fileRefactorings.AddRange(suggestions);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error analyzing file {file} with rule {rule.RuleName}: {ex.Message}");
+                        // Continue with other rules
+                    }
                 }
 
-                return new { FilePath = file, Suggestions = fileRefactorings };
+                return new { FilePath = file, Suggestions = fileRefactorings, Skipped = false };
             }
             finally
             {
@@ -100,7 +126,16 @@ public class RefactoringEngine
 
                 result.SuggestionsCount += analysisResult.Suggestions.Count;
             }
+
+            // Count skipped files (those with no suggestions due to errors)
+            if (analysisResult.Suggestions.Count == 0 && !string.IsNullOrEmpty(analysisResult.FilePath))
+            {
+                result.FilesSkipped++;
+            }
         }
+
+        // Update FilesAnalyzed to exclude skipped files
+        result.FilesAnalyzed -= result.FilesSkipped;
 
         result.EndTime = DateTime.UtcNow;
         result.Duration = result.EndTime - result.StartTime;

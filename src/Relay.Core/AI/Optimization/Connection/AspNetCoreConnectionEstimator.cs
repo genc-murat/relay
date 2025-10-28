@@ -13,7 +13,8 @@ internal class AspNetCoreConnectionEstimator(
     ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
     Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
     SystemMetricsCalculator systemMetrics,
-    ProtocolMetricsCalculator protocolCalculator)
+    ProtocolMetricsCalculator protocolCalculator,
+    ConnectionMetricsUtilities utilities)
 {
     private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly AIOptimizationOptions _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -21,6 +22,7 @@ internal class AspNetCoreConnectionEstimator(
     private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
     private readonly SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
     private readonly ProtocolMetricsCalculator _protocolCalculator = protocolCalculator ?? throw new ArgumentNullException(nameof(protocolCalculator));
+    private readonly ConnectionMetricsUtilities _utilities = utilities ?? throw new ArgumentNullException(nameof(utilities));
 
     public int GetAspNetCoreConnectionCount()
     {
@@ -273,7 +275,7 @@ internal class AspNetCoreConnectionEstimator(
             }
 
             // Fallback: Use exponential moving average of all historical data
-            var ema = CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.3);
+            var ema = _utilities.CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.3);
             return Math.Max(1, (int)ema);
         }
         catch (Exception ex)
@@ -356,7 +358,7 @@ internal class AspNetCoreConnectionEstimator(
             if (metrics.Count >= 5)
             {
                 // Use exponential moving average for recent trend
-                var ema = CalculateEMA([.. metrics.Select(m => (double)m.Value)], alpha: 0.3);
+                var ema = _utilities.CalculateEMA([.. metrics.Select(m => (double)m.Value)], alpha: 0.3);
                 return ema;
             }
 
@@ -369,17 +371,4 @@ internal class AspNetCoreConnectionEstimator(
     }
 
     private int GetActiveRequestCount() => _systemMetrics.GetActiveRequestCount();
-
-    private double CalculateEMA(List<double> values, double alpha)
-    {
-        if (values.Count == 0)
-            return 0;
-
-        double ema = values[0];
-        for (int i = 1; i < values.Count; i++)
-        {
-            ema = (alpha * values[i]) + ((1 - alpha) * ema);
-        }
-        return ema;
-    }
 }

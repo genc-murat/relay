@@ -24,18 +24,20 @@ internal class HttpConnectionMetricsProvider
         Relay.Core.AI.AIOptimizationOptions options,
         ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
         Relay.Core.AI.Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
-        Relay.Core.AI.SystemMetricsCalculator systemMetrics)
+        Relay.Core.AI.SystemMetricsCalculator systemMetrics,
+        ProtocolMetricsCalculator protocolCalculator,
+        ConnectionMetricsUtilities utilities)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
+        _protocolCalculator = protocolCalculator ?? throw new ArgumentNullException(nameof(protocolCalculator));
+        _utilities = utilities ?? throw new ArgumentNullException(nameof(utilities));
 
         // Initialize specialized estimators
-        _protocolCalculator = new ProtocolMetricsCalculator(logger, requestAnalytics, timeSeriesDb, systemMetrics);
-        _aspNetCoreEstimator = new AspNetCoreConnectionEstimator(logger, options, requestAnalytics, timeSeriesDb, systemMetrics, _protocolCalculator);
+        _aspNetCoreEstimator = new AspNetCoreConnectionEstimator(logger, options, requestAnalytics, timeSeriesDb, systemMetrics, _protocolCalculator, _utilities);
         _httpClientPoolEstimator = new HttpClientPoolEstimator(logger, options, requestAnalytics, timeSeriesDb, systemMetrics);
         _loadBalancerEstimator = new LoadBalancerConnectionEstimator(logger, options, timeSeriesDb, systemMetrics);
-        _utilities = new ConnectionMetricsUtilities(logger, options, requestAnalytics, timeSeriesDb, systemMetrics, _protocolCalculator);
     }
     
     // Setter method to allow setting the WebSocket provider externally

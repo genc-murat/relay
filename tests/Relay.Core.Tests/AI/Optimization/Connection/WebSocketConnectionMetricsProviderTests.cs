@@ -34,12 +34,16 @@ public class WebSocketConnectionMetricsProviderTests
         _timeSeriesDb = new TestTimeSeriesDatabase();
         _systemMetrics = new SystemMetricsCalculator(NullLogger<SystemMetricsCalculator>.Instance, _requestAnalytics);
 
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         _provider = new WebSocketConnectionMetricsProvider(
             _logger,
             _options,
             _requestAnalytics,
             _timeSeriesDb,
-            _systemMetrics);
+            _systemMetrics,
+            utilities);
     }
 
     #region Constructor Tests
@@ -47,53 +51,85 @@ public class WebSocketConnectionMetricsProviderTests
     [Fact]
     public void Constructor_Should_Throw_When_Logger_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new WebSocketConnectionMetricsProvider(
                 null!,
                 _options,
                 _requestAnalytics,
                 _timeSeriesDb,
-                _systemMetrics));
+                _systemMetrics,
+                utilities));
     }
 
     [Fact]
     public void Constructor_Should_Throw_When_Options_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new WebSocketConnectionMetricsProvider(
                 _logger,
                 null!,
                 _requestAnalytics,
                 _timeSeriesDb,
-                _systemMetrics));
+                _systemMetrics,
+                utilities));
     }
 
     [Fact]
     public void Constructor_Should_Throw_When_RequestAnalytics_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new WebSocketConnectionMetricsProvider(
                 _logger,
                 _options,
                 null!,
                 _timeSeriesDb,
-                _systemMetrics));
+                _systemMetrics,
+                utilities));
     }
 
     [Fact]
     public void Constructor_Should_Throw_When_TimeSeriesDb_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new WebSocketConnectionMetricsProvider(
                 _logger,
                 _options,
                 _requestAnalytics,
                 null!,
-                _systemMetrics));
+                _systemMetrics,
+                utilities));
     }
 
     [Fact]
     public void Constructor_Should_Throw_When_SystemMetrics_Is_Null()
+    {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new WebSocketConnectionMetricsProvider(
+                _logger,
+                _options,
+                _requestAnalytics,
+                _timeSeriesDb,
+                null!,
+                utilities));
+    }
+
+    [Fact]
+    public void Constructor_Should_Throw_When_Utilities_Is_Null()
     {
         Assert.Throws<ArgumentNullException>(() =>
             new WebSocketConnectionMetricsProvider(
@@ -101,6 +137,7 @@ public class WebSocketConnectionMetricsProviderTests
                 _options,
                 _requestAnalytics,
                 _timeSeriesDb,
+                _systemMetrics,
                 null!));
     }
 

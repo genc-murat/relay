@@ -45,17 +45,21 @@ internal class ConnectionMetricsProvider
         _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
         _connectionMetrics = connectionMetrics ?? throw new ArgumentNullException(nameof(connectionMetrics));
         _cache = cache;
-        
+
+        // Initialize shared utilities used by multiple providers
+        var protocolCalculator = new ProtocolMetricsCalculator(logger, requestAnalytics, timeSeriesDb, systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(logger, options, requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
+
         // Initialize specialized providers
         _webSocketProvider = new WebSocketConnectionMetricsProvider(
-            logger, options, requestAnalytics, timeSeriesDb, systemMetrics);
+            logger, options, requestAnalytics, timeSeriesDb, systemMetrics, utilities);
         _httpProvider = new HttpConnectionMetricsProvider(
-            logger, options, requestAnalytics, timeSeriesDb, systemMetrics);
+            logger, options, requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator, utilities);
         _databaseProvider = new DatabaseConnectionMetricsProvider(
             logger, options, requestAnalytics, timeSeriesDb, systemMetrics);
         _externalProvider = new ExternalServiceConnectionMetricsProvider(
             logger, options, requestAnalytics, timeSeriesDb, systemMetrics);
-            
+
         // Set cross-references to avoid circular dependency issues
         _httpProvider.SetWebSocketProvider(_webSocketProvider);
     }

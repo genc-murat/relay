@@ -83,12 +83,17 @@ public class HttpConnectionMetricsProviderTests
         _timeSeriesDb = new TestTimeSeriesDatabase();
         _systemMetrics = new SystemMetricsCalculator(NullLogger<SystemMetricsCalculator>.Instance, _requestAnalytics);
 
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         _provider = new HttpConnectionMetricsProvider(
             _logger,
             _options,
             _requestAnalytics,
             _timeSeriesDb,
-            _systemMetrics);
+            _systemMetrics,
+            protocolCalculator,
+            utilities);
     }
 
     public static ITimeSeriesRepository CreateMockRepository(Dictionary<string, List<MetricDataPoint>> data)
@@ -127,60 +132,118 @@ public class HttpConnectionMetricsProviderTests
     [Fact]
     public void Constructor_Should_Throw_When_Logger_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new HttpConnectionMetricsProvider(
                 null!,
                 _options,
                 _requestAnalytics,
                 _timeSeriesDb,
-                _systemMetrics));
+                _systemMetrics,
+                protocolCalculator,
+                utilities));
     }
 
     [Fact]
     public void Constructor_Should_Throw_When_Options_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new HttpConnectionMetricsProvider(
                 _logger,
                 null!,
                 _requestAnalytics,
                 _timeSeriesDb,
-                _systemMetrics));
+                _systemMetrics,
+                protocolCalculator,
+                utilities));
     }
 
     [Fact]
     public void Constructor_Should_Throw_When_RequestAnalytics_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new HttpConnectionMetricsProvider(
                 _logger,
                 _options,
                 null!,
                 _timeSeriesDb,
-                _systemMetrics));
+                _systemMetrics,
+                protocolCalculator,
+                utilities));
     }
 
     [Fact]
     public void Constructor_Should_Throw_When_TimeSeriesDb_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new HttpConnectionMetricsProvider(
                 _logger,
                 _options,
                 _requestAnalytics,
                 null!,
-                _systemMetrics));
+                _systemMetrics,
+                protocolCalculator,
+                utilities));
     }
 
     [Fact]
     public void Constructor_Should_Throw_When_SystemMetrics_Is_Null()
     {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
         Assert.Throws<ArgumentNullException>(() =>
             new HttpConnectionMetricsProvider(
                 _logger,
                 _options,
                 _requestAnalytics,
                 _timeSeriesDb,
+                null!,
+                protocolCalculator,
+                utilities));
+    }
+
+    [Fact]
+    public void Constructor_Should_Throw_When_ProtocolCalculator_Is_Null()
+    {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new HttpConnectionMetricsProvider(
+                _logger,
+                _options,
+                _requestAnalytics,
+                _timeSeriesDb,
+                _systemMetrics,
+                null!,
+                utilities));
+    }
+
+    [Fact]
+    public void Constructor_Should_Throw_When_Utilities_Is_Null()
+    {
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new HttpConnectionMetricsProvider(
+                _logger,
+                _options,
+                _requestAnalytics,
+                _timeSeriesDb,
+                _systemMetrics,
+                protocolCalculator,
                 null!));
     }
 

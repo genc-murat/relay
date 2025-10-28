@@ -13,13 +13,15 @@ internal class WebSocketConnectionMetricsProvider(
     Relay.Core.AI.AIOptimizationOptions options,
     ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
     TimeSeriesDatabase timeSeriesDb,
-    Relay.Core.AI.SystemMetricsCalculator systemMetrics)
+    Relay.Core.AI.SystemMetricsCalculator systemMetrics,
+    ConnectionMetricsUtilities utilities)
 {
     private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly Relay.Core.AI.AIOptimizationOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
     private readonly TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
     private readonly Relay.Core.AI.SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
+    private readonly ConnectionMetricsUtilities _utilities = utilities ?? throw new ArgumentNullException(nameof(utilities));
 
     public int GetWebSocketConnectionCount()
     {
@@ -486,7 +488,7 @@ internal class WebSocketConnectionMetricsProvider(
             }
 
             // Fallback: Use overall EMA
-            var ema = CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.3);
+            var ema = _utilities.CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.3);
             return Math.Max(0, (int)ema);
         }
         catch (Exception ex)
@@ -715,7 +717,7 @@ internal class WebSocketConnectionMetricsProvider(
             }
 
             // Fallback: Use EMA of all data
-            var ema = CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.2);
+            var ema = _utilities.CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.2);
             return Math.Max(0, (int)ema);
         }
         catch (Exception ex)
@@ -1022,7 +1024,7 @@ internal class WebSocketConnectionMetricsProvider(
             }
 
             // Fallback: Use EMA with higher alpha (more responsive to changes)
-            var ema = CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.4);
+            var ema = _utilities.CalculateEMA([.. historicalData.Select(m => (double)m.Value)], alpha: 0.4);
             return Math.Max(0, (int)ema);
         }
         catch (Exception ex)
@@ -1124,7 +1126,7 @@ internal class WebSocketConnectionMetricsProvider(
             var fallbackRate = avgLongPolling / totalRealTime;
 
             // Apply EMA smoothing for stability
-            var ema = CalculateEMA(
+            var ema = _utilities.CalculateEMA(
                 [.. longPollingMetrics.Select(m => (double)(m.Value / Math.Max(1, avgWebSocket + m.Value)))],
                 alpha: 0.3
             );
@@ -2101,7 +2103,7 @@ internal class WebSocketConnectionMetricsProvider(
                 return 0;
 
             // Use EMA for recent trend sensitivity
-            var ema = CalculateEMA(disconnectionRates, alpha: 0.3);
+            var ema = _utilities.CalculateEMA(disconnectionRates, alpha: 0.3);
 
             // Blend with median for stability
             var sortedRates = disconnectionRates.OrderBy(r => r).ToList();
@@ -3061,19 +3063,6 @@ internal class WebSocketConnectionMetricsProvider(
 
         var slope = ((n * sumXY) - (sumX * sumY)) / denominator;
         return slope;
-    }
-
-    private double CalculateEMA(List<double> values, double alpha)
-    {
-        if (values.Count == 0)
-            return 0;
-
-        double ema = values[0];
-        for (int i = 1; i < values.Count; i++)
-        {
-            ema = (alpha * values[i]) + ((1 - alpha) * ema);
-        }
-        return ema;
     }
 
     private int EstimateRealTimeUsers()

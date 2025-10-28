@@ -38,13 +38,17 @@ namespace Relay.Core.Tests.AI
             var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
             var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, _timeSeriesDb, systemMetrics);
 
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, _timeSeriesDb, systemMetrics, protocolCalculator);
+
             _estimator = new AspNetCoreConnectionEstimator(
                 _loggerMock.Object,
                 _options,
                 _requestAnalytics,
                 _timeSeriesDb,
                 systemMetrics,
-                protocolCalculator);
+                protocolCalculator,
+                utilities);
         }
 
         #region Constructor Tests
@@ -59,9 +63,11 @@ namespace Relay.Core.Tests.AI
             var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
             var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
             var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
 
             Assert.Throws<ArgumentNullException>(() =>
-                new AspNetCoreConnectionEstimator(null!, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator));
+                new AspNetCoreConnectionEstimator(null!, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator, utilities));
         }
 
         [Fact]
@@ -74,9 +80,11 @@ namespace Relay.Core.Tests.AI
             var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
             var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
             var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
 
             Assert.Throws<ArgumentNullException>(() =>
-                new AspNetCoreConnectionEstimator(_loggerMock.Object, null!, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator));
+                new AspNetCoreConnectionEstimator(_loggerMock.Object, null!, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator, utilities));
         }
 
         [Fact]
@@ -89,9 +97,11 @@ namespace Relay.Core.Tests.AI
             var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
             var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
             var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
 
             Assert.Throws<ArgumentNullException>(() =>
-                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, null!, timeSeriesDb, systemMetrics, protocolCalculator));
+                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, null!, timeSeriesDb, systemMetrics, protocolCalculator, utilities));
         }
 
         [Fact]
@@ -104,9 +114,11 @@ namespace Relay.Core.Tests.AI
             var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
             var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
             var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
 
             Assert.Throws<ArgumentNullException>(() =>
-                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, null!, systemMetrics, protocolCalculator));
+                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, null!, systemMetrics, protocolCalculator, utilities));
         }
 
         [Fact]
@@ -119,9 +131,11 @@ namespace Relay.Core.Tests.AI
             var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
             var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
             var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
 
             Assert.Throws<ArgumentNullException>(() =>
-                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, timeSeriesDb, null!, protocolCalculator));
+                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, timeSeriesDb, null!, protocolCalculator, utilities));
         }
 
         [Fact]
@@ -130,9 +144,26 @@ namespace Relay.Core.Tests.AI
             var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
             var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, _timeSeriesDb, systemMetrics, null!);
 
             Assert.Throws<ArgumentNullException>(() =>
-                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, _timeSeriesDb, systemMetrics, null!));
+                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, _timeSeriesDb, systemMetrics, null!, utilities));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_Utilities_Is_Null()
+        {
+            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
+            var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
+            var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
+            var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
+            var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
+            var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
+
+            Assert.Throws<ArgumentNullException>(() =>
+                new AspNetCoreConnectionEstimator(_loggerMock.Object, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator, null!));
         }
 
         #endregion

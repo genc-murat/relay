@@ -253,14 +253,141 @@ namespace Relay.Core.AI.Optimization.Services
 
         private Dictionary<string, double> CalculateStrategyEffectiveness()
         {
-            // Placeholder implementation - would calculate effectiveness of different strategies
-            return new Dictionary<string, double>
+            lock (_predictionLock)
             {
-                ["EnableCaching"] = 0.8,
-                ["BatchProcessing"] = 0.7,
-                ["ParallelProcessing"] = 0.6,
-                ["CircuitBreaker"] = 0.9
-            };
+                var effectiveness = new Dictionary<string, double>();
+
+                if (_predictionOutcomes.Count == 0)
+                {
+                    // Return default effectiveness values when no historical data exists
+                    return new Dictionary<string, double>
+                    {
+                        ["EnableCaching"] = 0.8,
+                        ["BatchProcessing"] = 0.7,
+                        ["ParallelProcessing"] = 0.6,
+                        ["CircuitBreaker"] = 0.9
+                    };
+                }
+
+                // Group outcomes by strategy and calculate average effectiveness
+                var strategyGroups = _predictionOutcomes
+                    .Where(outcome => outcome.BaselineExecutionTime > TimeSpan.Zero)
+                    .GroupBy(outcome => outcome.Strategy.ToString());
+
+                foreach (var group in strategyGroups)
+                {
+                    // Calculate average improvement for this strategy
+                    var avgImprovement = group.Average(outcome =>
+                    {
+                        var improvement = (outcome.BaselineExecutionTime - outcome.ActualImprovement).TotalMilliseconds
+                                        / outcome.BaselineExecutionTime.TotalMilliseconds;
+                        return Math.Max(0, Math.Min(1, improvement)); // Clamp between 0 and 1
+                    });
+
+                    // Calculate prediction accuracy for this strategy
+                    var accuracyRate = group.Count(outcome =>
+                    {
+                        if (outcome.PredictedImprovement == TimeSpan.Zero)
+                            return outcome.ActualImprovement == TimeSpan.Zero;
+
+                        var ratio = outcome.ActualImprovement.TotalMilliseconds /
+                                    outcome.PredictedImprovement.TotalMilliseconds;
+                        return ratio >= 0.8 && ratio <= 1.2;
+                    }) / (double)group.Count();
+
+                    // Effectiveness combines improvement (60% weight) and accuracy (40% weight)
+                    // This gives more weight to actual results while still considering prediction quality
+                    effectiveness[group.Key] = (avgImprovement * 0.6) + (accuracyRate * 0.4);
+                }
+
+                return effectiveness;
+            }
+        }
+
+        /// <summary>
+        /// Gets strategy effectiveness data for a specific strategy
+        /// </summary>
+        internal StrategyEffectivenessData GetStrategyEffectiveness(OptimizationStrategy strategy)
+        {
+            lock (_predictionLock)
+            {
+                var strategyOutcomes = _predictionOutcomes
+                    .Where(o => o.Strategy == strategy && o.BaselineExecutionTime > TimeSpan.Zero)
+                    .ToList();
+
+                if (strategyOutcomes.Count == 0)
+                {
+                    return new StrategyEffectivenessData
+                    {
+                        Strategy = strategy,
+                        TotalApplications = 0,
+                        SuccessRate = 0.0,
+                        AverageImprovement = 0.0,
+                        OverallEffectiveness = 0.0
+                    };
+                }
+
+                // Calculate success rate
+                var successfulPredictions = strategyOutcomes.Count(outcome =>
+                {
+                    if (outcome.PredictedImprovement == TimeSpan.Zero)
+                        return outcome.ActualImprovement == TimeSpan.Zero;
+
+                    var ratio = outcome.ActualImprovement.TotalMilliseconds /
+                                outcome.PredictedImprovement.TotalMilliseconds;
+                    return ratio >= 0.8 && ratio <= 1.2;
+                });
+
+                var successRate = (double)successfulPredictions / strategyOutcomes.Count;
+
+                // Calculate average improvement
+                var avgImprovement = strategyOutcomes.Average(outcome =>
+                {
+                    var improvement = (outcome.BaselineExecutionTime - outcome.ActualImprovement).TotalMilliseconds
+                                    / outcome.BaselineExecutionTime.TotalMilliseconds;
+                    return Math.Max(0, Math.Min(1, improvement));
+                });
+
+                // Calculate overall effectiveness
+                var effectiveness = (avgImprovement * 0.6) + (successRate * 0.4);
+
+                return new StrategyEffectivenessData
+                {
+                    Strategy = strategy,
+                    TotalApplications = strategyOutcomes.Count,
+                    SuccessRate = successRate,
+                    AverageImprovement = avgImprovement,
+                    OverallEffectiveness = effectiveness
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gets all strategy effectiveness data
+        /// </summary>
+        internal List<StrategyEffectivenessData> GetAllStrategyEffectiveness()
+        {
+            lock (_predictionLock)
+            {
+                var strategies = _predictionOutcomes
+                    .Select(o => o.Strategy)
+                    .Distinct()
+                    .ToList();
+
+                return strategies.Select(s => GetStrategyEffectiveness(s)).ToList();
+            }
+        }
+
+        /// <summary>
+        /// Data class for strategy effectiveness information
+        /// </summary>
+        internal class StrategyEffectivenessData
+        {
+            public OptimizationStrategy Strategy { get; set; }
+            public int TotalApplications { get; set; }
+            public double SuccessRate { get; set; }
+            public double AverageImprovement { get; set; }
+            public double OverallEffectiveness { get; set; }
         }
 
         public Dictionary<string, double> CollectSystemMetrics()

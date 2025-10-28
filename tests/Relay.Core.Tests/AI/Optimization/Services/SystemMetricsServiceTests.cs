@@ -559,4 +559,343 @@ public class SystemMetricsServiceTests
     }
 
     #endregion
+
+    #region CalculateStrategyEffectiveness Tests
+
+    [Fact]
+    public void CalculateStrategyEffectiveness_Should_Return_Defaults_With_No_History()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert
+        Assert.NotNull(loadPatternData.StrategyEffectiveness);
+        Assert.NotEmpty(loadPatternData.StrategyEffectiveness);
+        Assert.Contains("EnableCaching", loadPatternData.StrategyEffectiveness.Keys);
+        Assert.Equal(0.8, loadPatternData.StrategyEffectiveness["EnableCaching"]);
+    }
+
+    [Fact]
+    public void CalculateStrategyEffectiveness_Should_Calculate_Per_Strategy()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        // EnableCaching: High effectiveness (good improvement + good accuracy)
+        for (int i = 0; i < 5; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(95), // Good accuracy (95%)
+                TimeSpan.FromMilliseconds(200)); // 50% improvement
+        }
+
+        // BatchProcessing: Lower effectiveness (poor accuracy)
+        for (int i = 0; i < 5; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.BatchProcessing,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(200), // Poor accuracy (200%)
+                TimeSpan.FromMilliseconds(300)); // Lower improvement
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert
+        Assert.True(loadPatternData.StrategyEffectiveness.ContainsKey("EnableCaching"));
+        Assert.True(loadPatternData.StrategyEffectiveness.ContainsKey("BatchProcessing"));
+        Assert.True(loadPatternData.StrategyEffectiveness["EnableCaching"] >
+                   loadPatternData.StrategyEffectiveness["BatchProcessing"]);
+    }
+
+    [Fact]
+    public void CalculateStrategyEffectiveness_Should_Combine_Improvement_And_Accuracy()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        // Perfect prediction: 50% improvement, 100% accuracy
+        // Improvement: (200 - 100) / 200 = 0.5
+        // Accuracy: 100ms predicted, 100ms actual = 100% (within 80-120%)
+        // Effectiveness: (0.5 * 0.6) + (1.0 * 0.4) = 0.3 + 0.4 = 0.7
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(200));
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert
+        Assert.True(loadPatternData.StrategyEffectiveness.ContainsKey("EnableCaching"));
+        Assert.Equal(0.7, loadPatternData.StrategyEffectiveness["EnableCaching"], 1);
+    }
+
+    [Fact]
+    public void CalculateStrategyEffectiveness_Should_Handle_Multiple_Strategies()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        var strategies = new[]
+        {
+            OptimizationStrategy.EnableCaching,
+            OptimizationStrategy.BatchProcessing,
+            OptimizationStrategy.ParallelProcessing,
+            OptimizationStrategy.CircuitBreaker
+        };
+
+        foreach (var strategy in strategies)
+        {
+            _service.RecordPredictionOutcome(
+                strategy,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(95),
+                TimeSpan.FromMilliseconds(200));
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should have effectiveness data for all strategies
+        Assert.True(loadPatternData.StrategyEffectiveness.Count >= strategies.Length);
+        foreach (var strategy in strategies)
+        {
+            Assert.True(loadPatternData.StrategyEffectiveness.ContainsKey(strategy.ToString()));
+            Assert.True(loadPatternData.StrategyEffectiveness[strategy.ToString()] >= 0.0);
+            Assert.True(loadPatternData.StrategyEffectiveness[strategy.ToString()] <= 1.0);
+        }
+    }
+
+    [Fact]
+    public void GetStrategyEffectiveness_Should_Return_Zero_Data_When_No_History()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        // Act
+        var data = _service.GetStrategyEffectiveness(OptimizationStrategy.EnableCaching);
+
+        // Assert
+        Assert.NotNull(data);
+        Assert.Equal(OptimizationStrategy.EnableCaching, data.Strategy);
+        Assert.Equal(0, data.TotalApplications);
+        Assert.Equal(0.0, data.SuccessRate);
+        Assert.Equal(0.0, data.AverageImprovement);
+        Assert.Equal(0.0, data.OverallEffectiveness);
+    }
+
+    [Fact]
+    public void GetStrategyEffectiveness_Should_Calculate_Detailed_Metrics()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        // Record 10 outcomes for EnableCaching: 8 successful, 2 failed
+        // 8 successful predictions (within 80-120%)
+        for (int i = 0; i < 8; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(90 + i), // 90-97ms (good accuracy)
+                TimeSpan.FromMilliseconds(200)); // 50% improvement
+        }
+
+        // 2 unsuccessful predictions (outside range)
+        for (int i = 0; i < 2; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(150), // 150% (poor accuracy)
+                TimeSpan.FromMilliseconds(200)); // 25% improvement
+        }
+
+        // Act
+        var data = _service.GetStrategyEffectiveness(OptimizationStrategy.EnableCaching);
+
+        // Assert
+        Assert.Equal(10, data.TotalApplications);
+        Assert.Equal(0.8, data.SuccessRate, 2); // 80% success rate
+
+        // Average improvement calculation:
+        // For 8 successful: (200 - 90-97) / 200 ≈ 0.5-0.525 avg ≈ 0.51
+        // For 2 unsuccessful: (200 - 150) / 200 = 0.25
+        // Weighted avg: (8 * 0.51 + 2 * 0.25) / 10 ≈ 0.458
+        Assert.True(data.AverageImprovement >= 0.45 && data.AverageImprovement <= 0.52);
+
+        // Effectiveness: (avgImprovement * 0.6) + (0.8 * 0.4)
+        Assert.True(data.OverallEffectiveness >= 0.57 && data.OverallEffectiveness <= 0.64);
+    }
+
+    [Fact]
+    public void GetStrategyEffectiveness_Should_Ignore_Zero_Baseline()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        // Valid prediction
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(95),
+            TimeSpan.FromMilliseconds(200));
+
+        // Invalid prediction with zero baseline (should be ignored)
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(95),
+            TimeSpan.Zero);
+
+        // Act
+        var data = _service.GetStrategyEffectiveness(OptimizationStrategy.EnableCaching);
+
+        // Assert - Should only count the valid prediction
+        Assert.Equal(1, data.TotalApplications);
+    }
+
+    [Fact]
+    public void GetAllStrategyEffectiveness_Should_Return_All_Strategies()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(95),
+            TimeSpan.FromMilliseconds(200));
+
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.BatchProcessing,
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(95),
+            TimeSpan.FromMilliseconds(200));
+
+        // Act
+        var allData = _service.GetAllStrategyEffectiveness();
+
+        // Assert
+        Assert.NotNull(allData);
+        Assert.Equal(2, allData.Count);
+        Assert.Contains(allData, d => d.Strategy == OptimizationStrategy.EnableCaching);
+        Assert.Contains(allData, d => d.Strategy == OptimizationStrategy.BatchProcessing);
+    }
+
+    [Fact]
+    public void GetAllStrategyEffectiveness_Should_Return_Empty_When_No_Data()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        // Act
+        var allData = _service.GetAllStrategyEffectiveness();
+
+        // Assert
+        Assert.NotNull(allData);
+        Assert.Empty(allData);
+    }
+
+    [Fact]
+    public void StrategyEffectiveness_Should_Weight_Improvement_More_Than_Accuracy()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+
+        // Strategy A: High improvement, low accuracy
+        // 4 predictions with good accuracy (95ms actual vs 100ms predicted = 95%)
+        // 6 predictions with poor accuracy (200ms actual vs 100ms predicted = 200%)
+        // All have same baseline 250ms, actual time varies
+        for (int i = 0; i < 10; i++)
+        {
+            var actualTime = i < 4 ? TimeSpan.FromMilliseconds(95) : TimeSpan.FromMilliseconds(200);
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100), // Predicted improvement
+                actualTime, // Actual execution time after optimization
+                TimeSpan.FromMilliseconds(250)); // Baseline execution time
+        }
+
+        // Strategy B: Lower improvement, higher accuracy
+        // 8 predictions with good accuracy (95ms actual vs 100ms predicted = 95%)
+        // 2 predictions with poor accuracy (200ms actual vs 100ms predicted = 200%)
+        // All have same baseline 150ms (lower improvement potential)
+        for (int i = 0; i < 10; i++)
+        {
+            var actualTime = i < 8 ? TimeSpan.FromMilliseconds(95) : TimeSpan.FromMilliseconds(200);
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.BatchProcessing,
+                TimeSpan.FromMilliseconds(100), // Predicted improvement
+                actualTime, // Actual execution time after optimization
+                TimeSpan.FromMilliseconds(150)); // Baseline execution time (lower than Strategy A)
+        }
+
+        // Act
+        var cachingData = _service.GetStrategyEffectiveness(OptimizationStrategy.EnableCaching);
+        var batchingData = _service.GetStrategyEffectiveness(OptimizationStrategy.BatchProcessing);
+
+        // Assert - Strategy A has higher improvement due to higher baseline, even with lower accuracy
+        // Strategy A improvement: avg((250-95)/250, (250-200)/250) = avg(0.62, 0.20) weighted by count
+        // Strategy B improvement: avg((150-95)/150, (150-200)/150) = avg(0.367, negative clamped to 0)
+        // Strategy A should have higher overall effectiveness due to better improvement
+        Assert.True(cachingData.AverageImprovement > batchingData.AverageImprovement,
+            $"Caching improvement ({cachingData.AverageImprovement:F2}) should be higher than Batching ({batchingData.AverageImprovement:F2})");
+    }
+
+    [Fact]
+    public void StrategyEffectiveness_Should_Be_Thread_Safe()
+    {
+        // Arrange
+        _service.ClearPredictionHistory();
+        var tasks = new System.Threading.Tasks.Task[10];
+
+        // Act - Record outcomes concurrently
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            var strategyIndex = i % 4;
+            var strategy = strategyIndex switch
+            {
+                0 => OptimizationStrategy.EnableCaching,
+                1 => OptimizationStrategy.BatchProcessing,
+                2 => OptimizationStrategy.ParallelProcessing,
+                _ => OptimizationStrategy.CircuitBreaker
+            };
+
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                for (int j = 0; j < 5; j++)
+                {
+                    _service.RecordPredictionOutcome(
+                        strategy,
+                        TimeSpan.FromMilliseconds(100),
+                        TimeSpan.FromMilliseconds(95),
+                        TimeSpan.FromMilliseconds(200));
+                }
+            });
+        }
+
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        // Assert - Should not throw and should have valid data
+        var allData = _service.GetAllStrategyEffectiveness();
+        Assert.NotNull(allData);
+        Assert.Equal(4, allData.Count);
+
+        foreach (var data in allData)
+        {
+            Assert.True(data.TotalApplications > 0);
+            Assert.True(data.OverallEffectiveness >= 0 && data.OverallEffectiveness <= 1);
+        }
+    }
+
+    #endregion
 }

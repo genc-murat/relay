@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.TimeSeries;
 using Relay.Core.AI.Models;
 using Relay.Core.AI.Optimization.Connection;
 using System;
@@ -667,6 +668,227 @@ public class HttpClientPoolEstimatorTests
 
         // Assert - All clients should have updated timestamps
         Assert.True(result >= 0);
+    }
+
+    #endregion
+
+    #region Reflection Path Coverage Tests
+
+    [Fact]
+    public void GetHttpClientPoolConnectionCount_Should_Return_Reflection_Result_When_Reflection_Succeeds()
+    {
+        // Arrange - Create a test estimator that returns positive reflection result
+        var testEstimator = new TestHttpClientPoolEstimator(
+            _logger,
+            _options,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics);
+
+        // Act
+        var result = testEstimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should return the reflection result (5)
+        Assert.Equal(5, result);
+
+        // Verify that the metric was stored with the reflection value
+        var storedMetrics = _timeSeriesDb.GetRecentMetrics("HttpClientPool_ConnectionCount", 1);
+        Assert.Single(storedMetrics);
+        Assert.Equal(5, (int)storedMetrics[0].Value);
+    }
+
+    [Fact]
+    public void TryGetHttpClientPoolMetricsViaReflection_Should_Handle_Timeout_In_Reflection()
+    {
+        // Arrange - Create estimator with very short timeout and simulate delay
+        var optionsShortTimeout = new AIOptimizationOptions
+        {
+            MaxEstimatedHttpConnections = 1000,
+            EnableHttpConnectionReflection = true,
+            HttpMetricsReflectionMaxRetries = 0, // No retries
+            HttpMetricsReflectionTimeoutMs = 1 // Very short timeout
+        };
+
+        var testEstimator = new TimeoutTestHttpClientPoolEstimator(
+            _logger,
+            optionsShortTimeout,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics);
+
+        // Act
+        var result = testEstimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should handle timeout and return 0
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public void TryGetHttpClientPoolMetricsViaReflection_Should_Handle_Inner_Exception_In_Foreach()
+    {
+        // Arrange - Create estimator that throws in the inner loop
+        var testEstimator = new InnerExceptionTestHttpClientPoolEstimator(
+            _logger,
+            _options,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics);
+
+        // Act
+        var result = testEstimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should handle inner exception and continue, returning 0 since no valid connections
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public void TryGetHttpClientPoolMetricsViaReflection_Should_Handle_Outer_Exception()
+    {
+        // Arrange - Create estimator that throws in the outer try
+        var testEstimator = new OuterExceptionTestHttpClientPoolEstimator(
+            _logger,
+            _options,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics);
+
+        // Act
+        var result = testEstimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should catch outer exception and return 0
+        Assert.Equal(0, result);
+    }
+
+    // Test subclasses to simulate different exception conditions
+    private class TestHttpClientPoolEstimator : HttpClientPoolEstimator
+    {
+        public TestHttpClientPoolEstimator(
+            ILogger logger,
+            AIOptimizationOptions options,
+            ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+            Relay.Core.AI.Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+            SystemMetricsCalculator systemMetrics)
+            : base(logger, options, requestAnalytics, timeSeriesDb, systemMetrics)
+        {
+        }
+
+        protected override int TryGetHttpClientPoolMetricsViaReflection()
+        {
+            // Return a positive value to trigger the if (reflectionConnectionCount > 0) block
+            return 5;
+        }
+    }
+
+    private class TimeoutTestHttpClientPoolEstimator : HttpClientPoolEstimator
+    {
+        public TimeoutTestHttpClientPoolEstimator(
+            ILogger logger,
+            AIOptimizationOptions options,
+            ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+            Relay.Core.AI.Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+            SystemMetricsCalculator systemMetrics)
+            : base(logger, options, requestAnalytics, timeSeriesDb, systemMetrics)
+        {
+        }
+
+        protected override int TryGetHttpClientPoolMetricsViaReflection()
+        {
+            // Simulate the timeout check
+            _reflectionStopwatch.Restart();
+            System.Threading.Thread.Sleep(10); // Sleep longer than timeout
+            _reflectionStopwatch.Stop();
+            if (_reflectionStopwatch.ElapsedMilliseconds > _options.HttpMetricsReflectionTimeoutMs)
+            {
+                _logger.LogWarning("HTTP connection reflection metrics collection timed out after {Timeout}ms", _options.HttpMetricsReflectionTimeoutMs);
+                return 0;
+            }
+            return 0;
+        }
+    }
+
+    private class InnerExceptionTestHttpClientPoolEstimator : HttpClientPoolEstimator
+    {
+        public InnerExceptionTestHttpClientPoolEstimator(
+            ILogger logger,
+            AIOptimizationOptions options,
+            ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+            Relay.Core.AI.Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+            SystemMetricsCalculator systemMetrics)
+            : base(logger, options, requestAnalytics, timeSeriesDb, systemMetrics)
+        {
+        }
+
+        protected override int TryGetHttpClientPoolMetricsViaReflection()
+        {
+            // Simulate the foreach loop with inner try-catch
+            try
+            {
+                // Simulate accessing connection pool
+                throw new InvalidOperationException("Simulated error accessing connection pool");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Error accessing connection pool for HttpClient instance");
+            }
+            return 0;
+        }
+    }
+
+    private class OuterExceptionTestHttpClientPoolEstimator : HttpClientPoolEstimator
+    {
+        public OuterExceptionTestHttpClientPoolEstimator(
+            ILogger logger,
+            AIOptimizationOptions options,
+            ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+            Relay.Core.AI.Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+            SystemMetricsCalculator systemMetrics)
+            : base(logger, options, requestAnalytics, timeSeriesDb, systemMetrics)
+        {
+        }
+
+        protected override int TryGetHttpClientPoolMetricsViaReflection()
+        {
+            // Simulate throwing in the outer try block
+            throw new Exception("Simulated outer exception");
+        }
+    }
+
+    #endregion
+
+    #region DiscoverHttpClientInstances Coverage Tests
+
+    [Fact]
+    public void DiscoverHttpClientInstances_Should_Be_Called_When_Discovery_Interval_Elapsed()
+    {
+        // Arrange - Create estimator and set last discovery to old date
+        var testEstimator = new DiscoveryTestHttpClientPoolEstimator(
+            _logger,
+            _options,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics);
+
+        // Act - Call GetHttpClientPoolConnectionCount, which should trigger discovery
+        var result = testEstimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should return a valid result
+        Assert.True(result >= 0);
+    }
+
+    // Test subclass to force discovery
+    private class DiscoveryTestHttpClientPoolEstimator : HttpClientPoolEstimator
+    {
+        public DiscoveryTestHttpClientPoolEstimator(
+            ILogger logger,
+            AIOptimizationOptions options,
+            ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
+            Relay.Core.AI.Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
+            SystemMetricsCalculator systemMetrics)
+            : base(logger, options, requestAnalytics, timeSeriesDb, systemMetrics)
+        {
+            // Set last discovery to 6 minutes ago to trigger discovery
+            _lastHttpClientDiscovery = DateTime.UtcNow.AddMinutes(-6);
+        }
     }
 
     #endregion

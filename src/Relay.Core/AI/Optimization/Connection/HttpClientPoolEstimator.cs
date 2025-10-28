@@ -15,15 +15,15 @@ internal class HttpClientPoolEstimator(
     Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
     SystemMetricsCalculator systemMetrics)
 {
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly AIOptimizationOptions _options = options ?? throw new ArgumentNullException(nameof(options));
+    protected readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    protected readonly AIOptimizationOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly ConcurrentDictionary<Type, RequestAnalysisData> _requestAnalytics = requestAnalytics ?? throw new ArgumentNullException(nameof(requestAnalytics));
     private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
     private readonly SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
-    private readonly Stopwatch _reflectionStopwatch = new();
+    protected readonly Stopwatch _reflectionStopwatch = new();
     private readonly ConcurrentDictionary<string, System.Net.Http.HttpClient> _trackedHttpClients = new();
     private readonly ConcurrentDictionary<string, DateTime> _httpClientLastUsed = new();
-    private DateTime _lastHttpClientDiscovery = DateTime.MinValue;
+    protected DateTime _lastHttpClientDiscovery = DateTime.MinValue;
 
     public int GetHttpClientPoolConnectionCount()
     {
@@ -180,7 +180,7 @@ internal class HttpClientPoolEstimator(
         }
     }
 
-    private int TryGetHttpClientPoolMetricsViaReflection()
+    protected virtual int TryGetHttpClientPoolMetricsViaReflection()
     {
         if (!_options.EnableHttpConnectionReflection)
         {
@@ -330,7 +330,7 @@ internal class HttpClientPoolEstimator(
     /// <summary>
     /// Discovers HttpClient instances via reflection from the AppDomain
     /// </summary>
-    private void DiscoverHttpClientInstances()
+    protected virtual void DiscoverHttpClientInstances()
     {
         try
         {

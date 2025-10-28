@@ -113,25 +113,53 @@ namespace Relay.Core.AI.Optimization.Strategies
 
         private int AdjustForRequestCharacteristics(int currentBatchSize, RequestExecutionMetrics metrics)
         {
+            var adjustedSize = currentBatchSize;
+
+            // Use P95 execution time for more robust timing analysis (handles outliers better than average)
+            var executionTime = metrics.P95ExecutionTime > TimeSpan.Zero ? metrics.P95ExecutionTime : metrics.AverageExecutionTime;
+
             // Fast requests can handle larger batches
-            if (metrics.AverageExecutionTime < TimeSpan.FromMilliseconds(50))
+            if (executionTime < TimeSpan.FromMilliseconds(50))
             {
-                return Math.Min(currentBatchSize * 2, _options.MaxBatchSize);
+                adjustedSize = Math.Min(adjustedSize * 2, _options.MaxBatchSize);
             }
-
             // Slow requests need smaller batches
-            if (metrics.AverageExecutionTime > TimeSpan.FromSeconds(1))
+            else if (executionTime > TimeSpan.FromSeconds(1))
             {
-                return Math.Max(currentBatchSize / 2, 1);
+                adjustedSize = Math.Max(adjustedSize / 2, 1);
             }
 
-            // High memory usage requests need smaller batches
+            // High memory allocation requests need smaller batches
             if (metrics.MemoryAllocated > 50 * 1024 * 1024) // 50MB
             {
-                return Math.Max(currentBatchSize / 2, 1);
+                adjustedSize = Math.Max(adjustedSize / 2, 1);
             }
 
-            return currentBatchSize;
+            // High CPU usage requests need smaller batches
+            if (metrics.CpuUsage > 0.7) // 70% CPU usage
+            {
+                adjustedSize = Math.Max(adjustedSize / 2, 1);
+            }
+
+            // Low success rate requests need smaller batches for stability
+            if (metrics.SuccessRate < 0.95 && metrics.TotalExecutions > 10) // Less than 95% success rate with sufficient sample
+            {
+                adjustedSize = Math.Max(adjustedSize / 2, 1);
+            }
+
+            // High number of database or external API calls need smaller batches
+            if (metrics.DatabaseCalls > 5 || metrics.ExternalApiCalls > 3)
+            {
+                adjustedSize = Math.Max(adjustedSize / 2, 1);
+            }
+
+            // High concurrent executions suggest smaller batches
+            if (metrics.ConcurrentExecutions > 10)
+            {
+                adjustedSize = Math.Max(adjustedSize / 2, 1);
+            }
+
+            return adjustedSize;
         }
 
         private double CalculateConfidence(OptimizationContext context)

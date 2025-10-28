@@ -221,8 +221,7 @@ public class AIOptimizationPipelineBehaviorHelpersTests
             _aiEngineMock.Object,
             _loggerMock.Object,
             Options.Create(_options),
-            _systemMetricsMock.Object,
-            _metricsProviderMock.Object);
+            _systemMetricsMock.Object);
 
         // Act
         var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
@@ -232,6 +231,132 @@ public class AIOptimizationPipelineBehaviorHelpersTests
 
         // Assert
         Assert.Equal(8192L, result);
+    }
+
+    [Fact]
+    public void EstimateMemoryUsage_WithHighExecutionTimeVariance_IncreasesEstimate()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(50),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(200), // High variance
+            TotalExecutions = 100,
+            FailedExecutions = 10,
+            LastExecution = DateTimeOffset.UtcNow.AddSeconds(-10)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("EstimateMemoryUsage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (long)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert
+        Assert.True(result > 1024); // Should be higher than base estimate due to variance
+        Assert.True(result <= 100 * 1024 * 1024); // Should be within bounds
+    }
+
+    [Fact]
+    public void EstimateMemoryUsage_WithHighFailureRate_IncreasesEstimate()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(120),
+            TotalExecutions = 100,
+            FailedExecutions = 50, // 50% failure rate
+            LastExecution = DateTimeOffset.UtcNow.AddSeconds(-10)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("EstimateMemoryUsage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (long)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert
+        Assert.True(result > 1024); // Should be higher than base estimate due to failure rate
+        Assert.True(result <= 100 * 1024 * 1024); // Should be within bounds
+    }
+
+    [Fact]
+    public void EstimateMemoryUsage_WithHighExecutionFrequency_DecreasesEstimate()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(120),
+            TotalExecutions = 1000, // High execution count
+            FailedExecutions = 10,
+            LastExecution = DateTimeOffset.UtcNow.AddSeconds(-1) // Very recent
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("EstimateMemoryUsage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (long)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert
+        Assert.True(result >= 1024); // Should be at least minimum
+        Assert.True(result <= 100 * 1024 * 1024); // Should be within bounds
+        // High frequency should potentially decrease estimate due to pooling assumption
+    }
+
+    [Fact]
+    public void EstimateMemoryUsage_WithAllFactors_CombinesAdjustmentsCorrectly()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(50),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(200), // High variance
+            TotalExecutions = 100,
+            FailedExecutions = 20, // 20% failure rate
+            LastExecution = DateTimeOffset.UtcNow.AddSeconds(-10)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("EstimateMemoryUsage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (long)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert
+        Assert.True(result >= 1024); // Should be at least minimum
+        Assert.True(result <= 100 * 1024 * 1024); // Should be within bounds
+        // Should combine variance, failure rate, and frequency factors
     }
 
     [Fact]

@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.Models;
 using Relay.Core.AI.Analysis.TimeSeries;
 using Relay.Core.AI.Optimization.Strategies;
 using Xunit;
@@ -34,9 +38,9 @@ public class ModelParameterAdjusterCoreTests
         _timeSeriesDb = TimeSeriesDatabase.Create(_timeSeriesLogger, maxHistorySize: 10000);
     }
 
-    private ModelParameterAdjuster CreateAdjuster()
+    private ModelParameterAdjuster CreateAdjuster(TimeSeriesDatabase? db = null)
     {
-        return new ModelParameterAdjuster(_logger, _options, _recentPredictions, _timeSeriesDb);
+        return new ModelParameterAdjuster(_logger, _options, _recentPredictions, db ?? _timeSeriesDb);
     }
 
     private ModelStatistics CreateDefaultModelStatistics()
@@ -392,6 +396,106 @@ public class ModelParameterAdjusterCoreTests
         // Assert - Even if other operations fail, metadata should still be stored
         var adjustmentFactorMetrics = _timeSeriesDb.GetRecentMetrics("Model_AdjustmentFactor", 1);
         Assert.NotEmpty(adjustmentFactorMetrics);
+    }
+
+
+
+    #endregion
+
+    #region Exception Handling Tests
+
+
+
+    #endregion
+
+    #region Mock Classes for Exception Testing
+
+    private class FailingTimeSeriesRepository : ITimeSeriesRepository
+    {
+        public void StoreMetric(string metricName, double value, DateTime timestamp,
+            double? movingAverage5 = null, double? movingAverage15 = null,
+            TrendDirection trend = TrendDirection.Stable)
+        {
+            throw new InvalidOperationException("Test exception");
+        }
+
+        public void StoreBatch(Dictionary<string, double> metrics, DateTime timestamp,
+            Dictionary<string, MovingAverageData>? movingAverages = null,
+            Dictionary<string, TrendDirection>? trendDirections = null)
+        {
+            throw new InvalidOperationException("Test exception");
+        }
+
+        public IEnumerable<MetricDataPoint> GetHistory(string metricName, TimeSpan? lookbackPeriod = null)
+        {
+            throw new InvalidOperationException("Test exception");
+        }
+
+        public List<MetricDataPoint> GetRecentMetrics(string metricName, int count)
+        {
+            throw new InvalidOperationException("Test exception");
+        }
+
+        public void CleanupOldData(TimeSpan retentionPeriod)
+        {
+            // do nothing
+        }
+
+        public void Clear()
+        {
+            // do nothing
+        }
+    }
+
+    private class MockForecastingService : IForecastingService
+    {
+        public void TrainForecastModel(string metricName, ForecastingMethod? method = null) { }
+        public Task TrainForecastModelAsync(string metricName, ForecastingMethod? method = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public MetricForecastResult? Forecast(string metricName, int horizon = 12) => null;
+        public Task<MetricForecastResult?> ForecastAsync(string metricName, int horizon = 12, CancellationToken cancellationToken = default) => Task.FromResult<MetricForecastResult?>(null);
+        public ForecastingMethod GetForecastingMethod(string metricName) => ForecastingMethod.SSA;
+        public void SetForecastingMethod(string metricName, ForecastingMethod method) { }
+    }
+
+    private class MockAnomalyDetectionService : IAnomalyDetectionService
+    {
+        public List<AnomalyDetectionResult> DetectAnomalies(string metricName, int lookbackPoints = 100) => new List<AnomalyDetectionResult>();
+        public Task<List<AnomalyDetectionResult>> DetectAnomaliesAsync(string metricName, int lookbackPoints = 100, CancellationToken cancellationToken = default) => Task.FromResult(new List<AnomalyDetectionResult>());
+    }
+
+    private class MockTimeSeriesStatisticsService : ITimeSeriesStatisticsService
+    {
+        public MetricStatistics? GetStatistics(string metricName, TimeSpan? period = null) => null;
+    }
+
+    private TimeSeriesDatabase CreateFailingTimeSeriesDatabase()
+    {
+        var logger = NullLogger<TimeSeriesDatabase>.Instance;
+        var repository = new FailingTimeSeriesRepository();
+        var forecastingService = new MockForecastingService();
+        var anomalyDetectionService = new MockAnomalyDetectionService();
+        var statisticsService = new MockTimeSeriesStatisticsService();
+        return new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionService, statisticsService);
+    }
+
+    #endregion
+
+    #region Exception Handling Tests
+
+    [Fact]
+    public void AdjustModelParameters_Should_Handle_TimeSeriesDatabase_Exceptions_Gracefully()
+    {
+        // Arrange
+        var failingDb = CreateFailingTimeSeriesDatabase();
+        var adjuster = CreateAdjuster(failingDb);
+        var modelStats = CreateDefaultModelStatistics();
+
+        // Act
+        var exception = Record.Exception(() =>
+            adjuster.AdjustModelParameters(false, () => modelStats));
+
+        // Assert
+        Assert.Null(exception); // Should not throw, exceptions should be caught internally
     }
 
     #endregion

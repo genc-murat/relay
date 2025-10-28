@@ -220,4 +220,109 @@ public class SystemInsightsStrategyTests
         Assert.False(result.Success);
         Assert.Contains("System load metrics are required", result.ErrorMessage);
     }
+
+    [Fact]
+    public async Task SystemInsightsStrategy_ShouldGenerateCriticalInsightForHighMemory()
+    {
+        // Arrange
+        var strategy = new SystemInsightsStrategy(_logger);
+        var context = new OptimizationContext
+        {
+            Operation = "AnalyzeSystemInsights",
+            SystemLoad = new SystemLoadMetrics
+            {
+                CpuUtilization = 0.5,
+                MemoryUtilization = 0.96, // Critical memory (>95%)
+                ActiveConnections = 50,
+                QueuedRequestCount = 5
+            }
+        };
+
+        // Act
+        var result = await strategy.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        var recommendation = (OptimizationRecommendation)result.Data!;
+        var insights = recommendation.Parameters["insights"] as List<TrendInsight>;
+        Assert.NotNull(insights);
+
+        var criticalInsights = insights.Where(i => i.Severity == InsightSeverity.Critical);
+        Assert.True(criticalInsights.Any(), "Should generate critical insight for memory > 95%");
+
+        var memoryInsight = criticalInsights.FirstOrDefault(i => i.Message.Contains("Memory"));
+        Assert.NotNull(memoryInsight);
+        Assert.Contains("Memory Utilization is at critical level", memoryInsight.Message);
+        Assert.Contains("memory_pooling", memoryInsight.RecommendedAction);
+    }
+
+    [Fact]
+    public async Task SystemInsightsStrategy_ShouldGenerateWarningInsightForElevatedMemory()
+    {
+        // Arrange
+        var strategy = new SystemInsightsStrategy(_logger);
+        var context = new OptimizationContext
+        {
+            Operation = "AnalyzeSystemInsights",
+            SystemLoad = new SystemLoadMetrics
+            {
+                CpuUtilization = 0.5,
+                MemoryUtilization = 0.85, // Warning memory (80-95%)
+                ActiveConnections = 50,
+                QueuedRequestCount = 5
+            }
+        };
+
+        // Act
+        var result = await strategy.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        var recommendation = (OptimizationRecommendation)result.Data!;
+        var insights = recommendation.Parameters["insights"] as List<TrendInsight>;
+        Assert.NotNull(insights);
+
+        var warningInsights = insights.Where(i => i.Severity == InsightSeverity.Warning);
+        Assert.True(warningInsights.Any(), "Should generate warning insight for memory 80-95%");
+
+        var memoryInsight = warningInsights.FirstOrDefault(i => i.Message.Contains("Memory"));
+        Assert.NotNull(memoryInsight);
+        Assert.Contains("Memory Utilization is elevated", memoryInsight.Message);
+        Assert.Contains("memory_preallocation", memoryInsight.RecommendedAction);
+    }
+
+    [Fact]
+    public async Task SystemInsightsStrategy_ShouldGenerateInfoInsightForNormalMemory()
+    {
+        // Arrange
+        var strategy = new SystemInsightsStrategy(_logger);
+        var context = new OptimizationContext
+        {
+            Operation = "AnalyzeSystemInsights",
+            SystemLoad = new SystemLoadMetrics
+            {
+                CpuUtilization = 0.5,
+                MemoryUtilization = 0.6, // Normal memory (<80%)
+                ActiveConnections = 50,
+                QueuedRequestCount = 5
+            }
+        };
+
+        // Act
+        var result = await strategy.ExecuteAsync(context);
+
+        // Assert
+        Assert.True(result.Success);
+        var recommendation = (OptimizationRecommendation)result.Data!;
+        var insights = recommendation.Parameters["insights"] as List<TrendInsight>;
+        Assert.NotNull(insights);
+
+        var memoryInsights = insights.Where(i => i.Message.Contains("Memory"));
+        Assert.True(memoryInsights.Any(), "Should generate memory insight");
+
+        var normalMemoryInsight = memoryInsights.FirstOrDefault(i => i.Category.Contains("Normal"));
+        Assert.NotNull(normalMemoryInsight);
+        Assert.Equal(InsightSeverity.Info, normalMemoryInsight.Severity);
+        Assert.Contains("Memory Utilization is within normal range", normalMemoryInsight.Message);
+    }
 }

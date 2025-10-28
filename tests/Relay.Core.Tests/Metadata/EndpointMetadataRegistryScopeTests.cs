@@ -170,32 +170,35 @@ public class EndpointMetadataRegistryScopeTests
         var mainContextEndpoints = EndpointMetadataRegistry.AllEndpoints;
 
         // Start parallel tasks that share AsyncLocal context with parent
-        var task1 = Task.Run(() =>
+        // Ensure both tasks have an opportunity to register and access data
+        var registrationTask = Task.Run(() =>
         {
             // This shares the same scope as the main context
             EndpointMetadataRegistry.RegisterEndpoint(metadata2);
-            return EndpointMetadataRegistry.AllEndpoints;
         });
 
-        var task2 = Task.Run(() =>
+        // Wait for registration to complete before accessing data
+        await registrationTask;
+
+        var task1Result = await Task.Run(() =>
         {
-            // This also shares the same scope as the main context
             return EndpointMetadataRegistry.AllEndpoints;
         });
-
-        var task1Result = await task1;
-        var task2Result = await task2;
+        
+        var task2Result = await Task.Run(() =>
+        {
+            return EndpointMetadataRegistry.AllEndpoints;
+        });
 
         // Assert
         Assert.Single(mainContextEndpoints);
         Assert.Equal(metadata1, mainContextEndpoints[0]);
 
-        // Task1 should see both endpoints (same scope as main)
+        // Both tasks should see both endpoints (same scope as main, after registration)
         Assert.Equal(2, task1Result.Count);
         Assert.Contains(metadata1, task1Result);
         Assert.Contains(metadata2, task1Result);
 
-        // Task2 should also see both endpoints (same scope as main)
         Assert.Equal(2, task2Result.Count);
         Assert.Contains(metadata1, task2Result);
         Assert.Contains(metadata2, task2Result);

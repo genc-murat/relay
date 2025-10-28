@@ -28,10 +28,7 @@ public sealed partial class AIOptimizationPipelineBehavior<TRequest, TResponse> 
     private readonly IMetricsProvider? _metricsProvider;
     private readonly IMemoryCache? _memoryCache;
     private readonly IDistributedCache? _distributedCache;
-
-    // Batch coordinator registry - one coordinator per request type
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, object> _batchCoordinators = new();
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _coordinatorLocks = new();
+    private readonly Strategies.OptimizationStrategyFactory<TRequest, TResponse> _strategyFactory;
 
     public AIOptimizationPipelineBehavior(
         IAIOptimizationEngine aiEngine,
@@ -49,6 +46,15 @@ public sealed partial class AIOptimizationPipelineBehavior<TRequest, TResponse> 
         _metricsProvider = metricsProvider;
         _memoryCache = memoryCache;
         _distributedCache = distributedCache;
+
+        // Initialize strategy factory
+        _strategyFactory = new Strategies.OptimizationStrategyFactory<TRequest, TResponse>(
+            logger as ILoggerFactory ?? new LoggerFactory(),
+            memoryCache,
+            distributedCache,
+            aiEngine,
+            _options,
+            metricsProvider);
     }
 
     public async ValueTask<TResponse> HandleAsync(

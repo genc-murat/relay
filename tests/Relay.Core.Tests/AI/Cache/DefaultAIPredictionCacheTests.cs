@@ -384,6 +384,103 @@ public class DefaultAIPredictionCacheTests
 
     #endregion
 
+    #region Clear Tests
+
+    [Fact]
+    public async Task Clear_Should_Remove_All_Entries()
+    {
+        // Arrange
+        var key1 = "key1";
+        var key2 = "key2";
+        var recommendation = CreateTestRecommendation();
+
+        await _cache.SetCachedPredictionAsync(key1, recommendation, TimeSpan.FromMinutes(5));
+        await _cache.SetCachedPredictionAsync(key2, recommendation, TimeSpan.FromMinutes(5));
+
+        // Verify entries exist
+        Assert.NotNull(await _cache.GetCachedPredictionAsync(key1));
+        Assert.NotNull(await _cache.GetCachedPredictionAsync(key2));
+        Assert.Equal(2, _cache.Size);
+
+        // Act
+        _cache.Clear();
+
+        // Assert
+        Assert.Null(await _cache.GetCachedPredictionAsync(key1));
+        Assert.Null(await _cache.GetCachedPredictionAsync(key2));
+        Assert.Equal(0, _cache.Size);
+    }
+
+    [Fact]
+    public async Task Clear_Should_Reset_Statistics_When_Enabled()
+    {
+        // Arrange - Create cache with statistics enabled
+        var options = new AIPredictionCacheOptions { EnableStatistics = true };
+        var cacheWithStats = new DefaultAIPredictionCache(_logger, options);
+
+        var key = "test_key";
+        var recommendation = CreateTestRecommendation();
+
+        await cacheWithStats.SetCachedPredictionAsync(key, recommendation, TimeSpan.FromMinutes(5));
+        await cacheWithStats.GetCachedPredictionAsync(key); // hit
+
+        var statsBeforeClear = cacheWithStats.GetStatistics();
+        Assert.Equal(1, statsBeforeClear.Sets);
+        Assert.Equal(1, statsBeforeClear.Hits);
+
+        // Act
+        cacheWithStats.Clear();
+
+        // Assert
+        var statsAfterClear = cacheWithStats.GetStatistics();
+        Assert.Equal(0, statsAfterClear.Sets);
+        Assert.Equal(0, statsAfterClear.Hits);
+        Assert.Equal(0, statsAfterClear.Misses);
+        Assert.Equal(0, statsAfterClear.Evictions);
+        Assert.Equal(0, statsAfterClear.Cleanups);
+    }
+
+    [Fact]
+    public async Task Clear_Should_Reset_Eviction_Policy_State()
+    {
+        // Arrange - Create cache with small max size to trigger eviction
+        var options = new AIPredictionCacheOptions { MaxSize = 2 };
+        var cacheWithEviction = new DefaultAIPredictionCache(_logger, options);
+
+        var recommendation = CreateTestRecommendation();
+
+        // Fill cache to max
+        await cacheWithEviction.SetCachedPredictionAsync("key1", recommendation, TimeSpan.FromMinutes(5));
+        await cacheWithEviction.SetCachedPredictionAsync("key2", recommendation, TimeSpan.FromMinutes(5));
+
+        // Access key1 to make it recently used (for LRU)
+        await cacheWithEviction.GetCachedPredictionAsync("key1");
+
+        // Add third item, should evict key2 (least recently used)
+        await cacheWithEviction.SetCachedPredictionAsync("key3", recommendation, TimeSpan.FromMinutes(5));
+
+        // Verify key2 is evicted
+        Assert.Null(await cacheWithEviction.GetCachedPredictionAsync("key2"));
+        Assert.NotNull(await cacheWithEviction.GetCachedPredictionAsync("key1"));
+        Assert.NotNull(await cacheWithEviction.GetCachedPredictionAsync("key3"));
+
+        // Act - Clear cache
+        cacheWithEviction.Clear();
+
+        // Assert - Cache is empty
+        Assert.Equal(0, cacheWithEviction.Size);
+
+        // Now add items again, should work without eviction issues
+        await cacheWithEviction.SetCachedPredictionAsync("new_key1", recommendation, TimeSpan.FromMinutes(5));
+        await cacheWithEviction.SetCachedPredictionAsync("new_key2", recommendation, TimeSpan.FromMinutes(5));
+
+        Assert.Equal(2, cacheWithEviction.Size);
+        Assert.NotNull(await cacheWithEviction.GetCachedPredictionAsync("new_key1"));
+        Assert.NotNull(await cacheWithEviction.GetCachedPredictionAsync("new_key2"));
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static OptimizationRecommendation CreateTestRecommendation(OptimizationStrategy strategy = OptimizationStrategy.EnableCaching)

@@ -3,6 +3,7 @@ using Moq;
 using Relay.Core.AI;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Xunit;
 
 namespace Relay.Core.Tests.AI.Analysis.Engines;
@@ -605,5 +606,53 @@ public class RegressionUpdaterTests
         // Should handle fractional values correctly
         Assert.True(regression.Slope > 0);
         Assert.True(regression.RSquared > 0.99);
+    }
+
+    [Fact]
+    public void CalculateRSquared_Should_Handle_Zero_Denominator_Gracefully()
+    {
+        // Arrange
+        var updater = new RegressionUpdater(_loggerMock.Object);
+
+        // Use reflection to access private method
+        var method = typeof(RegressionUpdater).GetMethod("CalculateRSquared",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // Create parameters that would cause division by zero in SS_tot calculation
+        double[] yValues = new[] { 5.0, 5.0, 5.0 }; // All same values, mean = 5.0
+        double[] xValues = new[] { 1.0, 2.0, 3.0 };
+        double slope = 0.0;
+        double intercept = 5.0; // Same as mean
+        double meanY = 5.0;
+
+        // Act
+        var result = (double)method.Invoke(updater, new object[] { yValues, xValues, slope, intercept, meanY });
+
+        // Assert - Should return 0 for zero denominator
+        Assert.Equal(0.0, result);
+    }
+
+    [Fact]
+    public void CalculateRSquared_Should_Handle_Insufficient_Data_Gracefully()
+    {
+        // Arrange
+        var updater = new RegressionUpdater(_loggerMock.Object);
+
+        // Use reflection to access private method
+        var method = typeof(RegressionUpdater).GetMethod("CalculateRSquared",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // Create parameters with insufficient data
+        double[] yValues = new[] { 5.0 }; // Only one value
+        double[] xValues = new[] { 1.0 };
+        double slope = 1.0;
+        double intercept = 0.0;
+        double meanY = 5.0;
+
+        // Act
+        var result = (double)method.Invoke(updater, new object[] { yValues, xValues, slope, intercept, meanY });
+
+        // Assert - Should return 0 for insufficient data
+        Assert.Equal(0.0, result);
     }
 }

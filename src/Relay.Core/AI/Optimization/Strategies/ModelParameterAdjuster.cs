@@ -39,8 +39,6 @@ namespace Relay.Core.AI.Optimization.Strategies
         private const int MinBatchSize = 5;
         private const int MaxBatchSize = 2000;
         private const int DefaultOptimalRangeStart = 50;
-        private const int MinCacheDuration = 60;
-        private const int MaxCacheDuration = 7200;
         private const int MinMinCacheDuration = 60;
         private const int MaxMinCacheDuration = 600;
         private const int MinMaxCacheDuration = 1800;

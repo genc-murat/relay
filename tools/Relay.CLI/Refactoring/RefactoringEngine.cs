@@ -31,6 +31,7 @@ public class RefactoringEngine
         _rules.Add(new LinqSimplificationRule());
         _rules.Add(new StringInterpolationRule());
         _rules.Add(new DisposablePatternRule());
+        _rules.Add(new PatternMatchingRefactoringRule());
     }
 
     public async Task<RefactoringResult> AnalyzeAsync(RefactoringOptions options)

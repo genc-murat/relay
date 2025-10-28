@@ -1316,4 +1316,341 @@ public class Test
         Assert.Contains("connection", suggestions[0].Description.ToLower());
         Assert.Contains("command", suggestions[1].Description.ToLower());
     }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldDetectIsPatternOpportunity()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessObject(object obj)
+    {
+        if (obj is string)
+        {
+            var str = (string)obj;
+            Console.WriteLine(str.Length);
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("is pattern", suggestions.First().Description.ToLower());
+        Assert.Contains("is string str", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldDetectSwitchExpressionOpportunity()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetMessage(int value)
+    {
+        switch (value)
+        {
+            case 1: return ""One"";
+            case 2: return ""Two"";
+            default: return ""Other"";
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("switch expression", suggestions.First().Description.ToLower());
+        Assert.Contains("switch", suggestions.First().SuggestedCode);
+        Assert.Contains("=>", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldDetectIfElseChainOpportunity()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetMessage(string value)
+    {
+        if (value == ""A"") return ""Alpha"";
+        else if (value == ""B"") return ""Beta"";
+        else return ""Other"";
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("if-else chain", suggestions.First().Description.ToLower());
+        Assert.Contains("switch", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldApplyIsPatternRefactoring()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessObject(object obj)
+    {
+        if (obj is string)
+        {
+            var str = (string)obj;
+            Console.WriteLine(str.Length);
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First();
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Contains("is string str", newCode);
+        Assert.DoesNotContain("(string)obj", newCode);
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldApplySwitchExpressionRefactoring()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetMessage(int value)
+    {
+        switch (value)
+        {
+            case 1: return ""One"";
+            case 2: return ""Two"";
+            default: return ""Other"";
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First();
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Contains("value switch", newCode);
+        Assert.Contains("=>", newCode);
+        Assert.DoesNotContain("case 1:", newCode);
+        Assert.DoesNotContain("return", newCode);
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldNotDetectSwitchExpression_ForComplexSwitch()
+    {
+        // Arrange - Switch with complex statements should not be converted
+        var code = @"
+public class Test
+{
+    public void ProcessValue(int value)
+    {
+        switch (value)
+        {
+            case 1:
+                Console.WriteLine(""One"");
+                break;
+            case 2:
+                Console.WriteLine(""Two"");
+                break;
+            default:
+                Console.WriteLine(""Other"");
+                break;
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert - Should not suggest switch expression for complex statements
+        var switchSuggestions = suggestions.Where(s => s.Description.Contains("switch expression")).ToList();
+        Assert.Empty(switchSuggestions);
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldDetectPropertyPatternOpportunity()
+    {
+        // Arrange
+        var code = @"
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+
+public class Test
+{
+    public void ProcessPerson(Person person)
+    {
+        if (person != null && person.Age > 18)
+        {
+            Console.WriteLine(person.Name);
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains(suggestions, s => s.Description.Contains("property pattern"));
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldHandleReverseIsPattern()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessObject(object obj)
+    {
+        if (""test"" is string str)
+        {
+            Console.WriteLine(str.Length);
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert - Should not suggest refactoring for already modern pattern
+        var isPatternSuggestions = suggestions.Where(s => s.Description.Contains("is pattern")).ToList();
+        Assert.Empty(isPatternSuggestions);
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldApplyIfElseToSwitchExpression()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetMessage(string value)
+    {
+        if (value == ""A"") return ""Alpha"";
+        else if (value == ""B"") return ""Beta"";
+        else return ""Other"";
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First(s => s.Description.Contains("if-else chain"));
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Contains("value switch", newCode);
+        Assert.Contains("=>", newCode);
+        Assert.DoesNotContain("if (", newCode);
+    }
+
+    [Fact]
+    public async Task PatternMatchingRule_ShouldNotDetect_ForSingleIf()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessValue(int value)
+    {
+        if (value > 0)
+        {
+            Console.WriteLine(""Positive"");
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new PatternMatchingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert - Should not suggest switch expression for single if
+        var switchSuggestions = suggestions.Where(s => s.Description.Contains("switch")).ToList();
+        Assert.Empty(switchSuggestions);
+    }
 }

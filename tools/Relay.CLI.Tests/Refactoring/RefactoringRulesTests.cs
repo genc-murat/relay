@@ -1653,4 +1653,194 @@ public class Test
         var switchSuggestions = suggestions.Where(s => s.Description.Contains("switch")).ToList();
         Assert.Empty(switchSuggestions);
     }
+
+    [Fact]
+    public async Task ExceptionHandlingRule_ShouldDetectExceptionFilterOpportunity()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessData(string data)
+    {
+        try
+        {
+            // Some operation
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains(""timeout""))
+            {
+                Console.WriteLine(""Timeout occurred"");
+            }
+            else
+            {
+                throw;
+            }
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new ExceptionHandlingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("exception filter", suggestions.First().Description.ToLower());
+    }
+
+    [Fact]
+    public async Task ExceptionHandlingRule_ShouldDetectEmptyFinallyBlock()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessData()
+    {
+        try
+        {
+            Console.WriteLine(""Processing"");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new ExceptionHandlingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("empty finally", suggestions.First().Description.ToLower());
+    }
+
+    [Fact]
+    public async Task ExceptionHandlingRule_ShouldDetectCatchAllWithoutHandling()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessData()
+    {
+        try
+        {
+            Console.WriteLine(""Processing"");
+        }
+        catch
+        {
+            // Empty catch block
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new ExceptionHandlingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("catch-all", suggestions.First().Description.ToLower());
+    }
+
+    [Fact]
+    public async Task ExceptionHandlingRule_ShouldApplyEmptyFinallyRemoval()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessData()
+    {
+        try
+        {
+            Console.WriteLine(""Processing"");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new ExceptionHandlingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First(s => s.Description.Contains("empty finally"));
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.DoesNotContain("finally", newCode);
+        Assert.Contains("try", newCode);
+        Assert.Contains("catch", newCode);
+    }
+
+    [Fact]
+    public async Task ExceptionHandlingRule_ShouldNotDetectCatchAllWithHandling()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessData()
+    {
+        try
+        {
+            Console.WriteLine(""Processing"");
+        }
+        catch (Exception ex)
+        {
+            // Specific exception type with handling
+            Console.WriteLine($""Error: {ex.Message}"");
+            throw new ApplicationException(""Wrapped exception"", ex);
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new ExceptionHandlingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert - Should not suggest for catch with specific type and handling
+        var catchAllSuggestions = suggestions.Where(s => s.Description.Contains("catch-all")).ToList();
+        Assert.Empty(catchAllSuggestions);
+    }
 }

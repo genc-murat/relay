@@ -32,6 +32,7 @@ public class RefactoringEngine
         _rules.Add(new StringInterpolationRule());
         _rules.Add(new DisposablePatternRule());
         _rules.Add(new PatternMatchingRefactoringRule());
+        _rules.Add(new ExceptionHandlingRefactoringRule());
     }
 
     public async Task<RefactoringResult> AnalyzeAsync(RefactoringOptions options)

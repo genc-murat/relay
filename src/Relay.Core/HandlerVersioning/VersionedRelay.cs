@@ -109,14 +109,36 @@ public sealed class VersionedRelay : IVersionedRelay
     public IReadOnlyList<Version> GetAvailableVersions<TRequest>() where TRequest : IRequest
     {
         var versions = GetVersionInfo(typeof(TRequest));
-        return versions.Select(v => v.Version).OrderByDescending(v => v).ToArray();
+        var versionList = versions.Select(v => v.Version).OrderByDescending(v => v).ToArray();
+        
+        // For void requests (IRequest, not IRequest<TResponse>), return default version 1.0.0
+        // when no actual handlers are registered, to match GetLatestVersion behavior
+        if (versionList.Length == 0)
+        {
+            var requestType = typeof(TRequest);
+            var hasTypedResponse = requestType.GetInterfaces().Any(i => 
+                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+            
+            if (!hasTypedResponse)
+            {
+                return new[] { new Version(1, 0, 0) };
+            }
+        }
+        
+        return versionList;
     }
 
     /// <inheritdoc />
     public Version? GetLatestVersion<TRequest>() where TRequest : IRequest
     {
         var versions = GetAvailableVersions<TRequest>();
-        return versions.FirstOrDefault();
+        var latest = versions.FirstOrDefault();
+        if (latest != null) return latest;
+
+        // For void requests (IRequest), return default 1.0.0; for typed requests, return null
+        var requestType = typeof(TRequest);
+        var hasTypedRequest = requestType.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+        return hasTypedRequest ? null : new Version(1, 0, 0);
     }
 
     private List<HandlerVersionInfo> GetVersionInfo(Type requestType)
@@ -177,11 +199,7 @@ public sealed class VersionedRelay : IVersionedRelay
                     }
                 }
 
-                // If no handlers found, return empty list
-                if (versionInfos.Count == 0)
-                {
-                    _logger.LogWarning("No handlers found for request type {RequestType}", requestType.Name);
-                }
+                // No handlers found, but don't add default here - handled in specific methods
 
                 return versionInfos;
             }
@@ -330,12 +348,39 @@ public sealed class VersionedRelay : IVersionedRelay
     private HandlerVersionInfo? FindHandlerVersion(Type requestType, Version version)
     {
         var versions = GetVersionInfo(requestType);
-        return versions.FirstOrDefault(v => v.Version == version);
+        var found = versions.FirstOrDefault(v => v.Version == version);
+        if (found != null) return found;
+
+        // If no versioned handlers and version is default, assume base relay handles it
+        if (versions.Count == 0 && version == new Version(1, 0, 0))
+        {
+            return new HandlerVersionInfo
+            {
+                Version = version,
+                IsDeprecated = false,
+                HandlerType = typeof(object)
+            };
+        }
+
+        return null;
     }
 
     private Version? FindCompatibleVersion(Type requestType, Version? minVersion, Version? maxVersion)
     {
         var versions = GetVersionInfo(requestType);
+
+        // If no versioned handlers found, assume base relay handles default version
+        if (versions.Count == 0)
+        {
+            var defaultVersion = new Version(1, 0, 0);
+            if ((minVersion == null || defaultVersion >= minVersion) &&
+                (maxVersion == null || defaultVersion <= maxVersion))
+            {
+                return defaultVersion;
+            }
+            return null;
+        }
+
         var compatibleVersions = versions.Where(v =>
         {
             if (minVersion != null && v.Version < minVersion) return false;

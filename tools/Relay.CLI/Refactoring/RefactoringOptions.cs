@@ -9,4 +9,5 @@ public class RefactoringOptions
     public List<string> SpecificRules { get; set; } = new();
     public List<RefactoringCategory> Categories { get; set; } = new();
     public bool CreateBackup { get; set; } = true;
+    public List<string> ExcludePatterns { get; set; } = new();
 }

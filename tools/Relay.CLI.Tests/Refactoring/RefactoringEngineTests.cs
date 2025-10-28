@@ -575,18 +575,394 @@ public class GCCollectTest{i}
         // GC.Collect should have been called internally for fileCount > 10
     }
 
+    [Fact]
+    public async Task AnalyzeAsync_ShouldExcludeFilesBasedOnPatterns()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testProjectPath, "TestClass.cs");
+        await File.WriteAllTextAsync(testFile, @"
+using System.Threading.Tasks;
+
+public class TestClass
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result; // Should suggest await
+    }
+
+    public async Task<string> GetDataAsync()
+    {
+        await Task.Delay(100);
+        return ""data"";
+    }
+}");
+
+        // Create a file in obj directory that should be excluded
+        var objDir = Path.Combine(_testProjectPath, "obj");
+        Directory.CreateDirectory(objDir);
+        var excludedFile = Path.Combine(objDir, "Generated.cs");
+        await File.WriteAllTextAsync(excludedFile, @"
+public class Generated
+{
+    public void Method() { }
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath,
+            ExcludePatterns = new List<string> { "CustomExclude" }
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.True(result.SuggestionsCount > 0);
+        Assert.Single(result.FileResults); // Only TestClass.cs should be analyzed, not Generated.cs
+
+        var analyzedFile = result.FileResults.First().FilePath;
+        Assert.Equal(testFile, analyzedFile);
+        Assert.Contains("TestClass.cs", analyzedFile);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldExcludeFilesInBinDirectory()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testProjectPath, "TestClass.cs");
+        await File.WriteAllTextAsync(testFile, @"
+using System.Threading.Tasks;
+
+public class TestClass
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result;
+    }
+
+    public async Task<string> GetDataAsync()
+    {
+        await Task.Delay(100);
+        return ""data"";
+    }
+}");
+
+        // Create a file in bin directory that should be excluded
+        var binDir = Path.Combine(_testProjectPath, "bin");
+        Directory.CreateDirectory(binDir);
+        var excludedFile = Path.Combine(binDir, "Compiled.cs");
+        await File.WriteAllTextAsync(excludedFile, @"
+public class Compiled
+{
+    public void Method() { }
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.True(result.SuggestionsCount > 0);
+        Assert.Single(result.FileResults); // Only TestClass.cs should be analyzed
+
+        var analyzedFile = result.FileResults.First().FilePath;
+        Assert.Equal(testFile, analyzedFile);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldExcludeFilesInMigrationsDirectory()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testProjectPath, "TestClass.cs");
+        await File.WriteAllTextAsync(testFile, @"
+using System.Threading.Tasks;
+
+public class TestClass
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result;
+    }
+
+    public async Task<string> GetDataAsync()
+    {
+        await Task.Delay(100);
+        return ""data"";
+    }
+}");
+
+        // Create a file in Migrations directory that should be excluded
+        var migrationsDir = Path.Combine(_testProjectPath, "Migrations");
+        Directory.CreateDirectory(migrationsDir);
+        var excludedFile = Path.Combine(migrationsDir, "Migration.cs");
+        await File.WriteAllTextAsync(excludedFile, @"
+public class Migration
+{
+    public void Up() { }
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.True(result.SuggestionsCount > 0);
+        Assert.Single(result.FileResults); // Only TestClass.cs should be analyzed
+
+        var analyzedFile = result.FileResults.First().FilePath;
+        Assert.Equal(testFile, analyzedFile);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldIncludeFilesWithCustomExcludePatterns()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testProjectPath, "TestClass.cs");
+        await File.WriteAllTextAsync(testFile, @"
+using System.Threading.Tasks;
+
+public class TestClass
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result;
+    }
+
+    public async Task<string> GetDataAsync()
+    {
+        await Task.Delay(100);
+        return ""data"";
+    }
+}");
+
+        // Create a file in a custom directory that should be excluded
+        var customDir = Path.Combine(_testProjectPath, "CustomExclude");
+        Directory.CreateDirectory(customDir);
+        var excludedFile = Path.Combine(customDir, "Excluded.cs");
+        await File.WriteAllTextAsync(excludedFile, @"
+public class Excluded
+{
+    public void Method() { }
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath,
+            ExcludePatterns = new List<string> { "CustomExclude" }
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.True(result.SuggestionsCount > 0);
+        Assert.Single(result.FileResults); // Only TestClass.cs should be analyzed
+
+        var analyzedFile = result.FileResults.First().FilePath;
+        Assert.Equal(testFile, analyzedFile);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldIncludeFilesNotMatchingExclusions()
+    {
+        // Arrange
+        var testFile1 = Path.Combine(_testProjectPath, "TestClass.cs");
+        await File.WriteAllTextAsync(testFile1, @"
+using System.Threading.Tasks;
+
+public class TestClass
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result;
+    }
+
+    public async Task<string> GetDataAsync()
+    {
+        await Task.Delay(100);
+        return ""data"";
+    }
+}");
+
+        var testFile2 = Path.Combine(_testProjectPath, "AnotherClass.cs");
+        await File.WriteAllTextAsync(testFile2, @"
+public class AnotherClass
+{
+    public string Process(string input)
+    {
+        if (input == null)
+        {
+            input = ""default"";
+        }
+        return input;
+    }
+}");
+
+        // Create excluded files
+        var objDir = Path.Combine(_testProjectPath, "obj");
+        Directory.CreateDirectory(objDir);
+        var excludedFile = Path.Combine(objDir, "Generated.cs");
+        await File.WriteAllTextAsync(excludedFile, @"
+public class Generated
+{
+    public void Method() { }
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.True(result.SuggestionsCount > 0);
+        Assert.Equal(2, result.FileResults.Count); // Both TestClass.cs and AnotherClass.cs should be analyzed
+
+        var analyzedFiles = result.FileResults.Select(f => Path.GetFileName(f.FilePath)).ToList();
+        Assert.Contains("TestClass.cs", analyzedFiles);
+        Assert.Contains("AnotherClass.cs", analyzedFiles);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldHandleMultipleExcludePatterns()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testProjectPath, "TestClass.cs");
+        await File.WriteAllTextAsync(testFile, @"
+using System.Threading.Tasks;
+
+public class TestClass
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result; // Should suggest await
+    }
+
+    public async Task<string> GetDataAsync()
+    {
+        await Task.Delay(100);
+        return ""data"";
+    }
+}");
+
+        // Create files in multiple directories that should be excluded
+        var tempDir = Path.Combine(_testProjectPath, "Temp");
+        Directory.CreateDirectory(tempDir);
+        var excludedFile1 = Path.Combine(tempDir, "TempFile.cs");
+        await File.WriteAllTextAsync(excludedFile1, @"
+public class TempFile
+{
+    public void Method() { }
+}");
+
+        var backupDir = Path.Combine(_testProjectPath, "Backup");
+        Directory.CreateDirectory(backupDir);
+        var excludedFile2 = Path.Combine(backupDir, "BackupFile.cs");
+        await File.WriteAllTextAsync(excludedFile2, @"
+public class BackupFile
+{
+    public void Method() { }
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath,
+            ExcludePatterns = new List<string> { "Temp", "Backup" }
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert - Check that only TestClass.cs is analyzed (the excluded files should be filtered out)
+        Assert.Single(result.FileResults); // Only TestClass.cs should be analyzed
+        Assert.True(result.SuggestionsCount > 0); // Should have suggestions from TestClass.cs
+
+        var analyzedFile = result.FileResults.First().FilePath;
+        Assert.Equal(testFile, analyzedFile);
+        Assert.Contains("TestClass.cs", analyzedFile);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldHandleCaseInsensitiveExclusions()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testProjectPath, "TestClass.cs");
+        await File.WriteAllTextAsync(testFile, @"
+using System.Threading.Tasks;
+
+public class TestClass
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result;
+    }
+
+    public async Task<string> GetDataAsync()
+    {
+        await Task.Delay(100);
+        return ""data"";
+    }
+}");
+
+        // Create a file in OBJ directory (different case) that should be excluded
+        var objDir = Path.Combine(_testProjectPath, "OBJ");
+        Directory.CreateDirectory(objDir);
+        var excludedFile = Path.Combine(objDir, "Generated.cs");
+        await File.WriteAllTextAsync(excludedFile, @"
+public class Generated
+{
+    public void Method() { }
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.True(result.SuggestionsCount > 0);
+        Assert.Single(result.FileResults); // Only TestClass.cs should be analyzed
+
+        var analyzedFile = result.FileResults.First().FilePath;
+        Assert.Equal(testFile, analyzedFile);
+    }
+
     public void Dispose()
     {
-        if (Directory.Exists(_testProjectPath))
+        try
         {
-            try
-            {
-                Directory.Delete(_testProjectPath, true);
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
+            Directory.Delete(_testProjectPath, true);
+        }
+        catch
+        {
+            // Ignore cleanup errors
         }
     }
 }

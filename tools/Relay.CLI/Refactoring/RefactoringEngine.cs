@@ -43,7 +43,7 @@ public class RefactoringEngine
         };
 
         var files = Directory.GetFiles(options.ProjectPath, "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains("\\bin\\") && !f.Contains("\\obj\\") && !f.Contains("\\Migrations\\"))
+            .Where(f => ShouldIncludeFile(f, options.ProjectPath, options.ExcludePatterns))
             .ToList();
 
         result.FilesAnalyzed = files.Count;
@@ -174,6 +174,28 @@ public class RefactoringEngine
         }
 
         return result;
+    }
+
+    private bool ShouldIncludeFile(string filePath, string projectPath, List<string> excludePatterns)
+    {
+        // Default exclusions for generated code directories
+        var defaultExclusions = new[] { "bin", "obj", "Migrations" };
+
+        // Get the relative path from project root
+        var relativePath = Path.GetRelativePath(projectPath, filePath);
+        var relativeDirectories = Path.GetDirectoryName(relativePath)?.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            ?? Array.Empty<string>();
+
+        foreach (var exclusion in defaultExclusions.Concat(excludePatterns))
+        {
+            // Check if any directory in the relative path matches the exclusion
+            if (relativeDirectories.Any(dir => dir.Equals(exclusion, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private async Task<bool> PromptForApproval(RefactoringSuggestion suggestion)

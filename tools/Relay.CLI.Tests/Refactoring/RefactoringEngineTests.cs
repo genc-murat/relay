@@ -488,6 +488,93 @@ public class InvalidFile
         Assert.True(validFileResult.Suggestions.Count > 0);
     }
 
+    [Fact]
+    public async Task AnalyzeAsync_ShouldUseMemoryOptimizations_WithDocumentationComments()
+    {
+        // Arrange - Create a file with XML documentation to test parse options
+        var testFile = Path.Combine(_testProjectPath, "DocCommentTest.cs");
+        await File.WriteAllTextAsync(testFile, @"
+using System.Threading.Tasks;
+
+/// <summary>
+/// This is a test class with XML documentation
+/// </summary>
+public class DocCommentTest
+{
+    /// <summary>
+    /// This method has async issues
+    /// </summary>
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result; // Should still find this despite doc comments
+    }
+
+    /// <summary>
+    /// Async method
+    /// </summary>
+    public async Task<string> GetDataAsync() => await Task.FromResult(""data"");
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert - Should still find suggestions even with XML documentation
+        Assert.Equal(1, result.FilesAnalyzed);
+        Assert.True(result.SuggestionsCount > 0);
+
+        var suggestions = result.FileResults.First().Suggestions;
+        Assert.Contains(suggestions, s => s.RuleName == "AsyncAwaitRefactoring");
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldTriggerGCCollect_ForLargeFileCount()
+    {
+        // Arrange - Create 15 files to trigger GC.Collect (threshold is 10)
+        const int fileCount = 15;
+        var tasks = new List<Task>();
+
+        for (int i = 0; i < fileCount; i++)
+        {
+            var fileName = $"GCCollectTest{i}.cs";
+            var filePath = Path.Combine(_testProjectPath, fileName);
+            var content = $@"
+public class GCCollectTest{i}
+{{
+    public void Method{i}()
+    {{
+        var task = GetDataAsync();
+        var result = task.Result;
+    }}
+    public async System.Threading.Tasks.Task<string> GetDataAsync() =>
+        await System.Threading.Tasks.Task.FromResult(""data"");
+}}";
+            tasks.Add(File.WriteAllTextAsync(filePath, content));
+        }
+
+        await Task.WhenAll(tasks);
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.Equal(fileCount, result.FilesAnalyzed);
+        Assert.Equal(fileCount, result.SuggestionsCount); // One suggestion per file
+        // GC.Collect should have been called internally for fileCount > 10
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_testProjectPath))

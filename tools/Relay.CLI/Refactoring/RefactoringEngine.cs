@@ -46,7 +46,6 @@ public class RefactoringEngine
 
         result.FilesAnalyzed = files.Count;
 
-        // Paralel dosya analizi için semaphore ile thread sayısını sınırla
         var semaphore = new SemaphoreSlim(Environment.ProcessorCount);
 
         var analysisTasks = files.Select(async file =>
@@ -55,7 +54,9 @@ public class RefactoringEngine
             try
             {
                 var content = await File.ReadAllTextAsync(file);
-                var tree = CSharpSyntaxTree.ParseText(content);
+
+                var parseOptions = CSharpParseOptions.Default.WithDocumentationMode(DocumentationMode.None);
+                var tree = CSharpSyntaxTree.ParseText(content, parseOptions);
                 var root = await tree.GetRootAsync();
 
                 var fileRefactorings = new List<RefactoringSuggestion>();
@@ -78,6 +79,12 @@ public class RefactoringEngine
         });
 
         var analysisResults = await Task.WhenAll(analysisTasks);
+
+        if (files.Count > 10)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
 
         foreach (var analysisResult in analysisResults)
         {
@@ -114,7 +121,9 @@ public class RefactoringEngine
                     continue;
 
                 var content = await File.ReadAllTextAsync(fileResult.FilePath);
-                var tree = CSharpSyntaxTree.ParseText(content);
+
+                var parseOptions = CSharpParseOptions.Default.WithDocumentationMode(DocumentationMode.None);
+                var tree = CSharpSyntaxTree.ParseText(content, parseOptions);
                 var root = await tree.GetRootAsync();
 
                 // Apply refactorings in reverse order by position to maintain correctness

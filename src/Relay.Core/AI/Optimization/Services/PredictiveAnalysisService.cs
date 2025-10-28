@@ -17,7 +17,9 @@ namespace Relay.Core.AI.Optimization.Services
         private readonly ILogger _logger;
         private readonly Queue<SystemMetricsSnapshot> _metricsHistory = new();
         private readonly List<LoadTransition> _loadTransitions = new();
+        private readonly List<PredictionOutcome> _predictionOutcomes = new();
         private readonly int _maxHistorySize = 100;
+        private readonly int _maxPredictionOutcomes = 100;
         private readonly object _historyLock = new();
         private LoadLevel _previousLoadLevel = LoadLevel.Idle;
         private readonly LinearRegressionModel _throughputModel = new();
@@ -140,12 +142,18 @@ namespace Relay.Core.AI.Optimization.Services
 
                 if (_metricsHistory.Count < 5)
                 {
+                    // If we have prediction outcomes, still calculate success rate and improvement
+                    var historicalSuccessRate = CalculateHistoricalSuccessRate();
+                    var historicalImprovement = CalculateHistoricalImprovement();
+                    var historicalStrategyEffectiveness = CalculateStrategyEffectiveness();
+
                     return new LoadPatternData
                     {
                         Level = _previousLoadLevel,
-                        SuccessRate = 0.0,
-                        AverageImprovement = 0.0,
-                        TotalPredictions = 0
+                        SuccessRate = historicalSuccessRate,
+                        AverageImprovement = historicalImprovement,
+                        TotalPredictions = _predictionOutcomes.Count,
+                        StrategyEffectiveness = historicalStrategyEffectiveness
                     };
                 }
 
@@ -216,28 +224,114 @@ namespace Relay.Core.AI.Optimization.Services
 
         private double CalculateHistoricalSuccessRate()
         {
-            // Calculate success rate based on historical predictions vs actual outcomes
-            // Placeholder implementation
-            return 0.78; // 78% historical success rate
+            lock (_historyLock)
+            {
+                if (_predictionOutcomes.Count == 0)
+                {
+                    // No historical data yet, return neutral success rate
+                    return 0.5;
+                }
+
+                // Calculate success rate based on prediction accuracy
+                // A prediction is considered successful if the actual improvement is within
+                // 80% to 120% of the predicted improvement (20% tolerance)
+                var successfulPredictions = _predictionOutcomes.Count(outcome =>
+                {
+                    if (outcome.PredictedImprovement == TimeSpan.Zero)
+                        return outcome.ActualImprovement == TimeSpan.Zero;
+
+                    var ratio = outcome.ActualImprovement.TotalMilliseconds /
+                                outcome.PredictedImprovement.TotalMilliseconds;
+
+                    return ratio >= 0.8 && ratio <= 1.2;
+                });
+
+                return (double)successfulPredictions / _predictionOutcomes.Count;
+            }
         }
 
         private double CalculateHistoricalImprovement()
         {
-            // Calculate average improvement from historical predictions
-            // Placeholder implementation
-            return 0.12; // 12% average improvement
+            lock (_historyLock)
+            {
+                if (_predictionOutcomes.Count == 0)
+                {
+                    // No historical data yet
+                    return 0.0;
+                }
+
+                // Calculate average percentage improvement from historical predictions
+                // Improvement is calculated as: (BaselineTime - ImprovedTime) / BaselineTime
+                var improvements = _predictionOutcomes
+                    .Where(outcome => outcome.BaselineExecutionTime > TimeSpan.Zero)
+                    .Select(outcome =>
+                    {
+                        var improvement = (outcome.BaselineExecutionTime - outcome.ActualImprovement).TotalMilliseconds
+                                        / outcome.BaselineExecutionTime.TotalMilliseconds;
+                        return Math.Max(0, Math.Min(1, improvement)); // Clamp between 0 and 1
+                    })
+                    .ToList();
+
+                if (improvements.Count == 0)
+                {
+                    return 0.0;
+                }
+
+                // Return average improvement as a percentage
+                return improvements.Average();
+            }
         }
 
         private Dictionary<string, double> CalculateStrategyEffectiveness()
         {
-            // Calculate effectiveness of different strategies based on historical data
-            return new Dictionary<string, double>
+            lock (_historyLock)
             {
-                ["EnableCaching"] = 0.75,
-                ["BatchProcessing"] = 0.65,
-                ["ParallelProcessing"] = 0.55,
-                ["CircuitBreaker"] = 0.85
-            };
+                var effectiveness = new Dictionary<string, double>();
+
+                if (_predictionOutcomes.Count == 0)
+                {
+                    // Return default effectiveness values when no historical data exists
+                    return new Dictionary<string, double>
+                    {
+                        ["EnableCaching"] = 0.75,
+                        ["BatchProcessing"] = 0.65,
+                        ["ParallelProcessing"] = 0.55,
+                        ["CircuitBreaker"] = 0.85
+                    };
+                }
+
+                // Group outcomes by strategy and calculate average effectiveness
+                var strategyGroups = _predictionOutcomes
+                    .Where(outcome => outcome.BaselineExecutionTime > TimeSpan.Zero)
+                    .GroupBy(outcome => outcome.Strategy.ToString());
+
+                foreach (var group in strategyGroups)
+                {
+                    // Calculate average improvement for this strategy
+                    var avgImprovement = group.Average(outcome =>
+                    {
+                        var improvement = (outcome.BaselineExecutionTime - outcome.ActualImprovement).TotalMilliseconds
+                                        / outcome.BaselineExecutionTime.TotalMilliseconds;
+                        return Math.Max(0, Math.Min(1, improvement)); // Clamp between 0 and 1
+                    });
+
+                    // Calculate prediction accuracy for this strategy
+                    var accuracyRate = group.Count(outcome =>
+                    {
+                        if (outcome.PredictedImprovement == TimeSpan.Zero)
+                            return outcome.ActualImprovement == TimeSpan.Zero;
+
+                        var ratio = outcome.ActualImprovement.TotalMilliseconds /
+                                    outcome.PredictedImprovement.TotalMilliseconds;
+                        return ratio >= 0.8 && ratio <= 1.2;
+                    }) / (double)group.Count();
+
+                    // Effectiveness combines improvement and accuracy
+                    effectiveness[group.Key] = (avgImprovement * 0.6) + (accuracyRate * 0.4);
+                }
+
+                return effectiveness;
+            }
         }
 
         public void AddMetricsSnapshot(Dictionary<string, double> metrics)
@@ -525,6 +619,55 @@ namespace Relay.Core.AI.Optimization.Services
         {
             public DateTime Timestamp { get; set; }
             public Dictionary<string, double> Metrics { get; set; } = new();
+        }
+
+        private class PredictionOutcome
+        {
+            public DateTime Timestamp { get; set; }
+            public OptimizationStrategy Strategy { get; set; }
+            public TimeSpan PredictedImprovement { get; set; }
+            public TimeSpan ActualImprovement { get; set; }
+            public TimeSpan BaselineExecutionTime { get; set; }
+            public LoadLevel LoadLevel { get; set; }
+        }
+
+        /// <summary>
+        /// Records the outcome of a prediction for future analysis
+        /// </summary>
+        public void RecordPredictionOutcome(OptimizationStrategy strategy,
+            TimeSpan predictedImprovement,
+            TimeSpan actualImprovement,
+            TimeSpan baselineExecutionTime,
+            LoadLevel loadLevel)
+        {
+            lock (_historyLock)
+            {
+                var outcome = new PredictionOutcome
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Strategy = strategy,
+                    PredictedImprovement = predictedImprovement,
+                    ActualImprovement = actualImprovement,
+                    BaselineExecutionTime = baselineExecutionTime,
+                    LoadLevel = loadLevel
+                };
+
+                _predictionOutcomes.Add(outcome);
+
+                // Maintain prediction outcomes size
+                while (_predictionOutcomes.Count > _maxPredictionOutcomes)
+                {
+                    _predictionOutcomes.RemoveAt(0);
+                }
+
+                _logger.LogDebug("Recorded prediction outcome: Strategy={Strategy}, Predicted={Predicted}ms, Actual={Actual}ms, Accuracy={Accuracy:P2}",
+                    strategy,
+                    predictedImprovement.TotalMilliseconds,
+                    actualImprovement.TotalMilliseconds,
+                    predictedImprovement.TotalMilliseconds > 0
+                        ? actualImprovement.TotalMilliseconds / predictedImprovement.TotalMilliseconds
+                        : 0);
+            }
         }
     }
 }

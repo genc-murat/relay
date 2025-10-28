@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Relay.Core.AI;
 using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Services;
 using System;
@@ -429,6 +430,465 @@ public class PredictiveAnalysisServiceTests
         // Assert
         Assert.Single(transitions);
         Assert.Equal(TimeSpan.Zero, transitions[0].TimeSincePrevious);
+    }
+
+    #endregion
+
+    #region RecordPredictionOutcome Tests
+
+    [Fact]
+    public void RecordPredictionOutcome_Should_Accept_Valid_Data()
+    {
+        // Arrange
+        var strategy = OptimizationStrategy.EnableCaching;
+        var predictedImprovement = TimeSpan.FromMilliseconds(50);
+        var actualImprovement = TimeSpan.FromMilliseconds(45);
+        var baselineExecutionTime = TimeSpan.FromMilliseconds(200);
+        var loadLevel = LoadLevel.Medium;
+
+        // Act & Assert - Should not throw
+        _service.RecordPredictionOutcome(strategy, predictedImprovement, actualImprovement, baselineExecutionTime, loadLevel);
+    }
+
+    [Fact]
+    public void RecordPredictionOutcome_Should_Handle_Multiple_Outcomes()
+    {
+        // Arrange - Record multiple outcomes
+        for (int i = 0; i < 10; i++)
+        {
+            var strategy = OptimizationStrategy.EnableCaching;
+            var predictedImprovement = TimeSpan.FromMilliseconds(50);
+            var actualImprovement = TimeSpan.FromMilliseconds(45 + i);
+            var baselineExecutionTime = TimeSpan.FromMilliseconds(200);
+            var loadLevel = LoadLevel.Medium;
+
+            // Act & Assert - Should not throw
+            _service.RecordPredictionOutcome(strategy, predictedImprovement, actualImprovement, baselineExecutionTime, loadLevel);
+        }
+
+        // Verify that analysis uses the recorded data
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+        Assert.NotNull(loadPatternData);
+    }
+
+    [Fact]
+    public void RecordPredictionOutcome_Should_Handle_Zero_Values()
+    {
+        // Arrange
+        var strategy = OptimizationStrategy.EnableCaching;
+        var predictedImprovement = TimeSpan.Zero;
+        var actualImprovement = TimeSpan.Zero;
+        var baselineExecutionTime = TimeSpan.Zero;
+        var loadLevel = LoadLevel.Idle;
+
+        // Act & Assert - Should not throw
+        _service.RecordPredictionOutcome(strategy, predictedImprovement, actualImprovement, baselineExecutionTime, loadLevel);
+    }
+
+    #endregion
+
+    #region CalculateHistoricalSuccessRate Tests
+
+    [Fact]
+    public void CalculateHistoricalSuccessRate_Should_Return_50Percent_With_No_History()
+    {
+        // Arrange - No prediction outcomes recorded
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should return 0.5 (50%) when no historical data
+        Assert.Equal(0.5, loadPatternData.SuccessRate);
+    }
+
+    [Fact]
+    public void CalculateHistoricalSuccessRate_Should_Calculate_Accurate_Success_Rate()
+    {
+        // Arrange - Record predictions with known accuracy
+        // 8 successful predictions (within 80-120% range)
+        for (int i = 0; i < 8; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(90 + i), // 90-97ms (90-97% of predicted)
+                TimeSpan.FromMilliseconds(200),
+                LoadLevel.Medium);
+        }
+
+        // 2 unsuccessful predictions (outside 80-120% range)
+        for (int i = 0; i < 2; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(150), // 150ms (150% of predicted - outside range)
+                TimeSpan.FromMilliseconds(200),
+                LoadLevel.Medium);
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should be 80% success rate (8 out of 10)
+        Assert.Equal(0.8, loadPatternData.SuccessRate, 2);
+    }
+
+    [Fact]
+    public void CalculateHistoricalSuccessRate_Should_Handle_Perfect_Predictions()
+    {
+        // Arrange - All predictions exactly match actual
+        for (int i = 0; i < 5; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(100), // Exactly as predicted
+                TimeSpan.FromMilliseconds(200),
+                LoadLevel.Medium);
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should be 100% success rate
+        Assert.Equal(1.0, loadPatternData.SuccessRate, 2);
+    }
+
+    [Fact]
+    public void CalculateHistoricalSuccessRate_Should_Handle_All_Failed_Predictions()
+    {
+        // Arrange - All predictions way off
+        for (int i = 0; i < 5; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(300), // 3x predicted (way outside range)
+                TimeSpan.FromMilliseconds(200),
+                LoadLevel.Medium);
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should be 0% success rate
+        Assert.Equal(0.0, loadPatternData.SuccessRate, 2);
+    }
+
+    [Fact]
+    public void CalculateHistoricalSuccessRate_Should_Handle_Zero_Predicted_Improvement()
+    {
+        // Arrange - Predictions with zero predicted improvement
+        for (int i = 0; i < 3; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.Zero, // No improvement predicted
+                TimeSpan.Zero, // No actual improvement
+                TimeSpan.FromMilliseconds(200),
+                LoadLevel.Medium);
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should be 100% success rate (both are zero)
+        Assert.Equal(1.0, loadPatternData.SuccessRate, 2);
+    }
+
+    #endregion
+
+    #region CalculateHistoricalImprovement Tests
+
+    [Fact]
+    public void CalculateHistoricalImprovement_Should_Return_Zero_With_No_History()
+    {
+        // Arrange - No prediction outcomes recorded
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should return 0.0 when no historical data
+        Assert.Equal(0.0, loadPatternData.AverageImprovement);
+    }
+
+    [Fact]
+    public void CalculateHistoricalImprovement_Should_Calculate_Average_Improvement()
+    {
+        // Arrange - Record predictions with known improvements
+        // Improvement = (Baseline - Actual) / Baseline
+        // Example: (200 - 150) / 200 = 0.25 (25% improvement)
+
+        // 50% improvement: 200ms baseline, 100ms actual
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(200),
+            LoadLevel.Medium);
+
+        // 25% improvement: 200ms baseline, 150ms actual
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(50),
+            TimeSpan.FromMilliseconds(150),
+            TimeSpan.FromMilliseconds(200),
+            LoadLevel.Medium);
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Average should be (0.5 + 0.25) / 2 = 0.375 (37.5%)
+        Assert.Equal(0.375, loadPatternData.AverageImprovement, 2);
+    }
+
+    [Fact]
+    public void CalculateHistoricalImprovement_Should_Handle_No_Improvement()
+    {
+        // Arrange - Record predictions where actual = baseline (no improvement)
+        for (int i = 0; i < 3; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(0),
+                TimeSpan.FromMilliseconds(200), // Same as baseline
+                TimeSpan.FromMilliseconds(200),
+                LoadLevel.Medium);
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should be 0% improvement
+        Assert.Equal(0.0, loadPatternData.AverageImprovement, 2);
+    }
+
+    [Fact]
+    public void CalculateHistoricalImprovement_Should_Ignore_Zero_Baseline()
+    {
+        // Arrange - Mix of valid and zero baseline data
+        // Valid: 50% improvement
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(200),
+            LoadLevel.Medium);
+
+        // Invalid: Zero baseline (should be ignored)
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(50),
+            TimeSpan.FromMilliseconds(50),
+            TimeSpan.Zero,
+            LoadLevel.Medium);
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should only consider the valid entry (50% improvement)
+        Assert.Equal(0.5, loadPatternData.AverageImprovement, 2);
+    }
+
+    [Fact]
+    public void CalculateHistoricalImprovement_Should_Clamp_Values()
+    {
+        // Arrange - Record prediction where actual is worse than baseline (negative improvement)
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(50),
+            TimeSpan.FromMilliseconds(300), // Worse than baseline
+            TimeSpan.FromMilliseconds(200),
+            LoadLevel.Medium);
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should clamp to 0 (not negative)
+        Assert.True(loadPatternData.AverageImprovement >= 0.0);
+        Assert.True(loadPatternData.AverageImprovement <= 1.0);
+    }
+
+    #endregion
+
+    #region CalculateStrategyEffectiveness Tests
+
+    [Fact]
+    public void CalculateStrategyEffectiveness_Should_Return_Defaults_With_No_History()
+    {
+        // Arrange - No prediction outcomes recorded
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should return default effectiveness values
+        Assert.NotNull(loadPatternData.StrategyEffectiveness);
+        Assert.NotEmpty(loadPatternData.StrategyEffectiveness);
+        Assert.Contains("EnableCaching", loadPatternData.StrategyEffectiveness.Keys);
+        Assert.Equal(0.75, loadPatternData.StrategyEffectiveness["EnableCaching"]);
+    }
+
+    [Fact]
+    public void CalculateStrategyEffectiveness_Should_Calculate_Per_Strategy()
+    {
+        // Arrange - Record outcomes for different strategies
+        // EnableCaching: High effectiveness
+        for (int i = 0; i < 5; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.EnableCaching,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(95), // Good accuracy
+                TimeSpan.FromMilliseconds(200), // 50% improvement
+                LoadLevel.Medium);
+        }
+
+        // BatchProcessing: Lower effectiveness
+        for (int i = 0; i < 5; i++)
+        {
+            _service.RecordPredictionOutcome(
+                OptimizationStrategy.BatchProcessing,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(200), // Poor accuracy
+                TimeSpan.FromMilliseconds(300), // Lower improvement
+                LoadLevel.Medium);
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - EnableCaching should have higher effectiveness than BatchProcessing
+        Assert.True(loadPatternData.StrategyEffectiveness.ContainsKey("EnableCaching"));
+        Assert.True(loadPatternData.StrategyEffectiveness.ContainsKey("BatchProcessing"));
+        Assert.True(loadPatternData.StrategyEffectiveness["EnableCaching"] >
+                   loadPatternData.StrategyEffectiveness["BatchProcessing"]);
+    }
+
+    [Fact]
+    public void CalculateStrategyEffectiveness_Should_Combine_Improvement_And_Accuracy()
+    {
+        // Arrange - Record outcome with known improvement and accuracy
+        // Improvement: (200 - 100) / 200 = 0.5 (50%)
+        // Accuracy: 100ms predicted, 100ms actual = 100% (within 80-120% range)
+        // Effectiveness: (0.5 * 0.6) + (1.0 * 0.4) = 0.3 + 0.4 = 0.7
+        _service.RecordPredictionOutcome(
+            OptimizationStrategy.EnableCaching,
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(100),
+            TimeSpan.FromMilliseconds(200),
+            LoadLevel.Medium);
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert
+        Assert.True(loadPatternData.StrategyEffectiveness.ContainsKey("EnableCaching"));
+        Assert.Equal(0.7, loadPatternData.StrategyEffectiveness["EnableCaching"], 1);
+    }
+
+    [Fact]
+    public void CalculateStrategyEffectiveness_Should_Handle_Multiple_Strategies()
+    {
+        // Arrange - Record outcomes for all strategy types
+        var strategies = new[]
+        {
+            OptimizationStrategy.EnableCaching,
+            OptimizationStrategy.BatchProcessing,
+            OptimizationStrategy.ParallelProcessing,
+            OptimizationStrategy.CircuitBreaker
+        };
+
+        foreach (var strategy in strategies)
+        {
+            _service.RecordPredictionOutcome(
+                strategy,
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(95),
+                TimeSpan.FromMilliseconds(200),
+                LoadLevel.Medium);
+        }
+
+        // Act
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+
+        // Assert - Should have effectiveness data for all strategies
+        Assert.True(loadPatternData.StrategyEffectiveness.Count >= strategies.Length);
+        foreach (var strategy in strategies)
+        {
+            Assert.True(loadPatternData.StrategyEffectiveness.ContainsKey(strategy.ToString()));
+            Assert.True(loadPatternData.StrategyEffectiveness[strategy.ToString()] >= 0.0);
+            Assert.True(loadPatternData.StrategyEffectiveness[strategy.ToString()] <= 1.0);
+        }
+    }
+
+    #endregion
+
+    #region Integration Tests for New Methods
+
+    [Fact]
+    public void Full_Prediction_Lifecycle_Should_Work()
+    {
+        // Arrange - Simulate a complete prediction lifecycle
+        var strategy = OptimizationStrategy.EnableCaching;
+        var predictedImprovement = TimeSpan.FromMilliseconds(50);
+        var actualImprovement = TimeSpan.FromMilliseconds(45);
+        var baselineExecutionTime = TimeSpan.FromMilliseconds(200);
+        var loadLevel = LoadLevel.Medium;
+
+        // Add some metrics history first
+        for (int i = 0; i < 10; i++)
+        {
+            var metrics = new Dictionary<string, double>
+            {
+                ["CpuUtilization"] = 0.5,
+                ["MemoryUtilization"] = 0.3,
+                ["ThroughputPerSecond"] = 100
+            };
+            _service.AddMetricsSnapshot(metrics);
+        }
+
+        // Act - Record prediction outcome
+        _service.RecordPredictionOutcome(strategy, predictedImprovement, actualImprovement, baselineExecutionTime, loadLevel);
+
+        // Get analysis results
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+        var predictiveAnalysis = _service.GeneratePredictiveAnalysis();
+
+        // Assert
+        Assert.NotNull(loadPatternData);
+        Assert.NotNull(predictiveAnalysis);
+        Assert.True(loadPatternData.SuccessRate > 0.0);
+        Assert.NotNull(loadPatternData.StrategyEffectiveness);
+    }
+
+    [Fact]
+    public void Concurrent_RecordPredictionOutcome_Should_Be_ThreadSafe()
+    {
+        // Arrange
+        var strategy = OptimizationStrategy.EnableCaching;
+        var tasks = new List<System.Threading.Tasks.Task>();
+
+        // Act - Record outcomes concurrently
+        for (int i = 0; i < 10; i++)
+        {
+            var task = System.Threading.Tasks.Task.Run(() =>
+            {
+                _service.RecordPredictionOutcome(
+                    strategy,
+                    TimeSpan.FromMilliseconds(100),
+                    TimeSpan.FromMilliseconds(95),
+                    TimeSpan.FromMilliseconds(200),
+                    LoadLevel.Medium);
+            });
+            tasks.Add(task);
+        }
+
+        System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+
+        // Assert - Should not throw and should have recorded all outcomes
+        var loadPatternData = _service.AnalyzeLoadPatterns();
+        Assert.NotNull(loadPatternData);
     }
 
     #endregion

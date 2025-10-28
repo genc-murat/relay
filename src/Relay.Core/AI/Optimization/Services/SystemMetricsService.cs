@@ -33,6 +33,27 @@ namespace Relay.Core.AI.Optimization.Services
         private const int MaxCpuHistorySize = 60; // Track last 60 measurements
         private readonly object _cpuLock = new();
 
+        // Prediction tracking
+        private readonly List<PredictionOutcome> _predictionOutcomes = new();
+        private readonly int _maxPredictionOutcomes = 100;
+        private readonly object _predictionLock = new();
+
+        // Error tracking
+        private long _totalErrors;
+        private long _totalExceptions;
+        private DateTime _lastErrorReset = DateTime.UtcNow;
+
+        // Network metrics tracking
+        private readonly Queue<(DateTime timestamp, double latencyMs)> _networkLatencyHistory = new();
+        private readonly int _maxNetworkHistorySize = 100;
+
+        // Disk I/O tracking
+        private long _lastDiskReadBytes;
+        private long _lastDiskWriteBytes;
+        private DateTime _lastDiskMeasurement = DateTime.UtcNow;
+        private double _currentDiskReadBytesPerSecond;
+        private double _currentDiskWriteBytesPerSecond;
+
         public SystemMetricsService(ILogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -143,20 +164,91 @@ namespace Relay.Core.AI.Optimization.Services
 
         private double CalculatePredictionSuccessRate()
         {
-            // Placeholder implementation - would track actual vs predicted performance
-            return 0.85; // 85% success rate
+            lock (_predictionLock)
+            {
+                if (_predictionOutcomes.Count == 0)
+                {
+                    return 0.5; // Neutral when no data
+                }
+
+                // A prediction is successful if actual improvement is within 80-120% of predicted
+                var successfulPredictions = _predictionOutcomes.Count(outcome =>
+                {
+                    if (outcome.PredictedImprovement == TimeSpan.Zero)
+                        return outcome.ActualImprovement == TimeSpan.Zero;
+
+                    var ratio = outcome.ActualImprovement.TotalMilliseconds /
+                                outcome.PredictedImprovement.TotalMilliseconds;
+
+                    return ratio >= 0.8 && ratio <= 1.2;
+                });
+
+                return (double)successfulPredictions / _predictionOutcomes.Count;
+            }
         }
 
         private double CalculateAverageImprovement()
         {
-            // Placeholder implementation - would calculate average improvement from predictions
-            return 0.15; // 15% average improvement
+            lock (_predictionLock)
+            {
+                if (_predictionOutcomes.Count == 0)
+                {
+                    return 0.0;
+                }
+
+                // Calculate average percentage improvement
+                var improvements = _predictionOutcomes
+                    .Where(outcome => outcome.BaselineExecutionTime > TimeSpan.Zero)
+                    .Select(outcome =>
+                    {
+                        var improvement = (outcome.BaselineExecutionTime - outcome.ActualImprovement).TotalMilliseconds
+                                        / outcome.BaselineExecutionTime.TotalMilliseconds;
+                        return Math.Max(0, Math.Min(1, improvement));
+                    })
+                    .ToList();
+
+                return improvements.Count > 0 ? improvements.Average() : 0.0;
+            }
         }
 
         private int GetTotalPredictions()
         {
-            // Placeholder implementation - would return total number of predictions made
-            return 100;
+            lock (_predictionLock)
+            {
+                return _predictionOutcomes.Count;
+            }
+        }
+
+        /// <summary>
+        /// Records a prediction outcome for tracking prediction accuracy
+        /// </summary>
+        public void RecordPredictionOutcome(OptimizationStrategy strategy,
+            TimeSpan predictedImprovement,
+            TimeSpan actualImprovement,
+            TimeSpan baselineExecutionTime)
+        {
+            lock (_predictionLock)
+            {
+                var outcome = new PredictionOutcome
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Strategy = strategy,
+                    PredictedImprovement = predictedImprovement,
+                    ActualImprovement = actualImprovement,
+                    BaselineExecutionTime = baselineExecutionTime
+                };
+
+                _predictionOutcomes.Add(outcome);
+
+                // Maintain max size
+                while (_predictionOutcomes.Count > _maxPredictionOutcomes)
+                {
+                    _predictionOutcomes.RemoveAt(0);
+                }
+
+                _logger.LogDebug("Recorded prediction outcome: Strategy={Strategy}, Predicted={Predicted}ms, Actual={Actual}ms",
+                    strategy, predictedImprovement.TotalMilliseconds, actualImprovement.TotalMilliseconds);
+            }
         }
 
         private Dictionary<string, double> CalculateStrategyEffectiveness()
@@ -650,46 +742,174 @@ namespace Relay.Core.AI.Optimization.Services
             return _currentThroughputPerSecond;
         }
 
+        /// <summary>
+        /// Records an error occurrence
+        /// </summary>
+        public void RecordError()
+        {
+            Interlocked.Increment(ref _totalErrors);
+        }
+
+        /// <summary>
+        /// Records an exception occurrence
+        /// </summary>
+        public void RecordException()
+        {
+            Interlocked.Increment(ref _totalExceptions);
+        }
+
         private double GetErrorRate()
         {
-            // Placeholder - would be collected from exception monitoring
-            return 0.02;
+            var now = DateTime.UtcNow;
+            var timeElapsed = (now - _lastErrorReset).TotalSeconds;
+
+            if (timeElapsed < 1.0)
+            {
+                // Not enough time elapsed, return last known rate
+                return _latestMetrics.GetValueOrDefault("ErrorRate", 0.0);
+            }
+
+            var totalRequests = Interlocked.Read(ref _totalRequestsProcessed);
+            var totalErrors = Interlocked.Read(ref _totalErrors);
+
+            // Calculate error rate
+            var errorRate = totalRequests > 0 ? (double)totalErrors / totalRequests : 0.0;
+
+            return Math.Min(errorRate, 1.0); // Clamp to max 1.0
         }
 
         private double GetExceptionCount()
         {
-            // Placeholder
-            return 5.0;
+            return Interlocked.Read(ref _totalExceptions);
+        }
+
+        /// <summary>
+        /// Records network latency measurement
+        /// </summary>
+        public void RecordNetworkLatency(double latencyMs)
+        {
+            lock (_metricsLock)
+            {
+                _networkLatencyHistory.Enqueue((DateTime.UtcNow, latencyMs));
+
+                // Maintain max history size
+                while (_networkLatencyHistory.Count > _maxNetworkHistorySize)
+                {
+                    _networkLatencyHistory.Dequeue();
+                }
+            }
         }
 
         private double GetNetworkLatency()
         {
-            // Placeholder
-            return 50.0;
+            lock (_metricsLock)
+            {
+                if (_networkLatencyHistory.Count == 0)
+                {
+                    return 0.0;
+                }
+
+                // Return average latency from recent measurements
+                var recentLatencies = _networkLatencyHistory
+                    .Where(x => (DateTime.UtcNow - x.timestamp).TotalSeconds < 60) // Last 60 seconds
+                    .Select(x => x.latencyMs)
+                    .ToList();
+
+                return recentLatencies.Count > 0 ? recentLatencies.Average() : 0.0;
+            }
         }
 
         private double GetNetworkThroughput()
         {
-            // Placeholder
-            return 100.0;
+            // Network throughput in Mbps
+            // This is a simplified calculation - in a real system, this would track actual bytes sent/received
+            var throughputPerSecond = GetThroughputPerSecond();
+
+            // Estimate: Assume each request is ~10KB on average
+            var estimatedBytesPerSecond = throughputPerSecond * 10 * 1024;
+
+            // Convert to Mbps
+            var mbps = (estimatedBytesPerSecond * 8) / (1024 * 1024);
+
+            return mbps;
         }
 
         private double GetDiskReadBytesPerSecond()
         {
-            // Placeholder
-            return 1024.0 * 1024.0; // 1MB/s
+            try
+            {
+                var process = Process.GetCurrentProcess();
+                var now = DateTime.UtcNow;
+                var timeSinceLastMeasurement = (now - _lastDiskMeasurement).TotalSeconds;
+
+                // Only update if enough time has passed (at least 1 second)
+                if (timeSinceLastMeasurement >= 1.0)
+                {
+                    // Note: Process doesn't expose disk I/O directly in a cross-platform way
+                    // This is a simplified approximation
+                    // In production, you'd use platform-specific APIs or monitoring tools
+
+                    var currentReadBytes = process.WorkingSet64; // Simplified - not actual disk reads
+                    var deltaBytes = currentReadBytes - _lastDiskReadBytes;
+
+                    _currentDiskReadBytesPerSecond = Math.Max(0, deltaBytes / timeSinceLastMeasurement);
+                    _lastDiskReadBytes = currentReadBytes;
+                    _lastDiskMeasurement = now;
+                }
+
+                return _currentDiskReadBytesPerSecond;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error calculating disk read bytes per second");
+                return 0.0;
+            }
         }
 
         private double GetDiskWriteBytesPerSecond()
         {
-            // Placeholder
-            return 512.0 * 1024.0; // 512KB/s
+            try
+            {
+                var process = Process.GetCurrentProcess();
+
+                // Simplified approximation - actual disk writes would require platform-specific APIs
+                // Estimate based on a fraction of memory changes
+                var estimatedWriteBytes = _currentDiskReadBytesPerSecond * 0.5;
+
+                return estimatedWriteBytes;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error calculating disk write bytes per second");
+                return 0.0;
+            }
         }
 
         private double GetSystemLoadAverage()
         {
-            // Placeholder
-            return 1.5;
+            try
+            {
+                var process = Process.GetCurrentProcess();
+
+                // Calculate system load as combination of CPU, memory, and thread utilization
+                var cpuUtilization = GetCpuUtilization();
+                var memoryInfo = GetMemoryInfo();
+                var threadCount = process.Threads.Count;
+
+                // Normalize thread count (assume 100 threads is high load)
+                var threadLoad = Math.Min(threadCount / 100.0, 1.0);
+
+                // Weighted average: CPU (50%), Memory (30%), Threads (20%)
+                var loadAverage = (cpuUtilization * 0.5) + (memoryInfo.utilization * 0.3) + (threadLoad * 0.2);
+
+                // Scale to typical load average range (0-10+)
+                return loadAverage * 10.0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error calculating system load average");
+                return 1.0; // Default moderate load
+            }
         }
 
         private double GetThreadCount()
@@ -700,8 +920,75 @@ namespace Relay.Core.AI.Optimization.Services
 
         private double GetHandleCount()
         {
-            // Placeholder - platform specific
-            return 500.0;
+            try
+            {
+                var process = Process.GetCurrentProcess();
+                // HandleCount is available on Windows, returns 0 on other platforms
+                return process.HandleCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting handle count");
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Clears all prediction history (useful for testing or reset)
+        /// </summary>
+        internal void ClearPredictionHistory()
+        {
+            lock (_predictionLock)
+            {
+                _predictionOutcomes.Clear();
+                _logger.LogDebug("Cleared prediction history");
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of prediction outcomes in history
+        /// </summary>
+        internal int GetPredictionHistorySize()
+        {
+            lock (_predictionLock)
+            {
+                return _predictionOutcomes.Count;
+            }
+        }
+
+        /// <summary>
+        /// Resets error counters (useful for testing or periodic reset)
+        /// </summary>
+        internal void ResetErrorCounters()
+        {
+            Interlocked.Exchange(ref _totalErrors, 0);
+            Interlocked.Exchange(ref _totalExceptions, 0);
+            _lastErrorReset = DateTime.UtcNow;
+            _logger.LogDebug("Reset error counters");
+        }
+
+        /// <summary>
+        /// Clears network latency history
+        /// </summary>
+        internal void ClearNetworkHistory()
+        {
+            lock (_metricsLock)
+            {
+                _networkLatencyHistory.Clear();
+                _logger.LogDebug("Cleared network latency history");
+            }
+        }
+
+        /// <summary>
+        /// Internal class for tracking prediction outcomes
+        /// </summary>
+        private class PredictionOutcome
+        {
+            public DateTime Timestamp { get; set; }
+            public OptimizationStrategy Strategy { get; set; }
+            public TimeSpan PredictedImprovement { get; set; }
+            public TimeSpan ActualImprovement { get; set; }
+            public TimeSpan BaselineExecutionTime { get; set; }
         }
     }
 }

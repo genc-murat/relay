@@ -55,6 +55,13 @@ internal class HttpConnectionMetricsProvider
     public int GetLoadBalancerConnectionCount() => _loadBalancerEstimator.GetLoadBalancerConnectionCount();
     public int GetFallbackHttpConnectionCount() => _utilities.GetFallbackHttpConnectionCount();
 
+    // HttpClient tracking methods
+    public void RegisterHttpClient(System.Net.Http.HttpClient httpClient, string? identifier = null)
+        => _httpClientPoolEstimator.RegisterHttpClient(httpClient, identifier);
+    
+    public void RecordHttpClientUsage(System.Net.Http.HttpClient httpClient)
+        => _httpClientPoolEstimator.RecordHttpClientUsage(httpClient);
+
     public int GetHttpConnectionCount()
     {
         var httpConnections = 0;

@@ -207,6 +207,9 @@ internal class HttpClientPoolEstimator(
             {
                 try
                 {
+                    // Record HttpClient usage
+                    RecordHttpClientUsage(httpClient);
+
                     // Get the handler from HttpClient
                     var handlerField = httpClient.GetType().GetField("_handler", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                     if (handlerField == null) continue;
@@ -369,15 +372,15 @@ internal class HttpClientPoolEstimator(
                                         if (instance is System.Net.Http.HttpClient httpClient)
                                         {
                                             var key = $"{type.FullName}.{field.Name}";
-                                            if (_trackedHttpClients.TryAdd(key, httpClient))
+                                            var isNew = !_trackedHttpClients.ContainsKey(key);
+                                            
+                                            // Use RegisterHttpClient to track the discovered instance
+                                            RegisterHttpClient(httpClient, key);
+                                            
+                                            if (isNew)
                                             {
                                                 discoveredCount++;
                                                 _logger.LogTrace("Discovered HttpClient instance: {Key}", key);
-                                            }
-                                            else
-                                            {
-                                                // Update last used time
-                                                _httpClientLastUsed[key] = DateTime.UtcNow;
                                             }
                                         }
                                     }
@@ -414,14 +417,15 @@ internal class HttpClientPoolEstimator(
                                             if (instance is System.Net.Http.HttpClient httpClient)
                                             {
                                                 var key = $"{type.FullName}.{property.Name}";
-                                                if (_trackedHttpClients.TryAdd(key, httpClient))
+                                                var isNew = !_trackedHttpClients.ContainsKey(key);
+                                                
+                                                // Use RegisterHttpClient to track the discovered instance
+                                                RegisterHttpClient(httpClient, key);
+                                                
+                                                if (isNew)
                                                 {
                                                     discoveredCount++;
                                                     _logger.LogTrace("Discovered HttpClient property: {Key}", key);
-                                                }
-                                                else
-                                                {
-                                                    _httpClientLastUsed[key] = DateTime.UtcNow;
                                                 }
                                             }
                                         }

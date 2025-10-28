@@ -121,6 +121,17 @@ internal class ConnectionMetricsProvider
         return _httpProvider.GetFallbackHttpConnectionCount();
     }
 
+    // HttpClient tracking methods - delegate to HTTP provider
+    public void RegisterHttpClient(System.Net.Http.HttpClient httpClient, string? identifier = null)
+    {
+        _httpProvider.RegisterHttpClient(httpClient, identifier);
+    }
+
+    public void RecordHttpClientUsage(System.Net.Http.HttpClient httpClient)
+    {
+        _httpProvider.RecordHttpClientUsage(httpClient);
+    }
+
     public int GetDatabaseConnectionCount()
     {
         return _databaseProvider.GetDatabaseConnectionCount();

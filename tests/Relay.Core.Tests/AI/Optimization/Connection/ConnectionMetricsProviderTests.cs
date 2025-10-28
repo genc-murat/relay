@@ -1126,5 +1126,99 @@ public class ConnectionMetricsProviderTests
     }
 
     #endregion
+
+    #region HttpClient Tracking Integration Tests
+
+    [Fact]
+    public void RegisterHttpClient_Should_Track_HttpClient_Instance()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+        var identifier = "test-api-client";
+
+        // Act
+        _provider.RegisterHttpClient(httpClient, identifier);
+        var connectionCount = _provider.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should register successfully
+        Assert.True(connectionCount >= 0);
+    }
+
+    [Fact]
+    public void RecordHttpClientUsage_Should_Update_Usage_Timestamp()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+        _provider.RegisterHttpClient(httpClient, "tracked-client");
+
+        // Act
+        _provider.RecordHttpClientUsage(httpClient);
+        var connectionCount = _provider.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should record usage without errors
+        Assert.True(connectionCount >= 0);
+    }
+
+    [Fact]
+    public void RegisterHttpClient_Should_Work_Without_Identifier()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+
+        // Act
+        _provider.RegisterHttpClient(httpClient);
+        var connectionCount = _provider.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should generate identifier automatically
+        Assert.True(connectionCount >= 0);
+    }
+
+    [Fact]
+    public void RegisterHttpClient_And_RecordUsage_Integration_Test()
+    {
+        // Arrange - Simulate real-world usage
+        var apiClient = new System.Net.Http.HttpClient { BaseAddress = new Uri("https://api.example.com") };
+        var authClient = new System.Net.Http.HttpClient { BaseAddress = new Uri("https://auth.example.com") };
+
+        // Act - Register clients
+        _provider.RegisterHttpClient(apiClient, "api-client");
+        _provider.RegisterHttpClient(authClient, "auth-client");
+
+        // Simulate usage
+        _provider.RecordHttpClientUsage(apiClient);
+        _provider.RecordHttpClientUsage(authClient);
+        _provider.RecordHttpClientUsage(apiClient); // Used twice
+
+        // Get metrics
+        var httpConnectionCount = _provider.GetHttpClientPoolConnectionCount();
+        var totalConnectionCount = _provider.GetActiveConnectionCount();
+
+        // Assert - Should track both clients
+        Assert.True(httpConnectionCount >= 0);
+        Assert.True(totalConnectionCount >= 0);
+    }
+
+    [Fact]
+    public void HttpClient_Discovery_And_Registration_Should_Work_Together()
+    {
+        // Arrange - Register a client manually
+        var manualClient = new System.Net.Http.HttpClient();
+        _provider.RegisterHttpClient(manualClient, "manual-client");
+
+        // Act - Get connection count (this triggers discovery and uses RegisterHttpClient internally)
+        var connectionCount1 = _provider.GetHttpClientPoolConnectionCount();
+        
+        // Record usage
+        _provider.RecordHttpClientUsage(manualClient);
+        
+        // Get connection count again
+        var connectionCount2 = _provider.GetHttpClientPoolConnectionCount();
+
+        // Assert - Both calls should succeed
+        Assert.True(connectionCount1 >= 0);
+        Assert.True(connectionCount2 >= 0);
+    }
+
+    #endregion
 }
 

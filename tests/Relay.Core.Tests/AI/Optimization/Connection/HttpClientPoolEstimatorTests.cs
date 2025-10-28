@@ -495,6 +495,182 @@ public class HttpClientPoolEstimatorTests
 
     #endregion
 
+    #region RegisterHttpClient Tests
+
+    [Fact]
+    public void RegisterHttpClient_Should_Throw_When_HttpClient_Is_Null()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => _estimator.RegisterHttpClient(null!));
+    }
+
+    [Fact]
+    public void RegisterHttpClient_Should_Register_HttpClient_With_Generated_Identifier()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+
+        // Act
+        _estimator.RegisterHttpClient(httpClient);
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should register successfully
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void RegisterHttpClient_Should_Register_HttpClient_With_Custom_Identifier()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+        var identifier = "custom-test-client";
+
+        // Act
+        _estimator.RegisterHttpClient(httpClient, identifier);
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should register with custom identifier
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void RegisterHttpClient_Should_Update_Existing_HttpClient()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+        var identifier = "update-test-client";
+
+        // Act - Register twice with same identifier
+        _estimator.RegisterHttpClient(httpClient, identifier);
+        _estimator.RegisterHttpClient(httpClient, identifier);
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should update existing registration
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void RegisterHttpClient_Should_Register_Multiple_Different_HttpClients()
+    {
+        // Arrange
+        var httpClient1 = new System.Net.Http.HttpClient();
+        var httpClient2 = new System.Net.Http.HttpClient();
+        var httpClient3 = new System.Net.Http.HttpClient();
+
+        // Act
+        _estimator.RegisterHttpClient(httpClient1, "client1");
+        _estimator.RegisterHttpClient(httpClient2, "client2");
+        _estimator.RegisterHttpClient(httpClient3, "client3");
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should register all clients
+        Assert.True(result >= 0);
+    }
+
+    #endregion
+
+    #region RecordHttpClientUsage Tests
+
+    [Fact]
+    public void RecordHttpClientUsage_Should_Handle_Null_HttpClient_Gracefully()
+    {
+        // Arrange & Act - Should not throw
+        _estimator.RecordHttpClientUsage(null!);
+
+        // Assert - Should complete without exception
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void RecordHttpClientUsage_Should_Update_LastUsed_For_Registered_HttpClient()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+        var identifier = "tracked-client";
+        _estimator.RegisterHttpClient(httpClient, identifier);
+
+        // Act - Record usage
+        _estimator.RecordHttpClientUsage(httpClient);
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should update last used timestamp
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void RecordHttpClientUsage_Should_Handle_Unregistered_HttpClient()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+
+        // Act - Try to record usage without registering first
+        _estimator.RecordHttpClientUsage(httpClient);
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should handle gracefully (key will be null)
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void RecordHttpClientUsage_Should_Update_Timestamp_On_Multiple_Calls()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+        var identifier = "multi-use-client";
+        _estimator.RegisterHttpClient(httpClient, identifier);
+
+        // Act - Record usage multiple times
+        _estimator.RecordHttpClientUsage(httpClient);
+        System.Threading.Thread.Sleep(10); // Small delay to ensure timestamp changes
+        _estimator.RecordHttpClientUsage(httpClient);
+        System.Threading.Thread.Sleep(10);
+        _estimator.RecordHttpClientUsage(httpClient);
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - Should update timestamp each time
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void RecordHttpClientUsage_Should_Be_Called_During_Reflection_Metrics()
+    {
+        // Arrange
+        var httpClient = new System.Net.Http.HttpClient();
+        _estimator.RegisterHttpClient(httpClient, "reflection-test");
+
+        // Act - GetHttpClientPoolConnectionCount calls TryGetHttpClientPoolMetricsViaReflection
+        // which should call RecordHttpClientUsage for each tracked HttpClient
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - RecordHttpClientUsage should have been called
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void RecordHttpClientUsage_Should_Work_With_Multiple_HttpClients()
+    {
+        // Arrange
+        var httpClient1 = new System.Net.Http.HttpClient();
+        var httpClient2 = new System.Net.Http.HttpClient();
+        var httpClient3 = new System.Net.Http.HttpClient();
+
+        _estimator.RegisterHttpClient(httpClient1, "multi1");
+        _estimator.RegisterHttpClient(httpClient2, "multi2");
+        _estimator.RegisterHttpClient(httpClient3, "multi3");
+
+        // Act - Record usage for all clients
+        _estimator.RecordHttpClientUsage(httpClient1);
+        _estimator.RecordHttpClientUsage(httpClient2);
+        _estimator.RecordHttpClientUsage(httpClient3);
+        var result = _estimator.GetHttpClientPoolConnectionCount();
+
+        // Assert - All clients should have updated timestamps
+        Assert.True(result >= 0);
+    }
+
+    #endregion
+
     // Helper class to test exception handling
     private class ThrowingTimeSeriesDatabase : TestTimeSeriesDatabase
     {

@@ -1252,6 +1252,99 @@ public class Test
     }
 
     [Fact]
+    public async Task AsyncAwaitRule_ShouldNotDetectResultOnNonTaskTypes()
+    {
+        // Arrange - Test that semantic analysis prevents false positives
+        var code = @"
+using System.Collections.Generic;
+
+public class Test
+{
+    public void Method()
+    {
+        var list = new List<string>();
+        var result = list.Count; // This should not be flagged as .Result access
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new AsyncAwaitRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert - Should not suggest refactoring for non-Task types
+        Assert.Empty(suggestions);
+    }
+
+    [Fact]
+    public async Task AsyncAwaitRule_ShouldNotDetectWaitOnNonTaskTypes()
+    {
+        // Arrange - Test that semantic analysis prevents false positives for Wait()
+        var code = @"
+using System.Threading;
+
+public class Test
+{
+    public void Method()
+    {
+        var manualResetEvent = new ManualResetEvent(false);
+        manualResetEvent.WaitOne(); // This should not be flagged as blocking on Task
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new AsyncAwaitRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert - Should not suggest refactoring for non-Task.Wait()
+        Assert.Empty(suggestions);
+    }
+
+    [Fact]
+    public async Task AsyncAwaitRule_ShouldDetectResultOnTaskVariable()
+    {
+        // Arrange
+        var code = @"
+using System.Threading.Tasks;
+
+public class Test
+{
+    public void Method()
+    {
+        Task<string> task = GetDataAsync();
+        var result = task.Result; // Should detect this
+    }
+
+    public async Task<string> GetDataAsync()
+    {
+        return await Task.FromResult(""test"");
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new AsyncAwaitRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains(suggestions, s => s.Description.Contains("Result"));
+    }
+
+    [Fact]
     public async Task NullCheckRule_ShouldApplyRefactoring()
     {
         // Arrange

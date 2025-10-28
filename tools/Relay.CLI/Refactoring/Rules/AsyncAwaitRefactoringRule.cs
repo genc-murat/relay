@@ -17,10 +17,17 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
     {
         var suggestions = new List<RefactoringSuggestion>();
 
+        // Create compilation and semantic model for type analysis
+        var compilation = CreateCompilation(root.SyntaxTree);
+        var semanticModel = compilation.GetSemanticModel(root.SyntaxTree);
+
         var methods = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
 
         foreach (var method in methods)
         {
+            // Check if method is already async - if so, don't suggest await in blocking calls
+            var isAsyncMethod = method.Modifiers.Any(m => m.IsKind(SyntaxKind.AsyncKeyword));
+
             // Check for .Result or .Wait() calls
             var invocations = method.DescendantNodes().OfType<InvocationExpressionSyntax>();
 
@@ -33,21 +40,25 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
 
                 if (methodName == "Wait" || methodName == "GetAwaiter")
                 {
-                    suggestions.Add(new RefactoringSuggestion
+                    // Only suggest if the expression is actually a Task type
+                    if (IsTaskType(semanticModel, memberAccess.Expression))
                     {
-                        RuleName = RuleName,
-                        Description = $"Replace blocking {methodName}() with await",
-                        Category = Category,
-                        Severity = RefactoringSeverity.Warning,
-                        FilePath = filePath,
-                        LineNumber = GetLineNumber(root, invocation),
-                        StartPosition = invocation.Span.Start,
-                        EndPosition = invocation.Span.End,
-                        OriginalCode = invocation.ToString(),
-                        SuggestedCode = $"await {memberAccess.Expression}",
-                        Rationale = "Blocking on async operations can lead to deadlocks and poor performance. Use await instead.",
-                        Context = invocation
-                    });
+                        suggestions.Add(new RefactoringSuggestion
+                        {
+                            RuleName = RuleName,
+                            Description = $"Replace blocking {methodName}() with await",
+                            Category = Category,
+                            Severity = RefactoringSeverity.Warning,
+                            FilePath = filePath,
+                            LineNumber = GetLineNumber(root, invocation),
+                            StartPosition = invocation.Span.Start,
+                            EndPosition = invocation.Span.End,
+                            OriginalCode = invocation.ToString(),
+                            SuggestedCode = $"await {memberAccess.Expression}",
+                            Rationale = "Blocking on async operations can lead to deadlocks and poor performance. Use await instead.",
+                            Context = invocation
+                        });
+                    }
                 }
             }
 
@@ -58,13 +69,8 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
             {
                 if (memberAccess.Name.ToString() == "Result")
                 {
-                    // Check if this is accessing Task<T>.Result
-                    var expressionType = memberAccess.Expression.ToString();
-
-                    // More permissive check - look for task variables or async method calls
-                    if (expressionType.Contains("Async") || expressionType.Contains("Task") ||
-                        expressionType.Contains("task") || expressionType.EndsWith("Async()") ||
-                        memberAccess.Expression is IdentifierNameSyntax)
+                    // Use semantic analysis to check if this is actually Task<T>.Result
+                    if (IsTaskResultAccess(semanticModel, memberAccess))
                     {
                         suggestions.Add(new RefactoringSuggestion
                         {
@@ -87,6 +93,67 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
         }
 
         return await Task.FromResult(suggestions);
+    }
+
+    private bool IsTaskType(SemanticModel semanticModel, ExpressionSyntax expression)
+    {
+        var typeInfo = semanticModel.GetTypeInfo(expression);
+        if (typeInfo.Type == null) return false;
+
+        var typeName = typeInfo.Type.ToDisplayString();
+        return typeName.StartsWith("System.Threading.Tasks.Task") ||
+               typeName.StartsWith("Task<") ||
+               typeName == "Task" ||
+               typeName.StartsWith("System.Threading.Tasks.ValueTask") ||
+               typeName.StartsWith("ValueTask<") ||
+               typeName == "ValueTask";
+    }
+
+    private bool IsTaskResultAccess(SemanticModel semanticModel, MemberAccessExpressionSyntax memberAccess)
+    {
+        // Check if the expression type is Task<T> or ValueTask<T>
+        var expressionType = semanticModel.GetTypeInfo(memberAccess.Expression).Type;
+        if (expressionType == null) return false;
+
+        var typeName = expressionType.ToDisplayString();
+
+        // Check for Task<T>, ValueTask<T> or Task types
+        if (!typeName.StartsWith("System.Threading.Tasks.Task") &&
+            !typeName.StartsWith("Task<") &&
+            typeName != "Task" &&
+            !typeName.StartsWith("System.Threading.Tasks.ValueTask") &&
+            !typeName.StartsWith("ValueTask<") &&
+            typeName != "ValueTask")
+        {
+            return false;
+        }
+
+        // Additional validation: ensure this is actually accessing the Result property
+        var symbolInfo = semanticModel.GetSymbolInfo(memberAccess);
+        if (symbolInfo.Symbol is IPropertySymbol propertySymbol)
+        {
+            var containingType = propertySymbol.ContainingType.ToDisplayString();
+            return propertySymbol.Name == "Result" &&
+                   (containingType.StartsWith("System.Threading.Tasks.Task") ||
+                    containingType.StartsWith("System.Threading.Tasks.ValueTask"));
+        }
+
+        return false;
+    }
+
+    private CSharpCompilation CreateCompilation(SyntaxTree syntaxTree)
+    {
+        var references = new[]
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Task).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Task<>).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
+        };
+
+        return CSharpCompilation.Create("AnalysisCompilation")
+            .AddReferences(references)
+            .AddSyntaxTrees(syntaxTree);
     }
 
     public async Task<SyntaxNode> ApplyRefactoringAsync(SyntaxNode root, RefactoringSuggestion suggestion)

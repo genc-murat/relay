@@ -639,6 +639,214 @@ public class Test
     }
 
     [Fact]
+    public async Task StringInterpolationRule_ShouldDetectStringFormatWithMultiplePlaceholders()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetMessage(string name, int age, string city)
+    {
+        return String.Format(""Name: {0}, Age: {1}, City: {2}"", name, age, city);
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new StringInterpolationRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("String.Format", suggestions.First().Description);
+        Assert.Contains("$\"Name: {name}, Age: {age}, City: {city}\"", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task StringInterpolationRule_ShouldDetectComplexConcatenation()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string BuildUrl(string protocol, string domain, string path)
+    {
+        return protocol + ""://"" + domain + ""/"" + path;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new StringInterpolationRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("concatenation", suggestions.First().Description);
+        Assert.Contains("$\"{protocol}://{domain}/{path}\"", suggestions.First().SuggestedCode);
+    }
+
+    [Fact]
+    public async Task StringInterpolationRule_ShouldNotDetectSingleStringLiteral()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetMessage()
+    {
+        return ""Hello World"";
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new StringInterpolationRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Empty(suggestions); // Should not suggest for single string literal
+    }
+
+    [Fact]
+    public async Task StringInterpolationRule_ShouldNotDetectStringBuilderUsage()
+    {
+        // Arrange
+        var code = @"
+using System.Text;
+
+public class Test
+{
+    public string BuildMessage(string name, int age)
+    {
+        var sb = new StringBuilder();
+        sb.Append(""Name: "");
+        sb.Append(name);
+        sb.Append("", Age: "");
+        sb.Append(age);
+        return sb.ToString();
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new StringInterpolationRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.Empty(suggestions); // Should not suggest for StringBuilder usage
+    }
+
+    [Fact]
+    public async Task StringInterpolationRule_ShouldApplyStringFormatRefactoring()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetMessage(string name, int age)
+    {
+        return String.Format(""Name: {0}, Age: {1}"", name, age);
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new StringInterpolationRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First();
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Contains("$\"Name: {name}, Age: {age}\"", newCode);
+        Assert.DoesNotContain("String.Format", newCode);
+    }
+
+    [Fact]
+    public async Task StringInterpolationRule_ShouldApplyConcatenationRefactoring()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetGreeting(string name)
+    {
+        return ""Hello, "" + name + ""!"";
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new StringInterpolationRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First();
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Contains("$\"Hello, {name}!\"", newCode);
+        Assert.DoesNotContain("\"Hello, \" + name + \"!\"", newCode);
+    }
+
+    [Fact]
+    public async Task StringInterpolationRule_ShouldHandleEscapeSequences()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public string GetPath(string folder, string file)
+    {
+        return folder + ""\\"" + file;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new StringInterpolationRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var suggestion = suggestions.First();
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, suggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Contains("$\"{folder}\\{file}\"", newCode);
+        Assert.DoesNotContain("folder + \"\\\\\" + file", newCode);
+    }
+
+    [Fact]
     public async Task DisposableRule_ShouldDetectMissingUsing()
     {
         // Arrange

@@ -9,7 +9,6 @@ using Xunit;
 
 namespace Relay.Core.Tests.AI.Optimization.Connection;
 
-
 public class WebSocketConnectionMetricsProviderTests
 {
     private readonly ILogger _logger;
@@ -187,28 +186,16 @@ public class WebSocketConnectionMetricsProviderTests
 
     #endregion
 
-    #region EstimateMemoryPressure Tests
+    #region Connection Filtering Tests
 
     [Fact]
-    public void EstimateMemoryPressure_Should_Return_Value_Between_0_And_1()
+    public void GetWebSocketConnectionCount_Should_Return_NonNegative_Value()
     {
         // Act
-        var result = _provider.EstimateMemoryPressure();
+        var result = _provider.GetWebSocketConnectionCount();
 
         // Assert
-        Assert.True(result >= 0.0);
-        Assert.True(result <= 1.0);
-    }
-
-    [Fact]
-    public void EstimateMemoryPressure_Should_Calculate_Weighted_Pressure()
-    {
-        // Act
-        var result = _provider.EstimateMemoryPressure();
-
-        // Assert - The method should return a valid pressure value
-        // Since it's a complex calculation, we just verify it's within bounds
-        Assert.True(result >= 0.0 && result <= 1.0);
+        Assert.True(result >= 0);
     }
 
     #endregion

@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Text;
+using System.Threading;
 
 namespace Relay.CLI.Refactoring;
 
@@ -45,32 +46,50 @@ public class RefactoringEngine
 
         result.FilesAnalyzed = files.Count;
 
-        foreach (var file in files)
+        // Paralel dosya analizi için semaphore ile thread sayısını sınırla
+        var semaphore = new SemaphoreSlim(Environment.ProcessorCount);
+
+        var analysisTasks = files.Select(async file =>
         {
-            var content = await File.ReadAllTextAsync(file);
-            var tree = CSharpSyntaxTree.ParseText(content);
-            var root = await tree.GetRootAsync();
-
-            var fileRefactorings = new List<RefactoringSuggestion>();
-
-            foreach (var rule in _rules)
+            await semaphore.WaitAsync();
+            try
             {
-                if (options.SpecificRules.Count > 0 && !options.SpecificRules.Contains(rule.RuleName))
-                    continue;
+                var content = await File.ReadAllTextAsync(file);
+                var tree = CSharpSyntaxTree.ParseText(content);
+                var root = await tree.GetRootAsync();
 
-                var suggestions = await rule.AnalyzeAsync(file, root, options);
-                fileRefactorings.AddRange(suggestions);
+                var fileRefactorings = new List<RefactoringSuggestion>();
+
+                foreach (var rule in _rules)
+                {
+                    if (options.SpecificRules.Count > 0 && !options.SpecificRules.Contains(rule.RuleName))
+                        continue;
+
+                    var suggestions = await rule.AnalyzeAsync(file, root, options);
+                    fileRefactorings.AddRange(suggestions);
+                }
+
+                return new { FilePath = file, Suggestions = fileRefactorings };
             }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
 
-            if (fileRefactorings.Count > 0)
+        var analysisResults = await Task.WhenAll(analysisTasks);
+
+        foreach (var analysisResult in analysisResults)
+        {
+            if (analysisResult.Suggestions.Count > 0)
             {
                 result.FileResults.Add(new FileRefactoringResult
                 {
-                    FilePath = file,
-                    Suggestions = fileRefactorings
+                    FilePath = analysisResult.FilePath,
+                    Suggestions = analysisResult.Suggestions
                 });
 
-                result.SuggestionsCount += fileRefactorings.Count;
+                result.SuggestionsCount += analysisResult.Suggestions.Count;
             }
         }
 

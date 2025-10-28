@@ -1,5 +1,4 @@
 using Relay.CLI.Refactoring;
-using Xunit;
 
 namespace Relay.CLI.Tests.Refactoring;
 
@@ -332,6 +331,161 @@ public class NoModify
         var afterContent = await File.ReadAllTextAsync(testFile);
         Assert.Equal(beforeContent, afterContent);
         Assert.Equal(0, result.FilesModified);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldProcessMultipleFilesInParallel()
+    {
+        // Arrange - Create multiple test files with different issues
+        var testFile1 = Path.Combine(_testProjectPath, "ParallelTest1.cs");
+        var testFile2 = Path.Combine(_testProjectPath, "ParallelTest2.cs");
+        var testFile3 = Path.Combine(_testProjectPath, "ParallelTest3.cs");
+
+        // File 1: Async/await issue
+        await File.WriteAllTextAsync(testFile1, @"
+using System.Threading.Tasks;
+public class ParallelTest1
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result;
+    }
+    public async Task<string> GetDataAsync() => await Task.FromResult(""data"");
+}");
+
+        // File 2: Null check issue
+        await File.WriteAllTextAsync(testFile2, @"
+public class ParallelTest2
+{
+    public string Process(string input)
+    {
+        if (input == null) input = ""default"";
+        return input;
+    }
+}");
+
+        // File 3: LINQ issue
+        await File.WriteAllTextAsync(testFile3, @"
+using System.Linq;
+using System.Collections.Generic;
+public class ParallelTest3
+{
+    public bool Check(List<int> numbers)
+    {
+        return numbers.Where(n => n > 0).Any();
+    }
+}");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.Equal(3, result.FilesAnalyzed);
+        Assert.True(result.SuggestionsCount >= 3); // At least one suggestion per file
+
+        var filePaths = result.FileResults.Select(fr => Path.GetFileName(fr.FilePath)).ToList();
+        Assert.Contains("ParallelTest1.cs", filePaths);
+        Assert.Contains("ParallelTest2.cs", filePaths);
+        Assert.Contains("ParallelTest3.cs", filePaths);
+
+        var suggestions = result.FileResults.SelectMany(fr => fr.Suggestions).ToList();
+        Assert.Contains(suggestions, s => s.RuleName == "AsyncAwaitRefactoring");
+        Assert.Contains(suggestions, s => s.RuleName == "NullCheckRefactoring");
+        Assert.Contains(suggestions, s => s.RuleName == "LinqSimplification");
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldHandleLargeNumberOfFiles()
+    {
+        // Arrange - Create many small files to test parallel processing
+        const int fileCount = 20;
+        var tasks = new List<Task>();
+
+        for (int i = 0; i < fileCount; i++)
+        {
+            var fileName = $"LargeTest{i}.cs";
+            var filePath = Path.Combine(_testProjectPath, fileName);
+            var content = $@"
+public class LargeTest{i}
+{{
+    public void Method{i}()
+    {{
+        var task = GetDataAsync();
+        var result = task.Result; // Async issue in each file
+    }}
+    public async System.Threading.Tasks.Task<string> GetDataAsync() =>
+        await System.Threading.Tasks.Task.FromResult(""data"");
+}}";
+            tasks.Add(File.WriteAllTextAsync(filePath, content));
+        }
+
+        await Task.WhenAll(tasks);
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var result = await engine.AnalyzeAsync(options);
+
+        // Assert
+        Assert.Equal(fileCount, result.FilesAnalyzed);
+        Assert.Equal(fileCount, result.SuggestionsCount); // One suggestion per file
+        Assert.Equal(fileCount, result.FileResults.Count);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ShouldContinueProcessing_WhenOneFileHasSyntaxError()
+    {
+        // Arrange - Create files where one has syntax error
+        var validFile = Path.Combine(_testProjectPath, "ValidFile.cs");
+        var invalidFile = Path.Combine(_testProjectPath, "InvalidFile.cs");
+
+        await File.WriteAllTextAsync(validFile, @"
+using System.Threading.Tasks;
+public class ValidFile
+{
+    public void DoWork()
+    {
+        var task = GetDataAsync();
+        var result = task.Result; // Should find this
+    }
+    public async Task<string> GetDataAsync() => await Task.FromResult(""data"");
+}");
+
+        await File.WriteAllTextAsync(invalidFile, @"
+public class InvalidFile
+{
+    public void BadMethod()
+    {
+        // Missing closing brace - syntax error
+");
+
+        var engine = new RefactoringEngine();
+        var options = new RefactoringOptions
+        {
+            ProjectPath = _testProjectPath
+        };
+
+        // Act & Assert - Should not throw exception
+        var result = await engine.AnalyzeAsync(options);
+
+        // Should process the valid file
+        Assert.Equal(2, result.FilesAnalyzed);
+        Assert.True(result.SuggestionsCount > 0);
+
+        var validFileResult = result.FileResults.FirstOrDefault(fr => fr.FilePath.Contains("ValidFile.cs"));
+        Assert.NotNull(validFileResult);
+        Assert.True(validFileResult.Suggestions.Count > 0);
     }
 
     public void Dispose()

@@ -49,7 +49,7 @@ public class NullCheckRefactoringRule : IRefactoringRule
                         suggestions.Add(new RefactoringSuggestion
                         {
                             RuleName = RuleName,
-                            Description = $"Replace if-null check with ??= operator",
+                            Description = "Replace if-null check with ??= operator",
                             Category = Category,
                             Severity = RefactoringSeverity.Suggestion,
                             FilePath = filePath,
@@ -82,6 +82,7 @@ public class NullCheckRefactoringRule : IRefactoringRule
                         statement = block.Statements[0];
                     }
 
+                    // Handle assignment statements
                     if (statement is ExpressionStatementSyntax expressionStatement &&
                         expressionStatement.Expression is AssignmentExpressionSyntax assignment)
                     {
@@ -96,7 +97,37 @@ public class NullCheckRefactoringRule : IRefactoringRule
                             suggestions.Add(new RefactoringSuggestion
                             {
                                 RuleName = RuleName,
-                                Description = "Replace null check with null-conditional operator (?.)  ",
+                                Description = "Replace null check with null-conditional operator (?)",
+                                Category = Category,
+                                Severity = RefactoringSeverity.Suggestion,
+                                FilePath = filePath,
+                                LineNumber = GetLineNumber(root, ifStatement),
+                                StartPosition = ifStatement.Span.Start,
+                                EndPosition = ifStatement.Span.End,
+                                OriginalCode = ifStatement.ToString(),
+                                SuggestedCode = suggestedCode,
+                                Rationale = "Null-conditional operator is safer and more concise.",
+                                Context = ifStatement
+                            });
+                        }
+                    }
+
+                    // Handle return statements
+                    if (statement is ReturnStatementSyntax returnStatement &&
+                        returnStatement.Expression != null)
+                    {
+                        var returnExpression = returnStatement.Expression.ToString();
+
+                        // Check if return expression accesses the variable
+                        if (returnExpression.StartsWith(variableName + "."))
+                        {
+                            var propertyAccess = returnExpression.Substring(variableName.Length + 1);
+                            var suggestedCode = $"return {variableName}?.{propertyAccess};";
+
+                            suggestions.Add(new RefactoringSuggestion
+                            {
+                                RuleName = RuleName,
+                                Description = "Replace null check with null-conditional operator (?)",
                                 Category = Category,
                                 Severity = RefactoringSeverity.Suggestion,
                                 FilePath = filePath,
@@ -111,6 +142,21 @@ public class NullCheckRefactoringRule : IRefactoringRule
                         }
                     }
                 }
+            }
+
+            // NEW: Pattern for nested property access with multiple conditions
+            // if (obj != null && obj.Prop != null) { result = obj.Prop.Value; }
+            var nestedSuggestion = AnalyzeNestedPropertyAccess(ifStatement, filePath, root);
+            if (nestedSuggestion != null)
+            {
+                suggestions.Add(nestedSuggestion);
+            }
+
+            // NEW: Pattern for extending existing null-conditional chains
+            var chainSuggestion = AnalyzeNullConditionalChain(ifStatement, filePath, root);
+            if (chainSuggestion != null)
+            {
+                suggestions.Add(chainSuggestion);
             }
         }
 
@@ -154,16 +200,323 @@ public class NullCheckRefactoringRule : IRefactoringRule
         return await Task.FromResult(suggestions);
     }
 
+    /// <summary>
+    /// Analyzes nested property access patterns like:
+    /// if (obj != null && obj.Prop != null) { result = obj.Prop.Value; }
+    /// → result = obj?.Prop?.Value;
+    /// </summary>
+    private RefactoringSuggestion? AnalyzeNestedPropertyAccess(IfStatementSyntax ifStatement, string filePath, SyntaxNode root)
+    {
+        // Check if condition is a logical AND expression
+        if (ifStatement.Condition is BinaryExpressionSyntax logicalAnd &&
+            logicalAnd.IsKind(SyntaxKind.LogicalAndExpression))
+        {
+            var conditions = ExtractNullCheckConditions(logicalAnd);
+            var totalConditions = CountAllConditions(logicalAnd);
+
+            // Only suggest refactoring if ALL conditions are null checks
+            if (conditions.Count < 2 || conditions.Count != totalConditions) return null;
+
+            // Get the statement body
+            var statement = ifStatement.Statement;
+            if (statement is BlockSyntax block && block.Statements.Count == 1)
+            {
+                statement = block.Statements[0];
+            }
+
+            // Handle assignment statements
+            if (statement is ExpressionStatementSyntax expressionStatement &&
+                expressionStatement.Expression is AssignmentExpressionSyntax assignment)
+            {
+                var rightSide = assignment.Right.ToString();
+
+                // Check if the assignment uses nested property access matching our conditions
+                var nestedAccess = BuildNestedNullConditionalAccess(conditions, rightSide);
+                if (nestedAccess != null)
+                {
+                    var suggestedCode = $"{assignment.Left} = {nestedAccess};";
+
+                    return new RefactoringSuggestion
+                    {
+                        RuleName = RuleName,
+                        Description = "Replace nested null checks with null-conditional operator chain (?.)",
+                        Category = Category,
+                        Severity = RefactoringSeverity.Suggestion,
+                        FilePath = filePath,
+                        LineNumber = GetLineNumber(root, ifStatement),
+                        StartPosition = ifStatement.Span.Start,
+                        EndPosition = ifStatement.Span.End,
+                        OriginalCode = ifStatement.ToString(),
+                        SuggestedCode = suggestedCode,
+                        Rationale = "Null-conditional operator chains are safer and more concise than multiple null checks.",
+                        Context = ifStatement
+                    };
+                }
+            }
+
+            // Handle return statements
+            if (statement is ReturnStatementSyntax returnStatement &&
+                returnStatement.Expression != null)
+            {
+                var returnExpression = returnStatement.Expression.ToString();
+
+                // Check if the return expression uses nested property access matching our conditions
+                var nestedAccess = BuildNestedNullConditionalAccess(conditions, returnExpression);
+                if (nestedAccess != null)
+                {
+                    var suggestedCode = $"return {nestedAccess};";
+
+                    return new RefactoringSuggestion
+                    {
+                        RuleName = RuleName,
+                        Description = "Replace nested null checks with null-conditional operator chain (?.)",
+                        Category = Category,
+                        Severity = RefactoringSeverity.Suggestion,
+                        FilePath = filePath,
+                        LineNumber = GetLineNumber(root, ifStatement),
+                        StartPosition = ifStatement.Span.Start,
+                        EndPosition = ifStatement.Span.End,
+                        OriginalCode = ifStatement.ToString(),
+                        SuggestedCode = suggestedCode,
+                        Rationale = "Null-conditional operator chains are safer and more concise than multiple null checks.",
+                        Context = ifStatement
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Analyzes opportunities to extend existing null-conditional chains.
+    /// Example: if (obj?.Prop != null) { result = obj?.Prop?.Value; }
+    /// → result = obj?.Prop?.Value; (remove the if check)
+    /// </summary>
+    private RefactoringSuggestion? AnalyzeNullConditionalChain(IfStatementSyntax ifStatement, string filePath, SyntaxNode root)
+    {
+        // Check for pattern: if (obj?.Prop != null) { result = obj?.Prop?.Value; }
+        if (ifStatement.Condition is BinaryExpressionSyntax condition &&
+            condition.IsKind(SyntaxKind.NotEqualsExpression) &&
+            condition.Right.IsKind(SyntaxKind.NullLiteralExpression))
+        {
+            var checkedExpression = condition.Left.ToString();
+
+            // Only proceed if the condition actually contains null-conditional operators
+            if (!checkedExpression.Contains("?."))
+            {
+                return null;
+            }
+
+            // Get the statement body
+            var statement = ifStatement.Statement;
+            if (statement is BlockSyntax block && block.Statements.Count == 1)
+            {
+                statement = block.Statements[0];
+            }
+
+            // Handle return statements
+            if (statement is ReturnStatementSyntax returnStatement &&
+                returnStatement.Expression != null)
+            {
+                var rightSide = returnStatement.Expression.ToString();
+
+                // Check if the return expression already uses null-conditional and extends the checked expression
+                if (rightSide.StartsWith(checkedExpression) && rightSide.Length > checkedExpression.Length)
+                {
+                    // This is a case where we can remove the redundant null check
+                    var suggestedCode = $"return {rightSide};";
+
+                    return new RefactoringSuggestion
+                    {
+                        RuleName = RuleName,
+                        Description = "Remove redundant null check when null-conditional operator is already used",
+                        Category = Category,
+                        Severity = RefactoringSeverity.Suggestion,
+                        FilePath = filePath,
+                        LineNumber = GetLineNumber(root, ifStatement),
+                        StartPosition = ifStatement.Span.Start,
+                        EndPosition = ifStatement.Span.End,
+                        OriginalCode = ifStatement.ToString(),
+                        SuggestedCode = suggestedCode,
+                        Rationale = "Null-conditional operators already handle null checks, making explicit checks redundant.",
+                        Context = ifStatement
+                    };
+                }
+            }
+
+            // Handle assignment statements
+            if (statement is ExpressionStatementSyntax expressionStatement &&
+                expressionStatement.Expression is AssignmentExpressionSyntax assignment)
+            {
+                var rightSide = assignment.Right.ToString();
+
+                // Check if the assignment already uses null-conditional and extends the checked expression
+                if (rightSide.StartsWith(checkedExpression) && rightSide.Length > checkedExpression.Length)
+                {
+                    // This is a case where we can remove the redundant null check
+                    var suggestedCode = $"{assignment.Left} = {rightSide};";
+
+                    return new RefactoringSuggestion
+                    {
+                        RuleName = RuleName,
+                        Description = "Remove redundant null check when null-conditional operator is already used",
+                        Category = Category,
+                        Severity = RefactoringSeverity.Suggestion,
+                        FilePath = filePath,
+                        LineNumber = GetLineNumber(root, ifStatement),
+                        StartPosition = ifStatement.Span.Start,
+                        EndPosition = ifStatement.Span.End,
+                        OriginalCode = ifStatement.ToString(),
+                        SuggestedCode = suggestedCode,
+                        Rationale = "Null-conditional operators already handle null checks, making explicit checks redundant.",
+                        Context = ifStatement
+                    };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts individual null check conditions from a logical AND expression
+    /// </summary>
+    private List<string> ExtractNullCheckConditions(BinaryExpressionSyntax logicalAnd)
+    {
+        var conditions = new List<string>();
+
+        void ExtractConditions(ExpressionSyntax expr)
+        {
+            // Handle parentheses
+            if (expr is ParenthesizedExpressionSyntax parenthesized)
+            {
+                ExtractConditions(parenthesized.Expression);
+                return;
+            }
+
+            if (expr is BinaryExpressionSyntax binary)
+            {
+                if (binary.IsKind(SyntaxKind.LogicalAndExpression))
+                {
+                    ExtractConditions(binary.Left);
+                    ExtractConditions(binary.Right);
+                }
+                else if (binary.IsKind(SyntaxKind.NotEqualsExpression) &&
+                          binary.Right.IsKind(SyntaxKind.NullLiteralExpression))
+                {
+                    conditions.Add(binary.Left.ToString());
+                }
+            }
+        }
+
+        ExtractConditions(logicalAnd);
+        return conditions;
+    }
+
+    /// <summary>
+    /// Counts all conditions in a logical AND expression
+    /// </summary>
+    private int CountAllConditions(BinaryExpressionSyntax logicalAnd)
+    {
+        var count = 0;
+
+        void CountConditions(ExpressionSyntax expr)
+        {
+            // Handle parentheses
+            if (expr is ParenthesizedExpressionSyntax parenthesized)
+            {
+                CountConditions(parenthesized.Expression);
+                return;
+            }
+
+            if (expr is BinaryExpressionSyntax binary)
+            {
+                if (binary.IsKind(SyntaxKind.LogicalAndExpression))
+                {
+                    CountConditions(binary.Left);
+                    CountConditions(binary.Right);
+                }
+                else
+                {
+                    count++;
+                }
+            }
+            else
+            {
+                // Count non-binary expressions (like identifiers, literals, etc.)
+                count++;
+            }
+        }
+
+        CountConditions(logicalAnd);
+        return count;
+    }
+
+
+
+    /// <summary>
+    /// Builds a null-conditional access chain from conditions and target expression
+    /// </summary>
+    private string? BuildNestedNullConditionalAccess(List<string> conditions, string targetExpression)
+    {
+        if (conditions.Count == 0) return null;
+
+        // Find the root variable
+        var rootVariable = conditions[0].Split('.')[0];
+
+        // Check if target expression starts with our root variable
+        if (!targetExpression.StartsWith(rootVariable + ".")) return null;
+
+        // Build the null-conditional chain
+        var parts = targetExpression.Split('.');
+        if (parts.Length < 2) return null;
+
+        var result = new List<string> { parts[0] };
+
+        for (int i = 1; i < parts.Length; i++)
+        {
+            var parentPath = string.Join(".", parts.Take(i));
+
+            // Check if we have a null check for the parent path
+            var hasCheck = conditions.Any(c => c == parentPath);
+            if (hasCheck)
+            {
+                result.Add($"?.{parts[i]}");
+            }
+            else
+            {
+                result.Add($".{parts[i]}");
+            }
+        }
+
+        return string.Join("", result);
+    }
+
     public async Task<SyntaxNode> ApplyRefactoringAsync(SyntaxNode root, RefactoringSuggestion suggestion)
     {
         if (suggestion.Context is IfStatementSyntax ifStatement)
         {
-            // Parse the suggested code and create a new statement
-            var newStatement = SyntaxFactory.ParseStatement(suggestion.SuggestedCode)
-                .WithLeadingTrivia(ifStatement.GetLeadingTrivia())
-                .WithTrailingTrivia(ifStatement.GetTrailingTrivia());
+            // For nested property access and chain extensions, we need to handle differently
+            if (suggestion.Description.Contains("nested null checks") ||
+                suggestion.Description.Contains("redundant null check"))
+            {
+                // Parse the suggested code and create a new statement
+                var newStatement = SyntaxFactory.ParseStatement(suggestion.SuggestedCode)
+                    .WithLeadingTrivia(ifStatement.GetLeadingTrivia())
+                    .WithTrailingTrivia(ifStatement.GetTrailingTrivia());
 
-            root = root.ReplaceNode(ifStatement, newStatement);
+                root = root.ReplaceNode(ifStatement, newStatement);
+            }
+            else
+            {
+                // Original logic for simple null checks
+                var newStatement = SyntaxFactory.ParseStatement(suggestion.SuggestedCode)
+                    .WithLeadingTrivia(ifStatement.GetLeadingTrivia())
+                    .WithTrailingTrivia(ifStatement.GetTrailingTrivia());
+
+                root = root.ReplaceNode(ifStatement, newStatement);
+            }
         }
         else if (suggestion.Context is ConditionalExpressionSyntax conditional)
         {

@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Relay.CLI.Refactoring;
 using System;
 using Xunit;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Relay.CLI.Tests.Refactoring;
 
@@ -1376,6 +1377,332 @@ public class Test
 
         // Assert
         Assert.Contains("??=", newCode);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldDetectNestedPropertyAccess()
+    {
+        // Arrange
+        var code = @"
+public class Person
+{
+    public Address Address { get; set; }
+}
+
+public class Address
+{
+    public string City { get; set; }
+}
+
+public class Test
+{
+    public string GetCity(Person person)
+    {
+        if (person != null && person.Address != null)
+        {
+            return person.Address.City;
+        }
+        return null;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        var nestedSuggestion = suggestions.FirstOrDefault(s => s.Description.Contains("nested null checks"));
+        Assert.NotNull(nestedSuggestion);
+        Assert.Contains("person?.Address?.City", nestedSuggestion.SuggestedCode);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldDetectDeepNestedPropertyAccess()
+    {
+        // Arrange
+        var code = @"
+public class Company
+{
+    public Department Department { get; set; }
+}
+
+public class Department
+{
+    public Manager Manager { get; set; }
+}
+
+public class Manager
+{
+    public string Name { get; set; }
+}
+
+public class Test
+{
+    public string GetManagerName(Company company)
+    {
+        if (company != null && company.Department != null && company.Department.Manager != null)
+        {
+            return company.Department.Manager.Name;
+        }
+        return null;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        var nestedSuggestion = suggestions.FirstOrDefault(s => s.Description.Contains("nested null checks"));
+        Assert.NotNull(nestedSuggestion);
+        Assert.Contains("company?.Department?.Manager?.Name", nestedSuggestion.SuggestedCode);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldDetectNullConditionalChainExtension()
+    {
+        // Arrange
+        var code = @"
+public class Person
+{
+    public Address Address { get; set; }
+}
+
+public class Address
+{
+    public string City { get; set; }
+}
+
+public class Test
+{
+    public string GetCity(Person person)
+    {
+        if (person?.Address != null)
+        {
+            return person?.Address?.City;
+        }
+        return null;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        var chainSuggestion = suggestions.FirstOrDefault(s => s.Description.Contains("redundant null check"));
+        Assert.NotNull(chainSuggestion);
+        Assert.Contains("return person?.Address?.City;", chainSuggestion.SuggestedCode);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldNotDetectNestedAccessWithoutAllConditions()
+    {
+        // Arrange - Only checks person != null but accesses person.Address.City
+        var code = @"
+public class Person
+{
+    public Address Address { get; set; }
+}
+
+public class Address
+{
+    public string City { get; set; }
+}
+
+public class Test
+{
+    public string GetCity(Person person)
+    {
+        if (person != null)
+        {
+            return person.Address.City; // Missing null check for Address
+        }
+        return null;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert - Should not suggest nested access since not all conditions are checked
+        var nestedSuggestions = suggestions.Where(s => s.Description.Contains("nested null checks")).ToList();
+        Assert.Empty(nestedSuggestions);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldHandleComplexNestedAccess()
+    {
+        // Arrange
+        var code = @"
+public class Order
+{
+    public Customer Customer { get; set; }
+}
+
+public class Customer
+{
+    public Address BillingAddress { get; set; }
+    public Address ShippingAddress { get; set; }
+}
+
+public class Address
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+}
+
+public class Test
+{
+    public string GetBillingStreet(Order order)
+    {
+        if (order != null && order.Customer != null && order.Customer.BillingAddress != null)
+        {
+            return order.Customer.BillingAddress.Street;
+        }
+        return null;
+    }
+
+    public string GetShippingCity(Order order)
+    {
+        if (order != null && order.Customer != null && order.Customer.ShippingAddress != null)
+        {
+            return order.Customer.ShippingAddress.City;
+        }
+        return null;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count >= 2);
+        var nestedSuggestions = suggestions.Where(s => s.Description.Contains("nested null checks")).ToList();
+        Assert.Equal(2, nestedSuggestions.Count);
+
+        Assert.Contains(nestedSuggestions, s => s.SuggestedCode.Contains("order?.Customer?.BillingAddress?.Street"));
+        Assert.Contains(nestedSuggestions, s => s.SuggestedCode.Contains("order?.Customer?.ShippingAddress?.City"));
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldApplyNestedPropertyAccessRefactoring()
+    {
+        // Arrange
+        var code = @"
+public class Person
+{
+    public Address Address { get; set; }
+}
+
+public class Address
+{
+    public string City { get; set; }
+}
+
+public class Test
+{
+    public string GetCity(Person person)
+    {
+        if (person != null && person.Address != null)
+        {
+            return person.Address.City;
+        }
+        return null;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var nestedSuggestion = suggestions.First(s => s.Description.Contains("nested null checks"));
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, nestedSuggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Contains("return person?.Address?.City;", newCode);
+        Assert.DoesNotContain("if (person != null && person.Address != null)", newCode);
+    }
+
+    [Fact]
+    public async Task NullCheckRule_ShouldApplyNullConditionalChainExtension()
+    {
+        // Arrange
+        var code = @"
+public class Person
+{
+    public Address Address { get; set; }
+}
+
+public class Address
+{
+    public string City { get; set; }
+}
+
+public class Test
+{
+    public string GetCity(Person person)
+    {
+        if (person?.Address != null)
+        {
+            return person?.Address?.City;
+        }
+        return null;
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new NullCheckRefactoringRule();
+        var options = new RefactoringOptions();
+
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+        var chainSuggestion = suggestions.First(s => s.Description.Contains("redundant null check"));
+
+        // Act
+        var newRoot = await rule.ApplyRefactoringAsync(root, chainSuggestion);
+        var newCode = newRoot.ToFullString();
+
+        // Assert
+        Assert.Contains("return person?.Address?.City;", newCode);
+        Assert.DoesNotContain("if (person?.Address != null)", newCode);
     }
 
     [Fact]

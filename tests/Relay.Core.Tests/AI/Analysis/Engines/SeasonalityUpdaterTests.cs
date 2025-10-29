@@ -553,6 +553,47 @@ public class SeasonalityUpdaterTests
     }
 
     [Fact]
+    public void UpdateSeasonalityPatterns_Should_Update_Statistics_When_Count_Reaches_Three()
+    {
+        // Arrange
+        var updater = new SeasonalityUpdater(_loggerMock.Object);
+        var timestamp = new DateTime(2025, 1, 14, 12, 0, 0); // Tuesday 12:00
+        var timeSlot = (12, DayOfWeek.Tuesday);
+
+        // Verify no statistics exist before adding data
+        var initialStats = updater.GetSeasonalStatistics(timeSlot);
+        Assert.Null(initialStats);
+
+        // Act - Add the first two values (should not trigger statistics update)
+        // The condition `if (_seasonalHistory[timeSlot].Count >= 3)` in TrackSeasonalValue should be false
+        updater.UpdateSeasonalityPatterns(new Dictionary<string, double> { ["cpu"] = 1.0 }, timestamp);
+        
+        // Check that statistics were NOT updated yet (only 1 value)
+        var statsAfterOne = updater.GetSeasonalStatistics(timeSlot);
+        Assert.Null(statsAfterOne);
+
+        updater.UpdateSeasonalityPatterns(new Dictionary<string, double> { ["cpu"] = 1.5 }, timestamp);
+        
+        // Check that statistics were NOT updated yet (only 2 values)
+        var statsAfterTwo = updater.GetSeasonalStatistics(timeSlot);
+        Assert.Null(statsAfterTwo);
+
+        // Add the third value - this should trigger statistics update
+        // The condition `if (_seasonalHistory[timeSlot].Count >= 3)` in TrackSeasonalValue should now be true
+        updater.UpdateSeasonalityPatterns(new Dictionary<string, double> { ["cpu"] = 2.0 }, timestamp);
+
+        // Assert - Statistics should now be updated (after adding the 3rd value)
+        var statsAfterThree = updater.GetSeasonalStatistics(timeSlot);
+        Assert.NotNull(statsAfterThree);
+        Assert.Equal(3, statsAfterThree.Value.Count);
+        Assert.Equal(1.5, statsAfterThree.Value.Mean, 4); // (1.0 + 1.5 + 2.0) / 3 = 1.5
+
+        // Also verify that the history size is correct
+        var historySize = updater.GetHistorySize(timeSlot);
+        Assert.Equal(3, historySize);
+    }
+
+    [Fact]
     public void UpdateSeasonalityPatterns_Should_Return_Correct_Pattern_Properties()
     {
         // Arrange

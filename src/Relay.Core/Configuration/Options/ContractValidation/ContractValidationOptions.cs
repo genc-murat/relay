@@ -35,4 +35,10 @@ public class ContractValidationOptions
     /// Default is "Strict" which throws exceptions on validation failures.
     /// </summary>
     public string ValidationStrategy { get; set; } = "Strict";
+
+    /// <summary>
+    /// Gets or sets whether to enable performance metrics tracking for validation operations.
+    /// When enabled, validation duration and other metrics will be logged.
+    /// </summary>
+    public bool EnablePerformanceMetrics { get; set; } = true;
 }

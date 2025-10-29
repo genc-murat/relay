@@ -114,7 +114,12 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
 
         sourceBuilder.AppendLine($"        /// <summary>");
         sourceBuilder.AppendLine($"        /// Specialized dispatch method for {requestType}");
+        sourceBuilder.AppendLine($"        /// Uses aggressive inlining for maximum performance.");
         sourceBuilder.AppendLine($"        /// </summary>");
+        sourceBuilder.AppendLine($"        /// <param name=\"request\">The request to dispatch.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"serviceProvider\">The service provider for dependency resolution.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"handlerName\">Optional handler name for named handler selection.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"cancellationToken\">Cancellation token.</param>");
         sourceBuilder.AppendLine($"        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
 
         if (responseType == "void")
@@ -135,12 +140,12 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
         // Generate optimized handler selection with branch prediction
         if (handlers.Count == 1)
         {
-            // Single handler - direct invocation
+            // Single handler - direct invocation (most common case, optimized for branch prediction)
             GenerateSingleHandlerInvocation(sourceBuilder, handlers.First(), responseType);
         }
         else
         {
-            // Multiple handlers - optimized selection
+            // Multiple handlers - optimized selection with pattern matching
             GenerateMultipleHandlerSelection(sourceBuilder, handlers, responseType);
         }
 
@@ -156,36 +161,39 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
         var isStatic = handler.MethodSymbol.IsStatic;
 
         sourceBuilder.AppendLine($"            // Direct invocation for single handler - maximum performance");
+        sourceBuilder.AppendLine($"            // Branch prediction optimized: most common path (single handler) executes first");
 
         if (isStatic)
         {
+            // Static method invocation - no DI overhead
             if (responseType == "void")
             {
-                sourceBuilder.AppendLine($"            await {handlerType}.{methodName}(request, cancellationToken);");
+                sourceBuilder.AppendLine($"            await {handlerType}.{methodName}(request, cancellationToken).ConfigureAwait(false);");
             }
             else
             {
-                sourceBuilder.AppendLine($"            return await {handlerType}.{methodName}(request, cancellationToken);");
+                sourceBuilder.AppendLine($"            return await {handlerType}.{methodName}(request, cancellationToken).ConfigureAwait(false);");
             }
         }
         else
         {
+            // Instance method invocation - resolve from DI
             sourceBuilder.AppendLine($"            var handler = serviceProvider.GetRequiredService<{handlerType}>();");
             if (responseType == "void")
             {
-                sourceBuilder.AppendLine($"            await handler.{methodName}(request, cancellationToken);");
+                sourceBuilder.AppendLine($"            await handler.{methodName}(request, cancellationToken).ConfigureAwait(false);");
             }
             else
             {
-                sourceBuilder.AppendLine($"            return await handler.{methodName}(request, cancellationToken);");
+                sourceBuilder.AppendLine($"            return await handler.{methodName}(request, cancellationToken).ConfigureAwait(false);");
             }
         }
     }
 
     private void GenerateMultipleHandlerSelection(StringBuilder sourceBuilder, List<HandlerInfo> handlers, string responseType)
     {
-        sourceBuilder.AppendLine($"            // Optimized handler selection with branch prediction");
-        sourceBuilder.AppendLine($"            // Most common handlers first for better branch prediction");
+        sourceBuilder.AppendLine($"            // Optimized handler selection with pattern matching");
+        sourceBuilder.AppendLine($"            // Branch prediction optimized: default handler first (most common case)");
 
         // Sort handlers by priority and put default handler first (most common case)
         var sortedHandlers = handlers
@@ -193,66 +201,160 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
             .ThenBy(h => GetHandlerName(h) == "default" ? 0 : 1)
             .ToList();
 
-        bool isFirst = true;
-        foreach (var handler in sortedHandlers)
+        // Check if we can use keyed services (.NET 8+)
+        var hasNamedHandlers = sortedHandlers.Any(h => GetHandlerName(h) != "default");
+        
+        if (hasNamedHandlers)
         {
-            if (handler.MethodSymbol == null) continue;
-            var handlerName = GetHandlerName(handler);
-            var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
-            var methodName = handler.MethodSymbol.Name;
-            var isStatic = handler.MethodSymbol.IsStatic;
-
-            var condition = handlerName == "default"
-                ? "handlerName == null || handlerName == \"default\""
-                : $"handlerName == \"{handlerName}\"";
-
-            var keyword = isFirst ? "if" : "else if";
-            sourceBuilder.AppendLine($"            {keyword} ({condition})");
+            // Use pattern matching switch expression for named handlers
+            sourceBuilder.AppendLine($"            // Pattern matching for O(1) handler selection");
+            sourceBuilder.AppendLine($"            return handlerName switch");
             sourceBuilder.AppendLine($"            {{");
 
-            if (isStatic)
+            foreach (var handler in sortedHandlers)
             {
-                if (responseType == "void")
+                if (handler.MethodSymbol == null) continue;
+                var handlerName = GetHandlerName(handler);
+                var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
+                var methodName = handler.MethodSymbol.Name;
+                var isStatic = handler.MethodSymbol.IsStatic;
+
+                var pattern = handlerName == "default"
+                    ? "null or \"default\""
+                    : $"\"{handlerName}\"";
+
+                if (isStatic)
                 {
-                    sourceBuilder.AppendLine($"                await {handlerType}.{methodName}(request, cancellationToken);");
-                    sourceBuilder.AppendLine($"                return;");
+                    if (responseType == "void")
+                    {
+                        sourceBuilder.AppendLine($"                {pattern} => {handlerType}.{methodName}(request, cancellationToken),");
+                    }
+                    else
+                    {
+                        sourceBuilder.AppendLine($"                {pattern} => {handlerType}.{methodName}(request, cancellationToken),");
+                    }
                 }
                 else
                 {
-                    sourceBuilder.AppendLine($"                return await {handlerType}.{methodName}(request, cancellationToken);");
-                }
-            }
-            else
-            {
-                sourceBuilder.AppendLine($"                var handler = serviceProvider.GetRequiredService<{handlerType}>();");
-                if (responseType == "void")
-                {
-                    sourceBuilder.AppendLine($"                await handler.{methodName}(request, cancellationToken);");
-                    sourceBuilder.AppendLine($"                return;");
-                }
-                else
-                {
-                    sourceBuilder.AppendLine($"                return await handler.{methodName}(request, cancellationToken);");
+                    // For instance methods, we need to resolve and invoke
+                    sourceBuilder.AppendLine($"                {pattern} => InvokeHandler_{SanitizeTypeName(handlerType)}_{methodName}(serviceProvider, request, cancellationToken),");
                 }
             }
 
-            sourceBuilder.AppendLine($"            }}");
-            isFirst = false;
+            var requestTypeName = handlers.FirstOrDefault()?.MethodSymbol?.Parameters.FirstOrDefault()?.Type?.ToDisplayString() ?? "Unknown";
+            sourceBuilder.AppendLine($"                _ => throw new InvalidOperationException($\"No handler found with name '{{handlerName}}' for request type '{requestTypeName.Replace("\"", "\\\"")}'.\")");
+            sourceBuilder.AppendLine($"            }};");
+
+            // Generate helper methods for instance handlers
+            foreach (var handler in sortedHandlers.Where(h => h.MethodSymbol != null && !h.MethodSymbol.IsStatic))
+            {
+                if (handler.MethodSymbol == null) continue;
+                var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
+                var methodName = handler.MethodSymbol.Name;
+                var requestType = handler.MethodSymbol.Parameters[0].Type.ToDisplayString();
+                
+                sourceBuilder.AppendLine();
+                sourceBuilder.AppendLine($"        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+                
+                if (responseType == "void")
+                {
+                    sourceBuilder.AppendLine($"        private static async ValueTask InvokeHandler_{SanitizeTypeName(handlerType)}_{methodName}(");
+                }
+                else
+                {
+                    sourceBuilder.AppendLine($"        private static async ValueTask<{responseType}> InvokeHandler_{SanitizeTypeName(handlerType)}_{methodName}(");
+                }
+                
+                sourceBuilder.AppendLine($"            IServiceProvider serviceProvider,");
+                sourceBuilder.AppendLine($"            {requestType} request,");
+                sourceBuilder.AppendLine($"            CancellationToken cancellationToken)");
+                sourceBuilder.AppendLine($"        {{");
+                sourceBuilder.AppendLine($"            var handler = serviceProvider.GetRequiredService<{handlerType}>();");
+                
+                if (responseType == "void")
+                {
+                    sourceBuilder.AppendLine($"            await handler.{methodName}(request, cancellationToken).ConfigureAwait(false);");
+                }
+                else
+                {
+                    sourceBuilder.AppendLine($"            return await handler.{methodName}(request, cancellationToken).ConfigureAwait(false);");
+                }
+                
+                sourceBuilder.AppendLine($"        }}");
+            }
         }
+        else
+        {
+            // Fallback to if-else for simple cases
+            bool isFirst = true;
+            foreach (var handler in sortedHandlers)
+            {
+                if (handler.MethodSymbol == null) continue;
+                var handlerName = GetHandlerName(handler);
+                var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
+                var methodName = handler.MethodSymbol.Name;
+                var isStatic = handler.MethodSymbol.IsStatic;
 
-        // Generate fallback for unknown handler names
-        var requestTypeName = handlers.FirstOrDefault()?.MethodSymbol?.Parameters.FirstOrDefault()?.Type?.ToDisplayString() ?? "Unknown";
-        sourceBuilder.AppendLine($"            else");
-        sourceBuilder.AppendLine($"            {{");
-        sourceBuilder.AppendLine($"                throw new InvalidOperationException($\"No handler found with name '{{handlerName}}' for request type '{requestTypeName.Replace("\"", "\\\"")}'.\");");
-        sourceBuilder.AppendLine($"            }}");
+                var condition = handlerName == "default"
+                    ? "handlerName == null || handlerName == \"default\""
+                    : $"handlerName == \"{handlerName}\"";
+
+                var keyword = isFirst ? "if" : "else if";
+                sourceBuilder.AppendLine($"            {keyword} ({condition})");
+                sourceBuilder.AppendLine($"            {{");
+
+                if (isStatic)
+                {
+                    if (responseType == "void")
+                    {
+                        sourceBuilder.AppendLine($"                await {handlerType}.{methodName}(request, cancellationToken).ConfigureAwait(false);");
+                        sourceBuilder.AppendLine($"                return;");
+                    }
+                    else
+                    {
+                        sourceBuilder.AppendLine($"                return await {handlerType}.{methodName}(request, cancellationToken).ConfigureAwait(false);");
+                    }
+                }
+                else
+                {
+                    sourceBuilder.AppendLine($"                var handler = serviceProvider.GetRequiredService<{handlerType}>();");
+                    if (responseType == "void")
+                    {
+                        sourceBuilder.AppendLine($"                await handler.{methodName}(request, cancellationToken).ConfigureAwait(false);");
+                        sourceBuilder.AppendLine($"                return;");
+                    }
+                    else
+                    {
+                        sourceBuilder.AppendLine($"                return await handler.{methodName}(request, cancellationToken).ConfigureAwait(false);");
+                    }
+                }
+
+                sourceBuilder.AppendLine($"            }}");
+                isFirst = false;
+            }
+
+            // Generate fallback for unknown handler names
+            var requestTypeName = handlers.FirstOrDefault()?.MethodSymbol?.Parameters.FirstOrDefault()?.Type?.ToDisplayString() ?? "Unknown";
+            sourceBuilder.AppendLine($"            else");
+            sourceBuilder.AppendLine($"            {{");
+            sourceBuilder.AppendLine($"                throw new InvalidOperationException($\"No handler found with name '{{handlerName}}' for request type '{requestTypeName.Replace("\"", "\\\"")}'.\");");
+            sourceBuilder.AppendLine($"            }}");
+        }
     }
 
     private void GenerateMainDispatchMethod(StringBuilder sourceBuilder, HandlerDiscoveryResult discoveryResult)
     {
         sourceBuilder.AppendLine($"        /// <summary>");
-        sourceBuilder.AppendLine($"        /// Main dispatch method with optimized type switching");
+        sourceBuilder.AppendLine($"        /// Main dispatch method with pattern matching for O(1) type lookup.");
+        sourceBuilder.AppendLine($"        /// Uses aggressive inlining and type-safe dispatch without reflection.");
         sourceBuilder.AppendLine($"        /// </summary>");
+        sourceBuilder.AppendLine($"        /// <typeparam name=\"TRequest\">The request type.</typeparam>");
+        sourceBuilder.AppendLine($"        /// <typeparam name=\"TResponse\">The response type.</typeparam>");
+        sourceBuilder.AppendLine($"        /// <param name=\"request\">The request to dispatch.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"serviceProvider\">The service provider for dependency resolution.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"handlerName\">Optional handler name for named handler selection.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"cancellationToken\">Cancellation token.</param>");
+        sourceBuilder.AppendLine($"        /// <returns>The handler response.</returns>");
         sourceBuilder.AppendLine($"        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
         sourceBuilder.AppendLine($"        public static async ValueTask<TResponse> DispatchAsync<TRequest, TResponse>(");
         sourceBuilder.AppendLine($"            TRequest request,");
@@ -261,7 +363,7 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
         sourceBuilder.AppendLine($"            CancellationToken cancellationToken = default)");
         sourceBuilder.AppendLine($"        {{");
 
-        // Generate type-specific dispatch calls with branch prediction optimization
+        // Generate type-specific dispatch calls with pattern matching
         var requestTypes = discoveryResult.Handlers
             .Where(h => h.Attributes.Any(a => a.Type == RelayAttributeType.Handle) && h.MethodSymbol != null && h.MethodSymbol.Parameters.Length > 0)
             .Select(h => h.MethodSymbol!.Parameters[0].Type.ToDisplayString())
@@ -269,29 +371,27 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
             .OrderBy(t => t) // Consistent ordering for better branch prediction
             .ToList();
 
-        sourceBuilder.AppendLine($"            // Optimized type switching - most common types first");
-        sourceBuilder.AppendLine($"            var requestType = typeof(TRequest);");
-        sourceBuilder.AppendLine();
-
-        bool isFirst = true;
-        foreach (var requestType in requestTypes)
+        if (requestTypes.Count > 0)
         {
-            var methodName = $"Dispatch_{SanitizeTypeName(requestType)}";
-            var keyword = isFirst ? "if" : "else if";
-
-            sourceBuilder.AppendLine($"            {keyword} (requestType == typeof({requestType}))");
+            sourceBuilder.AppendLine($"            // Pattern matching switch expression for O(1) type lookup");
+            sourceBuilder.AppendLine($"            // Branch prediction optimized: most common types should be first");
+            sourceBuilder.AppendLine($"            return request switch");
             sourceBuilder.AppendLine($"            {{");
-            sourceBuilder.AppendLine($"                var result = await {methodName}(({requestType})(object)request, serviceProvider, handlerName, cancellationToken);");
-            sourceBuilder.AppendLine($"                return (TResponse)(object)result!;");
-            sourceBuilder.AppendLine($"            }}");
 
-            isFirst = false;
+            foreach (var requestType in requestTypes)
+            {
+                var methodName = $"Dispatch_{SanitizeTypeName(requestType)}";
+                sourceBuilder.AppendLine($"                {requestType} r => (TResponse)(object)(await {methodName}(r, serviceProvider, handlerName, cancellationToken))!,");
+            }
+
+            sourceBuilder.AppendLine($"                _ => throw new InvalidOperationException($\"No handler found for request type '{{typeof(TRequest).Name}}'.\")");
+            sourceBuilder.AppendLine($"            }};");
+        }
+        else
+        {
+            sourceBuilder.AppendLine($"            throw new InvalidOperationException($\"No handlers registered.\");");
         }
 
-        sourceBuilder.AppendLine($"            else");
-        sourceBuilder.AppendLine($"            {{");
-        sourceBuilder.AppendLine($"                throw new InvalidOperationException($\"No handler found for request type '{{requestType.Name}}'.\");");
-        sourceBuilder.AppendLine($"            }}");
         sourceBuilder.AppendLine($"        }}");
         sourceBuilder.AppendLine();
     }
@@ -306,8 +406,16 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
         if (!streamHandlers.Any()) return;
 
         sourceBuilder.AppendLine($"        /// <summary>");
-        sourceBuilder.AppendLine($"        /// Optimized streaming dispatch method");
+        sourceBuilder.AppendLine($"        /// Optimized streaming dispatch method with IAsyncEnumerable support.");
+        sourceBuilder.AppendLine($"        /// Uses pattern matching for O(1) type lookup and aggressive inlining.");
         sourceBuilder.AppendLine($"        /// </summary>");
+        sourceBuilder.AppendLine($"        /// <typeparam name=\"TRequest\">The stream request type.</typeparam>");
+        sourceBuilder.AppendLine($"        /// <typeparam name=\"TResponse\">The stream response type.</typeparam>");
+        sourceBuilder.AppendLine($"        /// <param name=\"request\">The stream request to dispatch.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"serviceProvider\">The service provider for dependency resolution.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"handlerName\">Optional handler name for named handler selection.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"cancellationToken\">Cancellation token.</param>");
+        sourceBuilder.AppendLine($"        /// <returns>An async enumerable of responses.</returns>");
         sourceBuilder.AppendLine($"        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
         sourceBuilder.AppendLine($"        public static IAsyncEnumerable<TResponse> DispatchStreamAsync<TRequest, TResponse>(");
         sourceBuilder.AppendLine($"            TRequest request,");
@@ -317,11 +425,11 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
         sourceBuilder.AppendLine($"            where TRequest : IStreamRequest<TResponse>");
         sourceBuilder.AppendLine($"        {{");
 
-        // Generate streaming dispatch logic
-        sourceBuilder.AppendLine($"            var requestType = typeof(TRequest);");
-        sourceBuilder.AppendLine();
+        // Generate streaming dispatch logic with pattern matching
+        sourceBuilder.AppendLine($"            // Pattern matching switch expression for O(1) streaming handler lookup");
+        sourceBuilder.AppendLine($"            return request switch");
+        sourceBuilder.AppendLine($"            {{");
 
-        bool isFirst = true;
         foreach (var handler in streamHandlers)
         {
             if (handler.MethodSymbol == null || handler.MethodSymbol.Parameters.Length == 0) continue;
@@ -329,29 +437,19 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
             var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
             var methodName = handler.MethodSymbol.Name;
             var isStatic = handler.MethodSymbol.IsStatic;
-            var keyword = isFirst ? "if" : "else if";
-
-            sourceBuilder.AppendLine($"            {keyword} (requestType == typeof({requestType}))");
-            sourceBuilder.AppendLine($"            {{");
 
             if (isStatic)
             {
-                sourceBuilder.AppendLine($"                return {handlerType}.{methodName}(({requestType})(object)request, cancellationToken).Cast<TResponse>();");
+                sourceBuilder.AppendLine($"                {requestType} r => {handlerType}.{methodName}(r, cancellationToken).Cast<TResponse>(),");
             }
             else
             {
-                sourceBuilder.AppendLine($"                var handler = serviceProvider.GetRequiredService<{handlerType}>();");
-                sourceBuilder.AppendLine($"                return handler.{methodName}(({requestType})(object)request, cancellationToken).Cast<TResponse>();");
+                sourceBuilder.AppendLine($"                {requestType} r => serviceProvider.GetRequiredService<{handlerType}>().{methodName}(r, cancellationToken).Cast<TResponse>(),");
             }
-
-            sourceBuilder.AppendLine($"            }}");
-            isFirst = false;
         }
 
-        sourceBuilder.AppendLine($"            else");
-        sourceBuilder.AppendLine($"            {{");
-        sourceBuilder.AppendLine($"                throw new InvalidOperationException($\"No streaming handler found for request type '{{requestType.Name}}'.\");");
-        sourceBuilder.AppendLine($"            }}");
+        sourceBuilder.AppendLine($"                _ => throw new InvalidOperationException($\"No streaming handler found for request type '{{typeof(TRequest).Name}}'.\")");
+        sourceBuilder.AppendLine($"            }};");
         sourceBuilder.AppendLine($"        }}");
         sourceBuilder.AppendLine();
     }
@@ -365,8 +463,14 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
         if (!notificationHandlers.Any()) return;
 
         sourceBuilder.AppendLine($"        /// <summary>");
-        sourceBuilder.AppendLine($"        /// Optimized notification dispatch method");
+        sourceBuilder.AppendLine($"        /// Optimized notification dispatch method with parallel execution support.");
+        sourceBuilder.AppendLine($"        /// All notification handlers are executed in parallel for maximum throughput.");
+        sourceBuilder.AppendLine($"        /// Uses pattern matching for O(1) type lookup and aggressive inlining.");
         sourceBuilder.AppendLine($"        /// </summary>");
+        sourceBuilder.AppendLine($"        /// <typeparam name=\"TNotification\">The notification type.</typeparam>");
+        sourceBuilder.AppendLine($"        /// <param name=\"notification\">The notification to dispatch.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"serviceProvider\">The service provider for dependency resolution.</param>");
+        sourceBuilder.AppendLine($"        /// <param name=\"cancellationToken\">Cancellation token.</param>");
         sourceBuilder.AppendLine($"        [MethodImpl(MethodImplOptions.AggressiveInlining)]");
         sourceBuilder.AppendLine($"        public static async ValueTask DispatchNotificationAsync<TNotification>(");
         sourceBuilder.AppendLine($"            TNotification notification,");
@@ -381,48 +485,83 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
             .GroupBy(h => h.MethodSymbol!.Parameters[0].Type.ToDisplayString())
             .ToList();
 
-        sourceBuilder.AppendLine($"            var notificationType = typeof(TNotification);");
-        sourceBuilder.AppendLine();
+        sourceBuilder.AppendLine($"            // Pattern matching for O(1) notification type lookup");
+        sourceBuilder.AppendLine($"            switch (notification)");
+        sourceBuilder.AppendLine($"            {{");
 
-        bool isFirst = true;
         foreach (var group in notificationGroups)
         {
             var notificationType = group.Key;
             var handlers = group.ToList();
-            var keyword = isFirst ? "if" : "else if";
 
-            sourceBuilder.AppendLine($"            {keyword} (notificationType == typeof({notificationType}))");
-            sourceBuilder.AppendLine($"            {{");
-            sourceBuilder.AppendLine($"                var tasks = new List<ValueTask>();");
+            sourceBuilder.AppendLine($"                case {notificationType} n:");
+            sourceBuilder.AppendLine($"                {{");
+            
+            // Sort handlers by priority for priority-based notification handling
+            var sortedHandlers = handlers
+                .OrderByDescending(h => GetHandlerPriority(h))
+                .ToList();
 
-            foreach (var handler in handlers)
+            if (sortedHandlers.Count == 1)
             {
+                // Single handler - direct invocation
+                var handler = sortedHandlers.First();
                 if (handler.MethodSymbol == null) continue;
                 var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
                 var methodName = handler.MethodSymbol.Name;
                 var isStatic = handler.MethodSymbol.IsStatic;
 
+                sourceBuilder.AppendLine($"                    // Single handler - direct invocation");
                 if (isStatic)
                 {
-                    sourceBuilder.AppendLine($"                tasks.Add({handlerType}.{methodName}(({notificationType})(object)notification, cancellationToken));");
+                    sourceBuilder.AppendLine($"                    await {handlerType}.{methodName}(n, cancellationToken).ConfigureAwait(false);");
                 }
                 else
                 {
-                    sourceBuilder.AppendLine($"                {{");
                     sourceBuilder.AppendLine($"                    var handler = serviceProvider.GetRequiredService<{handlerType}>();");
-                    sourceBuilder.AppendLine($"                    tasks.Add(handler.{methodName}(({notificationType})(object)notification, cancellationToken));");
-                    sourceBuilder.AppendLine($"                }}");
+                    sourceBuilder.AppendLine($"                    await handler.{methodName}(n, cancellationToken).ConfigureAwait(false);");
                 }
             }
+            else
+            {
+                // Multiple handlers - parallel dispatch
+                sourceBuilder.AppendLine($"                    // Multiple handlers - parallel dispatch for maximum throughput");
+                sourceBuilder.AppendLine($"                    var tasks = new ValueTask[{sortedHandlers.Count}];");
+                
+                int taskIndex = 0;
+                foreach (var handler in sortedHandlers)
+                {
+                    if (handler.MethodSymbol == null) continue;
+                    var handlerType = handler.MethodSymbol.ContainingType.ToDisplayString();
+                    var methodName = handler.MethodSymbol.Name;
+                    var isStatic = handler.MethodSymbol.IsStatic;
 
-            sourceBuilder.AppendLine($"                await ValueTask.WhenAll(tasks.ToArray());");
-            sourceBuilder.AppendLine($"                return;");
-            sourceBuilder.AppendLine($"            }}");
+                    if (isStatic)
+                    {
+                        sourceBuilder.AppendLine($"                    tasks[{taskIndex}] = {handlerType}.{methodName}(n, cancellationToken);");
+                    }
+                    else
+                    {
+                        sourceBuilder.AppendLine($"                    tasks[{taskIndex}] = serviceProvider.GetRequiredService<{handlerType}>().{methodName}(n, cancellationToken);");
+                    }
+                    taskIndex++;
+                }
 
-            isFirst = false;
+                sourceBuilder.AppendLine($"                    // Wait for all handlers to complete");
+                sourceBuilder.AppendLine($"                    for (int i = 0; i < tasks.Length; i++)");
+                sourceBuilder.AppendLine($"                    {{");
+                sourceBuilder.AppendLine($"                        await tasks[i].ConfigureAwait(false);");
+                sourceBuilder.AppendLine($"                    }}");
+            }
+
+            sourceBuilder.AppendLine($"                    break;");
+            sourceBuilder.AppendLine($"                }}");
         }
 
-        sourceBuilder.AppendLine($"            // No handlers found - this is valid for notifications");
+        sourceBuilder.AppendLine($"                default:");
+        sourceBuilder.AppendLine($"                    // No handlers found - this is valid for notifications");
+        sourceBuilder.AppendLine($"                    break;");
+        sourceBuilder.AppendLine($"            }}");
         sourceBuilder.AppendLine($"        }}");
         sourceBuilder.AppendLine();
     }
@@ -514,6 +653,7 @@ public class OptimizedDispatcherGenerator : BaseCodeGenerator
     {
         builder.AppendLine("using System;");
         builder.AppendLine("using System.Collections.Generic;");
+        builder.AppendLine("using System.Linq;");
         builder.AppendLine("using System.Runtime.CompilerServices;");
         builder.AppendLine("using System.Threading;");
         builder.AppendLine("using System.Threading.Tasks;");

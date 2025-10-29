@@ -214,10 +214,10 @@ namespace Test {
 
         // Assert
         Assert.Contains("DispatchNotificationAsync<TNotification>", source);
-        Assert.Contains("Optimized notification dispatch method", source);
+        Assert.Contains("Optimized notification dispatch method with parallel execution support", source);
         Assert.Contains("where TNotification : INotification", source);
-        Assert.Contains("var tasks = new List<ValueTask>()", source);
-        Assert.Contains("ValueTask.WhenAll", source);
+        Assert.Contains("switch (notification)", source);
+        Assert.Contains("case Test.TestNotification n:", source);
     }
 
     [Fact]
@@ -236,11 +236,11 @@ namespace Test {
 
         // Assert
         Assert.Contains("DispatchAsync<TRequest, TResponse>", source);
-        Assert.Contains("Main dispatch method with optimized type switching", source);
-        Assert.Contains("Optimized type switching - most common types first", source);
-        Assert.Contains("var requestType = typeof(TRequest)", source);
-        Assert.Contains("if (requestType == typeof(Test.TestRequest))", source);
-        Assert.Contains("await Dispatch_Test_TestRequest((Test.TestRequest)(object)request", source);
+        Assert.Contains("Main dispatch method with pattern matching for O(1) type lookup", source);
+        Assert.Contains("Pattern matching switch expression for O(1) type lookup", source);
+        Assert.Contains("return request switch", source);
+        Assert.Contains("Test.TestRequest r => ", source);
+        Assert.Contains("await Dispatch_Test_TestRequest(r, serviceProvider, handlerName, cancellationToken)", source);
     }
 
     [Fact]
@@ -289,8 +289,8 @@ namespace Test {
         var source = generator.GenerateOptimizedDispatcher(discoveryResult);
 
         // Assert
-        Assert.Contains("var tasks = new List<ValueTask>()", source);
-        Assert.Contains("ValueTask.WhenAll(tasks.ToArray())", source);
+        Assert.Contains("var tasks = new ValueTask[2]", source);
+        Assert.Contains("for (int i = 0; i < tasks.Length; i++)", source);
         Assert.Contains("NotificationHandler1", source);
         Assert.Contains("NotificationHandler2", source);
     }
@@ -314,6 +314,6 @@ namespace Test {
 
         // Assert
         Assert.Contains("No handler found with name", source);
-        Assert.Contains("Optimized handler selection with branch prediction", source);
+        Assert.Contains("Optimized handler selection with pattern matching", source);
     }
 }

@@ -143,7 +143,7 @@ namespace Test {{
 
         // Assert
         Assert.DoesNotContain("serviceProvider.GetRequiredService", source);
-        Assert.Contains("await Test.TestHandler.HandleAsync(request, cancellationToken);", source);
+        Assert.Contains("await Test.TestHandler.HandleAsync(request, cancellationToken).ConfigureAwait(false);", source);
     }
 
     [Fact]
@@ -192,8 +192,8 @@ namespace Test {
         var source = generator.GenerateOptimizedDispatcher(discoveryResult);
 
         // Assert
-        Assert.Contains("Optimized handler selection with branch prediction", source);
-        Assert.Contains("Most common handlers first for better branch prediction", source);
+        Assert.Contains("Optimized handler selection with pattern matching", source);
+        Assert.Contains("Branch prediction optimized: default handler first (most common case)", source);
         Assert.Contains("No handler found with name", source);
     }
 

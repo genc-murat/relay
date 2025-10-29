@@ -29,4 +29,10 @@ public class ContractValidationOptions
     /// Gets or sets the default order for contract validation pipeline behaviors.
     /// </summary>
     public int DefaultOrder { get; set; } = -750; // Run early in the pipeline
+
+    /// <summary>
+    /// Gets or sets the validation strategy to use (e.g., "Strict", "Lenient").
+    /// Default is "Strict" which throws exceptions on validation failures.
+    /// </summary>
+    public string ValidationStrategy { get; set; } = "Strict";
 }

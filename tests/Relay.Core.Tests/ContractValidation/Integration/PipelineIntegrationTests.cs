@@ -340,7 +340,7 @@ public sealed class PipelineIntegrationTests : IDisposable
                 EnableAutomaticContractValidation = enableValidation,
                 ValidateRequests = true,
                 ValidateResponses = true,
-                ThrowOnValidationFailure = true,
+                ThrowOnValidationFailure = validationStrategy.ToLower() != "lenient", // Don't throw if using lenient strategy
                 ValidationStrategy = validationStrategy,
                 EnablePerformanceMetrics = false,
                 SchemaDiscovery = new SchemaDiscoveryOptions
@@ -354,6 +354,7 @@ public sealed class PipelineIntegrationTests : IDisposable
         services.AddSingleton(Options.Create(relayOptions));
         services.AddSingleton(Options.Create(relayOptions.DefaultContractValidationOptions.SchemaCache));
         services.AddSingleton(Options.Create(relayOptions.DefaultContractValidationOptions.SchemaDiscovery));
+        services.AddSingleton(relayOptions.DefaultContractValidationOptions.SchemaDiscovery); // Register SchemaDiscoveryOptions directly for FileSystemSchemaProvider
         services.AddSingleton<ISchemaCache, LruSchemaCache>();
         services.AddSingleton<ISchemaProvider, FileSystemSchemaProvider>();
         services.AddSingleton<ISchemaResolver, DefaultSchemaResolver>();

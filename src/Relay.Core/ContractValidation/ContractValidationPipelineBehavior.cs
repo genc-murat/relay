@@ -62,6 +62,9 @@ public class ContractValidationPipelineBehavior<TRequest, TResponse> : IPipeline
     /// <inheritdoc />
     public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
+        // Check for cancellation early in the pipeline
+        cancellationToken.ThrowIfCancellationRequested();
+        
         using var activity = ContractValidationActivitySource.Instance.StartActivity(
             "ContractValidationPipeline.Handle",
             ActivityKind.Internal);

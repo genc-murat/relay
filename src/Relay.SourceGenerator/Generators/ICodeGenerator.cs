@@ -71,9 +71,37 @@ namespace Relay.SourceGenerator.Generators
         public bool UseAggressiveInlining { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets whether to enable aggressive inlining (alias for UseAggressiveInlining).
+        /// Can be controlled via MSBuild property: RelayEnableAggressiveInlining
+        /// </summary>
+        public bool EnableAggressiveInlining
+        {
+            get => UseAggressiveInlining;
+            set => UseAggressiveInlining = value;
+        }
+
+        /// <summary>
         /// Gets or sets the assembly name for the generated code.
         /// </summary>
         public string AssemblyName { get; set; } = "Relay.Generated";
+
+        /// <summary>
+        /// Gets or sets whether to enable performance optimizations.
+        /// Can be controlled via MSBuild property: RelayEnablePerformanceOptimizations
+        /// </summary>
+        public bool EnablePerformanceOptimizations { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the maximum degree of parallelism for handler discovery.
+        /// Can be controlled via MSBuild property: RelayMaxDegreeOfParallelism
+        /// </summary>
+        public int MaxDegreeOfParallelism { get; set; } = 4;
+
+        /// <summary>
+        /// Gets or sets whether to enable keyed services support (.NET 8+).
+        /// Can be controlled via MSBuild property: RelayEnableKeyedServices
+        /// </summary>
+        public bool EnableKeyedServices { get; set; } = true;
 
         /// <summary>
         /// Gets or sets whether to enable DI Registration generator.

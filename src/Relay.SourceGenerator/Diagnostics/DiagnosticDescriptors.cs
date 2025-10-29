@@ -229,5 +229,46 @@ namespace Relay.SourceGenerator
             Category,
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true);
+
+        // New diagnostic descriptors for improved error reporting
+        public static readonly DiagnosticDescriptor InvalidConfigurationValue = new(
+            "RELAY_GEN_213",
+            "Invalid Configuration Value",
+            "Configuration property '{0}' has invalid value '{1}'. {2}",
+            Category,
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "A configuration property has been set to an invalid value. Check the property value and ensure it meets the expected format and constraints.",
+            helpLinkUri: "https://github.com/MrDave1999/Relay/wiki/RELAY_GEN_213");
+
+        public static readonly DiagnosticDescriptor MissingRequiredAttribute = new(
+            "RELAY_GEN_214",
+            "Missing Required Attribute",
+            "Handler method '{0}' is missing the required '{1}' attribute. Add the attribute to enable proper handler registration.",
+            Category,
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "A handler method is missing a required attribute for proper discovery and registration. Add the specified attribute to the method.",
+            helpLinkUri: "https://github.com/MrDave1999/Relay/wiki/RELAY_GEN_214");
+
+        public static readonly DiagnosticDescriptor ObsoleteHandlerPattern = new(
+            "RELAY_GEN_215",
+            "Obsolete Handler Pattern",
+            "Handler '{0}' uses an obsolete pattern: {1}. Consider migrating to: {2}",
+            Category,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "The handler is using an obsolete or deprecated pattern. Consider updating to the recommended modern pattern for better performance and maintainability.",
+            helpLinkUri: "https://github.com/MrDave1999/Relay/wiki/RELAY_GEN_215");
+
+        public static readonly DiagnosticDescriptor PerformanceBottleneck = new(
+            "RELAY_GEN_216",
+            "Performance Bottleneck Detected",
+            "Handler '{0}' may have a performance bottleneck: {1}. Suggestion: {2}",
+            Category,
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true,
+            description: "A potential performance issue has been detected in the handler. Review the suggestion to optimize performance.",
+            helpLinkUri: "https://github.com/MrDave1999/Relay/wiki/RELAY_GEN_216");
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Relay.SourceGenerator.Diagnostics;
 
 namespace Relay.SourceGenerator.Generators
 {
@@ -73,6 +74,16 @@ namespace Relay.SourceGenerator.Generators
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Creates diagnostic severity configuration from MSBuild properties and .editorconfig.
+        /// </summary>
+        /// <param name="options">The analyzer config options provider</param>
+        /// <returns>Configured diagnostic severity settings</returns>
+        public static DiagnosticSeverityConfiguration CreateDiagnosticConfiguration(AnalyzerConfigOptionsProvider options)
+        {
+            return DiagnosticSeverityConfiguration.CreateFromOptions(options);
         }
     }
 }

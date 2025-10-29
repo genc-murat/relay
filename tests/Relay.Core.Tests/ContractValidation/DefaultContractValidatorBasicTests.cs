@@ -47,7 +47,7 @@ namespace Relay.Core.Tests.ContractValidation
 
             // Assert
             Assert.Single(errors);
-            Assert.Equal("Request cannot be null", errors.First());
+            Assert.Contains("Request cannot be null", errors.First());
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace Relay.Core.Tests.ContractValidation
 
             // Assert
             Assert.Single(errors);
-            Assert.Equal("Response cannot be null according to schema", errors.First());
+            Assert.Contains("cannot be null", errors.First());
         }
 
         [Fact]

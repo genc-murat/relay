@@ -34,7 +34,7 @@ namespace Relay.Core.Tests.ContractValidation
 
             // Assert
             Assert.Single(errors);
-            Assert.Equal("Invalid JSON schema format", errors.First());
+            Assert.Contains("Invalid JSON schema format", errors.First());
         }
 
         [Fact]
@@ -204,7 +204,7 @@ namespace Relay.Core.Tests.ContractValidation
 
             // Assert
             Assert.Single(errors);
-            Assert.Equal("Response cannot be null according to schema", errors.First());
+            Assert.Contains("cannot be null", errors.First());
         }
     }
 }

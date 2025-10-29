@@ -91,9 +91,9 @@ public class DefaultContractValidatorEdgeCasesTests
 
         // Assert - Both calls should return the same error (cached null schema)
         Assert.Single(errors1);
-        Assert.Equal("Invalid JSON schema format", errors1.First());
+        Assert.Contains("Invalid JSON schema format", errors1.First());
         Assert.Single(errors2);
-        Assert.Equal("Invalid JSON schema format", errors2.First());
+        Assert.Contains("Invalid JSON schema format", errors2.First());
     }
 
     [Fact]

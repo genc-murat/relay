@@ -64,11 +64,13 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
         }
 
         // Create pipeline for class declarations that implement handler interfaces
+        // Use value-based equality comparer for efficient incremental caching
         var handlerClasses = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (s, _) => IsCandidateHandlerClass(s),
                 transform: static (ctx, _) => GetSemanticHandlerInfo(ctx))
-            .Where(static h => h is not null);
+            .Where(static h => h is not null)
+            .WithComparer(HandlerClassInfoComparer.Instance);
 
         // Create pipeline for methods with Relay attributes (for missing reference detection)
         var relayAttributeMethods = context.SyntaxProvider

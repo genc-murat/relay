@@ -6,9 +6,46 @@ namespace Relay.SourceGenerator.Generators
     /// <summary>
     /// Base class for all code generators providing common functionality.
     /// Implements template method pattern for consistent code generation structure.
+    /// Uses StringBuilder pooling to reduce memory allocations.
     /// </summary>
     public abstract class BaseCodeGenerator : ICodeGenerator
     {
+        // StringBuilder pool to reduce allocations
+        [ThreadStatic]
+        private static StringBuilder? t_cachedStringBuilder;
+
+        // Pool configuration optimized for code generation workloads
+        private const int DefaultStringBuilderCapacity = 1024;      // 1KB initial
+        private const int MaxPooledCapacity = 16 * 1024;             // 16KB maximum
+
+        /// <summary>
+        /// Gets a StringBuilder from the pool or creates a new one.
+        /// </summary>
+        protected static StringBuilder GetStringBuilder()
+        {
+            var sb = t_cachedStringBuilder;
+            if (sb != null)
+            {
+                t_cachedStringBuilder = null;
+                sb.Clear();
+                return sb;
+            }
+            return new StringBuilder(DefaultStringBuilderCapacity);
+        }
+
+        /// <summary>
+        /// Returns a StringBuilder to the pool if it's within size limits.
+        /// </summary>
+        protected static void ReturnStringBuilder(StringBuilder sb)
+        {
+            // Cache StringBuilder if it's within reasonable size limits
+            // Modern generated code often exceeds 4KB, so we allow up to 16KB
+            if (sb.Capacity <= MaxPooledCapacity)
+            {
+                t_cachedStringBuilder = sb;
+            }
+        }
+
         /// <inheritdoc/>
         public abstract string GeneratorName { get; }
 
@@ -34,38 +71,46 @@ namespace Relay.SourceGenerator.Generators
             if (options == null)
                 throw new ArgumentNullException(nameof(options));
 
-            var builder = new StringBuilder();
+            var builder = GetStringBuilder();
 
-            // Generate file header
-            AppendFileHeader(builder, options);
-
-            // Generate nullable context if enabled
-            if (options.EnableNullableContext)
+            try
             {
-                builder.AppendLine("#nullable enable");
+                // Generate file header
+                AppendFileHeader(builder, options);
+
+                // Generate nullable context if enabled
+                if (options.EnableNullableContext)
+                {
+                    builder.AppendLine("#nullable enable");
+                    builder.AppendLine();
+                }
+
+                // Generate usings
+                AppendUsings(builder, result, options);
                 builder.AppendLine();
+
+                // Generate namespace
+                var ns = GetNamespace(result, options);
+                builder.AppendLine($"namespace {ns}");
+                builder.AppendLine("{");
+
+                // Generate main content
+                GenerateContent(builder, result, options);
+
+                builder.AppendLine("}");
+
+                if (options.EnableNullableContext)
+                {
+                    builder.AppendLine("#nullable restore");
+                }
+
+                return builder.ToString();
             }
-
-            // Generate usings
-            AppendUsings(builder, result, options);
-            builder.AppendLine();
-
-            // Generate namespace
-            var ns = GetNamespace(result, options);
-            builder.AppendLine($"namespace {ns}");
-            builder.AppendLine("{");
-
-            // Generate main content
-            GenerateContent(builder, result, options);
-
-            builder.AppendLine("}");
-
-            if (options.EnableNullableContext)
+            finally
             {
-                builder.AppendLine("#nullable restore");
+                // Always return StringBuilder to pool
+                ReturnStringBuilder(builder);
             }
-
-            return builder.ToString();
         }
 
         /// <summary>

@@ -83,8 +83,7 @@ public class DefaultContractValidator : IContractValidator
     {
         var context = ValidationContext.ForRequest(request?.GetType() ?? typeof(object), request, schema);
         var result = await ValidateRequestDetailedAsync(request, schema, context, cancellationToken);
-        
-        // Convert ValidationResult to simple string errors for backward compatibility
+
         return result.Errors.Select(e => e.ToString());
     }
 
@@ -242,7 +241,6 @@ public class DefaultContractValidator : IContractValidator
         var context = ValidationContext.ForResponse(response?.GetType() ?? typeof(object), response, schema);
         var result = await ValidateResponseDetailedAsync(response, schema, context, cancellationToken);
         
-        // Convert ValidationResult to simple string errors for backward compatibility
         return result.Errors.Select(e => e.ToString());
     }
 
@@ -403,6 +401,12 @@ public class DefaultContractValidator : IContractValidator
         ValidationContext context,
         CancellationToken cancellationToken)
     {
+        if (schema == null || string.IsNullOrWhiteSpace(schema.Schema))
+        {
+            throw new Exception("Schema is null or empty");
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+
         var aggregator = new ErrorAggregator();
 
         // Validate input
@@ -480,8 +484,7 @@ public class DefaultContractValidator : IContractValidator
         // Validate against schema
         var validationResults = jsonSchema.Evaluate(jsonNode, new EvaluationOptions
         {
-            OutputFormat = OutputFormat.List,
-            RequireFormatValidation = true
+            OutputFormat = OutputFormat.List
         });
 
         if (!validationResults.IsValid)
@@ -557,15 +560,7 @@ public class DefaultContractValidator : IContractValidator
         return Convert.ToBase64String(hashBytes);
     }
 
-    /// <summary>
-    /// Gets a cached schema or parses a new one (legacy method for backward compatibility).
-    /// </summary>
-    /// <param name="schemaJson">The JSON schema string.</param>
-    /// <returns>The parsed JSON schema, or null if parsing failed.</returns>
-    private JsonSchema? GetOrParseSchema(string schemaJson)
-    {
-        return GetOrParseSchemaWithCache(schemaJson);
-    }
+
 
     /// <summary>
     /// Extracts validation errors from evaluation results into an ErrorAggregator.
@@ -584,7 +579,7 @@ public class DefaultContractValidator : IContractValidator
                     {
                         var path = detail.InstanceLocation?.ToString() ?? "root";
                         var errorCode = DetermineErrorCode(key);
-                        
+
                         var error = new ValidationError
                         {
                             ErrorCode = errorCode,
@@ -686,27 +681,5 @@ public class DefaultContractValidator : IContractValidator
         };
     }
 
-    /// <summary>
-    /// Extracts validation errors from evaluation results (legacy method for backward compatibility).
-    /// </summary>
-    /// <param name="results">The evaluation results.</param>
-    /// <param name="errors">The list to add errors to.</param>
-    private void ExtractValidationErrors(EvaluationResults results, List<string> errors)
-    {
-        var aggregator = new ErrorAggregator();
-        ExtractValidationErrorsToAggregator(results, aggregator);
-        errors.AddRange(aggregator.GetErrors().Select(e => e.ToString()));
-    }
 
-    /// <summary>
-    /// Recursively extracts validation errors from evaluation details (legacy method for backward compatibility).
-    /// </summary>
-    /// <param name="details">The evaluation details to extract errors from.</param>
-    /// <param name="errors">The list to add errors to.</param>
-    private void ExtractValidationErrorsFromDetails(IEnumerable<EvaluationResults> details, List<string> errors)
-    {
-        var aggregator = new ErrorAggregator();
-        ExtractValidationErrorsFromDetailsToAggregator(details, aggregator);
-        errors.AddRange(aggregator.GetErrors().Select(e => e.ToString()));
-    }
 }

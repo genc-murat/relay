@@ -42,4 +42,10 @@
     <Folder Include="EventSourcing\Infrastructure\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="ContractValidation\TestSchemas\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

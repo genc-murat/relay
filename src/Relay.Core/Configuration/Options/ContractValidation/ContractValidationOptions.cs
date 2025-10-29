@@ -88,7 +88,6 @@ public class ContractValidationOptions
     /// <summary>
     /// Gets or sets whether to enable enhanced validation features.
     /// This feature flag allows gradual adoption of new validation capabilities.
-    /// When false, the system behaves like the legacy implementation.
     /// Default is true.
     /// </summary>
     public bool EnableEnhancedValidation { get; set; } = true;

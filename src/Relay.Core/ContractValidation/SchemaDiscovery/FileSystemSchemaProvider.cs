@@ -73,6 +73,9 @@ public sealed class FileSystemSchemaProvider : ISchemaProvider
                     continue;
                 }
 
+                // Normalize line endings to LF (\n) for consistency across platforms
+                schemaContent = schemaContent.Replace("\r\n", "\n").Replace("\r", "\n");
+
                 return new JsonSchemaContract
                 {
                     Schema = schemaContent,

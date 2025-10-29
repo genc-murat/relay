@@ -321,7 +321,6 @@ public class ContractValidationPipelineBehavior<TRequest, TResponse> : IPipeline
             return await enhancedValidator.ValidateRequestDetailedAsync(request!, schema, context, cancellationToken);
         }
 
-        // Fallback to legacy validation for backward compatibility
         var errors = await _contractValidator.ValidateRequestAsync(request!, schema, cancellationToken);
         var errorList = errors.Select(e => ValidationError.Create(
             ValidationErrorCodes.GeneralValidationError,
@@ -378,7 +377,6 @@ public class ContractValidationPipelineBehavior<TRequest, TResponse> : IPipeline
             return await enhancedValidator.ValidateResponseDetailedAsync(response!, schema, context, cancellationToken);
         }
 
-        // Fallback to legacy validation for backward compatibility
         var errors = await _contractValidator.ValidateResponseAsync(response!, schema, cancellationToken);
         var errorList = errors.Select(e => ValidationError.Create(
             ValidationErrorCodes.GeneralValidationError,

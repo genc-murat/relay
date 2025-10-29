@@ -273,11 +273,14 @@ public sealed class DefaultSchemaResolver : ISchemaResolver
             var cachedJsonSchema = _cache?.Get(cacheKey);
             if (cachedJsonSchema != null)
             {
-                // Convert Json.Schema.JsonSchema back to JsonSchemaContract
-                // Note: The cache stores JsonSchema objects, but we need to return JsonSchemaContract
-                // For now, we'll return null and let the provider load it
-                // This will be improved when we integrate the cache more tightly
-                return null;
+                // Convert the cached Json.Schema.JsonSchema back to JsonSchemaContract
+                // Use indented format to match file-loaded schemas
+                var schemaString = System.Text.Json.JsonSerializer.Serialize(cachedJsonSchema, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                
+                // Normalize line endings to LF (\n) for consistency across platforms
+                schemaString = schemaString.Replace("\r\n", "\n").Replace("\r", "\n");
+                
+                return new JsonSchemaContract { Schema = schemaString };
             }
         }
         catch (Exception ex)
@@ -295,10 +298,9 @@ public sealed class DefaultSchemaResolver : ISchemaResolver
     {
         try
         {
-            // Parse the schema and cache it
-            // Note: This requires converting JsonSchemaContract to Json.Schema.JsonSchema
-            // For now, we'll skip caching and improve this in a future iteration
-            _logger.LogDebug("Schema caching will be improved in future iteration");
+            // Parse the schema string and cache the Json.Schema.JsonSchema object
+            var jsonSchema = Json.Schema.JsonSchema.FromText(schema.Schema);
+            _cache?.Set(cacheKey, jsonSchema);
         }
         catch (Exception ex)
         {

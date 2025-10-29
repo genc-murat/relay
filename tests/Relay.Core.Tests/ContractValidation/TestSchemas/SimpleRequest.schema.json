@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Simple Request Schema",
+  "description": "A simple test schema for request validation",
+  "properties": {
+    "Name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "The name field"
+    },
+    "Value": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "The value field"
+    }
+  },
+  "required": ["Name", "Value"],
+  "additionalProperties": false
+}

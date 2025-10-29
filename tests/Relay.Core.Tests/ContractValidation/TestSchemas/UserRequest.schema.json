@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "User Request Schema",
+  "description": "Schema for user-related requests",
+  "properties": {
+    "UserId": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The unique user identifier"
+    },
+    "Username": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 50,
+      "pattern": "^[a-zA-Z0-9_]+$",
+      "description": "The username (alphanumeric and underscore only)"
+    },
+    "Email": {
+      "type": "string",
+      "format": "email",
+      "description": "The user's email address"
+    },
+    "Age": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150,
+      "description": "The user's age"
+    },
+    "IsActive": {
+      "type": "boolean",
+      "description": "Whether the user is active"
+    }
+  },
+  "required": ["UserId", "Username", "Email"],
+  "additionalProperties": false
+}

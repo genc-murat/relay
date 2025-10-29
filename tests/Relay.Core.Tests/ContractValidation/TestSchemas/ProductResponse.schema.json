@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Product Response Schema",
+  "description": "Schema for product response data",
+  "properties": {
+    "ProductId": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The unique product identifier"
+    },
+    "Name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "The product name"
+    },
+    "Description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "The product description"
+    },
+    "Price": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMinimum": true,
+      "description": "The product price"
+    },
+    "Currency": {
+      "type": "string",
+      "enum": ["USD", "EUR", "GBP", "JPY"],
+      "description": "The currency code"
+    },
+    "InStock": {
+      "type": "boolean",
+      "description": "Whether the product is in stock"
+    },
+    "StockQuantity": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The available stock quantity"
+    },
+    "Categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Product categories"
+    },
+    "CreatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The creation timestamp"
+    },
+    "UpdatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The last update timestamp"
+    }
+  },
+  "required": ["ProductId", "Name", "Price", "Currency", "InStock"],
+  "additionalProperties": false
+}

@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Order Request Schema",
+  "description": "Schema for order creation requests with nested objects",
+  "properties": {
+    "OrderId": {
+      "type": "string",
+      "pattern": "^ORD-[0-9]{6}$",
+      "description": "The order identifier in format ORD-XXXXXX"
+    },
+    "Customer": {
+      "type": "object",
+      "properties": {
+        "CustomerId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "Name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "Email": {
+          "type": "string",
+          "format": "email"
+        }
+      },
+      "required": ["CustomerId", "Name", "Email"],
+      "additionalProperties": false
+    },
+    "Items": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "properties": {
+          "ProductId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "ProductName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "Quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "Price": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          }
+        },
+        "required": ["ProductId", "ProductName", "Quantity", "Price"],
+        "additionalProperties": false
+      }
+    },
+    "ShippingAddress": {
+      "type": "object",
+      "properties": {
+        "Street": {
+          "type": "string",
+          "minLength": 1
+        },
+        "City": {
+          "type": "string",
+          "minLength": 1
+        },
+        "State": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2
+        },
+        "ZipCode": {
+          "type": "string",
+          "pattern": "^[0-9]{5}(-[0-9]{4})?$"
+        }
+      },
+      "required": ["Street", "City", "State", "ZipCode"],
+      "additionalProperties": false
+    },
+    "Total": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMinimum": true,
+      "description": "The total order amount"
+    }
+  },
+  "required": ["OrderId", "Customer", "Items", "ShippingAddress", "Total"],
+  "additionalProperties": false
+}

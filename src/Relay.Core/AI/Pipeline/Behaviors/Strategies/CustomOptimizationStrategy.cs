@@ -182,17 +182,42 @@ public class CustomOptimizationStrategy<TRequest, TResponse> : BaseOptimizationS
         CustomOptimizationStatistics stats,
         CustomOptimizationContext context)
     {
-        var properties = new Dictionary<string, object>
+        if (MetricsProvider != null)
         {
-            ["OptimizationType"] = context.OptimizationType,
-            ["OptimizationLevel"] = context.OptimizationLevel,
-            ["OptimizationActionsApplied"] = stats.OptimizationActionsApplied,
-            ["OverallEffectiveness"] = stats.OverallEffectiveness,
-            ["EnableProfiling"] = context.EnableProfiling,
-            ["EnableTracing"] = context.EnableTracing,
-            ["CustomParametersCount"] = context.CustomParameters?.Count ?? 0
-        };
+            try
+            {
+                var metrics = new HandlerExecutionMetrics
+                {
+                    RequestType = requestType,
+                    Duration = duration,
+                    Success = true,
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Properties = new Dictionary<string, object>
+                    {
+                        ["OptimizationType"] = context.OptimizationType,
+                        ["OptimizationLevel"] = context.OptimizationLevel,
+                        ["ActionsApplied"] = stats.OptimizationActionsApplied,
+                        ["ActionsSucceeded"] = stats.ActionsSucceeded,
+                        ["ActionsFailed"] = stats.ActionsFailed,
+                        ["OverallEffectiveness"] = stats.OverallEffectiveness,
+                        ["EnableProfiling"] = context.EnableProfiling,
+                        ["EnableTracing"] = context.EnableTracing,
+                        ["CustomParameterCount"] = context.CustomParameters.Count
+                    }
+                };
 
-        RecordMetrics(requestType, duration, true, properties);
+                // Add custom parameters to metrics
+                foreach (var param in context.CustomParameters)
+                {
+                    metrics.Properties[$"Param_{param.Key}"] = param.Value?.ToString() ?? "null";
+                }
+
+                MetricsProvider.RecordHandlerExecution(metrics);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to record custom optimization metrics");
+            }
+        }
     }
 }

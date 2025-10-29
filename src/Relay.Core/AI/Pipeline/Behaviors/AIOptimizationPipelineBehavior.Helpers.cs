@@ -378,49 +378,4 @@ public sealed partial class AIOptimizationPipelineBehavior<TRequest, TResponse>
 
         return 0;
     }
-
-    private void RecordCustomOptimizationMetrics(
-        Type requestType,
-        TimeSpan duration,
-        CustomOptimizationStatistics stats,
-        CustomOptimizationContext context)
-    {
-        if (_metricsProvider != null)
-        {
-            try
-            {
-                var metrics = new HandlerExecutionMetrics
-                {
-                    RequestType = requestType,
-                    Duration = duration,
-                    Success = true,
-                    Timestamp = DateTimeOffset.UtcNow,
-                    Properties = new Dictionary<string, object>
-                    {
-                        ["OptimizationType"] = context.OptimizationType,
-                        ["OptimizationLevel"] = context.OptimizationLevel,
-                        ["ActionsApplied"] = stats.OptimizationActionsApplied,
-                        ["ActionsSucceeded"] = stats.ActionsSucceeded,
-                        ["ActionsFailed"] = stats.ActionsFailed,
-                        ["OverallEffectiveness"] = stats.OverallEffectiveness,
-                        ["EnableProfiling"] = context.EnableProfiling,
-                        ["EnableTracing"] = context.EnableTracing,
-                        ["CustomParameterCount"] = context.CustomParameters.Count
-                    }
-                };
-
-                // Add custom parameters to metrics
-                foreach (var param in context.CustomParameters)
-                {
-                    metrics.Properties[$"Param_{param.Key}"] = param.Value?.ToString() ?? "null";
-                }
-
-                _metricsProvider.RecordHandlerExecution(metrics);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to record custom optimization metrics");
-            }
-        }
-    }
 }

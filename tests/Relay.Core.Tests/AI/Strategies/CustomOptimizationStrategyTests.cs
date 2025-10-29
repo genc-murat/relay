@@ -675,4 +675,462 @@ public class CustomOptimizationStrategyTests
         // Assert - Should complete without throwing
         Assert.True(true);
     }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_RecordsMetricsWithAllProperties()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "warmup",
+                ["OptimizationLevel"] = 3,
+                ["EnableProfiling"] = true,
+                ["EnableTracing"] = true,
+                ["Custom_Param1"] = "value1",
+                ["Custom_Param2"] = 42
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        HandlerExecutionMetrics capturedMetrics = null!;
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()))
+            .Callback<HandlerExecutionMetrics>(metrics => capturedMetrics = metrics);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(capturedMetrics);
+        Assert.True(capturedMetrics.Properties.ContainsKey("OptimizationType"));
+        Assert.Equal("warmup", capturedMetrics.Properties["OptimizationType"]);
+        Assert.True(capturedMetrics.Properties.ContainsKey("OptimizationLevel"));
+        Assert.Equal(3, capturedMetrics.Properties["OptimizationLevel"]);
+        Assert.True(capturedMetrics.Properties.ContainsKey("EnableProfiling"));
+        Assert.Equal(true, capturedMetrics.Properties["EnableProfiling"]);
+        Assert.True(capturedMetrics.Properties.ContainsKey("EnableTracing"));
+        Assert.Equal(true, capturedMetrics.Properties["EnableTracing"]);
+        Assert.True(capturedMetrics.Properties.ContainsKey("ActionsApplied"));
+        Assert.True(capturedMetrics.Properties.ContainsKey("ActionsSucceeded"));
+        Assert.True(capturedMetrics.Properties.ContainsKey("ActionsFailed"));
+        Assert.True(capturedMetrics.Properties.ContainsKey("OverallEffectiveness"));
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_RecordsCustomParameters()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "custom",
+                ["Custom_DatabasePool"] = "fast",
+                ["Custom_CacheSize"] = 1024,
+                ["Custom_RetryCount"] = 3
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        HandlerExecutionMetrics capturedMetrics = null!;
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()))
+            .Callback<HandlerExecutionMetrics>(metrics => capturedMetrics = metrics);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(capturedMetrics);
+        Assert.True(capturedMetrics.Properties.ContainsKey("Param_Custom_DatabasePool"));
+        Assert.Equal("fast", capturedMetrics.Properties["Param_Custom_DatabasePool"]);
+        Assert.True(capturedMetrics.Properties.ContainsKey("Param_Custom_CacheSize"));
+        Assert.Equal("1024", capturedMetrics.Properties["Param_Custom_CacheSize"]);
+        Assert.True(capturedMetrics.Properties.ContainsKey("Param_Custom_RetryCount"));
+        Assert.Equal("3", capturedMetrics.Properties["Param_Custom_RetryCount"]);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_HandlesNullCustomParameterValue()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "test",
+                ["Custom_NullValue"] = null!
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        HandlerExecutionMetrics capturedMetrics = null!;
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()))
+            .Callback<HandlerExecutionMetrics>(metrics => capturedMetrics = metrics);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(capturedMetrics);
+        Assert.True(capturedMetrics.Properties.ContainsKey("Param_Custom_NullValue"));
+        Assert.Equal("null", capturedMetrics.Properties["Param_Custom_NullValue"]);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_WithNullMetricsProvider_DoesNotThrow()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, null);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "warmup"
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "test" });
+
+        // Act & Assert - Should not throw even without metrics provider
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        var result = await optimizedHandler();
+        
+        Assert.NotNull(result);
+        Assert.Equal("test", result.Result);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_RecordsMetricsTimestamp()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "test"
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+        var beforeExecution = DateTimeOffset.UtcNow;
+
+        HandlerExecutionMetrics capturedMetrics = null!;
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()))
+            .Callback<HandlerExecutionMetrics>(metrics => capturedMetrics = metrics);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        await optimizedHandler();
+        var afterExecution = DateTimeOffset.UtcNow;
+
+        // Assert
+        Assert.NotNull(capturedMetrics);
+        Assert.True(capturedMetrics.Timestamp >= beforeExecution);
+        Assert.True(capturedMetrics.Timestamp <= afterExecution);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_RecordsDurationCorrectly()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "test"
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        HandlerExecutionMetrics capturedMetrics = null!;
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()))
+            .Callback<HandlerExecutionMetrics>(metrics => capturedMetrics = metrics);
+
+        RequestHandlerDelegate<TestResponse> next = async () =>
+        {
+            await Task.Delay(50); // Simulate some work
+            return new TestResponse { Result = "test" };
+        };
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(capturedMetrics);
+        Assert.True(capturedMetrics.Duration >= TimeSpan.FromMilliseconds(40)); // At least 40ms due to delay
+        Assert.True(capturedMetrics.Duration < TimeSpan.FromSeconds(2)); // But not too long
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_MetricsProviderThrowsException_LogsWarning()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "test"
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()))
+            .Throws(new InvalidOperationException("Metrics recording failed"));
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "test" });
+
+        // Act & Assert - Should not throw, but should log warning
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        var result = await optimizedHandler();
+        
+        Assert.NotNull(result);
+        Assert.Equal("test", result.Result);
+        
+        // Verify warning was logged
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to record custom optimization metrics")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_RecordsSuccessAsTrue()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "test"
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        HandlerExecutionMetrics capturedMetrics = null!;
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()))
+            .Callback<HandlerExecutionMetrics>(metrics => capturedMetrics = metrics);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(capturedMetrics);
+        Assert.True(capturedMetrics.Success);
+        Assert.Equal(typeof(TestRequest), capturedMetrics.RequestType);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_RecordsCustomParameterCount()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "test",
+                ["Custom_Param1"] = "value1",
+                ["Custom_Param2"] = "value2",
+                ["Custom_Param3"] = "value3"
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        HandlerExecutionMetrics capturedMetrics = null!;
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()))
+            .Callback<HandlerExecutionMetrics>(metrics => capturedMetrics = metrics);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(capturedMetrics);
+        Assert.True(capturedMetrics.Properties.ContainsKey("CustomParameterCount"));
+        Assert.Equal(3, capturedMetrics.Properties["CustomParameterCount"]);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_ApplyAsync_WithPrefetchType_ExecutesSuccessfully()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "prefetch",
+                ["OptimizationLevel"] = 2
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()));
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "prefetch_test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        var result = await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("prefetch_test", result.Result);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_ApplyAsync_WithPrioritizeType_ExecutesSuccessfully()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "prioritize",
+                ["OptimizationLevel"] = 1
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()));
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "prioritize_test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        var result = await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("prioritize_test", result.Result);
+    }
+
+    [Fact]
+    public async Task CustomOptimizationStrategy_ApplyAsync_WithNotifyType_ExecutesSuccessfully()
+    {
+        // Arrange
+        var strategy = new CustomOptimizationStrategy<TestRequest, TestResponse>(
+            _loggerMock.Object, _aiEngineMock.Object, _options, _metricsProviderMock.Object);
+
+        var recommendation = new OptimizationRecommendation
+        {
+            Strategy = OptimizationStrategy.Custom,
+            ConfidenceScore = 0.8,
+            Parameters = new Dictionary<string, object>
+            {
+                ["OptimizationType"] = "notify",
+                ["OptimizationLevel"] = 1
+            }
+        };
+
+        var systemLoad = new SystemLoadMetrics();
+
+        _metricsProviderMock.Setup(x => x.RecordHandlerExecution(It.IsAny<HandlerExecutionMetrics>()));
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "notify_test" });
+
+        // Act
+        var optimizedHandler = await strategy.ApplyAsync(new TestRequest(), next, recommendation, systemLoad, CancellationToken.None);
+        var result = await optimizedHandler();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("notify_test", result.Result);
+    }
 }

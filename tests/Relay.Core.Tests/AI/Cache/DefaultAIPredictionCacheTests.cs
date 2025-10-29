@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Moq;
 using Relay.Core.AI;
 using System;
 using System.Threading.Tasks;
@@ -477,6 +478,23 @@ public class DefaultAIPredictionCacheTests
         Assert.Equal(2, cacheWithEviction.Size);
         Assert.NotNull(await cacheWithEviction.GetCachedPredictionAsync("new_key1"));
         Assert.NotNull(await cacheWithEviction.GetCachedPredictionAsync("new_key2"));
+    }
+
+    #endregion
+
+    #region Dispose Tests
+
+    [Fact]
+    public void Dispose_Should_Not_Throw_On_Multiple_Calls()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+        var cache = new DefaultAIPredictionCache(loggerMock.Object);
+
+        // Act & Assert - Multiple dispose calls should not throw
+        cache.Dispose(); // First call
+        cache.Dispose(); // Second call - should not throw
+        cache.Dispose(); // Third call - should not throw
     }
 
     #endregion

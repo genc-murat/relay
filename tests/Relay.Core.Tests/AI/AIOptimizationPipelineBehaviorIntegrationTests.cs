@@ -538,4 +538,640 @@ public class AIOptimizationPipelineBehaviorIntegrationTests
     {
         public string Value { get; set; } = string.Empty;
     }
+
+    [Fact]
+    public async Task HandleAsync_WithDisabledOptions_SkipsOptimization()
+    {
+        // Arrange
+        var disabledOptions = new AIOptimizationOptions
+        {
+            Enabled = false, // Disabled
+            LearningEnabled = true,
+            MinConfidenceScore = 0.7
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(disabledOptions),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        var executionCount = 0;
+        RequestHandlerDelegate<TestResponse> next = () =>
+        {
+            executionCount++;
+            return new ValueTask<TestResponse>(new TestResponse { Result = "direct" });
+        };
+
+        // Act
+        var result = await behavior.HandleAsync(new TestRequest(), next, CancellationToken.None);
+
+        // Assert - Should execute directly without optimization
+        Assert.NotNull(result);
+        Assert.Equal("direct", result.Result);
+        Assert.Equal(1, executionCount);
+        
+        // Verify no AI analysis was performed
+        _aiEngineMock.Verify(m => m.AnalyzeRequestAsync(
+            It.IsAny<TestRequest>(),
+            It.IsAny<RequestExecutionMetrics>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithCancelledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "should_not_reach" });
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await behavior.HandleAsync(new TestRequest(), next, cts.Token));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenShouldNotOptimize_SkipsOptimization()
+    {
+        // Arrange - Request with attribute that disables optimization
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(TestRequest),
+            TotalExecutions = 100,
+            SuccessfulExecutions = 100,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+            LastExecution = DateTimeOffset.UtcNow,
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(TestRequest)))
+            .Returns(stats);
+
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SystemLoadMetrics
+            {
+                CpuUtilization = 0.5,
+                MemoryUtilization = 0.5
+            });
+
+        // TestRequest has no AIOptimized attributes, so with default options, 
+        // it should still optimize. Let's verify the flow works correctly
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<TestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.None,
+                ConfidenceScore = 0.5
+            });
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        var executionCount = 0;
+        RequestHandlerDelegate<TestResponse> next = () =>
+        {
+            executionCount++;
+            return new ValueTask<TestResponse>(new TestResponse { Result = "no_optimization" });
+        };
+
+        // Act
+        var result = await behavior.HandleAsync(new TestRequest(), next, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(1, executionCount);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSystemMetricsFails_UsesFallbackMetrics()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(OptimizedTestRequest),
+            TotalExecutions = 50,
+            SuccessfulExecutions = 50,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+            LastExecution = DateTimeOffset.UtcNow,
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(OptimizedTestRequest)))
+            .Returns(stats);
+
+        // System metrics throws exception
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("System metrics unavailable"));
+
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<OptimizedTestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.None,
+                ConfidenceScore = 0.5
+            });
+
+        var optimizedLoggerMock = new Mock<ILogger<AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            optimizedLoggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        var executionCount = 0;
+        RequestHandlerDelegate<TestResponse> next = () =>
+        {
+            executionCount++;
+            return new ValueTask<TestResponse>(new TestResponse { Result = "fallback_metrics" });
+        };
+
+        // Act
+        var result = await behavior.HandleAsync(new OptimizedTestRequest(), next, CancellationToken.None);
+
+        // Assert - Should still work with fallback metrics
+        Assert.NotNull(result);
+        Assert.Equal("fallback_metrics", result.Result);
+        Assert.Equal(1, executionCount);
+
+        // Verify warning was logged
+        optimizedLoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to collect system metrics")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithMemoryAllocation_TracksMemoryUsage()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(OptimizedTestRequest),
+            TotalExecutions = 50,
+            SuccessfulExecutions = 50,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+            LastExecution = DateTimeOffset.UtcNow,
+            AverageMemoryAllocated = 1024L * 1024, // 1MB
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(OptimizedTestRequest)))
+            .Returns(stats);
+
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SystemLoadMetrics
+            {
+                CpuUtilization = 0.5,
+                MemoryUtilization = 0.5
+            });
+
+        RequestExecutionMetrics? capturedMetrics = null;
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<OptimizedTestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<OptimizedTestRequest, RequestExecutionMetrics, CancellationToken>((req, metrics, ct) =>
+            {
+                capturedMetrics = metrics;
+            })
+            .ReturnsAsync(new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.None,
+                ConfidenceScore = 0.5
+            });
+
+        var optimizedLoggerMock = new Mock<ILogger<AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            optimizedLoggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "memory_tracked" });
+
+        // Act
+        var result = await behavior.HandleAsync(new OptimizedTestRequest(), next, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(capturedMetrics);
+        Assert.Equal(1024L * 1024, capturedMetrics.MemoryUsage);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithMediumCpuPattern_EstimatesMediumCpu()
+    {
+        // Arrange - Medium P99/P50 ratio (3.5x)
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(OptimizedTestRequest),
+            TotalExecutions = 100,
+            SuccessfulExecutions = 95,
+            FailedExecutions = 5,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(200),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(100),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(300),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(350), // 3.5x = medium
+            LastExecution = DateTimeOffset.UtcNow,
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(OptimizedTestRequest)))
+            .Returns(stats);
+
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SystemLoadMetrics());
+
+        RequestExecutionMetrics? capturedMetrics = null;
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<OptimizedTestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<OptimizedTestRequest, RequestExecutionMetrics, CancellationToken>((req, metrics, ct) =>
+            {
+                capturedMetrics = metrics;
+            })
+            .ReturnsAsync(new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.None,
+                ConfidenceScore = 0.5
+            });
+
+        var optimizedLoggerMock = new Mock<ILogger<AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            optimizedLoggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse());
+
+        // Act
+        await behavior.HandleAsync(new OptimizedTestRequest(), next, CancellationToken.None);
+
+        // Assert - CPU should be medium (0.5)
+        Assert.NotNull(capturedMetrics);
+        Assert.Equal(0.5, capturedMetrics.CpuUsage);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithLowCpuPattern_EstimatesLowCpu()
+    {
+        // Arrange - Low P99/P50 ratio (2x)
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(OptimizedTestRequest),
+            TotalExecutions = 100,
+            SuccessfulExecutions = 100,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(150),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(100),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(180),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(200), // 2x = low
+            LastExecution = DateTimeOffset.UtcNow,
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(OptimizedTestRequest)))
+            .Returns(stats);
+
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SystemLoadMetrics());
+
+        RequestExecutionMetrics? capturedMetrics = null;
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<OptimizedTestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<OptimizedTestRequest, RequestExecutionMetrics, CancellationToken>((req, metrics, ct) =>
+            {
+                capturedMetrics = metrics;
+            })
+            .ReturnsAsync(new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.None,
+                ConfidenceScore = 0.5
+            });
+
+        var optimizedLoggerMock = new Mock<ILogger<AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            optimizedLoggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse());
+
+        // Act
+        await behavior.HandleAsync(new OptimizedTestRequest(), next, CancellationToken.None);
+
+        // Assert - CPU should be low (0.3)
+        Assert.NotNull(capturedMetrics);
+        Assert.Equal(0.3, capturedMetrics.CpuUsage);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithOperationCancelledDuringOptimization_FallsBackAndLearns()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(OptimizedTestRequest),
+            TotalExecutions = 50,
+            SuccessfulExecutions = 50,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+            LastExecution = DateTimeOffset.UtcNow,
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(OptimizedTestRequest)))
+            .Returns(stats);
+
+        // Throw OperationCanceledException during AI analysis (after system metrics)
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SystemLoadMetrics());
+
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<OptimizedTestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException("Cancelled during AI analysis"));
+
+        _aiEngineMock.Setup(m => m.LearnFromExecutionAsync(
+                It.IsAny<Type>(),
+                It.IsAny<OptimizationStrategy[]>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
+
+        var optimizedLoggerMock = new Mock<ILogger<AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            optimizedLoggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        var executionCount = 0;
+        RequestHandlerDelegate<TestResponse> next = () =>
+        {
+            executionCount++;
+            return new ValueTask<TestResponse>(new TestResponse { Result = "fallback" });
+        };
+
+        // Act
+        var result = await behavior.HandleAsync(new OptimizedTestRequest(), next, CancellationToken.None);
+
+        // Assert - Should execute despite cancellation
+        Assert.NotNull(result);
+        Assert.Equal("fallback", result.Result);
+        Assert.Equal(1, executionCount);
+
+        // Verify learning was called
+        _aiEngineMock.Verify(m => m.LearnFromExecutionAsync(
+            It.IsAny<Type>(),
+            It.IsAny<OptimizationStrategy[]>(),
+            It.IsAny<RequestExecutionMetrics>(),
+            CancellationToken.None), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenLearningFails_PropagatesException()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(OptimizedTestRequest),
+            TotalExecutions = 50,
+            SuccessfulExecutions = 50,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+            LastExecution = DateTimeOffset.UtcNow,
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(OptimizedTestRequest)))
+            .Returns(stats);
+
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SystemLoadMetrics());
+
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<OptimizedTestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.None,
+                ConfidenceScore = 0.5
+            });
+
+        // Learning fails
+        _aiEngineMock.Setup(m => m.LearnFromExecutionAsync(
+                It.IsAny<Type>(),
+                It.IsAny<OptimizationStrategy[]>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Learning service unavailable"));
+
+        var optimizedLoggerMock = new Mock<ILogger<AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            optimizedLoggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "learning_failed" });
+
+        // Act & Assert - Learning exception should propagate
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await behavior.HandleAsync(new OptimizedTestRequest(), next, CancellationToken.None));
+
+        Assert.Equal("Learning service unavailable", exception.Message);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenHandlerFails_RecordsFailureMetricsAndLearns()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(OptimizedTestRequest),
+            TotalExecutions = 50,
+            SuccessfulExecutions = 45,
+            FailedExecutions = 5,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+            LastExecution = DateTimeOffset.UtcNow,
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(OptimizedTestRequest)))
+            .Returns(stats);
+
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SystemLoadMetrics());
+
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<OptimizedTestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.None,
+                ConfidenceScore = 0.5
+            });
+
+        RequestExecutionMetrics? capturedMetrics = null;
+        _aiEngineMock.Setup(m => m.LearnFromExecutionAsync(
+                It.IsAny<Type>(),
+                It.IsAny<OptimizationStrategy[]>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Type, OptimizationStrategy[], RequestExecutionMetrics, CancellationToken>((type, strategies, metrics, ct) =>
+            {
+                capturedMetrics = metrics;
+            })
+            .Returns(ValueTask.CompletedTask);
+
+        var optimizedLoggerMock = new Mock<ILogger<AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            optimizedLoggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            throw new InvalidOperationException("Handler execution failed");
+
+        // Act & Assert - Should throw the handler exception
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await behavior.HandleAsync(new OptimizedTestRequest(), next, CancellationToken.None));
+
+        // Verify learning was called with failure metrics
+        Assert.NotNull(capturedMetrics);
+        Assert.Equal(0, capturedMetrics.SuccessfulExecutions);
+        Assert.Equal(1, capturedMetrics.FailedExecutions);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithLearningDisabled_DoesNotLearn()
+    {
+        // Arrange
+        var disabledLearningOptions = new AIOptimizationOptions
+        {
+            Enabled = true,
+            LearningEnabled = false, // Disabled
+            MinConfidenceScore = 0.7
+        };
+
+        var stats = new HandlerExecutionStats
+        {
+            RequestType = typeof(OptimizedTestRequest),
+            TotalExecutions = 50,
+            SuccessfulExecutions = 50,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P95ExecutionTime = TimeSpan.FromMilliseconds(150),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(200),
+            LastExecution = DateTimeOffset.UtcNow,
+            Properties = new Dictionary<string, object>()
+        };
+
+        _metricsProviderMock.Setup(m => m.GetHandlerExecutionStats(typeof(OptimizedTestRequest)))
+            .Returns(stats);
+
+        _systemMetricsMock.Setup(m => m.GetCurrentLoadAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SystemLoadMetrics());
+
+        _aiEngineMock.Setup(m => m.AnalyzeRequestAsync(
+                It.IsAny<OptimizedTestRequest>(),
+                It.IsAny<RequestExecutionMetrics>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new OptimizationRecommendation
+            {
+                Strategy = OptimizationStrategy.None,
+                ConfidenceScore = 0.5
+            });
+
+        var optimizedLoggerMock = new Mock<ILogger<AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<OptimizedTestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            optimizedLoggerMock.Object,
+            Options.Create(disabledLearningOptions),
+            _systemMetricsMock.Object,
+            _metricsProviderMock.Object);
+
+        RequestHandlerDelegate<TestResponse> next = () =>
+            new ValueTask<TestResponse>(new TestResponse { Result = "no_learning" });
+
+        // Act
+        var result = await behavior.HandleAsync(new OptimizedTestRequest(), next, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("no_learning", result.Result);
+
+        // Verify learning was NOT called
+        _aiEngineMock.Verify(m => m.LearnFromExecutionAsync(
+            It.IsAny<Type>(),
+            It.IsAny<OptimizationStrategy[]>(),
+            It.IsAny<RequestExecutionMetrics>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

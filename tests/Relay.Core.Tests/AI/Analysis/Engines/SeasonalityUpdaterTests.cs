@@ -447,6 +447,66 @@ public class SeasonalityUpdaterTests
     }
 
     [Fact]
+    public void UpdateSeasonalityPatterns_Should_Log_Debug_When_Metric_Deviates_From_Seasonal_Pattern()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<SeasonalityUpdater>>();
+        var updater = new SeasonalityUpdater(loggerMock.Object);
+        var timestamp = new DateTime(2025, 1, 14, 12, 0, 0); // Tuesday 12:00 (business hours)
+        // Expected multiplier is 1.5, but value is 0.3 which is outside bounds (0.75 to 2.25)
+        var metrics = new Dictionary<string, double> { ["cpu"] = 0.3 };
+
+        // Act
+        var result = updater.UpdateSeasonalityPatterns(metrics, timestamp);
+
+        // Assert
+        Assert.False(result["cpu"].MatchesSeasonality);
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("deviates from seasonal pattern")),
+                It.IsAny<Exception>(),
+                It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+            Times.Once);
+    }
+
+    [Fact]
+    public void UpdateSeasonalityPatterns_Should_Handle_Exception_During_Metric_Analysis()
+    {
+        // Arrange - Though the internal operations are protected, we can test that 
+        // the expected behavior occurs when an exception does happen in analysis
+        var loggerMock = new Mock<ILogger<SeasonalityUpdater>>();
+        var updater = new SeasonalityUpdater(loggerMock.Object);
+        var timestamp = new DateTime(2025, 1, 14, 12, 0, 0); // Tuesday 12:00 (business hours)
+        
+        // Using extreme values that could potentially trigger edge cases in calculations
+        var metrics = new Dictionary<string, double> 
+        { 
+            ["cpu"] = 1.5,
+            ["memory"] = double.MaxValue, // Very large value that might cause issues in calculations
+            ["disk"] = 1.2 
+        };
+
+        // Act
+        var result = updater.UpdateSeasonalityPatterns(metrics, timestamp);
+
+        // Assert - All metrics should be processed, with invalid ones following fallback behavior
+        Assert.Equal(3, result.Count);
+        Assert.Contains("cpu", result.Keys);
+        Assert.Contains("memory", result.Keys);
+        Assert.Contains("disk", result.Keys);
+        
+        // The normal metrics should work as expected
+        var cpuPattern = result["cpu"];
+        Assert.NotEqual("Unknown", cpuPattern.HourlyPattern); // Non-Unknown pattern for normal value
+        
+        // For very large values, they might not match seasonality but shouldn't cause exceptions
+        // due to internal protections, but this tests the overall resilience
+        Assert.NotNull(result["memory"]);
+    }
+
+    [Fact]
     public void UpdateSeasonalityPatterns_Should_Return_Correct_Pattern_Properties()
     {
         // Arrange

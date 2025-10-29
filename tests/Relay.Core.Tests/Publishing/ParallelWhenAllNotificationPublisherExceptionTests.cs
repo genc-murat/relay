@@ -15,13 +15,26 @@ namespace Relay.Core.Tests.Publishing
     {
         public record TestNotification(string Message) : INotification;
 
+        private static readonly object _executionLogLock = new object();
+        
         public class BasicHandler : INotificationHandler<TestNotification>
         {
             public static List<string> ExecutionLog { get; } = new();
 
+            public static void ClearExecutionLog()
+            {
+                lock (_executionLogLock)
+                {
+                    ExecutionLog.Clear();
+                }
+            }
+
             public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
             {
-                ExecutionLog.Add($"BasicHandler: {notification.Message}");
+                lock (_executionLogLock)
+                {
+                    ExecutionLog.Add($"BasicHandler: {notification.Message}");
+                }
                 return ValueTask.CompletedTask;
             }
         }
@@ -30,7 +43,10 @@ namespace Relay.Core.Tests.Publishing
         {
             public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
             {
-                BasicHandler.ExecutionLog.Add($"ThrowingHandler: {notification.Message}");
+                lock (_executionLogLock)
+                {
+                    BasicHandler.ExecutionLog.Add($"ThrowingHandler: {notification.Message}");
+                }
                 throw new InvalidOperationException("Handler failed");
             }
         }
@@ -39,7 +55,10 @@ namespace Relay.Core.Tests.Publishing
         {
             public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
             {
-                BasicHandler.ExecutionLog.Add($"SecondHandler: {notification.Message}");
+                lock (_executionLogLock)
+                {
+                    BasicHandler.ExecutionLog.Add($"SecondHandler: {notification.Message}");
+                }
                 return ValueTask.CompletedTask;
             }
         }
@@ -48,7 +67,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task PublishAsync_WithContinueOnException_ContinuesAndAggregatesExceptions()
         {
             // Arrange
-            BasicHandler.ExecutionLog.Clear();
+            BasicHandler.ClearExecutionLog();
             var testLogger = new TestLogger<ParallelWhenAllNotificationPublisher>();
             var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: true, testLogger);
             var handlers = new INotificationHandler<TestNotification>[]
@@ -81,7 +100,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task PublishAsync_WithContinueOnExceptionFalse_FailsFast()
         {
             // Arrange
-            BasicHandler.ExecutionLog.Clear();
+            BasicHandler.ClearExecutionLog();
             var testLogger = new TestLogger<ParallelWhenAllNotificationPublisher>();
             var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: false, testLogger);
             var handlers = new INotificationHandler<TestNotification>[]
@@ -103,7 +122,7 @@ namespace Relay.Core.Tests.Publishing
         public async Task PublishAsync_WithMultipleExceptions_AggregatesAll()
         {
             // Arrange
-            BasicHandler.ExecutionLog.Clear();
+            BasicHandler.ClearExecutionLog();
             var testLogger = new TestLogger<ParallelWhenAllNotificationPublisher>();
             var publisher = new ParallelWhenAllNotificationPublisher(continueOnException: true, testLogger);
             var handlers = new INotificationHandler<TestNotification>[]

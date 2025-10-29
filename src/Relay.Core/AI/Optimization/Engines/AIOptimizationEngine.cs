@@ -36,6 +36,14 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
     private readonly PredictiveAnalysisService _predictiveAnalysisService;
     private readonly ModelStatisticsService _modelStatisticsService;
 
+    // Dependencies for SystemMetricsService
+    private readonly IMetricsAggregator _metricsAggregator;
+    private readonly IHealthScorer _healthScorer;
+    private readonly ISystemAnalyzer _systemAnalyzer;
+    private readonly IMetricsPublisher _metricsPublisher;
+    private readonly MetricsCollectionOptions _metricsOptions;
+    private readonly HealthScoringOptions _healthOptions;
+
     // Timers and storage (placeholder implementations)
     private readonly Timer _modelUpdateTimer;
     private readonly Timer _metricsCollectionTimer;
@@ -46,10 +54,24 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
     public AIOptimizationEngine(
         ILogger<AIOptimizationEngine> logger,
-        IOptions<AIOptimizationOptions> options)
+        IOptions<AIOptimizationOptions> options,
+        IMetricsAggregator metricsAggregator,
+        IHealthScorer healthScorer,
+        ISystemAnalyzer systemAnalyzer,
+        IMetricsPublisher metricsPublisher,
+        MetricsCollectionOptions metricsOptions,
+        HealthScoringOptions healthOptions)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+
+        // Assign injected dependencies
+        _metricsAggregator = metricsAggregator ?? throw new ArgumentNullException(nameof(metricsAggregator));
+        _healthScorer = healthScorer ?? throw new ArgumentNullException(nameof(healthScorer));
+        _systemAnalyzer = systemAnalyzer ?? throw new ArgumentNullException(nameof(systemAnalyzer));
+        _metricsPublisher = metricsPublisher ?? throw new ArgumentNullException(nameof(metricsPublisher));
+        _metricsOptions = metricsOptions ?? throw new ArgumentNullException(nameof(metricsOptions));
+        _healthOptions = healthOptions ?? throw new ArgumentNullException(nameof(healthOptions));
 
         _requestAnalytics = new ConcurrentDictionary<Type, RequestAnalysisData>();
         _cachingAnalytics = new ConcurrentDictionary<Type, CachingAnalysisData>();
@@ -61,7 +83,15 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         _resourceOptimizationService = new ResourceOptimizationService(_logger);
         _machineLearningEnhancementService = new MachineLearningEnhancementService(_logger);
         _riskAssessmentService = new RiskAssessmentService(_logger);
-        _systemMetricsService = new SystemMetricsService(_logger);
+        var systemMetricsLogger = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance.CreateLogger<SystemMetricsService>();
+        _systemMetricsService = new SystemMetricsService(
+            systemMetricsLogger,
+            _metricsAggregator,
+            _healthScorer,
+            _systemAnalyzer,
+            _metricsPublisher,
+            _metricsOptions,
+            _healthOptions);
         var calculatorLogger = Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance.CreateLogger<SystemMetricsCalculator>();
         _systemMetricsCalculator = new SystemMetricsCalculator(calculatorLogger, _requestAnalytics);
         _predictiveAnalysisService = new PredictiveAnalysisService(_logger);
@@ -96,7 +126,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
             requestType, analysisData, executionMetrics, cancellationToken);
 
         // Apply machine learning enhancements
-        var systemMetrics = _systemMetricsService.CollectSystemMetrics();
+        var allMetrics = await _systemMetricsService.CollectAllMetricsAsync(cancellationToken);
+        var systemMetrics = ConvertMetricsToDictionary(allMetrics);
         var enhancement = _machineLearningEnhancementService.ApplyMachineLearningEnhancements(
             recommendation, analysisData, systemMetrics);
 
@@ -127,7 +158,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         _modelStatisticsService.RecordPrediction(requestType);
 
         // Record request for throughput calculation
-        _systemMetricsService.RecordRequestProcessed();
+        // Note: Throughput recording is now handled by ThroughputMetricsCollector
+        // _systemMetricsService.RecordRequestProcessed();
 
         // Store the predicted strategies for accuracy calculation
         _lastPredictions[requestType] = new[] { enhancedRecommendation.Strategy };
@@ -235,16 +267,16 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var keyMetrics = CollectKeyMetrics();
+        var keyMetrics = await CollectKeyMetricsAsync();
         var insights = new SystemPerformanceInsights
         {
             AnalysisTime = DateTime.UtcNow,
             AnalysisPeriod = timeWindow,
-            Bottlenecks = IdentifyBottlenecks(timeWindow),
-            Opportunities = IdentifyOptimizationOpportunities(timeWindow),
-            HealthScore = _systemMetricsService.CalculateSystemHealthScore(),
+            Bottlenecks = await IdentifyBottlenecksAsync(timeWindow),
+            Opportunities = await IdentifyOptimizationOpportunitiesAsync(timeWindow),
+            HealthScore = await _systemMetricsService.CalculateSystemHealthScoreAsync(cancellationToken),
             Predictions = _predictiveAnalysisService.GeneratePredictiveAnalysis(),
-            PerformanceGrade = CalculatePerformanceGrade(),
+            PerformanceGrade = await CalculatePerformanceGradeAsync(),
             KeyMetrics = keyMetrics,
             SeasonalPatterns = DetectSeasonalPatterns(keyMetrics),
             ResourceOptimization = _resourceOptimizationService.AnalyzeResourceUsage(keyMetrics, new Dictionary<string, double>()), // Using current metrics as historical for simplicity
@@ -274,10 +306,10 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         return _predictiveAnalysisService.GetLoadTransitions();
     }
 
-    public LoadPatternData GetLoadPatternAnalysis()
+    public async Task<LoadPatternData> GetLoadPatternAnalysisAsync(CancellationToken cancellationToken = default)
     {
         // Aggregate load pattern data from system metrics and predictive analysis services
-        var systemLoadData = _systemMetricsService.AnalyzeLoadPatterns();
+        var systemLoadData = await _systemMetricsService.AnalyzeLoadPatternsAsync(cancellationToken);
         var predictiveLoadData = _predictiveAnalysisService.AnalyzeLoadPatterns();
 
         // Combine the data - use the higher load level and merge predictions
@@ -330,10 +362,10 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
     }
 
     // Simplified private methods that delegate to services
-    private List<PerformanceBottleneck> IdentifyBottlenecks(TimeSpan timeWindow)
+    private async Task<List<PerformanceBottleneck>> IdentifyBottlenecksAsync(TimeSpan timeWindow)
     {
         var bottlenecks = new List<PerformanceBottleneck>();
-        var metrics = _systemMetricsService.CollectSystemMetrics();
+        var metrics = _systemMetricsService.GetCurrentMetricsAsDictionary();
 
         // Check CPU utilization
         var cpuUtilization = metrics.GetValueOrDefault("CpuUtilization", 0.0);
@@ -398,10 +430,10 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         return bottlenecks;
     }
 
-    private List<OptimizationOpportunity> IdentifyOptimizationOpportunities(TimeSpan timeWindow)
+    private async Task<List<OptimizationOpportunity>> IdentifyOptimizationOpportunitiesAsync(TimeSpan timeWindow)
     {
         var opportunities = new List<OptimizationOpportunity>();
-        var metrics = _systemMetricsService.CollectSystemMetrics();
+        var metrics = _systemMetricsService.GetCurrentMetricsAsDictionary();
 
         // Check for caching opportunities
         var repeatRate = metrics.GetValueOrDefault("AverageRepeatRate", 0.0);
@@ -468,9 +500,9 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         return opportunities;
     }
 
-    private char CalculatePerformanceGrade()
+    private async Task<char> CalculatePerformanceGradeAsync()
     {
-        var healthScore = _systemMetricsService.CalculateSystemHealthScore();
+        var healthScore = await _systemMetricsService.CalculateSystemHealthScoreAsync();
         return healthScore.Overall switch
         {
             > 0.9 => 'A',
@@ -481,9 +513,10 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         };
     }
 
-    private Dictionary<string, double> CollectKeyMetrics()
+    private async Task<Dictionary<string, double>> CollectKeyMetricsAsync()
     {
-        return _systemMetricsService.CollectSystemMetrics();
+        var allMetrics = await _systemMetricsService.CollectAllMetricsAsync();
+        return ConvertMetricsToDictionary(allMetrics);
     }
 
     private RiskAssessment AssessSystemRisk(Dictionary<string, double> systemMetrics)
@@ -524,7 +557,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
             // Calculate optimal epochs for training based on available data
             var dataSize = (long)_timeSeriesDb.GetHistory("ThroughputPerSecond", TimeSpan.FromHours(24)).Count();
-            var metrics = _systemMetricsService.CollectSystemMetrics();
+            var latestMetrics = _metricsAggregator.GetLatestMetrics();
+            var metrics = ConvertMetricsToDictionary(latestMetrics);
             var optimalEpochs = CalculateOptimalEpochs(dataSize, metrics);
 
             _logger.LogDebug("Calculated optimal epochs for training: {Epochs} based on {DataSize} data points", optimalEpochs, dataSize);
@@ -576,7 +610,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         try
         {
             // Collect comprehensive system metrics for AI analysis
-            var metrics = _systemMetricsService.CollectSystemMetrics();
+            var latestMetrics = _metricsAggregator.GetLatestMetrics();
+            var metrics = ConvertMetricsToDictionary(latestMetrics);
 
             // Store metrics in time-series database for ML.NET forecasting
             var timestamp = DateTime.UtcNow;
@@ -919,6 +954,24 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
     private double CalculateCurrentErrorRate() => _systemMetricsCalculator.CalculateCurrentErrorRate();
     private double GetDatabasePoolUtilization() => _systemMetricsCalculator.GetDatabasePoolUtilization();
     private double GetThreadPoolUtilization() => _systemMetricsCalculator.GetThreadPoolUtilization();
+
+    /// <summary>
+    /// Converts new metric format to legacy dictionary format for backward compatibility
+    /// </summary>
+    private Dictionary<string, double> ConvertMetricsToDictionary(Dictionary<string, IEnumerable<MetricValue>> allMetrics)
+    {
+        var result = new Dictionary<string, double>();
+
+        foreach (var collectorMetrics in allMetrics)
+        {
+            foreach (var metric in collectorMetrics.Value)
+            {
+                result[metric.Name] = metric.Value;
+            }
+        }
+
+        return result;
+    }
 
     public void Dispose()
     {

@@ -8,6 +8,7 @@ using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Analysis.TimeSeries;
 using Relay.Core.AI.Optimization.Data;
+using Relay.Core.AI.Optimization.Services;
 
 namespace Relay.Core.Tests.AI
 {
@@ -16,6 +17,12 @@ namespace Relay.Core.Tests.AI
         protected readonly Mock<ILogger<AIOptimizationEngine>> _loggerMock;
         protected readonly AIOptimizationOptions _options;
         protected readonly AIOptimizationEngine _engine;
+        protected readonly IMetricsAggregator _metricsAggregator;
+        protected readonly IHealthScorer _healthScorer;
+        protected readonly ISystemAnalyzer _systemAnalyzer;
+        protected readonly IMetricsPublisher _metricsPublisher;
+        protected readonly MetricsCollectionOptions _metricsOptions;
+        protected readonly HealthScoringOptions _healthOptions;
 
         public AIOptimizationEngineTestBase()
         {
@@ -33,7 +40,38 @@ namespace Relay.Core.Tests.AI
             var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
             optionsMock.Setup(o => o.Value).Returns(_options);
 
-            _engine = new AIOptimizationEngine(_loggerMock.Object, optionsMock.Object);
+            // Create mock dependencies for AIOptimizationEngine
+            var metricsAggregatorMock = new Mock<IMetricsAggregator>();
+            var healthScorerMock = new Mock<IHealthScorer>();
+            var systemAnalyzerMock = new Mock<ISystemAnalyzer>();
+            var metricsPublisherMock = new Mock<IMetricsPublisher>();
+
+            _metricsAggregator = metricsAggregatorMock.Object;
+            _healthScorer = healthScorerMock.Object;
+            _systemAnalyzer = systemAnalyzerMock.Object;
+            _metricsPublisher = metricsPublisherMock.Object;
+            _metricsOptions = new MetricsCollectionOptions();
+            _healthOptions = new HealthScoringOptions();
+
+            // Setup default mock behaviors
+            metricsAggregatorMock.Setup(x => x.CollectAllMetricsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Dictionary<string, IEnumerable<MetricValue>>());
+            metricsAggregatorMock.Setup(x => x.GetLatestMetrics())
+                .Returns(new Dictionary<string, IEnumerable<MetricValue>>());
+            healthScorerMock.Setup(x => x.CalculateScoreAsync(It.IsAny<Dictionary<string, double>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(0.8);
+            systemAnalyzerMock.Setup(x => x.AnalyzeLoadPatternsAsync(It.IsAny<Dictionary<string, double>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new LoadPatternData { Level = LoadLevel.Medium });
+
+            _engine = new AIOptimizationEngine(
+                _loggerMock.Object,
+                optionsMock.Object,
+                _metricsAggregator,
+                _healthScorer,
+                _systemAnalyzer,
+                _metricsPublisher,
+                _metricsOptions,
+                _healthOptions);
         }
 
         public void Dispose()

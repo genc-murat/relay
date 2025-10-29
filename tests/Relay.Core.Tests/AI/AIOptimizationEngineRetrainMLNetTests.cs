@@ -2,9 +2,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Optimization.Data;
+using Relay.Core.AI.Optimization.Services;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type
@@ -41,7 +45,33 @@ public class AIOptimizationEngineRetrainMLNetTests : IDisposable
         var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
         optionsMock.Setup(o => o.Value).Returns(_options);
 
-        _engine = new AIOptimizationEngine(_loggerMock.Object, optionsMock.Object);
+        // Create mock dependencies
+        var metricsAggregatorMock = new Mock<IMetricsAggregator>();
+        var healthScorerMock = new Mock<IHealthScorer>();
+        var systemAnalyzerMock = new Mock<ISystemAnalyzer>();
+        var metricsPublisherMock = new Mock<IMetricsPublisher>();
+        var metricsOptions = new MetricsCollectionOptions();
+        var healthOptions = new HealthScoringOptions();
+
+        // Setup default mock behaviors
+        metricsAggregatorMock.Setup(x => x.CollectAllMetricsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, IEnumerable<MetricValue>>());
+        metricsAggregatorMock.Setup(x => x.GetLatestMetrics())
+            .Returns(new Dictionary<string, IEnumerable<MetricValue>>());
+        healthScorerMock.Setup(x => x.CalculateScoreAsync(It.IsAny<Dictionary<string, double>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0.8);
+        systemAnalyzerMock.Setup(x => x.AnalyzeLoadPatternsAsync(It.IsAny<Dictionary<string, double>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LoadPatternData { Level = LoadLevel.Medium });
+
+        _engine = new AIOptimizationEngine(
+            _loggerMock.Object,
+            optionsMock.Object,
+            metricsAggregatorMock.Object,
+            healthScorerMock.Object,
+            systemAnalyzerMock.Object,
+            metricsPublisherMock.Object,
+            metricsOptions,
+            healthOptions);
     }
 
     public void Dispose()

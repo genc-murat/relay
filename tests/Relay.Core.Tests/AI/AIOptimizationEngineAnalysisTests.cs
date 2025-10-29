@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.AI;
 using Relay.Core.AI.Optimization.Data;
+using Relay.Core.AI.Optimization.Services;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -33,7 +34,33 @@ public class AIOptimizationEngineAnalysisTests : IDisposable
         var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
         optionsMock.Setup(o => o.Value).Returns(_options);
 
-        _engine = new AIOptimizationEngine(_loggerMock.Object, optionsMock.Object);
+        // Create mock dependencies
+        var metricsAggregatorMock = new Mock<IMetricsAggregator>();
+        var healthScorerMock = new Mock<IHealthScorer>();
+        var systemAnalyzerMock = new Mock<ISystemAnalyzer>();
+        var metricsPublisherMock = new Mock<IMetricsPublisher>();
+        var metricsOptions = new MetricsCollectionOptions();
+        var healthOptions = new HealthScoringOptions();
+
+        // Setup default mock behaviors
+        metricsAggregatorMock.Setup(x => x.CollectAllMetricsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, IEnumerable<MetricValue>>());
+        metricsAggregatorMock.Setup(x => x.GetLatestMetrics())
+            .Returns(new Dictionary<string, IEnumerable<MetricValue>>());
+        healthScorerMock.Setup(x => x.CalculateScoreAsync(It.IsAny<Dictionary<string, double>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0.8);
+        systemAnalyzerMock.Setup(x => x.AnalyzeLoadPatternsAsync(It.IsAny<Dictionary<string, double>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LoadPatternData { Level = LoadLevel.Medium });
+
+        _engine = new AIOptimizationEngine(
+            _loggerMock.Object,
+            optionsMock.Object,
+            metricsAggregatorMock.Object,
+            healthScorerMock.Object,
+            systemAnalyzerMock.Object,
+            metricsPublisherMock.Object,
+            metricsOptions,
+            healthOptions);
     }
 
     public void Dispose()
@@ -411,21 +438,8 @@ public class AIOptimizationEngineAnalysisTests : IDisposable
         Assert.IsType<List<LoadTransition>>(transitions);
     }
 
-    [Fact]
-    public void GetLoadPatternAnalysis_Should_Return_Valid_LoadPatternData()
-    {
-        // Act
-        var result = _engine.GetLoadPatternAnalysis();
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.IsType<LoadPatternData>(result);
-        Assert.True(result.SuccessRate >= 0.0 && result.SuccessRate <= 1.0);
-        Assert.True(result.AverageImprovement >= 0.0);
-        Assert.True(result.TotalPredictions >= 0);
-        Assert.NotNull(result.StrategyEffectiveness);
-        Assert.NotNull(result.Predictions);
-    }
+    // Test removed - GetLoadPatternAnalysis functionality moved to ISystemAnalyzer
+    // Test system analyzer directly in SystemAnalyzerTests instead
 
     [Fact]
     public async Task GetSystemInsightsAsync_Should_Include_Seasonal_Patterns()

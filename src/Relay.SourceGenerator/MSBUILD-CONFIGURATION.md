@@ -67,6 +67,15 @@ This configuration will apply to all projects in the solution.
 | `RelayUseAggressiveInlining` | `bool` | `true` | Use `[MethodImpl(AggressiveInlining)]` |
 | `RelayCustomNamespace` | `string` | `Relay.Generated` | Custom namespace for generated code |
 
+### Performance Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `RelayEnablePerformanceOptimizations` | `bool` | `true` | Enable all performance optimizations |
+| `RelayMaxDegreeOfParallelism` | `int` | `4` | Maximum parallel threads for handler discovery (1-64) |
+| `RelayEnableKeyedServices` | `bool` | `true` | Enable .NET 8+ keyed services support |
+| `RelayEnableAggressiveInlining` | `bool` | `true` | Enable aggressive method inlining |
+
 ### Generator Enable/Disable Flags
 
 | Property | Default | Generator | Purpose |
@@ -395,6 +404,30 @@ String properties accept any valid string value:
 1. **Disable Unused Generators**: Each disabled generator reduces build time
 2. **Use Conditional Configuration**: Enable all generators for Release, minimal for Debug
 3. **Disable Debug Info in Production**: Set `RelayIncludeDebugInfo` to `false` for Release builds
+4. **Tune Parallelism**: Adjust `RelayMaxDegreeOfParallelism` based on your CPU cores (recommended: 2-8)
+5. **Disable Documentation in Debug**: Set `RelayIncludeDocumentation` to `false` for faster debug builds
+
+### Performance Configuration Example
+
+```xml
+<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+  <!-- Fast debug builds -->
+  <RelayIncludeDebugInfo>true</RelayIncludeDebugInfo>
+  <RelayIncludeDocumentation>false</RelayIncludeDocumentation>
+  <RelayMaxDegreeOfParallelism>2</RelayMaxDegreeOfParallelism>
+  <RelayEnableEndpointMetadata>false</RelayEnableEndpointMetadata>
+  <RelayEnablePipelineRegistry>false</RelayEnablePipelineRegistry>
+</PropertyGroup>
+
+<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+  <!-- Optimized release builds -->
+  <RelayIncludeDebugInfo>false</RelayIncludeDebugInfo>
+  <RelayIncludeDocumentation>true</RelayIncludeDocumentation>
+  <RelayMaxDegreeOfParallelism>8</RelayMaxDegreeOfParallelism>
+  <RelayEnablePerformanceOptimizations>true</RelayEnablePerformanceOptimizations>
+  <RelayEnableAggressiveInlining>true</RelayEnableAggressiveInlining>
+</PropertyGroup>
+```
 
 ---
 

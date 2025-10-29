@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -63,6 +64,11 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
             // Debugger.Launch();
         }
 
+        // Create configuration pipeline with value-based equality for incremental caching
+        var configuration = context.AnalyzerConfigOptionsProvider
+            .Select(static (options, _) => ParseConfiguration(options))
+            .WithComparer(Configuration.RelayConfigurationComparer.Instance);
+
         // Create pipeline for class declarations that implement handler interfaces
         // Use value-based equality comparer for efficient incremental caching
         var handlerClasses = context.SyntaxProvider
@@ -79,15 +85,29 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
                 transform: static (ctx, _) => ctx.Node)
             .Where(static m => m != null);
 
-        // Create pipeline for compilation data
-        var compilationAndHandlers = context.CompilationProvider.Combine(handlerClasses.Collect());
+        // Combine pipelines: compilation + handlers + configuration
+        var compilationAndHandlers = context.CompilationProvider
+            .Combine(handlerClasses.Collect())
+            .Combine(configuration);
+        
         var compilationAndAttributeMethods = context.CompilationProvider.Combine(relayAttributeMethods.Collect());
 
-        // Register source output
+        // Register source output with configuration
         context.RegisterSourceOutput(compilationAndHandlers, Execute);
         
         // Register diagnostic output for missing reference detection
         context.RegisterSourceOutput(compilationAndAttributeMethods, CheckForMissingRelayCoreReference);
+    }
+
+    private static Configuration.RelayConfiguration ParseConfiguration(AnalyzerConfigOptionsProvider options)
+    {
+        var generationOptions = Generators.MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
+        
+        return new Configuration.RelayConfiguration
+        {
+            Options = generationOptions,
+            CreatedAt = DateTime.UtcNow
+        };
     }
 
     private static bool IsCandidateHandlerClass(SyntaxNode node)
@@ -311,26 +331,36 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
                (interfaceSymbol.Name == "IStreamHandler" && interfaceSymbol.ContainingNamespace?.ToDisplayString() == "Relay.Core.Contracts.Handlers");
     }
 
-    internal static void Execute(SourceProductionContext context, (Compilation Left, ImmutableArray<HandlerClassInfo?> Right) source)
+    internal static void Execute(SourceProductionContext context, ((Compilation Left, ImmutableArray<HandlerClassInfo?> Right) Left, Configuration.RelayConfiguration Right) source)
     {
         try
         {
-            var (compilation, handlerClasses) = source;
+            var ((compilation, handlerClasses), configuration) = source;
+            var options = configuration.Options;
             
             var validHandlers = handlerClasses.Where(h => h != null).ToList();
             
             if (validHandlers.Count == 0)
             {
-                // No handlers found, generate basic AddRelay method
-                GenerateBasicAddRelayMethod(context);
+                // No handlers found, generate basic AddRelay method if DI generation is enabled
+                if (options.EnableDIGeneration)
+                {
+                    GenerateBasicAddRelayMethod(context);
+                }
                 return;
             }
 
-            // Generate DI registration
-            GenerateDIRegistrations(context, validHandlers);
+            // Generate DI registration if enabled
+            if (options.EnableDIGeneration)
+            {
+                GenerateDIRegistrations(context, validHandlers, options);
+            }
 
-            // Generate optimized dispatchers
-            GenerateOptimizedDispatchers(context, validHandlers);
+            // Generate optimized dispatchers if enabled
+            if (options.EnableOptimizedDispatcher)
+            {
+                GenerateOptimizedDispatchers(context, validHandlers, options);
+            }
 
         }
         catch (Exception ex)
@@ -350,18 +380,18 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
         context.AddSource("RelayRegistration.g.cs", source);
     }
 
-    private static void GenerateDIRegistrations(SourceProductionContext context, List<HandlerClassInfo?> handlerClasses)
+    private static void GenerateDIRegistrations(SourceProductionContext context, List<HandlerClassInfo?> handlerClasses, Generators.GenerationOptions options)
     {
         var validHandlers = handlerClasses.Where(h => h != null).Cast<HandlerClassInfo>().ToList();
-        var source = GenerateDIRegistrationSource(validHandlers);
+        var source = GenerateDIRegistrationSource(validHandlers, options);
         context.AddSource("RelayRegistration.g.cs", source);
     }
 
-    private static void GenerateOptimizedDispatchers(SourceProductionContext context, List<HandlerClassInfo?> handlerClasses)
+    private static void GenerateOptimizedDispatchers(SourceProductionContext context, List<HandlerClassInfo?> handlerClasses, Generators.GenerationOptions options)
     {
         var validHandlers = handlerClasses.Where(h => h != null).Cast<HandlerClassInfo>().ToList();
         // Generate optimized request dispatcher
-        var requestDispatcherSource = GenerateOptimizedRequestDispatcher(validHandlers);
+        var requestDispatcherSource = GenerateOptimizedRequestDispatcher(validHandlers, options);
         context.AddSource("OptimizedRequestDispatcher.g.cs", requestDispatcherSource);
     }
 
@@ -402,7 +432,7 @@ namespace Microsoft.Extensions.DependencyInjection
 }";
     }
 
-    private static string GenerateDIRegistrationSource(List<HandlerClassInfo> handlerClasses)
+    private static string GenerateDIRegistrationSource(List<HandlerClassInfo> handlerClasses, Generators.GenerationOptions options)
     {
         // Test hook to force exception for coverage
         if (TestForceException)
@@ -418,6 +448,13 @@ namespace Microsoft.Extensions.DependencyInjection
             sb.AppendLine("// Generated by Relay.SourceGenerator");
             sb.AppendLine($"// Generation time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             sb.AppendLine();
+            
+            if (options.EnableNullableContext)
+            {
+                sb.AppendLine("#nullable enable");
+                sb.AppendLine();
+            }
+            
             sb.AppendLine("using System;");
             sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
             sb.AppendLine("using Microsoft.Extensions.DependencyInjection.Extensions;");
@@ -425,21 +462,40 @@ namespace Microsoft.Extensions.DependencyInjection
             sb.AppendLine();
             sb.AppendLine("namespace Microsoft.Extensions.DependencyInjection");
             sb.AppendLine("{");
-            sb.AppendLine("    /// <summary>");
-            sb.AppendLine("    /// Extension methods for registering Relay services with the DI container.");
-            sb.AppendLine("    /// </summary>");
+            
+            if (options.IncludeDocumentation)
+            {
+                sb.AppendLine("    /// <summary>");
+                sb.AppendLine("    /// Extension methods for registering Relay services with the DI container.");
+                sb.AppendLine("    /// </summary>");
+            }
+            
             sb.AppendLine("    public static partial class RelayServiceCollectionExtensions");
             sb.AppendLine("    {");
-            sb.AppendLine("        /// <summary>");
-            sb.AppendLine("        /// Registers all Relay handlers and services with the DI container.");
-            sb.AppendLine("        /// </summary>");
-            sb.AppendLine("        /// <param name=\"services\">The service collection.</param>");
-            sb.AppendLine("        /// <returns>The service collection for chaining.</returns>");
+            
+            if (options.IncludeDocumentation)
+            {
+                sb.AppendLine("        /// <summary>");
+                sb.AppendLine("        /// Registers all Relay handlers and services with the DI container.");
+                sb.AppendLine("        /// </summary>");
+                sb.AppendLine("        /// <param name=\"services\">The service collection.</param>");
+                sb.AppendLine("        /// <returns>The service collection for chaining.</returns>");
+            }
+            
             sb.AppendLine("        public static IServiceCollection AddRelay(this IServiceCollection services)");
             sb.AppendLine("        {");
             sb.AppendLine("            // Register core Relay services");
             sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Core.IRelay, Relay.Core.Implementation.Core.RelayImplementation>();");
-            sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Generated.GeneratedRequestDispatcher>();");
+            
+            if (options.EnableOptimizedDispatcher)
+            {
+                sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Generated.GeneratedRequestDispatcher>();");
+            }
+            else
+            {
+                sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IRequestDispatcher, Relay.Core.Implementation.Fallback.FallbackRequestDispatcher>();");
+            }
+            
             sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.IStreamDispatcher, Relay.Core.Implementation.Dispatchers.StreamDispatcher>();");
             sb.AppendLine("            services.TryAddTransient<Relay.Core.Contracts.Dispatchers.INotificationDispatcher, Relay.Core.Implementation.Dispatchers.NotificationDispatcher>();");
             sb.AppendLine();
@@ -474,7 +530,7 @@ namespace Microsoft.Extensions.DependencyInjection
         }
     }
 
-    private static string GenerateOptimizedRequestDispatcher(List<HandlerClassInfo> handlerClasses)
+    private static string GenerateOptimizedRequestDispatcher(List<HandlerClassInfo> handlerClasses, Generators.GenerationOptions options)
     {
         var sb = GetStringBuilder();
 
@@ -483,7 +539,12 @@ namespace Microsoft.Extensions.DependencyInjection
             sb.AppendLine("// <auto-generated />");
             sb.AppendLine("// Generated by Relay.SourceGenerator - Optimized Request Dispatcher");
             sb.AppendLine();
-            sb.AppendLine("#nullable enable");
+            
+            if (options.EnableNullableContext)
+            {
+                sb.AppendLine("#nullable enable");
+            }
+            
             sb.AppendLine();
             sb.AppendLine("using System;");
             sb.AppendLine("using System.Runtime.CompilerServices;");

@@ -20,15 +20,24 @@ namespace Relay.SourceGenerator.Generators
         {
             var globalOptions = options.GlobalOptions;
 
+            // Check both property names for aggressive inlining (UseAggressiveInlining is legacy, EnableAggressiveInlining is new)
+            var useAggressiveInlining = GetBoolProperty(globalOptions, "build_property.RelayUseAggressiveInlining", true);
+            var enableAggressiveInlining = GetBoolProperty(globalOptions, "build_property.RelayEnableAggressiveInlining", useAggressiveInlining);
+
             return new GenerationOptions
             {
                 // General options
                 IncludeDebugInfo = GetBoolProperty(globalOptions, "build_property.RelayIncludeDebugInfo", false),
                 IncludeDocumentation = GetBoolProperty(globalOptions, "build_property.RelayIncludeDocumentation", true),
                 EnableNullableContext = GetBoolProperty(globalOptions, "build_property.RelayEnableNullableContext", true),
-                UseAggressiveInlining = GetBoolProperty(globalOptions, "build_property.RelayUseAggressiveInlining", true),
+                UseAggressiveInlining = enableAggressiveInlining,
                 CustomNamespace = GetStringProperty(globalOptions, "build_property.RelayCustomNamespace"),
                 AssemblyName = GetStringProperty(globalOptions, "build_property.AssemblyName") ?? "Relay.Generated",
+
+                // Performance options
+                EnablePerformanceOptimizations = GetBoolProperty(globalOptions, "build_property.RelayEnablePerformanceOptimizations", true),
+                MaxDegreeOfParallelism = GetIntProperty(globalOptions, "build_property.RelayMaxDegreeOfParallelism", 4),
+                EnableKeyedServices = GetBoolProperty(globalOptions, "build_property.RelayEnableKeyedServices", true),
 
                 // Generator enable/disable flags
                 EnableDIGeneration = GetBoolProperty(globalOptions, "build_property.RelayEnableDIGeneration", true),
@@ -74,6 +83,22 @@ namespace Relay.SourceGenerator.Generators
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Reads an integer property from MSBuild configuration.
+        /// </summary>
+        private static int GetIntProperty(AnalyzerConfigOptions options, string propertyName, int defaultValue)
+        {
+            if (options.TryGetValue(propertyName, out var value) && !string.IsNullOrWhiteSpace(value))
+            {
+                if (int.TryParse(value, out var result))
+                {
+                    return result;
+                }
+            }
+
+            return defaultValue;
         }
 
         /// <summary>

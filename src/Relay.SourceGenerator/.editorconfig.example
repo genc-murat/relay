@@ -1,0 +1,145 @@
+# Example .editorconfig for Relay.SourceGenerator
+# Place this file in your project root to configure diagnostic severity
+
+# This file demonstrates how to configure Relay source generator diagnostics
+# Copy relevant sections to your project's .editorconfig file
+
+root = true
+
+[*.cs]
+
+# ============================================================================
+# Relay Source Generator Diagnostic Configuration
+# ============================================================================
+
+# Error Diagnostics (RELAY_GEN_001-099)
+# -----------------------------------------------------------------------------
+
+# RELAY_GEN_001: Generator Error
+dotnet_diagnostic.RELAY_GEN_001.severity = error
+
+# RELAY_GEN_002: Missing Relay.Core Reference
+dotnet_diagnostic.RELAY_GEN_002.severity = error
+
+# RELAY_GEN_003: Duplicate Handler
+dotnet_diagnostic.RELAY_GEN_003.severity = error
+
+# RELAY_GEN_004: Invalid Handler Signature
+dotnet_diagnostic.RELAY_GEN_004.severity = error
+
+# RELAY_GEN_005: Handler Not Found
+dotnet_diagnostic.RELAY_GEN_005.severity = error
+
+
+# Warning Diagnostics (RELAY_GEN_101-199)
+# -----------------------------------------------------------------------------
+
+# RELAY_GEN_101: Unused Handler
+dotnet_diagnostic.RELAY_GEN_101.severity = warning
+
+# RELAY_GEN_102: Missing ConfigureAwait
+dotnet_diagnostic.RELAY_GEN_102.severity = suggestion
+
+# RELAY_GEN_103: Sync Over Async
+dotnet_diagnostic.RELAY_GEN_103.severity = warning
+
+# RELAY_GEN_104: Performance Warning
+dotnet_diagnostic.RELAY_GEN_104.severity = suggestion
+
+# RELAY_GEN_105: Obsolete Handler Pattern
+dotnet_diagnostic.RELAY_GEN_105.severity = warning
+
+# RELAY_GEN_106: Private Handler
+dotnet_diagnostic.RELAY_GEN_106.severity = warning
+
+# RELAY_GEN_107: Internal Handler
+dotnet_diagnostic.RELAY_GEN_107.severity = suggestion
+
+
+# Configuration Diagnostics (RELAY_GEN_201-299)
+# -----------------------------------------------------------------------------
+
+# RELAY_GEN_201: Invalid Pipeline Order
+dotnet_diagnostic.RELAY_GEN_201.severity = error
+
+# RELAY_GEN_202: Invalid Return Type
+dotnet_diagnostic.RELAY_GEN_202.severity = error
+
+# RELAY_GEN_203: Missing Parameter
+dotnet_diagnostic.RELAY_GEN_203.severity = error
+
+# RELAY_GEN_213: Invalid Configuration Value
+dotnet_diagnostic.RELAY_GEN_213.severity = error
+
+# RELAY_GEN_214: Missing Required Attribute
+dotnet_diagnostic.RELAY_GEN_214.severity = error
+
+# RELAY_GEN_215: Obsolete Handler Pattern
+dotnet_diagnostic.RELAY_GEN_215.severity = warning
+
+# RELAY_GEN_216: Performance Bottleneck
+dotnet_diagnostic.RELAY_GEN_216.severity = suggestion
+
+
+# Info Messages (RELAY_INFO)
+# -----------------------------------------------------------------------------
+
+# RELAY_INFO: Informational messages
+dotnet_diagnostic.RELAY_INFO.severity = suggestion
+
+
+# ============================================================================
+# Common Configuration Scenarios
+# ============================================================================
+
+# Scenario 1: Strict Mode (All warnings as errors)
+# Uncomment to enable:
+# dotnet_diagnostic.RELAY_GEN_101.severity = error
+# dotnet_diagnostic.RELAY_GEN_102.severity = error
+# dotnet_diagnostic.RELAY_GEN_103.severity = error
+# dotnet_diagnostic.RELAY_GEN_104.severity = error
+# dotnet_diagnostic.RELAY_GEN_105.severity = error
+# dotnet_diagnostic.RELAY_GEN_106.severity = error
+
+# Scenario 2: Relaxed Mode (Suppress non-critical warnings)
+# Uncomment to enable:
+# dotnet_diagnostic.RELAY_GEN_102.severity = none
+# dotnet_diagnostic.RELAY_GEN_104.severity = none
+# dotnet_diagnostic.RELAY_GEN_106.severity = suggestion
+# dotnet_diagnostic.RELAY_GEN_107.severity = none
+
+# Scenario 3: Performance Focus (Highlight performance issues)
+# Uncomment to enable:
+# dotnet_diagnostic.RELAY_GEN_102.severity = warning
+# dotnet_diagnostic.RELAY_GEN_103.severity = error
+# dotnet_diagnostic.RELAY_GEN_104.severity = warning
+# dotnet_diagnostic.RELAY_GEN_216.severity = warning
+
+
+# ============================================================================
+# Project-Specific Suppressions
+# ============================================================================
+
+# Example: Suppress private handler warnings for test projects
+# [*Tests.cs]
+# dotnet_diagnostic.RELAY_GEN_106.severity = none
+
+# Example: Suppress internal handler info for internal libraries
+# [*Internal*.cs]
+# dotnet_diagnostic.RELAY_GEN_107.severity = none
+
+
+# ============================================================================
+# Notes
+# ============================================================================
+
+# Severity Levels:
+# - none: Suppresses the diagnostic completely
+# - silent: Shows in IDE but not in build output
+# - suggestion: Shows as a suggestion (three dots in IDE)
+# - warning: Shows as a warning
+# - error: Shows as an error and fails the build
+
+# For more information:
+# - See DIAGNOSTIC-CONFIGURATION.md for detailed diagnostic descriptions
+# - See MSBUILD-CONFIGURATION.md for MSBuild property configuration

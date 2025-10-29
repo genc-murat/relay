@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Relay.SourceGenerator.Diagnostics;
+using Relay.SourceGenerator.Generators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +17,113 @@ public class ConfigurationValidator
     public ConfigurationValidator(IDiagnosticReporter diagnosticReporter)
     {
         _diagnosticReporter = diagnosticReporter ?? throw new ArgumentNullException(nameof(diagnosticReporter));
+    }
+
+    /// <summary>
+    /// Validates GenerationOptions for invalid values and conflicts.
+    /// </summary>
+    public void ValidateGenerationOptions(GenerationOptions options)
+    {
+        if (options == null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        // Validate MaxDegreeOfParallelism
+        if (options.MaxDegreeOfParallelism < 1 || options.MaxDegreeOfParallelism > 64)
+        {
+            _diagnosticReporter.ReportDiagnostic(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.InvalidConfigurationValue,
+                    Location.None,
+                    "RelayMaxDegreeOfParallelism",
+                    options.MaxDegreeOfParallelism.ToString(),
+                    "Value must be between 1 and 64"));
+        }
+
+        // Validate CustomNamespace
+        if (!string.IsNullOrWhiteSpace(options.CustomNamespace))
+        {
+            if (!IsValidNamespace(options.CustomNamespace!))
+            {
+                _diagnosticReporter.ReportDiagnostic(
+                    Diagnostic.Create(
+                        DiagnosticDescriptors.InvalidConfigurationValue,
+                        Location.None,
+                        "RelayCustomNamespace",
+                        options.CustomNamespace,
+                        "Must be a valid C# namespace"));
+            }
+        }
+
+        // Validate conflicting configurations
+        ValidateConflictingConfigurations(options);
+    }
+
+    /// <summary>
+    /// Validates for conflicting configuration options.
+    /// </summary>
+    private void ValidateConflictingConfigurations(GenerationOptions options)
+    {
+        // If optimized dispatcher is disabled but DI generation tries to use it
+        if (!options.EnableOptimizedDispatcher && options.EnableDIGeneration)
+        {
+            // This is valid - DI will use fallback dispatcher
+            // Just informational, no error
+        }
+
+        // If all generators are disabled
+        if (!options.EnableDIGeneration &&
+            !options.EnableHandlerRegistry &&
+            !options.EnableOptimizedDispatcher &&
+            !options.EnableNotificationDispatcher &&
+            !options.EnablePipelineRegistry &&
+            !options.EnableEndpointMetadata)
+        {
+            _diagnosticReporter.ReportDiagnostic(
+                Diagnostic.Create(
+                    DiagnosticDescriptors.InvalidConfigurationValue,
+                    Location.None,
+                    "All Generators",
+                    "disabled",
+                    "At least one generator should be enabled"));
+        }
+
+        // If performance optimizations are disabled but aggressive inlining is enabled
+        if (!options.EnablePerformanceOptimizations && options.EnableAggressiveInlining)
+        {
+            // This is a minor conflict - aggressive inlining won't have much effect
+            // Not an error, just potentially confusing configuration
+        }
+    }
+
+    /// <summary>
+    /// Validates that a string is a valid C# namespace.
+    /// </summary>
+    private static bool IsValidNamespace(string ns)
+    {
+        if (string.IsNullOrWhiteSpace(ns))
+            return false;
+
+        var parts = ns.Split('.');
+        foreach (var part in parts)
+        {
+            if (string.IsNullOrWhiteSpace(part))
+                return false;
+
+            // Check if part starts with a digit
+            if (char.IsDigit(part[0]))
+                return false;
+
+            // Check if all characters are valid identifier characters
+            foreach (var ch in part)
+            {
+                if (!char.IsLetterOrDigit(ch) && ch != '_')
+                    return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

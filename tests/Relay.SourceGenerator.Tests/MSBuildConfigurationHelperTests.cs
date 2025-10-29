@@ -97,6 +97,99 @@ public class MSBuildConfigurationHelperTests
     }
 
     [Fact]
+    public void CreateFromMSBuildProperties_IntegerProperty_ValidValue_ReturnsValue()
+    {
+        // Arrange
+        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RelayMaxDegreeOfParallelism"] = "8"
+        });
+
+        // Act
+        var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
+
+        // Assert
+        Assert.Equal(8, result.MaxDegreeOfParallelism);
+    }
+
+    [Fact]
+    public void CreateFromMSBuildProperties_IntegerProperty_InvalidValue_ReturnsDefault()
+    {
+        // Arrange
+        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RelayMaxDegreeOfParallelism"] = "invalid"
+        });
+
+        // Act
+        var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
+
+        // Assert
+        Assert.Equal(4, result.MaxDegreeOfParallelism); // Default value
+    }
+
+    [Fact]
+    public void CreateFromMSBuildProperties_IntegerProperty_NotSet_ReturnsDefault()
+    {
+        // Arrange
+        var options = new MockAnalyzerConfigOptionsProvider([]);
+
+        // Act
+        var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
+
+        // Assert
+        Assert.Equal(4, result.MaxDegreeOfParallelism); // Default value
+    }
+
+    [Fact]
+    public void CreateFromMSBuildProperties_PerformanceOptimizations_True_ReturnsTrue()
+    {
+        // Arrange
+        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RelayEnablePerformanceOptimizations"] = "true"
+        });
+
+        // Act
+        var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
+
+        // Assert
+        Assert.True(result.EnablePerformanceOptimizations);
+    }
+
+    [Fact]
+    public void CreateFromMSBuildProperties_KeyedServices_False_ReturnsFalse()
+    {
+        // Arrange
+        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RelayEnableKeyedServices"] = "false"
+        });
+
+        // Act
+        var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
+
+        // Assert
+        Assert.False(result.EnableKeyedServices);
+    }
+
+    [Fact]
+    public void CreateFromMSBuildProperties_AggressiveInlining_False_ReturnsFalse()
+    {
+        // Arrange
+        var options = new MockAnalyzerConfigOptionsProvider(new Dictionary<string, string>
+        {
+            ["build_property.RelayEnableAggressiveInlining"] = "false"
+        });
+
+        // Act
+        var result = MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
+
+        // Assert
+        Assert.False(result.EnableAggressiveInlining);
+    }
+
+    [Fact]
     public void CreateFromMSBuildProperties_BooleanProperty_NoValue_ReturnsFalse()
     {
         // Arrange

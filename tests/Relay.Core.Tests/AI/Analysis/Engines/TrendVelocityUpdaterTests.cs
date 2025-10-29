@@ -294,7 +294,8 @@ public class TrendVelocityUpdaterTests
     public void UpdateTrendVelocities_Should_Detect_High_Velocity()
     {
         // Arrange
-        var updater = new TrendVelocityUpdater(_loggerMock.Object, _config);
+        var loggerMock = new Mock<ILogger<TrendVelocityUpdater>>();
+        var updater = new TrendVelocityUpdater(loggerMock.Object, _config);
         var timestamp1 = DateTime.UtcNow;
         var timestamp2 = timestamp1.AddSeconds(60);
 
@@ -304,15 +305,55 @@ public class TrendVelocityUpdaterTests
             timestamp1);
 
         // Second observation - large change (7 per minute > 0.1 threshold)
-        updater.UpdateTrendVelocities(
+        var result = updater.UpdateTrendVelocities(
             new Dictionary<string, double> { ["cpu"] = 57.0 },
             timestamp2);
 
-        // Assert - Should be logged as high velocity
-        // Note: We can't directly verify the log, but we know the velocity will be > threshold
-        var previousValue = updater.GetPreviousValue("cpu");
-        Assert.NotNull(previousValue);
-        Assert.Equal(57.0, previousValue?.Value);
+        // Assert - Should calculate the expected velocity
+        Assert.Equal(7.0, result["cpu"], 2);
+
+        // Verify that the debug log was called when high velocity was detected
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("High velocity detected")),
+                It.IsAny<Exception>(),
+                It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+            Times.Once);
+    }
+
+    [Fact]
+    public void UpdateTrendVelocities_Should_Not_Log_High_Velocity_When_Below_Threshold()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<TrendVelocityUpdater>>();
+        var updater = new TrendVelocityUpdater(loggerMock.Object, _config);
+        var timestamp1 = DateTime.UtcNow;
+        var timestamp2 = timestamp1.AddSeconds(60);
+
+        // Act - First observation
+        updater.UpdateTrendVelocities(
+            new Dictionary<string, double> { ["cpu"] = 50.0 },
+            timestamp1);
+
+        // Second observation - small change (0.05 per minute < 0.1 threshold)
+        var result = updater.UpdateTrendVelocities(
+            new Dictionary<string, double> { ["cpu"] = 50.05 },
+            timestamp2);
+
+        // Assert - Should calculate the expected velocity
+        Assert.Equal(0.05, result["cpu"], 2);
+
+        // Verify that the debug log was NOT called since velocity is below threshold
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("High velocity detected")),
+                It.IsAny<Exception>(),
+                It.Is<Func<It.IsAnyType, Exception, string>>((v, t) => true)),
+            Times.Never);
     }
 
     [Fact]

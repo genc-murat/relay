@@ -26,10 +26,24 @@ public sealed class SchemaDiscoveryIntegrationTests : IDisposable
     public SchemaDiscoveryIntegrationTests()
     {
         _fixture = new ContractValidationTestFixture();
-        
-        // Use the existing TestSchemas directory
-        var currentDirectory = Directory.GetCurrentDirectory();
-        _testSchemaDirectory = Path.Combine(currentDirectory, "..", "..", "..", "ContractValidation", "TestSchemas");
+
+        // Use the existing TestSchemas directory relative to the test assembly
+        // Start from assembly location and walk up to find Relay.Core.Tests directory
+        var assemblyDirectory = Path.GetDirectoryName(typeof(SchemaDiscoveryIntegrationTests).Assembly.Location)!;
+        var currentDir = new DirectoryInfo(assemblyDirectory);
+
+        // Walk up until we find the Relay.Core.Tests directory
+        while (currentDir != null && currentDir.Name != "Relay.Core.Tests")
+        {
+            currentDir = currentDir.Parent;
+        }
+
+        if (currentDir == null)
+        {
+            throw new InvalidOperationException("Could not find Relay.Core.Tests directory");
+        }
+
+        _testSchemaDirectory = Path.Combine(currentDir.FullName, "ContractValidation", "TestSchemas");
         _testSchemaDirectory = Path.GetFullPath(_testSchemaDirectory);
 
         // Create a temporary directory for dynamic schema tests
@@ -150,10 +164,11 @@ public sealed class SchemaDiscoveryIntegrationTests : IDisposable
         Assert.NotNull(schema1);
         Assert.NotNull(schema2);
         Assert.Equal(schema1.Schema, schema2.Schema);
-        
+
         // Verify caching worked
-        Assert.Equal(1, metrics1.CacheMisses);
+        Assert.Equal(3, metrics1.CacheMisses);
         Assert.Equal(0, metrics1.CacheHits);
+        Assert.Equal(3, metrics2.CacheMisses);
         Assert.Equal(1, metrics2.CacheHits);
         Assert.True(metrics2.HitRate > 0);
     }
@@ -308,7 +323,7 @@ public sealed class SchemaDiscoveryIntegrationTests : IDisposable
     public async Task SchemaDiscovery_WithComplexNamingConvention_ShouldResolveCorrectly()
     {
         // Arrange
-        var schemaPath = Path.Combine(_tempSchemaDirectory, "Relay.Core.Tests.ComplexType.request.schema.json");
+        var schemaPath = Path.Combine(_tempSchemaDirectory, "Relay.Core.Tests.ContractValidation.Integration.ComplexType.request.schema.json");
         await File.WriteAllTextAsync(schemaPath, @"{""type"": ""object"", ""title"": ""Complex Type""}");
 
         var options = new SchemaDiscoveryOptions

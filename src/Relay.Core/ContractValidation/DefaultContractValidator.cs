@@ -401,12 +401,6 @@ public class DefaultContractValidator : IContractValidator
         ValidationContext context,
         CancellationToken cancellationToken)
     {
-        if (schema == null || string.IsNullOrWhiteSpace(schema.Schema))
-        {
-            throw new Exception("Schema is null or empty");
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-
         var aggregator = new ErrorAggregator();
 
         // Validate input
@@ -444,7 +438,8 @@ public class DefaultContractValidator : IContractValidator
             var nullNode = JsonValue.Create((string?)null);
             var nullValidationResults = jsonSchema.Evaluate(nullNode, new EvaluationOptions
             {
-                OutputFormat = OutputFormat.List
+                OutputFormat = OutputFormat.List,
+                RequireFormatValidation = true
             });
 
             if (!nullValidationResults.IsValid)
@@ -484,7 +479,8 @@ public class DefaultContractValidator : IContractValidator
         // Validate against schema
         var validationResults = jsonSchema.Evaluate(jsonNode, new EvaluationOptions
         {
-            OutputFormat = OutputFormat.List
+            OutputFormat = OutputFormat.List,
+            RequireFormatValidation = true
         });
 
         if (!validationResults.IsValid)

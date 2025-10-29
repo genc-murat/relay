@@ -88,6 +88,7 @@
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
     <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Condition="'$(TargetFramework)' == 'netstandard2.1'" />
 

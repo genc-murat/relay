@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.ContractValidation.Caching;
+using Relay.Core.ContractValidation.Observability;
 using Relay.Core.Metadata.MessageQueue;
 
 namespace Relay.Core.ContractValidation.SchemaDiscovery;
@@ -18,6 +20,7 @@ public sealed class DefaultSchemaResolver : ISchemaResolver
     private readonly IEnumerable<ISchemaProvider> _providers;
     private readonly ISchemaCache? _cache;
     private readonly ILogger<DefaultSchemaResolver> _logger;
+    private readonly ContractValidationMetrics? _metrics;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultSchemaResolver"/> class.
@@ -25,15 +28,18 @@ public sealed class DefaultSchemaResolver : ISchemaResolver
     /// <param name="providers">The schema providers to use for resolution.</param>
     /// <param name="cache">Optional schema cache for performance optimization.</param>
     /// <param name="logger">The logger instance.</param>
+    /// <param name="metrics">Optional metrics collector.</param>
     public DefaultSchemaResolver(
         IEnumerable<ISchemaProvider> providers,
         ISchemaCache? cache = null,
-        ILogger<DefaultSchemaResolver>? logger = null)
+        ILogger<DefaultSchemaResolver>? logger = null,
+        ContractValidationMetrics? metrics = null)
     {
         _providers = providers?.OrderByDescending(p => p.Priority).ToList()
             ?? throw new ArgumentNullException(nameof(providers));
         _cache = cache;
         _logger = logger ?? NullLogger<DefaultSchemaResolver>.Instance;
+        _metrics = metrics;
     }
 
     /// <inheritdoc />
@@ -52,58 +58,161 @@ public sealed class DefaultSchemaResolver : ISchemaResolver
             throw new ArgumentNullException(nameof(context));
         }
 
+        using var activity = ContractValidationActivitySource.Instance.StartActivity(
+            "SchemaResolver.Resolve",
+            ActivityKind.Internal);
+
+        activity?.SetTag("type_name", type.Name);
+        activity?.SetTag("is_request", context.IsRequest);
+
+        var stopwatch = Stopwatch.StartNew();
         var cacheKey = GenerateCacheKey(type, context);
 
-        // Try to get from cache first
-        if (_cache != null)
+        try
         {
-            var cachedSchema = TryGetFromCache(cacheKey);
-            if (cachedSchema != null)
-            {
-                _logger.LogDebug("Schema found in cache for type: {TypeName}", type.Name);
-                return cachedSchema;
-            }
-        }
+            _logger.LogDebug(
+                ValidationEventIds.SchemaResolutionStarted,
+                "Starting schema resolution for type: {TypeName}, IsRequest: {IsRequest}",
+                type.Name,
+                context.IsRequest);
 
-        // Try each provider in priority order
-        _logger.LogDebug("Resolving schema for type: {TypeName}, IsRequest: {IsRequest}",
-            type.Name, context.IsRequest);
-
-        foreach (var provider in _providers)
-        {
-            try
+            // Try to get from cache first
+            if (_cache != null)
             {
-                var schema = await provider.TryGetSchemaAsync(type, context, cancellationToken);
-                if (schema != null)
+                var cachedSchema = TryGetFromCache(cacheKey);
+                if (cachedSchema != null)
                 {
-                    _logger.LogInformation(
-                        "Schema resolved for type {TypeName} using provider {ProviderType}",
-                        type.Name,
-                        provider.GetType().Name);
+                    stopwatch.Stop();
 
-                    // Cache the resolved schema
-                    if (_cache != null && !string.IsNullOrWhiteSpace(schema.Schema))
+                    _logger.LogDebug(
+                        ValidationEventIds.SchemaCacheHit,
+                        "Schema found in cache for type: {TypeName} in {Duration}ms",
+                        type.Name,
+                        stopwatch.ElapsedMilliseconds);
+
+                    _metrics?.RecordSchemaResolution(
+                        type.Name,
+                        "cache",
+                        success: true,
+                        stopwatch.Elapsed.TotalMilliseconds);
+
+                    activity?.SetTag("cache_hit", true);
+
+                    return cachedSchema;
+                }
+
+                _logger.LogDebug(
+                    ValidationEventIds.SchemaCacheMiss,
+                    "Schema not found in cache for type: {TypeName}",
+                    type.Name);
+
+                activity?.SetTag("cache_hit", false);
+            }
+
+            // Try each provider in priority order
+            _logger.LogDebug(
+                ValidationEventIds.SchemaDiscoveryStarted,
+                "Attempting schema discovery for type: {TypeName} using {ProviderCount} providers",
+                type.Name,
+                _providers.Count());
+
+            foreach (var provider in _providers)
+            {
+                var providerStopwatch = Stopwatch.StartNew();
+                try
+                {
+                    var schema = await provider.TryGetSchemaAsync(type, context, cancellationToken);
+                    providerStopwatch.Stop();
+
+                    if (schema != null)
                     {
-                        CacheSchema(cacheKey, schema);
+                        stopwatch.Stop();
+
+                        _logger.LogInformation(
+                            ValidationEventIds.SchemaResolutionCompleted,
+                            "Schema resolved for type {TypeName} using provider {ProviderType} in {Duration}ms",
+                            type.Name,
+                            provider.GetType().Name,
+                            stopwatch.ElapsedMilliseconds);
+
+                        _metrics?.RecordSchemaResolution(
+                            type.Name,
+                            provider.GetType().Name,
+                            success: true,
+                            stopwatch.Elapsed.TotalMilliseconds);
+
+                        activity?.SetTag("provider_type", provider.GetType().Name);
+                        activity?.SetTag("success", true);
+
+                        // Cache the resolved schema
+                        if (_cache != null && !string.IsNullOrWhiteSpace(schema.Schema))
+                        {
+                            CacheSchema(cacheKey, schema);
+                        }
+
+                        return schema;
                     }
 
-                    return schema;
+                    _logger.LogDebug(
+                        "Provider {ProviderType} did not find schema for type {TypeName} (took {Duration}ms)",
+                        provider.GetType().Name,
+                        type.Name,
+                        providerStopwatch.ElapsedMilliseconds);
+                }
+                catch (Exception ex)
+                {
+                    providerStopwatch.Stop();
+
+                    _logger.LogWarning(
+                        ValidationEventIds.SchemaResolutionFailed,
+                        ex,
+                        "Provider {ProviderType} failed to resolve schema for type {TypeName} after {Duration}ms",
+                        provider.GetType().Name,
+                        type.Name,
+                        providerStopwatch.ElapsedMilliseconds);
+
+                    _metrics?.RecordSchemaResolution(
+                        type.Name,
+                        provider.GetType().Name,
+                        success: false,
+                        providerStopwatch.Elapsed.TotalMilliseconds);
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "Provider {ProviderType} failed to resolve schema for type {TypeName}",
-                    provider.GetType().Name,
-                    type.Name);
-            }
+
+            stopwatch.Stop();
+
+            _logger.LogWarning(
+                ValidationEventIds.SchemaResolutionFailed,
+                "No schema found for type {TypeName} after trying all {ProviderCount} providers in {Duration}ms",
+                type.Name,
+                _providers.Count(),
+                stopwatch.ElapsedMilliseconds);
+
+            _metrics?.RecordSchemaResolution(
+                type.Name,
+                null,
+                success: false,
+                stopwatch.Elapsed.TotalMilliseconds);
+
+            activity?.SetTag("success", false);
+
+            return null;
         }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
 
-        _logger.LogWarning(
-            "No schema found for type {TypeName} after trying all providers",
-            type.Name);
+            _logger.LogError(
+                ValidationEventIds.SchemaResolutionFailed,
+                ex,
+                "Schema resolution failed for type {TypeName} after {Duration}ms",
+                type.Name,
+                stopwatch.ElapsedMilliseconds);
 
-        return null;
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+
+            throw;
+        }
     }
 
     /// <inheritdoc />

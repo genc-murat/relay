@@ -8,9 +8,12 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Json.Schema;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.ContractValidation.Caching;
 using Relay.Core.ContractValidation.ErrorReporting;
 using Relay.Core.ContractValidation.Models;
+using Relay.Core.ContractValidation.Observability;
 using Relay.Core.ContractValidation.SchemaDiscovery;
 using Relay.Core.Metadata.MessageQueue;
 
@@ -27,6 +30,8 @@ public class DefaultContractValidator : IContractValidator
     private readonly ISchemaResolver? _schemaResolver;
     private readonly ValidationEngine? _validationEngine;
     private readonly TimeSpan _validationTimeout;
+    private readonly ILogger<DefaultContractValidator> _logger;
+    private readonly ContractValidationMetrics? _metrics;
 
     /// <summary>
     /// Initializes a new instance of the DefaultContractValidator class.
@@ -39,6 +44,8 @@ public class DefaultContractValidator : IContractValidator
             WriteIndented = false
         };
         _validationTimeout = TimeSpan.FromSeconds(5);
+        _logger = NullLogger<DefaultContractValidator>.Instance;
+        _metrics = null;
     }
 
     /// <summary>
@@ -48,11 +55,15 @@ public class DefaultContractValidator : IContractValidator
     /// <param name="schemaResolver">The schema resolver for automatic schema discovery.</param>
     /// <param name="validationEngine">The validation engine for orchestrating validation.</param>
     /// <param name="validationTimeout">The timeout for validation operations.</param>
+    /// <param name="logger">Optional logger for diagnostic output.</param>
+    /// <param name="metrics">Optional metrics collector.</param>
     public DefaultContractValidator(
         ISchemaCache? schemaCache = null,
         ISchemaResolver? schemaResolver = null,
         ValidationEngine? validationEngine = null,
-        TimeSpan? validationTimeout = null)
+        TimeSpan? validationTimeout = null,
+        ILogger<DefaultContractValidator>? logger = null,
+        ContractValidationMetrics? metrics = null)
     {
         _serializerOptions = new JsonSerializerOptions
         {
@@ -63,6 +74,8 @@ public class DefaultContractValidator : IContractValidator
         _schemaResolver = schemaResolver;
         _validationEngine = validationEngine;
         _validationTimeout = validationTimeout ?? TimeSpan.FromSeconds(5);
+        _logger = logger ?? NullLogger<DefaultContractValidator>.Instance;
+        _metrics = metrics;
     }
 
     /// <inheritdoc />
@@ -89,10 +102,23 @@ public class DefaultContractValidator : IContractValidator
         ValidationContext context,
         CancellationToken cancellationToken = default)
     {
+        using var activity = ContractValidationActivitySource.Instance.StartActivity(
+            "ContractValidator.ValidateRequest",
+            ActivityKind.Internal);
+
+        activity?.SetTag("request_type", request?.GetType().Name ?? "null");
+        activity?.SetTag("has_schema", schema != null && !string.IsNullOrWhiteSpace(schema.Schema));
+
         var stopwatch = Stopwatch.StartNew();
+        _metrics?.IncrementActiveValidations();
 
         try
         {
+            _logger.LogDebug(
+                ValidationEventIds.ValidationStarted,
+                "Starting request validation for {RequestType}",
+                request?.GetType().Name ?? "null");
+
             // Apply timeout
             using var timeoutCts = new CancellationTokenSource(_validationTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -100,6 +126,43 @@ public class DefaultContractValidator : IContractValidator
             var result = await ValidateInternalAsync(request, schema, context, linkedCts.Token);
             
             stopwatch.Stop();
+
+            _logger.LogInformation(
+                result.IsValid ? ValidationEventIds.ValidationCompleted : ValidationEventIds.ValidationFailed,
+                "Request validation completed for {RequestType}. IsValid: {IsValid}, ErrorCount: {ErrorCount}, Duration: {Duration}ms",
+                request?.GetType().Name ?? "null",
+                result.IsValid,
+                result.Errors.Count,
+                stopwatch.ElapsedMilliseconds);
+
+            // Record metrics
+            _metrics?.RecordValidation(
+                request?.GetType().Name ?? "unknown",
+                isRequest: true,
+                result.IsValid,
+                stopwatch.Elapsed.TotalMilliseconds,
+                result.Errors.Count);
+
+            // Record individual errors
+            foreach (var error in result.Errors)
+            {
+                _metrics?.RecordValidationError(error.ErrorCode);
+            }
+
+            // Check for performance issues
+            if (stopwatch.ElapsedMilliseconds > 100)
+            {
+                _logger.LogWarning(
+                    ValidationEventIds.PerformanceWarning,
+                    "Request validation took {Duration}ms for {RequestType}, which exceeds the 100ms threshold",
+                    stopwatch.ElapsedMilliseconds,
+                    request?.GetType().Name ?? "null");
+            }
+
+            activity?.SetTag("is_valid", result.IsValid);
+            activity?.SetTag("error_count", result.Errors.Count);
+            activity?.SetTag("duration_ms", stopwatch.ElapsedMilliseconds);
+
             return new ValidationResult
             {
                 IsValid = result.IsValid,
@@ -111,12 +174,24 @@ public class DefaultContractValidator : IContractValidator
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // User-requested cancellation
+            _logger.LogWarning(
+                "Request validation cancelled by user for {RequestType}",
+                request?.GetType().Name ?? "null");
             throw;
         }
         catch (OperationCanceledException)
         {
             // Timeout occurred
             stopwatch.Stop();
+
+            _logger.LogError(
+                ValidationEventIds.ValidationTimeout,
+                "Request validation timed out after {Timeout}s for {RequestType}",
+                _validationTimeout.TotalSeconds,
+                request?.GetType().Name ?? "null");
+
+            activity?.SetStatus(ActivityStatusCode.Error, "Validation timeout");
+
             return new ValidationResult
             {
                 IsValid = false,
@@ -133,6 +208,15 @@ public class DefaultContractValidator : IContractValidator
         catch (Exception ex)
         {
             stopwatch.Stop();
+
+            _logger.LogError(
+                ValidationEventIds.ValidationFailed,
+                ex,
+                "Request validation failed for {RequestType}",
+                request?.GetType().Name ?? "null");
+
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+
             return new ValidationResult
             {
                 IsValid = false,
@@ -145,6 +229,10 @@ public class DefaultContractValidator : IContractValidator
                 ValidationDuration = stopwatch.Elapsed,
                 ValidatorName = nameof(DefaultContractValidator)
             };
+        }
+        finally
+        {
+            _metrics?.DecrementActiveValidations();
         }
     }
 
@@ -172,10 +260,23 @@ public class DefaultContractValidator : IContractValidator
         ValidationContext context,
         CancellationToken cancellationToken = default)
     {
+        using var activity = ContractValidationActivitySource.Instance.StartActivity(
+            "ContractValidator.ValidateResponse",
+            ActivityKind.Internal);
+
+        activity?.SetTag("response_type", response?.GetType().Name ?? "null");
+        activity?.SetTag("has_schema", schema != null && !string.IsNullOrWhiteSpace(schema.Schema));
+
         var stopwatch = Stopwatch.StartNew();
+        _metrics?.IncrementActiveValidations();
 
         try
         {
+            _logger.LogDebug(
+                ValidationEventIds.ValidationStarted,
+                "Starting response validation for {ResponseType}",
+                response?.GetType().Name ?? "null");
+
             // Apply timeout
             using var timeoutCts = new CancellationTokenSource(_validationTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -183,6 +284,43 @@ public class DefaultContractValidator : IContractValidator
             var result = await ValidateInternalAsync(response, schema, context, linkedCts.Token);
             
             stopwatch.Stop();
+
+            _logger.LogInformation(
+                result.IsValid ? ValidationEventIds.ValidationCompleted : ValidationEventIds.ValidationFailed,
+                "Response validation completed for {ResponseType}. IsValid: {IsValid}, ErrorCount: {ErrorCount}, Duration: {Duration}ms",
+                response?.GetType().Name ?? "null",
+                result.IsValid,
+                result.Errors.Count,
+                stopwatch.ElapsedMilliseconds);
+
+            // Record metrics
+            _metrics?.RecordValidation(
+                response?.GetType().Name ?? "unknown",
+                isRequest: false,
+                result.IsValid,
+                stopwatch.Elapsed.TotalMilliseconds,
+                result.Errors.Count);
+
+            // Record individual errors
+            foreach (var error in result.Errors)
+            {
+                _metrics?.RecordValidationError(error.ErrorCode);
+            }
+
+            // Check for performance issues
+            if (stopwatch.ElapsedMilliseconds > 100)
+            {
+                _logger.LogWarning(
+                    ValidationEventIds.PerformanceWarning,
+                    "Response validation took {Duration}ms for {ResponseType}, which exceeds the 100ms threshold",
+                    stopwatch.ElapsedMilliseconds,
+                    response?.GetType().Name ?? "null");
+            }
+
+            activity?.SetTag("is_valid", result.IsValid);
+            activity?.SetTag("error_count", result.Errors.Count);
+            activity?.SetTag("duration_ms", stopwatch.ElapsedMilliseconds);
+
             return new ValidationResult
             {
                 IsValid = result.IsValid,
@@ -194,12 +332,24 @@ public class DefaultContractValidator : IContractValidator
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // User-requested cancellation
+            _logger.LogWarning(
+                "Response validation cancelled by user for {ResponseType}",
+                response?.GetType().Name ?? "null");
             throw;
         }
         catch (OperationCanceledException)
         {
             // Timeout occurred
             stopwatch.Stop();
+
+            _logger.LogError(
+                ValidationEventIds.ValidationTimeout,
+                "Response validation timed out after {Timeout}s for {ResponseType}",
+                _validationTimeout.TotalSeconds,
+                response?.GetType().Name ?? "null");
+
+            activity?.SetStatus(ActivityStatusCode.Error, "Validation timeout");
+
             return new ValidationResult
             {
                 IsValid = false,
@@ -216,6 +366,15 @@ public class DefaultContractValidator : IContractValidator
         catch (Exception ex)
         {
             stopwatch.Stop();
+
+            _logger.LogError(
+                ValidationEventIds.ValidationFailed,
+                ex,
+                "Response validation failed for {ResponseType}",
+                response?.GetType().Name ?? "null");
+
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+
             return new ValidationResult
             {
                 IsValid = false,
@@ -228,6 +387,10 @@ public class DefaultContractValidator : IContractValidator
                 ValidationDuration = stopwatch.Elapsed,
                 ValidatorName = nameof(DefaultContractValidator)
             };
+        }
+        finally
+        {
+            _metrics?.DecrementActiveValidations();
         }
     }
 

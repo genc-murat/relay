@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.ContractValidation.Models;
+using Relay.Core.ContractValidation.Observability;
 using Relay.Core.ContractValidation.SchemaDiscovery;
 using Relay.Core.ContractValidation.Strategies;
 using Relay.Core.Metadata.MessageQueue;
@@ -29,6 +30,7 @@ public class ContractValidationPipelineBehavior<TRequest, TResponse> : IPipeline
     private readonly IOptions<RelayOptions> _options;
     private readonly ISchemaResolver? _schemaResolver;
     private readonly ValidationStrategyFactory? _strategyFactory;
+    private readonly ContractValidationMetrics? _metrics;
     private readonly string _handlerKey;
 
     /// <summary>
@@ -39,24 +41,35 @@ public class ContractValidationPipelineBehavior<TRequest, TResponse> : IPipeline
     /// <param name="options">The relay options.</param>
     /// <param name="schemaResolver">Optional schema resolver for automatic schema discovery.</param>
     /// <param name="strategyFactory">Optional validation strategy factory.</param>
+    /// <param name="metrics">Optional metrics collector.</param>
     public ContractValidationPipelineBehavior(
         IContractValidator contractValidator,
         ILogger<ContractValidationPipelineBehavior<TRequest, TResponse>> logger,
         IOptions<RelayOptions> options,
         ISchemaResolver? schemaResolver = null,
-        ValidationStrategyFactory? strategyFactory = null)
+        ValidationStrategyFactory? strategyFactory = null,
+        ContractValidationMetrics? metrics = null)
     {
         _contractValidator = contractValidator ?? throw new ArgumentNullException(nameof(contractValidator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _schemaResolver = schemaResolver;
         _strategyFactory = strategyFactory;
+        _metrics = metrics;
         _handlerKey = typeof(TRequest).FullName ?? typeof(TRequest).Name;
     }
 
     /// <inheritdoc />
     public async ValueTask<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
+        using var activity = ContractValidationActivitySource.Instance.StartActivity(
+            "ContractValidationPipeline.Handle",
+            ActivityKind.Internal);
+
+        activity?.SetTag("request_type", typeof(TRequest).Name);
+        activity?.SetTag("response_type", typeof(TResponse).Name);
+        activity?.SetTag("handler_key", _handlerKey);
+
         var overallStopwatch = Stopwatch.StartNew();
 
         // Get contract validation configuration
@@ -66,14 +79,26 @@ public class ContractValidationPipelineBehavior<TRequest, TResponse> : IPipeline
         // Check if contract validation is enabled for this request
         if (!IsContractValidationEnabled(contractValidationOptions, validateContractAttribute))
         {
+            _logger.LogDebug(
+                "Contract validation is disabled for {RequestType}",
+                typeof(TRequest).Name);
+
+            activity?.SetTag("validation_enabled", false);
             return await next();
         }
+
+        activity?.SetTag("validation_enabled", true);
 
         // Get validation parameters
         var (validateRequest, validateResponse, throwOnFailure) = GetValidationParameters(contractValidationOptions, validateContractAttribute);
 
+        activity?.SetTag("validate_request", validateRequest);
+        activity?.SetTag("validate_response", validateResponse);
+
         // Get validation strategy
         var validationStrategy = GetValidationStrategy(contractValidationOptions, validateContractAttribute);
+
+        activity?.SetTag("validation_strategy", validationStrategy.Name);
 
         // Validate request contract if enabled
         if (validateRequest)

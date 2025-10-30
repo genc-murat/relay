@@ -383,7 +383,7 @@ public class FailingMessageBroker : IMessageBroker
 {
     private readonly InMemoryMessageBroker _inner = new();
     private readonly double _failureRate;
-    private readonly Random _random = new();
+    private readonly Random _random = new(42); // Fixed seed for deterministic behavior
 
     public FailingMessageBroker(double failureRate)
     {

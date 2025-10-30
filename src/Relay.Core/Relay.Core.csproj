@@ -105,6 +105,7 @@
     <None Include="lib\net6.0\_._" Pack="true" PackagePath="lib\net6.0\_._" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" VersionOverride="9.0.10" />
     <PackageReference Update="Microsoft.SourceLink.GitHub" />
   </ItemGroup>
 

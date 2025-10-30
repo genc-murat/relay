@@ -41,7 +41,10 @@ public class EnvironmentVariableKeyProvider : IKeyProvider
             if (DateTimeOffset.UtcNow - cachedKey.CachedAt < _cacheRefreshInterval)
             {
                 _logger.LogTrace("Retrieved key version {KeyVersion} from cache", keyVersion);
-                return ValueTask.FromResult(cachedKey.Key);
+                // Return a copy of the cached key to prevent reference sharing issues
+                var cachedKeyCopy = new byte[cachedKey.Key.Length];
+                Array.Copy(cachedKey.Key, cachedKeyCopy, cachedKey.Key.Length);
+                return ValueTask.FromResult(cachedKeyCopy);
             }
 
             // Cache expired, remove it
@@ -51,16 +54,20 @@ public class EnvironmentVariableKeyProvider : IKeyProvider
         // Load key from environment variable or options
         var key = LoadKeyFromEnvironment(keyVersion);
 
+        // Create a copy of the key to avoid potential reference sharing issues
+        var keyCopy = new byte[key.Length];
+        Array.Copy(key, keyCopy, key.Length);
+
         // Cache the key
         _keyCache[keyVersion] = new CachedKey
         {
-            Key = key,
+            Key = keyCopy,
             CachedAt = DateTimeOffset.UtcNow
         };
 
         _logger.LogDebug("Loaded and cached key version {KeyVersion}", keyVersion);
 
-        return ValueTask.FromResult(key);
+        return ValueTask.FromResult(keyCopy);
     }
 
     /// <inheritdoc/>

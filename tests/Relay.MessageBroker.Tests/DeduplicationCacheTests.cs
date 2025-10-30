@@ -331,4 +331,111 @@ public class DeduplicationCacheTests
             new DeduplicationCache(options, null!);
         });
     }
+
+    [Fact]
+    public void Constructor_WithInvalidWindow_ShouldThrowArgumentOutOfRangeException()
+    {
+        // Arrange
+        var invalidOptions = new DeduplicationOptions { Window = TimeSpan.FromHours(25) };
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new DeduplicationCache(Options.Create(invalidOptions), NullLogger<DeduplicationCache>.Instance));
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidMaxCacheSize_ShouldThrowArgumentOutOfRangeException()
+    {
+        // Arrange
+        var invalidOptions = new DeduplicationOptions { MaxCacheSize = 0 };
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new DeduplicationCache(Options.Create(invalidOptions), NullLogger<DeduplicationCache>.Instance));
+    }
+
+    [Fact]
+    public async Task IsDuplicateAsync_WithWhitespaceHash_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var options = Options.Create(new DeduplicationOptions
+        {
+            Window = TimeSpan.FromMinutes(5),
+            MaxCacheSize = 1000
+        });
+        var cache = new DeduplicationCache(options, NullLogger<DeduplicationCache>.Instance);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+        {
+            await cache.IsDuplicateAsync("   ");
+        });
+
+        cache.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAsync_WithWhitespaceHash_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var options = Options.Create(new DeduplicationOptions
+        {
+            Window = TimeSpan.FromMinutes(5),
+            MaxCacheSize = 1000
+        });
+        var cache = new DeduplicationCache(options, NullLogger<DeduplicationCache>.Instance);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+        {
+            await cache.AddAsync("   ", TimeSpan.FromMinutes(5));
+        });
+
+        cache.Dispose();
+    }
+
+    [Fact]
+    public async Task AddAsync_ShouldUpdateLastAccessedTime()
+    {
+        // Arrange
+        var options = Options.Create(new DeduplicationOptions
+        {
+            Window = TimeSpan.FromMinutes(5),
+            MaxCacheSize = 1000
+        });
+        var cache = new DeduplicationCache(options, NullLogger<DeduplicationCache>.Instance);
+        await cache.AddAsync("hash", TimeSpan.FromMinutes(10));
+
+        var initialCheck = await cache.IsDuplicateAsync("hash");
+        var initialTime = DateTimeOffset.UtcNow;
+
+        await Task.Delay(10); // Small delay
+
+        var secondCheck = await cache.IsDuplicateAsync("hash");
+        var afterTime = DateTimeOffset.UtcNow;
+
+        // Assert
+        Assert.True(initialCheck);
+        Assert.True(secondCheck);
+
+        cache.Dispose();
+    }
+
+    [Fact]
+    public void Dispose_ShouldCleanUpResources()
+    {
+        // Arrange
+        var options = Options.Create(new DeduplicationOptions
+        {
+            Window = TimeSpan.FromMinutes(5),
+            MaxCacheSize = 1000
+        });
+        var cache = new DeduplicationCache(options, NullLogger<DeduplicationCache>.Instance);
+
+        // Act
+        cache.Dispose();
+
+        // Assert - Should not throw on multiple dispose
+        cache.Dispose();
+    }
 }

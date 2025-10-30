@@ -193,6 +193,282 @@ namespace Relay.SourceGenerator.Tests
             Assert.True(CancellationHelper.IsCancelled(cts.Token));
         }
 
+        [Fact]
+        public void CancellationHelper_ExecuteWithCancellation_Generic_ReturnsResultWhenSuccessful()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var result = CancellationHelper.ExecuteWithCancellation(
+                () => "success",
+                cts.Token,
+                "default",
+                diagnosticReporter: reporter);
+
+            // Assert
+            Assert.Equal("success", result);
+        }
+
+        [Fact]
+        public void CancellationHelper_ExecuteWithCancellation_Generic_ReturnsDefaultWhenCancelled()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var result = CancellationHelper.ExecuteWithCancellation(
+                () => throw new OperationCanceledException(),
+                cts.Token,
+                "default",
+                diagnosticReporter: reporter);
+
+            // Assert
+            Assert.Equal("default", result);
+            Assert.Single(reporter.Diagnostics);
+        }
+
+        [Fact]
+        public void CancellationHelper_TryExecuteWithCancellation_HandlesCancellationGracefully()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var result = CancellationHelper.TryExecuteWithCancellation(
+                () => throw new OperationCanceledException(),
+                "TestOperation",
+                reporter);
+
+            // Assert
+            Assert.False(result);
+            Assert.Single(reporter.Diagnostics);
+        }
+
+        [Fact]
+        public void CancellationHelper_TryExecuteWithCancellation_HandlesRegularExceptions()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var result = CancellationHelper.TryExecuteWithCancellation(
+                () => throw new InvalidOperationException("Test error"),
+                "TestOperation",
+                reporter);
+
+            // Assert
+            Assert.False(result);
+            Assert.Single(reporter.Diagnostics);
+        }
+
+        [Fact]
+        public void CancellationHelper_CreateLinkedTokenSource_CreatesLinkedSource()
+        {
+            // Arrange
+            var cts1 = new CancellationTokenSource();
+            var cts2 = new CancellationTokenSource();
+
+            // Act
+            var linked = CancellationHelper.CreateLinkedTokenSource(cts1.Token, cts2.Token);
+
+            // Assert
+            Assert.NotNull(linked);
+            Assert.False(linked.IsCancellationRequested);
+        }
+
+        [Fact]
+        public void CancellationHelper_CreateLinkedTokenSource_WithEmptyArray_CreatesNewSource()
+        {
+            // Act
+            var linked = CancellationHelper.CreateLinkedTokenSource();
+
+            // Assert
+            Assert.NotNull(linked);
+            Assert.False(linked.IsCancellationRequested);
+        }
+
+        [Fact]
+        public void CancellationHelper_SafeDispose_DisposesWithoutError()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+
+            // Act & Assert (should not throw)
+            CancellationHelper.SafeDispose(cts);
+            // SafeDispose should complete without throwing an exception
+            // The CTS is disposed but we can't directly verify disposal state
+        }
+
+        [Fact]
+        public void CancellationHelper_SafeDispose_HandlesNullGracefully()
+        {
+            // Act & Assert (should not throw)
+            CancellationHelper.SafeDispose(null);
+        }
+
+        #endregion
+
+        #region Additional ErrorIsolation Tests
+
+        [Fact]
+        public void ErrorIsolation_ExecuteGeneratorsWithIsolation_ReturnsDictionaryOfSources()
+        {
+            // Arrange
+            var generators = new List<ICodeGenerator>
+            {
+                new SuccessfulGenerator("Generator1"),
+                new SuccessfulGenerator("Generator2")
+            };
+            var result = new HandlerDiscoveryResult();
+            var options = new GenerationOptions();
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var sources = ErrorIsolation.ExecuteGeneratorsWithIsolation(generators, result, options, reporter);
+
+            // Assert
+            Assert.Equal(2, sources.Count);
+            Assert.Contains("Generator1.g.cs", sources.Keys);
+            Assert.Contains("Generator2.g.cs", sources.Keys);
+            Assert.All(sources.Values, source => Assert.Equal("// Generated code", source));
+        }
+
+        [Fact]
+        public void ErrorIsolation_ExecuteDiscoveryWithIsolation_CatchesDiscoveryException()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var result = ErrorIsolation.ExecuteDiscoveryWithIsolation(
+                () => throw new InvalidOperationException("Discovery failed"),
+                reporter);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result.Handlers); // Should return empty result
+            Assert.Single(reporter.Diagnostics);
+        }
+
+        [Fact]
+        public void ErrorIsolation_ExecuteDiscoveryWithIsolation_PropagatesCancellation()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+
+            // Act & Assert
+            Assert.Throws<OperationCanceledException>(() =>
+                ErrorIsolation.ExecuteDiscoveryWithIsolation(
+                    () => throw new OperationCanceledException(),
+                    reporter));
+        }
+
+        [Fact]
+        public void ErrorIsolation_ExecuteWithErrorHandling_Generic_ReturnsResultWhenSuccessful()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var result = ErrorIsolation.ExecuteWithErrorHandling(
+                () => "success",
+                "TestOperation",
+                "default",
+                reporter);
+
+            // Assert
+            Assert.Equal("success", result);
+        }
+
+        [Fact]
+        public void ErrorIsolation_ExecuteWithErrorHandling_Generic_ReturnsDefaultOnCancellation()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var result = ErrorIsolation.ExecuteWithErrorHandling(
+                () => throw new OperationCanceledException(),
+                "TestOperation",
+                "default",
+                reporter);
+
+            // Assert
+            Assert.Equal("default", result);
+        }
+
+        [Fact]
+        public void ErrorIsolation_ExecuteWithErrorHandling_Generic_ReturnsDefaultOnOutOfMemory()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+
+            // Act
+            var result = ErrorIsolation.ExecuteWithErrorHandling(
+                () => throw new OutOfMemoryException(),
+                "TestOperation",
+                "default",
+                reporter);
+
+            // Assert
+            Assert.Equal("default", result);
+            Assert.Single(reporter.Diagnostics);
+        }
+
+        [Fact]
+        public void SafeExecutionContext_Execute_Generic_ReturnsResultWhenSuccessful()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+            var context = ErrorIsolation.CreateSafeContext(reporter);
+
+            // Act
+            var result = context.Execute(() => "success", "TestOperation", "default");
+
+            // Assert
+            Assert.Equal("success", result);
+            Assert.False(context.HasErrors);
+        }
+
+        [Fact]
+        public void SafeExecutionContext_Execute_Generic_ReturnsDefaultOnError()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+            var context = ErrorIsolation.CreateSafeContext(reporter);
+
+            // Act
+            var result = context.Execute(
+                () => throw new InvalidOperationException("Test error"),
+                "TestOperation",
+                "default");
+
+            // Assert
+            Assert.Equal("default", result);
+            Assert.True(context.HasErrors);
+            Assert.Single(context.Errors);
+        }
+
+        [Fact]
+        public void SafeExecutionContext_Execute_Generic_DoesNotCatchCancellation()
+        {
+            // Arrange
+            var reporter = new TestDiagnosticReporter();
+            var context = ErrorIsolation.CreateSafeContext(reporter);
+
+            // Act & Assert
+            Assert.Throws<OperationCanceledException>(() =>
+                context.Execute(
+                    () => throw new OperationCanceledException(),
+                    "TestOperation",
+                    "default"));
+        }
+
         #endregion
 
         #region Fallback Mechanism Tests
@@ -383,8 +659,15 @@ namespace Relay.SourceGenerator.Tests
 
         private class SuccessfulGenerator : ICodeGenerator
         {
-            public string GeneratorName => "SuccessfulGenerator";
-            public string OutputFileName => "Successful";
+            private readonly string _name;
+
+            public SuccessfulGenerator(string name = "Successful")
+            {
+                _name = name;
+            }
+
+            public string GeneratorName => $"{_name}Generator";
+            public string OutputFileName => _name;
             public int Priority => 10;
 
             public bool CanGenerate(HandlerDiscoveryResult result) => true;

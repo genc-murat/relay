@@ -99,10 +99,13 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(compilationAndAttributeMethods, CheckForMissingRelayCoreReference);
     }
 
-    private static Configuration.RelayConfiguration ParseConfiguration(AnalyzerConfigOptionsProvider options)
+    internal static Configuration.RelayConfiguration ParseConfiguration(AnalyzerConfigOptionsProvider options)
     {
+        if (options == null)
+            throw new ArgumentNullException(nameof(options));
+
         var generationOptions = Generators.MSBuildConfigurationHelper.CreateFromMSBuildProperties(options);
-        
+
         return new Configuration.RelayConfiguration
         {
             Options = generationOptions,
@@ -153,7 +156,7 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static bool IsRelayAttributeName(string attributeName)
+    internal static bool IsRelayAttributeName(string attributeName)
     {
         if (string.IsNullOrEmpty(attributeName))
             return false;
@@ -193,7 +196,7 @@ public class RelayIncrementalGenerator : IIncrementalGenerator
         }
     }
 
-    private static bool IsHandlerInterface(string typeName)
+    internal static bool IsHandlerInterface(string typeName)
     {
         return typeName.Contains("IRequestHandler") ||
                typeName.Contains("INotificationHandler") ||

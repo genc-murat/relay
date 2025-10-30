@@ -164,19 +164,12 @@ public sealed class BatchMessageBrokerDecorator : IMessageBroker, IAsyncDisposab
         await _lock.WaitAsync(cancellationToken);
         try
         {
-            var flushTasks = _batchProcessors.Values
-                .Cast<dynamic>()
-                .Select(async processor =>
-                {
-                    try
-                    {
-                        await processor.FlushAsync(cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error flushing batch processor");
-                    }
-                });
+            var flushTasks = new List<Task>();
+            foreach (var processor in _batchProcessors.Values)
+            {
+                var task = FlushProcessorAsync(processor, cancellationToken);
+                flushTasks.Add(task);
+            }
 
             await Task.WhenAll(flushTasks);
         }
@@ -186,6 +179,34 @@ public sealed class BatchMessageBrokerDecorator : IMessageBroker, IAsyncDisposab
         }
 
         _logger.LogInformation("All batches flushed");
+    }
+
+    /// <summary>
+    /// Flushes a single processor using reflection.
+    /// </summary>
+    private async Task FlushProcessorAsync(object processor, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Use reflection to call FlushAsync on the processor
+            var flushMethod = processor.GetType().GetMethod("FlushAsync", new[] { typeof(CancellationToken) });
+            if (flushMethod != null)
+            {
+                var result = flushMethod.Invoke(processor, new object[] { cancellationToken });
+                if (result is ValueTask valueTask)
+                {
+                    await valueTask;
+                }
+                else if (result is Task task)
+                {
+                    await task;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error flushing batch processor");
+        }
     }
 
     /// <inheritdoc/>

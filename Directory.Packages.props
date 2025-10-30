@@ -39,6 +39,7 @@
     
     <!-- Web and API packages -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
@@ -61,8 +62,10 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.10.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.10.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.10.0-rc.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Jaeger" Version="1.5.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Zipkin" Version="1.9.0" />
     
     <!-- Logging packages -->
     <PackageVersion Include="Serilog" Version="4.1.0" />
@@ -123,6 +126,10 @@
     
     <!-- Scrutor for service decoration -->
     <PackageVersion Include="Scrutor" Version="6.1.0" />
+    
+    <!-- Security - JWT and Azure AD -->
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
+    <PackageVersion Include="Microsoft.Identity.Client" Version="4.69.0" />
     
     <!-- NuGet packages -->
     <PackageVersion Include="NuGet.Packaging" Version="6.14.0" />

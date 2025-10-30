@@ -1,0 +1,56 @@
+### Minimal API Sample - HTTP Requests
+
+@baseUrl = http://localhost:5000
+@httpsUrl = https://localhost:7000
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Get Broker Info
+GET {{baseUrl}}/api/messages/info
+
+### Publish Message
+POST {{baseUrl}}/api/messages/publish
+Content-Type: application/json
+
+{
+  "exchange": "test-exchange",
+  "routingKey": "test.key",
+  "message": "Hello from Minimal API!"
+}
+
+### Publish Another Message
+POST {{baseUrl}}/api/messages/publish
+Content-Type: application/json
+
+{
+  "exchange": "orders",
+  "routingKey": "order.created",
+  "message": "Order #12345 created"
+}
+
+### Subscribe to Messages
+POST {{baseUrl}}/api/messages/subscribe
+Content-Type: application/json
+
+{
+  "exchange": "test-exchange",
+  "routingKey": "test.key"
+}
+
+### Subscribe to Order Messages
+POST {{baseUrl}}/api/messages/subscribe
+Content-Type: application/json
+
+{
+  "exchange": "orders",
+  "routingKey": "order.*"
+}
+
+### Swagger UI (Open in browser)
+# GET {{httpsUrl}}/swagger
+
+### RabbitMQ Management UI (Open in browser)
+# http://localhost:15672
+# Username: guest
+# Password: guest

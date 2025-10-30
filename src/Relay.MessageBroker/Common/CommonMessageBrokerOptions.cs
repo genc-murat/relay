@@ -54,4 +54,19 @@ public class CommonMessageBrokerOptions
     /// Gets or sets the saga options.
     /// </summary>
     public Saga.SagaOptions? Saga { get; set; }
+
+    /// <summary>
+    /// Gets or sets the connection pool options.
+    /// </summary>
+    public ConnectionPool.ConnectionPoolOptions? ConnectionPool { get; set; }
+
+    /// <summary>
+    /// Gets or sets the poison message handling options.
+    /// </summary>
+    public PoisonMessage.PoisonMessageOptions? PoisonMessage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the backpressure management options.
+    /// </summary>
+    public Backpressure.BackpressureOptions? Backpressure { get; set; }
 }

@@ -12,6 +12,8 @@ using Polly.Retry;
 using Polly.Timeout;
 using Relay.MessageBroker.Compression;
 using Relay.Core.ContractValidation;
+using Relay.MessageBroker.PoisonMessage;
+using Relay.MessageBroker.Backpressure;
 using SqsMessageAttributeValue = Amazon.SQS.Model.MessageAttributeValue;
 using SnsMessageAttributeValue = Amazon.SimpleNotificationService.Model.MessageAttributeValue;
 
@@ -38,8 +40,10 @@ public sealed class AwsSqsSnsMessageBroker : BaseMessageBroker
         IOptions<MessageBrokerOptions> options,
         ILogger<AwsSqsSnsMessageBroker> logger,
         IMessageCompressor? compressor = null,
-        IContractValidator? contractValidator = null)
-        : base(options, logger, compressor, contractValidator)
+        IContractValidator? contractValidator = null,
+        IPoisonMessageHandler? poisonMessageHandler = null,
+        IBackpressureController? backpressureController = null)
+        : base(options, logger, compressor, contractValidator, poisonMessageHandler, backpressureController)
     {
         if (_options.AwsSqsSns == null)
             throw new InvalidOperationException("AWS SQS/SNS options are required.");

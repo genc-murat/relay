@@ -4,6 +4,8 @@ using Relay.Core;
 using Relay.Core.ContractValidation;
 using Relay.Core.Telemetry;
 using Relay.MessageBroker.Compression;
+using Relay.MessageBroker.PoisonMessage;
+using Relay.MessageBroker.Backpressure;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
@@ -22,6 +24,8 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
     protected readonly IMessageCompressor? _compressor;
     protected readonly Relay.Core.Telemetry.MessageBrokerTelemetryAdapter _telemetry;
     protected readonly Relay.Core.Telemetry.MessageBrokerValidationAdapter? _validation;
+    protected readonly IPoisonMessageHandler? _poisonMessageHandler;
+    protected readonly IBackpressureController? _backpressureController;
     
     private bool _isStarted;
     private bool _disposed;
@@ -30,11 +34,15 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         IOptions<MessageBrokerOptions> options,
         ILogger logger,
         IMessageCompressor? compressor = null,
-        IContractValidator? contractValidator = null)
+        IContractValidator? contractValidator = null,
+        IPoisonMessageHandler? poisonMessageHandler = null,
+        IBackpressureController? backpressureController = null)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _compressor = compressor;
+        _poisonMessageHandler = poisonMessageHandler;
+        _backpressureController = backpressureController;
 
         // Initialize unified telemetry
         var telemetryOptions = options.Value.Telemetry ?? new RelayTelemetryOptions
@@ -65,6 +73,35 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
     /// Gets whether the message broker has been disposed.
     /// </summary>
     protected bool IsDisposed => _disposed;
+
+    /// <summary>
+    /// Checks if backpressure throttling should be applied.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if throttling should be applied, false otherwise.</returns>
+    protected async ValueTask<bool> ShouldThrottleAsync(CancellationToken cancellationToken = default)
+    {
+        if (_backpressureController == null || _options.Backpressure?.Enabled != true)
+        {
+            return false;
+        }
+
+        return await _backpressureController.ShouldThrottleAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets the current backpressure metrics.
+    /// </summary>
+    /// <returns>The backpressure metrics, or null if backpressure is not enabled.</returns>
+    protected BackpressureMetrics? GetBackpressureMetrics()
+    {
+        if (_backpressureController == null || _options.Backpressure?.Enabled != true)
+        {
+            return null;
+        }
+
+        return _backpressureController.GetMetrics();
+    }
 
     /// <summary>
     /// Publishes a message to the message broker.
@@ -285,6 +322,8 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
         // Activity tracking will be handled by the adapter internally
 
         var stopwatch = Stopwatch.StartNew();
+        var processingFailed = false;
+        Exception? lastException = null;
         
         try
         {
@@ -298,6 +337,8 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
                      }
                      catch (Exception ex)
                      {
+                         processingFailed = true;
+                         lastException = ex;
                          _logger.LogError(ex,
                              "Handler failed to process message of type {MessageType}",
                              messageType.Name);
@@ -309,16 +350,83 @@ public abstract class BaseMessageBroker : IMessageBroker, IAsyncDisposable
             }
 
             _telemetry.RecordProcessingDuration(messageType.Name, stopwatch.Elapsed);
+
+            // Record processing duration for backpressure monitoring
+            if (_backpressureController != null && _options.Backpressure?.Enabled == true)
+            {
+                await _backpressureController.RecordProcessingAsync(stopwatch.Elapsed, cancellationToken);
+            }
+
+            // Track failure if poison message handling is enabled
+            if (processingFailed && 
+                _poisonMessageHandler != null && 
+                _options.PoisonMessage?.Enabled == true &&
+                lastException != null)
+            {
+                await TrackMessageFailureAsync(message, messageType, context, lastException, cancellationToken);
+            }
         }
         catch (Exception ex)
         {
             _telemetry.RecordError(ex.GetType().Name, ex.Message);
             _logger.LogError(ex, "Failed to process message of type {MessageType}", messageType.Name);
+
+            // Track failure if poison message handling is enabled
+            if (_poisonMessageHandler != null && _options.PoisonMessage?.Enabled == true)
+            {
+                await TrackMessageFailureAsync(message, messageType, context, ex, cancellationToken);
+            }
+
             throw;
         }
         finally
         {
             stopwatch.Stop();
+        }
+    }
+
+    /// <summary>
+    /// Tracks a message processing failure and moves to poison queue if threshold is exceeded.
+    /// </summary>
+    /// <param name="message">The message that failed.</param>
+    /// <param name="messageType">The type of the message.</param>
+    /// <param name="context">The message context.</param>
+    /// <param name="exception">The exception that occurred.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    private async ValueTask TrackMessageFailureAsync(
+        object message,
+        Type messageType,
+        MessageContext context,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        if (_poisonMessageHandler == null || string.IsNullOrEmpty(context.MessageId))
+        {
+            return;
+        }
+
+        try
+        {
+            var payload = SerializeMessage(message);
+            var isPoisonMessage = await _poisonMessageHandler.TrackFailureAsync(
+                context.MessageId,
+                messageType.Name,
+                payload,
+                exception.ToString(),
+                context,
+                cancellationToken);
+
+            if (isPoisonMessage)
+            {
+                _logger.LogWarning(
+                    "Message moved to poison queue. MessageId: {MessageId}, MessageType: {MessageType}",
+                    context.MessageId,
+                    messageType.Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to track message failure for poison message handling");
         }
     }
 

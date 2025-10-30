@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.MessageBroker.Compression;
 using Relay.Core.ContractValidation;
+using Relay.MessageBroker.PoisonMessage;
+using Relay.MessageBroker.Backpressure;
 
 namespace Relay.MessageBroker.Kafka;
 
@@ -22,8 +24,10 @@ public sealed class KafkaMessageBroker : BaseMessageBroker
         IOptions<MessageBrokerOptions> options,
         ILogger<KafkaMessageBroker> logger,
         IMessageCompressor? compressor = null,
-        IContractValidator? contractValidator = null)
-        : base(options, logger, compressor, contractValidator)
+        IContractValidator? contractValidator = null,
+        IPoisonMessageHandler? poisonMessageHandler = null,
+        IBackpressureController? backpressureController = null)
+        : base(options, logger, compressor, contractValidator, poisonMessageHandler, backpressureController)
     {
         var kafkaOptions = options.Value.Kafka ?? new KafkaOptions();
         if (string.IsNullOrEmpty(kafkaOptions.BootstrapServers))

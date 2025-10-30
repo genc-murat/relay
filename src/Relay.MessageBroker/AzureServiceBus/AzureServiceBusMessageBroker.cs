@@ -7,6 +7,8 @@ using Polly;
 using Polly.Retry;
 using Relay.MessageBroker.Compression;
 using Relay.Core.ContractValidation;
+using Relay.MessageBroker.PoisonMessage;
+using Relay.MessageBroker.Backpressure;
 
 namespace Relay.MessageBroker.AzureServiceBus;
 
@@ -25,8 +27,10 @@ public sealed class AzureServiceBusMessageBroker : BaseMessageBroker
         IOptions<MessageBrokerOptions> options,
         ILogger<AzureServiceBusMessageBroker> logger,
         IMessageCompressor? compressor = null,
-        IContractValidator? contractValidator = null)
-        : base(options, logger, compressor, contractValidator)
+        IContractValidator? contractValidator = null,
+        IPoisonMessageHandler? poisonMessageHandler = null,
+        IBackpressureController? backpressureController = null)
+        : base(options, logger, compressor, contractValidator, poisonMessageHandler, backpressureController)
     {
         if (_options.AzureServiceBus == null)
             throw new InvalidOperationException("Azure Service Bus options are required.");

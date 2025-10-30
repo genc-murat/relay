@@ -1,0 +1,6 @@
+@Relay.MessageBroker.MinimalApiSample_HostAddress = http://localhost:5072
+
+GET {{Relay.MessageBroker.MinimalApiSample_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

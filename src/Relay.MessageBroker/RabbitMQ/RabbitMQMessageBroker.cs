@@ -6,6 +6,8 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Relay.Core.ContractValidation;
 using Relay.MessageBroker.Compression;
+using Relay.MessageBroker.PoisonMessage;
+using Relay.MessageBroker.Backpressure;
 
 namespace Relay.MessageBroker.RabbitMQ;
 
@@ -22,8 +24,10 @@ public sealed class RabbitMQMessageBroker : BaseMessageBroker
         IOptions<MessageBrokerOptions> options,
         ILogger<RabbitMQMessageBroker> logger,
         IMessageCompressor? compressor = null,
-        IContractValidator? contractValidator = null)
-        : base(options, logger, compressor, contractValidator)
+        IContractValidator? contractValidator = null,
+        IPoisonMessageHandler? poisonMessageHandler = null,
+        IBackpressureController? backpressureController = null)
+        : base(options, logger, compressor, contractValidator, poisonMessageHandler, backpressureController)
     {
         var rabbitMqOptions = options.Value.RabbitMQ ?? new RabbitMQOptions();
         if (string.IsNullOrEmpty(rabbitMqOptions.HostName))

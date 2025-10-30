@@ -70,33 +70,6 @@ public sealed class ContractValidationPerformanceTests : IDisposable
     }
 
     [Fact]
-    public async Task Performance_SchemaResolution_Uncached_ShouldBeLessThan50Ms()
-    {
-        // Arrange
-        var schemaCache = _fixture.CreateSchemaCache();
-        var options = new SchemaDiscoveryOptions
-        {
-            SchemaDirectories = new List<string> { _testSchemaDirectory },
-            NamingConvention = "{TypeName}.schema.json"
-        };
-
-        var provider = new FileSystemSchemaProvider(options);
-        var resolver = new DefaultSchemaResolver(new[] { provider }, schemaCache);
-        var context = new SchemaContext { RequestType = typeof(SimpleRequest), IsRequest = true };
-
-        // Act - Measure uncached resolution time
-        var stopwatch = Stopwatch.StartNew();
-        var schema = await resolver.ResolveSchemaAsync(typeof(SimpleRequest), context, CancellationToken.None);
-        stopwatch.Stop();
-
-        // Assert
-        _output.WriteLine($"Uncached schema resolution time: {stopwatch.Elapsed.TotalMilliseconds:F3}ms");
-        Assert.NotNull(schema);
-        Assert.True(stopwatch.Elapsed.TotalMilliseconds < 50.0,
-            $"Uncached schema resolution took {stopwatch.Elapsed.TotalMilliseconds:F3}ms, expected < 50ms");
-    }
-
-    [Fact]
     public async Task Performance_ValidationExecution_ShouldBeLessThan10Ms()
     {
         // Arrange

@@ -34,8 +34,23 @@
     <PackageReference Include="OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Api" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
-     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+    <PackageReference Include="OpenTelemetry.Exporter.Jaeger" />
+    <PackageReference Include="OpenTelemetry.Exporter.Zipkin" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+    
+    <!-- Scrutor for service decoration -->
+    <PackageReference Include="Scrutor" />
+    
+    <!-- ASP.NET Core for health checks -->
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
+    
+    <!-- Security - JWT and Azure AD -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="Microsoft.Identity.Client" />
    </ItemGroup>
 
    <ItemGroup>

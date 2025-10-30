@@ -6,6 +6,8 @@ using Polly;
 using Polly.Retry;
 using Relay.MessageBroker.Compression;
 using Relay.Core.ContractValidation;
+using Relay.MessageBroker.PoisonMessage;
+using Relay.MessageBroker.Backpressure;
 
 namespace Relay.MessageBroker.RedisStreams;
 
@@ -26,8 +28,10 @@ public sealed class RedisStreamsMessageBroker : BaseMessageBroker
         ILogger<RedisStreamsMessageBroker> logger,
         IMessageCompressor? compressor = null,
         IContractValidator? contractValidator = null,
-        IConnectionMultiplexer? connectionMultiplexer = null)
-        : base(options, logger, compressor, contractValidator)
+        IConnectionMultiplexer? connectionMultiplexer = null,
+        IPoisonMessageHandler? poisonMessageHandler = null,
+        IBackpressureController? backpressureController = null)
+        : base(options, logger, compressor, contractValidator, poisonMessageHandler, backpressureController)
     {
         if (_options.RedisStreams == null)
             throw new InvalidOperationException("Redis Streams options are required.");

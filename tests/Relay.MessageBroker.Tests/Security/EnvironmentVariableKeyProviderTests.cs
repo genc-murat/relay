@@ -214,23 +214,61 @@ public class EnvironmentVariableKeyProviderTests
     public async Task GetKeyAsync_CacheHit_ShouldReturnCachedKey()
     {
         // Arrange
-        var provider = new EnvironmentVariableKeyProvider(_optionsMock.Object, _loggerMock.Object);
-        var keyVersion = _securityOptions.KeyVersion;
+        var keyVersion = "v1";
         var expectedKey = new byte[32];
         RandomNumberGenerator.Fill(expectedKey);
-        _securityOptions.EncryptionKey = Convert.ToBase64String(expectedKey);
+        
+        // Clean environment variables before test to avoid interference
+        var envVarName = $"RELAY_ENCRYPTION_KEY_{keyVersion.ToUpperInvariant().Replace(".", "_")}";
+        var originalEnvVar = Environment.GetEnvironmentVariable(envVarName);
+        Environment.SetEnvironmentVariable(envVarName, null);
+        
+        var genericEnvVar = Environment.GetEnvironmentVariable("RELAY_ENCRYPTION_KEY");
+        Environment.SetEnvironmentVariable("RELAY_ENCRYPTION_KEY", null);
 
-        // First call to cache the key
-        await provider.GetKeyAsync(keyVersion);
+        try
+        {
+            // Create two separate options objects
+            var optionsWithKey = new SecurityOptions
+            {
+                KeyVersion = keyVersion,
+                EncryptionKey = Convert.ToBase64String(expectedKey)
+            };
+            
+            var optionsWithoutKey = new SecurityOptions
+            {
+                KeyVersion = keyVersion,
+                EncryptionKey = null
+            };
+            
+            var testOptionsMock = new Mock<IOptions<SecurityOptions>>();
+            var shouldReturnOptionsWithKey = true;
+            
+            // Set up mock to return the options conditionally based on a flag
+            testOptionsMock.Setup(o => o.Value)
+                .Returns(() => shouldReturnOptionsWithKey ? optionsWithKey : optionsWithoutKey);
+            
+            var provider = new EnvironmentVariableKeyProvider(testOptionsMock.Object, _loggerMock.Object);
 
-        // Modify options so if it wasn't cached, it would fail
-        _securityOptions.EncryptionKey = null;
+            // First call to cache the key - use the options with key
+            shouldReturnOptionsWithKey = true;
+            await provider.GetKeyAsync(keyVersion);
 
-        // Act
-        var result = await provider.GetKeyAsync(keyVersion);
+            // Second call should use cached value - change options to not have key
+            shouldReturnOptionsWithKey = false;
 
-        // Assert
-        Assert.Equal(expectedKey, result);
+            // Act - this should return the cached key
+            var result = await provider.GetKeyAsync(keyVersion);
+
+            // Assert
+            Assert.Equal(expectedKey, result);
+        }
+        finally
+        {
+            // Restore original environment variables
+            Environment.SetEnvironmentVariable(envVarName, originalEnvVar);
+            Environment.SetEnvironmentVariable("RELAY_ENCRYPTION_KEY", genericEnvVar);
+        }
     }
 
     [Fact]

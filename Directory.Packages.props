@@ -2,9 +2,10 @@
   <PropertyGroup>
     <!-- Centralized Package Versions for Relay Solution -->
   </PropertyGroup>
-  
   <ItemGroup>
     <!-- Microsoft.CodeAnalysis packages -->
+    <PackageVersion Include="Azure.Identity" Version="1.17.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.14.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
@@ -13,7 +14,6 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.14.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.2" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing.XUnit" Version="1.1.2" />
-    
     <!-- Microsoft.Extensions packages -->
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.9" />
@@ -28,7 +28,6 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.9" />
     <PackageVersion Include="Microsoft.Extensions.ObjectPool" Version="9.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.9" />
-    
     <!-- Microsoft.EntityFrameworkCore packages -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9" />
@@ -36,23 +35,18 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.9" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
-    
     <!-- Web and API packages -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
-    
     <!-- MediatR and Messaging packages -->
     <PackageVersion Include="MediatR" Version="13.0.0" />
-    
     <!-- Caching packages -->
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
-    
     <!-- Health checks and diagnostics -->
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.0" />
-    
     <!-- OpenTelemetry packages -->
     <PackageVersion Include="OpenTelemetry" Version="1.13.1" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.13.1" />
@@ -66,16 +60,13 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.12.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Jaeger" Version="1.5.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.Zipkin" Version="1.9.0" />
-    
     <!-- Logging packages -->
     <PackageVersion Include="Serilog" Version="4.1.0" />
     <PackageVersion Include="Serilog.Extensions.Hosting" Version="8.0.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="8.0.2" />
-    
     <!-- Validation packages -->
     <PackageVersion Include="FluentValidation" Version="11.10.0" />
-    
     <!-- Message broker packages -->
     <PackageVersion Include="Confluent.Kafka" Version="2.12.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
@@ -85,28 +76,23 @@
     <PackageVersion Include="NATS.Client.Core" Version="2.6.10" />
     <PackageVersion Include="StackExchange.Redis" Version="2.9.25" />
     <PackageVersion Include="Polly" Version="8.6.4" />
-    
     <!-- Benchmarking and performance -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.4" />
-    
     <!-- Serialization and JSON -->
     <PackageVersion Include="System.Text.Json" Version="9.0.9" />
     <PackageVersion Include="System.Buffers" Version="4.6.1" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.9" />
     <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageVersion Include="JsonSchema.Net" Version="7.4.0" />
-    
     <!-- ML packages -->
     <PackageVersion Include="Microsoft.ML" Version="4.0.2" />
     <PackageVersion Include="Microsoft.ML.FastTree" Version="4.0.2" />
     <PackageVersion Include="Microsoft.ML.TimeSeries" Version="4.0.2" />
     <PackageVersion Include="Microsoft.ML.Recommender" Version="0.22.2" />
-    
     <!-- Grpc packages -->
     <PackageVersion Include="Grpc.AspNetCore" Version="2.59.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.25.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.59.0" />
-    
     <!-- Testing packages -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
@@ -114,31 +100,24 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Shouldly" Version="4.2.1" />
-    
     <!-- CLI and Console packages -->
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="Spectre.Console" Version="0.49.1" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.49.1" />
     <PackageVersion Include="DiffPlex" Version="1.7.2" />
-    
     <!-- Source Link -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
-    
     <!-- Scrutor for service decoration -->
     <PackageVersion Include="Scrutor" Version="6.1.0" />
-    
     <!-- Security - JWT and Azure AD -->
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
-    <PackageVersion Include="Microsoft.Identity.Client" Version="4.69.0" />
-    
+    <PackageVersion Include="Microsoft.Identity.Client" Version="4.76.0" />
     <!-- NuGet packages -->
     <PackageVersion Include="NuGet.Packaging" Version="6.14.0" />
     <PackageVersion Include="NuGet.Protocol" Version="6.14.0" />
-
     <!-- Relay packages (for inter-project dependencies) -->
     <PackageVersion Include="Relay.Core" Version="1.1.0" />
   </ItemGroup>
-
   <ItemGroup>
     <!-- Code Analysis and Fixes -->
     <PackageVersion Include="System.Composition" Version="9.0.0" />

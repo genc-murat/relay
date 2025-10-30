@@ -75,36 +75,67 @@ public class AzureKeyVaultKeyProviderTests
     }
 
     [Fact]
-    public void Constructor_WithMissingKeyVaultUrl_ShouldThrowArgumentException()
+    public void Constructor_WithMissingKeyVaultUrl_ShouldLogWarningAndContinue()
     {
         // Arrange
         _securityOptions.KeyVaultUrl = null;
 
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
-            new AzureKeyVaultKeyProvider(_optionsMock.Object, _loggerMock.Object));
+        // Act
+        var provider = new AzureKeyVaultKeyProvider(_optionsMock.Object, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(provider);
+        // Verify a warning was logged
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("KeyVaultUrl not specified")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]
-    public void Constructor_WithEmptyKeyVaultUrl_ShouldThrowArgumentException()
+    public void Constructor_WithEmptyKeyVaultUrl_ShouldLogWarningAndContinue()
     {
         // Arrange
         _securityOptions.KeyVaultUrl = string.Empty;
 
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
-            new AzureKeyVaultKeyProvider(_optionsMock.Object, _loggerMock.Object));
+        // Act
+        var provider = new AzureKeyVaultKeyProvider(_optionsMock.Object, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(provider);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("KeyVaultUrl not specified")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]
-    public void Constructor_WithWhitespaceKeyVaultUrl_ShouldThrowArgumentException()
+    public void Constructor_WithWhitespaceKeyVaultUrl_ShouldLogWarningAndContinue()
     {
         // Arrange
         _securityOptions.KeyVaultUrl = "   ";
 
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
-            new AzureKeyVaultKeyProvider(_optionsMock.Object, _loggerMock.Object));
+        // Act
+        var provider = new AzureKeyVaultKeyProvider(_optionsMock.Object, _loggerMock.Object);
+
+        // Assert
+        Assert.NotNull(provider);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("KeyVaultUrl not specified")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     [Fact]

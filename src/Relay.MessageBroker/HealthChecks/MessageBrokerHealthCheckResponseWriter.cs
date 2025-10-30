@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace Relay.MessageBroker.HealthChecks;
 

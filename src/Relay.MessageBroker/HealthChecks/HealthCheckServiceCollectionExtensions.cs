@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
@@ -199,5 +203,57 @@ public static class HealthCheckServiceCollectionExtensions
             timeout));
 
         return builder;
+    }
+}
+
+/// <summary>
+/// Extension methods for mapping message broker health check endpoints.
+/// </summary>
+public static class HealthCheckEndpointExtensions
+{
+    /// <summary>
+    /// Maps the message broker health check endpoint with detailed response format.
+    /// </summary>
+    /// <param name="builder">The endpoint route builder.</param>
+    /// <param name="pattern">The URL pattern for the health check endpoint.</param>
+    /// <returns>The endpoint convention builder for chaining.</returns>
+    public static IEndpointConventionBuilder MapMessageBrokerHealthCheck(this IEndpointRouteBuilder builder, string pattern = "/health")
+    {
+        return builder.MapHealthChecks(pattern, new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            ResponseWriter = MessageBrokerHealthCheckResponseWriter.WriteDetailedResponse
+        });
+    }
+
+    /// <summary>
+    /// Maps the message broker health check endpoint with simple response format.
+    /// </summary>
+    /// <param name="builder">The endpoint route builder.</param>
+    /// <param name="pattern">The URL pattern for the health check endpoint.</param>
+    /// <returns>The endpoint convention builder for chaining.</returns>
+    public static IEndpointConventionBuilder MapMessageBrokerHealthCheckSimple(this IEndpointRouteBuilder builder, string pattern = "/health-simple")
+    {
+        return builder.MapHealthChecks(pattern, new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            ResponseWriter = MessageBrokerHealthCheckResponseWriter.WriteSimpleResponse
+        });
+    }
+
+    /// <summary>
+    /// Maps the message broker health check endpoint with custom response writer.
+    /// </summary>
+    /// <param name="builder">The endpoint route builder.</param>
+    /// <param name="pattern">The URL pattern for the health check endpoint.</param>
+    /// <param name="responseWriter">The response writer to use.</param>
+    /// <returns>The endpoint convention builder for chaining.</returns>
+    public static IEndpointConventionBuilder MapMessageBrokerHealthCheck(
+        this IEndpointRouteBuilder builder,
+        string pattern,
+        Func<HttpContext, HealthReport, Task> responseWriter)
+    {
+        return builder.MapHealthChecks(pattern, new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+        {
+            ResponseWriter = (context, report) => responseWriter(context, report)
+        });
     }
 }

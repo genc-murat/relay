@@ -87,7 +87,10 @@ public class ResourceOptimizationService
         var throughput = currentMetrics.GetValueOrDefault("ThroughputPerSecond", 0);
         var efficiency = currentCpu > 0 ? throughput / currentCpu : 0;
 
-        if (efficiency < 10) // Arbitrary threshold
+        // Only add efficiency recommendation if there's either throughput activity OR resource utilization is high
+        // For missing metrics (all 0s), we don't want to report low efficiency unless there are high resource usages
+        var hasResourceIssues = currentCpu > 0.7 || currentMemory > 0.7;
+        if (efficiency < 10 && (throughput > 0 || hasResourceIssues))
         {
             recommendations.Add("Resource efficiency is low. Consider optimizing request processing.");
             if (!shouldOptimize)

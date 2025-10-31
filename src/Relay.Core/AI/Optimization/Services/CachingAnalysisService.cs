@@ -143,7 +143,7 @@ namespace Relay.Core.AI.Optimization.Services
 
         private string GenerateCacheKey(Type requestType)
         {
-            return $"{requestType.FullName}:{{request}}";
+            return $"{requestType.FullName}:{{{{request}}}}";
         }
 
         private CacheScope DetermineCacheScope(AccessPattern[] accessPatterns)

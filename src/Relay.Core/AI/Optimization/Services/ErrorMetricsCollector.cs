@@ -63,14 +63,6 @@ public class ErrorMetricsCollector : MetricsCollectorBase
 
     private double GetErrorRate()
     {
-        var now = DateTime.UtcNow;
-        var timeElapsed = (now - _lastErrorReset).TotalSeconds;
-
-        if (timeElapsed < 1.0)
-        {
-            return 0.0; // Simplified - in real implementation would track last rate
-        }
-
         var totalErrors = Interlocked.Read(ref _totalErrors);
         var totalRequests = 100; // This should come from ThroughputMetricsCollector, but for now assume 100
 

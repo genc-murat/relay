@@ -56,6 +56,9 @@ namespace Relay.Core.AI.Optimization.Services
 
             lock (_statisticsLock)
             {
+                // Increment total predictions counter
+                Interlocked.Increment(ref _totalPredictions);
+
                 // Update per-request-type accuracy
                 accuracyData.AddPrediction(appliedOptimizations, actualMetrics);
 
@@ -69,6 +72,44 @@ namespace Relay.Core.AI.Optimization.Services
                 _totalPredictionTime += actualMetrics.AverageExecutionTime;
 
                 _logger.LogDebug("Updated model accuracy for {RequestType}: Match={Match}, Success={Success}, Strategies={Count}",
+                    requestType.Name, strategiesMatch, wasSuccessful, appliedOptimizations.Length);
+            }
+        }
+
+        /// <summary>
+        /// Updates model accuracy for an existing prediction without counting as a new prediction
+        /// </summary>
+        /// <param name="requestType">The request type</param>
+        /// <param name="appliedOptimizations">The applied optimizations</param>
+        /// <param name="actualMetrics">The actual execution metrics</param>
+        /// <param name="strategiesMatch">Whether the applied strategies match the predicted ones</param>
+        public void UpdateExistingPredictionAccuracy(
+            Type requestType,
+            OptimizationStrategy[] appliedOptimizations,
+            RequestExecutionMetrics actualMetrics,
+            bool strategiesMatch)
+        {
+            if (requestType == null) throw new ArgumentNullException(nameof(requestType));
+            if (appliedOptimizations == null) throw new ArgumentNullException(nameof(appliedOptimizations));
+            if (actualMetrics == null) throw new ArgumentNullException(nameof(actualMetrics));
+
+            var accuracyData = _modelAccuracyData.GetOrAdd(requestType, _ => new ModelAccuracyData());
+
+            lock (_statisticsLock)
+            {
+                // Update per-request-type accuracy
+                accuracyData.AddPrediction(appliedOptimizations, actualMetrics);
+
+                // Accuracy calculation: strategies must match prediction AND execution must be successful
+                var wasSuccessful = strategiesMatch && actualMetrics.SuccessRate >= 0.8; // Arbitrary threshold
+                if (wasSuccessful)
+                {
+                    Interlocked.Increment(ref _correctPredictions);
+                }
+
+                _totalPredictionTime += actualMetrics.AverageExecutionTime;
+
+                _logger.LogDebug("Updated existing prediction accuracy for {RequestType}: Match={Match}, Success={Success}, Strategies={Count}",
                     requestType.Name, strategiesMatch, wasSuccessful, appliedOptimizations.Length);
             }
         }

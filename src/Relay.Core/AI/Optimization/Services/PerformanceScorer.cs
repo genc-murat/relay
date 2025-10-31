@@ -15,9 +15,14 @@ public class PerformanceScorer : HealthScorerBase
 
     protected override double CalculateScoreCore(Dictionary<string, double> metrics)
     {
-        var cpuUtil = metrics.GetValueOrDefault("CpuUtilization", 0);
-        var memoryUtil = metrics.GetValueOrDefault("MemoryUtilization", 0);
+        var cpuUtil = metrics.GetValueOrDefault("CpuUtilization", 0); // Keep original default
+        var memoryUtil = metrics.GetValueOrDefault("MemoryUtilization", 0); // Keep original default
         var throughput = metrics.GetValueOrDefault("ThroughputPerSecond", 100);
+
+        // Sanitize input values to handle NaN, Infinity, and negative values
+        cpuUtil = SanitizeMetricValue(cpuUtil);
+        memoryUtil = SanitizeMetricValue(memoryUtil);
+        throughput = Math.Max(0, throughput); // Just ensure non-negative
 
         // Lower utilization and higher throughput is better
         var cpuScore = 1.0 - cpuUtil;
@@ -30,8 +35,12 @@ public class PerformanceScorer : HealthScorerBase
     public override IEnumerable<string> GetCriticalAreas(Dictionary<string, double> metrics)
     {
         var areas = new List<string>();
-        var cpuUtil = metrics.GetValueOrDefault("CpuUtilization", 0);
-        var memoryUtil = metrics.GetValueOrDefault("MemoryUtilization", 0);
+        var cpuUtil = metrics.GetValueOrDefault("CpuUtilization", 0); // Use same default as CalculateScoreCore
+        var memoryUtil = metrics.GetValueOrDefault("MemoryUtilization", 0); // Use same default as CalculateScoreCore
+
+        // Sanitize input values to handle NaN, Infinity, and negative values
+        cpuUtil = SanitizeMetricValue(cpuUtil);
+        memoryUtil = SanitizeMetricValue(memoryUtil);
 
         if (cpuUtil > 0.9) areas.Add("High CPU utilization");
         if (memoryUtil > 0.9) areas.Add("High memory utilization");
@@ -42,12 +51,27 @@ public class PerformanceScorer : HealthScorerBase
     public override IEnumerable<string> GetRecommendations(Dictionary<string, double> metrics)
     {
         var recommendations = new List<string>();
-        var cpuUtil = metrics.GetValueOrDefault("CpuUtilization", 0);
-        var memoryUtil = metrics.GetValueOrDefault("MemoryUtilization", 0);
+        var cpuUtil = metrics.GetValueOrDefault("CpuUtilization", 0); // Use same default as CalculateScoreCore
+        var memoryUtil = metrics.GetValueOrDefault("MemoryUtilization", 0); // Use same default as CalculateScoreCore
 
-        if (cpuUtil > 0.8) recommendations.Add("Consider optimizing CPU-intensive operations");
-        if (memoryUtil > 0.8) recommendations.Add("Consider memory optimization techniques");
+        // Sanitize input values to handle NaN, Infinity, and negative values
+        cpuUtil = SanitizeMetricValue(cpuUtil);
+        memoryUtil = SanitizeMetricValue(memoryUtil);
+
+        if (cpuUtil >= 0.8) recommendations.Add("Consider optimizing CPU-intensive operations");
+        if (memoryUtil >= 0.8) recommendations.Add("Consider memory optimization techniques");
 
         return recommendations;
+    }
+
+    private static double SanitizeMetricValue(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0)
+        {
+            return 0.0;
+        }
+        
+        // Cap at 1.0 to ensure values are within [0, 1] range for percentage metrics
+        return Math.Min(value, 1.0);
     }
 }

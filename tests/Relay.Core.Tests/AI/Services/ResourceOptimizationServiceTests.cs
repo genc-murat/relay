@@ -278,13 +278,14 @@ namespace Relay.Core.Tests.AI.Services
             var result = _service.AnalyzeResourceUsage(currentMetrics, historicalMetrics);
 
             // Assert
-            // With missing metrics (all 0), efficiency is 0 which triggers low efficiency optimization
-            Assert.True(result.ShouldOptimize);
-            Assert.Equal(OptimizationStrategy.BatchProcessing, result.Strategy);
+            // With missing metrics (all 0), there's no activity so no optimization should be needed
+            Assert.False(result.ShouldOptimize);
+            Assert.Equal(OptimizationStrategy.None, result.Strategy);
             Assert.Equal(0.0, result.Parameters["CurrentCpuUtilization"]);
             Assert.Equal(0.0, result.Parameters["CurrentMemoryUtilization"]);
             Assert.Equal(0.0, result.Parameters["Throughput"]);
             Assert.Equal(0.0, result.Parameters["Efficiency"]);
+            Assert.Contains("Resource utilization is within acceptable limits", result.Reasoning);
         }
     }
 }

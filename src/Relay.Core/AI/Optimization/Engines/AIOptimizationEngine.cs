@@ -157,10 +157,6 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         // Record the prediction in model statistics
         _modelStatisticsService.RecordPrediction(requestType);
 
-        // Record request for throughput calculation
-        // Note: Throughput recording is now handled by ThroughputMetricsCollector
-        // _systemMetricsService.RecordRequestProcessed();
-
         // Store the predicted strategies for accuracy calculation
         _lastPredictions[requestType] = new[] { enhancedRecommendation.Strategy };
 
@@ -250,8 +246,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         var strategiesMatch = predictedStrategies.Length == appliedOptimizations.Length &&
                               predictedStrategies.All(s => appliedOptimizations.Contains(s));
 
-        // Use model statistics service to learn from results
-        _modelStatisticsService.UpdateModelAccuracy(requestType, appliedOptimizations, actualMetrics, strategiesMatch);
+        // Use model statistics service to learn from results (without counting as new prediction)
+        _modelStatisticsService.UpdateExistingPredictionAccuracy(requestType, appliedOptimizations, actualMetrics, strategiesMatch);
 
         _logger.LogDebug("Learned from execution of {RequestType} with {StrategyCount} optimizations",
             requestType.Name, appliedOptimizations.Length);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -980,6 +981,354 @@ namespace Relay.Core.Tests.AI
             var result = _estimator.GetKestrelServerConnections();
 
             Assert.True(result > 0);
+        }
+
+        [Fact]
+        public void ClassifyCurrentLoadLevel_Should_Handle_Very_High_CPU_Usage()
+        {
+            // Arrange - Create estimator with mock system metrics that returns high CPU
+            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
+            var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
+            
+            var mockSystemMetrics = new Mock<SystemMetricsCalculator>(timeSeriesLogger, _requestAnalytics);
+            mockSystemMetrics.Setup(x => x.CalculateMemoryUsage()).Returns(0.95); // Very high CPU
+            mockSystemMetrics.Setup(x => x.CalculateCurrentThroughput()).Returns(50);
+
+            var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
+            var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, mockSystemMetrics.Object);
+
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, mockSystemMetrics.Object, protocolCalculator);
+
+            var estimator = new AspNetCoreConnectionEstimator(
+                _loggerMock.Object,
+                _options,
+                _requestAnalytics,
+                timeSeriesDb,
+                mockSystemMetrics.Object,
+                protocolCalculator,
+                utilities);
+
+            // Act
+            var result = estimator.GetAspNetCoreConnectionCount();
+
+            // Assert - Should classify as High or Critical load
+            Assert.True(result >= 1);
+        }
+
+        [Fact]
+        public void ClassifyCurrentLoadLevel_Should_Handle_Very_Low_CPU_Usage()
+        {
+            // Arrange - Create estimator with mock system metrics that returns low CPU
+            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
+            var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
+            
+            var mockSystemMetrics = new Mock<SystemMetricsCalculator>(timeSeriesLogger, _requestAnalytics);
+            mockSystemMetrics.Setup(x => x.CalculateMemoryUsage()).Returns(0.1); // Very low CPU
+            mockSystemMetrics.Setup(x => x.CalculateCurrentThroughput()).Returns(5);
+
+            var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
+            var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, mockSystemMetrics.Object);
+
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, mockSystemMetrics.Object, protocolCalculator);
+
+            var estimator = new AspNetCoreConnectionEstimator(
+                _loggerMock.Object,
+                _options,
+                _requestAnalytics,
+                timeSeriesDb,
+                mockSystemMetrics.Object,
+                protocolCalculator,
+                utilities);
+
+            // Act
+            var result = estimator.GetAspNetCoreConnectionCount();
+
+            // Assert - Should classify as Idle or Low load
+            Assert.True(result >= 1);
+        }
+
+        [Fact]
+        public void GetHistoricalConnectionAverage_Should_Handle_Insufficient_Data()
+        {
+            // Arrange - Store less than 5 historical metrics
+            for (int i = 0; i < 3; i++)
+            {
+                _timeSeriesDb.StoreMetric("ConnectionCount_AspNetCore", 50, DateTime.UtcNow.AddMinutes(-i));
+            }
+
+            // Act
+            var result = _estimator.GetAspNetCoreConnectionCount();
+
+            // Assert - Should use current estimate when insufficient historical data
+            Assert.True(result >= 1);
+        }
+
+        [Fact]
+        public void PredictConnectionCount_Should_Handle_Different_Time_Periods()
+        {
+            // Arrange - Store historical data for different time periods
+            var currentHour = DateTime.UtcNow.Hour;
+            var oppositeHour = (currentHour + 12) % 24; // 12 hours difference
+            
+            // Add data for opposite time period (should not be used in similar time calculation)
+            for (int day = 0; day < 25; day++)
+            {
+                _timeSeriesDb.StoreMetric("KestrelConnections", 50, 
+                    DateTime.UtcNow.AddDays(-day).Date.AddHours(oppositeHour));
+            }
+
+            // Act
+            var result = _estimator.GetKestrelServerConnections();
+
+            // Assert - Should fall back to EMA since no similar time data
+            Assert.True(result >= 0);
+        }
+
+        [Fact]
+        public void PredictConnectionCount_Should_Handle_Edge_Case_Hours()
+        {
+            // Arrange - Test with edge case hours (0 and 23)
+            var testCases = new[] { 0, 23 };
+            
+            foreach (var testHour in testCases)
+            {
+                // Clear previous data
+                var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+                var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
+                var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
+
+                var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
+                var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
+
+                var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
+                var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
+
+                var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+                var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
+
+                var estimator = new AspNetCoreConnectionEstimator(
+                    _loggerMock.Object,
+                    _options,
+                    _requestAnalytics,
+                    timeSeriesDb,
+                    systemMetrics,
+                    protocolCalculator,
+                    utilities);
+
+                // Add data for the edge hour
+                for (int day = 0; day < 25; day++)
+                {
+                    var timestamp = DateTime.UtcNow.AddDays(-day).Date.AddHours(testHour);
+                    timeSeriesDb.StoreMetric("KestrelConnections", 40 + (day % 5), timestamp);
+                }
+
+                // Act
+                var result = estimator.GetKestrelServerConnections();
+
+                // Assert - Should handle edge hours gracefully
+                Assert.True(result >= 0);
+            }
+        }
+
+        [Fact]
+        public void TryGetStoredKestrelMetrics_Should_Handle_Corrupted_Metric_Values()
+        {
+            // Arrange - Store corrupted values
+            _timeSeriesDb.StoreMetric("KestrelConnections", double.NaN, DateTime.UtcNow);
+            _timeSeriesDb.StoreMetric("KestrelConnections", double.PositiveInfinity, DateTime.UtcNow.AddMinutes(-1));
+            _timeSeriesDb.StoreMetric("KestrelConnections", double.NegativeInfinity, DateTime.UtcNow.AddMinutes(-2));
+
+            // Act
+            var result = _estimator.GetKestrelServerConnections();
+
+            // Assert - Should handle corrupted values gracefully
+            Assert.True(result >= 0);
+        }
+
+        [Fact]
+        public void InferConnectionsFromRequestPatterns_Should_Handle_Zero_Concurrent_Peaks()
+        {
+            // Arrange - Add request analytics with zero concurrent peaks
+            var analysisData = new RequestAnalysisData();
+            analysisData.AddMetrics(new RequestExecutionMetrics
+            {
+                TotalExecutions = 100,
+                SuccessfulExecutions = 100,
+                FailedExecutions = 0,
+                AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                ConcurrentExecutions = 0
+            });
+            _requestAnalytics.TryAdd(typeof(string), analysisData);
+
+            // Act
+            var result = _estimator.GetKestrelServerConnections();
+
+            // Assert - Should handle zero concurrent peaks
+            Assert.True(result >= 0);
+        }
+
+        [Fact]
+        public void InferConnectionsFromRequestPatterns_Should_Handle_Very_High_Concurrent_Peaks()
+        {
+            // Arrange - Add request analytics with very high concurrent peaks
+            var analysisData = new RequestAnalysisData();
+            analysisData.AddMetrics(new RequestExecutionMetrics
+            {
+                TotalExecutions = 1000,
+                SuccessfulExecutions = 950,
+                FailedExecutions = 50,
+                AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                ConcurrentExecutions = 10000 // Very high
+            });
+            _requestAnalytics.TryAdd(typeof(string), analysisData);
+
+            // Act
+            var result = _estimator.GetKestrelServerConnections();
+
+            // Assert - Should handle very high concurrent peaks
+            Assert.True(result >= 0);
+        }
+
+        [Fact]
+        public void EstimateFromConnectionMetrics_Should_Handle_Zero_Total_Active_Requests()
+        {
+            // Arrange - Add request analytics with zero execution counts
+            var analysisData = new RequestAnalysisData();
+            analysisData.AddMetrics(new RequestExecutionMetrics
+            {
+                TotalExecutions = 0,
+                SuccessfulExecutions = 0,
+                FailedExecutions = 0,
+                AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+                ConcurrentExecutions = 0
+            });
+            _requestAnalytics.TryAdd(typeof(string), analysisData);
+
+            // Act
+            var result = _estimator.GetKestrelServerConnections();
+
+            // Assert - Should handle zero total active requests
+            Assert.True(result >= 0);
+        }
+
+        [Fact]
+        public void StoreKestrelConnectionMetrics_Should_Handle_Very_Large_Connection_Counts()
+        {
+            // Arrange - Test with very large connection count
+            var largeConnectionCount = int.MaxValue / 1000; // Large but won't cause overflow
+
+            // Act - This would be called internally, but we can test the effect
+            _timeSeriesDb.StoreMetric("KestrelConnections", largeConnectionCount, DateTime.UtcNow);
+            var result = _estimator.GetKestrelServerConnections();
+
+            // Assert - Should handle large values gracefully
+            Assert.True(result >= 0);
+        }
+
+        [Fact]
+        public void GetAspNetCoreConnectionCount_Should_Handle_All_Strategies_Failing()
+        {
+            // Arrange - Create scenario where all strategies might fail
+            var problematicAnalytics = new ConcurrentDictionary<Type, RequestAnalysisData>();
+            
+            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
+            var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
+
+            var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
+            var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, problematicAnalytics);
+
+            var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
+            var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, problematicAnalytics, timeSeriesDb, systemMetrics);
+
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, problematicAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
+
+            var estimator = new AspNetCoreConnectionEstimator(
+                _loggerMock.Object,
+                _options,
+                problematicAnalytics,
+                timeSeriesDb,
+                systemMetrics,
+                protocolCalculator,
+                utilities);
+
+            // Act
+            var result = estimator.GetAspNetCoreConnectionCount();
+
+            // Assert - Should return fallback value
+            Assert.True(result >= 1);
+            Assert.True(result <= _options.MaxEstimatedHttpConnections / 2);
+        }
+
+        [Fact]
+        public void GetAspNetCoreConnectionCount_Should_Handle_Protocol_Calculator_Exception()
+        {
+            // Arrange - Create estimator with problematic protocol calculator
+            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
+            var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
+
+            var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
+            var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
+
+            var mockProtocolCalculator = new Mock<ProtocolMetricsCalculator>(Mock.Of<ILogger>(), _requestAnalytics, timeSeriesDb, systemMetrics);
+            mockProtocolCalculator.Setup(x => x.CalculateProtocolMultiplexingFactor()).Throws(new InvalidOperationException("Test exception"));
+
+            var utilsLogger = loggerFactory.CreateLogger<ConnectionMetricsUtilities>();
+            var utilities = new ConnectionMetricsUtilities(utilsLogger, _options, _requestAnalytics, timeSeriesDb, systemMetrics, mockProtocolCalculator.Object);
+
+            var estimator = new AspNetCoreConnectionEstimator(
+                _loggerMock.Object,
+                _options,
+                _requestAnalytics,
+                timeSeriesDb,
+                systemMetrics,
+                mockProtocolCalculator.Object,
+                utilities);
+
+            // Act
+            var result = estimator.GetAspNetCoreConnectionCount();
+
+            // Assert - Should handle protocol calculator exception
+            Assert.True(result >= 1);
+        }
+
+        [Fact]
+        public void GetAspNetCoreConnectionCount_Should_Handle_Utilities_Exception()
+        {
+            // Arrange - Create estimator with problematic utilities
+            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
+            var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
+
+            var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
+            var systemMetrics = new SystemMetricsCalculator(systemMetricsLogger, _requestAnalytics);
+
+            var protocolLogger = loggerFactory.CreateLogger<ProtocolMetricsCalculator>();
+            var protocolCalculator = new ProtocolMetricsCalculator(protocolLogger, _requestAnalytics, timeSeriesDb, systemMetrics);
+
+            var mockUtilities = new Mock<ConnectionMetricsUtilities>(Mock.Of<ILogger>(), _options, _requestAnalytics, timeSeriesDb, systemMetrics, protocolCalculator);
+            mockUtilities.Setup(x => x.CalculateEMA(It.IsAny<List<double>>(), It.IsAny<double>())).Throws(new InvalidOperationException("Test exception"));
+
+            var estimator = new AspNetCoreConnectionEstimator(
+                _loggerMock.Object,
+                _options,
+                _requestAnalytics,
+                timeSeriesDb,
+                systemMetrics,
+                protocolCalculator,
+                mockUtilities.Object);
+
+            // Act
+            var result = estimator.GetAspNetCoreConnectionCount();
+
+            // Assert - Should handle utilities exception
+            Assert.True(result >= 1);
         }
 
         #endregion

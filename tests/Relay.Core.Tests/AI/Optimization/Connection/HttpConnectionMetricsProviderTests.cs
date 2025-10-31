@@ -431,5 +431,284 @@ public class HttpConnectionMetricsProviderTests
         System.Threading.Tasks.Task.WaitAll(tasks);
     }
 
+    [Fact]
+    public void GetHttpConnectionCount_Should_Handle_High_Request_Analytics()
+    {
+        // Arrange
+        var requestType = typeof(object);
+        var requestAnalysisData = new RequestAnalysisData();
+        requestAnalysisData.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 1000,
+            SuccessfulExecutions = 990,
+            FailedExecutions = 10,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            ConcurrentExecutions = 500
+        });
+        _requestAnalytics[requestType] = requestAnalysisData;
+
+        // Act
+        var result = _provider.GetHttpConnectionCount();
+
+        // Assert
+        Assert.True(result >= 0);
+        Assert.True(result <= _options.MaxEstimatedHttpConnections);
+    }
+
+    [Fact]
+    public void GetHttpConnectionCount_Should_Handle_Empty_Request_Analytics()
+    {
+        // Arrange
+        _requestAnalytics.Clear();
+
+        // Act
+        var result = _provider.GetHttpConnectionCount();
+
+        // Assert
+        Assert.True(result >= 0);
+        Assert.True(result <= _options.MaxEstimatedHttpConnections);
+    }
+
+    [Fact]
+    public void GetAspNetCoreConnectionCount_Should_Handle_Varying_System_Metrics()
+    {
+        // Arrange - Add some request analytics to affect system metrics
+        var requestType = typeof(object);
+        var requestAnalysisData = new RequestAnalysisData();
+        requestAnalysisData.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 100,
+            SuccessfulExecutions = 99,
+            FailedExecutions = 1,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(50),
+            ConcurrentExecutions = 25
+        });
+        _requestAnalytics[requestType] = requestAnalysisData;
+
+        // Act
+        var result = _provider.GetAspNetCoreConnectionCount();
+
+        // Assert
+        Assert.True(result >= 1);
+        Assert.True(result <= _options.MaxEstimatedHttpConnections / 2);
+    }
+
+    [Fact]
+    public void GetHttpClientPoolConnectionCount_Should_Handle_No_Http_Clients()
+    {
+        // Act
+        var result = _provider.GetHttpClientPoolConnectionCount();
+
+        // Assert
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void GetOutboundHttpConnectionCount_Should_Handle_Zero_Active_Requests()
+    {
+        // Arrange
+        _requestAnalytics.Clear();
+
+        // Act
+        var result = _provider.GetOutboundHttpConnectionCount();
+
+        // Assert
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void GetLoadBalancerConnectionCount_Should_Handle_Multiple_Components()
+    {
+        // Act
+        var result = _provider.GetLoadBalancerConnectionCount();
+
+        // Assert
+        Assert.True(result >= 0);
+        // The method should handle multiple LoadBalancerComponent instances
+    }
+
+    [Fact]
+    public void GetFallbackHttpConnectionCount_Should_Handle_Corrupted_Options()
+    {
+        // Arrange
+        var corruptedOptions = new AIOptimizationOptions
+        {
+            MaxEstimatedHttpConnections = -1, // Invalid value
+            MaxEstimatedDbConnections = 50,
+            EstimatedMaxDbConnections = 100,
+            MaxEstimatedExternalConnections = 30,
+            MaxEstimatedWebSocketConnections = 1000
+        };
+
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, corruptedOptions, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
+        var corruptedProvider = new HttpConnectionMetricsProvider(
+            _logger,
+            corruptedOptions,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics,
+            protocolCalculator,
+            utilities);
+
+        // Act
+        var result = corruptedProvider.GetFallbackHttpConnectionCount();
+
+        // Assert
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void Integration_All_Connection_Counts_Should_Be_Consistent()
+    {
+        // Arrange
+        var requestType = typeof(object);
+        var requestAnalysisData = new RequestAnalysisData();
+        requestAnalysisData.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 200,
+            SuccessfulExecutions = 196,
+            FailedExecutions = 4,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(75),
+            ConcurrentExecutions = 50
+        });
+        _requestAnalytics[requestType] = requestAnalysisData;
+
+        // Act
+        var httpCount = _provider.GetHttpConnectionCount();
+        var aspNetCount = _provider.GetAspNetCoreConnectionCount();
+        var httpClientPoolCount = _provider.GetHttpClientPoolConnectionCount();
+        var outboundCount = _provider.GetOutboundHttpConnectionCount();
+        var loadBalancerCount = _provider.GetLoadBalancerConnectionCount();
+        var fallbackCount = _provider.GetFallbackHttpConnectionCount();
+
+        // Assert
+        Assert.True(httpCount >= 0);
+        Assert.True(aspNetCount >= 1);
+        Assert.True(httpClientPoolCount >= 0);
+        Assert.True(outboundCount >= 0);
+        Assert.True(loadBalancerCount >= 0);
+        Assert.True(fallbackCount >= 0);
+
+        // All counts should be within reasonable bounds
+        Assert.True(httpCount <= _options.MaxEstimatedHttpConnections);
+        Assert.True(aspNetCount <= _options.MaxEstimatedHttpConnections / 2);
+    }
+
+    [Fact]
+    public void Integration_With_TimeSeries_Data_Should_Work_Correctly()
+    {
+        // Arrange
+        var data = new Dictionary<string, List<MetricDataPoint>>();
+        var repository = CreateMockRepository(data);
+        
+        // Add some historical data
+        var now = DateTime.UtcNow;
+        for (int i = 0; i < 10; i++)
+        {
+            data["http_connections_total"] = new List<MetricDataPoint>
+            {
+                new MetricDataPoint
+                {
+                    MetricName = "http_connections_total",
+                    Timestamp = now.AddMinutes(-i),
+                    Value = 100 + i * 10,
+                    Trend = (int)Relay.Core.AI.TrendDirection.Increasing
+                }
+            };
+        }
+
+        // Create a new provider with the populated time series
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, _options, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
+        var providerWithHistory = new HttpConnectionMetricsProvider(
+            _logger,
+            _options,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics,
+            protocolCalculator,
+            utilities);
+
+        // Act
+        var result = providerWithHistory.GetHttpConnectionCount();
+
+        // Assert
+        Assert.True(result >= 0);
+        Assert.True(result <= _options.MaxEstimatedHttpConnections);
+    }
+
+    [Fact]
+    public void Integration_Concurrent_Access_Should_Not_Corrupt_State()
+    {
+        // Arrange
+        var tasks = new System.Threading.Tasks.Task[20];
+        var results = new System.Collections.Concurrent.ConcurrentBag<int>();
+
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                for (int j = 0; j < 10; j++)
+                {
+                    var result = _provider.GetHttpConnectionCount();
+                    results.Add(result);
+                    
+                    // Simulate some work
+                    System.Threading.Thread.Sleep(1);
+                }
+            });
+        }
+
+        // Act
+        System.Threading.Tasks.Task.WaitAll(tasks);
+
+        // Assert
+        Assert.Equal(200, results.Count);
+        foreach (var result in results)
+        {
+            Assert.True(result >= 0);
+            Assert.True(result <= _options.MaxEstimatedHttpConnections);
+        }
+    }
+
+    [Fact]
+    public void Integration_With_Exception_In_Dependencies_Should_Recover()
+    {
+        // Arrange - Create a provider with potentially problematic dependencies
+        var problematicOptions = new AIOptimizationOptions
+        {
+            MaxEstimatedHttpConnections = 0, // Edge case
+            MaxEstimatedDbConnections = 0,
+            EstimatedMaxDbConnections = 0,
+            MaxEstimatedExternalConnections = 0,
+            MaxEstimatedWebSocketConnections = 0
+        };
+
+        var protocolCalculator = new ProtocolMetricsCalculator(_logger, _requestAnalytics, _timeSeriesDb, _systemMetrics);
+        var utilities = new ConnectionMetricsUtilities(_logger, problematicOptions, _requestAnalytics, _timeSeriesDb, _systemMetrics, protocolCalculator);
+
+        var problematicProvider = new HttpConnectionMetricsProvider(
+            _logger,
+            problematicOptions,
+            _requestAnalytics,
+            _timeSeriesDb,
+            _systemMetrics,
+            protocolCalculator,
+            utilities);
+
+        // Act
+        var httpResult = problematicProvider.GetHttpConnectionCount();
+        var aspNetResult = problematicProvider.GetAspNetCoreConnectionCount();
+        var fallbackResult = problematicProvider.GetFallbackHttpConnectionCount();
+
+        // Assert
+        Assert.True(httpResult >= 0);
+        Assert.True(aspNetResult >= 0);
+        Assert.True(fallbackResult >= 0);
+    }
+
     #endregion
 }

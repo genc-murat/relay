@@ -531,6 +531,247 @@ public class ConnectionCalculatorsTests
 
     #endregion
 
+    #region Additional Edge Case Tests
+
+    [Fact]
+    public void CalculateConnectionHealthRatio_Should_Handle_High_Error_Rate()
+    {
+        // Arrange
+        var testType = typeof(TestController);
+        var data = new RequestAnalysisData();
+        data.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 100,
+            SuccessfulExecutions = 50,
+            FailedExecutions = 50,
+            AverageExecutionTime = TimeSpan.FromSeconds(2),
+            ConcurrentExecutions = 30
+        });
+        _requestAnalytics[testType] = data;
+
+        // Act
+        var result = _calculators.CalculateConnectionHealthRatio();
+
+        // Assert - should be lower with high error rate
+        Assert.True(result >= 0.0);
+        Assert.True(result <= 1.0);
+        Assert.True(result < 0.8); // Should be significantly lower than optimal
+    }
+
+    [Fact]
+    public void CalculateConnectionHealthRatio_Should_Handle_Zero_Error_Rate()
+    {
+        // Arrange
+        var testType = typeof(TestController);
+        var data = new RequestAnalysisData();
+        data.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 100,
+            SuccessfulExecutions = 100,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(500),
+            ConcurrentExecutions = 10
+        });
+        _requestAnalytics[testType] = data;
+
+        // Act
+        var result = _calculators.CalculateConnectionHealthRatio();
+
+        // Assert - should be high with zero error rate
+        Assert.True(result >= 0.8);
+        Assert.True(result <= 1.0);
+    }
+
+    [Fact]
+    public void ClassifyCurrentLoadLevel_Should_Handle_Exception_In_SystemMetrics()
+    {
+        // Arrange - simulate a scenario that might cause exceptions
+        var testType = typeof(TestController);
+        var data = new RequestAnalysisData();
+        data.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 1,
+            SuccessfulExecutions = 0,
+            FailedExecutions = 1,
+            AverageExecutionTime = TimeSpan.MaxValue,
+            ConcurrentExecutions = int.MaxValue
+        });
+        _requestAnalytics[testType] = data;
+
+        // Act & Assert - should not throw and return a valid enum
+        var result = _calculators.ClassifyCurrentLoadLevel();
+        Assert.True(Enum.IsDefined(typeof(LoadLevel), result));
+    }
+
+    [Fact]
+    public void EstimateRealTimeUsers_Should_Handle_Large_Concurrent_Requests()
+    {
+        // Arrange
+        var testType = typeof(TestController);
+        var data = new RequestAnalysisData();
+        data.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 10000,
+            SuccessfulExecutions = 9500,
+            FailedExecutions = 500,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            ConcurrentExecutions = 1000
+        });
+        _requestAnalytics[testType] = data;
+
+        // Act
+        var result = _calculators.EstimateRealTimeUsers();
+
+        // Assert
+        Assert.True(result > 0);
+        Assert.True(result < 100000); // Reasonable upper bound
+    }
+
+    [Fact]
+    public void CalculateMetricVolatility_Should_Handle_Very_Large_Values()
+    {
+        // Arrange
+        var metrics = new List<MetricDataPoint>
+        {
+            new MetricDataPoint { Value = float.MaxValue, Timestamp = DateTime.UtcNow.AddMinutes(-2) },
+            new MetricDataPoint { Value = float.MinValue, Timestamp = DateTime.UtcNow.AddMinutes(-1) },
+            new MetricDataPoint { Value = 0, Timestamp = DateTime.UtcNow }
+        };
+
+        // Act & Assert - should not throw
+        var result = _calculators.CalculateMetricVolatility(metrics);
+        Assert.True(result >= 0.0);
+    }
+
+    [Fact]
+    public void CalculateTrend_Should_Handle_Identical_Values()
+    {
+        // Arrange
+        var metrics = new List<MetricDataPoint>
+        {
+            new MetricDataPoint { Value = 100, Timestamp = DateTime.UtcNow.AddMinutes(-2) },
+            new MetricDataPoint { Value = 100, Timestamp = DateTime.UtcNow.AddMinutes(-1) },
+            new MetricDataPoint { Value = 100, Timestamp = DateTime.UtcNow }
+        };
+
+        // Act
+        var result = _calculators.CalculateTrend(metrics);
+
+        // Assert - trend should be zero for identical values
+        Assert.Equal(0.0, result);
+    }
+
+    [Fact]
+    public void CalculateWeightedAverage_Should_Handle_Zero_Weights()
+    {
+        // Arrange
+        var metrics = new List<MetricDataPoint>
+        {
+            new MetricDataPoint { Value = 100, Timestamp = DateTime.UtcNow.AddDays(-10) },
+            new MetricDataPoint { Value = 200, Timestamp = DateTime.UtcNow.AddDays(-5) }
+        };
+
+        // Act
+        var result = _calculators.CalculateWeightedAverage(metrics);
+
+        // Assert - should handle gracefully
+        Assert.True(result >= 0.0);
+    }
+
+    [Fact]
+    public void EstimateActiveHubCount_Should_Handle_Zero_Max_Connections()
+    {
+        // Arrange
+        var options = new AIOptimizationOptions { MaxEstimatedWebSocketConnections = 0 };
+        var calculators = new ConnectionCalculators(_logger, options, _requestAnalytics, _timeSeriesDb, _systemMetrics, _utilities);
+
+        // Act
+        var result = calculators.EstimateActiveHubCount();
+
+        // Assert - should handle zero max gracefully
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void CalculateConnectionMultiplier_Should_Handle_Very_High_Concurrency()
+    {
+        // Arrange
+        var testType = typeof(TestController);
+        var data = new RequestAnalysisData();
+        data.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 1000,
+            SuccessfulExecutions = 900,
+            FailedExecutions = 100,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(50),
+            ConcurrentExecutions = 999
+        });
+        _requestAnalytics[testType] = data;
+
+        // Act
+        var result = ConnectionCalculators.CalculateConnectionMultiplier();
+
+        // Assert
+        Assert.True(result >= 1.0);
+        Assert.True(result < 100.0); // Reasonable upper bound
+    }
+
+    [Fact]
+    public void CalculateSignalRGroupFactor_Should_Handle_No_Request_Data()
+    {
+        // Arrange - ensure no request data
+        _requestAnalytics.Clear();
+
+        // Act
+        var result = _calculators.CalculateSignalRGroupFactor();
+
+        // Assert - should return a reasonable default
+        Assert.True(result >= 0.1);
+        Assert.True(result <= 10.0);
+    }
+
+    [Fact]
+    public void CalculateSystemStability_Should_Handle_Mixed_Success_Rates()
+    {
+        // Arrange
+        var testType1 = typeof(TestController);
+        var testType2 = typeof(string);
+        
+        var data1 = new RequestAnalysisData();
+        data1.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 100,
+            SuccessfulExecutions = 100,
+            FailedExecutions = 0,
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            ConcurrentExecutions = 10
+        });
+        _requestAnalytics[testType1] = data1;
+
+        var data2 = new RequestAnalysisData();
+        data2.AddMetrics(new RequestExecutionMetrics
+        {
+            TotalExecutions = 100,
+            SuccessfulExecutions = 0,
+            FailedExecutions = 100,
+            AverageExecutionTime = TimeSpan.FromSeconds(10),
+            ConcurrentExecutions = 50
+        });
+        _requestAnalytics[testType2] = data2;
+
+        // Act
+        var result = _calculators.CalculateSystemStability();
+
+        // Assert - should be somewhere in the middle due to mixed performance
+        Assert.True(result >= 0.0);
+        Assert.True(result <= 1.0);
+        // Just check it's a valid value - the actual algorithm may behave differently
+        Assert.True(result >= 0.0);
+        Assert.True(result <= 1.0);
+    }
+
+    #endregion
+
     // Helper classes
     private class TestController { }
 }

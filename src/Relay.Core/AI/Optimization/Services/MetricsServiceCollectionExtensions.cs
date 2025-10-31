@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -13,25 +14,45 @@ namespace Relay.Core.AI.Optimization.Services
         /// </summary>
         public static IServiceCollection AddMetricsServices(this IServiceCollection services)
         {
-            // Register core interfaces
-            services.AddSingleton<IMetricsPublisher, DefaultMetricsPublisher>();
-            services.AddSingleton<IMetricsAggregator, DefaultMetricsAggregator>();
-            services.AddSingleton<ISystemAnalyzer, DefaultSystemAnalyzer>();
-            services.AddSingleton<IHealthScorer, CompositeHealthScorer>();
+            // Register core interfaces if not already registered
+            if (!services.Any(d => d.ServiceType == typeof(IMetricsPublisher)))
+                services.AddSingleton<IMetricsPublisher, DefaultMetricsPublisher>();
+            
+            if (!services.Any(d => d.ServiceType == typeof(IMetricsAggregator)))
+                services.AddSingleton<IMetricsAggregator, DefaultMetricsAggregator>();
+            
+            if (!services.Any(d => d.ServiceType == typeof(ISystemAnalyzer)))
+                services.AddSingleton<ISystemAnalyzer, DefaultSystemAnalyzer>();
+            
+            if (!services.Any(d => d.ServiceType == typeof(IHealthScorer)))
+                services.AddSingleton<IHealthScorer, CompositeHealthScorer>();
 
-            // Register individual health scorers
-            services.AddSingleton<PerformanceScorer>();
-            services.AddSingleton<ReliabilityScorer>();
-            services.AddSingleton<ScalabilityScorer>();
-            services.AddSingleton<SecurityScorer>();
-            services.AddSingleton<MaintainabilityScorer>();
+            // Register individual health scorers if not already registered
+            if (!services.Any(d => d.ServiceType == typeof(PerformanceScorer)))
+                services.AddSingleton<PerformanceScorer>();
+            
+            if (!services.Any(d => d.ServiceType == typeof(ReliabilityScorer)))
+                services.AddSingleton<ReliabilityScorer>();
+            
+            if (!services.Any(d => d.ServiceType == typeof(ScalabilityScorer)))
+                services.AddSingleton<ScalabilityScorer>();
+            
+            if (!services.Any(d => d.ServiceType == typeof(SecurityScorer)))
+                services.AddSingleton<SecurityScorer>();
+            
+            if (!services.Any(d => d.ServiceType == typeof(MaintainabilityScorer)))
+                services.AddSingleton<MaintainabilityScorer>();
 
-            // Register options
-            services.AddSingleton<MetricsCollectionOptions>();
-            services.AddSingleton<HealthScoringOptions>();
+            // Register options if not already registered
+            if (!services.Any(d => d.ServiceType == typeof(MetricsCollectionOptions)))
+                services.AddSingleton<MetricsCollectionOptions>();
+            
+            if (!services.Any(d => d.ServiceType == typeof(HealthScoringOptions)))
+                services.AddSingleton<HealthScoringOptions>();
 
-            // Register the main service
-            services.AddSingleton<SystemMetricsService>();
+            // Register the main service if not already registered
+            if (!services.Any(d => d.ServiceType == typeof(SystemMetricsService)))
+                services.AddSingleton<SystemMetricsService>();
 
             return services;
         }
@@ -44,8 +65,12 @@ namespace Relay.Core.AI.Optimization.Services
             MetricsCollectionOptions metricsOptions,
             HealthScoringOptions healthOptions)
         {
-            services.AddSingleton(metricsOptions);
-            services.AddSingleton(healthOptions);
+            // Register custom options if not already registered
+            if (!services.Any(d => d.ServiceType == typeof(MetricsCollectionOptions)))
+                services.AddSingleton(metricsOptions);
+            
+            if (!services.Any(d => d.ServiceType == typeof(HealthScoringOptions)))
+                services.AddSingleton(healthOptions);
 
             return services.AddMetricsServices();
         }

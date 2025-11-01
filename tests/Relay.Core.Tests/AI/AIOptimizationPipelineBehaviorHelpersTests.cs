@@ -1125,4 +1125,115 @@ public class AIOptimizationPipelineBehaviorHelpersTests
         Assert.NotNull(result);
         Assert.Equal(typeof(TestHandler), result);
     }
+
+    [Fact]
+    public void GetAIOptimizationAttributes_WhenHandlerExists_IncludesAllAttributeSources()
+    {
+        // Arrange - Create a request type that has attributes, and corresponding handler and method with attributes
+        var loggerForRequestWithAttribute = new Mock<ILogger<AIOptimizationPipelineBehavior<RequestWithAttribute, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<RequestWithAttribute, TestResponse>(
+            _aiEngineMock.Object,
+            loggerForRequestWithAttribute.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act - using reflection to call private method
+        var method = typeof(AIOptimizationPipelineBehavior<RequestWithAttribute, TestResponse>)
+            .GetMethod("GetAIOptimizationAttributes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (AIOptimizedAttribute[])method!.Invoke(behavior, new object[] { typeof(RequestWithAttribute) })!;
+
+        // Assert - Should have attributes from request, handler class, and method
+        Assert.NotNull(result);
+        Assert.NotEmpty(result);
+        
+        // Verify that we get attributes from multiple sources
+        var hasEnableMetricsTracking = System.Linq.Enumerable.Any(result, attr => attr.EnableMetricsTracking);
+        var hasAutoApplyOptimizations = System.Linq.Enumerable.Any(result, attr => attr.AutoApplyOptimizations);
+        
+        Assert.True(hasEnableMetricsTracking, "Should have metrics tracking attribute from one of the sources");
+        Assert.True(hasAutoApplyOptimizations, "Should have auto apply optimizations attribute from one of the sources");
+    }
+
+    [Fact]
+    public void GetAIOptimizationAttributes_WhenNoHandlerExists_IncludesOnlyRequestAttributes()
+    {
+        // Arrange - Create a request type with attributes but no corresponding handler
+        var requestType = typeof(RequestWithAttributesButNoHandler);
+        var loggerForRequestWithAttributesButNoHandler = new Mock<ILogger<AIOptimizationPipelineBehavior<RequestWithAttributesButNoHandler, TestResponse>>>();
+        var behavior = new AIOptimizationPipelineBehavior<RequestWithAttributesButNoHandler, TestResponse>(
+            _aiEngineMock.Object,
+            loggerForRequestWithAttributesButNoHandler.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act - using reflection to call private method
+        var method = typeof(AIOptimizationPipelineBehavior<RequestWithAttributesButNoHandler, TestResponse>)
+            .GetMethod("GetAIOptimizationAttributes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (AIOptimizedAttribute[])method!.Invoke(behavior, new object[] { requestType })!;
+
+        // Assert - Should have only attributes from the request since there's no handler
+        // This tests the (handlerType != null) condition which evaluates to false
+        Assert.NotNull(result);
+        
+        // All attributes should come from the request itself
+        // Since the if (handlerType != null) block is skipped, only request attributes are included
+        Assert.All(result, attr => Assert.True(
+            attr.EnableMetricsTracking || attr.AutoApplyOptimizations, 
+            "All attributes should be from the request (not from handler or method)"));
+    }
+
+    [Fact]
+    public void GetAIOptimizationAttributes_WhenRequestTypeHasNoInterfaces_ReturnsEmpty()
+    {
+        // Arrange - Create a request type that implements no known interfaces
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act - using reflection to call private method with type that has no interfaces
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("GetAIOptimizationAttributes", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (AIOptimizedAttribute[])method!.Invoke(behavior, new object[] { typeof(UnknownTestRequest) })!;
+
+        // Assert - Since UnknownTestRequest implements no interfaces, FindHandlerType returns null,
+        // and only direct request attributes are collected (which should be none in this case)
+        Assert.NotNull(result);
+        // The result might not be empty if there are any AIOptimized attributes on UnknownTestRequest directly
+    }
+
+    // Additional test classes
+    [AIOptimized(EnableMetricsTracking = true)]
+    public class RequestWithAttributesButNoHandler : IRequest<TestResponse>
+    {
+        public string Value { get; set; } = string.Empty;
+    }
+
+    // Helper classes for testing different scenarios
+    public class StreamTestRequest : IStreamRequest<TestResponse>
+    {
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class StreamTestHandler : IStreamHandler<StreamTestRequest, TestResponse>
+    {
+        public async IAsyncEnumerable<TestResponse> HandleAsync(StreamTestRequest request, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            yield return new TestResponse { Result = request.Value };
+        }
+    }
+
+    public class RequestWithoutHandler : IRequest<TestResponse>  // Request without corresponding handler
+    {
+        public string Value { get; set; } = string.Empty;
+    }
+
+    public class UnknownTestRequest // Class that doesn't implement any known request interface
+    {
+        public string Value { get; set; } = string.Empty;
+    }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Metrics.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -429,6 +430,171 @@ public class AIServiceCollectionExtensionsTests
         Assert.NotNull(result);
         Assert.False(result.IsHealthy);
         Assert.NotNull(result.Exception);
+    }
+
+    [Fact]
+    public async Task GetAIOptimizationHealthAsync_WhenNoServicesAvailable_ReturnsEmptyResult()
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+
+        // All service lookups return null
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIOptimizationHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIModelHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIMetricsHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AICircuitBreakerHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AISystemHealthCheck))).Returns(null);
+
+        var result = await serviceProvider.Object.GetAIOptimizationHealthAsync();
+
+        Assert.NotNull(result);
+        Assert.True(result.IsHealthy); // Should be healthy since no components failed
+        Assert.Empty(result.ComponentResults); // No components were checked
+        Assert.NotNull(result.Summary);
+        Assert.Contains("0/0 components healthy", result.Summary);
+    }
+
+    [Fact]
+    public async Task GetAIOptimizationHealthAsync_WhenSomeServicesAreNull_DoesNotFail()
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+        var engine = new Mock<IAIOptimizationEngine>();
+        var logger = new Mock<ILogger<AIOptimizationHealthCheck>>();
+        var options = new Mock<IOptions<AIHealthCheckOptions>>();
+        options.Setup(o => o.Value).Returns(new AIHealthCheckOptions());
+        var healthCheck = new Mock<AIOptimizationHealthCheck>(engine.Object, logger.Object, options.Object);
+        healthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComponentHealthResult { IsHealthy = true, ComponentName = "Optimization" });
+
+        // Only one service returns a real instance, others return null
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIOptimizationHealthCheck))).Returns(healthCheck.Object);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIModelHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIMetricsHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AICircuitBreakerHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AISystemHealthCheck))).Returns(null);
+
+        var result = await serviceProvider.Object.GetAIOptimizationHealthAsync();
+
+        Assert.NotNull(result);
+        Assert.True(result.IsHealthy);
+        Assert.Single(result.ComponentResults);
+        Assert.Equal(1, result.ComponentResults.Count);
+    }
+
+    [Fact]
+    public async Task GetAIOptimizationHealthAsync_WhenMultipleComponentsFail_ReturnsUnhealthy()
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+
+        // Setup multiple health checks that return unhealthy results
+        var optHealthCheck = new Mock<AIOptimizationHealthCheck>(Mock.Of<IAIOptimizationEngine>(), Mock.Of<ILogger<AIOptimizationHealthCheck>>(), Mock.Of<IOptions<AIHealthCheckOptions>>());
+        optHealthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComponentHealthResult { IsHealthy = false, ComponentName = "Optimization" });
+
+        var modelHealthCheck = new Mock<AIModelHealthCheck>(Mock.Of<IAIOptimizationEngine>(), Mock.Of<ILogger<AIModelHealthCheck>>(), Mock.Of<IOptions<AIHealthCheckOptions>>());
+        modelHealthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComponentHealthResult { IsHealthy = false, ComponentName = "Model" });
+
+        var metricsHealthCheck = new Mock<AIMetricsHealthCheck>(Mock.Of<IAIMetricsExporter>(), Mock.Of<ILogger<AIMetricsHealthCheck>>(), Mock.Of<IOptions<AIHealthCheckOptions>>());
+        metricsHealthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComponentHealthResult { IsHealthy = true, ComponentName = "Metrics" }); // One healthy for variety
+
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIOptimizationHealthCheck))).Returns(optHealthCheck.Object);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIModelHealthCheck))).Returns(modelHealthCheck.Object);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIMetricsHealthCheck))).Returns(metricsHealthCheck.Object);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AICircuitBreakerHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AISystemHealthCheck))).Returns(null);
+
+        var result = await serviceProvider.Object.GetAIOptimizationHealthAsync();
+
+        Assert.NotNull(result);
+        Assert.False(result.IsHealthy); // Overall should be unhealthy due to multiple failures
+        Assert.Equal(3, result.ComponentResults.Count); // 3 components were checked (2 failed, 1 passed)
+        Assert.Contains("AI Optimization Status", result.Summary);
+        Assert.Contains("1/3 components healthy", result.Summary); // Only 1 of 3 is healthy
+    }
+
+    [Fact]
+    public async Task GetAIOptimizationHealthAsync_WithExceptionDuringExecution_HandlesGracefully()
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+
+        // First health check works, second throws exception
+        var optHealthCheck = new Mock<AIOptimizationHealthCheck>(Mock.Of<IAIOptimizationEngine>(), Mock.Of<ILogger<AIOptimizationHealthCheck>>(), Mock.Of<IOptions<AIHealthCheckOptions>>());
+        optHealthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComponentHealthResult { IsHealthy = true, ComponentName = "Optimization" });
+
+        var modelHealthCheck = new Mock<AIModelHealthCheck>(Mock.Of<IAIOptimizationEngine>(), Mock.Of<ILogger<AIModelHealthCheck>>(), Mock.Of<IOptions<AIHealthCheckOptions>>());
+        modelHealthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Database unavailable"));
+
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIOptimizationHealthCheck))).Returns(optHealthCheck.Object);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIModelHealthCheck))).Returns(modelHealthCheck.Object);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIMetricsHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AICircuitBreakerHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AISystemHealthCheck))).Returns(null);
+
+        var result = await serviceProvider.Object.GetAIOptimizationHealthAsync();
+
+        Assert.NotNull(result);
+        Assert.False(result.IsHealthy); // Should be unhealthy due to exception
+        Assert.NotNull(result.Exception); // Exception from the overall try-catch
+        Assert.Equal("Database unavailable", result.Exception.Message);
+    }
+
+    [Fact]
+    public async Task GetAIOptimizationHealthAsync_ReturnsProperDurationAndTimestamp()
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+        var engine = new Mock<IAIOptimizationEngine>();
+        var logger = new Mock<ILogger<AIOptimizationHealthCheck>>();
+        var options = new Mock<IOptions<AIHealthCheckOptions>>();
+        options.Setup(o => o.Value).Returns(new AIHealthCheckOptions());
+
+        var healthCheck = new Mock<AIOptimizationHealthCheck>(engine.Object, logger.Object, options.Object);
+        healthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComponentHealthResult { IsHealthy = true, ComponentName = "Test" });
+
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIOptimizationHealthCheck))).Returns(healthCheck.Object);
+
+        var startTime = DateTime.UtcNow;
+        var result = await serviceProvider.Object.GetAIOptimizationHealthAsync();
+        var endTime = DateTime.UtcNow;
+
+        Assert.NotNull(result);
+        Assert.True(result.IsHealthy);
+        Assert.InRange(result.Timestamp, startTime, endTime);
+        Assert.True(result.Duration >= TimeSpan.Zero);
+        Assert.True(result.Duration <= endTime - startTime + TimeSpan.FromSeconds(1)); // Allow small buffer
+    }
+
+    [Fact]
+    public async Task GetAIOptimizationHealthAsync_GeneratesCorrectSummary()
+    {
+        var serviceProvider = new Mock<IServiceProvider>();
+
+        // Setup health checks with mixed results
+        var optHealthCheck = new Mock<AIOptimizationHealthCheck>(Mock.Of<IAIOptimizationEngine>(), Mock.Of<ILogger<AIOptimizationHealthCheck>>(), Mock.Of<IOptions<AIHealthCheckOptions>>());
+        optHealthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComponentHealthResult { IsHealthy = true, ComponentName = "Optimization" });
+
+        var modelHealthCheck = new Mock<AIModelHealthCheck>(Mock.Of<IAIOptimizationEngine>(), Mock.Of<ILogger<AIModelHealthCheck>>(), Mock.Of<IOptions<AIHealthCheckOptions>>());
+        modelHealthCheck.Setup(h => h.CheckHealthAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ComponentHealthResult { IsHealthy = false, ComponentName = "Model" });
+
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIOptimizationHealthCheck))).Returns(optHealthCheck.Object);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIModelHealthCheck))).Returns(modelHealthCheck.Object);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AIMetricsHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AICircuitBreakerHealthCheck))).Returns(null);
+        serviceProvider.Setup(sp => sp.GetService(typeof(AISystemHealthCheck))).Returns(null);
+
+        var result = await serviceProvider.Object.GetAIOptimizationHealthAsync();
+
+        Assert.NotNull(result);
+        Assert.False(result.IsHealthy);
+        Assert.NotNull(result.Summary);
+        // Summary should indicate 1 of 2 components healthy (unhealthy overall)
+        Assert.Contains("AI Optimization Status: Unhealthy", result.Summary);
+        Assert.Contains("1/2 components healthy", result.Summary);
     }
 
 

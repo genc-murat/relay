@@ -859,4 +859,25 @@ public class AIOptimizationPipelineBehaviorHelpersTests
         // This test confirms that the if (handlerType != null) condition was reached
         // and the method continued execution properly
     }
+
+    [Fact]
+    public void FindHandlerType_WhenRequestImplementsIRequestWithResponse_FindsHandler()
+    {
+        // Arrange - Testing the path where request implements IRequest<TResponse>
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act - using reflection to call private method
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("FindHandlerType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = method!.Invoke(behavior, new object[] { typeof(TestRequest) })!;
+
+        // Assert - Should find the TestHandler type
+        Assert.NotNull(result);
+        Assert.Equal(typeof(TestHandler), result);
+    }
 }

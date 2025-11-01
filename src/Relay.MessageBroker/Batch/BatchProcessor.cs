@@ -386,12 +386,10 @@ public sealed class BatchProcessor<TMessage> : IBatchProcessor<TMessage>
             return;
         }
 
-        _disposed = true;
-
         // Stop the timer
         await _flushTimer.DisposeAsync();
 
-        // Flush any remaining messages
+        // Flush any remaining messages before marking as disposed
         try
         {
             await FlushAsync();
@@ -400,6 +398,8 @@ public sealed class BatchProcessor<TMessage> : IBatchProcessor<TMessage>
         {
             _logger.LogError(ex, "Error flushing remaining messages during disposal");
         }
+
+        _disposed = true;
 
         _lock.Dispose();
 

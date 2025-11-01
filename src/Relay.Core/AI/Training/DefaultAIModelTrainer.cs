@@ -121,6 +121,12 @@ namespace Relay.Core.AI
 
                 ReportProgress(progressCallback, TrainingPhase.Completed, 100, "Training completed successfully", trainingData, startTime);
             }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("AI model training session #{Session} was cancelled", sessionId);
+                ReportProgress(progressCallback, TrainingPhase.Completed, 100, "Training was cancelled", trainingData, startTime);
+                throw; // Re-throw OperationCanceledException to be handled by calling code
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during AI model training session #{Session}", sessionId);
@@ -282,10 +288,30 @@ namespace Relay.Core.AI
 
                 if (performanceData.Count >= MinimumExecutionSamples)
                 {
-                    _mlNetManager.TrainRegressionModel(performanceData);
+                    // For very large datasets, use sampling to improve performance
+                    var dataToUse = performanceData.Count > 2000 
+                        ? GetSampledPerformanceData(performanceData)
+                        : performanceData;
+
+                    _mlNetManager.TrainRegressionModel(dataToUse);
                     _logger.LogInformation("Performance regression model trained successfully");
                 }
             }, cancellationToken);
+        }
+
+        private List<PerformanceData> GetSampledPerformanceData(List<PerformanceData> originalData)
+        {
+            // Take every nth sample to create a representative sample
+            var sampleSize = Math.Max(1000, Math.Min(2000, originalData.Count / 2));
+            var step = Math.Max(1, originalData.Count / sampleSize);
+            
+            var sampledData = new List<PerformanceData>();
+            for (int i = 0; i < originalData.Count; i += step)
+            {
+                sampledData.Add(originalData[i]);
+            }
+            
+            return sampledData;
         }
 
         private Task TrainOptimizationClassifiersAsync(AITrainingData trainingData, CancellationToken cancellationToken)
@@ -313,10 +339,30 @@ namespace Relay.Core.AI
 
                 if (strategyData.Count >= MinimumOptimizationSamples)
                 {
-                    _mlNetManager.TrainClassificationModel(strategyData);
+                    // For large datasets, use sampling to improve performance
+                    var dataToUse = strategyData.Count > 1000
+                        ? GetSampledOptimizationData(strategyData)
+                        : strategyData;
+
+                    _mlNetManager.TrainClassificationModel(dataToUse);
                     _logger.LogInformation("Optimization classification model trained successfully");
                 }
             }, cancellationToken);
+        }
+
+        private List<OptimizationStrategyData> GetSampledOptimizationData(List<OptimizationStrategyData> originalData)
+        {
+            // Take every nth sample to create a representative sample
+            var sampleSize = Math.Max(500, Math.Min(1000, originalData.Count / 2));
+            var step = Math.Max(1, originalData.Count / sampleSize);
+            
+            var sampledData = new List<OptimizationStrategyData>();
+            for (int i = 0; i < originalData.Count; i += step)
+            {
+                sampledData.Add(originalData[i]);
+            }
+            
+            return sampledData;
         }
 
         private Task TrainAnomalyDetectionModelsAsync(AITrainingData trainingData, CancellationToken cancellationToken)
@@ -330,14 +376,20 @@ namespace Relay.Core.AI
                     trainingData.SystemLoadHistory.Length);
 
                 // Convert system load metrics to metric data for anomaly detection
-                var metricData = trainingData.SystemLoadHistory
+                // Use a more efficient approach for large datasets by sampling if necessary
+                var filteredData = trainingData.SystemLoadHistory
+                    .Where(s => s.Timestamp != default) // Filter out any default timestamps
                     .OrderBy(s => s.Timestamp)
-                    .Select(s => new MetricData
+                    .ToList();
+
+                // For large datasets, take a representative sample to improve performance
+                var metricData = filteredData.Count > 1000
+                    ? GetSampledAnomalyData(filteredData)
+                    : filteredData.Select(s => new MetricData
                     {
                         Timestamp = s.Timestamp,
                         Value = (float)s.CpuUtilization
-                    })
-                    .ToList();
+                    }).ToList();
 
                 if (metricData.Count >= MinimumSystemLoadSamples)
                 {
@@ -345,6 +397,25 @@ namespace Relay.Core.AI
                     _logger.LogInformation("Anomaly detection model trained successfully");
                 }
             }, cancellationToken);
+        }
+
+        private List<MetricData> GetSampledAnomalyData(List<SystemLoadMetrics> originalData)
+        {
+            // Take every nth sample to create a representative sample
+            var sampleSize = Math.Max(500, Math.Min(1000, originalData.Count / 2));
+            var step = Math.Max(1, originalData.Count / sampleSize);
+            
+            var sampledData = new List<MetricData>();
+            for (int i = 0; i < originalData.Count; i += step)
+            {
+                sampledData.Add(new MetricData
+                {
+                    Timestamp = originalData[i].Timestamp,
+                    Value = (float)originalData[i].CpuUtilization
+                });
+            }
+            
+            return sampledData;
         }
 
         private Task TrainForecastingModelsAsync(AITrainingData trainingData, CancellationToken cancellationToken)
@@ -358,14 +429,21 @@ namespace Relay.Core.AI
                     trainingData.SystemLoadHistory.Length);
 
                 // Convert system load to time series for forecasting
-                var timeSeriesData = trainingData.SystemLoadHistory
+                // Use a more efficient approach for large datasets by sampling if necessary
+                var filteredData = trainingData.SystemLoadHistory
+                    .Where(s => s.Timestamp != default) // Filter out any default timestamps
                     .OrderBy(s => s.Timestamp)
-                    .Select(s => new MetricData
+                    .ToList();
+
+                // For very large datasets, take a representative sample to reduce training time
+                // while preserving the time series characteristics
+                var timeSeriesData = filteredData.Count > 1000
+                    ? GetSampledTimeSeriesData(filteredData)
+                    : filteredData.Select(s => new MetricData
                     {
                         Timestamp = s.Timestamp,
                         Value = (float)s.ThroughputPerSecond
-                    })
-                    .ToList();
+                    }).ToList();
 
                 var horizon = Math.Min(12, timeSeriesData.Count / 5); // 20% of data as forecast horizon
                 if (horizon >= 3)
@@ -374,6 +452,26 @@ namespace Relay.Core.AI
                     _logger.LogInformation("Time-series forecasting model trained successfully with horizon={Horizon}", horizon);
                 }
             }, cancellationToken);
+        }
+
+        private List<MetricData> GetSampledTimeSeriesData(List<SystemLoadMetrics> originalData)
+        {
+            // For large datasets, take every nth sample to create a representative sample
+            // while maintaining the time series pattern
+            var sampleSize = Math.Max(500, Math.Min(1000, originalData.Count / 2)); // Use up to 1000 samples but not more than half the original
+            var step = Math.Max(1, originalData.Count / sampleSize);
+            
+            var sampledData = new List<MetricData>();
+            for (int i = 0; i < originalData.Count; i += step)
+            {
+                sampledData.Add(new MetricData
+                {
+                    Timestamp = originalData[i].Timestamp,
+                    Value = (float)originalData[i].ThroughputPerSecond
+                });
+            }
+            
+            return sampledData;
         }
 
         private void UpdateModelStatistics(CancellationToken cancellationToken)
@@ -386,8 +484,10 @@ namespace Relay.Core.AI
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                _logger.LogInformation("Model feature importance calculated:");
-                foreach (var feature in featureImportance.OrderByDescending(f => f.Value))
+                var featuresList = featureImportance.ToList(); // Evaluate once to avoid multiple calls
+                _logger.LogInformation("Model feature importance calculated for {Count} features:", featuresList.Count);
+                
+                foreach (var feature in featuresList.OrderByDescending(f => f.Value))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     _logger.LogInformation("  {Feature}: {Importance:P1}", feature.Key, feature.Value);

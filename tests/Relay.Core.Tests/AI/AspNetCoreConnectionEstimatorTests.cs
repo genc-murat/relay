@@ -991,7 +991,8 @@ namespace Relay.Core.Tests.AI
             var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
             var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
             
-            var mockSystemMetrics = new Mock<SystemMetricsCalculator>(timeSeriesLogger, _requestAnalytics);
+            var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
+            var mockSystemMetrics = new Mock<SystemMetricsCalculator>(systemMetricsLogger, _requestAnalytics);
             mockSystemMetrics.Setup(x => x.CalculateMemoryUsage()).Returns(0.95); // Very high CPU
             mockSystemMetrics.Setup(x => x.CalculateCurrentThroughput()).Returns(50);
 
@@ -1025,7 +1026,8 @@ namespace Relay.Core.Tests.AI
             var timeSeriesLogger = loggerFactory.CreateLogger<TimeSeriesDatabase>();
             var timeSeriesDb = TimeSeriesDatabase.Create(timeSeriesLogger);
             
-            var mockSystemMetrics = new Mock<SystemMetricsCalculator>(timeSeriesLogger, _requestAnalytics);
+            var systemMetricsLogger = loggerFactory.CreateLogger<SystemMetricsCalculator>();
+            var mockSystemMetrics = new Mock<SystemMetricsCalculator>(systemMetricsLogger, _requestAnalytics);
             mockSystemMetrics.Setup(x => x.CalculateMemoryUsage()).Returns(0.1); // Very low CPU
             mockSystemMetrics.Setup(x => x.CalculateCurrentThroughput()).Returns(5);
 

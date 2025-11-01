@@ -177,7 +177,7 @@ public class EnvironmentVariableKeyProviderTests
         var exception = await Assert.ThrowsAsync<EncryptionException>(async () =>
             await provider.GetKeyAsync(_securityOptions.KeyVersion));
 
-        Assert.Contains("Invalid base64 format", exception.Message);
+        Assert.Contains("Invalid base64 format for encryption key version", exception.Message);
     }
 
     [Fact]

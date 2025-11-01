@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal class ProtocolMetricsCalculator(
+public class ProtocolMetricsCalculator(
     ILogger logger,
     ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,
     Analysis.TimeSeries.TimeSeriesDatabase timeSeriesDb,
@@ -17,7 +17,7 @@ internal class ProtocolMetricsCalculator(
     private readonly Analysis.TimeSeries.TimeSeriesDatabase _timeSeriesDb = timeSeriesDb ?? throw new ArgumentNullException(nameof(timeSeriesDb));
     private readonly SystemMetricsCalculator _systemMetrics = systemMetrics ?? throw new ArgumentNullException(nameof(systemMetrics));
 
-    public double CalculateProtocolMultiplexingFactor()
+    public virtual double CalculateProtocolMultiplexingFactor()
     {
         try
         {

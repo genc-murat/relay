@@ -64,9 +64,12 @@ namespace Relay.Core.AI.Optimization.Services
 
                 // Accuracy calculation: strategies must match prediction AND execution must be successful
                 var wasSuccessful = strategiesMatch && actualMetrics.SuccessRate >= 0.8; // Arbitrary threshold
+                _logger.LogDebug("Prediction analysis: Match={Match}, SuccessRate={SuccessRate}, WasSuccessful={WasSuccessful}, CorrectBefore={CorrectBefore}", 
+                    strategiesMatch, actualMetrics.SuccessRate, wasSuccessful, _correctPredictions);
                 if (wasSuccessful)
                 {
                     Interlocked.Increment(ref _correctPredictions);
+                    _logger.LogDebug("Incremented correct predictions to {Correct}", _correctPredictions);
                 }
 
                 _totalPredictionTime += actualMetrics.AverageExecutionTime;
@@ -184,6 +187,8 @@ namespace Relay.Core.AI.Optimization.Services
                 TotalPredictions++;
                 TotalExecutionTime += actualMetrics.AverageExecutionTime;
 
+                // Note: This method doesn't have access to strategiesMatch parameter, 
+                // so we'll use SuccessRate threshold for internal accuracy tracking
                 var wasSuccessful = actualMetrics.SuccessRate >= 0.8;
                 if (wasSuccessful)
                 {

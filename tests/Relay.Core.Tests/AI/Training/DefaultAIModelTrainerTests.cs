@@ -60,15 +60,20 @@ public class DefaultAIModelTrainerTests : IDisposable
             SystemLoadHistory = Array.Empty<SystemLoadMetrics>()
         };
 
-        // Act
-        await _trainer.TrainModelAsync(trainingData);
-
-        // Assert - Should log warning about insufficient samples
+        // Act & Assert - Should throw validation exception and log warning
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _trainer.TrainModelAsync(trainingData).AsTask());
+        
+        Assert.Contains("validation failed", exception.Message);
+        Assert.Contains("Insufficient execution samples: 1", exception.Message);
+        Assert.Contains("Insufficient optimization samples: 0", exception.Message);
+        Assert.Contains("Insufficient system load samples: 0", exception.Message);
+        
+        // Should log warning about validation failure
         _mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("validation failed")),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Training data validation failed")),
                 null,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
@@ -365,17 +370,24 @@ public class DefaultAIModelTrainerTests : IDisposable
 
         var progressReports = new List<TrainingProgress>();
 
-        // Act
-        await _trainer.TrainModelAsync(trainingData, progress =>
+        // Act & Assert - Should throw validation exception
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => _trainer.TrainModelAsync(trainingData, progress =>
         {
             progressReports.Add(progress);
-        });
+        }).AsTask());
 
-        // Assert
-        var finalReport = progressReports.Last();
-        Assert.Equal(TrainingPhase.Completed, finalReport.Phase);
-        Assert.Equal(100, finalReport.ProgressPercentage);
-        Assert.Contains("failed", finalReport.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        // Assert - Should still have progress reports including validation phase
+        Assert.NotEmpty(progressReports);
+        
+        var validationReport = progressReports.FirstOrDefault(p => p.Phase == TrainingPhase.Validation);
+        Assert.NotNull(validationReport);
+        Assert.Contains("validation failed", validationReport.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        
+        // Verify the exception contains validation failure details
+        Assert.Contains("validation failed", exception.Message);
+        Assert.Contains("Insufficient execution samples: 1", exception.Message);
+        Assert.Contains("Insufficient optimization samples: 0", exception.Message);
+        Assert.Contains("Insufficient system load samples: 0", exception.Message);
     }
 
     [Fact]

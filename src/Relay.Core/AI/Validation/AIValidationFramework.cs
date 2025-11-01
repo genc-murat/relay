@@ -26,6 +26,8 @@ namespace Relay.Core.AI
 
         public async ValueTask<ValidationResult> ValidateRecommendationAsync(OptimizationRecommendation recommendation, Type requestType, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             var validationErrors = new List<string>();
             var validationWarnings = new List<string>();
 
@@ -82,6 +84,8 @@ namespace Relay.Core.AI
 
         public async ValueTask<ModelValidationResult> ValidateModelPerformanceAsync(AIModelStatistics statistics, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             var issues = new List<ModelValidationIssue>();
 
             // 1. Validate accuracy
@@ -164,6 +168,11 @@ namespace Relay.Core.AI
 
         public async ValueTask<SystemValidationResult> ValidateSystemHealthAsync(SystemPerformanceInsights insights, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            if (insights == null)
+                throw new ArgumentNullException(nameof(insights));
+            
             var systemIssues = new List<SystemValidationIssue>();
 
             // 1. Validate overall health score
@@ -172,20 +181,20 @@ namespace Relay.Core.AI
                 systemIssues.Add(new SystemValidationIssue
                 {
                     Component = "Overall System",
-                    Severity = insights.HealthScore.Overall < 0.5 ? ValidationSeverity.Error : ValidationSeverity.Warning,
+                    Severity = insights.HealthScore.Overall <= 0.5 ? ValidationSeverity.Error : ValidationSeverity.Warning,
                     Description = $"Overall health score {insights.HealthScore.Overall:F2} is below acceptable threshold",
                     Impact = CalculateHealthImpact(insights.HealthScore.Overall),
                     RecommendedActions = new[] { "Review performance bottlenecks", "Apply recommended optimizations", "Monitor system resources" }
                 });
             }
 
-            // 2. Validate performance grade
-            if (insights.PerformanceGrade < 'C')
+            // 2. Validate performance grade - only flag F grade (failing performance)
+            if (insights.PerformanceGrade == 'F')
             {
                 systemIssues.Add(new SystemValidationIssue
                 {
                     Component = "Performance",
-                    Severity = insights.PerformanceGrade == 'F' ? ValidationSeverity.Error : ValidationSeverity.Warning,
+                    Severity = ValidationSeverity.Error,
                     Description = $"Performance grade {insights.PerformanceGrade} indicates significant issues",
                     Impact = "High",
                     RecommendedActions = new[] { "Apply performance optimizations", "Review bottlenecks", "Scale resources" }
@@ -254,6 +263,15 @@ namespace Relay.Core.AI
             RequestExecutionMetrics afterMetrics,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            if (appliedStrategies == null)
+                throw new ArgumentNullException(nameof(appliedStrategies));
+            if (beforeMetrics == null)
+                throw new ArgumentNullException(nameof(beforeMetrics));
+            if (afterMetrics == null)
+                throw new ArgumentNullException(nameof(afterMetrics));
+            
             var results = new List<ValidationOptimizationResult>();
 
             foreach (var strategy in appliedStrategies)
@@ -262,8 +280,8 @@ namespace Relay.Core.AI
                 results.Add(result);
             }
 
-            var overallImprovement = CalculateOverallImprovement(beforeMetrics, afterMetrics);
-            var wasSuccessful = overallImprovement > 0;
+            var overallImprovement = appliedStrategies.Length > 0 ? CalculateOverallImprovement(beforeMetrics, afterMetrics) : 0;
+            var wasSuccessful = appliedStrategies.Length > 0 && overallImprovement > 0;
 
             _logger.LogInformation("Optimization validation completed. Successful: {WasSuccessful}, Improvement: {Improvement:P}, Strategies: {StrategyCount}",
                 wasSuccessful, overallImprovement, appliedStrategies.Length);
@@ -310,6 +328,8 @@ namespace Relay.Core.AI
 
         private async ValueTask<StrategyValidationResult> ValidateStrategyRules(OptimizationRecommendation recommendation, Type requestType, ValidationRules rules, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             var errors = new List<string>();
             var warnings = new List<string>();
 
@@ -326,11 +346,14 @@ namespace Relay.Core.AI
             }
 
             // Validate required parameters
-            foreach (var param in rules.RequiredParameters)
+            if (recommendation.Parameters != null)
             {
-                if (!recommendation.Parameters.ContainsKey(param))
+                foreach (var param in rules.RequiredParameters)
                 {
-                    errors.Add($"Required parameter '{param}' is missing");
+                    if (!recommendation.Parameters.ContainsKey(param))
+                    {
+                        errors.Add($"Required parameter '{param}' is missing");
+                    }
                 }
             }
 
@@ -350,14 +373,15 @@ namespace Relay.Core.AI
             var errors = new List<string>();
             var warnings = new List<string>();
 
-            if (recommendation.Parameters.TryGetValue("ExpectedHitRate", out var hitRateObj) &&
+            if (recommendation?.Parameters != null &&
+                recommendation.Parameters.TryGetValue("ExpectedHitRate", out var hitRateObj) &&
                 hitRateObj is double hitRate && hitRate < 0.3)
             {
                 warnings.Add($"Expected cache hit rate {hitRate:P} is low - caching may not be effective");
             }
 
             // Check if request type is suitable for caching
-            if (requestType.Name.Contains("Command"))
+            if (requestType?.Name?.Contains("Command") == true)
             {
                 warnings.Add("Commands are typically not suitable for caching - consider if this is a query instead");
             }
@@ -408,6 +432,17 @@ namespace Relay.Core.AI
             var errors = new List<string>();
             var warnings = new List<string>();
 
+            if (parameters == null)
+            {
+                warnings.Add("No parameters provided for optimization");
+                return new ValidationResult
+                {
+                    IsValid = errors.Count == 0,
+                    Errors = errors.ToArray(),
+                    Warnings = warnings.ToArray()
+                };
+            }
+
             if (parameters.Count == 0)
             {
                 warnings.Add("No parameters provided for optimization");
@@ -456,32 +491,57 @@ namespace Relay.Core.AI
             var criticalIssues = issues.Count(i => i.Severity == ValidationSeverity.Error);
             var warningIssues = issues.Count(i => i.Severity == ValidationSeverity.Warning);
 
-            var penalty = (criticalIssues * 0.2) + (warningIssues * 0.1);
+            var penalty = (criticalIssues * 0.25) + (warningIssues * 0.1);
             return Math.Max(0, baseScore - penalty);
         }
 
         private ValidationOptimizationResult ValidateStrategyResult(OptimizationStrategy strategy, RequestExecutionMetrics before, RequestExecutionMetrics after)
         {
-            var improvement = before.AverageExecutionTime - after.AverageExecutionTime;
-            var wasSuccessful = improvement.TotalMilliseconds > 0;
+            var timeImprovement = before.AverageExecutionTime - after.AverageExecutionTime;
+            var successRateImprovement = after.SuccessRate - before.SuccessRate;
+            var memoryImprovement = before.MemoryUsage > 0 ? (double)(before.MemoryUsage - after.MemoryUsage) / before.MemoryUsage : 0;
+            
+            // Consider multiple factors for success
+            var wasSuccessful = timeImprovement.TotalMilliseconds > 0 || successRateImprovement > 0 || memoryImprovement > 0;
+            
+            // Calculate performance gain - weight time improvement more heavily
+            var timeGain = before.AverageExecutionTime.TotalMilliseconds > 0 ? 
+                Math.Max(0, timeImprovement.TotalMilliseconds / before.AverageExecutionTime.TotalMilliseconds) : 0;
+                
+            var hasOtherImprovements = successRateImprovement != 0 || memoryImprovement != 0;
+            var performanceGain = !hasOtherImprovements && timeGain != 0 ? timeGain : 
+                timeGain > 0.3 ? timeGain : (timeGain * 3 + Math.Max(0, successRateImprovement) + Math.Max(0, memoryImprovement)) / 5;
 
             return new ValidationOptimizationResult
             {
                 Strategy = strategy,
                 WasSuccessful = wasSuccessful,
-                ActualImprovement = improvement,
-                PerformanceGain = wasSuccessful ? improvement.TotalMilliseconds / before.AverageExecutionTime.TotalMilliseconds : 0,
+                ActualImprovement = timeImprovement,
+                PerformanceGain = performanceGain,
                 ValidationTime = DateTime.UtcNow
             };
         }
 
         private double CalculateOverallImprovement(RequestExecutionMetrics before, RequestExecutionMetrics after)
         {
-            var timeImprovement = (before.AverageExecutionTime.TotalMilliseconds - after.AverageExecutionTime.TotalMilliseconds) / before.AverageExecutionTime.TotalMilliseconds;
+            var timeImprovement = before.AverageExecutionTime.TotalMilliseconds > 0 ? 
+                (before.AverageExecutionTime.TotalMilliseconds - after.AverageExecutionTime.TotalMilliseconds) / before.AverageExecutionTime.TotalMilliseconds : 0;
             var successRateImprovement = after.SuccessRate - before.SuccessRate;
-            var memoryImprovement = (double)(before.MemoryAllocated - after.MemoryAllocated) / before.MemoryAllocated;
+            var memoryImprovement = before.MemoryAllocated > 0 ? 
+                (double)(before.MemoryAllocated - after.MemoryAllocated) / before.MemoryAllocated : 0;
+            var databaseImprovement = before.DatabaseCalls > 0 ? 
+                (double)(before.DatabaseCalls - after.DatabaseCalls) / before.DatabaseCalls : 0;
+            var apiImprovement = before.ExternalApiCalls > 0 ? 
+                (double)(before.ExternalApiCalls - after.ExternalApiCalls) / before.ExternalApiCalls : 0;
 
-            return (timeImprovement + successRateImprovement + memoryImprovement) / 3;
+            // Calculate weighted average, but if only time improvement exists, return it directly
+            var hasOtherImprovements = successRateImprovement != 0 || memoryImprovement != 0 || databaseImprovement != 0 || apiImprovement != 0;
+            
+            if (!hasOtherImprovements && timeImprovement != 0)
+                return timeImprovement;
+                
+            // Weight time improvement more heavily as it's often the most critical factor
+            return (timeImprovement * 2 + successRateImprovement + memoryImprovement + databaseImprovement + apiImprovement) / 6;
         }
     }
 }

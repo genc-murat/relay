@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.CommandLine.Parsing;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Spectre.Console.Testing;
 using Xunit;
 
 namespace Relay.CLI.Tests.Commands;
@@ -939,7 +940,7 @@ private void UnusedMethod() // Never called
         // Arrange
         await CreateTestProject();
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
 
         // Act
         var result = await command.InvokeAsync($"--path {_testPath} --include-tests false", console);
@@ -954,7 +955,7 @@ private void UnusedMethod() // Never called
         // Arrange
         await CreateTestProject();
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
 
         // Act
         var result = await command.InvokeAsync($"--path {_testPath}", console);
@@ -969,7 +970,7 @@ private void UnusedMethod() // Never called
         // Arrange
         await CreateTestProject();
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
         var outputPath = Path.Combine(_testPath, "report.json");
 
         // Act
@@ -988,7 +989,7 @@ private void UnusedMethod() // Never called
         // Arrange
         await CreateTestProject();
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
         var outputPath = Path.Combine(_testPath, "report.json");
 
         // Act
@@ -1015,7 +1016,7 @@ public record GetUserQuery(int UserId) : IRequest<UserDto>;
 public record UserDto(int Id, string Name);
 ");
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
         var outputPath = Path.Combine(_testPath, "requests.json");
 
         // Act
@@ -1040,7 +1041,7 @@ using Relay.Core;
 public record CachedQuery(int Id) : IRequest<string>;
 ");
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
 
         // Act
         var result = await command.InvokeAsync($"--path {_testPath}", console);
@@ -1062,7 +1063,7 @@ using Relay.Core;
 public record SecureCommand(string Data) : IRequest;
 ");
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
 
         // Act
         var result = await command.InvokeAsync($"--path {_testPath}", console);
@@ -1097,7 +1098,7 @@ public class SimpleClass
 }");
 
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
 
         // Act
         var result = await command.InvokeAsync($"--path {simpleProjectPath}", console);
@@ -1112,7 +1113,7 @@ public class SimpleClass
         // Arrange
         await CreateTestProject();
         var command = AnalyzeCommand.Create();
-        var console = new TestConsole();
+        var console = new System.CommandLine.IO.TestConsole();
         var outputPath = Path.Combine(_testPath, "custom-report.json");
 
         // Act

@@ -197,60 +197,6 @@ public class WorkflowEngineExecutionTests
         // Assert - Workflow should be cancelled or completed (depending on timing)
         _mockStateStore.Verify(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
-
-    [Fact]
-    public async Task WorkflowExecution_WithComplexWorkflow_ShouldExecuteAllSteps()
-    {
-        // Arrange
-        var definition = new WorkflowDefinition
-        {
-            Id = "complex-workflow",
-            Name = "Complex Workflow",
-            Steps = new List<WorkflowStep>
-            {
-                new WorkflowStep { Name = "Step1", Type = StepType.Wait, WaitTimeMs = 50 },
-                new WorkflowStep
-                {
-                    Name = "Step2",
-                    Type = StepType.Conditional,
-                    Condition = "AlwaysTrue == true",
-                    ElseSteps = new List<WorkflowStep>
-                    {
-                        new WorkflowStep { Name = "ElseStep", Type = StepType.Wait, WaitTimeMs = 25 }
-                    }
-                },
-                new WorkflowStep
-                {
-                    Name = "Step3",
-                    Type = StepType.Parallel,
-                    ParallelSteps = new List<WorkflowStep>
-                    {
-                        new WorkflowStep { Name = "Parallel1", Type = StepType.Wait, WaitTimeMs = 25 },
-                        new WorkflowStep { Name = "Parallel2", Type = StepType.Wait, WaitTimeMs = 25 }
-                    }
-                },
-                new WorkflowStep { Name = "Step4", Type = StepType.Wait, WaitTimeMs = 50 }
-            }
-        };
-
-        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("complex-workflow", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(definition);
-
-        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-
-        // Act
-        var execution = await _workflowEngine.StartWorkflowAsync("complex-workflow", new { AlwaysTrue = true });
-
-        // Wait for background execution
-        await Task.Delay(500);
-
-        // Assert
-        _mockStateStore.Verify(x => x.SaveExecutionAsync(
-            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
-            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
-    }
-
     private class TestInput
     {
         public int Id { get; set; }

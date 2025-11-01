@@ -14,7 +14,7 @@ namespace Relay.Core.AI
         public long TotalExecutions { get; init; }
         public long SuccessfulExecutions { get; init; }
         public long FailedExecutions { get; init; }
-        public double SuccessRate => TotalExecutions > 0 ? (double)SuccessfulExecutions / TotalExecutions : 0;
+        public double SuccessRate { get; init; }
         public long MemoryAllocated { get; init; }
         public int ConcurrentExecutions { get; init; }
         public DateTime LastExecution { get; init; }

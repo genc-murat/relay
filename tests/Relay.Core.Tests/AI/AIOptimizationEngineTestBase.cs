@@ -83,6 +83,9 @@ namespace Relay.Core.Tests.AI
         {
             var avgTime = averageExecutionTime ?? TimeSpan.FromMilliseconds(100);
             var failed = failedExecutions >= 0 ? failedExecutions : executionCount / 10; // Default 10% failure rate
+            var successful = executionCount - failed;
+            var successRate = executionCount > 0 ? (double)successful / executionCount : 0.0;
+            
             return new RequestExecutionMetrics
             {
                 AverageExecutionTime = avgTime,
@@ -90,8 +93,9 @@ namespace Relay.Core.Tests.AI
                 P95ExecutionTime = avgTime + TimeSpan.FromMilliseconds(50),
                 P99ExecutionTime = avgTime + TimeSpan.FromMilliseconds(100),
                 TotalExecutions = executionCount,
-                SuccessfulExecutions = executionCount - failed,
+                SuccessfulExecutions = successful,
                 FailedExecutions = failed,
+                SuccessRate = successRate,
                 MemoryAllocated = 1024 * 1024,
                 ConcurrentExecutions = 10,
                 LastExecution = DateTime.UtcNow,

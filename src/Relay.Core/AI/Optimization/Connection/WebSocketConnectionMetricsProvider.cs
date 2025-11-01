@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal class WebSocketConnectionMetricsProvider(
+public class WebSocketConnectionMetricsProvider(
     ILogger logger,
     Relay.Core.AI.AIOptimizationOptions options,
     ConcurrentDictionary<Type, RequestAnalysisData> requestAnalytics,

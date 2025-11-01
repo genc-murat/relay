@@ -127,7 +127,8 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
             FailedExecutions = 10,
-            AverageExecutionTime = TimeSpan.FromMilliseconds(100)
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            SuccessRate = 0.9 // Explicitly set success rate
         }; // Above threshold
         _service.UpdateModelAccuracy(typeof(string), strategies, metrics, true); // strategies match = true
 
@@ -147,6 +148,7 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
             FailedExecutions = 10,
+            SuccessRate = 0.9,
             AverageExecutionTime = TimeSpan.FromMilliseconds(100)
         }; // Above threshold, but strategies don't match
         _service.UpdateModelAccuracy(typeof(string), strategies, metrics, false); // strategies match = false
@@ -167,6 +169,7 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 50, // This gives 50/100 = 0.5 SuccessRate
             FailedExecutions = 50,
+            SuccessRate = 0.5,
             AverageExecutionTime = TimeSpan.FromMilliseconds(100)
         }; // Below threshold of 0.8
         _service.UpdateModelAccuracy(typeof(string), strategies, metrics, true); // strategies match, but low success rate
@@ -215,6 +218,7 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
             FailedExecutions = 10,
+            SuccessRate = 0.9,
             AverageExecutionTime = TimeSpan.FromMilliseconds(100)
         };
         _service.UpdateModelAccuracy(typeof(string), strategies, metrics, true);
@@ -241,14 +245,16 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
             FailedExecutions = 10,
-            AverageExecutionTime = TimeSpan.FromMilliseconds(100)
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            SuccessRate = 0.9 // Explicitly set success rate
         }; // Successful
         var failedMetrics = new RequestExecutionMetrics 
         { 
             TotalExecutions = 100,
             SuccessfulExecutions = 50, // This gives 50/100 = 0.5 SuccessRate
             FailedExecutions = 50,
-            AverageExecutionTime = TimeSpan.FromMilliseconds(100)
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            SuccessRate = 0.5 // Explicitly set success rate
         }; // Failed due to low success rate
 
         // Act: Add 3 successful and 2 failed predictions
@@ -275,6 +281,7 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
             FailedExecutions = 10,
+            SuccessRate = 0.9,
             AverageExecutionTime = TimeSpan.FromMilliseconds(100)
         };
 
@@ -319,6 +326,7 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
             FailedExecutions = 10,
+            SuccessRate = 0.9,
             AverageExecutionTime = TimeSpan.FromMilliseconds(100)
         };
 
@@ -356,6 +364,7 @@ public class ModelStatisticsServiceTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
                     FailedExecutions = 10,
+                    SuccessRate = 0.9,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(100)
                 };
                 for (int j = 0; j < 10; j++)
@@ -399,6 +408,7 @@ public class ModelStatisticsServiceTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
                     FailedExecutions = 10,
+                    SuccessRate = 0.9,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(100)
                 };
                 for (int j = 0; j < 10; j++)
@@ -454,6 +464,7 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 90, // This gives 90/100 = 0.9 SuccessRate
             FailedExecutions = 10,
+            SuccessRate = 0.9,
             AverageExecutionTime = TimeSpan.FromMilliseconds(100)
         };
         var failedMetrics = new RequestExecutionMetrics 
@@ -461,6 +472,7 @@ public class ModelStatisticsServiceTests
             TotalExecutions = 100,
             SuccessfulExecutions = 30, // This gives 30/100 = 0.3 SuccessRate
             FailedExecutions = 70,
+            SuccessRate = 0.3,
             AverageExecutionTime = TimeSpan.FromMilliseconds(100)
         };
 

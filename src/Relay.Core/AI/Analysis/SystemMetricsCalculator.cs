@@ -33,7 +33,7 @@ public class SystemMetricsCalculator
         return Math.Min(1.0, baseUsage + (random * 0.4));
     }
 
-    public double CalculateMemoryUsage()
+    public virtual double CalculateMemoryUsage()
     {
         var currentMemory = GC.GetTotalMemory(false);
         var maxMemory = Math.Max(currentMemory * 2, 512L * 1024 * 1024);

@@ -134,7 +134,11 @@ namespace Relay.Core.Workflows
             }
             catch (Exception ex)
             {
-                await FailWorkflow(execution, ex.Message, cancellationToken);
+                // Only fail the workflow if it's not already failed
+                if (execution.Status != WorkflowStatus.Failed)
+                {
+                    await FailWorkflow(execution, ex.Message, cancellationToken);
+                }
                 _logger.LogError(ex, "Workflow execution {ExecutionId} failed", execution.Id);
             }
         }
@@ -191,8 +195,10 @@ namespace Relay.Core.Workflows
                 else
                 {
                     execution.Status = WorkflowStatus.Failed;
+                    execution.Error = ex.Message;
+                    execution.CompletedAt = DateTime.UtcNow;
                     await _stateStore.SaveExecutionAsync(execution, cancellationToken);
-                    throw;
+                    // Don't re-throw, let the workflow execution loop handle the failure
                 }
             }
         }
@@ -230,6 +236,31 @@ namespace Relay.Core.Workflows
                 ExecuteStepAsync(execution, parallelStep, cancellationToken).AsTask());
 
             await Task.WhenAll(tasks);
+
+            // Check if any parallel step failed after execution
+            var failedStepExecutions = execution.StepExecutions
+                .Where(se => step.ParallelSteps.Any(ps => ps.Name == se.StepName) && se.Status == StepStatus.Failed)
+                .ToList();
+
+            if (failedStepExecutions.Any())
+            {
+                var errorMessages = failedStepExecutions.Select(se => $"{se.StepName}: {se.Error}");
+                var errorMessage = string.Join("; ", errorMessages);
+                
+                // Fail the workflow if any parallel step failed and ContinueOnError is not set
+                if (!step.ContinueOnError)
+                {
+                    execution.Status = WorkflowStatus.Failed;
+                    execution.Error = $"One or more parallel steps failed: {errorMessage}";
+                    execution.CompletedAt = DateTime.UtcNow;
+                    await _stateStore.SaveExecutionAsync(execution, cancellationToken);
+                    throw new InvalidOperationException(execution.Error);
+                }
+                else
+                {
+                    _logger.LogWarning("One or more parallel steps failed but continuing due to ContinueOnError: {ErrorMessage}", errorMessage);
+                }
+            }
         }
 
         private async ValueTask ExecuteWaitStep(WorkflowExecution execution, WorkflowStep step, WorkflowStepExecution stepExecution, CancellationToken cancellationToken)

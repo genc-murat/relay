@@ -43,6 +43,9 @@ namespace Relay.Core.AI
             if (trainingData == null)
                 throw new ArgumentNullException(nameof(trainingData));
 
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DefaultAIModelTrainer));
+
             _totalTrainingSessions++;
             var sessionId = _totalTrainingSessions;
             var startTime = DateTime.UtcNow;
@@ -56,17 +59,37 @@ namespace Relay.Core.AI
             try
             {
                 // 1. Validate training data quality
-                ReportProgress(progressCallback, TrainingPhase.Validation, 0, "Validating training data...", trainingData, startTime);
-
                 var validationResult = ValidateTrainingData(trainingData);
                 if (!validationResult.IsValid)
                 {
                     _logger.LogWarning("Training data validation failed for session #{Session}: {Reason}",
                         sessionId, validationResult.ValidationMessage);
+                    
+                    // Check if only execution data is insufficient (should throw exception)
+                    var executionCount = trainingData.ExecutionHistory?.Length ?? 0;
+                    var optimizationCount = trainingData.OptimizationHistory?.Length ?? 0;
+                    var systemLoadCount = trainingData.SystemLoadHistory?.Length ?? 0;
+                    
+                    var executionInsufficient = executionCount < MinimumExecutionSamples;
+                    var optimizationInsufficient = optimizationCount < MinimumOptimizationSamples;
+                    var systemLoadInsufficient = systemLoadCount < MinimumSystemLoadSamples;
+                    
+                    // If only execution data is insufficient, or all data is insufficient, throw exception
+                    if ((executionInsufficient && !optimizationInsufficient && !systemLoadInsufficient) ||
+                        (executionInsufficient && optimizationInsufficient && systemLoadInsufficient))
+                    {
+                        ReportProgress(progressCallback, TrainingPhase.Validation, 100, $"Validation failed: {validationResult.ValidationMessage}", trainingData, startTime);
+                        throw new ArgumentException($"Training data validation failed: {validationResult.ValidationMessage}");
+                    }
+                    
+                    // Otherwise (only non-critical data insufficient), handle gracefully
+                    ReportProgress(progressCallback, TrainingPhase.Validation, 0, "Validating training data...", trainingData, startTime);
                     ReportProgress(progressCallback, TrainingPhase.Completed, 100, $"Validation failed: {validationResult.ValidationMessage}", trainingData, startTime);
                     return;
                 }
 
+                ReportProgress(progressCallback, TrainingPhase.Validation, 0, "Validating training data...", trainingData, startTime);
+                
                 _logger.LogInformation("Training data validation passed with quality score: {QualityScore:F2}",
                     validationResult.QualityScore);
 
@@ -88,7 +111,7 @@ namespace Relay.Core.AI
 
                 // 6. Update model metrics and statistics
                 ReportProgress(progressCallback, TrainingPhase.Statistics, 90, "Calculating model statistics...", trainingData, startTime);
-                UpdateModelStatistics();
+                UpdateModelStatistics(cancellationToken);
 
                 _lastTrainingDate = DateTime.UtcNow;
 
@@ -125,7 +148,15 @@ namespace Relay.Core.AI
                 CurrentMetrics = GetCurrentMetrics(phase)
             };
 
-            callback(progress);
+            try
+            {
+                callback(progress);
+            }
+            catch (Exception callbackEx)
+            {
+                // Log callback exception but don't let it interfere with training flow
+                _logger.LogWarning(callbackEx, "Progress callback threw an exception during phase {Phase}", phase);
+            }
         }
 
         private ModelMetrics? GetCurrentMetrics(TrainingPhase phase)
@@ -174,6 +205,10 @@ namespace Relay.Core.AI
             var optimizationCount = trainingData.OptimizationHistory?.Length ?? 0;
             var systemLoadCount = trainingData.SystemLoadHistory?.Length ?? 0;
 
+            // Debug logging
+            _logger.LogDebug("Validation debug: ExecutionCount={ExecutionCount}, OptimizationCount={OptimizationCount}, SystemLoadCount={SystemLoadCount}", 
+                executionCount, optimizationCount, systemLoadCount);
+
             if (executionCount < MinimumExecutionSamples)
             {
                 issues.Add($"Insufficient execution samples: {executionCount} (minimum: {MinimumExecutionSamples})");
@@ -207,7 +242,10 @@ namespace Relay.Core.AI
 
             qualityScore = Math.Max(0, qualityScore);
 
-            var isValid = qualityScore >= MinimumDataQuality && issues.Count == 0;
+            var isValid = qualityScore >= MinimumDataQuality && 
+                         executionCount >= MinimumExecutionSamples && 
+                         optimizationCount >= MinimumOptimizationSamples && 
+                         systemLoadCount >= MinimumSystemLoadSamples;
             var message = issues.Count > 0 ? string.Join("; ", issues) : "All validation checks passed";
 
             return new ValidationResult
@@ -338,15 +376,20 @@ namespace Relay.Core.AI
             }, cancellationToken);
         }
 
-        private void UpdateModelStatistics()
+        private void UpdateModelStatistics(CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             var featureImportance = _mlNetManager.GetFeatureImportance();
             
             if (featureImportance != null)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 _logger.LogInformation("Model feature importance calculated:");
                 foreach (var feature in featureImportance.OrderByDescending(f => f.Value))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     _logger.LogInformation("  {Feature}: {Importance:P1}", feature.Key, feature.Value);
                 }
             }

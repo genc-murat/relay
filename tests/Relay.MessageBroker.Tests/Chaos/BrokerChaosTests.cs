@@ -160,7 +160,7 @@ public class BrokerChaosTests
     public async Task NetworkPacketLoss_SimulatedLoss_RequiresRetries(double packetLossRate)
     {
         // Arrange
-        var broker = new PacketLossBroker(packetLossRate);
+        var broker = new PacketLossBroker(packetLossRate, seed: 12345); // Fixed seed for deterministic behavior
         var messageCount = 50;
         var totalAttempts = 0;
         var successfulDeliveries = 0;
@@ -448,11 +448,12 @@ public class PacketLossBroker : IMessageBroker
 {
     private readonly InMemoryMessageBroker _inner = new();
     private readonly double _packetLossRate;
-    private readonly Random _random = new();
+    private readonly Random _random;
 
-    public PacketLossBroker(double packetLossRate)
+    public PacketLossBroker(double packetLossRate, int? seed = null)
     {
         _packetLossRate = packetLossRate;
+        _random = seed.HasValue ? new Random(seed.Value) : new Random();
     }
 
     public async ValueTask PublishAsync<TMessage>(

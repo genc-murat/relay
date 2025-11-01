@@ -20,6 +20,7 @@ public class RequestAnalysisDataTests
                 TotalExecutions = 100,
                 SuccessfulExecutions = 95,
                 FailedExecutions = 5,
+                SuccessRate = 0.95,
                 AverageExecutionTime = TimeSpan.FromMilliseconds(50)
             },
             Timestamp = DateTime.UtcNow
@@ -46,6 +47,7 @@ public class RequestAnalysisDataTests
                 TotalExecutions = 50,
                 SuccessfulExecutions = 48,
                 FailedExecutions = 2,
+                SuccessRate = 0.96,
                 AverageExecutionTime = TimeSpan.FromMilliseconds(75)
             },
             Timestamp = DateTime.UtcNow
@@ -73,6 +75,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 95,
                     FailedExecutions = 5,
+                    SuccessRate = 0.95,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(50)
                 },
                 Timestamp = DateTime.UtcNow
@@ -85,6 +88,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 80,
                     SuccessfulExecutions = 78,
                     FailedExecutions = 2,
+                    SuccessRate = 0.975,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(60)
                 },
                 Timestamp = DateTime.UtcNow
@@ -97,6 +101,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 120,
                     SuccessfulExecutions = 115,
                     FailedExecutions = 5,
+                    SuccessRate = 0.9583333333333334,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(45)
                 },
                 Timestamp = DateTime.UtcNow
@@ -144,6 +149,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 95,
                     FailedExecutions = 5,
+                    SuccessRate = 0.95,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(50)
                 },
                 Timestamp = DateTime.UtcNow
@@ -157,6 +163,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 80,
                     SuccessfulExecutions = 78,
                     FailedExecutions = 2,
+                    SuccessRate = 0.975,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(60)
                 },
                 Timestamp = DateTime.UtcNow
@@ -170,6 +177,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 90,
                     FailedExecutions = 10,
+                    SuccessRate = 0.9,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(40)
                 },
                 Timestamp = DateTime.UtcNow
@@ -183,6 +191,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 85,
                     FailedExecutions = 15,
+                    SuccessRate = 0.85,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(55)
                 },
                 Timestamp = DateTime.UtcNow
@@ -196,6 +205,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 96,
                     FailedExecutions = 4,
+                    SuccessRate = 0.96,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(48)
                 },
                 Timestamp = DateTime.UtcNow
@@ -234,6 +244,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 95,
                     FailedExecutions = 5,
+                    SuccessRate = 0.95,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(50)
                 },
                 Timestamp = DateTime.UtcNow
@@ -246,6 +257,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 80,
                     SuccessfulExecutions = 78,
                     FailedExecutions = 2,
+                    SuccessRate = 0.975,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(60)
                 },
                 Timestamp = DateTime.UtcNow
@@ -284,6 +296,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 95,
                     FailedExecutions = 5,
+                    SuccessRate = 0.95,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(50)
                 },
                 Timestamp = DateTime.UtcNow
@@ -297,6 +310,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 80,
                     SuccessfulExecutions = 78,
                     FailedExecutions = 2,
+                    SuccessRate = 0.975,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(60)
                 },
                 Timestamp = DateTime.UtcNow
@@ -310,6 +324,7 @@ public class RequestAnalysisDataTests
                     TotalExecutions = 100,
                     SuccessfulExecutions = 90,
                     FailedExecutions = 10,
+                    SuccessRate = 0.9,
                     AverageExecutionTime = TimeSpan.FromMilliseconds(55)
                 },
                 Timestamp = DateTime.UtcNow
@@ -341,6 +356,7 @@ public class RequestAnalysisDataTests
             TotalExecutions = 10,
             SuccessfulExecutions = 9,
             FailedExecutions = 1,
+            SuccessRate = 0.9,
             AverageExecutionTime = TimeSpan.FromMilliseconds(100)
         };
 
@@ -372,6 +388,7 @@ public class RequestAnalysisDataTests
                 TotalExecutions = 10,
                 SuccessfulExecutions = 9,
                 FailedExecutions = 1,
+                SuccessRate = 0.9,
                 AverageExecutionTime = TimeSpan.FromMilliseconds(100 + i * 10) // 100, 110, 120, 130, 140
             };
             data.AddMetrics(metrics);
@@ -451,6 +468,7 @@ public class RequestAnalysisDataTests
                 TotalExecutions = 10,
                 SuccessfulExecutions = 9,
                 FailedExecutions = 1,
+                SuccessRate = 0.9,
                 AverageExecutionTime = TimeSpan.FromMilliseconds(100)
             };
             data.AddMetrics(metrics);
@@ -480,6 +498,7 @@ public class RequestAnalysisDataTests
                 TotalExecutions = 10,
                 SuccessfulExecutions = 9,
                 FailedExecutions = 1,
+                SuccessRate = 0.9,
                 AverageExecutionTime = TimeSpan.FromMilliseconds(time)
             };
             data.AddMetrics(metrics);

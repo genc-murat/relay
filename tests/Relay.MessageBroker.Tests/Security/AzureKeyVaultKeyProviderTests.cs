@@ -329,6 +329,7 @@ public class AzureKeyVaultKeyProviderTests
     public async Task GetPreviousKeyVersionsAsync_WithCachedKeysWithinGracePeriod_ShouldReturnVersions()
     {
         // Arrange
+        _securityOptions.KeyVaultUrl = null; // Force fallback to environment variables
         var provider = new AzureKeyVaultKeyProvider(_optionsMock.Object, _loggerMock.Object);
         var gracePeriod = TimeSpan.FromHours(1);
         var keyBase64 = Convert.ToBase64String(new byte[32]);

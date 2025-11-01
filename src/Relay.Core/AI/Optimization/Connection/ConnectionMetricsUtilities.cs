@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Relay.Core.AI.Optimization.Connection;
 
-internal class ConnectionMetricsUtilities
+public class ConnectionMetricsUtilities
 {
     private readonly ILogger _logger;
     private readonly AIOptimizationOptions _options;
@@ -32,7 +32,7 @@ internal class ConnectionMetricsUtilities
         _protocolCalculator = protocolCalculator ?? throw new ArgumentNullException(nameof(protocolCalculator));
     }
 
-    public double CalculateEMA(List<double> values, double alpha)
+    public virtual double CalculateEMA(List<double> values, double alpha)
     {
         if (values.Count == 0)
             return 0;

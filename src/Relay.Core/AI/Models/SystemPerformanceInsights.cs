@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Relay.Core.AI.Models;
+using Relay.Core.AI.Optimization.Data;
 using Relay.Core.AI.Optimization.Services;
 
 namespace Relay.Core.AI
@@ -41,5 +42,10 @@ namespace Relay.Core.AI
         /// Risk assessment for current optimization strategies
         /// </summary>
         public Optimization.Services.RiskAssessment RiskAssessment { get; init; } = new();
+
+        /// <summary>
+        /// Load pattern analysis data aggregated from system metrics and predictive analysis
+        /// </summary>
+        public LoadPatternData LoadPatterns { get; init; } = new();
     }
 }

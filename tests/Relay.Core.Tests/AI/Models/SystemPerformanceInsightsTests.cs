@@ -25,6 +25,7 @@ public class SystemPerformanceInsightsTests
         Assert.Equal('\0', insights.PerformanceGrade); // Default char value
         Assert.NotNull(insights.KeyMetrics);
         Assert.Empty(insights.KeyMetrics);
+        Assert.NotNull(insights.LoadPatterns);
     }
 
     [Fact]
@@ -113,5 +114,31 @@ public class SystemPerformanceInsightsTests
         // But we can verify the default initialization
         Assert.NotNull(insights.SeasonalPatterns);
         Assert.IsType<List<SeasonalPattern>>(insights.SeasonalPatterns);
+    }
+
+    [Fact]
+    public void SystemPerformanceInsights_Should_Allow_Setting_LoadPatterns_In_Object_Initializer()
+    {
+        // Arrange
+        var loadPatternData = new LoadPatternData
+        {
+            Level = LoadLevel.High,
+            SuccessRate = 0.85,
+            AverageImprovement = 0.15,
+            TotalPredictions = 100
+        };
+
+        // Act
+        var insights = new SystemPerformanceInsights
+        {
+            LoadPatterns = loadPatternData
+        };
+
+        // Assert
+        Assert.NotNull(insights.LoadPatterns);
+        Assert.Equal(LoadLevel.High, insights.LoadPatterns.Level);
+        Assert.Equal(0.85, insights.LoadPatterns.SuccessRate);
+        Assert.Equal(0.15, insights.LoadPatterns.AverageImprovement);
+        Assert.Equal(100, insights.LoadPatterns.TotalPredictions);
     }
 }

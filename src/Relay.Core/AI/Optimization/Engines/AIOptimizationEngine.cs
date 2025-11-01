@@ -264,6 +264,7 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         var keyMetrics = await CollectKeyMetricsAsync();
+        var loadPatterns = await GetLoadPatternAnalysisAsync(cancellationToken);
         var insights = new SystemPerformanceInsights
         {
             AnalysisTime = DateTime.UtcNow,
@@ -276,11 +277,12 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
             KeyMetrics = keyMetrics,
             SeasonalPatterns = DetectSeasonalPatterns(keyMetrics),
             ResourceOptimization = _resourceOptimizationService.AnalyzeResourceUsage(keyMetrics, new Dictionary<string, double>()), // Using current metrics as historical for simplicity
-            RiskAssessment = AssessSystemRisk(keyMetrics)
+            RiskAssessment = AssessSystemRisk(keyMetrics),
+            LoadPatterns = loadPatterns
         };
 
-        _logger.LogInformation("Generated system performance insights: Grade {Grade}, Health Score {HealthScore:F2}",
-            insights.PerformanceGrade, insights.HealthScore.Overall);
+        _logger.LogInformation("Generated system performance insights: Grade {Grade}, Health Score {HealthScore:F2}, Load Level {LoadLevel}",
+            insights.PerformanceGrade, insights.HealthScore.Overall, insights.LoadPatterns.Level);
 
         await Task.CompletedTask;
         return insights;

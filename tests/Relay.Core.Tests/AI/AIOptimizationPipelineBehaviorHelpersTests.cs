@@ -631,6 +631,251 @@ public class AIOptimizationPipelineBehaviorHelpersTests
     }
 
     [Fact]
+    public void ExtractExternalApiCalls_WhenNoMatchingPropertiesAndLowLatency_ReturnsZero()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100), // Low execution time
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(110), // Low variance
+            Properties = new Dictionary<string, object>() // No specific properties
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ExtractExternalApiCalls", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (int)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert - Should return 0 when no properties match and conditions not met
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public void ExtractExternalApiCalls_WithExternalApiCallsProperty_IntValue_ReturnsValue()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            Properties = new Dictionary<string, object>
+            {
+                ["ExternalApiCalls"] = 5 // int value
+            },
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(110)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ExtractExternalApiCalls", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (int)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert - Should return the int value directly
+        Assert.Equal(5, result);
+    }
+
+    [Fact]
+    public void ExtractExternalApiCalls_WithExternalApiCallsProperty_LongValue_ReturnsValue()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            Properties = new Dictionary<string, object>
+            {
+                ["ExternalApiCalls"] = 3L // long value
+            },
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(110)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ExtractExternalApiCalls", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (int)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert - Should cast long to int
+        Assert.Equal(3, result);
+    }
+
+    [Fact]
+    public void ExtractExternalApiCalls_WithExternalApiCallsProperty_DoubleValue_ReturnsValue()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            Properties = new Dictionary<string, object>
+            {
+                ["ExternalApiCalls"] = 4.7 // double value
+            },
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(110)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ExtractExternalApiCalls", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (int)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert - Should cast double to int (truncating)
+        Assert.Equal(4, result);
+    }
+
+    [Fact]
+    public void ExtractExternalApiCalls_WithAvgExternalApiCallsProperty_DoubleValue_ReturnsRoundedValue()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            Properties = new Dictionary<string, object>
+            {
+                ["AvgExternalApiCalls"] = 3.8 // double value that rounds to 4
+            },
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(110)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ExtractExternalApiCalls", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (int)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert - Should round the double value
+        Assert.Equal(4, result);
+    }
+
+    [Fact]
+    public void ExtractExternalApiCalls_WithAvgExternalApiCallsProperty_IntValue_ReturnsValue()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            Properties = new Dictionary<string, object>
+            {
+                ["AvgExternalApiCalls"] = 2 // int value
+            },
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(110)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ExtractExternalApiCalls", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (int)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert - Should return int value directly
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public void ExtractExternalApiCalls_WithHttpCallsProperty_IntValue_ReturnsValue()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            Properties = new Dictionary<string, object>
+            {
+                ["HttpCalls"] = 1 // int value
+            },
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(110)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ExtractExternalApiCalls", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (int)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert - Should return int value directly
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public void ExtractExternalApiCalls_WithHttpCallsProperty_LongValue_ReturnsValue()
+    {
+        // Arrange
+        var stats = new HandlerExecutionStats
+        {
+            Properties = new Dictionary<string, object>
+            {
+                ["HttpCalls"] = 2L // long value
+            },
+            AverageExecutionTime = TimeSpan.FromMilliseconds(100),
+            P50ExecutionTime = TimeSpan.FromMilliseconds(90),
+            P99ExecutionTime = TimeSpan.FromMilliseconds(110)
+        };
+
+        var behavior = new AIOptimizationPipelineBehavior<TestRequest, TestResponse>(
+            _aiEngineMock.Object,
+            _loggerMock.Object,
+            Options.Create(_options),
+            _systemMetricsMock.Object);
+
+        // Act
+        var method = typeof(AIOptimizationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ExtractExternalApiCalls", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        var result = (int)method!.Invoke(behavior, new object[] { stats })!;
+
+        // Assert - Should cast long to int
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
     public void CalculateExecutionFrequency_WithRecentExecutions_ReturnsFrequency()
     {
         // Arrange

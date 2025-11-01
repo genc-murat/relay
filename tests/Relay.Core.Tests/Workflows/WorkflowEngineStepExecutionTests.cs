@@ -409,16 +409,7 @@ public class WorkflowEngineStepExecutionTests
 
         WorkflowExecution? savedExecution = null;
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Callback<WorkflowExecution, CancellationToken>((exec, ct) =>
-            {
-                savedExecution = exec;
-                // Pre-populate context with properties for the request
-                if (!exec.Context.ContainsKey("TestProperty"))
-                {
-                    exec.Context["TestProperty"] = "TestValue";
-                    exec.Context["NumberProperty"] = 42;
-                }
-            })
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecution = exec)
             .Returns(ValueTask.CompletedTask);
 
         TestWorkflowRequestWithProperties? capturedRequest = null;
@@ -426,8 +417,8 @@ public class WorkflowEngineStepExecutionTests
             .Callback<IRequest<string>, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
             .Returns(new ValueTask<string>("Success"));
 
-        // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+        // Act - Pass the property values in the input that will be mapped to the request
+        await _workflowEngine.StartWorkflowAsync("test-workflow", new { TestProperty = "TestValue", NumberProperty = 42 });
 
         // Wait for background execution
         await Task.Delay(300);

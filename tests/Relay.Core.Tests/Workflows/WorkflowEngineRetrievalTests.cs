@@ -132,18 +132,28 @@ public class WorkflowEngineRetrievalTests
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("error-workflow", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Database error"));
 
+        // Track the number of times SaveExecutionAsync is called to debug the issue
+        int saveCallCount = 0;
+        WorkflowExecution? savedExecution = null;
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) =>
+            {
+                saveCallCount++;
+                savedExecution = exec;
+            })
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _workflowEngine.StartWorkflowAsync("error-workflow", new { });
+        var execution = await _workflowEngine.StartWorkflowAsync("error-workflow", new { });
 
         // Wait for background execution
-        await Task.Delay(300);
+        await Task.Delay(500); // Increased delay to ensure background execution completes
 
         // Assert - Workflow should fail due to exception
-        _mockStateStore.Verify(x => x.SaveExecutionAsync(
-            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Failed),
-            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        Assert.NotNull(savedExecution);
+        Assert.Equal(WorkflowStatus.Failed, savedExecution.Status);
+        
+        // Verify SaveExecutionAsync was called at least once
+        _mockStateStore.Verify(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 }

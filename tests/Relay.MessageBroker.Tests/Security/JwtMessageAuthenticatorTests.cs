@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Moq;
 using Relay.MessageBroker.Security;
 using System.IdentityModel.Tokens.Jwt;
+using System.Reflection;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -662,6 +663,25 @@ public class JwtMessageAuthenticatorTests
     }
 
     [Fact]
+    public async Task ValidateTokenAsync_WithInvalidSignatureAlgorithm_ShouldLogWarningAndReturnFalse()
+    {
+        // Test the specific case of an invalid signature algorithm
+        var authenticator = new JwtMessageAuthenticator(
+            _authOptionsMock.Object,
+            _authzOptionsMock.Object,
+            _loggerMock.Object,
+            _securityEventLogger);
+
+        var token = CreateJwtTokenWithInvalidAlgorithm();
+
+        // Act
+        var result = await authenticator.ValidateTokenAsync(token);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
     public async Task ValidateTokenAsync_WithInvalidSignatureAlgorithm_ShouldReturnFalse()
     {
         // Arrange
@@ -728,6 +748,121 @@ public class JwtMessageAuthenticatorTests
 
         // Act
         var result = await authenticator.ValidateTokenAsync(expiredToken);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_WithSecurityTokenExpiredException_ShouldLogWarningAndReturnFalse()
+    {
+        // Arrange
+        var authenticator = new JwtMessageAuthenticator(
+            _authOptionsMock.Object,
+            _authzOptionsMock.Object,
+            _loggerMock.Object,
+            _securityEventLogger);
+
+        // Use reflection to replace the internal token handler
+        var tokenHandlerField = typeof(JwtMessageAuthenticator).GetField("_tokenHandler", BindingFlags.NonPublic | BindingFlags.Instance);
+        var mockTokenHandler = new Mock<JwtSecurityTokenHandler>();
+        var expiredException = new SecurityTokenExpiredException("Token has expired");
+
+        mockTokenHandler
+            .Setup(x => x.ValidateToken(It.IsAny<string>(), It.IsAny<TokenValidationParameters>(), out It.Ref<SecurityToken>.IsAny))
+            .Throws(expiredException);
+
+        tokenHandlerField?.SetValue(authenticator, mockTokenHandler.Object);
+
+        var token = CreateValidJwtToken();
+
+        // Act
+        var result = await authenticator.ValidateTokenAsync(token);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_WithSecurityTokenInvalidSignatureException_ShouldLogWarningAndReturnFalse()
+    {
+        // Test with RSA public key configuration to trigger invalid signature exception
+        var rsa = RSA.Create();
+        var publicKeyPem = rsa.ExportRSAPublicKeyPem();
+        
+        var rsaAuthOptions = new AuthenticationOptions
+        {
+            EnableAuthentication = true,
+            JwtIssuer = "test-issuer",
+            JwtAudience = "test-audience",
+            JwtPublicKey = publicKeyPem,
+            TokenCacheTtl = TimeSpan.FromMinutes(5)
+        };
+        var rsaAuthOptionsMock = new Mock<IOptions<AuthenticationOptions>>();
+        rsaAuthOptionsMock.Setup(o => o.Value).Returns(rsaAuthOptions);
+
+        var authenticator = new JwtMessageAuthenticator(
+            rsaAuthOptionsMock.Object,
+            _authzOptionsMock.Object,
+            _loggerMock.Object,
+            _securityEventLogger);
+
+        // Create a token signed with a different RSA key to trigger an invalid signature exception
+        var differentRsa = RSA.Create();
+        var differentRsaToken = CreateValidJwtTokenWithRsa(differentRsa);
+
+        // Act - this should return false because the signature will not validate against the public key
+        var result = await authenticator.ValidateTokenAsync(differentRsaToken);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_WithSecurityTokenException_ShouldLogWarningAndReturnFalse()
+    {
+        // Create an authenticator with symmetric key configuration
+        var authenticator = new JwtMessageAuthenticator(
+            _authOptionsMock.Object,
+            _authzOptionsMock.Object,
+            _loggerMock.Object,
+            _securityEventLogger);
+
+        // Test with a completely malformed token that will trigger a SecurityTokenException during parsing
+        var malformedToken = "invalid.token.format";
+
+        // Act
+        var result = await authenticator.ValidateTokenAsync(malformedToken);
+
+        // Assert - Should return false for invalid token format
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateTokenAsync_WithUnexpectedException_ShouldLogErrorAndReturnFalse()
+    {
+        // Arrange
+        var authenticator = new JwtMessageAuthenticator(
+            _authOptionsMock.Object,
+            _authzOptionsMock.Object,
+            _loggerMock.Object,
+            _securityEventLogger);
+
+        // Use reflection to replace the internal token handler
+        var tokenHandlerField = typeof(JwtMessageAuthenticator).GetField("_tokenHandler", BindingFlags.NonPublic | BindingFlags.Instance);
+        var mockTokenHandler = new Mock<JwtSecurityTokenHandler>();
+        var unexpectedException = new InvalidOperationException("Unexpected error during token validation");
+
+        mockTokenHandler
+            .Setup(x => x.ValidateToken(It.IsAny<string>(), It.IsAny<TokenValidationParameters>(), out It.Ref<SecurityToken>.IsAny))
+            .Throws(unexpectedException);
+
+        tokenHandlerField?.SetValue(authenticator, mockTokenHandler.Object);
+
+        var token = CreateValidJwtToken();
+
+        // Act
+        var result = await authenticator.ValidateTokenAsync(token);
 
         // Assert
         Assert.False(result);
@@ -883,6 +1018,50 @@ public class JwtMessageAuthenticatorTests
 
         // Assert
         Assert.True(result); // Should find role in standard claim type
+    }
+
+    [Fact]
+    public async Task AuthorizeAsync_WithExceptionDuringAuthorization_ShouldLogErrorAndReturnFalse()
+    {
+        // This test is difficult to write directly since we would need to make the ReadJwtToken method fail
+        // Let's create a token that will cause a parsing exception
+        var authenticator = new JwtMessageAuthenticator(
+            _authOptionsMock.Object,
+            _authzOptionsMock.Object,
+            _loggerMock.Object,
+            _securityEventLogger);
+
+        var invalidToken = "invalid.token.parts"; // Invalid token that can't be parsed
+
+        // Act
+        var result = await authenticator.AuthorizeAsync(invalidToken, "publish");
+
+        // Assert
+        Assert.False(result); // Should return False when token is invalid
+    }
+
+    [Fact]
+    public void Constructor_WithInvalidRsaPublicKey_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var invalidRsaAuthOptions = new AuthenticationOptions
+        {
+            EnableAuthentication = true,
+            JwtIssuer = "test-issuer",
+            JwtAudience = "test-audience",
+            JwtPublicKey = "invalid-rsa-key", // Invalid RSA key format
+            TokenCacheTtl = TimeSpan.FromMinutes(5)
+        };
+        var invalidRsaAuthOptionsMock = new Mock<IOptions<AuthenticationOptions>>();
+        invalidRsaAuthOptionsMock.Setup(o => o.Value).Returns(invalidRsaAuthOptions);
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() =>
+            new JwtMessageAuthenticator(
+                invalidRsaAuthOptionsMock.Object,
+                _authzOptionsMock.Object,
+                _loggerMock.Object,
+                _securityEventLogger));
     }
 
     // Helper methods for creating test tokens

@@ -289,7 +289,7 @@ namespace Relay.Core.AI
                 if (performanceData.Count >= MinimumExecutionSamples)
                 {
                     // For very large datasets, use sampling to improve performance
-                    var dataToUse = performanceData.Count > 2000 
+                    var dataToUse = performanceData.Count > 1000
                         ? GetSampledPerformanceData(performanceData)
                         : performanceData;
 
@@ -340,7 +340,7 @@ namespace Relay.Core.AI
                 if (strategyData.Count >= MinimumOptimizationSamples)
                 {
                     // For large datasets, use sampling to improve performance
-                    var dataToUse = strategyData.Count > 1000
+                    var dataToUse = strategyData.Count > 500
                         ? GetSampledOptimizationData(strategyData)
                         : strategyData;
 
@@ -383,7 +383,7 @@ namespace Relay.Core.AI
                     .ToList();
 
                 // For large datasets, take a representative sample to improve performance
-                var metricData = filteredData.Count > 1000
+                var metricData = filteredData.Count > 500
                     ? GetSampledAnomalyData(filteredData)
                     : filteredData.Select(s => new MetricData
                     {
@@ -437,7 +437,7 @@ namespace Relay.Core.AI
 
                 // For very large datasets, take a representative sample to reduce training time
                 // while preserving the time series characteristics
-                var timeSeriesData = filteredData.Count > 1000
+                var timeSeriesData = filteredData.Count > 500
                     ? GetSampledTimeSeriesData(filteredData)
                     : filteredData.Select(s => new MetricData
                     {

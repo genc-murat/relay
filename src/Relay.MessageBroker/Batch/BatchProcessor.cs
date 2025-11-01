@@ -21,7 +21,8 @@ public sealed class BatchProcessor<TMessage> : IBatchProcessor<TMessage>
     private readonly Timer _flushTimer;
     private readonly ConcurrentQueue<double> _processingTimes;
     private readonly ConcurrentQueue<int> _batchSizes;
-    
+
+    private Task? _currentFlushTask;
     private long _totalBatchesProcessed;
     private long _totalMessagesProcessed;
     private long _totalFailedMessages;
@@ -53,7 +54,21 @@ public sealed class BatchProcessor<TMessage> : IBatchProcessor<TMessage>
 
         // Start the flush timer
         _flushTimer = new Timer(
-            async _ => await FlushTimerCallbackAsync(),
+            _ => {
+                // Fire and forget the async operation to avoid blocking the timer thread
+                // but track it so we can await it during disposal
+                _currentFlushTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await FlushTimerCallbackAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during timer-based flush");
+                    }
+                });
+            },
             null,
             _options.FlushInterval,
             _options.FlushInterval);
@@ -388,6 +403,20 @@ public sealed class BatchProcessor<TMessage> : IBatchProcessor<TMessage>
 
         // Stop the timer
         await _flushTimer.DisposeAsync();
+
+        // Wait for any in-flight timer flush to complete
+        var flushTask = _currentFlushTask;
+        if (flushTask != null)
+        {
+            try
+            {
+                await flushTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error waiting for in-flight timer flush during disposal");
+            }
+        }
 
         // Flush any remaining messages before marking as disposed
         try

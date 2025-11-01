@@ -14,5 +14,6 @@ namespace Relay.Core.AI.Optimization.Batching
         public bool Success { get; init; }
         public BatchingStrategy Strategy { get; init; }
         public double Efficiency { get; init; }
+        public Guid BatchExecutionId { get; init; } = Guid.NewGuid();
     }
 }

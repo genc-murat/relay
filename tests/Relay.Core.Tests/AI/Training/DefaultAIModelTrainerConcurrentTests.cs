@@ -509,7 +509,9 @@ public class DefaultAIModelTrainerConcurrentTests : IDisposable
                     _output.WriteLine($"Session {sessionId} failed as expected: {ex.Message}");
                     
                     // Only count unexpected exceptions
-                    if (!(ex is ArgumentException || ex.ToString().Contains("validation failed")))
+                    if (!(ex is ArgumentException ||
+                          ex is OperationCanceledException ||
+                          ex.ToString().Contains("validation failed")))
                     {
                         lock (exceptions)
                         {

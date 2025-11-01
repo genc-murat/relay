@@ -89,7 +89,8 @@ namespace Relay.Core.AI.Optimization.Batching
                     ExecutionTime = TimeSpan.Zero,
                     Success = true,
                     Strategy = _strategy,
-                    Efficiency = 0.0
+                    Efficiency = 0.0,
+                    BatchExecutionId = Guid.NewGuid()
                 };
             }
         }
@@ -146,6 +147,9 @@ namespace Relay.Core.AI.Optimization.Batching
 
             _logger.LogDebug("Processing batch of {Count} items", items.Count);
 
+            // Generate a single batch execution ID for all items in this batch
+            var batchExecutionId = Guid.NewGuid();
+
             // Process all items in parallel
             var executionStartTime = DateTime.UtcNow;
             var tasks = items.Select(async item =>
@@ -164,7 +168,8 @@ namespace Relay.Core.AI.Optimization.Batching
                         ExecutionTime = executionTime,
                         Success = true,
                         Strategy = _strategy,
-                        Efficiency = CalculateEfficiency(items.Count, waitTime, executionTime)
+                        Efficiency = CalculateEfficiency(items.Count, waitTime, executionTime),
+                        BatchExecutionId = batchExecutionId
                     };
 
                     item.CompletionSource.SetResult(result);
@@ -175,7 +180,7 @@ namespace Relay.Core.AI.Optimization.Batching
                     item.CompletionSource.SetException(ex);
                 }
             });
-
+            
             await Task.WhenAll(tasks);
         }
 

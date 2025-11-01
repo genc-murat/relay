@@ -5,6 +5,7 @@ using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -70,7 +71,9 @@ internal class AIBatchOptimizationBehavior<TRequest, TResponse> : IPipelineBehav
                         .EnqueueAndWaitAsync(batchItem, cancellationToken);
 
                     metrics.IncrementSuccessCount();
-                    metrics.RecordBatchExecution(result.BatchSize, result.WaitTime, result.Efficiency);
+                    // Record batch execution metrics, but avoid double counting batched requests
+                    // Each actual batch execution should only be counted once for the total batched requests
+                    metrics.RecordBatchExecution(result.BatchSize, result.WaitTime, result.Efficiency, result.BatchExecutionId);
 
                     // Update coordinator metadata with current metrics
                     if (coordinator.Metadata != null)
@@ -262,20 +265,26 @@ internal class AIBatchOptimizationBehavior<TRequest, TResponse> : IPipelineBehav
         private double _totalEfficiency = 0;
         private long _batchExecutions = 0;
         private DateTime _firstRequest = DateTime.UtcNow;
+        private readonly HashSet<Guid> _recordedBatchIds = new HashSet<Guid>();
         private readonly object _lock = new object();
 
         public void IncrementRequestCount() => Interlocked.Increment(ref _totalRequests);
         public void IncrementSuccessCount() => Interlocked.Increment(ref _successfulRequests);
         public void IncrementFailureCount() => Interlocked.Increment(ref _failedRequests);
 
-        public void RecordBatchExecution(int batchSize, TimeSpan waitTime, double efficiency)
+        public void RecordBatchExecution(int batchSize, TimeSpan waitTime, double efficiency, Guid batchId)
         {
             lock (_lock)
             {
-                Interlocked.Add(ref _totalBatchedRequests, batchSize);
-                _totalWaitTime += waitTime.TotalMilliseconds;
-                _totalEfficiency += efficiency;
-                Interlocked.Increment(ref _batchExecutions);
+                // Only record the batch execution if we haven't already recorded metrics for this specific batch
+                if (!_recordedBatchIds.Contains(batchId))
+                {
+                    Interlocked.Add(ref _totalBatchedRequests, batchSize);
+                    _totalWaitTime += waitTime.TotalMilliseconds;
+                    _totalEfficiency += efficiency;
+                    Interlocked.Increment(ref _batchExecutions);
+                    _recordedBatchIds.Add(batchId);
+                }
             }
         }
 

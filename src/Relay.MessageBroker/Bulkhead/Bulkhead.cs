@@ -206,7 +206,8 @@ public sealed class Bulkhead : IBulkhead, IDisposable
                 return true;
             }
 
-            // Signal task completed (should not happen in normal flow)
+            // Signal task completed - operation was signaled by Exit()
+            Interlocked.Decrement(ref _queuedOperations);
             return await signalTask;
         }
         catch (OperationCanceledException)

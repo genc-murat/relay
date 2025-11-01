@@ -5,6 +5,7 @@ namespace Relay.Core.AI.Optimization.Batching
     /// </summary>
     internal interface IBatchCoordinator
     {
+        BatchCoordinatorMetadata? Metadata { get; set; }
         BatchCoordinatorMetadata? GetMetadata();
     }
 }

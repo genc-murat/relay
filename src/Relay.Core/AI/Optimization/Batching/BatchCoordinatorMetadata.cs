@@ -16,5 +16,7 @@ namespace Relay.Core.AI.Optimization.Batching
         public DateTime LastUsed { get; set; }
         public double AverageWaitTime { get; set; }
         public double AverageBatchSize { get; set; }
+        public double BatchingRate { get; set; }
+        public double AverageEfficiency { get; set; }
     }
 }

@@ -87,10 +87,10 @@ public class EmbeddedResourceSchemaProviderTests
         // Arrange
         var assemblies = new[] { Assembly.GetExecutingAssembly() };
         var provider = new EmbeddedResourceSchemaProvider(_options, assemblies);
-        var context = new SchemaContext { RequestType = typeof(TestRequest), IsRequest = true };
+        var context = new SchemaContext { RequestType = typeof(NonExistentRequest), IsRequest = true };
 
         // Act
-        var result = await provider.TryGetSchemaAsync(typeof(TestRequest), context);
+        var result = await provider.TryGetSchemaAsync(typeof(NonExistentRequest), context);
 
         // Assert
         Assert.Null(result);
@@ -112,9 +112,9 @@ public class EmbeddedResourceSchemaProviderTests
         // Act
         var result = await provider.TryGetSchemaAsync(typeof(TestRequest), context);
 
-        // Assert - Even if not found, the schema version should be used if a schema were found
-        // This test validates the logic path
-        Assert.Null(result); // No embedded resource in test assembly
+        // Assert - Custom schema version should be used when schema is found
+        Assert.NotNull(result);
+        Assert.Equal("http://json-schema.org/draft-04/schema#", result.SchemaVersion);
     }
 
     [Fact]
@@ -152,13 +152,13 @@ public class EmbeddedResourceSchemaProviderTests
             typeof(SchemaContext).Assembly
         };
         var provider = new EmbeddedResourceSchemaProvider(_options, assemblies);
-        var context = new SchemaContext { RequestType = typeof(TestRequest), IsRequest = true };
+        var context = new SchemaContext { RequestType = typeof(NonExistentRequest), IsRequest = true };
 
         // Act
-        var result = await provider.TryGetSchemaAsync(typeof(TestRequest), context);
+        var result = await provider.TryGetSchemaAsync(typeof(NonExistentRequest), context);
 
         // Assert
-        Assert.Null(result); // No embedded resources in test assemblies
+        Assert.Null(result); // No embedded resources for NonExistentRequest
     }
 
     [Fact]
@@ -182,8 +182,30 @@ public class EmbeddedResourceSchemaProviderTests
         Assert.Null(result); // No embedded resources match this pattern
     }
 
+    [Fact]
+    public async Task TryGetSchemaAsync_ReturnsSchema_WhenEmbeddedResourceFound()
+    {
+        // Arrange
+        var assemblies = new[] { Assembly.GetExecutingAssembly() };
+        var provider = new EmbeddedResourceSchemaProvider(_options, assemblies);
+        var context = new SchemaContext { RequestType = typeof(TestRequest), IsRequest = true };
+
+        // Act
+        var result = await provider.TryGetSchemaAsync(typeof(TestRequest), context);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Contains("Test Request Schema", result.Schema);
+        Assert.Equal("http://json-schema.org/draft-07/schema#", result.SchemaVersion);
+    }
+
     private class TestRequest
     {
         public string Name { get; set; } = string.Empty;
+    }
+
+    private class NonExistentRequest
+    {
+        public string Data { get; set; } = string.Empty;
     }
 }

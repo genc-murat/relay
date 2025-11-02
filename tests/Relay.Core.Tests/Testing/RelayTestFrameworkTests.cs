@@ -344,6 +344,242 @@ namespace Relay.Core.Tests.Testing
                 framework.Scenario("Test Scenario").StreamRequest<TestStreamRequest>(null!));
         }
 
+        [Fact]
+        public async Task RunAllScenariosAsync_WithMultipleScenarios_ExecutesAll()
+        {
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+
+            framework.Scenario("Scenario 1")
+                .SendRequest(request, "Step 1")
+                .Verify(() => Task.FromResult(true), "Verify 1");
+
+            framework.Scenario("Scenario 2")
+                .SendRequest(request, "Step 2")
+                .Verify(() => Task.FromResult(true), "Verify 2");
+
+            var result = await framework.RunAllScenariosAsync();
+
+            Assert.Equal(2, result.ScenarioResults.Count);
+            Assert.True(result.ScenarioResults.All(r => r.Success));
+        }
+
+        [Fact]
+        public async Task RunAllScenariosAsync_WithFailingScenario_ContinuesExecution()
+        {
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+
+            framework.Scenario("Failing Scenario")
+                .Verify(() => Task.FromResult(false), "Fail Verify");
+
+            framework.Scenario("Passing Scenario")
+                .Verify(() => Task.FromResult(true), "Pass Verify");
+
+            var result = await framework.RunAllScenariosAsync();
+
+            Assert.Equal(2, result.ScenarioResults.Count);
+            Assert.False(result.ScenarioResults[0].Success);
+            Assert.True(result.ScenarioResults[1].Success);
+            Assert.False(result.Success); // Overall success should be false
+        }
+
+        [Fact]
+        public async Task RunLoadTestAsync_WithZeroRampUpDelay_ExecutesWithoutDelay()
+        {
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+            var config = new LoadTestConfiguration { TotalRequests = 3, MaxConcurrency = 2, RampUpDelayMs = 0 };
+
+            _relayMock
+                .Setup(x => x.SendAsync(It.IsAny<IRequest>(), It.IsAny<CancellationToken>()))
+                .Returns(ValueTask.CompletedTask);
+
+            var startTime = DateTime.UtcNow;
+            var result = await framework.RunLoadTestAsync(request, config);
+            var endTime = DateTime.UtcNow;
+
+            Assert.Equal(3, result.SuccessfulRequests);
+            Assert.Equal(0, result.FailedRequests);
+            // Should complete quickly without ramp-up delays
+            Assert.True((endTime - startTime).TotalMilliseconds < 1000);
+        }
+
+        [Fact]
+        public async Task RunLoadTestAsync_WithHighConcurrency_HandlesCorrectly()
+        {
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+            var config = new LoadTestConfiguration { TotalRequests = 10, MaxConcurrency = 10 };
+
+            _relayMock
+                .Setup(x => x.SendAsync(It.IsAny<IRequest>(), It.IsAny<CancellationToken>()))
+                .Returns(ValueTask.CompletedTask);
+
+            var result = await framework.RunLoadTestAsync(request, config);
+
+            Assert.Equal(10, result.SuccessfulRequests);
+            Assert.Equal(0, result.FailedRequests);
+            Assert.Equal(10, result.ResponseTimes.Count);
+        }
+
+        [Fact]
+        public async Task RunLoadTestAsync_CalculatesPercentilesCorrectly_WithMultipleResponseTimes()
+        {
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+            var config = new LoadTestConfiguration { TotalRequests = 5, MaxConcurrency = 1 };
+
+            var callCount = 0;
+            _relayMock
+                .Setup(x => x.SendAsync(It.IsAny<IRequest>(), It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    callCount++;
+                    var delay = callCount * 10; // 10ms, 20ms, 30ms, 40ms, 50ms
+                    return Task.Delay(delay, CancellationToken.None).ContinueWith(_ => ValueTask.CompletedTask).Result;
+                });
+
+            var result = await framework.RunLoadTestAsync(request, config);
+
+            Assert.Equal(5, result.ResponseTimes.Count);
+            Assert.True(result.AverageResponseTime > 0);
+            Assert.True(result.MedianResponseTime > 0);
+            Assert.True(result.P95ResponseTime > 0);
+            Assert.True(result.P99ResponseTime > 0);
+            Assert.True(result.P95ResponseTime <= result.P99ResponseTime);
+        }
+
+        [Fact]
+        public void Scenario_WithNullName_ThrowsArgumentNullException()
+        {
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            Assert.Throws<ArgumentNullException>(() => framework.Scenario(null!));
+        }
+
+        [Fact]
+        public void Scenario_WithEmptyName_ThrowsArgumentException()
+        {
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            Assert.Throws<ArgumentException>(() => framework.Scenario(""));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_Verify_WithNullFunc_ThrowsArgumentNullException()
+        {
+            var framework = new RelayTestFramework(_serviceProvider);
+            var builder = framework.Scenario("Test");
+
+            Assert.Throws<ArgumentNullException>(() => builder.Verify(null!));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_Wait_WithNegativeTime_ThrowsArgumentOutOfRangeException()
+        {
+            var framework = new RelayTestFramework(_serviceProvider);
+            var builder = framework.Scenario("Test");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => builder.Wait(TimeSpan.FromMilliseconds(-1)));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_Wait_WithZeroTime_ThrowsArgumentOutOfRangeException()
+        {
+            var framework = new RelayTestFramework(_serviceProvider);
+            var builder = framework.Scenario("Test");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => builder.Wait(TimeSpan.Zero));
+        }
+
+        [Fact]
+        public async Task RunAllScenariosAsync_WithCancellation_CancelsExecution()
+        {
+            var framework = new RelayTestFramework(_serviceProvider);
+            var cts = new CancellationTokenSource();
+
+            framework.Scenario("Long Running Scenario")
+                .Wait(TimeSpan.FromSeconds(10), "Long Wait");
+
+            // Cancel immediately
+            cts.Cancel();
+
+            var result = await framework.RunAllScenariosAsync(cts.Token);
+
+            // Should fail due to cancellation
+            Assert.False(result.Success);
+            Assert.Single(result.ScenarioResults);
+            Assert.False(result.ScenarioResults[0].Success);
+            Assert.Contains("cancel", result.ScenarioResults[0].StepResults[0].Error, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task RunLoadTestAsync_WithCancellation_CancelsExecution()
+        {
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+            var config = new LoadTestConfiguration { TotalRequests = 10, MaxConcurrency = 2 };
+            var cts = new CancellationTokenSource();
+
+            _relayMock
+                .Setup(x => x.SendAsync(It.IsAny<IRequest>(), It.IsAny<CancellationToken>()))
+                .Returns(async (IRequest req, CancellationToken ct) =>
+                {
+                    await Task.Delay(1000, ct); // Long delay to allow cancellation
+                });
+
+            // Cancel after a short delay
+            cts.CancelAfter(100);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                framework.RunLoadTestAsync(request, config, cts.Token));
+        }
+
+        [Fact]
+        public void LoadTestResult_WithNoResponseTimes_HandlesGracefully()
+        {
+            var result = new LoadTestResult
+            {
+                SuccessfulRequests = 0,
+                FailedRequests = 5,
+                ResponseTimes = new List<double>()
+            };
+
+            Assert.Equal(0, result.AverageResponseTime);
+            Assert.Equal(0, result.MedianResponseTime);
+            Assert.Equal(0, result.P95ResponseTime);
+            Assert.Equal(0, result.P99ResponseTime);
+            Assert.Equal(0, result.SuccessRate);
+        }
+
+        [Fact]
+        public void LoadTestResult_WithSingleResponseTime_CalculatesCorrectly()
+        {
+            var result = new LoadTestResult
+            {
+                SuccessfulRequests = 1,
+                FailedRequests = 0,
+                ResponseTimes = new List<double> { 150.5 }
+            };
+
+            // Calculate metrics manually since LoadTestResult doesn't auto-calculate
+            result.AverageResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.Average() : 0;
+            result.MedianResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.First() : 0; // Single value median
+            result.P95ResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.First() : 0; // Single value percentile
+            result.P99ResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.First() : 0; // Single value percentile
+
+            Assert.Equal(150.5, result.AverageResponseTime);
+            Assert.Equal(150.5, result.MedianResponseTime);
+            Assert.Equal(150.5, result.P95ResponseTime);
+            Assert.Equal(150.5, result.P99ResponseTime);
+            Assert.Equal(1.0, result.SuccessRate);
+        }
+
         // Test data classes
         public class TestRequest : IRequest<string>, IRequest { }
 

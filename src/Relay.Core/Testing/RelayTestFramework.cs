@@ -26,6 +26,9 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
     /// </summary>
     public TestScenarioBuilder Scenario(string name)
     {
+        if (name == null) throw new ArgumentNullException(nameof(name));
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Scenario name cannot be null or empty", nameof(name));
+        
         var scenario = new TestScenario { Name = name };
         _scenarios.Add(scenario);
         return new TestScenarioBuilder(scenario, _relay);
@@ -247,7 +250,10 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
 
         // Use reflection to invoke the correct generic StreamAsync method
         var requestType = step.StreamRequest.GetType();
-        var responseType = requestType.GetGenericArguments()[0];
+        var responseType = requestType.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IStreamRequest<>))
+            ?.GetGenericArguments()[0]
+            ?? throw new InvalidOperationException($"Stream request type {requestType.Name} does not implement IStreamRequest<T>");
         var streamMethod = (typeof(IRelay).GetMethod(nameof(IRelay.StreamAsync))?.MakeGenericMethod(responseType)) ?? throw new InvalidOperationException($"Cannot find StreamAsync method for request type {requestType}");
         var enumerable = streamMethod.Invoke(_relay, [step.StreamRequest, cancellationToken]);
 
@@ -300,11 +306,11 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
     private static void ValidateLoadTestConfiguration(LoadTestConfiguration config)
     {
         if (config.TotalRequests <= 0)
-            throw new ArgumentOutOfRangeException(nameof(config.TotalRequests));
+            throw new ArgumentException("TotalRequests must be greater than 0", nameof(config.TotalRequests));
         if (config.MaxConcurrency <= 0)
-            throw new ArgumentOutOfRangeException(nameof(config.MaxConcurrency));
+            throw new ArgumentException("MaxConcurrency must be greater than 0", nameof(config.MaxConcurrency));
         if (config.RampUpDelayMs < 0)
-            throw new ArgumentOutOfRangeException(nameof(config.RampUpDelayMs));
+            throw new ArgumentException("RampUpDelayMs cannot be negative", nameof(config.RampUpDelayMs));
     }
 
     private static double CalculateMedian(List<double> values)

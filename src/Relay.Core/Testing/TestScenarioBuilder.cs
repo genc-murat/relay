@@ -66,6 +66,9 @@ namespace Relay.Core.Testing
 
         public TestScenarioBuilder Verify(Func<Task<bool>> verificationFunc, string stepName = "Verify")
         {
+            if (verificationFunc == null) throw new ArgumentNullException(nameof(verificationFunc));
+            if (string.IsNullOrWhiteSpace(stepName)) throw new ArgumentException("Step name cannot be null or empty", nameof(stepName));
+
             _scenario.Steps.Add(new TestStep
             {
                 Name = stepName,
@@ -77,6 +80,9 @@ namespace Relay.Core.Testing
 
         public TestScenarioBuilder Wait(TimeSpan duration, string stepName = "Wait")
         {
+            if (duration <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(duration), "Wait duration must be greater than zero");
+            if (string.IsNullOrWhiteSpace(stepName)) throw new ArgumentException("Step name cannot be null or empty", nameof(stepName));
+
             _scenario.Steps.Add(new TestStep
             {
                 Name = stepName,

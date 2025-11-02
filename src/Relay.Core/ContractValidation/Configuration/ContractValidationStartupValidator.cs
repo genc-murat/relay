@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Relay.Core.Configuration.Options.ContractValidation;
@@ -78,27 +77,5 @@ public sealed class ContractValidationStartupValidator
         _logger.LogInformation("  - SchemaDiscovery.EnableEmbeddedResources: {Value}", _options.SchemaDiscovery.EnableEmbeddedResources);
         _logger.LogInformation("  - SchemaDiscovery.EnableFileSystemWatcher: {Value}", _options.SchemaDiscovery.EnableFileSystemWatcher);
         _logger.LogInformation("  - SchemaDiscovery.EnableHttpSchemas: {Value}", _options.SchemaDiscovery.EnableHttpSchemas);
-    }
-}
-
-/// <summary>
-/// Extension methods for registering contract validation startup validation.
-/// </summary>
-public static class ContractValidationStartupValidatorExtensions
-{
-    /// <summary>
-    /// Validates contract validation configuration during application startup.
-    /// </summary>
-    /// <param name="serviceProvider">The service provider.</param>
-    /// <returns>The service provider for chaining.</returns>
-    public static IServiceProvider ValidateContractValidationConfiguration(this IServiceProvider serviceProvider)
-    {
-        var validator = serviceProvider.GetService<ContractValidationStartupValidator>();
-        if (validator != null)
-        {
-            validator.Validate();
-        }
-
-        return serviceProvider;
     }
 }

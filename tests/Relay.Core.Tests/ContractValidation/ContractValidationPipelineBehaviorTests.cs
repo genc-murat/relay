@@ -6,6 +6,7 @@ using Relay.Core.Configuration.Options.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.ContractValidation;
+using Relay.Core.ContractValidation.Models;
 using Relay.Core.ContractValidation.SchemaDiscovery;
 using Relay.Core.ContractValidation.Strategies;
 using Relay.Core.Metadata.MessageQueue;
@@ -904,6 +905,37 @@ public class ContractValidationPipelineBehaviorTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task ValidateRequestContractDetailed_ShouldReturnSuccess_WhenStrategyShouldValidateReturnsFalse()
+    {
+        // Arrange
+        var skipValidationStrategy = new SkipValidationStrategy();
+        var behavior = new ContractValidationPipelineBehavior<TestRequest, TestResponse>(
+            _mockValidator.Object,
+            _mockLogger.Object,
+            _mockOptions.Object,
+            _mockSchemaResolver.Object,
+            _strategyFactory);
+
+        var request = new TestRequest { Value = "test" };
+
+        // Get the private ValidateRequestContractDetailed method using reflection
+        var validateMethod = typeof(ContractValidationPipelineBehavior<TestRequest, TestResponse>)
+            .GetMethod("ValidateRequestContractDetailed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act - Call the private method directly with our skip validation strategy
+        var result = await (ValueTask<ValidationResult>)validateMethod!.Invoke(
+            behavior, 
+            new object[] { request, skipValidationStrategy, CancellationToken.None })!;
+
+        // Assert
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
+        
+        // Verify that validation was NOT attempted because ShouldValidate returned false
+        _mockValidator.Verify(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [ValidateContract(ValidateRequest = true, ValidateResponse = false, ThrowOnValidationFailure = false)]
     public class AttributedTestRequest : IRequest<TestResponse>
     {
@@ -918,5 +950,29 @@ public class ContractValidationPipelineBehaviorTests
     public class TestResponse
     {
         public string Result { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// A test-only validation strategy that always skips validation by returning false from ShouldValidate.
+    /// This is used to test the ShouldValidate false branch in ValidateRequestContractDetailed.
+    /// </summary>
+    public sealed class SkipValidationStrategy : IValidationStrategy
+    {
+        public string Name => "Skip";
+
+        public bool ShouldValidate(ValidationContext context)
+        {
+            // Always skip validation for testing purposes
+            return false;
+        }
+
+        public ValueTask<ValidationResult> HandleResultAsync(
+            ValidationResult result,
+            ValidationContext context,
+            CancellationToken cancellationToken = default)
+        {
+            // This should never be called since ShouldValidate returns false
+            return ValueTask.FromResult(result);
+        }
     }
 }

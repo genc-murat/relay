@@ -839,6 +839,71 @@ public class ContractValidationPipelineBehaviorTests
         _mockValidator.Verify(x => x.ValidateResponseAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task HandleAsync_ShouldFallbackToStrictStrategy_WhenInvalidStrategyNameProvided()
+    {
+        // Arrange
+        var relayOptions = new RelayOptions
+        {
+            DefaultContractValidationOptions = new ContractValidationOptions
+            {
+                EnableAutomaticContractValidation = true,
+                ValidateRequests = true,
+                ValidateResponses = false,
+                ThrowOnValidationFailure = true,
+                ValidationStrategy = "InvalidStrategyName", // This will cause ArgumentException
+                EnablePerformanceMetrics = false
+            }
+        };
+        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+
+        var behavior = new ContractValidationPipelineBehavior<TestRequest, TestResponse>(
+            _mockValidator.Object,
+            _mockLogger.Object,
+            _mockOptions.Object,
+            _mockSchemaResolver.Object,
+            _strategyFactory);
+
+        var request = new TestRequest { Value = "test" };
+        var response = new TestResponse { Result = "result" };
+        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(response));
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = "{\"type\": \"object\"}",
+            ContentType = "application/json"
+        };
+
+        // Setup schema resolver to return schema for request
+        _mockSchemaResolver.Setup(x => x.ResolveSchemaAsync(
+            typeof(TestRequest),
+            It.IsAny<SchemaContext>(),
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(schema);
+
+        _mockValidator.Setup(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+
+        // Act
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(response, result);
+        
+        // Verify that validation was attempted (using fallback Strict strategy)
+        _mockValidator.Verify(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Once);
+        
+        // Verify that warning was logged about strategy creation failure
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Failed to create validation strategy 'InvalidStrategyName', falling back to Strict strategy")),
+                It.IsAny<ArgumentException>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     [ValidateContract(ValidateRequest = true, ValidateResponse = false, ThrowOnValidationFailure = false)]
     public class AttributedTestRequest : IRequest<TestResponse>
     {

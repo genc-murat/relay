@@ -123,7 +123,12 @@ public class DefaultAIModelTrainerConcurrentTests : IDisposable
                     });
                     
                     Interlocked.Increment(ref completedSessions);
-                    _output.WriteLine($"Session {sessionId} completed with {progressReports.Count(p => p.SessionId == sessionId)} progress reports");
+                    int reportCount;
+                    lock (progressReports)
+                    {
+                        reportCount = progressReports.Count(p => p.SessionId == sessionId);
+                    }
+                    _output.WriteLine($"Session {sessionId} completed with {reportCount} progress reports");
                 }
                 catch (Exception ex)
                 {

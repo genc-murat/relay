@@ -103,8 +103,8 @@ public class WorkflowEngineErrorHandlingTests
         // Act
         await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
 
-        // Wait for background execution
-        await Task.Delay(300);
+        // Wait for background execution (increased to ensure completion under load)
+        await Task.Delay(500);
 
         // Assert - Workflow should continue and complete despite first step failure
         _mockStateStore.Verify(x => x.SaveExecutionAsync(

@@ -43,7 +43,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="ContractValidation\TestSchemas\**" />
+    <Content Include="ContractValidation\TestSchemas\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

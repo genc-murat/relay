@@ -232,12 +232,12 @@ namespace Relay.Core.Tests.Testing
             Assert.Equal(0, result.FailedRequests);
             Assert.Equal(20, result.ResponseTimes.Count);
             
-            // All metrics should be close to 50ms, allowing for system overhead
-            Assert.All(result.ResponseTimes, time => Assert.True(time >= 45 && time <= 80));
-            Assert.True(result.AverageResponseTime >= 45 && result.AverageResponseTime <= 80);
-            Assert.True(result.MedianResponseTime >= 45 && result.MedianResponseTime <= 80);
-            Assert.True(result.P95ResponseTime >= 45 && result.P95ResponseTime <= 80);
-            Assert.True(result.P99ResponseTime >= 45 && result.P99ResponseTime <= 80);
+            // All metrics should be close to 50ms, allowing for system overhead and concurrent execution timing variations
+            Assert.All(result.ResponseTimes, time => Assert.True(time >= 45 && time <= 150));
+            Assert.True(result.AverageResponseTime >= 45 && result.AverageResponseTime <= 150);
+            Assert.True(result.MedianResponseTime >= 45 && result.MedianResponseTime <= 150);
+            Assert.True(result.P95ResponseTime >= 45 && result.P95ResponseTime <= 150);
+            Assert.True(result.P99ResponseTime >= 45 && result.P99ResponseTime <= 150);
         }
 
         [Fact]

@@ -54,7 +54,7 @@ public class WorkflowEngineStepExecutionTests
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask);
 
-        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequest>(), It.IsAny<CancellationToken>()))
+        _mockRelay.Setup(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<string>(string.Empty));
 
         // Act
@@ -64,7 +64,7 @@ public class WorkflowEngineStepExecutionTests
         await Task.Delay(300);
 
         // Assert - Verify SendAsync was called and workflow completed successfully
-        _mockRelay.Verify(x => x.SendAsync(It.IsAny<WorkflowEngineStepExecutionTests.TestWorkflowRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockRelay.Verify(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockStateStore.Verify(x => x.SaveExecutionAsync(
             It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
             It.IsAny<CancellationToken>()), Times.AtLeastOnce);
@@ -249,7 +249,7 @@ public class WorkflowEngineStepExecutionTests
             .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecution = exec)
             .Returns(ValueTask.CompletedTask);
 
-        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequest>(), It.IsAny<CancellationToken>()))
+        _mockRelay.Setup(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<string>("TestResult"));
 
         // Act
@@ -291,7 +291,7 @@ public class WorkflowEngineStepExecutionTests
             .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecution = exec)
             .Returns(ValueTask.CompletedTask);
 
-        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequest>(), It.IsAny<CancellationToken>()))
+        _mockRelay.Setup(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<string>("TestResult"));
 
         // Act
@@ -367,7 +367,7 @@ public class WorkflowEngineStepExecutionTests
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask);
 
-        _mockRelay.Setup(x => x.SendAsync(It.IsAny<TestWorkflowRequestWithReadOnly>(), It.IsAny<CancellationToken>()))
+        _mockRelay.Setup(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<string>("Success"));
 
         // Act - Try to set ReadOnlyProperty, should be skipped
@@ -382,7 +382,7 @@ public class WorkflowEngineStepExecutionTests
             It.IsAny<CancellationToken>()), Times.AtLeastOnce);
 
         // Also verify SendAsync was called
-        _mockRelay.Verify(x => x.SendAsync(It.IsAny<TestWorkflowRequestWithReadOnly>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockRelay.Verify(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -413,7 +413,7 @@ public class WorkflowEngineStepExecutionTests
             .Returns(ValueTask.CompletedTask);
 
         TestWorkflowRequestWithProperties? capturedRequest = null;
-        _mockRelay.Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
+        _mockRelay.Setup(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
             .Callback<IRequest<string>, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
             .Returns(new ValueTask<string>("Success"));
 
@@ -455,7 +455,7 @@ public class WorkflowEngineStepExecutionTests
             .Returns(ValueTask.CompletedTask);
 
         TestWorkflowRequestWithProperties? capturedRequest = null;
-        _mockRelay.Setup(x => x.SendAsync(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
+        _mockRelay.Setup(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
             .Callback<IRequest<string>, CancellationToken>((req, ct) => capturedRequest = req as TestWorkflowRequestWithProperties)
             .Returns(new ValueTask<string>("Success"));
 

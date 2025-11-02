@@ -778,6 +778,73 @@ public class ContractValidationPipelineBehaviorTests
         _mockValidator.Verify(x => x.ValidateResponseAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task HandleAsync_ShouldUseValidateContractAttribute_WhenPresent()
+    {
+        // Arrange
+        var mockAttributedLogger = new Mock<ILogger<ContractValidationPipelineBehavior<AttributedTestRequest, TestResponse>>>();
+        
+        var relayOptions = new RelayOptions
+        {
+            DefaultContractValidationOptions = new ContractValidationOptions
+            {
+                EnableAutomaticContractValidation = true,
+                ValidateRequests = false, // Default is disabled
+                ValidateResponses = false, // Default is disabled
+                ThrowOnValidationFailure = true, // Default is true
+                ValidationStrategy = "Lenient",
+                EnablePerformanceMetrics = false
+            }
+        };
+        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+
+        var behavior = new ContractValidationPipelineBehavior<AttributedTestRequest, TestResponse>(
+            _mockValidator.Object,
+            mockAttributedLogger.Object,
+            _mockOptions.Object,
+            _mockSchemaResolver.Object,
+            _strategyFactory);
+
+        var request = new AttributedTestRequest { Value = "test" };
+        var response = new TestResponse { Result = "result" };
+        var errors = new[] { "Invalid request property" };
+        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(response));
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = "{\"type\": \"object\"}",
+            ContentType = "application/json"
+        };
+
+        // Setup schema resolver to return schema for request
+        _mockSchemaResolver.Setup(x => x.ResolveSchemaAsync(
+            typeof(AttributedTestRequest),
+            It.IsAny<SchemaContext>(),
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(schema);
+
+        _mockValidator.Setup(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(errors);
+
+        // Act - Should not throw because ValidateContractAttribute has ThrowOnValidationFailure = false
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(response, result);
+        
+        // Verify that validation was attempted (because ValidateContractAttribute enables it)
+        _mockValidator.Verify(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Once);
+        
+        // Verify that response validation was NOT attempted (because ValidateContractAttribute disables it)
+        _mockValidator.Verify(x => x.ValidateResponseAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [ValidateContract(ValidateRequest = true, ValidateResponse = false, ThrowOnValidationFailure = false)]
+    public class AttributedTestRequest : IRequest<TestResponse>
+    {
+        public string Value { get; set; } = string.Empty;
+    }
+
     public class TestRequest : IRequest<TestResponse>
     {
         public string Value { get; set; } = string.Empty;

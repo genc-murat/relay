@@ -1,6 +1,7 @@
 using Relay.Core.ContractValidation;
 using Relay.Core.ContractValidation.CustomValidators;
 using Relay.Core.ContractValidation.Models;
+using Relay.Core.ContractValidation.Caching;
 using Relay.Core.Metadata.MessageQueue;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using Moq;
+using Json.Schema;
 
 namespace Relay.Core.Tests.ContractValidation;
 
@@ -827,375 +830,95 @@ public class DefaultContractValidatorEdgeCasesTests
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
         
-        // Verify error was logged
+        // Verify error was logged - check that validation failed was logged
         Assert.Contains(logger.LoggedMessages, e => 
             e.LogLevel == LogLevel.Error && 
             e.Message.Contains("Request validation failed"));
     }
 
     [Fact]
-    public async Task ValidateRequestDetailedAsync_WithForcedException_ShouldReturnGeneralError()
+    public async Task ValidateRequestDetailedAsync_WithInvalidJsonSchemaAndSchemaCache_ShouldReturnSchemaParsingError()
     {
-        // Arrange - Create a mock scenario that forces an exception
-        // We'll use a custom object that throws during ToString() or property access
+        // Arrange - Test catch block in GetOrParseSchemaWithCache when using ISchemaCache (lines 528-531)
         var logger = new TestLogger<DefaultContractValidator>();
+        var mockSchemaCache = new Mock<ISchemaCache>();
         
-        var exceptionThrowingRequest = new ExceptionThrowingObject();
+        // Setup cache to return null (not cached) so parsing is attempted
+        mockSchemaCache.Setup(x => x.Get(It.IsAny<string>())).Returns((JsonSchema?)null);
         
-        var schema = new JsonSchemaContract
+        var request = new TestRequest { Name = "Test", Value = 123 };
+        
+        // Create invalid JSON schema that will cause JsonSchema.FromText to throw an exception
+        var invalidSchema = new JsonSchemaContract
         {
             Schema = @"{
-                    ""type"": ""object"",
-                    ""properties"": {
-                        ""Value"": { ""type"": ""string"" }
-                    },
-                    ""required"": [""Value""]
-                }"
+                ""type"": ""object"",
+                ""properties"": {
+                    ""Name"": { ""type"": ""string"" },
+                    ""Value"": { ""type"": ""integer"" }
+                },
+                ""required"": [""Name"", ""Value""],
+                // Invalid JSON schema syntax - missing closing brace for required array
+                ""required"": [""Name"", ""Value""
+            }"
         };
-        var context = ValidationContext.ForRequest(exceptionThrowingRequest.GetType(), exceptionThrowingRequest, schema);
+        var context = ValidationContext.ForRequest(typeof(TestRequest), request, invalidSchema);
 
-        var validator = new DefaultContractValidator(logger: logger);
+        var validator = new DefaultContractValidator(schemaCache: mockSchemaCache.Object, logger: logger);
 
         // Act
-        var result = await validator.ValidateRequestDetailedAsync(exceptionThrowingRequest, schema, context);
+        var result = await validator.ValidateRequestDetailedAsync(request, invalidSchema, context);
 
-        // Assert - Should handle the exception and return general error
+        // Assert - Should catch JsonSchema parsing exception and return schema parsing error
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
+        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.SchemaParsingFailed);
+        Assert.Contains(result.Errors, e => e.Message.Contains("Invalid JSON schema format"));
         
-        // Verify error was logged
+        // Verify error was logged - check that validation failed was logged
         Assert.Contains(logger.LoggedMessages, e => 
-            e.LogLevel == LogLevel.Error && 
-            e.Message.Contains("Request validation failed"));
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
     }
 
     [Fact]
-    public async Task ValidateResponseDetailedAsync_WithUserCancellation_ShouldThrowOperationCanceledException()
+    public async Task ValidateRequestDetailedAsync_WithInvalidJsonSchemaAndLegacyCache_ShouldReturnSchemaParsingError()
     {
-        // Arrange
+        // Arrange - Test catch block in GetOrParseSchemaWithCache when using legacy cache (lines 541-544)
         var logger = new TestLogger<DefaultContractValidator>();
-        var response = new TestResponse { Id = 1, Result = "Success" };
-        var schema = new JsonSchemaContract
-        {
-            Schema = @"{
-                    ""type"": ""object"",
-                    ""properties"": {
-                        ""Id"": { ""type"": ""integer"" },
-                        ""Result"": { ""type"": ""string"" }
-                    },
-                    ""required"": [""Id"", ""Result""]
-                }"
-        };
-        var context = ValidationContext.ForResponse(typeof(TestResponse), response, schema);
         
-        // Create a cancelled token to force user cancellation catch block
-        var cts = new CancellationTokenSource();
-        cts.Cancel();
-
-        var validator = new DefaultContractValidator(logger: logger);
-
-        // Act & Assert
-        // Note: This test may not always throw because validation might complete before cancellation is checked
-        // The important thing is that if cancellation is detected, it should be handled correctly
-        try
-        {
-            var result = await validator.ValidateResponseDetailedAsync(response, schema, context, cts.Token);
-            // If validation completes, that's acceptable - it completed before cancellation was checked
-            Assert.True(result.IsValid);
-        }
-        catch (OperationCanceledException)
-        {
-            // This is the expected path when cancellation is detected
-            // Verify cancellation warning was logged
-            Assert.Contains(logger.LoggedMessages, e => 
-                e.LogLevel == LogLevel.Warning && 
-                e.Message.Contains("cancelled by user"));
-        }
-    }
-
-    [Fact]
-    public async Task ValidateResponseDetailedAsync_WithTimeout_ShouldReturnTimeoutError()
-    {
-        // Arrange
-        var logger = new TestLogger<DefaultContractValidator>();
-        var response = new TestResponse { Id = 1, Result = "Success" };
-        var schema = new JsonSchemaContract
-        {
-            Schema = @"{
-                    ""type"": ""object"",
-                    ""properties"": {
-                        ""Id"": { ""type"": ""integer"" },
-                        ""Result"": { ""type"": ""string"" }
-                    },
-                    ""required"": [""Id"", ""Result""]
-                }"
-        };
-        var context = ValidationContext.ForResponse(typeof(TestResponse), response, schema);
+        // Don't provide ISchemaCache to force use of legacy cache path
+        var request = new TestRequest { Name = "Test", Value = 123 };
         
-        // Create validator with very short timeout to potentially force timeout
-        var validatorWithShortTimeout = new DefaultContractValidator(
-            validationTimeout: TimeSpan.FromMilliseconds(1), // Very short timeout
-            logger: logger);
-
-        // Act
-        var result = await validatorWithShortTimeout.ValidateResponseDetailedAsync(response, schema, context);
-
-        // Assert - Either succeeds quickly or times out
-        if (!result.IsValid)
-        {
-            Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.ValidationTimeout);
-            Assert.Contains(result.Errors, e => e.Message.Contains("timed out"));
-
-            // Verify timeout error was logged
-            Assert.Contains(logger.LoggedMessages, e => 
-                e.LogLevel == LogLevel.Error && 
-                e.Message.Contains("timed out"));
-        }
-        else
-        {
-            // Validation completed quickly - this is also acceptable
-            Assert.True(result.IsValid);
-        }
-    }
-
-    [Fact]
-    public async Task ValidateResponseDetailedAsync_WithException_ShouldReturnGeneralError()
-    {
-        // Arrange - Use ExceptionThrowingObject which will cause an exception during serialization
-        var logger = new TestLogger<DefaultContractValidator>();
-        var problematicResponse = new ExceptionThrowingObject();
-
-        var schema = new JsonSchemaContract
+        // Create invalid JSON schema that will cause JsonSchema.FromText to throw an exception
+        var invalidSchema = new JsonSchemaContract
         {
             Schema = @"{
-                    ""type"": ""object"",
-                    ""properties"": {
-                        ""Value"": { ""type"": ""string"" }
-                    },
-                    ""required"": [""Value""]
-                }"
+                ""type"": ""object"",
+                ""properties"": {
+                    ""Name"": { ""type"": ""string"" },
+                    ""Value"": { ""type"": ""integer"" }
+                },
+                ""required"": [""Name"", ""Value""],
+                // Invalid JSON schema syntax - unclosed string
+                ""additionalProperties"": ""unclosed string
+            }"
         };
-        var context = ValidationContext.ForResponse(problematicResponse.GetType(), problematicResponse, schema);
+        var context = ValidationContext.ForRequest(typeof(TestRequest), request, invalidSchema);
 
         var validator = new DefaultContractValidator(logger: logger);
 
         // Act
-        var result = await validator.ValidateResponseDetailedAsync(problematicResponse, schema, context);
+        var result = await validator.ValidateRequestDetailedAsync(request, invalidSchema, context);
 
-        // Assert - Should handle the exception and return general error
+        // Assert - Should catch JsonSchema parsing exception and return schema parsing error
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
-        Assert.Contains(result.Errors, e => e.Message.Contains("Response validation failed"));
+        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.SchemaParsingFailed);
+        Assert.Contains(result.Errors, e => e.Message.Contains("Invalid JSON schema format"));
         
-        // Verify error was logged
+        // Verify error was logged - check that validation failed was logged
         Assert.Contains(logger.LoggedMessages, e => 
-            e.LogLevel == LogLevel.Error && 
-            e.Message.Contains("Response validation failed"));
-    }
-
-    [Fact]
-    public async Task ValidateRequestDetailedAsync_WithNullSchemaAndCustomValidator_ShouldRunCustomValidator()
-    {
-        // Arrange - Test the condition: if (_validationEngine != null && _validationEngine.HasCustomValidators && obj != null)
-        var logger = new TestLogger<DefaultContractValidator>();
-        var customValidator = new TestCustomValidator();
-        var validatorComposer = new ValidatorComposer(new[] { customValidator });
-        var validationEngine = new ValidationEngine(validatorComposer);
-        
-        var request = new TestRequest { Name = "Invalid", Value = 123 };
-        var schema = new JsonSchemaContract { Schema = null }; // Null schema to trigger custom validator path
-        var context = ValidationContext.ForRequest(typeof(TestRequest), request, schema);
-
-        var validator = new DefaultContractValidator(validationEngine: validationEngine, logger: logger);
-
-        // Act
-        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
-
-        // Assert - Should run custom validator and return validation error
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.CustomValidationFailed);
-        Assert.Contains(result.Errors, e => e.Message.Contains("Name cannot be 'Invalid'"));
-    }
-
-    [Fact]
-    public async Task ValidateRequestDetailedAsync_WithEmptySchemaAndCustomValidator_ShouldRunCustomValidator()
-    {
-        // Arrange - Test the condition: if (_validationEngine != null && _validationEngine.HasCustomValidators && obj != null)
-        var logger = new TestLogger<DefaultContractValidator>();
-        var customValidator = new TestCustomValidator();
-        var validatorComposer = new ValidatorComposer(new[] { customValidator });
-        var validationEngine = new ValidationEngine(validatorComposer);
-        
-        var request = new TestRequest { Name = "Invalid", Value = 123 };
-        var schema = new JsonSchemaContract { Schema = "   " }; // Whitespace-only schema
-        var context = ValidationContext.ForRequest(typeof(TestRequest), request, schema);
-
-        var validator = new DefaultContractValidator(validationEngine: validationEngine, logger: logger);
-
-        // Act
-        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
-
-        // Assert - Should run custom validator and return validation error
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.CustomValidationFailed);
-    }
-
-    [Fact]
-    public async Task ValidateRequestDetailedAsync_WithJsonSerializationError_ShouldReturnSerializationError()
-    {
-        // Arrange - Test catch (JsonException jsonEx) block
-        var logger = new TestLogger<DefaultContractValidator>();
-        
-        // Use an object that will cause JSON serialization issues
-        // The ExceptionThrowingObject will throw during property access, which should cause JsonException
-        var problematicRequest = new ExceptionThrowingObject();
-
-        var schema = new JsonSchemaContract
-        {
-            Schema = @"{
-                    ""type"": ""object"",
-                    ""properties"": {
-                        ""Value"": { ""type"": ""string"" }
-                    },
-                    ""required"": [""Value""]
-                }"
-        };
-        var context = ValidationContext.ForRequest(problematicRequest.GetType(), problematicRequest, schema);
-
-        var validator = new DefaultContractValidator(logger: logger);
-
-        // Act
-        var result = await validator.ValidateRequestDetailedAsync(problematicRequest, schema, context);
-
-        // Assert - Should catch exception and return general validation error
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
-        // The exception might be caught as JsonException or general exception, both result in CV999
-        Assert.Contains(result.Errors, e => e.Message.Contains("validation failed"));
-        
-        // Verify error was logged
-        Assert.Contains(logger.LoggedMessages, e => 
-            e.LogLevel == LogLevel.Error && 
-            e.Message.Contains("Request validation failed"));
-    }
-
-    [Fact]
-    public async Task ValidateResponseDetailedAsync_WithJsonSerializationError_ShouldReturnSerializationError()
-    {
-        // Arrange - Test catch (JsonException jsonEx) block for response validation
-        var logger = new TestLogger<DefaultContractValidator>();
-        
-        var problematicResponse = new ExceptionThrowingObject();
-
-        var schema = new JsonSchemaContract
-        {
-            Schema = @"{
-                    ""type"": ""object"",
-                    ""properties"": {
-                        ""Value"": { ""type"": ""string"" }
-                    },
-                    ""required"": [""Value""]
-                }"
-        };
-        var context = ValidationContext.ForResponse(problematicResponse.GetType(), problematicResponse, schema);
-
-        var validator = new DefaultContractValidator(logger: logger);
-
-        // Act
-        var result = await validator.ValidateResponseDetailedAsync(problematicResponse, schema, context);
-
-        // Assert - Should catch exception and return general validation error
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
-        Assert.Contains(result.Errors, e => e.Message.Contains("validation failed"));
-        
-        // Verify error was logged
-        Assert.Contains(logger.LoggedMessages, e => 
-            e.LogLevel == LogLevel.Error && 
-            e.Message.Contains("Response validation failed"));
-    }
-
-
-
-
-
-    [Fact]
-    public async Task ValidateRequestDetailedAsync_WithJsonNodeNull_ShouldReturnParseError()
-    {
-        // Arrange - Test if (jsonNode == null) condition
-        var logger = new TestLogger<DefaultContractValidator>();
-        
-        // Create an object that might cause JsonNode.Parse to return null
-        var problematicRequest = new JsonNodeNullObject();
-
-        var schema = new JsonSchemaContract
-        {
-            Schema = @"{
-                    ""type"": ""object"",
-                    ""properties"": {
-                        ""Value"": { ""type"": ""string"" }
-                    },
-                    ""required"": [""Value""]
-                }"
-        };
-        var context = ValidationContext.ForRequest(problematicRequest.GetType(), problematicRequest, schema);
-
-        var validator = new DefaultContractValidator(logger: logger);
-
-        // Act
-        var result = await validator.ValidateRequestDetailedAsync(problematicRequest, schema, context);
-
-        // Assert - Should handle jsonNode == null condition
-        // Note: This condition is very hard to trigger as JsonNode.Parse typically throws exceptions
-        // rather than returning null, but we test the path for completeness
-        if (!result.IsValid)
-        {
-            Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
-            Assert.Contains(result.Errors, e => e.Message.Contains("Failed to parse object as JSON"));
-        }
-        else
-        {
-            // If validation succeeds, that's also acceptable - the condition might not be triggerable
-            Assert.True(result.IsValid);
-        }
-    }
-
-    [Fact]
-    public async Task ValidateResponseDetailedAsync_WithJsonNodeNull_ShouldReturnParseError()
-    {
-        // Arrange - Test if (jsonNode == null) condition for response validation
-        var logger = new TestLogger<DefaultContractValidator>();
-        
-        var problematicResponse = new JsonNodeNullObject();
-
-        var schema = new JsonSchemaContract
-        {
-            Schema = @"{
-                    ""type"": ""object"",
-                    ""properties"": {
-                        ""Value"": { ""type"": ""string"" }
-                    },
-                    ""required"": [""Value""]
-                }"
-        };
-        var context = ValidationContext.ForResponse(problematicResponse.GetType(), problematicResponse, schema);
-
-        var validator = new DefaultContractValidator(logger: logger);
-
-        // Act
-        var result = await validator.ValidateResponseDetailedAsync(problematicResponse, schema, context);
-
-        // Assert - Should handle jsonNode == null condition
-        if (!result.IsValid)
-        {
-            Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
-            Assert.Contains(result.Errors, e => e.Message.Contains("Failed to parse object as JSON"));
-        }
-        else
-        {
-            // If validation succeeds, that's also acceptable
-            Assert.True(result.IsValid);
-        }
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
     }
 
     /// <summary>

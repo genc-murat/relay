@@ -6,12 +6,10 @@ using Relay.Core.Configuration.Options.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.ContractValidation;
-using Relay.Core.ContractValidation.Models;
 using Relay.Core.ContractValidation.SchemaDiscovery;
 using Relay.Core.ContractValidation.Strategies;
 using Relay.Core.Metadata.MessageQueue;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -593,6 +591,116 @@ public class ContractValidationPipelineBehaviorTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ShouldThrowContractValidationException_WhenLenientStrategyReturnsInvalidResultAndThrowOnFailureIsTrue_ForRequest()
+    {
+        // Arrange
+        var relayOptions = new RelayOptions
+        {
+            DefaultContractValidationOptions = new ContractValidationOptions
+            {
+                EnableAutomaticContractValidation = true,
+                ValidateRequests = true,
+                ValidateResponses = false,
+                ThrowOnValidationFailure = true, // This should trigger the exception after strategy handling
+                ValidationStrategy = "Lenient", // Lenient strategy doesn't throw in HandleResultAsync
+                EnablePerformanceMetrics = false
+            }
+        };
+        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+
+        var behavior = new ContractValidationPipelineBehavior<TestRequest, TestResponse>(
+            _mockValidator.Object,
+            _mockLogger.Object,
+            _mockOptions.Object,
+            _mockSchemaResolver.Object,
+            _strategyFactory);
+
+        var request = new TestRequest { Value = "test" };
+        var response = new TestResponse { Result = "result" };
+        var errors = new[] { "Invalid request property" };
+        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(response));
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = "{\"type\": \"object\"}",
+            ContentType = "application/json"
+        };
+
+        // Setup schema resolver to return schema for request
+        _mockSchemaResolver.Setup(x => x.ResolveSchemaAsync(
+            typeof(TestRequest),
+            It.IsAny<SchemaContext>(),
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(schema);
+
+        _mockValidator.Setup(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(errors);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ContractValidationException>(async () =>
+            await behavior.HandleAsync(request, next, CancellationToken.None));
+
+        Assert.Equal(typeof(TestRequest), exception.ObjectType);
+        Assert.Contains("Invalid request property", exception.Errors.Single());
+        Assert.Contains("Contract validation failed for TestRequest", exception.Message);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ShouldThrowContractValidationException_WhenLenientStrategyReturnsInvalidResultAndThrowOnFailureIsTrue_ForResponse()
+    {
+        // Arrange
+        var relayOptions = new RelayOptions
+        {
+            DefaultContractValidationOptions = new ContractValidationOptions
+            {
+                EnableAutomaticContractValidation = true,
+                ValidateRequests = false,
+                ValidateResponses = true,
+                ThrowOnValidationFailure = true, // This should trigger the exception after strategy handling
+                ValidationStrategy = "Lenient", // Lenient strategy doesn't throw in HandleResultAsync
+                EnablePerformanceMetrics = false
+            }
+        };
+        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+
+        var behavior = new ContractValidationPipelineBehavior<TestRequest, TestResponse>(
+            _mockValidator.Object,
+            _mockLogger.Object,
+            _mockOptions.Object,
+            _mockSchemaResolver.Object,
+            _strategyFactory);
+
+        var request = new TestRequest { Value = "test" };
+        var response = new TestResponse { Result = "result" };
+        var errors = new[] { "Invalid response property" };
+        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(response));
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = "{\"type\": \"object\"}",
+            ContentType = "application/json"
+        };
+
+        // Setup schema resolver to return schema for response
+        _mockSchemaResolver.Setup(x => x.ResolveSchemaAsync(
+            typeof(TestResponse),
+            It.IsAny<SchemaContext>(),
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(schema);
+
+        _mockValidator.Setup(x => x.ValidateResponseAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(errors);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ContractValidationException>(async () =>
+            await behavior.HandleAsync(request, next, CancellationToken.None));
+
+        Assert.Equal(typeof(TestResponse), exception.ObjectType);
+        Assert.Contains("Invalid response property", exception.Errors.Single());
+        Assert.Contains("Contract validation failed for TestResponse", exception.Message);
     }
 
     public class TestRequest : IRequest<TestResponse>

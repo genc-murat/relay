@@ -10,6 +10,7 @@ using Relay.Core.ContractValidation.SchemaDiscovery;
 using Relay.Core.ContractValidation.Strategies;
 using Relay.Core.Metadata.MessageQueue;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -701,6 +702,80 @@ public class ContractValidationPipelineBehaviorTests
         Assert.Equal(typeof(TestResponse), exception.ObjectType);
         Assert.Contains("Invalid response property", exception.Errors.Single());
         Assert.Contains("Contract validation failed for TestResponse", exception.Message);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ShouldUseHandlerSpecificOverride_WhenConfigured()
+    {
+        // Arrange
+        var handlerKey = typeof(TestRequest).FullName ?? typeof(TestRequest).Name;
+        var handlerSpecificOptions = new ContractValidationOptions
+        {
+            EnableAutomaticContractValidation = true,
+            ValidateRequests = true,
+            ValidateResponses = false,
+            ThrowOnValidationFailure = false,
+            ValidationStrategy = "Lenient",
+            EnablePerformanceMetrics = false
+        };
+
+        var relayOptions = new RelayOptions
+        {
+            DefaultContractValidationOptions = new ContractValidationOptions
+            {
+                EnableAutomaticContractValidation = false, // Default is disabled
+                ValidateRequests = false,
+                ValidateResponses = false,
+                ThrowOnValidationFailure = true,
+                ValidationStrategy = "Strict",
+                EnablePerformanceMetrics = false
+            },
+            ContractValidationOverrides = new Dictionary<string, ContractValidationOptions>
+            {
+                [handlerKey] = handlerSpecificOptions // This should be used instead of defaults
+            }
+        };
+        _mockOptions.Setup(x => x.Value).Returns(relayOptions);
+
+        var behavior = new ContractValidationPipelineBehavior<TestRequest, TestResponse>(
+            _mockValidator.Object,
+            _mockLogger.Object,
+            _mockOptions.Object,
+            _mockSchemaResolver.Object,
+            _strategyFactory);
+
+        var request = new TestRequest { Value = "test" };
+        var response = new TestResponse { Result = "result" };
+        var errors = new[] { "Invalid request property" };
+        var next = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(response));
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = "{\"type\": \"object\"}",
+            ContentType = "application/json"
+        };
+
+        // Setup schema resolver to return schema for request
+        _mockSchemaResolver.Setup(x => x.ResolveSchemaAsync(
+            typeof(TestRequest),
+            It.IsAny<SchemaContext>(),
+            It.IsAny<CancellationToken>()))
+            .ReturnsAsync(schema);
+
+        _mockValidator.Setup(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(errors);
+
+        // Act - Should not throw because handler-specific override has ThrowOnValidationFailure = false
+        var result = await behavior.HandleAsync(request, next, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(response, result);
+        
+        // Verify that validation was attempted (because handler override enables it)
+        _mockValidator.Verify(x => x.ValidateRequestAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Once);
+        
+        // Verify that response validation was NOT attempted (because handler override disables it)
+        _mockValidator.Verify(x => x.ValidateResponseAsync(It.IsAny<object>(), It.IsAny<JsonSchemaContract>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     public class TestRequest : IRequest<TestResponse>

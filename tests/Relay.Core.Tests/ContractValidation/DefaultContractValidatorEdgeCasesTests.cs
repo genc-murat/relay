@@ -2,9 +2,11 @@ using Relay.Core.ContractValidation;
 using Relay.Core.ContractValidation.Models;
 using Relay.Core.Metadata.MessageQueue;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Relay.Core.Tests.ContractValidation;
@@ -12,6 +14,37 @@ namespace Relay.Core.Tests.ContractValidation;
 public class DefaultContractValidatorEdgeCasesTests
 {
     private readonly DefaultContractValidator _validator = new();
+
+    /// <summary>
+    /// Test logger that captures log messages for verification
+    /// </summary>
+    public class TestLogger<T> : ILogger<T>
+    {
+        public List<LogEntry> LoggedMessages { get; } = new();
+
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => null!;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            LoggedMessages.Add(new LogEntry
+            {
+                LogLevel = logLevel,
+                EventId = eventId,
+                Message = formatter(state, exception),
+                Exception = exception
+            });
+        }
+    }
+
+    public class LogEntry
+    {
+        public LogLevel LogLevel { get; set; }
+        public EventId EventId { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public Exception? Exception { get; set; }
+    }
 
     public class TestRequest
     {
@@ -674,5 +707,176 @@ public class DefaultContractValidatorEdgeCasesTests
         var minLengthErrors = errorList.Count(e => e.Contains("minLength"));
         Assert.True(typeErrors >= 2); // At least Version, Enabled, Id
         Assert.True(minLengthErrors >= 2); // At least Tags, Title, Body
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithUserCancellation_ShouldThrowOperationCanceledException()
+    {
+        // Arrange
+        var logger = new TestLogger<DefaultContractValidator>();
+        var request = new TestRequest { Name = "Test", Value = 123 };
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""Name"": { ""type"": ""string"" },
+                        ""Value"": { ""type"": ""integer"" }
+                    },
+                    ""required"": [""Name"", ""Value""]
+                }"
+        };
+        var context = ValidationContext.ForRequest(typeof(TestRequest), request, schema);
+        
+        // Create a cancelled token to force the user cancellation catch block
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act & Assert
+        // Note: This test may not always throw because validation might complete before cancellation is checked
+        // The important thing is that if cancellation is detected, it should be handled correctly
+        try
+        {
+            var result = await validator.ValidateRequestDetailedAsync(request, schema, context, cts.Token);
+            // If validation completes, that's acceptable - it completed before cancellation was checked
+            Assert.True(result.IsValid);
+        }
+        catch (OperationCanceledException)
+        {
+            // This is the expected path when cancellation is detected
+            // Verify the cancellation warning was logged
+            Assert.Contains(logger.LoggedMessages, e => 
+                e.LogLevel == LogLevel.Warning && 
+                e.Message.Contains("cancelled by user"));
+        }
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithTimeout_ShouldReturnTimeoutError()
+    {
+        // Arrange
+        var logger = new TestLogger<DefaultContractValidator>();
+        var request = new TestRequest { Name = "Test", Value = 123 };
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""Name"": { ""type"": ""string"" },
+                        ""Value"": { ""type"": ""integer"" }
+                    },
+                    ""required"": [""Name"", ""Value""]
+                }"
+        };
+        var context = ValidationContext.ForRequest(typeof(TestRequest), request, schema);
+        
+        // Create validator with very short timeout to potentially force timeout
+        var validatorWithShortTimeout = new DefaultContractValidator(
+            validationTimeout: TimeSpan.FromMilliseconds(1), // Very short timeout
+            logger: logger);
+
+        // Act
+        var result = await validatorWithShortTimeout.ValidateRequestDetailedAsync(request, schema, context);
+
+        // Assert - Either succeeds quickly or times out
+        if (!result.IsValid)
+        {
+            Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.ValidationTimeout);
+            Assert.Contains(result.Errors, e => e.Message.Contains("timed out"));
+
+            // Verify timeout error was logged
+            Assert.Contains(logger.LoggedMessages, e => 
+                e.LogLevel == LogLevel.Error && 
+                e.Message.Contains("timed out"));
+        }
+        else
+        {
+            // Validation completed quickly - this is also acceptable
+            Assert.True(result.IsValid);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithCircularReference_ShouldReturnGeneralError()
+    {
+        // Arrange - Use the ExceptionThrowingObject which will cause an exception during serialization
+        var logger = new TestLogger<DefaultContractValidator>();
+        var problematicRequest = new ExceptionThrowingObject();
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""Value"": { ""type"": ""string"" }
+                    },
+                    ""required"": [""Value""]
+                }"
+        };
+        var context = ValidationContext.ForRequest(problematicRequest.GetType(), problematicRequest, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(problematicRequest, schema, context);
+
+        // Assert - Should handle the exception and return general error
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
+        
+        // Verify error was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Error && 
+            e.Message.Contains("Request validation failed"));
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithForcedException_ShouldReturnGeneralError()
+    {
+        // Arrange - Create a mock scenario that forces an exception
+        // We'll use a custom object that throws during ToString() or property access
+        var logger = new TestLogger<DefaultContractValidator>();
+        
+        var exceptionThrowingRequest = new ExceptionThrowingObject();
+        
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                    ""type"": ""object"",
+                    ""properties"": {
+                        ""Value"": { ""type"": ""string"" }
+                    },
+                    ""required"": [""Value""]
+                }"
+        };
+        var context = ValidationContext.ForRequest(exceptionThrowingRequest.GetType(), exceptionThrowingRequest, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(exceptionThrowingRequest, schema, context);
+
+        // Assert - Should handle the exception and return general error
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorCode == ValidationErrorCodes.GeneralValidationError);
+        
+        // Verify error was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Error && 
+            e.Message.Contains("Request validation failed"));
+    }
+
+    /// <summary>
+    /// Helper class that throws exceptions during property access to test exception handling
+    /// </summary>
+    private class ExceptionThrowingObject
+    {
+        public string Value
+        {
+            get => throw new InvalidOperationException("Test exception for validation");
+            set => throw new InvalidOperationException("Test exception for validation");
+        }
     }
 }

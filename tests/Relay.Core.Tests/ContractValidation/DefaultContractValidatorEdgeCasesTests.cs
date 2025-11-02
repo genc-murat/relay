@@ -1287,6 +1287,337 @@ public class DefaultContractValidatorEdgeCasesTests
             e.Message.Contains("validation completed"));
     }
 
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithValidDetail_ShouldSkipErrorProcessing()
+    {
+        // Arrange - Test branch: detail.IsValid == true (line 627)
+        var logger = new TestLogger<DefaultContractValidator>();
+        
+        // Create a request that will produce valid evaluation details
+        var request = new { Name = "ValidName", Age = 25 };
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                ""type"": ""object"",
+                ""properties"": {
+                    ""Name"": { ""type"": ""string"" },
+                    ""Age"": { ""type"": ""integer"", ""minimum"": 0 }
+                },
+                ""required"": [""Name"", ""Age""]
+            }"
+        };
+        var context = ValidationContext.ForRequest(request.GetType(), request, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
+
+        // Assert - Should be valid and not trigger error processing branches
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
+        
+        // Verify validation was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithNullErrors_ShouldSkipErrorProcessing()
+    {
+        // Arrange - Test branch: detail.Errors == null (line 627)
+        var logger = new TestLogger<DefaultContractValidator>();
+        
+        // Create a request that might produce invalid details but with null errors
+        var request = new { Data = (object)null };
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                ""type"": ""object"",
+                ""properties"": {
+                    ""Data"": { ""type"": ""string"" }
+                },
+                ""required"": [""Data""]
+            }"
+        };
+        var context = ValidationContext.ForRequest(request.GetType(), request, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
+
+        // Assert - Should handle null errors gracefully
+        Assert.False(result.IsValid);
+        // Should have some error, but not from null errors branch
+        Assert.True(result.Errors.Count() >= 1);
+        
+        // Verify validation was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithEmptyErrors_ShouldSkipForeachLoop()
+    {
+        // Arrange - Test branch: detail.Errors is empty (line 629)
+        var logger = new TestLogger<DefaultContractValidator>();
+        
+        // Create a request that might produce invalid details with empty errors
+        var request = new { Value = "test" };
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                ""type"": ""object"",
+                ""properties"": {
+                    ""Value"": { 
+                        ""type"": ""string"",
+                        ""minLength"": 5
+                    }
+                },
+                ""required"": [""Value""]
+            }"
+        };
+        var context = ValidationContext.ForRequest(request.GetType(), request, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
+
+        // Assert - Should handle empty errors collection
+        Assert.False(result.IsValid);
+        Assert.True(result.Errors.Count() >= 1);
+        
+        // Verify validation was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithNullDetails_ShouldSkipRecursiveProcessing()
+    {
+        // Arrange - Test branch: detail.Details == null (line 652)
+        var logger = new TestLogger<DefaultContractValidator>();
+        
+        // Create a simple request that won't produce nested details
+        var request = new { SimpleValue = "test" };
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                ""type"": ""object"",
+                ""properties"": {
+                    ""SimpleValue"": { 
+                        ""type"": ""string"",
+                        ""minLength"": 10
+                    }
+                },
+                ""required"": [""SimpleValue""]
+            }"
+        };
+        var context = ValidationContext.ForRequest(request.GetType(), request, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
+
+        // Assert - Should handle null details without recursive processing
+        Assert.False(result.IsValid);
+        Assert.True(result.Errors.Count() >= 1);
+        
+        // Verify validation was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithEmptyDetails_ShouldSkipRecursiveProcessing()
+    {
+        // Arrange - Test branch: detail.Details is empty (line 652)
+        var logger = new TestLogger<DefaultContractValidator>();
+        
+        // Create a request with nested structure but no nested validation details
+        var request = new { 
+            Nested = new { 
+                Value = "short" 
+            } 
+        };
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                ""type"": ""object"",
+                ""properties"": {
+                    ""Nested"": {
+                        ""type"": ""object"",
+                        ""properties"": {
+                            ""Value"": { 
+                                ""type"": ""string"",
+                                ""minLength"": 10
+                            }
+                        },
+                        ""required"": [""Value""]
+                    }
+                },
+                ""required"": [""Nested""]
+            }"
+        };
+        var context = ValidationContext.ForRequest(request.GetType(), request, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
+
+        // Assert - Should handle empty details without recursive processing
+        Assert.False(result.IsValid);
+        Assert.True(result.Errors.Count() >= 1);
+        
+        // Verify validation was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithMaxErrorsInAggregator_ShouldStopProcessing()
+    {
+        // Arrange - Test branch: aggregator.AddError returns false (line 643)
+        var logger = new TestLogger<DefaultContractValidator>();
+        
+        // Create a request with many potential errors to trigger max error limit
+        var request = new {
+            Field1 = "x",
+            Field2 = "x", 
+            Field3 = "x",
+            Field4 = "x",
+            Field5 = "x",
+            Field6 = "x",
+            Field7 = "x",
+            Field8 = "x",
+            Field9 = "x",
+            Field10 = "x"
+        };
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                ""type"": ""object"",
+                ""properties"": {
+                    ""Field1"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field2"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field3"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field4"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field5"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field6"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field7"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field8"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field9"": { ""type"": ""string"", ""minLength"": 5 },
+                    ""Field10"": { ""type"": ""string"", ""minLength"": 5 }
+                },
+                ""required"": [""Field1"", ""Field2"", ""Field3"", ""Field4"", ""Field5"", ""Field6"", ""Field7"", ""Field8"", ""Field9"", ""Field10""]
+            }"
+        };
+        var context = ValidationContext.ForRequest(request.GetType(), request, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
+
+        // Assert - Should stop processing when max errors reached
+        Assert.False(result.IsValid);
+        // Should have errors but limited by max error count
+        Assert.True(result.Errors.Count() > 0);
+        Assert.True(result.Errors.Count() <= 10); // Should be limited
+        
+        // Verify validation was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
+    }
+
+    [Fact]
+    public async Task ValidateRequestDetailedAsync_WithMaxErrorsAfterRecursiveCall_ShouldStopProcessing()
+    {
+        // Arrange - Test branch: aggregator.HasReachedMaxErrors after recursive call (line 655)
+        var logger = new TestLogger<DefaultContractValidator>();
+        
+        // Create a deeply nested structure with many errors to trigger max error limit during recursion
+        var request = new {
+            Level1 = new {
+                Level2 = new {
+                    Level3 = new {
+                        Field1 = "x",
+                        Field2 = "x",
+                        Field3 = "x",
+                        Field4 = "x",
+                        Field5 = "x"
+                    }
+                }
+            }
+        };
+
+        var schema = new JsonSchemaContract
+        {
+            Schema = @"{
+                ""type"": ""object"",
+                ""properties"": {
+                    ""Level1"": {
+                        ""type"": ""object"",
+                        ""properties"": {
+                            ""Level2"": {
+                                ""type"": ""object"",
+                                ""properties"": {
+                                    ""Level3"": {
+                                        ""type"": ""object"",
+                                        ""properties"": {
+                                            ""Field1"": { ""type"": ""string"", ""minLength"": 5 },
+                                            ""Field2"": { ""type"": ""string"", ""minLength"": 5 },
+                                            ""Field3"": { ""type"": ""string"", ""minLength"": 5 },
+                                            ""Field4"": { ""type"": ""string"", ""minLength"": 5 },
+                                            ""Field5"": { ""type"": ""string"", ""minLength"": 5 }
+                                        },
+                                        ""required"": [""Field1"", ""Field2"", ""Field3"", ""Field4"", ""Field5""]
+                                    }
+                                },
+                                ""required"": [""Level3""]
+                            }
+                        },
+                        ""required"": [""Level2""]
+                    }
+                },
+                ""required"": [""Level1""]
+            }"
+        };
+        var context = ValidationContext.ForRequest(request.GetType(), request, schema);
+
+        var validator = new DefaultContractValidator(logger: logger);
+
+        // Act
+        var result = await validator.ValidateRequestDetailedAsync(request, schema, context);
+
+        // Assert - Should stop processing when max errors reached during recursion
+        Assert.False(result.IsValid);
+        // Should have errors but limited by max error count
+        Assert.True(result.Errors.Count() > 0);
+        Assert.True(result.Errors.Count() <= 10); // Should be limited
+        
+        // Verify validation was logged
+        Assert.Contains(logger.LoggedMessages, e => 
+            e.LogLevel == LogLevel.Information && 
+            e.Message.Contains("validation completed"));
+    }
+
     /// <summary>
     /// Test custom validator for integration testing
     /// </summary>

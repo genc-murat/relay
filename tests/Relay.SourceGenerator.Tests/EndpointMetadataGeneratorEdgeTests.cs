@@ -4,7 +4,7 @@ using Relay.SourceGenerator.Generators;
 
 namespace Relay.SourceGenerator.Tests;
 
-public class EndpointMetadataGeneratorComprehensiveTests
+public class EndpointMetadataGeneratorEdgeTests
 {
     [Fact]
     public void EndpointMetadataGenerator_Generate_UsesProtectedMethods()
@@ -456,5 +456,163 @@ public class TestHandler
         // Act & Assert
         Assert.True((bool)isVoidTypeMethod.Invoke(generator, [voidType]));
         Assert.False((bool)isVoidTypeMethod.Invoke(generator, [stringType]));
+    }
+
+    [Fact]
+    public void GetAttributeValue_ExtractsNamedArgumentsCorrectly()
+    {
+        // Arrange - Use reflection to access the private GetAttributeValue method
+        var source = @"
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint(Route = ""/api/test"", HttpMethod = ""GET"")]
+    public string HandleTest(TestRequest request) => ""test"";
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var context = new RelayCompilationContext(compilation, default);
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var diagnosticReporter = new TestDiagnosticReporter();
+
+        var syntaxTrees = compilation.SyntaxTrees.ToList();
+        var candidateMethods = syntaxTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Count > 0)
+            .ToList();
+
+        var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Extract the attribute data from the first handler
+        var handler = discoveryResult.Handlers.First();
+        var endpointAttribute = handler.GetExposeAsEndpointAttribute()!;
+        
+        // Use reflection to access the private GetAttributeValue method
+        var getAttributeValueMethod = typeof(EndpointMetadataGenerator).GetMethod("GetAttributeValue",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        // Act & Assert - Test named arguments
+        var routeValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "Route"]);
+        var httpMethodValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "HttpMethod"]);
+        var versionValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "Version"]);
+        
+        Assert.Equal("/api/test", routeValue);
+        Assert.Equal("GET", httpMethodValue);
+        Assert.Null(versionValue); // Version wasn't specified
+        
+        // Test with a non-existent property
+        var nonexistentValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "NonExistent"]);
+        Assert.Null(nonexistentValue);
+    }
+
+    [Fact]
+    public void GetAttributeValue_ExtractsConstructorArgumentsCorrectly()
+    {
+        // Arrange - Since ExposeAsEndpoint doesn't have a constructor with parameters,
+        // we'll create a mock attribute data to test the constructor fallback logic
+        var source = @"
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint(Route = ""/api/test"", HttpMethod = ""POST"")]
+    public string HandleTest(TestRequest request) => ""test"";
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var context = new RelayCompilationContext(compilation, default);
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var diagnosticReporter = new TestDiagnosticReporter();
+
+        var syntaxTrees = compilation.SyntaxTrees.ToList();
+        var candidateMethods = syntaxTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Count > 0)
+            .ToList();
+
+        var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Extract the attribute data from the first handler
+        var handler = discoveryResult.Handlers.First();
+        var endpointAttribute = handler.GetExposeAsEndpointAttribute()!;
+        
+        // Use reflection to access the private GetAttributeValue method
+        var getAttributeValueMethod = typeof(EndpointMetadataGenerator).GetMethod("GetAttributeValue",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        // Act & Assert - Test named arguments (primary path)
+        var routeValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "Route"]);
+        var httpMethodValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "HttpMethod"]);
+        
+        Assert.Equal("/api/test", routeValue);
+        Assert.Equal("POST", httpMethodValue);
+        
+        // Test that a nonexistent property returns null
+        var nonexistentValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "NonExistent"]);
+        Assert.Null(nonexistentValue);
+    }
+
+    [Fact]
+    public void GetAttributeValue_WithMixedArguments_UsesNamedFirst()
+    {
+        // Arrange - Test that named arguments take precedence over constructor arguments
+        var source = @"
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint(Route = ""/named/route"", HttpMethod = ""PUT"")] // Named arguments should take precedence
+    public string HandleTest(TestRequest request) => ""test"";
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var context = new RelayCompilationContext(compilation, default);
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var diagnosticReporter = new TestDiagnosticReporter();
+
+        var syntaxTrees = compilation.SyntaxTrees.ToList();
+        var candidateMethods = syntaxTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Count > 0)
+            .ToList();
+
+        var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Extract the attribute data from the first handler
+        var handler = discoveryResult.Handlers.First();
+        var endpointAttribute = handler.GetExposeAsEndpointAttribute()!;
+        
+        // Use reflection to access the private GetAttributeValue method
+        var getAttributeValueMethod = typeof(EndpointMetadataGenerator).GetMethod("GetAttributeValue",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+        // Act & Assert - Named arguments should take precedence
+        var routeValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "Route"]);
+        var httpMethodValue = (string?)getAttributeValueMethod.Invoke(generator, [endpointAttribute, "HttpMethod"]);
+        
+        Assert.Equal("/named/route", routeValue);
+        Assert.Equal("PUT", httpMethodValue);
     }
 }

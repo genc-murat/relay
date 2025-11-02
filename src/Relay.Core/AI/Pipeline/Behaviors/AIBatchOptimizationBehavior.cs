@@ -313,7 +313,8 @@ internal class AIBatchOptimizationBehavior<TRequest, TResponse> : IPipelineBehav
         public double GetBatchingRate()
         {
             var total = _totalRequests;
-            return total > 0 ? (double)_totalBatchedRequests / total : 0;
+            var rate = total > 0 ? (double)_totalBatchedRequests / total : 0;
+            return Math.Min(rate, 1.0); // Clamp to max of 1.0 to handle race conditions
         }
 
         public long GetTotalBatchedRequests()
@@ -332,12 +333,13 @@ internal class AIBatchOptimizationBehavior<TRequest, TResponse> : IPipelineBehav
             {
                 var elapsed = (DateTime.UtcNow - _firstRequest).TotalSeconds;
                 var requestRate = elapsed > 0 ? _totalRequests / elapsed : 0;
+                var batchingRate = _totalRequests > 0 ? (double)_totalBatchedRequests / _totalRequests : 0;
                 
                 return new BatchMetricsSnapshot
                 {
                     AverageWaitTime = _batchExecutions > 0 ? _totalWaitTime / _batchExecutions : 0,
                     AverageEfficiency = _batchExecutions > 0 ? _totalEfficiency / _batchExecutions : 0,
-                    BatchingRate = _totalRequests > 0 ? (double)_totalBatchedRequests / _totalRequests : 0,
+                    BatchingRate = Math.Min(batchingRate, 1.0), // Clamp to max of 1.0 to handle race conditions
                     RequestRate = requestRate,
                     TotalRequests = _totalRequests,
                     SuccessfulRequests = _successfulRequests,

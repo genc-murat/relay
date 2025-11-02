@@ -199,6 +199,26 @@ public class EmbeddedResourceSchemaProviderTests
         Assert.Equal("http://json-schema.org/draft-07/schema#", result.SchemaVersion);
     }
 
+    [Fact]
+    public async Task TryGetSchemaAsync_ReturnsNull_WhenResourceNameDoesNotMatchAnyEmbeddedResources()
+    {
+        // Arrange
+        var options = new SchemaDiscoveryOptions
+        {
+            EnableEmbeddedResources = true,
+            NamingConvention = "NonExistent.{TypeName}.schema.json"
+        };
+        var assemblies = new[] { Assembly.GetExecutingAssembly() };
+        var provider = new EmbeddedResourceSchemaProvider(options, assemblies);
+        var context = new SchemaContext { RequestType = typeof(TestRequest), IsRequest = true };
+
+        // Act
+        var result = await provider.TryGetSchemaAsync(typeof(TestRequest), context);
+
+        // Assert
+        Assert.Null(result);
+    }
+
     private class TestRequest
     {
         public string Name { get; set; } = string.Empty;

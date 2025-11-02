@@ -439,8 +439,8 @@ public class BatchProcessorTests
         // Act
         await processor.AddAsync(new TestMessage { Content = "Test1" }, null);
         
-        // Wait for timer-based flush
-        await Task.Delay(100);
+        // Wait for timer-based flush (timer fires after 50ms, then needs time to complete)
+        await Task.Delay(200);
 
         // Assert
         var metrics = processor.GetMetrics();

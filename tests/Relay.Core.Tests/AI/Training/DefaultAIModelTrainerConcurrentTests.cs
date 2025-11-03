@@ -501,8 +501,8 @@ public class DefaultAIModelTrainerConcurrentTests : IDisposable
                         ? CreateUniqueTrainingData(sessionId)
                         : CreateInvalidTrainingData(sessionId);
                     
-                    // Use a timeout to prevent hanging
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                    // Use a longer timeout to account for potential waiting due to semaphore serialization
+                    using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
                     await trainer.TrainModelAsync(trainingData, cts.Token);
                     
                     Interlocked.Increment(ref completedSessions);

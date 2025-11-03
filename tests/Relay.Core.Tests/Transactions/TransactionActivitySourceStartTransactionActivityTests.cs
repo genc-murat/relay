@@ -81,7 +81,10 @@ public class TransactionActivitySourceStartTransactionActivityTests
         // Assert
         var capturedActivity = capturedActivities.LastOrDefault();
         Assert.NotNull(capturedActivity);
-        Assert.Equal(isReadOnly, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.is_readonly").Value);
+        
+        var readOnlyTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.is_readonly");
+        Assert.True(readOnlyTag.Key != null, "Expected 'transaction.is_readonly' tag was not found");
+        Assert.Equal(isReadOnly, readOnlyTag.Value);
     }
 
     [Fact]

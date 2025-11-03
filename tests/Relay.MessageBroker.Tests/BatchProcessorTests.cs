@@ -439,11 +439,19 @@ public class BatchProcessorTests
         // Act
         await processor.AddAsync(new TestMessage { Content = "Test1" }, null);
         
-        // Wait for timer-based flush (timer fires after 50ms, then needs time to complete)
-        await Task.Delay(200);
+        // Wait for timer-based flush with polling to ensure it completes
+        var timeout = TimeSpan.FromSeconds(2);
+        var startTime = DateTimeOffset.UtcNow;
+        BatchProcessorMetrics metrics;
+        do
+        {
+            await Task.Delay(50); // Small delay between polls
+            metrics = processor.GetMetrics();
+            if (metrics.TotalBatchesProcessed >= 1)
+                break;
+        } while (DateTimeOffset.UtcNow - startTime < timeout);
 
         // Assert
-        var metrics = processor.GetMetrics();
         Assert.Equal(1, metrics.TotalBatchesProcessed);
         Assert.Equal(1, metrics.TotalMessagesProcessed);
 

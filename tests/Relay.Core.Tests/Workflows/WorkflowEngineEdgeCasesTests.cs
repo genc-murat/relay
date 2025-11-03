@@ -281,19 +281,40 @@ public class WorkflowEngineEdgeCasesTests
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
             .ReturnsAsync(definition);
 
+        // Capture all saved executions as serialized copies to avoid reference issues
+        var savedExecutions = new List<WorkflowExecution>();
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => {
+                // Create a copy to capture the state at the time of the call
+                var executionCopy = new WorkflowExecution
+                {
+                    Id = exec.Id,
+                    WorkflowDefinitionId = exec.WorkflowDefinitionId,
+                    Status = exec.Status,
+                    StartedAt = exec.StartedAt,
+                    CompletedAt = exec.CompletedAt,
+                    CurrentStepIndex = exec.CurrentStepIndex,
+                    Error = exec.Error,
+                    Input = exec.Input,
+                    Output = exec.Output,
+                    StepExecutions = new List<WorkflowStepExecution>(exec.StepExecutions),
+                    Context = new Dictionary<string, object>(exec.Context)
+                };
+                savedExecutions.Add(executionCopy);
+            })
             .Returns(ValueTask.CompletedTask);
 
         // Act
         await _workflowEngine.StartWorkflowAsync("test-workflow", new { Value = "test", Text = "test" });
 
-        // Wait for background execution
+        // Wait for background execution to complete
         await Task.Delay(500);
 
-        // Assert - All conditions should evaluate correctly allowing workflow to complete
-        _mockStateStore.Verify(x => x.SaveExecutionAsync(
-            It.Is<WorkflowExecution>(e => e.Status == WorkflowStatus.Completed),
-            It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        // Verify that the workflow was saved with Running status at least once (initial save)
+        Assert.Contains(savedExecutions, e => e.Status == WorkflowStatus.Running);
+        
+        // Verify that the workflow completed successfully
+        Assert.Contains(savedExecutions, e => e.Status == WorkflowStatus.Completed);
     }
 
     [Fact]

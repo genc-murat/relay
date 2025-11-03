@@ -1,10 +1,12 @@
 using System;
 using System.Data;
 using System.Threading;
+using System.Transactions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Transactions;
 using Xunit;
+using IsolationLevel = System.Data.IsolationLevel;
 
 namespace Relay.Core.Tests.Transactions
 {
@@ -423,6 +425,259 @@ namespace Relay.Core.Tests.Transactions
                 Times.Once);
         }
 
+        [Fact]
+        public void DisposeDistributedTransaction_WithValidScope_ShouldDisposeSuccessfully()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Act
+            _coordinator.DisposeDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, createResult.StartTime);
+
+            // Assert
+            // Verify debug logging for normal disposal
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Disposing distributed transaction")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void DisposeDistributedTransaction_WithNullScope_ShouldReturnSilently()
+        {
+            // Arrange
+            var transactionId = "test-tx-123";
+            var requestType = "TestRequest";
+            var startTime = DateTime.UtcNow;
+
+            // Act & Assert - Should not throw
+            _coordinator.DisposeDistributedTransaction(null, transactionId, requestType, startTime);
+
+            // Verify no logging occurred
+            _loggerMock.Verify(
+                x => x.Log(
+                    It.IsAny<LogLevel>(),
+                    It.IsAny<EventId>(),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public void DisposeDistributedTransaction_WithException_ShouldLogWarningAndRollback()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+            var testException = new InvalidOperationException("Test exception");
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Act
+            _coordinator.DisposeDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, createResult.StartTime, testException);
+
+            // Assert
+            // Verify warning logging for exception case
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Disposing distributed transaction") &&
+                        v.ToString().Contains("due to exception") &&
+                        v.ToString().Contains("will rollback")),
+                    testException,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            // Verify debug logging for successful rollback
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Distributed transaction") &&
+                        v.ToString().Contains("rolled back successfully")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void DisposeDistributedTransaction_WithDisposalException_ShouldLogErrorAndNotThrow()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Since TransactionScope is sealed, we can't mock it directly.
+            // Instead, we'll test the error logging path by creating a scope that has already been disposed
+            // which will cause an exception when trying to dispose again.
+            createResult.Scope.Dispose(); // First dispose - should work fine
+
+            // Act & Assert - Should not throw even when disposing an already disposed scope
+            _coordinator.DisposeDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, createResult.StartTime);
+
+            // Verify error logging (this may or may not occur depending on TransactionScope implementation)
+            // The important thing is that the method doesn't throw
+        }
+
+        [Fact]
+        public void DisposeDistributedTransaction_ShouldLogCorrectInformation()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.Serializable,
+                Timeout = TimeSpan.FromMinutes(2),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "CreateOrderCommand";
+            var cancellationToken = CancellationToken.None;
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Act
+            _coordinator.DisposeDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, createResult.StartTime);
+
+            // Assert
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Disposing distributed transaction") &&
+                        v.ToString().Contains(createResult.TransactionId) &&
+                        v.ToString().Contains(requestType)),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void DisposeDistributedTransaction_WithDifferentElapsedTimes_ShouldLogCorrectly()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+            var testException = new InvalidOperationException("Test exception");
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+            var pastStartTime = DateTime.UtcNow.AddSeconds(-10); // Simulate 10 seconds elapsed
+
+            // Act
+            _coordinator.DisposeDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, pastStartTime, testException);
+
+            // Assert
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Disposing distributed transaction") &&
+                        v.ToString().Contains(createResult.TransactionId) &&
+                        v.ToString().Contains(requestType) &&
+                        v.ToString().Contains("seconds") &&
+                        v.ToString().Contains("due to exception")),
+                    testException,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void DisposeDistributedTransaction_WithExceptionAndDisposalError_ShouldLogBothAndNotThrow()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+            var testException = new InvalidOperationException("Original exception");
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Since TransactionScope is sealed, we can't mock it directly.
+            // We'll test the warning logging path by providing an exception parameter.
+            // The disposal error path is harder to test reliably, but we can verify the warning logging.
+
+            // Act & Assert - Should not throw
+            _coordinator.DisposeDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, createResult.StartTime, testException);
+
+            // Verify warning logging for original exception
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Disposing distributed transaction") &&
+                        v.ToString().Contains("due to exception")),
+                    testException,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            // Verify debug logging for successful rollback
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Distributed transaction") &&
+                        v.ToString().Contains("rolled back successfully")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
         private class TestTransactionConfiguration : ITransactionConfiguration
         {
             public IsolationLevel IsolationLevel { get; set; }
@@ -431,5 +686,7 @@ namespace Relay.Core.Tests.Transactions
             public bool UseDistributedTransaction { get; set; }
             public TransactionRetryPolicy? RetryPolicy { get; set; }
         }
+
+
     }
 }

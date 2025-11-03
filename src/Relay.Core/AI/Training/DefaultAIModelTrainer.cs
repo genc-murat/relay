@@ -382,19 +382,14 @@ namespace Relay.Core.AI
                     .OrderBy(s => s.Timestamp)
                     .ToList();
 
-                // For large datasets, take a representative sample to improve performance
-                var metricData = filteredData.Count > 500
-                    ? GetSampledAnomalyData(filteredData)
-                    : filteredData.Select(s => new MetricData
-                    {
-                        Timestamp = s.Timestamp,
-                        Value = (float)s.CpuUtilization
-                    }).ToList();
+                // Always use sampling for consistent performance
+                var metricData = GetSampledAnomalyData(filteredData);
 
                 if (metricData.Count >= MinimumSystemLoadSamples)
                 {
                     _mlNetManager.TrainAnomalyDetectionModel(metricData);
-                    _logger.LogInformation("Anomaly detection model trained successfully");
+                    _logger.LogInformation("Anomaly detection model trained successfully with {SampleCount} samples", 
+                        metricData.Count);
                 }
             }, cancellationToken);
         }
@@ -402,8 +397,19 @@ namespace Relay.Core.AI
         private List<MetricData> GetSampledAnomalyData(List<SystemLoadMetrics> originalData)
         {
             // Take every nth sample to create a representative sample
-            var sampleSize = Math.Max(500, Math.Min(1000, originalData.Count / 2));
-            var step = Math.Max(1, originalData.Count / sampleSize);
+            const int maxSampleSize = 500; // Limit sample size for consistent performance
+            
+            if (originalData.Count <= maxSampleSize)
+            {
+                // No sampling needed
+                return originalData.Select(s => new MetricData
+                {
+                    Timestamp = s.Timestamp,
+                    Value = (float)s.CpuUtilization
+                }).ToList();
+            }
+            
+            var step = Math.Max(1, originalData.Count / maxSampleSize);
             
             var sampledData = new List<MetricData>();
             for (int i = 0; i < originalData.Count; i += step)
@@ -435,21 +441,16 @@ namespace Relay.Core.AI
                     .OrderBy(s => s.Timestamp)
                     .ToList();
 
-                // For very large datasets, take a representative sample to reduce training time
-                // while preserving the time series characteristics
-                var timeSeriesData = filteredData.Count > 500
-                    ? GetSampledTimeSeriesData(filteredData)
-                    : filteredData.Select(s => new MetricData
-                    {
-                        Timestamp = s.Timestamp,
-                        Value = (float)s.ThroughputPerSecond
-                    }).ToList();
+                // Always use sampling for datasets to ensure consistent performance
+                // SSA algorithm has O(n²) complexity, so we need to limit the data size
+                var timeSeriesData = GetSampledTimeSeriesData(filteredData);
 
                 var horizon = Math.Min(12, timeSeriesData.Count / 5); // 20% of data as forecast horizon
                 if (horizon >= 3)
                 {
                     _mlNetManager.TrainForecastingModel(timeSeriesData, horizon);
-                    _logger.LogInformation("Time-series forecasting model trained successfully with horizon={Horizon}", horizon);
+                    _logger.LogInformation("Time-series forecasting model trained successfully with {Horizon} horizon and {SampleCount} samples", 
+                        horizon, timeSeriesData.Count);
                 }
             }, cancellationToken);
         }
@@ -458,8 +459,21 @@ namespace Relay.Core.AI
         {
             // For large datasets, take every nth sample to create a representative sample
             // while maintaining the time series pattern
-            var sampleSize = Math.Max(500, Math.Min(1000, originalData.Count / 2)); // Use up to 1000 samples but not more than half the original
-            var step = Math.Max(1, originalData.Count / sampleSize);
+            // SSA algorithm has O(n²) complexity, so we need to be aggressive with sampling
+            const int maxSampleSize = 500; // Maximum samples for SSA to maintain reasonable performance
+            
+            if (originalData.Count <= maxSampleSize)
+            {
+                // No sampling needed
+                return originalData.Select(s => new MetricData
+                {
+                    Timestamp = s.Timestamp,
+                    Value = (float)s.ThroughputPerSecond
+                }).ToList();
+            }
+            
+            // Calculate step size to get approximately maxSampleSize samples
+            var step = Math.Max(1, originalData.Count / maxSampleSize);
             
             var sampledData = new List<MetricData>();
             for (int i = 0; i < originalData.Count; i += step)

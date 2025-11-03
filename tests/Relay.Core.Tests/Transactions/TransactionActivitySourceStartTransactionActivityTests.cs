@@ -26,7 +26,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -63,7 +63,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -94,7 +94,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -127,7 +127,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -160,7 +160,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -193,7 +193,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -225,7 +225,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -257,7 +257,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -289,7 +289,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);
@@ -325,7 +325,7 @@ public class TransactionActivitySourceStartTransactionActivityTests
         using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = activity => capturedActivities.Add(activity)
         };
         ActivitySource.AddActivityListener(listener);

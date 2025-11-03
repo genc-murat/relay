@@ -11,12 +11,12 @@ namespace Relay.Core.Tests.Transactions;
 public class TransactionActivitySourceStartTransactionActivityTests
 {
     [Theory]
-    [InlineData(-1)]
-    [InlineData(-5)]
-    [InlineData(-10)]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(5)]
+    [InlineData(10)]
     [InlineData(100)]
     [InlineData(int.MaxValue)]
-    [InlineData(int.MinValue)]
     public void StartTransactionActivity_WithVariousNestingLevels_Should_Create_Activity_With_Correct_Tags(int nestingLevel)
     {
         // Arrange

@@ -16,16 +16,20 @@ public class TransactionActivitySourceTests
         public TransactionActivitySourceTests()
         {
             _capturedActivities = new List<Activity>();
-            
+            _activitySource = new TransactionActivitySource();
+        }
+
+        private IDisposable SetupActivityListener()
+        {
             // Set up a listener to capture activities
-            ActivitySource.AddActivityListener(new ActivityListener
+            var listener = new ActivityListener
             {
                 ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
                 Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
                 ActivityStarted = activity => _capturedActivities.Add(activity)
-            });
-            
-            _activitySource = new TransactionActivitySource();
+            };
+            ActivitySource.AddActivityListener(listener);
+            return listener;
         }
 
         private void ClearCapturedActivities()
@@ -38,6 +42,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange & Act
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var source = new TransactionActivitySource();
 
             // Assert
@@ -45,44 +50,11 @@ public class TransactionActivitySourceTests
         }
 
         [Fact]
-        public void StartTransactionActivity_WithAllParameters_Should_Create_Activity_With_Tags()
-        {
-            // Arrange
-            ClearCapturedActivities();
-            var transactionId = "tx-123";
-        var requestType = "CreateOrderCommand";
-        var isolationLevel = IsolationLevel.ReadCommitted;
-        var nestingLevel = 0;
-        var isReadOnly = false;
-        var timeoutSeconds = 30;
-
-        // Act
-        using var activity = _activitySource.StartTransactionActivity(
-            transactionId,
-            requestType,
-            isolationLevel,
-            nestingLevel,
-            isReadOnly,
-            timeoutSeconds);
-
-        // Assert
-        var capturedActivity = _capturedActivities.LastOrDefault();
-        Assert.NotNull(capturedActivity);
-        Assert.Equal("relay.transaction", capturedActivity.DisplayName);
-        Assert.Equal(ActivityKind.Internal, capturedActivity.Kind);
-        Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
-        Assert.Equal(requestType, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.request_type").Value);
-        Assert.Equal(isolationLevel.ToString(), capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.isolation_level").Value);
-        Assert.Equal(nestingLevel, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.nesting_level").Value);
-        Assert.Equal(isReadOnly, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.is_readonly").Value);
-        Assert.Equal(timeoutSeconds, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.timeout_seconds").Value);
-    }
-
-        [Fact]
         public void StartTransactionActivity_WithoutTimeout_Should_Create_Activity_Without_Timeout_Tag()
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-456";
         var requestType = "UpdateProductCommand";
         var isolationLevel = IsolationLevel.Serializable;
@@ -113,6 +85,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var requestType = "DeleteUserCommand";
         var configuration = new TransactionConfiguration(
             IsolationLevel.RepeatableRead,
@@ -139,6 +112,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var requestType = "ReadProductQuery";
         var configuration = new TransactionConfiguration(
             IsolationLevel.ReadCommitted,
@@ -165,6 +139,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var requestType = "TestCommand";
         var isolationLevel = IsolationLevel.ReadCommitted;
         var nestingLevel = 0;
@@ -191,6 +166,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var isolationLevels = Enum.GetValues<IsolationLevel>();
 
         foreach (var isolationLevel in isolationLevels)
@@ -218,6 +194,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId1 = "tx-1";
             var transactionId2 = "tx-2";
 
@@ -252,6 +229,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-dispose";
 
         // Act
@@ -279,6 +257,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-123";
         var savepointName = "sp_main";
         var operation = "Create";
@@ -308,6 +287,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-456";
             var savepointName = "sp_test";
 
@@ -334,6 +314,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var savepointName = "sp_invalid";
         var operation = "Create";
 
@@ -359,6 +340,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-789";
         var operation = "Rollback";
 
@@ -384,6 +366,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-invalid-op";
         var savepointName = "sp_invalid_op";
 
@@ -406,6 +389,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-long";
         var savepointName = "this_is_a_very_long_savepoint_name_that_tests_boundary_conditions";
         var operation = "Create";
@@ -429,6 +413,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-special";
         var savepointName = "sp_special-chars_123";
         var operation = "Create-Special";
@@ -452,6 +437,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId1 = "tx-sp-1";
         var transactionId2 = "tx-sp-2";
 
@@ -486,6 +472,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-dispose-sp";
 
         // Act
@@ -511,6 +498,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-numeric";
         var savepointName = "sp_12345";
         var operation = "Create";
@@ -534,6 +522,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-retry-123";
             var requestType = "CreateOrderCommand";
             var attemptNumber = 2;
@@ -584,6 +573,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-params";
             var requestType = "TestCommand";
 
@@ -620,6 +610,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var requestType = "TestCommand";
             var attemptNumber = 1;
             var maxRetries = 3;
@@ -664,6 +655,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-invalid-request";
             var attemptNumber = 1;
             var maxRetries = 3;
@@ -695,6 +687,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-invalid-attempt";
             var requestType = "TestCommand";
             var maxRetries = 3;
@@ -724,6 +717,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-invalid-max";
             var requestType = "TestCommand";
             var attemptNumber = 1;
@@ -753,6 +747,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-invalid-delay";
             var requestType = "TestCommand";
             var attemptNumber = 1;
@@ -779,6 +774,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-zero-delay";
             var requestType = "TestCommand";
             var attemptNumber = 1;
@@ -804,6 +800,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-large-values";
             var requestType = "TestCommand";
             var attemptNumber = 1000;
@@ -831,6 +828,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "this_is_a_very_long_transaction_id_that_tests_boundary_conditions_and_special_characters_12345";
             var requestType = "TestCommand";
             var attemptNumber = 1;
@@ -860,6 +858,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-special-chars_123-456";
             var requestType = "Command.With-Special_Chars123";
             var attemptNumber = 1;
@@ -889,6 +888,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId1 = "tx-retry-1";
             var transactionId2 = "tx-retry-2";
 
@@ -932,6 +932,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-retry-dispose";
 
             // Act
@@ -959,6 +960,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-attempt-greater";
             var requestType = "TestCommand";
             var attemptNumber = 5;
@@ -986,6 +988,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             var transactionId = "tx-attempt-equal";
             var requestType = "TestCommand";
             var attemptNumber = 3;
@@ -1058,6 +1061,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-success",
                 "TestCommand",
@@ -1081,6 +1085,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-change-status",
                 "TestCommand",
@@ -1105,6 +1110,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-fail-default",
                 "TestCommand",
@@ -1128,6 +1134,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-change-to-error",
                 "TestCommand",
@@ -1152,6 +1159,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-fail-custom",
                 "TestCommand",
@@ -1177,6 +1185,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-fail-empty",
                 "TestCommand",
@@ -1202,6 +1211,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-fail-null",
                 "TestCommand",
@@ -1227,6 +1237,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-fail-whitespace",
                 "TestCommand",
@@ -1276,6 +1287,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-exception",
                 "TestCommand",
@@ -1313,6 +1325,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-exception-update",
                 "TestCommand",
@@ -1344,6 +1357,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-nested-exception",
                 "TestCommand",
@@ -1382,6 +1396,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-null-exception",
                 "TestCommand",
@@ -1407,6 +1422,7 @@ public class TransactionActivitySourceTests
         {
             // Arrange
             ClearCapturedActivities();
+            using var listener = SetupActivityListener();
             using var activity = _activitySource.StartTransactionActivity(
                 "tx-diff-exception",
                 "TestCommand",

@@ -23,12 +23,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
 
@@ -43,7 +44,11 @@ public class TransactionActivitySourceStartTransactionActivityTests
         // Assert
         var capturedActivity = capturedActivities.LastOrDefault();
         Assert.NotNull(capturedActivity);
-        Assert.Equal(nestingLevel, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.nesting_level").Value);
+        
+        // Get the specific tag we're looking for
+        var nestingTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.nesting_level");
+        Assert.NotNull(nestingTag.Value);
+        Assert.Equal(nestingLevel, nestingTag.Value);
     }
 
     [Theory]
@@ -55,12 +60,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
 
@@ -85,12 +91,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
         var timeoutSeconds = int.MaxValue;
@@ -117,12 +124,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
         var timeoutSeconds = 999999;
@@ -149,12 +157,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
         var timeoutSeconds = 0;
@@ -181,12 +190,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
         var requestType = "TestCommand";
@@ -212,12 +222,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
         var requestType = "TestCommand";
@@ -243,12 +254,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
         var requestType = "TestCommand";
@@ -274,12 +286,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
         var requestType = "TestCommand";
@@ -309,12 +322,13 @@ public class TransactionActivitySourceStartTransactionActivityTests
         var capturedActivities = new List<Activity>();
         
         // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        using var listener = new ActivityListener
         {
             ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
             ActivityStarted = activity => capturedActivities.Add(activity)
-        });
+        };
+        ActivitySource.AddActivityListener(listener);
         
         var activitySource = new TransactionActivitySource();
         var isolationLevels = Enum.GetValues<IsolationLevel>();

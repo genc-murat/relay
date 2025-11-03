@@ -6,108 +6,108 @@ using Moq;
 using Relay.Core.Transactions;
 using Xunit;
 
-namespace Relay.Core.Tests.Transactions;
-
-/// <summary>
-/// Tests for DistributedTransactionCoordinator.
-/// </summary>
-public class DistributedTransactionCoordinatorTests
+namespace Relay.Core.Tests.Transactions
 {
-    private readonly Mock<ILogger<DistributedTransactionCoordinator>> _loggerMock;
-    private readonly DistributedTransactionCoordinator _coordinator;
-
-    public DistributedTransactionCoordinatorTests()
+    /// <summary>
+    /// Tests for DistributedTransactionCoordinator.
+    /// </summary>
+    public class DistributedTransactionCoordinatorTests
     {
-        _loggerMock = new Mock<ILogger<DistributedTransactionCoordinator>>();
-        _coordinator = new DistributedTransactionCoordinator(_loggerMock.Object);
-    }
+        private readonly Mock<ILogger<DistributedTransactionCoordinator>> _loggerMock;
+        private readonly DistributedTransactionCoordinator _coordinator;
 
-    [Fact]
-    public void CreateDistributedTransactionScope_WithValidConfiguration_ShouldReturnScopeWithTransactionId()
-    {
-        // Arrange
-        var configuration = new TestTransactionConfiguration
+        public DistributedTransactionCoordinatorTests()
         {
-            IsolationLevel = IsolationLevel.ReadCommitted,
-            Timeout = TimeSpan.FromSeconds(30),
-            IsReadOnly = false,
-            UseDistributedTransaction = true,
-            RetryPolicy = null
-        };
-        var requestType = "TestRequest";
-        var cancellationToken = CancellationToken.None;
+            _loggerMock = new Mock<ILogger<DistributedTransactionCoordinator>>();
+            _coordinator = new DistributedTransactionCoordinator(_loggerMock.Object);
+        }
 
-        // Act
-        var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
-
-        // Assert
-        Assert.NotNull(result.Scope);
-        Assert.NotNull(result.TransactionId);
-        Assert.NotEmpty(result.TransactionId);
-        Assert.True(result.StartTime <= DateTime.UtcNow);
-        Assert.True(result.StartTime > DateTime.UtcNow.AddMinutes(-1));
-
-        // Verify logging
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Creating distributed transaction scope")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
-
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Debug,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("created successfully")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public void CreateDistributedTransactionScope_WithNullConfiguration_ShouldThrowArgumentNullException()
-    {
-        // Arrange
-        var requestType = "TestRequest";
-        var cancellationToken = CancellationToken.None;
-
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
-            _coordinator.CreateDistributedTransactionScope(null, requestType, cancellationToken));
-    }
-
-    [Theory]
-    [InlineData(IsolationLevel.Unspecified)]
-    [InlineData(IsolationLevel.Chaos)]
-    [InlineData(IsolationLevel.ReadUncommitted)]
-    [InlineData(IsolationLevel.ReadCommitted)]
-    [InlineData(IsolationLevel.RepeatableRead)]
-    [InlineData(IsolationLevel.Serializable)]
-    [InlineData(IsolationLevel.Snapshot)]
-    public void CreateDistributedTransactionScope_WithDifferentIsolationLevels_ShouldCreateScopeCorrectly(IsolationLevel isolationLevel)
-    {
-        // Arrange
-        var configuration = new TestTransactionConfiguration
+        [Fact]
+        public void CreateDistributedTransactionScope_WithValidConfiguration_ShouldReturnScopeWithTransactionId()
         {
-            IsolationLevel = isolationLevel,
-            Timeout = TimeSpan.FromSeconds(30),
-            IsReadOnly = false,
-            UseDistributedTransaction = true,
-            RetryPolicy = null
-        };
-        var requestType = "TestRequest";
-        var cancellationToken = CancellationToken.None;
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
 
-        // Act
-        var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+            // Act
+            var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
 
-        // Assert
-        Assert.NotNull(result.Scope);
-        Assert.NotNull(result.TransactionId);
-    }
+            // Assert
+            Assert.NotNull(result.Scope);
+            Assert.NotNull(result.TransactionId);
+            Assert.NotEmpty(result.TransactionId);
+            Assert.True(result.StartTime <= DateTime.UtcNow);
+            Assert.True(result.StartTime > DateTime.UtcNow.AddMinutes(-1));
+
+            // Verify logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Creating distributed transaction scope")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("created successfully")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void CreateDistributedTransactionScope_WithNullConfiguration_ShouldThrowArgumentNullException()
+        {
+            // Arrange
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                _coordinator.CreateDistributedTransactionScope(null, requestType, cancellationToken));
+        }
+
+        [Theory]
+        [InlineData(IsolationLevel.Unspecified)]
+        [InlineData(IsolationLevel.Chaos)]
+        [InlineData(IsolationLevel.ReadUncommitted)]
+        [InlineData(IsolationLevel.ReadCommitted)]
+        [InlineData(IsolationLevel.RepeatableRead)]
+        [InlineData(IsolationLevel.Serializable)]
+        [InlineData(IsolationLevel.Snapshot)]
+        public void CreateDistributedTransactionScope_WithDifferentIsolationLevels_ShouldCreateScopeCorrectly(IsolationLevel isolationLevel)
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = isolationLevel,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+
+            // Act
+            var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Assert
+            Assert.NotNull(result.Scope);
+            Assert.NotNull(result.TransactionId);
+        }
 
         [Theory]
         [InlineData(0)]
@@ -132,122 +132,304 @@ public class DistributedTransactionCoordinatorTests
                 UseDistributedTransaction = true,
                 RetryPolicy = null
             };
-        var requestType = "TestRequest";
-        var cancellationToken = CancellationToken.None;
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
 
-        // Act
-        var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+            // Act
+            var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
 
-        // Assert
-        Assert.NotNull(result.Scope);
-        Assert.NotNull(result.TransactionId);
-    }
+            // Assert
+            Assert.NotNull(result.Scope);
+            Assert.NotNull(result.TransactionId);
+        }
 
-    [Fact]
-    public void CreateDistributedTransactionScope_WithException_ShouldThrowDistributedTransactionException()
-    {
-        // Arrange
-        var configuration = new TestTransactionConfiguration
+        [Fact]
+        public void CreateDistributedTransactionScope_WithException_ShouldThrowDistributedTransactionException()
         {
-            IsolationLevel = IsolationLevel.ReadCommitted,
-            Timeout = TimeSpan.FromSeconds(30),
-            IsReadOnly = false,
-            UseDistributedTransaction = true,
-            RetryPolicy = null
-        };
-        var requestType = "TestRequest";
-        var cancellationToken = CancellationToken.None;
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
 
-        // Mock logger to throw exception during logging to simulate failure
-        _loggerMock.Setup(x => x.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.IsAny<It.IsAnyType>(),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()))
-            .Throws(new InvalidOperationException("Simulated failure"));
-
-        // Act & Assert
-        var exception = Assert.Throws<DistributedTransactionException>(() =>
-            _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken));
-
-        Assert.Contains("Failed to create distributed transaction scope", exception.Message);
-        Assert.NotNull(exception.TransactionId);
-        Assert.NotNull(exception.InnerException);
-
-        // Verify error logging
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to create distributed transaction scope")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public void CreateDistributedTransactionScope_ShouldGenerateUniqueTransactionIds()
-    {
-        // Arrange
-        var configuration = new TestTransactionConfiguration
-        {
-            IsolationLevel = IsolationLevel.ReadCommitted,
-            Timeout = TimeSpan.FromSeconds(30),
-            IsReadOnly = false,
-            UseDistributedTransaction = true,
-            RetryPolicy = null
-        };
-        var requestType = "TestRequest";
-        var cancellationToken = CancellationToken.None;
-
-        // Act
-        var result1 = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
-        var result2 = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
-
-        // Assert
-        Assert.NotEqual(result1.TransactionId, result2.TransactionId);
-    }
-
-    [Fact]
-    public void CreateDistributedTransactionScope_ShouldLogCorrectInformation()
-    {
-        // Arrange
-        var configuration = new TestTransactionConfiguration
-        {
-            IsolationLevel = IsolationLevel.Serializable,
-            Timeout = TimeSpan.FromMinutes(2),
-            IsReadOnly = false,
-            UseDistributedTransaction = true,
-            RetryPolicy = null
-        };
-        var requestType = "CreateOrderCommand";
-        var cancellationToken = CancellationToken.None;
-
-        // Act
-        var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
-
-        // Assert
-        _loggerMock.Verify(
-            x => x.Log(
+            // Mock logger to throw exception during logging to simulate failure
+            _loggerMock.Setup(x => x.Log(
                 LogLevel.Information,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => 
-                    v.ToString().Contains("Creating distributed transaction scope") &&
-                    v.ToString().Contains(requestType) &&
-                    v.ToString().Contains(configuration.IsolationLevel.ToString()) &&
-                    v.ToString().Contains(configuration.Timeout.TotalSeconds.ToString())),
+                It.IsAny<It.IsAnyType>(),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
-            Times.Once);
-    }
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+                .Throws(new InvalidOperationException("Simulated failure"));
 
-    private class TestTransactionConfiguration : ITransactionConfiguration
-    {
-        public IsolationLevel IsolationLevel { get; set; }
-        public TimeSpan Timeout { get; set; }
-        public bool IsReadOnly { get; set; }
-        public bool UseDistributedTransaction { get; set; }
-        public TransactionRetryPolicy? RetryPolicy { get; set; }
+            // Act & Assert
+            var exception = Assert.Throws<DistributedTransactionException>(() =>
+                _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken));
+
+            Assert.Contains("Failed to create distributed transaction scope", exception.Message);
+            Assert.NotNull(exception.TransactionId);
+            Assert.NotNull(exception.InnerException);
+
+            // Verify error logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to create distributed transaction scope")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void CreateDistributedTransactionScope_ShouldGenerateUniqueTransactionIds()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+
+            // Act
+            var result1 = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+            var result2 = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Assert
+            Assert.NotEqual(result1.TransactionId, result2.TransactionId);
+        }
+
+        [Fact]
+        public void CreateDistributedTransactionScope_ShouldLogCorrectInformation()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.Serializable,
+                Timeout = TimeSpan.FromMinutes(2),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "CreateOrderCommand";
+            var cancellationToken = CancellationToken.None;
+
+            // Act
+            var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Assert
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Creating distributed transaction scope") &&
+                        v.ToString().Contains(requestType) &&
+                        v.ToString().Contains(configuration.IsolationLevel.ToString()) &&
+                        v.ToString().Contains(configuration.Timeout.TotalSeconds.ToString())),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void CompleteDistributedTransaction_WithValidScope_ShouldCompleteSuccessfully()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Act
+            _coordinator.CompleteDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, createResult.StartTime);
+
+            // Assert
+            // Verify logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Completing distributed transaction")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("completed successfully")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void CompleteDistributedTransaction_WithNullScope_ShouldThrowArgumentNullException()
+        {
+            // Arrange
+            var transactionId = "test-tx-123";
+            var requestType = "TestRequest";
+            var startTime = DateTime.UtcNow;
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                _coordinator.CompleteDistributedTransaction(null, transactionId, requestType, startTime));
+        }
+
+        [Fact]
+        public void CompleteDistributedTransaction_WithException_ShouldThrowDistributedTransactionException()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Mock logger to throw exception during logging to simulate failure
+            _loggerMock.Setup(x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+                .Throws(new InvalidOperationException("Simulated failure"));
+
+            // Act & Assert
+            var exception = Assert.Throws<DistributedTransactionException>(() =>
+                _coordinator.CompleteDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, createResult.StartTime));
+
+            Assert.Contains("Failed to complete distributed transaction", exception.Message);
+            Assert.Equal(createResult.TransactionId, exception.TransactionId);
+            Assert.NotNull(exception.InnerException);
+
+            // Verify error logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Failed to complete distributed transaction")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void CompleteDistributedTransaction_ShouldLogCorrectInformation()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.Serializable,
+                Timeout = TimeSpan.FromMinutes(2),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "CreateOrderCommand";
+            var cancellationToken = CancellationToken.None;
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Act
+            _coordinator.CompleteDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, createResult.StartTime);
+
+            // Assert
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Completing distributed transaction") &&
+                        v.ToString().Contains(createResult.TransactionId) &&
+                        v.ToString().Contains(requestType)),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Debug,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Distributed transaction") &&
+                        v.ToString().Contains("completed successfully") &&
+                        v.ToString().Contains(createResult.TransactionId)),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void CompleteDistributedTransaction_WithDifferentElapsedTimes_ShouldLogCorrectly()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+            
+            var createResult = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+            var pastStartTime = DateTime.UtcNow.AddSeconds(-5); // Simulate 5 seconds elapsed
+
+            // Act
+            _coordinator.CompleteDistributedTransaction(createResult.Scope, createResult.TransactionId, requestType, pastStartTime);
+
+            // Assert
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Completing distributed transaction") &&
+                        v.ToString().Contains(createResult.TransactionId) &&
+                        v.ToString().Contains(requestType) &&
+                        v.ToString().Contains("seconds")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        private class TestTransactionConfiguration : ITransactionConfiguration
+        {
+            public IsolationLevel IsolationLevel { get; set; }
+            public TimeSpan Timeout { get; set; }
+            public bool IsReadOnly { get; set; }
+            public bool UseDistributedTransaction { get; set; }
+            public TransactionRetryPolicy? RetryPolicy { get; set; }
+        }
     }
 }

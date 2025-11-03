@@ -3,6 +3,7 @@ using Moq;
 using Relay.Core.Transactions;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using IsolationLevel = System.Data.IsolationLevel;
 
@@ -207,6 +208,266 @@ public class DistributedTransactionCoordinatorTests
 
         // Assert
         Assert.NotEqual(result1.TransactionId, result2.TransactionId);
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithValidOperation_ShouldReturnResult()
+    {
+        // Arrange
+        var expectedResult = "TestResult";
+        var operation = new Func<CancellationToken, Task<string>>(_ => Task.FromResult(expectedResult));
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromSeconds(30);
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await _coordinator.ExecuteInDistributedTransactionAsync(
+            operation, transactionId, timeout, requestType, startTime, cancellationToken);
+
+        // Assert
+        Assert.Equal(expectedResult, result);
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithNullOperation_ShouldThrowArgumentNullException()
+    {
+        // Arrange
+        Func<CancellationToken, Task<string>> operation = null;
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromSeconds(30);
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            _coordinator.ExecuteInDistributedTransactionAsync(
+                operation, transactionId, timeout, requestType, startTime, cancellationToken));
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithTimeout_ShouldThrowTransactionTimeoutException()
+    {
+        // Arrange
+        var operation = new Func<CancellationToken, Task<string>>(async ct =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            return "Result";
+        });
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromMilliseconds(100); // Very short timeout
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<TransactionTimeoutException>(() =>
+            _coordinator.ExecuteInDistributedTransactionAsync(
+                operation, transactionId, timeout, requestType, startTime, cancellationToken));
+
+        Assert.Equal(transactionId, exception.TransactionId);
+        Assert.Equal(timeout, exception.Timeout);
+        Assert.Equal(requestType, exception.RequestType);
+        Assert.NotNull(exception.InnerException);
+
+        // Verify error logging
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => 
+                    v.ToString().Contains("timed out during execution") &&
+                    v.ToString().Contains(transactionId) &&
+                    v.ToString().Contains(requestType)),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithTransactionException_ShouldThrowDistributedTransactionException()
+    {
+        // Arrange
+        var transactionException = new TransactionException("Transaction failed");
+        var operation = new Func<CancellationToken, Task<string>>(_ => Task.FromException<string>(transactionException));
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromSeconds(30);
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<DistributedTransactionException>(() =>
+            _coordinator.ExecuteInDistributedTransactionAsync(
+                operation, transactionId, timeout, requestType, startTime, cancellationToken));
+
+        Assert.Contains("Distributed transaction failed", exception.Message);
+        Assert.Equal(transactionId, exception.TransactionId);
+        Assert.Equal(transactionException, exception.InnerException);
+
+        // Verify error logging
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => 
+                    v.ToString().Contains("Distributed transaction") &&
+                    v.ToString().Contains("failed") &&
+                    v.ToString().Contains(transactionId) &&
+                    v.ToString().Contains(requestType)),
+                transactionException,
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithDisabledTimeout_ShouldNotCreateTimeoutToken()
+    {
+        // Arrange
+        var operation = new Func<CancellationToken, Task<string>>(_ => Task.FromResult("Result"));
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.Zero; // Disabled timeout
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await _coordinator.ExecuteInDistributedTransactionAsync(
+            operation, transactionId, timeout, requestType, startTime, cancellationToken);
+
+        // Assert
+        Assert.Equal("Result", result);
+        // The operation should complete without timeout since timeout is disabled
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithInfiniteTimeout_ShouldNotCreateTimeoutToken()
+    {
+        // Arrange
+        var operation = new Func<CancellationToken, Task<string>>(_ => Task.FromResult("Result"));
+        var transactionId = "test-tx-123";
+        var timeout = Timeout.InfiniteTimeSpan; // Infinite timeout
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await _coordinator.ExecuteInDistributedTransactionAsync(
+            operation, transactionId, timeout, requestType, startTime, cancellationToken);
+
+        // Assert
+        Assert.Equal("Result", result);
+        // The operation should complete without timeout since timeout is infinite
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithCancellation_ShouldPropagateCancellation()
+    {
+        // Arrange
+        var operation = new Func<CancellationToken, Task<string>>(async ct =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(10), ct);
+            return "Result";
+        });
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromSeconds(30);
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<TaskCanceledException>(() =>
+            _coordinator.ExecuteInDistributedTransactionAsync(
+                operation, transactionId, timeout, requestType, startTime, cts.Token));
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithGenericException_ShouldPropagateException()
+    {
+        // Arrange
+        var genericException = new InvalidOperationException("Generic error");
+        var operation = new Func<CancellationToken, Task<string>>(_ => Task.FromException<string>(genericException));
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromSeconds(30);
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _coordinator.ExecuteInDistributedTransactionAsync(
+                operation, transactionId, timeout, requestType, startTime, cancellationToken));
+
+        Assert.Equal(genericException, exception);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(30)]
+    [InlineData(300)]
+    public async Task ExecuteInDistributedTransactionAsync_WithDifferentTimeouts_ShouldWorkCorrectly(int timeoutSeconds)
+    {
+        // Arrange
+        var operation = new Func<CancellationToken, Task<string>>(_ => Task.FromResult("Result"));
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromSeconds(timeoutSeconds);
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await _coordinator.ExecuteInDistributedTransactionAsync(
+            operation, transactionId, timeout, requestType, startTime, cancellationToken);
+
+        // Assert
+        Assert.Equal("Result", result);
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithComplexOperation_ShouldHandleCorrectly()
+    {
+        // Arrange
+        var operation = new Func<CancellationToken, Task<int>>(async ct =>
+        {
+            await Task.Delay(100, ct);
+            return 42;
+        });
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromSeconds(5);
+        var requestType = "ComplexOperation";
+        var startTime = DateTime.UtcNow;
+        var cancellationToken = CancellationToken.None;
+
+        // Act
+        var result = await _coordinator.ExecuteInDistributedTransactionAsync(
+            operation, transactionId, timeout, requestType, startTime, cancellationToken);
+
+        // Assert
+        Assert.Equal(42, result);
+    }
+
+    [Fact]
+    public async Task ExecuteInDistributedTransactionAsync_WithTimeoutAndCancellation_ShouldHandleCorrectly()
+    {
+        // Arrange
+        var operation = new Func<CancellationToken, Task<string>>(async ct =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), ct);
+            return "Result";
+        });
+        var transactionId = "test-tx-123";
+        var timeout = TimeSpan.FromSeconds(1);
+        var requestType = "TestRequest";
+        var startTime = DateTime.UtcNow;
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+
+        // Act & Assert - Should throw due to cancellation (faster than timeout)
+        await Assert.ThrowsAsync<TaskCanceledException>(() =>
+            _coordinator.ExecuteInDistributedTransactionAsync(
+                operation, transactionId, timeout, requestType, startTime, cts.Token));
     }
 
     [Fact]

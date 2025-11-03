@@ -4,10 +4,13 @@ using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.Contracts.Pipeline;
+using Relay.Core.Extensions;
 using Relay.Core.Transactions;
 using Relay.Core.Transactions.Factories;
 using Relay.Core.Transactions.Strategies;
@@ -50,14 +53,30 @@ namespace Relay.Core.Tests.Transactions.Integration
             services.AddSingleton(NullLogger<TransactionBehavior<ReadOnlyRequest, string>>.Instance);
             services.AddSingleton(NullLogger<TransactionBehavior<NonTransactionalRequest, string>>.Instance);
             
+            // Add the logger for DefaultTransactionExecutionTemplate
+            services.AddSingleton<ILogger<DefaultTransactionExecutionTemplate>>(NullLogger<DefaultTransactionExecutionTemplate>.Instance);
+            
             // Add generic logging factory
             services.AddLogging();
             services.AddSingleton(_unitOfWorkMock.Object);
-            services.AddSingleton(new TransactionConfigurationResolver(Options.Create(new TransactionOptions())));
+            
+            // Register TransactionConfigurationResolver directly with required dependencies
+            services.AddOptions();
+            services.Configure<TransactionOptions>(options => { });
+            services.AddSingleton<ITransactionConfigurationResolver, TransactionConfigurationResolver>();
+            services.AddSingleton<TransactionConfigurationResolver>();
+            
+            // Register TransactionCoordinator as both concrete type and interface
+            services.AddSingleton<ITransactionCoordinator>(_transactionCoordinator);
             services.AddSingleton(_transactionCoordinator);
+            services.AddSingleton<ITransactionEventPublisher>(_transactionEventPublisher);
             services.AddSingleton(_transactionEventPublisher);
+            services.AddSingleton<ITransactionRetryHandler>(_transactionRetryHandler);
             services.AddSingleton(_transactionRetryHandler);
-            services.AddSingleton(Mock.Of<TransactionMetricsCollector>());
+            var metricsCollector = Mock.Of<TransactionMetricsCollector>();
+            services.AddSingleton<ITransactionMetricsCollector>(metricsCollector);
+            services.AddSingleton(metricsCollector);
+            services.AddSingleton<INestedTransactionManager>(_nestedTransactionManager);
             services.AddSingleton(_nestedTransactionManager);
             services.AddSingleton(_distributedTransactionCoordinator);
             services.AddSingleton(Mock.Of<TransactionActivitySource>());
@@ -274,12 +293,24 @@ namespace Relay.Core.Tests.Transactions.Integration
             
             // Create options with RequireExplicitTransactionAttribute = true
             var options = new TransactionOptions { RequireExplicitTransactionAttribute = true };
-            services.AddSingleton(new TransactionConfigurationResolver(Options.Create(options)));
+            services.AddOptions();
+            services.Configure<TransactionOptions>(opt =>
+            {
+                opt.RequireExplicitTransactionAttribute = options.RequireExplicitTransactionAttribute;
+            });
+            ServiceRegistrationHelper.TryAddTransient<ITransactionConfigurationResolver, TransactionConfigurationResolver>(services);
             
+            // Register services with interfaces as well as concrete types to ensure DI can resolve all dependencies
+            services.AddSingleton<ITransactionCoordinator>(_transactionCoordinator);
             services.AddSingleton(_transactionCoordinator);
+            services.AddSingleton<ITransactionEventPublisher>(_transactionEventPublisher);
             services.AddSingleton(_transactionEventPublisher);
+            services.AddSingleton<ITransactionRetryHandler>(_transactionRetryHandler);
             services.AddSingleton(_transactionRetryHandler);
-            services.AddSingleton(Mock.Of<TransactionMetricsCollector>());
+            var metricsCollector = Mock.Of<TransactionMetricsCollector>();
+            services.AddSingleton<ITransactionMetricsCollector>(metricsCollector);
+            services.AddSingleton(metricsCollector);
+            services.AddSingleton<INestedTransactionManager>(_nestedTransactionManager);
             services.AddSingleton(_nestedTransactionManager);
             services.AddSingleton(_distributedTransactionCoordinator);
             services.AddSingleton(Mock.Of<TransactionActivitySource>());
@@ -332,11 +363,22 @@ namespace Relay.Core.Tests.Transactions.Integration
             var services = new ServiceCollection();
             services.AddSingleton(NullLogger<TransactionBehavior<ReadOnlyRequest, string>>.Instance);
             services.AddSingleton<IUnitOfWork>(testUnitOfWork);
-            services.AddSingleton(new TransactionConfigurationResolver(Options.Create(new TransactionOptions())));
-            services.AddSingleton(new TransactionCoordinator(testUnitOfWork, NullLogger<TransactionCoordinator>.Instance));
+            services.AddOptions();
+            services.Configure<TransactionOptions>(options => { });
+            ServiceRegistrationHelper.TryAddTransient<ITransactionConfigurationResolver, TransactionConfigurationResolver>(services);
+            
+            var transactionCoordinator = new TransactionCoordinator(testUnitOfWork, NullLogger<TransactionCoordinator>.Instance);
+            services.AddSingleton<ITransactionCoordinator>(transactionCoordinator);
+            services.AddSingleton(transactionCoordinator);
+            
+            services.AddSingleton<ITransactionEventPublisher>(_transactionEventPublisher);
             services.AddSingleton(_transactionEventPublisher);
+            services.AddSingleton<ITransactionRetryHandler>(_transactionRetryHandler);
             services.AddSingleton(_transactionRetryHandler);
-            services.AddSingleton(Mock.Of<TransactionMetricsCollector>());
+            var metricsCollector = Mock.Of<TransactionMetricsCollector>();
+            services.AddSingleton<ITransactionMetricsCollector>(metricsCollector);
+            services.AddSingleton(metricsCollector);
+            services.AddSingleton<INestedTransactionManager>(_nestedTransactionManager);
             services.AddSingleton(_nestedTransactionManager);
             services.AddSingleton(_distributedTransactionCoordinator);
             services.AddSingleton(Mock.Of<TransactionActivitySource>());
@@ -349,10 +391,10 @@ namespace Relay.Core.Tests.Transactions.Integration
                 new OutermostTransactionStrategy(
                     testUnitOfWork,
                     NullLogger<OutermostTransactionStrategy>.Instance,
-                    sp.GetRequiredService<TransactionCoordinator>(),
-                    sp.GetRequiredService<TransactionEventPublisher>(),
-                    sp.GetRequiredService<TransactionMetricsCollector>(),
-                    sp.GetRequiredService<NestedTransactionManager>(),
+                    sp.GetRequiredService<ITransactionCoordinator>(),
+                    sp.GetRequiredService<ITransactionEventPublisher>(),
+                    sp.GetRequiredService<ITransactionMetricsCollector>(),
+                    sp.GetRequiredService<INestedTransactionManager>(),
                     sp.GetRequiredService<TransactionActivitySource>(),
                     sp.GetRequiredService<TransactionLogger>(),
                     sp.GetRequiredService<ITransactionEventContextFactory>()));

@@ -213,10 +213,19 @@ public class TransactionActivitySourceTests
             1,
             true);
 
-        // Assert
-        Assert.Equal(2, _capturedActivities.Count);
-        var capturedActivity1 = _capturedActivities[0];
-        var capturedActivity2 = _capturedActivities[1];
+        // Assert - Filter to only activities with our expected transaction IDs
+        var relevantActivities = _capturedActivities
+            .Where(a => a.TagObjects.Any(t => t.Key == "transaction.id" && 
+                       (t.Value?.ToString() == transactionId1 || t.Value?.ToString() == transactionId2)))
+            .ToList();
+            
+        Assert.Equal(2, relevantActivities.Count);
+        
+        var capturedActivity1 = relevantActivities.FirstOrDefault(a => 
+            a.TagObjects.Any(t => t.Key == "transaction.id" && t.Value?.ToString() == transactionId1));
+        var capturedActivity2 = relevantActivities.FirstOrDefault(a => 
+            a.TagObjects.Any(t => t.Key == "transaction.id" && t.Value?.ToString() == transactionId2));
+            
         Assert.NotNull(capturedActivity1);
         Assert.NotNull(capturedActivity2);
         Assert.NotSame(capturedActivity1, capturedActivity2);

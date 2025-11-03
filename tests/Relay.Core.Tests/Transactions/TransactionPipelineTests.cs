@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -11,11 +12,13 @@ using Relay.Core.Contracts.Requests;
 using Relay.Core.Implementation.Core;
 using Relay.Core.Transactions;
 using Xunit;
+using IsolationLevel = System.Data.IsolationLevel;
 
 namespace Relay.Core.Tests.Transactions;
 
 public class TransactionPipelineTests
 {
+    [Transaction(IsolationLevel.ReadCommitted)]
     public class TransactionalRequest : IRequest<string>, ITransactionalRequest
     {
         public string Data { get; set; } = "";

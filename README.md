@@ -1848,8 +1848,15 @@ Relay v2.0 includes built-in **Transaction Management** and **Unit of Work** pat
 ### 📦 Basic Setup
 
 ```csharp
-// 1. Register transaction behaviors
-services.AddRelayTransactions();  // Default settings
+// 1. Register transaction behaviors with new enhanced system
+services.AddRelayTransactions(options =>
+{
+    options.DefaultTimeout = TimeSpan.FromSeconds(30);
+    options.EnableMetrics = true;
+    options.EnableDistributedTracing = true;
+    options.RequireExplicitTransactionAttribute = true; // Recommended
+});
+
 services.AddRelayUnitOfWork();    // Automatic SaveChanges
 
 // 2. Configure your DbContext as Unit of Work
@@ -1864,7 +1871,8 @@ services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext
 #### Transactional Command
 
 ```csharp
-// Mark command as transactional
+// BREAKING CHANGE: TransactionAttribute with explicit IsolationLevel is now REQUIRED
+[Transaction(IsolationLevel.ReadCommitted, TimeoutSeconds = 30)]
 public record CreateOrderCommand(int CustomerId, string[] Items, decimal TotalAmount)
     : IRequest<Order>, ITransactionalRequest<Order>;
 
@@ -1965,11 +1973,24 @@ public class OrderService
 #### Custom Transaction Settings
 
 ```csharp
-// Configure transaction behavior
-services.AddRelayTransactions(
-    scopeOption: TransactionScopeOption.Required,
-    isolationLevel: IsolationLevel.ReadCommitted,
-    timeout: TimeSpan.FromMinutes(1));
+// Configure transaction behavior with new enhanced options
+services.AddRelayTransactions(options =>
+{
+    options.DefaultTimeout = TimeSpan.FromMinutes(1);
+    options.EnableMetrics = true;
+    options.EnableDistributedTracing = true;
+    options.EnableNestedTransactions = true;
+    options.EnableSavepoints = true;
+    options.RequireExplicitTransactionAttribute = true;
+    
+    // Optional: Configure default retry policy
+    options.DefaultRetryPolicy = new TransactionRetryPolicy
+    {
+        MaxRetries = 3,
+        InitialDelay = TimeSpan.FromMilliseconds(100),
+        Strategy = RetryStrategy.ExponentialBackoff
+    };
+});
 ```
 
 #### Save Only for Transactional Requests

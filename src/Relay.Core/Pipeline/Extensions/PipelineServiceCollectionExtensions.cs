@@ -212,14 +212,26 @@ namespace Relay.Core.Pipeline.Extensions
         /// </summary>
         /// <param name="services">The service collection.</param>
         /// <returns>The service collection for chaining.</returns>
+        /// <remarks>
+        /// <para><strong>OBSOLETE:</strong> This method is obsolete and will be removed in a future version.</para>
+        /// <para>Use <see cref="Relay.Core.Transactions.TransactionServiceCollectionExtensions.AddRelayTransactions(IServiceCollection, Action{Relay.Core.Transactions.TransactionOptions})"/> instead.</para>
+        /// <para>The new transaction system requires explicit configuration and provides enhanced features including:</para>
+        /// <list type="bullet">
+        /// <item><description>Mandatory isolation level specification</description></item>
+        /// <item><description>Transaction timeout support</description></item>
+        /// <item><description>Retry policies for transient failures</description></item>
+        /// <item><description>Nested transaction and savepoint support</description></item>
+        /// <item><description>Transaction event hooks</description></item>
+        /// <item><description>Comprehensive telemetry and metrics</description></item>
+        /// </list>
+        /// </remarks>
+        [Obsolete("This method is obsolete. Use Relay.Core.Transactions.TransactionServiceCollectionExtensions.AddRelayTransactions instead. " +
+                  "The new transaction system requires explicit TransactionAttribute with IsolationLevel on all ITransactionalRequest implementations. " +
+                  "See BREAKING_CHANGES.md for migration guide.", error: false)]
         public static IServiceCollection AddRelayTransactions(this IServiceCollection services)
         {
-            return services.RegisterCoreServices(svc =>
-            {
-                // Register the unified TransactionBehavior as an open generic.
-                // This single behavior handles the entire transaction lifecycle.
-                ServiceRegistrationHelper.TryAddEnumerable(svc, typeof(IPipelineBehavior<,>), typeof(Transactions.TransactionBehavior<,>));
-            });
+            // Delegate to the new implementation with default options
+            return Relay.Core.Transactions.TransactionServiceCollectionExtensions.AddRelayTransactions(services);
         }
     }
 }

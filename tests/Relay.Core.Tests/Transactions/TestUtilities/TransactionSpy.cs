@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Transactions;
 using Xunit;
-using IDbTransaction = Relay.Core.Transactions.IDbTransaction;
+using IRelayDbTransaction = Relay.Core.Transactions.IRelayDbTransaction;
 
 namespace Relay.Core.Tests.Transactions.TestUtilities
 {
@@ -55,7 +55,7 @@ namespace Relay.Core.Tests.Transactions.TestUtilities
         /// <summary>
         /// Begins a new transaction with the specified isolation level.
         /// </summary>
-        public async Task<IDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+        public async Task<IRelayDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
             RecordOperation(TransactionOperationType.BeginTransaction, new { IsolationLevel = isolationLevel });
 
@@ -327,7 +327,7 @@ namespace Relay.Core.Tests.Transactions.TestUtilities
         /// <summary>
         /// Spy implementation of IDbTransaction.
         /// </summary>
-        private class SpyDbTransaction : IDbTransaction
+        private class SpyDbTransaction : IRelayDbTransaction
         {
             private readonly TransactionSpy _spy;
             private bool _isDisposed;

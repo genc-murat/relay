@@ -84,7 +84,7 @@ namespace Relay.Core.Transactions
         /// This provides access to the underlying database transaction for advanced scenarios.
         /// Returns null if the transaction has not been started or has been disposed.
         /// </remarks>
-        IDbTransaction? CurrentTransaction { get; }
+        IRelayDbTransaction? CurrentTransaction { get; }
 
         /// <summary>
         /// Creates a named savepoint within the current transaction.

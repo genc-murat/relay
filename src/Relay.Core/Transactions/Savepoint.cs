@@ -10,7 +10,7 @@ namespace Relay.Core.Transactions;
 /// </summary>
 internal sealed class Savepoint : ISavepoint
 {
-    private readonly IDbTransaction _transaction;
+    private readonly IRelayDbTransaction _transaction;
     private readonly IDbCommand _command;
     private bool _isDisposed;
     private bool _isReleased;
@@ -29,7 +29,7 @@ internal sealed class Savepoint : ISavepoint
     /// <param name="transaction">The database transaction.</param>
     /// <exception cref="ArgumentNullException">Thrown when name or transaction is null.</exception>
     /// <exception cref="ArgumentException">Thrown when name is empty or whitespace.</exception>
-    public Savepoint(string name, IDbTransaction transaction)
+    public Savepoint(string name, IRelayDbTransaction transaction)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Savepoint name cannot be null or whitespace.", nameof(name));

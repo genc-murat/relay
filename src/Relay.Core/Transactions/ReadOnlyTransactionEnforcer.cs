@@ -89,7 +89,7 @@ public static class ReadOnlyTransactionEnforcer
     /// <para>Database-specific read-only optimizations should be implemented in the IUnitOfWork
     /// implementation (e.g., DbContext) by checking the IsReadOnly property when beginning a transaction.</para>
     /// </remarks>
-    public static void ConfigureReadOnlyTransaction(IDbTransaction transaction, ILogger? logger = null)
+    public static void ConfigureReadOnlyTransaction(IRelayDbTransaction transaction, ILogger? logger = null)
     {
         if (transaction == null)
             throw new ArgumentNullException(nameof(transaction));

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Transactions;
-using IDbTransaction = Relay.Core.Transactions.IDbTransaction;
+using IRelayDbTransaction = Relay.Core.Transactions.IRelayDbTransaction;
 
 namespace Relay.Core.Tests.Transactions.TestUtilities
 {
@@ -81,7 +81,7 @@ namespace Relay.Core.Tests.Transactions.TestUtilities
         /// <summary>
         /// Begins a new transaction with the specified isolation level.
         /// </summary>
-        public async Task<IDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+        public async Task<IRelayDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
             BeginTransactionCallCount++;
             LastIsolationLevel = isolationLevel;
@@ -189,7 +189,7 @@ namespace Relay.Core.Tests.Transactions.TestUtilities
     /// <summary>
     /// In-memory implementation of IDbTransaction for testing.
     /// </summary>
-    internal class InMemoryDbTransaction : IDbTransaction
+    internal class InMemoryDbTransaction : IRelayDbTransaction
     {
         private readonly List<string> _changeLog;
         private bool _isDisposed;
@@ -273,7 +273,7 @@ namespace Relay.Core.Tests.Transactions.TestUtilities
         public InMemoryTransactionContext(
             IsolationLevel isolationLevel,
             bool isReadOnly,
-            IDbTransaction transaction,
+            IRelayDbTransaction transaction,
             InMemoryUnitOfWork unitOfWork)
         {
             TransactionId = Guid.NewGuid().ToString();
@@ -289,7 +289,7 @@ namespace Relay.Core.Tests.Transactions.TestUtilities
         public IsolationLevel IsolationLevel { get; }
         public bool IsReadOnly { get; }
         public DateTime StartedAt { get; }
-        public IDbTransaction? CurrentTransaction { get; }
+        public IRelayDbTransaction? CurrentTransaction { get; }
 
         public async Task<ISavepoint> CreateSavepointAsync(string name, CancellationToken cancellationToken = default)
         {

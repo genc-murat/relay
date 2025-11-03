@@ -5,13 +5,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Relay.Core.Transactions;
 using Xunit;
-using IDbTransaction = Relay.Core.Transactions.IDbTransaction;
+using IRelayDbTransaction = Relay.Core.Transactions.IRelayDbTransaction;
 
 namespace Relay.Core.Tests.Transactions
 {
     public class NestedTransactionManagerTests
     {
-        private class MockDbTransaction : IDbTransaction
+        private class MockDbTransaction : IRelayDbTransaction
         {
             public IDbConnection? Connection => null;
             public IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;

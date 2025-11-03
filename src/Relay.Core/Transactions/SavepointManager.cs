@@ -12,7 +12,7 @@ namespace Relay.Core.Transactions
     /// </summary>
     internal sealed class SavepointManager : IAsyncDisposable
     {
-        private readonly IDbTransaction _transaction;
+        private readonly IRelayDbTransaction _transaction;
         private readonly Dictionary<string, ISavepoint> _savepoints;
         private readonly object _lock = new object();
         private bool _isDisposed;
@@ -36,7 +36,7 @@ namespace Relay.Core.Transactions
         /// </summary>
         /// <param name="transaction">The database transaction to manage savepoints for.</param>
         /// <exception cref="ArgumentNullException">Thrown when transaction is null.</exception>
-        public SavepointManager(IDbTransaction transaction)
+        public SavepointManager(IRelayDbTransaction transaction)
         {
             _transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
             _savepoints = new Dictionary<string, ISavepoint>(StringComparer.OrdinalIgnoreCase);

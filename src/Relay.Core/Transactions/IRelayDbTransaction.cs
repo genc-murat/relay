@@ -15,7 +15,7 @@ namespace Relay.Core.Transactions
     /// Implementations should wrap the underlying database transaction (e.g., DbTransaction from EF Core)
     /// and provide async commit/rollback operations.
     /// </remarks>
-    public interface IDbTransaction : IAsyncDisposable
+    public interface IRelayDbTransaction : IAsyncDisposable
     {
         /// <summary>
         /// Gets the database connection associated with this transaction.

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Transactions;
 using Xunit;
-using IDbTransaction = Relay.Core.Transactions.IDbTransaction;
+using IRelayDbTransaction = Relay.Core.Transactions.IRelayDbTransaction;
 
 namespace Relay.Core.Tests.Transactions
 {
@@ -48,7 +48,7 @@ namespace Relay.Core.Tests.Transactions
             public void Prepare() { }
         }
 
-        private class MockDbTransaction : IDbTransaction
+        private class MockDbTransaction : IRelayDbTransaction
         {
             public IDbConnection? Connection { get; }
             public IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;

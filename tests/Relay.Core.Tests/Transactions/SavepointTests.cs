@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Transactions;
 using Xunit;
-using IDbTransaction = Relay.Core.Transactions.IDbTransaction;
+using IRelayDbTransaction = Relay.Core.Transactions.IRelayDbTransaction;
 
 namespace Relay.Core.Tests.Transactions;
 
@@ -48,7 +48,7 @@ public class SavepointTests
         public void Prepare() { }
     }
 
-    private class MockDbTransaction : IDbTransaction
+    private class MockDbTransaction : IRelayDbTransaction
     {
         public IDbConnection? Connection { get; }
         public IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;
@@ -67,7 +67,7 @@ public class SavepointTests
         public Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
-    private class MockDbTransactionWithNullConnection : IDbTransaction
+    private class MockDbTransactionWithNullConnection : IRelayDbTransaction
     {
         public IDbConnection? Connection => null;
         public IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;
@@ -81,7 +81,7 @@ public class SavepointTests
         public Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
-    private class MockDbTransactionNotSystemData : IDbTransaction
+    private class MockDbTransactionNotSystemData : IRelayDbTransaction
     {
         public IDbConnection? Connection { get; }
         public IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;

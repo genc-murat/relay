@@ -45,7 +45,7 @@ namespace Relay.Core.Transactions
         /// <param name="cancellationToken">The cancellation token for the operation.</param>
         /// <returns>A tuple containing the database transaction, transaction context, and timeout cancellation token source.</returns>
         /// <exception cref="TransactionTimeoutException">Thrown when the transaction times out.</exception>
-        public async Task<(IDbTransaction Transaction, ITransactionContext Context, CancellationTokenSource? TimeoutCts)> BeginTransactionAsync(
+        public async Task<(IRelayDbTransaction Transaction, ITransactionContext Context, CancellationTokenSource? TimeoutCts)> BeginTransactionAsync(
             ITransactionConfiguration configuration,
             string requestType,
             CancellationToken cancellationToken)
@@ -211,7 +211,7 @@ namespace Relay.Core.Transactions
         /// <param name="transaction">The database transaction to commit.</param>
         /// <param name="context">The transaction context.</param>
         /// <param name="requestType">The type of request being executed.</param>
-        public async Task CommitTransactionAsync(IDbTransaction transaction, ITransactionContext context, string requestType, CancellationToken cancellationToken = default)
+        public async Task CommitTransactionAsync(IRelayDbTransaction transaction, ITransactionContext context, string requestType, CancellationToken cancellationToken = default)
         {
             if (transaction == null)
                 throw new ArgumentNullException(nameof(transaction));
@@ -241,7 +241,7 @@ namespace Relay.Core.Transactions
         /// <param name="requestType">The type of request being executed.</param>
         /// <param name="exception">The exception that caused the rollback.</param>
         public async Task RollbackTransactionAsync(
-            IDbTransaction transaction,
+            IRelayDbTransaction transaction,
             ITransactionContext context,
             string requestType,
             Exception? exception = null,

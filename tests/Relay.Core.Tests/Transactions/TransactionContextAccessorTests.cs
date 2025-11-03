@@ -2,13 +2,13 @@ using System;
 using System.Data;
 using Relay.Core.Transactions;
 using Xunit;
-using IDbTransaction = Relay.Core.Transactions.IDbTransaction;
+using IRelayDbTransaction = Relay.Core.Transactions.IRelayDbTransaction;
 
 namespace Relay.Core.Tests.Transactions
 {
     public class TransactionContextAccessorTests
     {
-        private class MockDbTransaction : IDbTransaction
+        private class MockDbTransaction : IRelayDbTransaction
         {
             public IDbConnection? Connection => null;
             public IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;

@@ -525,7 +525,7 @@ public class MockTransactionContext : ITransactionContext
     public bool IsReadOnly { get; set; } = false;
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(30);
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
-    public Relay.Core.Transactions.IDbTransaction? CurrentTransaction { get; set; } = null;
+    public Relay.Core.Transactions.IRelayDbTransaction? CurrentTransaction { get; set; } = null;
     
     public void Commit() { }
     public void Rollback() { }

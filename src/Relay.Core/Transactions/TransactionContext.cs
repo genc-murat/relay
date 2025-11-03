@@ -17,7 +17,7 @@ namespace Relay.Core.Transactions
     internal sealed class TransactionContext : ITransactionContext
     {
         private readonly SavepointManager _savepointManager;
-        private IDbTransaction? _currentTransaction;
+        private IRelayDbTransaction? _currentTransaction;
         private bool _isDisposed;
 
         /// <inheritdoc />
@@ -36,7 +36,7 @@ namespace Relay.Core.Transactions
         public DateTime StartedAt { get; }
 
         /// <inheritdoc />
-        public IDbTransaction? CurrentTransaction
+        public IRelayDbTransaction? CurrentTransaction
         {
             get => _currentTransaction;
             internal set => _currentTransaction = value;
@@ -52,7 +52,7 @@ namespace Relay.Core.Transactions
         /// <exception cref="ArgumentNullException">Thrown when transaction is null.</exception>
         /// <exception cref="ArgumentException">Thrown when isolationLevel is Unspecified.</exception>
         public TransactionContext(
-            IDbTransaction transaction,
+            IRelayDbTransaction transaction,
             IsolationLevel isolationLevel,
             bool isReadOnly = false,
             int nestingLevel = 0)

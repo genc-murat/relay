@@ -76,7 +76,7 @@ namespace Relay.Core.Transactions
         /// </summary>
         /// <param name="isolationLevel">The isolation level for the transaction. Must not be Unspecified.</param>
         /// <param name="cancellationToken">A token to cancel the operation.</param>
-        /// <returns>An <see cref="IDbTransaction"/> that can be used to control the transaction.</returns>
+        /// <returns>An <see cref="IRelayDbTransaction"/> that can be used to control the transaction.</returns>
         /// <exception cref="ArgumentException">Thrown when isolationLevel is Unspecified.</exception>
         /// <remarks>
         /// <para><strong>Breaking Change:</strong> This method now requires an explicit isolation level parameter.
@@ -92,7 +92,7 @@ namespace Relay.Core.Transactions
         /// </list>
         /// </para>
         /// </remarks>
-        Task<IDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default);
+        Task<IRelayDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Saves all changes made in this unit of work to the database.

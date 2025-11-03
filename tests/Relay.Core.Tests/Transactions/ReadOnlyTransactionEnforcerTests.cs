@@ -4,13 +4,13 @@ using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using IDbTransaction = Relay.Core.Transactions.IDbTransaction;
+using IRelayDbTransaction = Relay.Core.Transactions.IRelayDbTransaction;
 
 namespace Relay.Core.Tests.Transactions;
 
 public class ReadOnlyTransactionEnforcerTests
 {
-    private class MockDbTransaction : IDbTransaction
+    private class MockDbTransaction : IRelayDbTransaction
     {
         public IDbConnection? Connection => null;
         public IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;
@@ -28,7 +28,7 @@ public class ReadOnlyTransactionEnforcerTests
         public bool IsReadOnly { get; set; }
         public ITransactionContext? CurrentTransactionContext { get; set; }
 
-        public Task<IDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+        public Task<IRelayDbTransaction> BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

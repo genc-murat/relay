@@ -528,4 +528,476 @@ public class TransactionActivitySourceTests
         Assert.Equal(savepointName, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
         Assert.Equal(operation, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
     }
+
+        [Fact]
+        public void StartRetryActivity_WithAllParameters_Should_Create_Activity_With_All_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-retry-123";
+            var requestType = "CreateOrderCommand";
+            var attemptNumber = 2;
+            var maxRetries = 5;
+            var delayMs = 1000;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal("relay.transaction.retry", capturedActivity.DisplayName);
+            Assert.Equal(ActivityKind.Internal, capturedActivity.Kind);
+            
+            var transactionIdTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id");
+            var requestTypeTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.request_type");
+            var attemptTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt");
+            var maxAttemptsTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts");
+            var delayTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms");
+            
+            Assert.NotNull(transactionIdTag);
+            Assert.NotNull(requestTypeTag);
+            Assert.NotNull(attemptTag);
+            Assert.NotNull(maxAttemptsTag);
+            Assert.NotNull(delayTag);
+            
+            Assert.Equal(transactionId, transactionIdTag.Value);
+            Assert.Equal(requestType, requestTypeTag.Value);
+            Assert.Equal(attemptNumber, attemptTag.Value);
+            Assert.Equal(maxRetries, maxAttemptsTag.Value);
+            Assert.Equal(delayMs, delayTag.Value);
+        }
+
+        [Theory]
+        [InlineData(1, 3, 100)]
+        [InlineData(2, 5, 500)]
+        [InlineData(3, 10, 2000)]
+        [InlineData(5, 5, 0)]
+        [InlineData(1, 1, 50)]
+        public void StartRetryActivity_WithDifferentRetryParameters_Should_Create_Activity_With_Correct_Tags(
+            int attemptNumber, int maxRetries, int delayMs)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-params";
+            var requestType = "TestCommand";
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            
+            var attemptTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt");
+            var maxAttemptsTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts");
+            var delayTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms");
+            
+            Assert.NotNull(attemptTag);
+            Assert.NotNull(maxAttemptsTag);
+            Assert.NotNull(delayTag);
+            
+            Assert.Equal(attemptNumber, attemptTag.Value);
+            Assert.Equal(maxRetries, maxAttemptsTag.Value);
+            Assert.Equal(delayMs, delayTag.Value);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void StartRetryActivity_WithInvalidTransactionId_Should_Handle_Gracefully(string transactionId)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var requestType = "TestCommand";
+            var attemptNumber = 1;
+            var maxRetries = 3;
+            var delayMs = 100;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            
+            var transactionIdTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id");
+            var requestTypeTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.request_type");
+            var attemptTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt");
+            var maxAttemptsTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts");
+            var delayTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms");
+            
+            Assert.NotNull(transactionIdTag);
+            Assert.NotNull(requestTypeTag);
+            Assert.NotNull(attemptTag);
+            Assert.NotNull(maxAttemptsTag);
+            Assert.NotNull(delayTag);
+            
+            Assert.Equal(transactionId, transactionIdTag.Value);
+            Assert.Equal(requestType, requestTypeTag.Value);
+            Assert.Equal(attemptNumber, attemptTag.Value);
+            Assert.Equal(maxRetries, maxAttemptsTag.Value);
+            Assert.Equal(delayMs, delayTag.Value);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void StartRetryActivity_WithInvalidRequestType_Should_Handle_Gracefully(string requestType)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-invalid-request";
+            var attemptNumber = 1;
+            var maxRetries = 3;
+            var delayMs = 100;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+            Assert.Equal(requestType, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.request_type").Value);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(-10)]
+        public void StartRetryActivity_WithInvalidAttemptNumber_Should_Handle_Gracefully(int attemptNumber)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-invalid-attempt";
+            var requestType = "TestCommand";
+            var maxRetries = 3;
+            var delayMs = 100;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(-5)]
+        public void StartRetryActivity_WithInvalidMaxRetries_Should_Handle_Gracefully(int maxRetries)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-invalid-max";
+            var requestType = "TestCommand";
+            var attemptNumber = 1;
+            var delayMs = 100;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(-100)]
+        [InlineData(-5000)]
+        public void StartRetryActivity_WithInvalidDelayMs_Should_Handle_Gracefully(int delayMs)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-invalid-delay";
+            var requestType = "TestCommand";
+            var attemptNumber = 1;
+            var maxRetries = 3;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Fact]
+        public void StartRetryActivity_WithZeroDelay_Should_Create_Activity_With_Zero_Delay_Tag()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-zero-delay";
+            var requestType = "TestCommand";
+            var attemptNumber = 1;
+            var maxRetries = 3;
+            var delayMs = 0;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Fact]
+        public void StartRetryActivity_WithLargeValues_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-large-values";
+            var requestType = "TestCommand";
+            var attemptNumber = 1000;
+            var maxRetries = 5000;
+            var delayMs = 300000; // 5 minutes
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Fact]
+        public void StartRetryActivity_WithLongTransactionId_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "this_is_a_very_long_transaction_id_that_tests_boundary_conditions_and_special_characters_12345";
+            var requestType = "TestCommand";
+            var attemptNumber = 1;
+            var maxRetries = 3;
+            var delayMs = 100;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+            Assert.Equal(requestType, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.request_type").Value);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Fact]
+        public void StartRetryActivity_WithSpecialCharacters_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-special-chars_123-456";
+            var requestType = "Command.With-Special_Chars123";
+            var attemptNumber = 1;
+            var maxRetries = 3;
+            var delayMs = 100;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+            Assert.Equal(requestType, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.request_type").Value);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Fact]
+        public void StartRetryActivity_MultipleCalls_Should_Create_Different_Activities()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId1 = "tx-retry-1";
+            var transactionId2 = "tx-retry-2";
+
+            // Act
+            using var activity1 = _activitySource.StartRetryActivity(
+                transactionId1,
+                "Command1",
+                1,
+                3,
+                100);
+
+            using var activity2 = _activitySource.StartRetryActivity(
+                transactionId2,
+                "Command2",
+                2,
+                5,
+                500);
+
+            // Assert
+            Assert.Equal(2, _capturedActivities.Count);
+            var capturedActivity1 = _capturedActivities[0];
+            var capturedActivity2 = _capturedActivities[1];
+            Assert.NotNull(capturedActivity1);
+            Assert.NotNull(capturedActivity2);
+            Assert.NotSame(capturedActivity1, capturedActivity2);
+            Assert.Equal(transactionId1, capturedActivity1.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+            Assert.Equal(transactionId2, capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+            Assert.Equal(1, capturedActivity1.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(2, capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+        }
+
+        [Fact]
+        public void StartRetryActivity_Activity_Disposal_Should_Work_Correctly()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-retry-dispose";
+
+            // Act
+            var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                "TestCommand",
+                1,
+                3,
+                100);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.False(capturedActivity.IsStopped);
+
+            // Act
+            activity.Dispose();
+
+            // Assert
+            Assert.True(capturedActivity.IsStopped);
+        }
+
+        [Fact]
+        public void StartRetryActivity_WithAttemptNumberGreaterThanMaxRetries_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-attempt-greater";
+            var requestType = "TestCommand";
+            var attemptNumber = 5;
+            var maxRetries = 3;
+            var delayMs = 100;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
+
+        [Fact]
+        public void StartRetryActivity_WithAttemptNumberEqualToMaxRetries_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-attempt-equal";
+            var requestType = "TestCommand";
+            var attemptNumber = 3;
+            var maxRetries = 3;
+            var delayMs = 100;
+
+            // Act
+            using var activity = _activitySource.StartRetryActivity(
+                transactionId,
+                requestType,
+                attemptNumber,
+                maxRetries,
+                delayMs);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            Assert.Equal(attemptNumber, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
+            Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
+            Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
+        }
 }

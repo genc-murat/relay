@@ -347,27 +347,5 @@ public sealed class DistributedTransactionCoordinator
             TransactionScopeAsyncFlowOption.Enabled);
     }
 
-    /// <summary>
-    /// Commits a transaction scope.
-    /// </summary>
-    /// <param name="scope">The transaction scope to commit.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    public Task CommitAsync(TransactionScope scope, CancellationToken cancellationToken = default)
-    {
-        scope.Complete();
-        return Task.CompletedTask;
-    }
 
-    /// <summary>
-    /// Rolls back a transaction scope.
-    /// </summary>
-    /// <param name="scope">The transaction scope to rollback.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    public Task RollbackAsync(TransactionScope scope, CancellationToken cancellationToken = default)
-    {
-        // Rollback is implicit when scope is disposed without calling Complete()
-        return Task.CompletedTask;
-    }
 }

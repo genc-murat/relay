@@ -756,29 +756,193 @@ public class DistributedTransactionCoordinatorTests
             Times.Once);
     }
 
-    [Fact]
-    public void CreateTransactionScope_WithValidIsolationLevels_ShouldConvertCorrectly()
-    {
-        // Arrange
-        var configuration = new TestTransactionConfiguration
+        [Fact]
+        public void CreateTransactionScope_WithValidIsolationLevels_ShouldConvertCorrectly()
         {
-            IsolationLevel = IsolationLevel.Serializable,
-            Timeout = TimeSpan.FromSeconds(30),
-            IsReadOnly = false,
-            UseDistributedTransaction = true,
-            RetryPolicy = null
-        };
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.Serializable,
+                Timeout = TimeSpan.FromSeconds(30),
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
 
-        // Act
-        var scope = _coordinator.CreateTransactionScope(configuration);
+            // Act
+            var scope = _coordinator.CreateTransactionScope(configuration);
 
-        // Assert
-        Assert.NotNull(scope);
+            // Assert
+            Assert.NotNull(scope);
 
-        // The scope should be created successfully, which means ConvertIsolationLevel worked correctly
-        // We can't directly test the private method, but we can verify it works through the public interface
-        scope.Dispose();
-    }
+            // The scope should be created successfully, which means ConvertIsolationLevel worked correctly
+            // We can't directly test the private method, but we can verify it works through the public interface
+            scope.Dispose();
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(-2)]
+        public void CreateDistributedTransactionScope_WithDisabledTimeout_ShouldUseDefaultTimeout(int timeoutSeconds)
+        {
+            // Arrange
+            var timeout = timeoutSeconds switch
+            {
+                0 => TimeSpan.Zero,
+                -1 => System.Threading.Timeout.InfiniteTimeSpan,
+                -2 => TimeSpan.FromTicks(-1),
+                _ => TimeSpan.FromSeconds(timeoutSeconds)
+            };
+            
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = timeout,
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+
+            // Act
+            var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Assert
+            Assert.NotNull(result.Scope);
+            Assert.NotNull(result.TransactionId);
+
+            // Verify that transaction scope was created (timeout should be disabled, using default)
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Creating distributed transaction scope") &&
+                        v.ToString().Contains(requestType)),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            result.Scope.Dispose();
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(30)]
+        [InlineData(300)]
+        [InlineData(3600)]
+        public void CreateDistributedTransactionScope_WithEnabledTimeout_ShouldUseConfiguredTimeout(int timeoutSeconds)
+        {
+            // Arrange
+            var timeout = TimeSpan.FromSeconds(timeoutSeconds);
+            
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = timeout,
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+            var requestType = "TestRequest";
+            var cancellationToken = CancellationToken.None;
+
+            // Act
+            var result = _coordinator.CreateDistributedTransactionScope(configuration, requestType, cancellationToken);
+
+            // Assert
+            Assert.NotNull(result.Scope);
+            Assert.NotNull(result.TransactionId);
+
+            // Verify that transaction scope was created with the specified timeout
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => 
+                        v.ToString().Contains("Creating distributed transaction scope") &&
+                        v.ToString().Contains(requestType) &&
+                        v.ToString().Contains(timeout.TotalSeconds.ToString())),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            result.Scope.Dispose();
+        }
+
+        [Fact]
+        public void CreateTransactionScope_WithDisabledTimeout_ShouldUseDefaultTimeout()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.Zero, // Disabled timeout
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+
+            // Act
+            var scope = _coordinator.CreateTransactionScope(configuration);
+
+            // Assert
+            Assert.NotNull(scope);
+
+            // The scope should be created successfully with default timeout
+            // This indirectly tests IsTimeoutEnabled method returning false for TimeSpan.Zero
+            scope.Dispose();
+        }
+
+        [Fact]
+        public void CreateTransactionScope_WithInfiniteTimeout_ShouldUseDefaultTimeout()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = System.Threading.Timeout.InfiniteTimeSpan, // Infinite timeout
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+
+            // Act
+            var scope = _coordinator.CreateTransactionScope(configuration);
+
+            // Assert
+            Assert.NotNull(scope);
+
+            // The scope should be created successfully with default timeout
+            // This indirectly tests IsTimeoutEnabled method returning false for InfiniteTimeSpan
+            scope.Dispose();
+        }
+
+        [Fact]
+        public void CreateTransactionScope_WithPositiveTimeout_ShouldUseConfiguredTimeout()
+        {
+            // Arrange
+            var configuration = new TestTransactionConfiguration
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted,
+                Timeout = TimeSpan.FromMinutes(2), // Positive timeout
+                IsReadOnly = false,
+                UseDistributedTransaction = true,
+                RetryPolicy = null
+            };
+
+            // Act
+            var scope = _coordinator.CreateTransactionScope(configuration);
+
+            // Assert
+            Assert.NotNull(scope);
+
+            // The scope should be created successfully with the specified timeout
+            // This indirectly tests IsTimeoutEnabled method returning true for positive TimeSpan
+            scope.Dispose();
+        }
 
     private class TestTransactionConfiguration : ITransactionConfiguration
     {

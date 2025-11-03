@@ -234,12 +234,12 @@ public class TransactionActivitySource
     /// <param name="activity">The activity to record the exception in.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <remarks>
-    /// This method is a no-op if the activity is null.
+    /// This method is a no-op if the activity is null or exception is null.
     /// Records exception details as an event with standard OpenTelemetry exception attributes.
     /// </remarks>
-    public void RecordException(Activity? activity, Exception exception)
+    public void RecordException(Activity? activity, Exception? exception)
     {
-        if (activity == null) return;
+        if (activity == null || exception == null) return;
 
         var tags = new ActivityTagsCollection
         {

@@ -1246,4 +1246,196 @@ public class TransactionActivitySourceTests
             Assert.Equal(ActivityStatusCode.Error, activity.Status);
             Assert.Equal(whitespaceErrorMessage, activity.StatusDescription);
         }
+
+        [Fact]
+        public void RecordException_WithNullActivity_Should_Not_Throw_Exception()
+        {
+            // Arrange
+            Activity? activity = null;
+            var exception = new InvalidOperationException("Test exception");
+
+            // Act & Assert
+            var ex = Record.Exception(() => _activitySource.RecordException(activity, exception));
+            Assert.Null(ex);
+        }
+
+        [Fact]
+        public void RecordException_WithNullActivityAndNullException_Should_Not_Throw_Exception()
+        {
+            // Arrange
+            Activity? activity = null;
+            Exception? exception = null;
+
+            // Act & Assert
+            var ex = Record.Exception(() => _activitySource.RecordException(activity, exception));
+            Assert.Null(ex);
+        }
+
+        [Fact]
+        public void RecordException_WithValidActivityAndException_Should_AddExceptionEventAndSetStatus()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-exception",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            var exception = new InvalidOperationException("Test operation failed");
+
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.RecordException(activity, exception);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal("Test operation failed", activity.StatusDescription);
+            
+            // Check that the exception event was added to the activity
+            var exceptionEvents = activity.Events.Where(e => e.Name == "exception").ToList();
+            Assert.Single(exceptionEvents);
+            
+            var exceptionEvent = exceptionEvents[0];
+            Assert.Contains(exceptionEvent.Tags, tag => tag.Key == "exception.type" && tag.Value?.ToString().Contains("InvalidOperationException") == true);
+            Assert.Contains(exceptionEvent.Tags, tag => tag.Key == "exception.message" && tag.Value?.ToString() == "Test operation failed");
+            // Stack trace may be null in test environment, so we just check if it exists or not
+            var stackTraceTag = exceptionEvent.Tags.FirstOrDefault(t => t.Key == "exception.stacktrace");
+            // The stack trace tag should exist (even if its value is null)
+            Assert.NotNull(stackTraceTag.Key);
+        }
+
+        [Fact]
+        public void RecordException_WithValidActivityAndException_AfterPreviousError_Should_UpdateStatus()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-exception-update",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            var exception = new ArgumentException("New argument exception");
+
+            // First set to error using SetTransactionStatus
+            _activitySource.SetTransactionStatus(activity, false, "Initial error");
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal("Initial error", activity.StatusDescription);
+
+            // Act - record exception
+            _activitySource.RecordException(activity, exception);
+
+            // Assert that status remains as error but description is updated
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal("New argument exception", activity.StatusDescription);
+            
+            // Check that the exception event was added
+            var exceptionEvents = activity.Events.Where(e => e.Name == "exception").ToList();
+            Assert.Single(exceptionEvents);
+        }
+
+        [Fact]
+        public void RecordException_WithValidActivityAndNestedException_Should_AddExceptionEventWithInnerExceptionDetails()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-nested-exception",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            var innerException = new ArgumentException("Inner argument exception");
+            var outerException = new InvalidOperationException("Outer operation failed", innerException);
+
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.RecordException(activity, outerException);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal("Outer operation failed", activity.StatusDescription);
+            
+            // Check that the exception event was added to the activity
+            var exceptionEvents = activity.Events.Where(e => e.Name == "exception").ToList();
+            Assert.Single(exceptionEvents);
+            
+            var exceptionEvent = exceptionEvents[0];
+            Assert.Contains(exceptionEvent.Tags, tag => tag.Key == "exception.type" && tag.Value?.ToString().Contains("InvalidOperationException") == true);
+            Assert.Contains(exceptionEvent.Tags, tag => tag.Key == "exception.message" && tag.Value?.ToString() == "Outer operation failed");
+            // Stack trace may be null in test environment
+            var stackTraceTag = exceptionEvent.Tags.FirstOrDefault(t => t.Key == "exception.stacktrace");
+            // The stack trace tag should exist (even if its value is null)
+            Assert.NotNull(stackTraceTag.Key);
+        }
+
+        [Fact]
+        public void RecordException_WithValidActivityAndNullException_Should_Not_Throw_Exception()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-null-exception",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            Exception? exception = null;
+
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act & Assert
+            var ex = Record.Exception(() => _activitySource.RecordException(activity, exception));
+            Assert.Null(ex);
+            
+            // Activity status should remain unchanged since no exception was provided
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+        }
+
+        [Fact]
+        public void RecordException_WithValidActivityAndDifferentExceptionTypes_Should_RecordWithCorrectType()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-diff-exception",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            var exception = new DivideByZeroException("Division by zero occurred");
+
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.RecordException(activity, exception);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal("Division by zero occurred", activity.StatusDescription);
+            
+            // Check that the exception event was added to the activity with correct type
+            var exceptionEvents = activity.Events.Where(e => e.Name == "exception").ToList();
+            Assert.Single(exceptionEvents);
+            
+            var exceptionEvent = exceptionEvents[0];
+            Assert.Contains(exceptionEvent.Tags, tag => tag.Key == "exception.type" && tag.Value?.ToString().Contains("DivideByZeroException") == true);
+            Assert.Contains(exceptionEvent.Tags, tag => tag.Key == "exception.message" && tag.Value?.ToString() == "Division by zero occurred");
+            // Stack trace may be null in test environment
+            var stackTraceTag = exceptionEvent.Tags.FirstOrDefault(t => t.Key == "exception.stacktrace");
+            // The stack trace tag should exist (even if its value is null)
+            Assert.NotNull(stackTraceTag.Key);
+        }
 }

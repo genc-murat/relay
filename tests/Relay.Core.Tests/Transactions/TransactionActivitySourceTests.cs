@@ -1007,4 +1007,243 @@ public class TransactionActivitySourceTests
             Assert.Equal(maxRetries, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.max_attempts").Value);
             Assert.Equal(delayMs, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "retry.delay_ms").Value);
         }
+
+        [Fact]
+        public void SetTransactionStatus_WithNullActivity_Should_Not_Throw_Exception()
+        {
+            // Arrange
+            Activity? activity = null;
+
+            // Act & Assert
+            var exception = Record.Exception(() => _activitySource.SetTransactionStatus(activity, true));
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithNullActivityAndSuccessTrue_Should_Not_Throw_Exception()
+        {
+            // Arrange
+            Activity? activity = null;
+
+            // Act & Assert
+            var exception = Record.Exception(() => _activitySource.SetTransactionStatus(activity, true));
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithNullActivityAndSuccessFalse_Should_Not_Throw_Exception()
+        {
+            // Arrange
+            Activity? activity = null;
+
+            // Act & Assert
+            var exception = Record.Exception(() => _activitySource.SetTransactionStatus(activity, false));
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithNullActivityAndSuccessFalseAndErrorMessage_Should_Not_Throw_Exception()
+        {
+            // Arrange
+            Activity? activity = null;
+            string errorMessage = "Test error";
+
+            // Act & Assert
+            var exception = Record.Exception(() => _activitySource.SetTransactionStatus(activity, false, errorMessage));
+            Assert.Null(exception);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithValidActivityAndSuccessTrue_Should_SetStatusToOk()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-success",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.SetTransactionStatus(activity, true);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Ok, activity.Status);
+            Assert.Null(activity.StatusDescription);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithValidActivityAndSuccessTrue_AfterPreviousError_Should_ChangeStatusToOk()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-change-status",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            // First set to error
+            _activitySource.SetTransactionStatus(activity, false, "Initial error");
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+
+            // Act - change to success
+            _activitySource.SetTransactionStatus(activity, true);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Ok, activity.Status);
+            Assert.Null(activity.StatusDescription);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithValidActivityAndSuccessFalse_Should_SetStatusToErrorWithDefaultMessage()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-fail-default",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.SetTransactionStatus(activity, false);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal("Transaction failed", activity.StatusDescription);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithValidActivityAndSuccessFalse_AfterPreviousSuccess_Should_ChangeStatusToError()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-change-to-error",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            // First set to success
+            _activitySource.SetTransactionStatus(activity, true);
+            Assert.Equal(ActivityStatusCode.Ok, activity.Status);
+
+            // Act - change to error
+            _activitySource.SetTransactionStatus(activity, false);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal("Transaction failed", activity.StatusDescription);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithValidActivityAndSuccessFalseAndCustomErrorMessage_Should_SetStatusToErrorWithCustomMessage()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-fail-custom",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            var customErrorMessage = "Custom error occurred during transaction";
+            
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.SetTransactionStatus(activity, false, customErrorMessage);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal(customErrorMessage, activity.StatusDescription);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithValidActivityAndSuccessFalseAndEmptyErrorMessage_Should_SetStatusToErrorWithEmptyMessage()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-fail-empty",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            var emptyErrorMessage = "";
+            
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.SetTransactionStatus(activity, false, emptyErrorMessage);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal(emptyErrorMessage, activity.StatusDescription);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithValidActivityAndSuccessFalseAndNullErrorMessage_Should_SetStatusToErrorWithDefaultMessage()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-fail-null",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            string? nullErrorMessage = null;
+            
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.SetTransactionStatus(activity, false, nullErrorMessage);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal("Transaction failed", activity.StatusDescription);
+        }
+
+        [Fact]
+        public void SetTransactionStatus_WithValidActivityAndSuccessFalseAndWhitespaceErrorMessage_Should_SetStatusToErrorWithWhitespaceMessage()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            using var activity = _activitySource.StartTransactionActivity(
+                "tx-fail-whitespace",
+                "TestCommand",
+                IsolationLevel.ReadCommitted,
+                0,
+                false);
+            
+            var whitespaceErrorMessage = "   ";
+            
+            Assert.NotNull(activity);
+            Assert.Equal(ActivityStatusCode.Unset, activity.Status);
+
+            // Act
+            _activitySource.SetTransactionStatus(activity, false, whitespaceErrorMessage);
+
+            // Assert
+            Assert.Equal(ActivityStatusCode.Error, activity.Status);
+            Assert.Equal(whitespaceErrorMessage, activity.StatusDescription);
+        }
 }

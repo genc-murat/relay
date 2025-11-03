@@ -907,15 +907,22 @@ public class TransactionActivitySourceTests
                 5,
                 500);
 
-            // Assert
-            Assert.Equal(2, _capturedActivities.Count);
-            var capturedActivity1 = _capturedActivities[0];
-            var capturedActivity2 = _capturedActivities[1];
-            Assert.NotNull(capturedActivity1);
-            Assert.NotNull(capturedActivity2);
-            Assert.NotSame(capturedActivity1, capturedActivity2);
-            Assert.Equal(transactionId1, capturedActivity1.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
-            Assert.Equal(transactionId2, capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        // Assert
+        Assert.Equal(2, _capturedActivities.Count);
+        var capturedActivity1 = _capturedActivities[0];
+        var capturedActivity2 = _capturedActivities[1];
+        Assert.NotNull(capturedActivity1);
+        Assert.NotNull(capturedActivity2);
+        Assert.NotSame(capturedActivity1, capturedActivity2);
+        
+        var transactionId1Tag = capturedActivity1.TagObjects.FirstOrDefault(t => t.Key == "transaction.id");
+        var transactionId2Tag = capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "transaction.id");
+        
+        Assert.NotNull(transactionId1Tag);
+        Assert.NotNull(transactionId2Tag);
+        
+        Assert.Equal(transactionId1, transactionId1Tag.Value);
+        Assert.Equal(transactionId2, transactionId2Tag.Value);
             Assert.Equal(1, capturedActivity1.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
             Assert.Equal(2, capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "retry.attempt").Value);
         }

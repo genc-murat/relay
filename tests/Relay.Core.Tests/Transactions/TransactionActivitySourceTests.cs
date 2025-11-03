@@ -13,36 +13,43 @@ public class TransactionActivitySourceTests
     private readonly TransactionActivitySource _activitySource;
     private readonly List<Activity> _capturedActivities;
 
-    public TransactionActivitySourceTests()
-    {
-        _capturedActivities = new List<Activity>();
-        
-        // Set up a listener to capture activities
-        ActivitySource.AddActivityListener(new ActivityListener
+        public TransactionActivitySourceTests()
         {
-            ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
-            ActivityStarted = activity => _capturedActivities.Add(activity)
-        });
-        
-        _activitySource = new TransactionActivitySource();
-    }
+            _capturedActivities = new List<Activity>();
+            
+            // Set up a listener to capture activities
+            ActivitySource.AddActivityListener(new ActivityListener
+            {
+                ShouldListenTo = (source) => source.Name == TransactionActivitySource.SourceName,
+                Sample = (ref ActivityCreationOptions<ActivityContext> options) => ActivitySamplingResult.AllData,
+                ActivityStarted = activity => _capturedActivities.Add(activity)
+            });
+            
+            _activitySource = new TransactionActivitySource();
+        }
 
-    [Fact]
-    public void Constructor_Should_Initialize_ActivitySource()
-    {
-        // Arrange & Act
-        var source = new TransactionActivitySource();
+        private void ClearCapturedActivities()
+        {
+            _capturedActivities.Clear();
+        }
 
-        // Assert
-        Assert.NotNull(source);
-    }
+        [Fact]
+        public void Constructor_Should_Initialize_ActivitySource()
+        {
+            // Arrange & Act
+            ClearCapturedActivities();
+            var source = new TransactionActivitySource();
 
-    [Fact]
-    public void StartTransactionActivity_WithAllParameters_Should_Create_Activity_With_Tags()
-    {
-        // Arrange
-        var transactionId = "tx-123";
+            // Assert
+            Assert.NotNull(source);
+        }
+
+        [Fact]
+        public void StartTransactionActivity_WithAllParameters_Should_Create_Activity_With_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-123";
         var requestType = "CreateOrderCommand";
         var isolationLevel = IsolationLevel.ReadCommitted;
         var nestingLevel = 0;
@@ -71,11 +78,12 @@ public class TransactionActivitySourceTests
         Assert.Equal(timeoutSeconds, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.timeout_seconds").Value);
     }
 
-    [Fact]
-    public void StartTransactionActivity_WithoutTimeout_Should_Create_Activity_Without_Timeout_Tag()
-    {
-        // Arrange
-        var transactionId = "tx-456";
+        [Fact]
+        public void StartTransactionActivity_WithoutTimeout_Should_Create_Activity_Without_Timeout_Tag()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-456";
         var requestType = "UpdateProductCommand";
         var isolationLevel = IsolationLevel.Serializable;
         var nestingLevel = 1;
@@ -100,11 +108,12 @@ public class TransactionActivitySourceTests
         Assert.Null(capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.timeout_seconds").Value);
     }
 
-    [Fact]
-    public void StartTransactionActivity_WithConfiguration_Should_Create_Activity_With_Configuration_Values()
-    {
-        // Arrange
-        var requestType = "DeleteUserCommand";
+        [Fact]
+        public void StartTransactionActivity_WithConfiguration_Should_Create_Activity_With_Configuration_Values()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var requestType = "DeleteUserCommand";
         var configuration = new TransactionConfiguration(
             IsolationLevel.RepeatableRead,
             TimeSpan.FromSeconds(45),
@@ -125,11 +134,12 @@ public class TransactionActivitySourceTests
         Assert.NotNull(capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
     }
 
-    [Fact]
-    public void StartTransactionActivity_WithConfiguration_NoTimeout_Should_Create_Activity_Without_Timeout_Tag()
-    {
-        // Arrange
-        var requestType = "ReadProductQuery";
+        [Fact]
+        public void StartTransactionActivity_WithConfiguration_NoTimeout_Should_Create_Activity_Without_Timeout_Tag()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var requestType = "ReadProductQuery";
         var configuration = new TransactionConfiguration(
             IsolationLevel.ReadCommitted,
             System.Threading.Timeout.InfiniteTimeSpan,
@@ -147,14 +157,15 @@ public class TransactionActivitySourceTests
         Assert.Null(capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.timeout_seconds").Value);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    [InlineData(null)]
-    public void StartTransactionActivity_WithInvalidTransactionId_Should_Handle_Gracefully(string transactionId)
-    {
-        // Arrange
-        var requestType = "TestCommand";
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void StartTransactionActivity_WithInvalidTransactionId_Should_Handle_Gracefully(string transactionId)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var requestType = "TestCommand";
         var isolationLevel = IsolationLevel.ReadCommitted;
         var nestingLevel = 0;
         var isReadOnly = false;
@@ -175,11 +186,12 @@ public class TransactionActivitySourceTests
         Assert.Equal(nestingLevel, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.nesting_level").Value);
     }
 
-    [Fact]
-    public void StartTransactionActivity_WithAllIsolationLevels_Should_Create_Activity_With_Correct_Tags()
-    {
-        // Arrange
-        var isolationLevels = Enum.GetValues<IsolationLevel>();
+        [Fact]
+        public void StartTransactionActivity_WithAllIsolationLevels_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var isolationLevels = Enum.GetValues<IsolationLevel>();
 
         foreach (var isolationLevel in isolationLevels)
         {
@@ -196,14 +208,18 @@ public class TransactionActivitySourceTests
             Assert.NotNull(capturedActivity);
             Assert.Equal(isolationLevel.ToString(), capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.isolation_level").Value);
         }
+        
+        // Clean up all activities created in this test to avoid affecting other tests
+        ClearCapturedActivities();
     }
 
-    [Fact]
-    public void StartTransactionActivity_MultipleCalls_Should_Create_Different_Activities()
-    {
-        // Arrange
-        var transactionId1 = "tx-1";
-        var transactionId2 = "tx-2";
+        [Fact]
+        public void StartTransactionActivity_MultipleCalls_Should_Create_Different_Activities()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId1 = "tx-1";
+            var transactionId2 = "tx-2";
 
         // Act
         using var activity1 = _activitySource.StartTransactionActivity(
@@ -231,11 +247,12 @@ public class TransactionActivitySourceTests
         Assert.Equal(transactionId2, capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
     }
 
-    [Fact]
-    public void StartTransactionActivity_Activity_Disposal_Should_Work_Correctly()
-    {
-        // Arrange
-        var transactionId = "tx-dispose";
+        [Fact]
+        public void StartTransactionActivity_Activity_Disposal_Should_Work_Correctly()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-dispose";
 
         // Act
         var activity = _activitySource.StartTransactionActivity(
@@ -255,5 +272,260 @@ public class TransactionActivitySourceTests
 
         // Assert
         Assert.True(capturedActivity.IsStopped);
+    }
+
+        [Fact]
+        public void StartSavepointActivity_WithAllParameters_Should_Create_Activity_With_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-123";
+        var savepointName = "sp_main";
+        var operation = "Create";
+
+        // Act
+        using var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            savepointName,
+            operation);
+
+        // Assert
+        var capturedActivity = _capturedActivities.LastOrDefault();
+        Assert.NotNull(capturedActivity);
+        Assert.Equal("relay.transaction.savepoint", capturedActivity.DisplayName);
+        Assert.Equal(ActivityKind.Internal, capturedActivity.Kind);
+        Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal(savepointName, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal(operation, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
+    }
+
+        [Theory]
+        [InlineData("Create")]
+        [InlineData("Rollback")]
+        [InlineData("Release")]
+        [InlineData("CustomOperation")]
+        public void StartSavepointActivity_WithDifferentOperations_Should_Create_Activity_With_Correct_Operation_Tag(string operation)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-456";
+            var savepointName = "sp_test";
+
+        // Act
+        using var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            savepointName,
+            operation);
+
+            // Assert
+            var capturedActivity = _capturedActivities.LastOrDefault();
+            Assert.NotNull(capturedActivity);
+            
+            var operationTag = capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation");
+            Assert.True(operationTag.Key != null, $"savepoint.operation tag not found. Available tags: {string.Join(", ", capturedActivity.TagObjects.Select(t => $"{t.Key}={t.Value}"))}");
+            Assert.Equal(operation, operationTag.Value);
+    }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void StartSavepointActivity_WithInvalidTransactionId_Should_Handle_Gracefully(string transactionId)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var savepointName = "sp_invalid";
+        var operation = "Create";
+
+        // Act
+        using var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            savepointName,
+            operation);
+
+        // Assert
+        var capturedActivity = _capturedActivities.LastOrDefault();
+        Assert.NotNull(capturedActivity);
+        Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal(savepointName, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal(operation, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
+    }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void StartSavepointActivity_WithInvalidSavepointName_Should_Handle_Gracefully(string savepointName)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-789";
+        var operation = "Rollback";
+
+        // Act
+        using var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            savepointName,
+            operation);
+
+        // Assert
+        var capturedActivity = _capturedActivities.LastOrDefault();
+        Assert.NotNull(capturedActivity);
+        Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal(savepointName, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal(operation, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
+    }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void StartSavepointActivity_WithInvalidOperation_Should_Handle_Gracefully(string operation)
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-invalid-op";
+        var savepointName = "sp_invalid_op";
+
+        // Act
+        using var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            savepointName,
+            operation);
+
+        // Assert
+        var capturedActivity = _capturedActivities.LastOrDefault();
+        Assert.NotNull(capturedActivity);
+        Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal(savepointName, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal(operation, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
+    }
+
+        [Fact]
+        public void StartSavepointActivity_WithLongSavepointName_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-long";
+        var savepointName = "this_is_a_very_long_savepoint_name_that_tests_boundary_conditions";
+        var operation = "Create";
+
+        // Act
+        using var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            savepointName,
+            operation);
+
+        // Assert
+        var capturedActivity = _capturedActivities.LastOrDefault();
+        Assert.NotNull(capturedActivity);
+        Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal(savepointName, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal(operation, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
+    }
+
+        [Fact]
+        public void StartSavepointActivity_WithSpecialCharacters_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-special";
+        var savepointName = "sp_special-chars_123";
+        var operation = "Create-Special";
+
+        // Act
+        using var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            savepointName,
+            operation);
+
+        // Assert
+        var capturedActivity = _capturedActivities.LastOrDefault();
+        Assert.NotNull(capturedActivity);
+        Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal(savepointName, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal(operation, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
+    }
+
+        [Fact]
+        public void StartSavepointActivity_MultipleCalls_Should_Create_Different_Activities()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId1 = "tx-sp-1";
+        var transactionId2 = "tx-sp-2";
+
+        // Act
+        using var activity1 = _activitySource.StartSavepointActivity(
+            transactionId1,
+            "sp1",
+            "Create");
+
+        using var activity2 = _activitySource.StartSavepointActivity(
+            transactionId2,
+            "sp2",
+            "Rollback");
+
+        // Assert
+        Assert.Equal(2, _capturedActivities.Count);
+        var capturedActivity1 = _capturedActivities[0];
+        var capturedActivity2 = _capturedActivities[1];
+        Assert.NotNull(capturedActivity1);
+        Assert.NotNull(capturedActivity2);
+        Assert.NotSame(capturedActivity1, capturedActivity2);
+        Assert.Equal(transactionId1, capturedActivity1.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal(transactionId2, capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal("sp1", capturedActivity1.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal("sp2", capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal("Create", capturedActivity1.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
+        Assert.Equal("Rollback", capturedActivity2.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
+    }
+
+        [Fact]
+        public void StartSavepointActivity_Activity_Disposal_Should_Work_Correctly()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-dispose-sp";
+
+        // Act
+        var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            "sp_dispose",
+            "Release");
+
+        // Assert
+        var capturedActivity = _capturedActivities.LastOrDefault();
+        Assert.NotNull(capturedActivity);
+        Assert.False(capturedActivity.IsStopped);
+
+        // Act
+        activity.Dispose();
+
+        // Assert
+        Assert.True(capturedActivity.IsStopped);
+    }
+
+        [Fact]
+        public void StartSavepointActivity_WithNumericSavepointName_Should_Create_Activity_With_Correct_Tags()
+        {
+            // Arrange
+            ClearCapturedActivities();
+            var transactionId = "tx-numeric";
+        var savepointName = "sp_12345";
+        var operation = "Create";
+
+        // Act
+        using var activity = _activitySource.StartSavepointActivity(
+            transactionId,
+            savepointName,
+            operation);
+
+        // Assert
+        var capturedActivity = _capturedActivities.LastOrDefault();
+        Assert.NotNull(capturedActivity);
+        Assert.Equal(transactionId, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "transaction.id").Value);
+        Assert.Equal(savepointName, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.name").Value);
+        Assert.Equal(operation, capturedActivity.TagObjects.FirstOrDefault(t => t.Key == "savepoint.operation").Value);
     }
 }

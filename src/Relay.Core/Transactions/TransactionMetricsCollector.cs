@@ -40,7 +40,7 @@ namespace Relay.Core.Transactions
     /// Console.WriteLine($"Success Rate: {metrics.SuccessRate:P}");
     /// </code>
     /// </remarks>
-    public class TransactionMetricsCollector
+    public class TransactionMetricsCollector : ITransactionMetricsCollector
     {
         private long _totalTransactions;
         private long _successfulTransactions;

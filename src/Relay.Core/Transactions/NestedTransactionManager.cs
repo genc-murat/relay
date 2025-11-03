@@ -41,7 +41,7 @@ namespace Relay.Core.Transactions
     /// </code>
     /// </para>
     /// </remarks>
-    public sealed class NestedTransactionManager
+    public sealed class NestedTransactionManager : INestedTransactionManager
     {
         private readonly ILogger<NestedTransactionManager> _logger;
 

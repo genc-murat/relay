@@ -21,7 +21,7 @@ namespace Relay.Core.Transactions
     /// 
     /// This class is used internally by the TransactionBehavior to manage transaction operations.
     /// </remarks>
-    public sealed class TransactionCoordinator
+    public sealed class TransactionCoordinator : ITransactionCoordinator
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TransactionCoordinator> _logger;

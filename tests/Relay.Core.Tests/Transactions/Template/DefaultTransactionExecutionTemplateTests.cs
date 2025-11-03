@@ -17,8 +17,8 @@ namespace Relay.Core.Tests.Transactions.Template
     public class DefaultTransactionExecutionTemplateTests
     {
         private readonly Mock<ILogger<DefaultTransactionExecutionTemplate>> _loggerMock;
-        private readonly Mock<TransactionConfigurationResolver> _configurationResolverMock;
-        private readonly Mock<TransactionRetryHandler> _retryHandlerMock;
+        private readonly Mock<ITransactionConfigurationResolver> _configurationResolverMock;
+        private readonly Mock<ITransactionRetryHandler> _retryHandlerMock;
         private readonly Mock<ITransactionStrategyFactory> _strategyFactoryMock;
         private readonly Mock<ITransactionExecutionStrategy> _strategyMock;
         private readonly DefaultTransactionExecutionTemplate _template;
@@ -26,8 +26,8 @@ namespace Relay.Core.Tests.Transactions.Template
         public DefaultTransactionExecutionTemplateTests()
         {
             _loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<DefaultTransactionExecutionTemplate>>();
-            _configurationResolverMock = new Mock<TransactionConfigurationResolver>();
-            _retryHandlerMock = new Mock<TransactionRetryHandler>();
+            _configurationResolverMock = new Mock<ITransactionConfigurationResolver>();
+            _retryHandlerMock = new Mock<ITransactionRetryHandler>();
             _strategyFactoryMock = new Mock<ITransactionStrategyFactory>();
             _strategyMock = new Mock<ITransactionExecutionStrategy>();
 

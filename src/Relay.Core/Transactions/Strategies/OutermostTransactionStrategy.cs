@@ -17,10 +17,10 @@ namespace Relay.Core.Transactions.Strategies
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<OutermostTransactionStrategy> _logger;
-        private readonly TransactionCoordinator _transactionCoordinator;
-        private readonly TransactionEventPublisher _eventPublisher;
-        private readonly TransactionMetricsCollector _metricsCollector;
-        private readonly NestedTransactionManager _nestedTransactionManager;
+        private readonly ITransactionCoordinator _transactionCoordinator;
+        private readonly ITransactionEventPublisher _eventPublisher;
+        private readonly ITransactionMetricsCollector _metricsCollector;
+        private readonly INestedTransactionManager _nestedTransactionManager;
         private readonly TransactionActivitySource _activitySource;
         private readonly TransactionLogger _transactionLogger;
         private readonly ITransactionEventContextFactory _eventContextFactory;
@@ -28,10 +28,10 @@ namespace Relay.Core.Transactions.Strategies
         public OutermostTransactionStrategy(
             IUnitOfWork unitOfWork,
             ILogger<OutermostTransactionStrategy> logger,
-            TransactionCoordinator transactionCoordinator,
-            TransactionEventPublisher eventPublisher,
-            TransactionMetricsCollector metricsCollector,
-            NestedTransactionManager nestedTransactionManager,
+            ITransactionCoordinator transactionCoordinator,
+            ITransactionEventPublisher eventPublisher,
+            ITransactionMetricsCollector metricsCollector,
+            INestedTransactionManager nestedTransactionManager,
             TransactionActivitySource activitySource,
             TransactionLogger transactionLogger,
             ITransactionEventContextFactory eventContextFactory)

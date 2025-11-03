@@ -14,17 +14,17 @@ namespace Relay.Core.Tests.Transactions.Tracking
 {
     public class TransactionTrackerTests
     {
-        private readonly Mock<TransactionMetricsCollector> _metricsCollectorMock;
-        private readonly Mock<TransactionActivitySource> _activitySourceMock;
-        private readonly Mock<TransactionLogger> _transactionLoggerMock;
+        private readonly Mock<ITransactionMetricsCollector> _metricsCollectorMock;
+        private readonly Mock<ITransactionActivitySource> _activitySourceMock;
+        private readonly Mock<ITransactionLogger> _transactionLoggerMock;
         private readonly Mock<ILogger<TransactionTracker>> _loggerMock;
         private readonly TransactionTracker _tracker;
 
         public TransactionTrackerTests()
         {
-            _metricsCollectorMock = new Mock<TransactionMetricsCollector>();
-            _activitySourceMock = new Mock<TransactionActivitySource>();
-            _transactionLoggerMock = new Mock<TransactionLogger>(NullLogger<TransactionLogger>.Instance);
+            _metricsCollectorMock = new Mock<ITransactionMetricsCollector>();
+            _activitySourceMock = new Mock<ITransactionActivitySource>();
+            _transactionLoggerMock = new Mock<ITransactionLogger>();
             _loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<TransactionTracker>>();
 
             _tracker = new TransactionTracker(

@@ -16,24 +16,25 @@ namespace Relay.Core.Tests.Transactions.Strategies
     public class OutermostTransactionStrategyTests
     {
         private readonly Mock<IUnitOfWork> _unitOfWorkMock;
-        private readonly Mock<TransactionCoordinator> _transactionCoordinatorMock;
-        private readonly Mock<TransactionEventPublisher> _eventPublisherMock;
-        private readonly Mock<TransactionMetricsCollector> _metricsCollectorMock;
-        private readonly Mock<NestedTransactionManager> _nestedTransactionManagerMock;
+        private readonly Mock<ITransactionCoordinator> _transactionCoordinatorMock;
+        private readonly Mock<ITransactionEventPublisher> _eventPublisherMock;
+        private readonly Mock<ITransactionMetricsCollector> _metricsCollectorMock;
+        private readonly Mock<INestedTransactionManager> _nestedTransactionManagerMock;
         private readonly Mock<TransactionActivitySource> _activitySourceMock;
-        private readonly Mock<TransactionLogger> _transactionLoggerMock;
+        private readonly TransactionLogger _transactionLogger;
         private readonly Mock<ITransactionEventContextFactory> _eventContextFactoryMock;
         private readonly OutermostTransactionStrategy _strategy;
 
         public OutermostTransactionStrategyTests()
         {
             _unitOfWorkMock = new Mock<IUnitOfWork>();
-            _transactionCoordinatorMock = new Mock<TransactionCoordinator>(NullLogger<TransactionCoordinator>.Instance);
-            _eventPublisherMock = new Mock<TransactionEventPublisher>();
-            _metricsCollectorMock = new Mock<TransactionMetricsCollector>();
-            _nestedTransactionManagerMock = new Mock<NestedTransactionManager>(NullLogger<NestedTransactionManager>.Instance);
+            _unitOfWorkMock.SetupProperty(x => x.IsReadOnly, false); // Mock the property with initial value
+            _transactionCoordinatorMock = new Mock<ITransactionCoordinator>();
+            _eventPublisherMock = new Mock<ITransactionEventPublisher>();
+            _metricsCollectorMock = new Mock<ITransactionMetricsCollector>();
+            _nestedTransactionManagerMock = new Mock<INestedTransactionManager>();
             _activitySourceMock = new Mock<TransactionActivitySource>();
-            _transactionLoggerMock = new Mock<TransactionLogger>(NullLogger<TransactionLogger>.Instance);
+            _transactionLogger = new TransactionLogger(NullLogger.Instance);
             _eventContextFactoryMock = new Mock<ITransactionEventContextFactory>();
 
             _strategy = new OutermostTransactionStrategy(
@@ -44,7 +45,7 @@ namespace Relay.Core.Tests.Transactions.Strategies
                 _metricsCollectorMock.Object,
                 _nestedTransactionManagerMock.Object,
                 _activitySourceMock.Object,
-                _transactionLoggerMock.Object,
+                _transactionLogger,
                 _eventContextFactoryMock.Object);
         }
 
@@ -77,6 +78,15 @@ namespace Relay.Core.Tests.Transactions.Strategies
             _transactionCoordinatorMock.Setup(x => x.BeginTransactionAsync(
                     configuration, requestType, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((mockTransaction.Object, mockContext.Object, null));
+
+            _transactionCoordinatorMock.Setup(x => x.ExecuteWithTimeoutAsync(
+                    It.IsAny<Func<CancellationToken, Task<string>>>(),
+                    mockContext.Object,
+                    null,
+                    configuration.Timeout,
+                    requestType,
+                    It.IsAny<CancellationToken>()))
+                .Returns((Func<CancellationToken, Task<string>> op, ITransactionContext ctx, CancellationTokenSource? timeoutCts, TimeSpan timeout, string reqType, CancellationToken ct) => op(ct));
 
             _nestedTransactionManagerMock.Setup(x => x.ShouldCommitTransaction(mockContext.Object))
                 .Returns(true);
@@ -129,6 +139,15 @@ namespace Relay.Core.Tests.Transactions.Strategies
                     configuration, requestType, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((mockTransaction.Object, mockContext.Object, null));
 
+            _transactionCoordinatorMock.Setup(x => x.ExecuteWithTimeoutAsync(
+                    It.IsAny<Func<CancellationToken, Task<string>>>(),
+                    mockContext.Object,
+                    null, // timeoutCts
+                    configuration.Timeout,
+                    requestType,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync("success");
+
             _nestedTransactionManagerMock.Setup(x => x.ShouldCommitTransaction(mockContext.Object))
                 .Returns(true);
 
@@ -138,7 +157,7 @@ namespace Relay.Core.Tests.Transactions.Strategies
             await _strategy.ExecuteAsync(request, nextDelegate, configuration, requestType, CancellationToken.None);
 
             // Assert
-            Assert.True(_unitOfWorkMock.Object.IsReadOnly);
+            _unitOfWorkMock.VerifySet(x => x.IsReadOnly = true, Times.Once);
         }
 
         [Fact]
@@ -169,6 +188,15 @@ namespace Relay.Core.Tests.Transactions.Strategies
             _transactionCoordinatorMock.Setup(x => x.BeginTransactionAsync(
                     configuration, requestType, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((mockTransaction.Object, mockContext.Object, null));
+
+            _transactionCoordinatorMock.Setup(x => x.ExecuteWithTimeoutAsync(
+                    It.IsAny<Func<CancellationToken, Task<string>>>(),
+                    mockContext.Object,
+                    null, // timeoutCts
+                    configuration.Timeout,
+                    requestType,
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(expectedException);
 
             _nestedTransactionManagerMock.Setup(x => x.ShouldRollbackTransaction(mockContext.Object))
                 .Returns(true);
@@ -216,6 +244,15 @@ namespace Relay.Core.Tests.Transactions.Strategies
             _transactionCoordinatorMock.Setup(x => x.BeginTransactionAsync(
                     configuration, requestType, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((mockTransaction.Object, mockContext.Object, null));
+
+            _transactionCoordinatorMock.Setup(x => x.ExecuteWithTimeoutAsync(
+                    It.IsAny<Func<CancellationToken, Task<string>>>(),
+                    mockContext.Object,
+                    null, // timeoutCts
+                    configuration.Timeout,
+                    requestType,
+                    It.IsAny<CancellationToken>()))
+                .Returns((Func<CancellationToken, Task<string>> op, ITransactionContext ctx, CancellationTokenSource? timeoutCts, TimeSpan timeout, string reqType, CancellationToken ct) => op(ct));
 
             _nestedTransactionManagerMock.Setup(x => x.ShouldRollbackTransaction(mockContext.Object))
                 .Returns(true);
@@ -265,6 +302,15 @@ namespace Relay.Core.Tests.Transactions.Strategies
             _transactionCoordinatorMock.Setup(x => x.BeginTransactionAsync(
                     configuration, requestType, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((mockTransaction.Object, mockContext.Object, null));
+
+            _transactionCoordinatorMock.Setup(x => x.ExecuteWithTimeoutAsync(
+                    It.IsAny<Func<CancellationToken, Task<string>>>(),
+                    mockContext.Object,
+                    null, // timeoutCts
+                    configuration.Timeout,
+                    requestType,
+                    It.IsAny<CancellationToken>()))
+                .Returns((Func<CancellationToken, Task<string>> op, ITransactionContext ctx, CancellationTokenSource? timeoutCts, TimeSpan timeout, string reqType, CancellationToken ct) => op(ct));
 
             _nestedTransactionManagerMock.Setup(x => x.ShouldCommitTransaction(mockContext.Object))
                 .Returns(true);

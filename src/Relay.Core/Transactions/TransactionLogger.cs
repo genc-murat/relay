@@ -29,7 +29,7 @@ namespace Relay.Core.Transactions
     /// );
     /// </code>
     /// </remarks>
-    public partial class TransactionLogger
+    public partial class TransactionLogger : ITransactionLogger
     {
         private readonly ILogger _logger;
 
@@ -269,7 +269,7 @@ namespace Relay.Core.Transactions
         /// <summary>
         /// Logs saving changes operation.
         /// </summary>
-        public void LogSavingChanges(string transactionId, string requestType, bool isNested)
+        public virtual void LogSavingChanges(string transactionId, string requestType, bool isNested)
         {
             if (isNested)
             {
@@ -290,7 +290,7 @@ namespace Relay.Core.Transactions
         /// <summary>
         /// Logs nested transaction completed.
         /// </summary>
-        public void LogNestedTransactionCompleted(string requestType, string transactionId)
+        public virtual void LogNestedTransactionCompleted(string requestType, string transactionId)
         {
             _logger.LogInformation(
                 "Nested transaction {RequestType} completed successfully. Transaction {TransactionId} will be committed by outermost transaction.",
@@ -301,7 +301,7 @@ namespace Relay.Core.Transactions
         /// <summary>
         /// Logs distributed transaction created.
         /// </summary>
-        public void LogDistributedTransactionCreated(string transactionId, string requestType, IsolationLevel isolationLevel)
+        public virtual void LogDistributedTransactionCreated(string transactionId, string requestType, IsolationLevel isolationLevel)
         {
             _logger.LogInformation(
                 "Distributed transaction {TransactionId} created for {RequestType} with isolation level {IsolationLevel}",
@@ -313,7 +313,7 @@ namespace Relay.Core.Transactions
         /// <summary>
         /// Logs distributed transaction committed.
         /// </summary>
-        public void LogDistributedTransactionCommitted(string transactionId, string requestType, IsolationLevel isolationLevel)
+        public virtual void LogDistributedTransactionCommitted(string transactionId, string requestType, IsolationLevel isolationLevel)
         {
             _logger.LogInformation(
                 "Distributed transaction {TransactionId} committed for {RequestType} with isolation level {IsolationLevel}",

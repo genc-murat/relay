@@ -98,7 +98,7 @@ namespace Relay.Core.Tests.Transactions.Factories
             // Arrange
             var requestType = "TestRequest";
             var configuration = new TransactionConfiguration(
-                IsolationLevel.ReadCommitted,
+                isolationLevel,
                 TimeSpan.FromMinutes(1));
 
             // Act
@@ -117,7 +117,8 @@ namespace Relay.Core.Tests.Transactions.Factories
             var requestType = "TestRequest";
             var configuration = new TransactionConfiguration(
                 IsolationLevel.ReadCommitted,
-                TimeSpan.FromMinutes(1));
+                TimeSpan.FromMinutes(1),
+                isReadOnly: isReadOnly);
 
             // Act
             var context = _factory.CreateEventContext(requestType, configuration);
@@ -142,7 +143,7 @@ namespace Relay.Core.Tests.Transactions.Factories
             var context = _factory.CreateEventContext(requestType, configuration);
 
             // Assert
-            Assert.Equal(0, context.NestingLevel);
+            Assert.Equal(useDistributedTransaction, context.Metadata["UseDistributedTransaction"]);
         }
 
         [Fact]

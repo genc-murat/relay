@@ -23,7 +23,7 @@ namespace Relay.Core.Transactions
     /// and throws <see cref="TransactionRetryExhaustedException"/> when all retry attempts are exhausted.
     /// </para>
     /// </remarks>
-    public class TransactionRetryHandler
+    public class TransactionRetryHandler : ITransactionRetryHandler
     {
         private readonly ILogger<TransactionRetryHandler> _logger;
         private readonly ITransientErrorDetector _defaultErrorDetector;

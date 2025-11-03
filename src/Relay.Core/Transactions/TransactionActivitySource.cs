@@ -37,7 +37,7 @@ namespace Relay.Core.Transactions;
 /// }
 /// </code>
 /// </remarks>
-public class TransactionActivitySource
+public class TransactionActivitySource : ITransactionActivitySource
 {
     /// <summary>
     /// The name of the ActivitySource for transaction operations.
@@ -81,7 +81,7 @@ public class TransactionActivitySource
     /// - transaction.is_readonly: Whether transaction is read-only
     /// - transaction.timeout_seconds: Timeout duration (if configured)
     /// </remarks>
-    public Activity? StartTransactionActivity(
+    public virtual Activity? StartTransactionActivity(
         string transactionId,
         string requestType,
         IsolationLevel isolationLevel,
@@ -125,7 +125,7 @@ public class TransactionActivitySource
     /// - savepoint.name: Savepoint name
     /// - savepoint.operation: Operation type (Create, Rollback, Release)
     /// </remarks>
-    public Activity? StartSavepointActivity(
+    public virtual Activity? StartSavepointActivity(
         string transactionId,
         string savepointName,
         string operation)
@@ -163,7 +163,7 @@ public class TransactionActivitySource
     /// - retry.max_attempts: Maximum retry attempts
     /// - retry.delay_ms: Delay before this attempt
     /// </remarks>
-    public Activity? StartRetryActivity(
+    public virtual Activity? StartRetryActivity(
         string transactionId,
         string requestType,
         int attemptNumber,
@@ -196,7 +196,7 @@ public class TransactionActivitySource
     /// This method is a no-op if the activity is null.
     /// Events provide additional context within a span's timeline.
     /// </remarks>
-    public void AddTransactionEvent(Activity? activity, string eventName, DateTime timestamp)
+    public virtual void AddTransactionEvent(Activity? activity, string eventName, DateTime timestamp)
     {
         activity?.AddEvent(new ActivityEvent(
             name: eventName,
@@ -214,7 +214,7 @@ public class TransactionActivitySource
     /// This method is a no-op if the activity is null.
     /// Sets ActivityStatusCode.Ok for successful transactions and ActivityStatusCode.Error for failures.
     /// </remarks>
-    public void SetTransactionStatus(Activity? activity, bool success, string? errorMessage = null)
+    public virtual void SetTransactionStatus(Activity? activity, bool success, string? errorMessage = null)
     {
         if (activity == null) return;
 
@@ -237,7 +237,7 @@ public class TransactionActivitySource
     /// This method is a no-op if the activity is null or exception is null.
     /// Records exception details as an event with standard OpenTelemetry exception attributes.
     /// </remarks>
-    public void RecordException(Activity? activity, Exception? exception)
+    public virtual void RecordException(Activity? activity, Exception? exception)
     {
         if (activity == null || exception == null) return;
 
@@ -255,7 +255,7 @@ public class TransactionActivitySource
     /// <summary>
     /// Starts a transaction activity from configuration.
     /// </summary>
-    public Activity? StartTransactionActivity(string requestType, ITransactionConfiguration configuration)
+    public virtual Activity? StartTransactionActivity(string requestType, ITransactionConfiguration configuration)
     {
         var timeoutSeconds = configuration.Timeout > TimeSpan.Zero && configuration.Timeout != System.Threading.Timeout.InfiniteTimeSpan
             ? (int?)configuration.Timeout.TotalSeconds
@@ -273,7 +273,7 @@ public class TransactionActivitySource
     /// <summary>
     /// Records transaction success.
     /// </summary>
-    public void RecordTransactionSuccess(Activity? activity, ITransactionContext context, TimeSpan duration)
+    public virtual void RecordTransactionSuccess(Activity? activity, ITransactionContext context, TimeSpan duration)
     {
         if (activity == null) return;
 
@@ -285,7 +285,7 @@ public class TransactionActivitySource
     /// <summary>
     /// Records transaction timeout.
     /// </summary>
-    public void RecordTransactionTimeout(Activity? activity, ITransactionContext context, Exception exception)
+    public virtual void RecordTransactionTimeout(Activity? activity, ITransactionContext context, Exception exception)
     {
         if (activity == null) return;
 
@@ -296,7 +296,7 @@ public class TransactionActivitySource
     /// <summary>
     /// Records transaction rollback.
     /// </summary>
-    public void RecordTransactionRollback(Activity? activity, ITransactionContext context, Exception exception)
+    public virtual void RecordTransactionRollback(Activity? activity, ITransactionContext context, Exception exception)
     {
         if (activity == null) return;
 
@@ -307,7 +307,7 @@ public class TransactionActivitySource
     /// <summary>
     /// Records transaction failure.
     /// </summary>
-    public void RecordTransactionFailure(Activity? activity, ITransactionContext context, Exception exception)
+    public virtual void RecordTransactionFailure(Activity? activity, ITransactionContext context, Exception exception)
     {
         if (activity == null) return;
 

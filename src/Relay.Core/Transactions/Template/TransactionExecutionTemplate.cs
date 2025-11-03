@@ -14,13 +14,13 @@ namespace Relay.Core.Transactions.Template
     public abstract class TransactionExecutionTemplate
     {
         protected readonly ILogger Logger;
-        protected readonly TransactionConfigurationResolver ConfigurationResolver;
-        protected readonly TransactionRetryHandler RetryHandler;
+        protected readonly ITransactionConfigurationResolver ConfigurationResolver;
+        protected readonly ITransactionRetryHandler RetryHandler;
 
         protected TransactionExecutionTemplate(
             ILogger logger,
-            TransactionConfigurationResolver configurationResolver,
-            TransactionRetryHandler retryHandler)
+            ITransactionConfigurationResolver configurationResolver,
+            ITransactionRetryHandler retryHandler)
         {
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             ConfigurationResolver = configurationResolver ?? throw new ArgumentNullException(nameof(configurationResolver));

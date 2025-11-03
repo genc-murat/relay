@@ -18,8 +18,8 @@ namespace Relay.Core.Transactions.Strategies
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<DistributedTransactionStrategy> _logger;
         private readonly DistributedTransactionCoordinator _distributedTransactionCoordinator;
-        private readonly TransactionEventPublisher _eventPublisher;
-        private readonly TransactionMetricsCollector _metricsCollector;
+        private readonly ITransactionEventPublisher _eventPublisher;
+        private readonly ITransactionMetricsCollector _metricsCollector;
         private readonly TransactionActivitySource _activitySource;
         private readonly TransactionLogger _transactionLogger;
         private readonly ITransactionEventContextFactory _eventContextFactory;
@@ -28,8 +28,8 @@ namespace Relay.Core.Transactions.Strategies
             IUnitOfWork unitOfWork,
             ILogger<DistributedTransactionStrategy> logger,
             DistributedTransactionCoordinator distributedTransactionCoordinator,
-            TransactionEventPublisher eventPublisher,
-            TransactionMetricsCollector metricsCollector,
+            ITransactionEventPublisher eventPublisher,
+            ITransactionMetricsCollector metricsCollector,
             TransactionActivitySource activitySource,
             TransactionLogger transactionLogger,
             ITransactionEventContextFactory eventContextFactory)

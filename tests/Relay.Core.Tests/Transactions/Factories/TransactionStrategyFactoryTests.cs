@@ -1,58 +1,90 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Relay.Core.Transactions;
 using Relay.Core.Transactions.Factories;
 using Relay.Core.Transactions.Strategies;
 using Xunit;
+using IRelayDbTransaction = Relay.Core.Transactions.IRelayDbTransaction;
 
 namespace Relay.Core.Tests.Transactions.Factories
 {
     public class TransactionStrategyFactoryTests
     {
-        private readonly Mock<NestedTransactionStrategy> _nestedTransactionStrategyMock;
-        private readonly Mock<OutermostTransactionStrategy> _outermostTransactionStrategyMock;
-        private readonly Mock<DistributedTransactionStrategy> _distributedTransactionStrategyMock;
-        private readonly Mock<NestedTransactionManager> _nestedTransactionManagerMock;
+        private class MockDbTransaction : IRelayDbTransaction
+        {
+            public IDbConnection? Connection => null;
+            public IsolationLevel IsolationLevel => System.Data.IsolationLevel.ReadCommitted;
+
+            public Task CommitAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+            public Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+            public void Commit() { }
+            public void Rollback() { }
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        }
+
+        private readonly NestedTransactionManager _nestedTransactionManager;
+        private readonly TransactionCoordinator _transactionCoordinator;
+        private readonly DistributedTransactionCoordinator _distributedTransactionCoordinator;
+        private readonly TransactionLogger _transactionLogger;
+        private readonly TransactionActivitySource _transactionActivitySource;
+        private readonly TransactionEventPublisher _transactionEventPublisher;
+        private readonly TransactionMetricsCollector _transactionMetricsCollector;
+        private readonly ITransactionEventContextFactory _transactionEventContextFactory;
         private readonly TransactionStrategyFactory _factory;
 
         public TransactionStrategyFactoryTests()
         {
-            _nestedTransactionStrategyMock = new Mock<NestedTransactionStrategy>(
+            // Initialize real instances for sealed classes
+            _nestedTransactionManager = new NestedTransactionManager(NullLogger<NestedTransactionManager>.Instance);
+            _transactionCoordinator = new TransactionCoordinator(Mock.Of<IUnitOfWork>(), NullLogger<TransactionCoordinator>.Instance);
+            _distributedTransactionCoordinator = new DistributedTransactionCoordinator(NullLogger<DistributedTransactionCoordinator>.Instance);
+            _transactionLogger = new TransactionLogger(NullLogger.Instance);
+            _transactionActivitySource = new TransactionActivitySource();
+            _transactionEventPublisher = new TransactionEventPublisher(
+                new List<ITransactionEventHandler>(), 
+                NullLogger<TransactionEventPublisher>.Instance);
+            _transactionMetricsCollector = new TransactionMetricsCollector();
+            _transactionEventContextFactory = Mock.Of<ITransactionEventContextFactory>();
+
+            // Create real strategy instances
+            var nestedTransactionStrategy = new NestedTransactionStrategy(
                 Mock.Of<IUnitOfWork>(),
                 NullLogger<NestedTransactionStrategy>.Instance,
-                Mock.Of<NestedTransactionManager>(),
-                Mock.Of<TransactionLogger>());
+                _nestedTransactionManager,
+                _transactionLogger);
 
-            _outermostTransactionStrategyMock = new Mock<OutermostTransactionStrategy>(
+            var outermostTransactionStrategy = new OutermostTransactionStrategy(
                 Mock.Of<IUnitOfWork>(),
                 NullLogger<OutermostTransactionStrategy>.Instance,
-                Mock.Of<TransactionCoordinator>(),
-                Mock.Of<TransactionEventPublisher>(),
-                Mock.Of<TransactionMetricsCollector>(),
-                Mock.Of<NestedTransactionManager>(),
-                Mock.Of<TransactionActivitySource>(),
-                Mock.Of<TransactionLogger>(),
-                Mock.Of<ITransactionEventContextFactory>());
+                _transactionCoordinator,
+                _transactionEventPublisher,
+                _transactionMetricsCollector,
+                _nestedTransactionManager,
+                _transactionActivitySource,
+                _transactionLogger,
+                _transactionEventContextFactory);
 
-            _distributedTransactionStrategyMock = new Mock<DistributedTransactionStrategy>(
+            var distributedTransactionStrategy = new DistributedTransactionStrategy(
                 Mock.Of<IUnitOfWork>(),
                 NullLogger<DistributedTransactionStrategy>.Instance,
-                Mock.Of<DistributedTransactionCoordinator>(),
-                Mock.Of<TransactionEventPublisher>(),
-                Mock.Of<TransactionMetricsCollector>(),
-                Mock.Of<TransactionActivitySource>(),
-                Mock.Of<TransactionLogger>(),
-                Mock.Of<ITransactionEventContextFactory>());
-
-            _nestedTransactionManagerMock = new Mock<NestedTransactionManager>(NullLogger<NestedTransactionManager>.Instance);
+                _distributedTransactionCoordinator,
+                _transactionEventPublisher,
+                _transactionMetricsCollector,
+                _transactionActivitySource,
+                _transactionLogger,
+                _transactionEventContextFactory);
 
             _factory = new TransactionStrategyFactory(
-                _nestedTransactionStrategyMock.Object,
-                _outermostTransactionStrategyMock.Object,
-                _distributedTransactionStrategyMock.Object,
-                _nestedTransactionManagerMock.Object);
+                nestedTransactionStrategy,
+                outermostTransactionStrategy,
+                distributedTransactionStrategy,
+                _nestedTransactionManager);
         }
 
         [Fact]
@@ -64,13 +96,15 @@ namespace Relay.Core.Tests.Transactions.Factories
                 TimeSpan.FromMinutes(1),
                 useDistributedTransaction: true);
 
-            _nestedTransactionManagerMock.Setup(x => x.IsTransactionActive()).Returns(true);
+            // Note: Since NestedTransactionManager is not mockable (sealed class),
+            // we need to set up the actual transaction context for testing
+            TransactionContextAccessor.Clear();
 
             // Act
             var strategy = _factory.CreateStrategy(configuration);
 
             // Assert
-            Assert.Equal(_distributedTransactionStrategyMock.Object, strategy);
+            Assert.IsType<DistributedTransactionStrategy>(strategy);
         }
 
         [Fact]
@@ -79,9 +113,26 @@ namespace Relay.Core.Tests.Transactions.Factories
             // Act & Assert
             Assert.Throws<ArgumentNullException>(() => new TransactionStrategyFactory(
                 null,
-                _outermostTransactionStrategyMock.Object,
-                _distributedTransactionStrategyMock.Object,
-                _nestedTransactionManagerMock.Object));
+                new OutermostTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<OutermostTransactionStrategy>.Instance,
+                    _transactionCoordinator,
+                    _transactionEventPublisher,
+                    _transactionMetricsCollector,
+                    _nestedTransactionManager,
+                    _transactionActivitySource,
+                    _transactionLogger,
+                    _transactionEventContextFactory),
+                new DistributedTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<DistributedTransactionStrategy>.Instance,
+                    _distributedTransactionCoordinator,
+                    _transactionEventPublisher,
+                    _transactionMetricsCollector,
+                    _transactionActivitySource,
+                    _transactionLogger,
+                    _transactionEventContextFactory),
+                _nestedTransactionManager));
         }
 
         [Fact]
@@ -89,10 +140,22 @@ namespace Relay.Core.Tests.Transactions.Factories
         {
             // Act & Assert
             Assert.Throws<ArgumentNullException>(() => new TransactionStrategyFactory(
-                _nestedTransactionStrategyMock.Object,
+                new NestedTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<NestedTransactionStrategy>.Instance,
+                    _nestedTransactionManager,
+                    _transactionLogger),
                 null,
-                _distributedTransactionStrategyMock.Object,
-                _nestedTransactionManagerMock.Object));
+                new DistributedTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<DistributedTransactionStrategy>.Instance,
+                    _distributedTransactionCoordinator,
+                    _transactionEventPublisher,
+                    _transactionMetricsCollector,
+                    _transactionActivitySource,
+                    _transactionLogger,
+                    _transactionEventContextFactory),
+                _nestedTransactionManager));
         }
 
         [Fact]
@@ -100,10 +163,23 @@ namespace Relay.Core.Tests.Transactions.Factories
         {
             // Act & Assert
             Assert.Throws<ArgumentNullException>(() => new TransactionStrategyFactory(
-                _nestedTransactionStrategyMock.Object,
-                _outermostTransactionStrategyMock.Object,
+                new NestedTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<NestedTransactionStrategy>.Instance,
+                    _nestedTransactionManager,
+                    _transactionLogger),
+                new OutermostTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<OutermostTransactionStrategy>.Instance,
+                    _transactionCoordinator,
+                    _transactionEventPublisher,
+                    _transactionMetricsCollector,
+                    _nestedTransactionManager,
+                    _transactionActivitySource,
+                    _transactionLogger,
+                    _transactionEventContextFactory),
                 null,
-                _nestedTransactionManagerMock.Object));
+                _nestedTransactionManager));
         }
 
         [Fact]
@@ -111,9 +187,30 @@ namespace Relay.Core.Tests.Transactions.Factories
         {
             // Act & Assert
             Assert.Throws<ArgumentNullException>(() => new TransactionStrategyFactory(
-                _nestedTransactionStrategyMock.Object,
-                _outermostTransactionStrategyMock.Object,
-                _distributedTransactionStrategyMock.Object,
+                new NestedTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<NestedTransactionStrategy>.Instance,
+                    _nestedTransactionManager,
+                    _transactionLogger),
+                new OutermostTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<OutermostTransactionStrategy>.Instance,
+                    _transactionCoordinator,
+                    _transactionEventPublisher,
+                    _transactionMetricsCollector,
+                    _nestedTransactionManager,
+                    _transactionActivitySource,
+                    _transactionLogger,
+                    _transactionEventContextFactory),
+                new DistributedTransactionStrategy(
+                    Mock.Of<IUnitOfWork>(),
+                    NullLogger<DistributedTransactionStrategy>.Instance,
+                    _distributedTransactionCoordinator,
+                    _transactionEventPublisher,
+                    _transactionMetricsCollector,
+                    _transactionActivitySource,
+                    _transactionLogger,
+                    _transactionEventContextFactory),
                 null));
         }
 
@@ -132,7 +229,15 @@ namespace Relay.Core.Tests.Transactions.Factories
                 TimeSpan.FromMinutes(1),
                 useDistributedTransaction: useDistributedTransaction);
 
-            _nestedTransactionManagerMock.Setup(x => x.IsTransactionActive()).Returns(hasActiveTransaction);
+            // Note: Since NestedTransactionManager is not mockable (sealed class),
+            // we need to set up the actual transaction context for testing
+            TransactionContextAccessor.Clear();
+            if (hasActiveTransaction)
+            {
+                var mockTransaction = new MockDbTransaction();
+                var context = new TransactionContext(mockTransaction, IsolationLevel.ReadCommitted);
+                TransactionContextAccessor.Current = context;
+            }
 
             // Act
             var strategy = _factory.CreateStrategy(configuration);
@@ -140,15 +245,15 @@ namespace Relay.Core.Tests.Transactions.Factories
             // Assert
             if (useDistributedTransaction)
             {
-                Assert.Equal(_distributedTransactionStrategyMock.Object, strategy);
+                Assert.IsType<DistributedTransactionStrategy>(strategy);
             }
             else if (hasActiveTransaction)
             {
-                Assert.Equal(_nestedTransactionStrategyMock.Object, strategy);
+                Assert.IsType<NestedTransactionStrategy>(strategy);
             }
             else
             {
-                Assert.Equal(_outermostTransactionStrategyMock.Object, strategy);
+                Assert.IsType<OutermostTransactionStrategy>(strategy);
             }
         }
     }

@@ -24,7 +24,7 @@ namespace Relay.Core.Transactions
     /// when RequireExplicitTransactionAttribute is true (default).
     /// </para>
     /// </remarks>
-    public sealed class TransactionConfigurationResolver
+    public sealed class TransactionConfigurationResolver : ITransactionConfigurationResolver
     {
         private readonly TransactionOptions _options;
 

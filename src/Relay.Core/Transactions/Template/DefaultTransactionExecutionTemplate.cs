@@ -18,8 +18,8 @@ namespace Relay.Core.Transactions.Template
 
         public DefaultTransactionExecutionTemplate(
             ILogger<DefaultTransactionExecutionTemplate> logger,
-            TransactionConfigurationResolver configurationResolver,
-            TransactionRetryHandler retryHandler,
+            ITransactionConfigurationResolver configurationResolver,
+            ITransactionRetryHandler retryHandler,
             ITransactionStrategyFactory strategyFactory)
             : base(logger, configurationResolver, retryHandler)
         {

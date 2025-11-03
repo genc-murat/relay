@@ -319,6 +319,7 @@ namespace Relay.Core.Transactions
 
             // Register the event publisher as a singleton
             services.TryAddSingleton<TransactionEventPublisher>();
+            services.TryAddSingleton<ITransactionEventPublisher, TransactionEventPublisher>();
 
             return services;
         }
@@ -344,6 +345,7 @@ namespace Relay.Core.Transactions
 
             // Register the coordinator as transient since it's used per-request
             services.TryAddTransient<TransactionCoordinator>();
+            services.TryAddTransient<ITransactionCoordinator, TransactionCoordinator>();
 
             return services;
         }
@@ -409,15 +411,19 @@ namespace Relay.Core.Transactions
             
             // Register configuration resolver as transient
             services.TryAddTransient<TransactionConfigurationResolver>();
+            services.TryAddTransient<ITransactionConfigurationResolver, TransactionConfigurationResolver>();
             
             // Register retry handler as transient
             services.TryAddTransient<TransactionRetryHandler>();
+            services.TryAddTransient<ITransactionRetryHandler, TransactionRetryHandler>();
             
             // Register nested transaction manager as transient
             services.TryAddTransient<NestedTransactionManager>();
+            services.TryAddTransient<INestedTransactionManager, NestedTransactionManager>();
             
             // Register telemetry and metrics services as singletons
             services.TryAddSingleton<TransactionMetricsCollector>();
+            services.TryAddSingleton<ITransactionMetricsCollector, TransactionMetricsCollector>();
             services.TryAddSingleton<TransactionHealthCheck>();
             services.TryAddSingleton<TransactionActivitySource>();
             

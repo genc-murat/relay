@@ -23,7 +23,7 @@ namespace Relay.Core.Transactions
     /// 
     /// Event handlers are executed in parallel when possible to minimize performance impact.
     /// </remarks>
-    public sealed class TransactionEventPublisher
+    public sealed class TransactionEventPublisher : ITransactionEventPublisher
     {
         private readonly IEnumerable<ITransactionEventHandler> _eventHandlers;
         private readonly ILogger<TransactionEventPublisher> _logger;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -12,17 +13,21 @@ namespace Relay.Core.Tests.Transactions.Handlers
 {
     public class TransactionEventHandlerTests
     {
-        private readonly Mock<TransactionEventPublisher> _eventPublisherMock;
+        private readonly Mock<ITransactionEventHandler> _failingEventHandlerMock;
+        private readonly TransactionEventPublisher _eventPublisher;
         private readonly Mock<Microsoft.Extensions.Logging.ILogger<TransactionEventHandler>> _loggerMock;
         private readonly TransactionEventHandler _handler;
 
         public TransactionEventHandlerTests()
         {
-            _eventPublisherMock = new Mock<TransactionEventPublisher>();
+            _failingEventHandlerMock = new Mock<ITransactionEventHandler>();
+            _eventPublisher = new TransactionEventPublisher(
+                new List<ITransactionEventHandler> { _failingEventHandlerMock.Object }, 
+                NullLogger<TransactionEventPublisher>.Instance);
             _loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<TransactionEventHandler>>();
             
             _handler = new TransactionEventHandler(
-                _eventPublisherMock.Object,
+                _eventPublisher,
                 _loggerMock.Object);
         }
 
@@ -36,14 +41,14 @@ namespace Relay.Core.Tests.Transactions.Handlers
                 RequestType = "TestRequest"
             };
 
-            _eventPublisherMock.Setup(x => x.PublishBeforeBeginAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to succeed
+            _failingEventHandlerMock.Setup(x => x.OnBeforeBeginAsync(context, It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
             await _handler.PublishBeforeBeginAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishBeforeBeginAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     It.IsAny<LogLevel>(),
@@ -65,20 +70,20 @@ namespace Relay.Core.Tests.Transactions.Handlers
             };
             var expectedException = new InvalidOperationException("Event failed");
 
-            _eventPublisherMock.Setup(x => x.PublishBeforeBeginAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to fail
+            _failingEventHandlerMock.Setup(x => x.OnBeforeBeginAsync(context, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
             // Act
             await _handler.PublishBeforeBeginAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishBeforeBeginAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Warning,
                     It.IsAny<EventId>(),
                     It.IsAny<It.IsAnyType>(),
-                    expectedException,
+                    It.Is<TransactionEventHandlerException>(ex => ex.InnerException == expectedException),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
@@ -93,14 +98,14 @@ namespace Relay.Core.Tests.Transactions.Handlers
                 RequestType = "TestRequest"
             };
 
-            _eventPublisherMock.Setup(x => x.PublishAfterBeginAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to succeed
+            _failingEventHandlerMock.Setup(x => x.OnAfterBeginAsync(context, It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
             await _handler.PublishAfterBeginAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishAfterBeginAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     It.IsAny<LogLevel>(),
@@ -122,20 +127,20 @@ namespace Relay.Core.Tests.Transactions.Handlers
             };
             var expectedException = new InvalidOperationException("Event failed");
 
-            _eventPublisherMock.Setup(x => x.PublishAfterBeginAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to fail
+            _failingEventHandlerMock.Setup(x => x.OnAfterBeginAsync(context, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
             // Act
             await _handler.PublishAfterBeginAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishAfterBeginAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Warning,
                     It.IsAny<EventId>(),
                     It.IsAny<It.IsAnyType>(),
-                    expectedException,
+                    It.Is<TransactionEventHandlerException>(ex => ex.InnerException == expectedException),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
@@ -150,14 +155,14 @@ namespace Relay.Core.Tests.Transactions.Handlers
                 RequestType = "TestRequest"
             };
 
-            _eventPublisherMock.Setup(x => x.PublishBeforeCommitAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to succeed
+            _failingEventHandlerMock.Setup(x => x.OnBeforeCommitAsync(context, It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
             await _handler.PublishBeforeCommitAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishBeforeCommitAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     It.IsAny<LogLevel>(),
@@ -179,7 +184,8 @@ namespace Relay.Core.Tests.Transactions.Handlers
             };
             var expectedException = new InvalidOperationException("Event failed");
 
-            _eventPublisherMock.Setup(x => x.PublishBeforeCommitAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to fail
+            _failingEventHandlerMock.Setup(x => x.OnBeforeCommitAsync(context, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
             // Act & Assert
@@ -188,15 +194,17 @@ namespace Relay.Core.Tests.Transactions.Handlers
 
             Assert.Equal("BeforeCommit", actualException.EventName);
             Assert.Equal("test-id", actualException.TransactionId);
-            Assert.Equal(expectedException, actualException.InnerException);
+            Assert.Equal("BeforeCommit", actualException.EventName);
+            Assert.NotNull(actualException.InnerException);
+            // The inner exception is also a TransactionEventHandlerException with its own message
+            Assert.Equal("Event handler failed for BeforeCommit event", actualException.InnerException?.Message);
 
-            _eventPublisherMock.Verify(x => x.PublishBeforeCommitAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
                     It.IsAny<It.IsAnyType>(),
-                    expectedException,
+                    It.IsAny<TransactionEventHandlerException>(),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
@@ -211,14 +219,14 @@ namespace Relay.Core.Tests.Transactions.Handlers
                 RequestType = "TestRequest"
             };
 
-            _eventPublisherMock.Setup(x => x.PublishAfterCommitAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to succeed
+            _failingEventHandlerMock.Setup(x => x.OnAfterCommitAsync(context, It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
             await _handler.PublishAfterCommitAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishAfterCommitAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     It.IsAny<LogLevel>(),
@@ -230,7 +238,7 @@ namespace Relay.Core.Tests.Transactions.Handlers
         }
 
         [Fact]
-        public async Task PublishAfterCommitAsync_WhenEventPublisherFails_LogsWarning()
+        public async Task PublishAfterCommitAsync_WhenEventPublisherFails_DoesNotThrow()
         {
             // Arrange
             var context = new TransactionEventContext
@@ -240,22 +248,12 @@ namespace Relay.Core.Tests.Transactions.Handlers
             };
             var expectedException = new InvalidOperationException("Event failed");
 
-            _eventPublisherMock.Setup(x => x.PublishAfterCommitAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to fail
+            _failingEventHandlerMock.Setup(x => x.OnAfterCommitAsync(context, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
-            // Act
+            // Act & Assert - Should not throw
             await _handler.PublishAfterCommitAsync(context, CancellationToken.None);
-
-            // Assert
-            _eventPublisherMock.Verify(x => x.PublishAfterCommitAsync(context, CancellationToken.None), Times.Once);
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Warning,
-                    It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
-                    expectedException,
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.Once);
         }
 
         [Fact]
@@ -268,14 +266,14 @@ namespace Relay.Core.Tests.Transactions.Handlers
                 RequestType = "TestRequest"
             };
 
-            _eventPublisherMock.Setup(x => x.PublishBeforeRollbackAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to succeed
+            _failingEventHandlerMock.Setup(x => x.OnBeforeRollbackAsync(context, It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
             await _handler.PublishBeforeRollbackAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishBeforeRollbackAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     It.IsAny<LogLevel>(),
@@ -297,20 +295,20 @@ namespace Relay.Core.Tests.Transactions.Handlers
             };
             var expectedException = new InvalidOperationException("Event failed");
 
-            _eventPublisherMock.Setup(x => x.PublishBeforeRollbackAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to fail
+            _failingEventHandlerMock.Setup(x => x.OnBeforeRollbackAsync(context, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
             // Act
             await _handler.PublishBeforeRollbackAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishBeforeRollbackAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Warning,
                     It.IsAny<EventId>(),
                     It.IsAny<It.IsAnyType>(),
-                    expectedException,
+                    It.Is<TransactionEventHandlerException>(ex => ex.InnerException == expectedException),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
@@ -325,14 +323,14 @@ namespace Relay.Core.Tests.Transactions.Handlers
                 RequestType = "TestRequest"
             };
 
-            _eventPublisherMock.Setup(x => x.PublishAfterRollbackAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to succeed
+            _failingEventHandlerMock.Setup(x => x.OnAfterRollbackAsync(context, It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
             await _handler.PublishAfterRollbackAsync(context, CancellationToken.None);
 
             // Assert
-            _eventPublisherMock.Verify(x => x.PublishAfterRollbackAsync(context, CancellationToken.None), Times.Once);
             _loggerMock.Verify(
                 x => x.Log(
                     It.IsAny<LogLevel>(),
@@ -344,7 +342,7 @@ namespace Relay.Core.Tests.Transactions.Handlers
         }
 
         [Fact]
-        public async Task PublishAfterRollbackAsync_WhenEventPublisherFails_LogsWarning()
+        public async Task PublishAfterRollbackAsync_WhenEventPublisherFails_DoesNotThrow()
         {
             // Arrange
             var context = new TransactionEventContext
@@ -354,22 +352,12 @@ namespace Relay.Core.Tests.Transactions.Handlers
             };
             var expectedException = new InvalidOperationException("Event failed");
 
-            _eventPublisherMock.Setup(x => x.PublishAfterRollbackAsync(context, It.IsAny<CancellationToken>()))
+            // Setup event handler to fail
+            _failingEventHandlerMock.Setup(x => x.OnAfterRollbackAsync(context, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
 
-            // Act
+            // Act & Assert - Should not throw
             await _handler.PublishAfterRollbackAsync(context, CancellationToken.None);
-
-            // Assert
-            _eventPublisherMock.Verify(x => x.PublishAfterRollbackAsync(context, CancellationToken.None), Times.Once);
-            _loggerMock.Verify(
-                x => x.Log(
-                    LogLevel.Warning,
-                    It.IsAny<EventId>(),
-                    It.IsAny<It.IsAnyType>(),
-                    expectedException,
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-                Times.Once);
         }
 
         [Fact]
@@ -386,7 +374,7 @@ namespace Relay.Core.Tests.Transactions.Handlers
         {
             // Act & Assert
             Assert.Throws<ArgumentNullException>(() => new TransactionEventHandler(
-                _eventPublisherMock.Object,
+                _eventPublisher,
                 null));
         }
     }

@@ -12,15 +12,15 @@ namespace Relay.Core.Transactions.Tracking
     /// </summary>
     public class TransactionTracker
     {
-        private readonly TransactionMetricsCollector _metricsCollector;
-        private readonly TransactionActivitySource _activitySource;
-        private readonly TransactionLogger _transactionLogger;
+        private readonly ITransactionMetricsCollector _metricsCollector;
+        private readonly ITransactionActivitySource _activitySource;
+        private readonly ITransactionLogger _transactionLogger;
         private readonly ILogger<TransactionTracker> _logger;
 
         public TransactionTracker(
-            TransactionMetricsCollector metricsCollector,
-            TransactionActivitySource activitySource,
-            TransactionLogger transactionLogger,
+            ITransactionMetricsCollector metricsCollector,
+            ITransactionActivitySource activitySource,
+            ITransactionLogger transactionLogger,
             ILogger<TransactionTracker> logger)
         {
             _metricsCollector = metricsCollector ?? throw new ArgumentNullException(nameof(metricsCollector));

@@ -26,8 +26,8 @@ namespace Relay.Core.Tests.Transactions.Template
 
             public TestTransactionExecutionTemplate(
                 ILogger logger,
-                TransactionConfigurationResolver configurationResolver,
-                TransactionRetryHandler retryHandler)
+                ITransactionConfigurationResolver configurationResolver,
+                ITransactionRetryHandler retryHandler)
                 : base(logger, configurationResolver, retryHandler)
             {
             }
@@ -83,8 +83,8 @@ namespace Relay.Core.Tests.Transactions.Template
             {
                 return new TestTransactionExecutionTemplate(
                     NullLogger.Instance,
-                    Mock.Of<TransactionConfigurationResolver>(),
-                    Mock.Of<TransactionRetryHandler>());
+                    Mock.Of<ITransactionConfigurationResolver>(),
+                    Mock.Of<ITransactionRetryHandler>());
             }
 
             [Fact]
@@ -93,8 +93,8 @@ namespace Relay.Core.Tests.Transactions.Template
                 // Act & Assert
                 Assert.Throws<ArgumentNullException>(() => new TestTransactionExecutionTemplate(
                     null,
-                    Mock.Of<TransactionConfigurationResolver>(),
-                    Mock.Of<TransactionRetryHandler>()));
+                    Mock.Of<ITransactionConfigurationResolver>(),
+                    Mock.Of<ITransactionRetryHandler>()));
             }
 
             [Fact]
@@ -104,7 +104,7 @@ namespace Relay.Core.Tests.Transactions.Template
                 Assert.Throws<ArgumentNullException>(() => new TestTransactionExecutionTemplate(
                     NullLogger.Instance,
                     null,
-                    Mock.Of<TransactionRetryHandler>()));
+                    Mock.Of<ITransactionRetryHandler>()));
             }
 
             [Fact]
@@ -113,7 +113,7 @@ namespace Relay.Core.Tests.Transactions.Template
                 // Act & Assert
                 Assert.Throws<ArgumentNullException>(() => new TestTransactionExecutionTemplate(
                     NullLogger.Instance,
-                    Mock.Of<TransactionConfigurationResolver>(),
+                    Mock.Of<ITransactionConfigurationResolver>(),
                     null));
             }
         }
@@ -124,8 +124,8 @@ namespace Relay.Core.Tests.Transactions.Template
             {
                 return new TestTransactionExecutionTemplate(
                     NullLogger.Instance,
-                    Mock.Of<TransactionConfigurationResolver>(),
-                    Mock.Of<TransactionRetryHandler>());
+                    Mock.Of<ITransactionConfigurationResolver>(),
+                    Mock.Of<ITransactionRetryHandler>());
             }
 
             [Fact]

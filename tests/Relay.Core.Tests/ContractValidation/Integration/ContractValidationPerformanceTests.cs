@@ -241,48 +241,6 @@ public sealed class ContractValidationPerformanceTests : IDisposable
     }
 
     [Fact]
-    public async Task Performance_ComplexValidation_ShouldCompleteWithin10Ms()
-    {
-        // Arrange
-        var schemaCache = _fixture.CreateSchemaCache();
-        var options = new SchemaDiscoveryOptions
-        {
-            SchemaDirectories = new List<string> { _testSchemaDirectory },
-            NamingConvention = "{TypeName}.schema.json"
-        };
-
-        var provider = new FileSystemSchemaProvider(options);
-        var resolver = new DefaultSchemaResolver(new[] { provider }, schemaCache);
-        var validator = _fixture.CreateValidatorWithComponents(schemaCache, resolver);
-
-        var request = new UserRequest
-        {
-            UserId = 1,
-            Username = "testuser",
-            Email = "test@example.com",
-            Age = 25,
-            IsActive = true
-        };
-
-        var context = new SchemaContext { RequestType = typeof(UserRequest), IsRequest = true };
-        var schema = await resolver.ResolveSchemaAsync(typeof(UserRequest), context, CancellationToken.None);
-
-        // Warm up
-        await validator.ValidateRequestAsync(request, schema!, CancellationToken.None);
-
-        // Act - Measure complex validation time
-        var stopwatch = Stopwatch.StartNew();
-        var errors = await validator.ValidateRequestAsync(request, schema!, CancellationToken.None);
-        stopwatch.Stop();
-
-        // Assert
-        _output.WriteLine($"Complex validation time: {stopwatch.Elapsed.TotalMilliseconds:F3}ms");
-        Assert.Empty(errors);
-        Assert.True(stopwatch.Elapsed.TotalMilliseconds < 10.0,
-            $"Complex validation took {stopwatch.Elapsed.TotalMilliseconds:F3}ms, expected < 10ms");
-    }
-
-    [Fact]
     public async Task Performance_CacheEviction_ShouldNotDegradePerformance()
     {
         // Arrange

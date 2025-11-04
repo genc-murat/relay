@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -244,24 +245,46 @@ public class WorkflowEngineStepExecutionTests
         _mockDefinitionStore.Setup(x => x.GetDefinitionAsync("test-workflow", It.IsAny<CancellationToken>()))
             .ReturnsAsync(definition);
 
-        WorkflowExecution? savedExecution = null;
+        // Track all execution saves to find the final one
+        var executionSaves = new List<WorkflowExecution>();
         _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Callback<WorkflowExecution, CancellationToken>((exec, ct) => savedExecution = exec)
+            .Callback<WorkflowExecution, CancellationToken>((exec, ct) =>
+            {
+                executionSaves.Add(exec);
+            })
             .Returns(ValueTask.CompletedTask);
+
+        // Mock GetExecutionAsync to return the most recently saved execution
+        _mockStateStore.Setup(x => x.GetExecutionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns<string, CancellationToken>((id, ct) =>
+            {
+                var lastExecution = executionSaves.LastOrDefault(e => e.Id == id);
+                return ValueTask.FromResult(lastExecution);
+            });
 
         _mockRelay.Setup(x => x.SendAsync<string>(It.IsAny<IRequest<string>>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<string>("TestResult"));
 
         // Act
-        await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
+        var execution = await _workflowEngine.StartWorkflowAsync("test-workflow", new { });
 
-        // Wait for background execution
-        await Task.Delay(300);
+        // Wait for the workflow to complete by polling the state store
+        WorkflowExecution? retrievedExecution = null;
+        for (int i = 0; i < 50; i++) // Try for up to 5 seconds
+        {
+            retrievedExecution = await _workflowEngine.GetExecutionAsync(execution.Id);
+            if (retrievedExecution?.Status == WorkflowStatus.Completed || retrievedExecution?.Status == WorkflowStatus.Failed)
+            {
+                break;
+            }
+            await Task.Delay(100);
+        }
 
         // Assert - Context should contain the output with the custom key
-        Assert.NotNull(savedExecution);
-        Assert.True(savedExecution.Context.ContainsKey("CustomKey"));
-        Assert.Equal("TestResult", savedExecution.Context["CustomKey"]);
+        Assert.NotNull(retrievedExecution);
+        Assert.Equal(WorkflowStatus.Completed, retrievedExecution.Status);
+        Assert.True(retrievedExecution.Context.ContainsKey("CustomKey"));
+        Assert.Equal("TestResult", retrievedExecution.Context["CustomKey"]);
     }
 
     [Fact]

@@ -349,14 +349,52 @@ public class WorkflowEngine : IWorkflowEngine
         // If Type.GetType didn't work, try searching in loaded assemblies
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
+        // First, try to find by full name in all loaded assemblies
+        foreach (var assembly in assemblies)
+        {
+            try
+            {
+                // Try loading the type specifically from this assembly
+                var typeFromAssembly = assembly.GetType(requestTypeName);
+                if (typeFromAssembly != null)
+                {
+                    // Verify it implements IRequest or IRequest<T>
+                    var isRequest = typeFromAssembly.GetInterfaces().Any(i =>
+                        i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>) ||
+                        i == typeof(IRequest));
+
+                    if (isRequest)
+                    {
+                        return typeFromAssembly;
+                    }
+                    else
+                    {
+                        // Type found but doesn't implement IRequest
+                        throw new InvalidOperationException($"Type '{requestTypeName}' does not implement IRequest or IRequest<T>");
+                    }
+                }
+            }
+            catch (ReflectionTypeLoadException)
+            {
+                // Skip assemblies that can't be loaded properly
+                continue;
+            }
+            catch
+            {
+                // Skip assemblies that cause other errors
+                continue;
+            }
+        }
+
+        // If still not found, try searching by name across all types in all assemblies
         foreach (var assembly in assemblies)
         {
             try
             {
                 var types = assembly.GetTypes();
                 var foundType = types.FirstOrDefault(t =>
-                    t.Name.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) ||
-                    t.FullName?.Equals(requestTypeName, StringComparison.OrdinalIgnoreCase) == true);
+                    string.Equals(t.FullName, requestTypeName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(t.Name, requestTypeName, StringComparison.OrdinalIgnoreCase));
 
                 if (foundType != null)
                 {

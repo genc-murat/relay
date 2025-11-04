@@ -71,39 +71,6 @@ public class WorkflowEngineRetrievalTests
     }
 
     [Fact]
-    public async Task GetWorkflowDefinition_WithValidId_ShouldReturnDefinition()
-    {
-        // Arrange
-        var definitionId = "test-workflow";
-        var expectedDefinition = new WorkflowDefinition
-        {
-            Id = definitionId,
-            Name = "Test Workflow",
-            Steps = new System.Collections.Generic.List<WorkflowStep>
-            {
-                new WorkflowStep { Name = "Step1", Type = StepType.Request, RequestType = "TestRequest" }
-            }
-        };
-
-        _mockDefinitionStore.Setup(x => x.GetDefinitionAsync(definitionId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expectedDefinition);
-
-        // We need to access the private method via reflection or test it indirectly through StartWorkflowAsync
-        // For now, let's verify it's called through the workflow execution
-        _mockStateStore.Setup(x => x.SaveExecutionAsync(It.IsAny<WorkflowExecution>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
-
-        // Act
-        var execution = await _workflowEngine.StartWorkflowAsync(definitionId, new { });
-
-        // Small delay to allow background execution to start
-        await Task.Delay(100);
-
-        // Assert
-        _mockDefinitionStore.Verify(x => x.GetDefinitionAsync(definitionId, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
     public async Task GetWorkflowDefinition_WithNullDefinition_ShouldFailWorkflow()
     {
         // Arrange

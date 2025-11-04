@@ -302,7 +302,8 @@ namespace Relay.Core.AI
         private List<PerformanceData> GetSampledPerformanceData(List<PerformanceData> originalData)
         {
             // Take every nth sample to create a representative sample
-            var sampleSize = Math.Max(1000, Math.Min(2000, originalData.Count / 2));
+            const int maxSampleSize = 1000; // Consistent maximum sample size for performance
+            var sampleSize = Math.Min(maxSampleSize, originalData.Count);
             var step = Math.Max(1, originalData.Count / sampleSize);
             
             var sampledData = new List<PerformanceData>();
@@ -311,7 +312,8 @@ namespace Relay.Core.AI
                 sampledData.Add(originalData[i]);
             }
             
-            return sampledData;
+            // Ensure we have enough samples for training, but cap the maximum
+            return sampledData.Take(maxSampleSize).ToList();
         }
 
         private Task TrainOptimizationClassifiersAsync(AITrainingData trainingData, CancellationToken cancellationToken)
@@ -353,7 +355,8 @@ namespace Relay.Core.AI
         private List<OptimizationStrategyData> GetSampledOptimizationData(List<OptimizationStrategyData> originalData)
         {
             // Take every nth sample to create a representative sample
-            var sampleSize = Math.Max(500, Math.Min(1000, originalData.Count / 2));
+            const int maxSampleSize = 500; // Consistent maximum sample size for optimization
+            var sampleSize = Math.Min(maxSampleSize, originalData.Count);
             var step = Math.Max(1, originalData.Count / sampleSize);
             
             var sampledData = new List<OptimizationStrategyData>();
@@ -362,7 +365,8 @@ namespace Relay.Core.AI
                 sampledData.Add(originalData[i]);
             }
             
-            return sampledData;
+            // Ensure we have enough samples for training, but cap the maximum
+            return sampledData.Take(maxSampleSize).ToList();
         }
 
         private Task TrainAnomalyDetectionModelsAsync(AITrainingData trainingData, CancellationToken cancellationToken)
@@ -397,7 +401,7 @@ namespace Relay.Core.AI
         private List<MetricData> GetSampledAnomalyData(List<SystemLoadMetrics> originalData)
         {
             // Take every nth sample to create a representative sample
-            const int maxSampleSize = 500; // Limit sample size for consistent performance
+            const int maxSampleSize = 200; // Reduced maximum samples for consistent performance
             
             if (originalData.Count <= maxSampleSize)
             {
@@ -460,7 +464,7 @@ namespace Relay.Core.AI
             // For large datasets, take every nth sample to create a representative sample
             // while maintaining the time series pattern
             // SSA algorithm has O(n²) complexity, so we need to be aggressive with sampling
-            const int maxSampleSize = 500; // Maximum samples for SSA to maintain reasonable performance
+            const int maxSampleSize = 200; // Reduced maximum samples for SSA to maintain better performance
             
             if (originalData.Count <= maxSampleSize)
             {

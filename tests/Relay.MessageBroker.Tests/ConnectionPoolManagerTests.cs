@@ -595,7 +595,8 @@ public class ConnectionPoolManagerTests
         var options = new ConnectionPoolOptions
         {
             MinPoolSize = 0,  // Don't create min connections automatically
-            MaxPoolSize = 5
+            MaxPoolSize = 5,
+            ValidationInterval = TimeSpan.FromHours(1) // Increase validation interval to avoid interference
         };
         var disposedConnections = new List<TestConnection>();
         var pool = new ConnectionPoolManager<TestConnection>(
@@ -610,7 +611,10 @@ public class ConnectionPoolManagerTests
                 // Simulate slow disposal
                 await Task.Delay(100);
                 conn.IsDisposed = true;
-                disposedConnections.Add(conn);
+                lock(disposedConnections) // Use lock to ensure thread-safe access
+                {
+                    disposedConnections.Add(conn);
+                }
             });
 
         // Acquire some connections
@@ -621,8 +625,19 @@ public class ConnectionPoolManagerTests
         await pool.ReleaseAsync(connection1);
         await pool.ReleaseAsync(connection2);
 
-        // Act - This should timeout but still dispose
+        // Small delay to ensure connections are properly released and available
+        await Task.Delay(100);
+
+        // Verify that the expected number of connections are in the pool before disposal
+        var metrics = pool.GetMetrics();
+        Assert.Equal(2, metrics.IdleConnections);
+        Assert.Equal(2, metrics.TotalConnections);
+
+        // Act - This should dispose all connections
         await pool.DisposeAsync();
+
+        // Wait a bit more to ensure all async disposal operations complete
+        await Task.Delay(150);
 
         // Assert
         Assert.Equal(2, disposedConnections.Count);

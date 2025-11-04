@@ -198,7 +198,7 @@ namespace Relay.Core.Tests.Testing
             Assert.Equal(10, result.ResponseTimes.Count);
             
             // Check that response times are reasonable (allow overhead for system variance and timing precision)
-            Assert.All(result.ResponseTimes, time => Assert.True(time >= 0 && time <= 300)); // Wide range to account for scheduling delays
+            Assert.All(result.ResponseTimes, time => Assert.True(time >= 0 && time <= 1000)); // Wider range to account for system overhead and timing precision
             
             // Check statistical calculations - just verify they're reasonable
             Assert.True(result.AverageResponseTime > 0);

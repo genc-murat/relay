@@ -1,4 +1,4 @@
-using Relay.Core.AI;
+using Relay.Core.Attributes;
 using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Observability

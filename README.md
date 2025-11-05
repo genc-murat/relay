@@ -827,7 +827,11 @@ The framework itself is thoroughly tested with **1600+ passing tests** (868 sour
 
 ## 🧠 AI-Powered Optimization
 
-Relay includes an advanced AI optimization engine that continuously learns from your application's performance patterns:
+**Note**: AI features are now available in the separate `Relay.Core.AI` NuGet package. Install it with `dotnet add package Relay.Core.AI`.
+
+> **Breaking Change**: As of this version, AI optimization features have been moved to the `Relay.Core.AI` package. If you were using AI features, update your dependencies accordingly.
+
+The Relay.Core.AI package includes an advanced AI optimization engine that continuously learns from your application's performance patterns:
 
 ### **Machine Learning Models**
 - **Linear Regression**: Predicts throughput based on system metrics
@@ -926,6 +930,8 @@ Built with ❤️ for the .NET community.
 
 ```bash
 dotnet add package Relay
+# For AI-powered optimization features
+dotnet add package Relay.Core.AI
 # For distributed caching support
 dotnet add package Microsoft.Extensions.Caching.StackExchangeRedis
 # For advanced observability

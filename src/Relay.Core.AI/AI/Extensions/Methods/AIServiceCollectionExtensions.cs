@@ -6,7 +6,7 @@ using Relay.Core.AI.Metrics.Interfaces;
 using Relay.Core.AI.Pipeline.Behaviors;
 using Relay.Core.AI.Pipeline.Interfaces;
 using Relay.Core.AI.Pipeline.Metrics;
-using Relay.Core.Contracts.Pipeline;
+using Relay.Core.AI.Contracts.Pipeline;
 using Relay.Core.Extensions;
 using System;
 using System.Collections.Generic;

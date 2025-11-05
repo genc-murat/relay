@@ -92,11 +92,7 @@
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Condition="'$(TargetFramework)' == 'netstandard2.1'" />
 
-    <!-- ML.NET Dependencies for AI Optimization -->
-    <PackageReference Include="Microsoft.ML" />
-    <PackageReference Include="Microsoft.ML.FastTree" />
-    <PackageReference Include="Microsoft.ML.TimeSeries" />
-    <PackageReference Include="Microsoft.ML.Recommender" />
+
   </ItemGroup>
 
   <!-- Add placeholder libs for multi-target expectations in packaging tests -->
@@ -104,9 +100,9 @@
     <None Include="lib\netstandard2.0\_._" Pack="true" PackagePath="lib\netstandard2.0\_._" />
     <None Include="lib\net6.0\_._" Pack="true" PackagePath="lib\net6.0\_._" />
   </ItemGroup>
-   <ItemGroup>
-     <ProjectReference Include="..\Relay.Core.Validation\Relay.Core.Validation.csproj" />
-   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Relay.Core.Validation\Relay.Core.Validation.csproj" />
+  </ItemGroup>
 
    <ItemGroup>
      <PackageReference Update="Microsoft.SourceLink.GitHub" />

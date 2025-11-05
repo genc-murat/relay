@@ -4,8 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
 
     <!-- Performance Optimizations -->
     <TieredCompilation>true</TieredCompilation>
@@ -13,7 +13,14 @@
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <InvariantGlobalization>true</InvariantGlobalization>
     <EventSourceSupport>false</EventSourceSupport>
+    <UseNETCoreAppRuntime>true</UseNETCoreAppRuntime>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Relay.Core.Tests" />
+    <InternalsVisibleTo Include="Relay.Core.AI.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" Key="0024000004800000940000000602000000240000525341310004000001000100c547cac37abd99c8db225ef2f6c8a3602f3b3606cc9891605d02baa56104f4cfc0734aa39b93bf7852f7d9266654753cc297e7d2edfe0bac1cdcf9f717241550e0a7b191195b7667bb4f64bcb8e2121380fd1d9d46ad2d92d2d15605093924cceaf74c4861eff62abf69b9291ed0a340e113be11e6a7d3113e92484cf7045cc7" />
+  </ItemGroup>
 
   <!-- Release-specific PGO Configuration -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -30,46 +37,33 @@
 
   <PropertyGroup>
     <!-- Package Metadata -->
-    <PackageId>Relay</PackageId>
+    <PackageId>Relay.Core.AI</PackageId>
     <PackageVersion>1.0.0</PackageVersion>
-    <Title>Relay - High-Performance Mediator Framework</Title>
+    <Title>Relay.Core.AI - AI Optimization Components</Title>
     <Authors>Relay Framework Contributors</Authors>
     <Company>Relay Framework</Company>
     <Product>Relay Mediator Framework</Product>
-    <Description>A high-performance, source-generator powered mediator and messaging framework for .NET. Provides compile-time code generation to eliminate runtime reflection overhead, enabling efficient request/response patterns, command handling, and event publishing with minimal performance impact.</Description>
-    <Summary>High-performance mediator framework with zero runtime reflection using Roslyn source generators.</Summary>
-    <PackageTags>mediator;cqrs;messaging;performance;source-generator;roslyn;dotnet;async;pipeline;notification</PackageTags>
+    <Description>AI-powered optimization components for the Relay mediator framework. Provides machine learning-based performance optimization, predictive analytics, and intelligent system monitoring.</Description>
+    <Summary>AI optimization components for intelligent system performance and monitoring.</Summary>
+    <PackageTags>ai;ml;optimization;performance;monitoring;predictive;analytics;machine-learning</PackageTags>
     <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
     <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
-    <PackageReleaseNotes>Initial release of Relay mediator framework with source generator support.</PackageReleaseNotes>
-    <!-- <PackageIcon>icon.png</PackageIcon> -->
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    
+    <PackageReleaseNotes>Initial release of Relay.Core.AI package with ML.NET integration for system optimization.</PackageReleaseNotes>
+
     <!-- Build Configuration -->
     <IncludeSymbols>true</IncludeSymbols>
-  <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
+    <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    
-    <!-- Source Link -->
-    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
-
-  <!-- Package Files -->
-  <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
-    <!-- <None Include="..\..\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\..\icon.png')" /> -->
-    <None Include="lib\netstandard2.0\_._" Pack="true" PackagePath="lib\netstandard2.0\_._" />
-    <None Include="lib\net6.0\_._" Pack="true" PackagePath="lib\net6.0\_._" />
-    <None Include="lib\net8.0\_._" Pack="true" PackagePath="lib\net8.0\_._" />
-  </ItemGroup>
 
   <!-- Dependencies -->
   <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -77,6 +71,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Common" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
@@ -84,16 +84,32 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
     <PackageReference Include="Microsoft.Extensions.Options" />
-    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Scrutor" />
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="System.Text.Json" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
-     <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
-     <ProjectReference Include="..\Relay.Core.AI\Relay.Core.AI.csproj" />
-     <ProjectReference Include="..\Relay.SourceGenerator\Relay.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Condition="'$(TargetFramework)' == 'netstandard2.1'" />
+
+    <!-- ML.NET Dependencies for AI Optimization -->
+    <PackageReference Include="Microsoft.ML" />
+    <PackageReference Include="Microsoft.ML.FastTree" />
+    <PackageReference Include="Microsoft.ML.TimeSeries" />
+    <PackageReference Include="Microsoft.ML.Recommender" />
   </ItemGroup>
 
 
+
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.SourceLink.GitHub" />
+  </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-using Relay.Core.AI;
+using Relay.Core.Attributes;
 
 namespace Relay.Core.Diagnostics.Metrics;
 

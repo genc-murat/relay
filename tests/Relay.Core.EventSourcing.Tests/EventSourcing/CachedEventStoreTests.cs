@@ -73,6 +73,99 @@ namespace Relay.Core.EventSourcing.Tests
         }
 
         [Fact]
+        public async Task CachedEventStore_ShouldFetchFromInnerStoreWhenCacheIsEmpty()
+        {
+            // Arrange
+            var innerStore = new InMemoryEventStore();
+            var cache = new InMemoryEventStoreCache(new MemoryCache(new MemoryCacheOptions()));
+            var cachedStore = new CachedEventStore(innerStore, cache);
+
+            var aggregateId = Guid.NewGuid();
+            var events = new Event[]
+            {
+                new TestEvent { AggregateId = aggregateId, AggregateVersion = 0, Data = "Event 1" }
+            };
+
+            // Save to inner store directly
+            await innerStore.SaveEventsAsync(aggregateId, events, -1);
+
+            // Act - Get from cached store (cache is empty, should fetch from inner)
+            var retrievedEvents = await cachedStore.GetEventsAsync(aggregateId).ToListAsync();
+
+            // Assert
+            Assert.Single(retrievedEvents);
+            Assert.Equal("Event 1", ((TestEvent)retrievedEvents[0]).Data);
+        }
+
+        [Fact]
+        public async Task CachedEventStore_ShouldNotCacheWhenNoEventsFound()
+        {
+            // Arrange
+            var innerStore = new InMemoryEventStore();
+            var cache = new InMemoryEventStoreCache(new MemoryCache(new MemoryCacheOptions()));
+            var cachedStore = new CachedEventStore(innerStore, cache);
+
+            var aggregateId = Guid.NewGuid();
+
+            // Act - Try to get events for non-existent aggregate
+            var retrievedEvents = await cachedStore.GetEventsAsync(aggregateId).ToListAsync();
+
+            // Assert - Should return empty, and cache should not be set
+            Assert.Empty(retrievedEvents);
+
+            // Verify cache is still empty
+            var cachedEvents = await cache.GetEventsAsync(aggregateId);
+            Assert.Null(cachedEvents);
+        }
+
+        [Fact]
+        public async Task CachedEventStore_GetEventsAsync_WithVersionRange_ShouldNotUseCache()
+        {
+            // Arrange
+            var innerStore = new InMemoryEventStore();
+            var cache = new InMemoryEventStoreCache(new MemoryCache(new MemoryCacheOptions()));
+            var cachedStore = new CachedEventStore(innerStore, cache);
+
+            var aggregateId = Guid.NewGuid();
+            var events = new Event[]
+            {
+                new TestEvent { AggregateId = aggregateId, AggregateVersion = 0, Data = "Event 1" },
+                new TestEvent { AggregateId = aggregateId, AggregateVersion = 1, Data = "Event 2" },
+                new TestEvent { AggregateId = aggregateId, AggregateVersion = 2, Data = "Event 3" }
+            };
+
+            await innerStore.SaveEventsAsync(aggregateId, events, -1);
+
+            // Act - Get version range (should bypass cache)
+            var retrievedEvents = await cachedStore.GetEventsAsync(aggregateId, 1, 2).ToListAsync();
+
+            // Assert
+            Assert.Equal(2, retrievedEvents.Count);
+            Assert.Equal(1, retrievedEvents[0].AggregateVersion);
+            Assert.Equal(2, retrievedEvents[1].AggregateVersion);
+        }
+
+        [Fact]
+        public void CachedEventStore_Constructor_ShouldThrowWhenInnerStoreIsNull()
+        {
+            // Arrange
+            var cache = new InMemoryEventStoreCache(new MemoryCache(new MemoryCacheOptions()));
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new CachedEventStore(null!, cache));
+        }
+
+        [Fact]
+        public void CachedEventStore_Constructor_ShouldThrowWhenCacheIsNull()
+        {
+            // Arrange
+            var innerStore = new InMemoryEventStore();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new CachedEventStore(innerStore, null!));
+        }
+
+        [Fact]
         public async Task InMemoryEventStoreCache_ShouldStoreAndRetrieveEvents()
         {
             // Arrange

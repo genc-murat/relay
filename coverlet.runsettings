@@ -6,11 +6,14 @@
         <Configuration>
           <Format>cobertura</Format>
 
+           <Include>
+              <ModulePath>.*Relay\.Core\.EventSourcing\.dll$</ModulePath>
+            </Include>
            <Exclude>
-             <ModulePath>.*\.Tests\.dll$</ModulePath>
-             <ModulePath>.*\.tests\.dll$</ModulePath>
-             <Source>.*tools/Relay\.CLI/Program\.cs$</Source>
-           </Exclude>
+              <ModulePath>.*\.Tests\.dll$</ModulePath>
+              <ModulePath>.*\.tests\.dll$</ModulePath>
+              <Source>.*tools/Relay\.CLI/Program\.cs$</Source>
+            </Exclude>
 
           <ExcludeByAttribute>
             Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute

@@ -52,6 +52,33 @@ public class EventSourcedRepositoryComprehensiveTests
     }
 
     [Fact]
+    public async Task GetByIdAsync_WithStringId_ReturnsAggregate()
+    {
+        // Arrange
+        var eventStore = new Mock<IEventStore>();
+        var aggregateId = "test-aggregate";
+        var @event = new TestAggregateCreated
+        {
+            AggregateId = Guid.NewGuid(), // Event uses Guid
+            AggregateName = "Test Name",
+            AggregateVersion = 0
+        };
+
+        eventStore
+            .Setup(x => x.GetEventsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(new List<Event> { @event }.ToAsyncEnumerable());
+
+        var repository = new EventSourcedRepository<TestSnapshotAggregateWithStringId, string>(eventStore.Object);
+
+        // Act
+        var result = await repository.GetByIdAsync(aggregateId);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(aggregateId, result.Id);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_WithExistingAggregate_ReturnsAggregate()
     {
         // Arrange

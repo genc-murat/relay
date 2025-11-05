@@ -6,6 +6,7 @@ using Relay.Core.EventSourcing;
 using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Extensions;
 using Relay.Core.EventSourcing.Infrastructure;
+using Relay.Core.EventSourcing.Infrastructure.Database;
 using Xunit;
 
 namespace Relay.Core.EventSourcing.Tests
@@ -229,6 +230,60 @@ namespace Relay.Core.EventSourcing.Tests
 
             // Assert - InMemory database persists across scopes with same database name
             Assert.Single(retrievedEvents);
+        }
+
+        [Fact]
+        public void AddEfCoreEventStore_WithDatabaseProviderEnum_ShouldRegisterServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var connectionString = "Host=localhost;Database=test;Username=test;Password=test";
+
+            // Act
+            services.AddEfCoreEventStore(DatabaseProvider.PostgreSQL, connectionString);
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Assert
+            var eventStore = serviceProvider.GetService<IEventStore>();
+            var dbContext = serviceProvider.GetService<EventStoreDbContext>();
+
+            Assert.NotNull(eventStore);
+            Assert.IsType<EfCoreEventStore>(eventStore);
+            Assert.NotNull(dbContext);
+        }
+
+        [Fact]
+        public void AddEfCoreEventStore_WithProviderString_ShouldRegisterServices()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var connectionString = "Host=localhost;Database=test;Username=test;Password=test";
+
+            // Act
+            services.AddEfCoreEventStore("PostgreSQL", connectionString);
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Assert
+            var eventStore = serviceProvider.GetService<IEventStore>();
+            var dbContext = serviceProvider.GetService<EventStoreDbContext>();
+
+            Assert.NotNull(eventStore);
+            Assert.IsType<EfCoreEventStore>(eventStore);
+            Assert.NotNull(dbContext);
+        }
+
+        [Fact]
+        public void AddEfCoreEventStore_WithInvalidProviderString_ShouldThrowArgumentException()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var connectionString = "Host=localhost;Database=test;Username=test;Password=test";
+
+            // Act & Assert
+            var exception = Assert.Throws<ArgumentException>(() =>
+                services.AddEfCoreEventStore("InvalidProvider", connectionString));
+
+            Assert.Contains("Unsupported database provider", exception.Message);
         }
     }
 }

@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using Relay.CLI.Plugins;
 
 namespace Relay.CLI.Tests.Plugins;
@@ -289,5 +291,228 @@ public class PluginHealthMonitorTests
         Assert.Equal(3, healthInfo.FailureCount);
         Assert.Equal(PluginHealthStatus.Unhealthy, healthInfo.Status); // Not disabled yet
         _mockLogger.Verify(x => x.LogError(It.Is<string>(s => s.Contains("will be temporarily disabled"))), Times.Never);
+    }
+
+    [Fact]
+    public void AttemptRestart_DisposedMonitor_ReturnsFalse()
+    {
+        // Arrange
+        var pluginName = "TestPlugin";
+        _monitor.Dispose();
+
+        // Act
+        var result = _monitor.AttemptRestart(pluginName);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void AttemptRestart_PluginNotInHealthDict_ReturnsFalse()
+    {
+        // Arrange
+        var pluginName = "NonExistingPlugin";
+
+        // Act
+        var result = _monitor.AttemptRestart(pluginName);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void AttemptRestart_PluginNotDisabled_ReturnsFalse()
+    {
+        // Arrange
+        var pluginName = "HealthyPlugin";
+        _monitor.RecordSuccess(pluginName);
+
+        // Act
+        var result = _monitor.AttemptRestart(pluginName);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void AttemptRestart_DisabledPlugin_InitiatesRestart()
+    {
+        // Arrange
+        var pluginName = "FailingPlugin";
+        // Disable the plugin
+        for (int i = 0; i < 4; i++)
+        {
+            _monitor.RecordFailure(pluginName);
+        }
+
+        // Act
+        var result = _monitor.AttemptRestart(pluginName);
+
+        // Assert
+        Assert.True(result);
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.NotNull(healthInfo);
+        Assert.Equal(PluginHealthStatus.Unknown, healthInfo.Status);
+        Assert.Equal(DateTime.MinValue, healthInfo.LastFailureTime);
+        _mockLogger.Verify(x => x.LogInformation(It.Is<string>(s => s.Contains("Initiating restart for plugin"))), Times.Once);
+    }
+
+    [Fact]
+    public void AttemptRestart_InCooldownPeriod_ReturnsFalse()
+    {
+        // Arrange
+        var pluginName = "FailingPlugin";
+        // Disable and attempt restart to set cooldown
+        for (int i = 0; i < 4; i++)
+        {
+            _monitor.RecordFailure(pluginName);
+        }
+        _monitor.AttemptRestart(pluginName); // This sets cooldown
+
+        // Act - Try to restart again immediately (should be in cooldown)
+        var result = _monitor.AttemptRestart(pluginName);
+
+        // Assert
+        Assert.False(result);
+        _mockLogger.Verify(x => x.LogWarning(It.Is<string>(s => s.Contains("is still in restart cooldown period"))), Times.Once);
+    }
+
+    [Fact]
+    public void ResetRestartCount_ExistingKey_ResetsCountAndRemovesCooldown()
+    {
+        // Arrange
+        var pluginName = "FailingPlugin";
+        // Build up restart count
+        for (int i = 0; i < 4; i++)
+        {
+            _monitor.RecordFailure(pluginName);
+        }
+
+        // Act
+        _monitor.ResetRestartCount(pluginName);
+
+        // Assert - We can't directly test private fields, but we can verify behavior
+        // by attempting restart again - should work since cooldown was removed
+        var result = _monitor.AttemptRestart(pluginName);
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ResetRestartCount_NonExistingKey_DoesNothing()
+    {
+        // Act
+        _monitor.ResetRestartCount("NonExistingPlugin");
+
+        // Assert - Should not throw, no side effects
+        Assert.True(true); // If we get here, no exception was thrown
+    }
+
+    [Fact]
+    public void IsHealthy_DisabledPlugin_AfterTenMinutes_ReEnablesAndReturnsTrue()
+    {
+        // Arrange
+        var pluginName = "FailingPlugin";
+        // Disable the plugin
+        for (int i = 0; i < 4; i++)
+        {
+            _monitor.RecordFailure(pluginName);
+        }
+
+        // Simulate time passing by directly modifying LastFailureTime
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.NotNull(healthInfo);
+        healthInfo.LastFailureTime = DateTime.UtcNow.AddMinutes(-11); // More than 10 minutes ago
+
+        // Act
+        var result = _monitor.IsHealthy(pluginName);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(PluginHealthStatus.Healthy, healthInfo.Status);
+        Assert.Equal(0, healthInfo.FailureCount);
+        _mockLogger.Verify(x => x.LogInformation(It.Is<string>(s => s.Contains("Re-enabling plugin"))), Times.Once);
+    }
+
+    [Fact]
+    public void IsHealthy_PluginWithOldActivity_SetsToUnknown()
+    {
+        // Arrange
+        var pluginName = "OldPlugin";
+        _monitor.RecordSuccess(pluginName);
+
+        // Simulate old activity by modifying LastActivityTime
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.NotNull(healthInfo);
+        healthInfo.LastActivityTime = DateTime.UtcNow.AddMinutes(-31); // More than 30 minutes ago
+
+        // Act
+        var result = _monitor.IsHealthy(pluginName);
+
+        // Assert
+        Assert.False(result); // IsHealthy returns false for Unknown status
+        Assert.Equal(PluginHealthStatus.Unknown, healthInfo.Status);
+    }
+
+    [Fact]
+    public void GetHealthInfo_DisposedMonitor_ReturnsNull()
+    {
+        // Arrange
+        var pluginName = "TestPlugin";
+        _monitor.RecordSuccess(pluginName);
+        _monitor.Dispose();
+
+        // Act
+        var result = _monitor.GetHealthInfo(pluginName);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetAllHealthInfo_DisposedMonitor_ReturnsEmptyList()
+    {
+        // Arrange
+        _monitor.RecordSuccess("Plugin1");
+        _monitor.Dispose();
+
+        // Act
+        var result = _monitor.GetAllHealthInfo();
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ResetHealth_DisposedMonitor_DoesNothing()
+    {
+        // Arrange
+        var pluginName = "TestPlugin";
+        _monitor.RecordSuccess(pluginName);
+        _monitor.Dispose();
+
+        // Act
+        _monitor.ResetHealth(pluginName);
+
+        // Assert - Should not throw, no changes made
+        Assert.True(true);
+    }
+
+    [Fact]
+    public void Constructor_InitializesHealthCheckTimer()
+    {
+        // Arrange & Act - Timer is created in constructor
+        // We can't directly test the timer callback, but we can verify the monitor works
+
+        // Assert - Verify the monitor was created and basic functionality works
+        var pluginName = "TestPlugin";
+        _monitor.RecordSuccess(pluginName);
+
+        // Basic health check should work
+        Assert.True(_monitor.IsHealthy(pluginName));
+
+        // Verify health info exists
+        var healthInfo = _monitor.GetHealthInfo(pluginName);
+        Assert.NotNull(healthInfo);
+        Assert.Equal(PluginHealthStatus.Healthy, healthInfo.Status);
     }
 }

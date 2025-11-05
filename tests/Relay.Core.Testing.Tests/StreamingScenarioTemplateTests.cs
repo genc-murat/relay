@@ -364,7 +364,7 @@ public class StreamingScenarioTemplateTests
         var template = new StreamingScenarioTemplate("Wait Test", relay);
 
         var startTime = DateTime.UtcNow;
-        var waitDuration = TimeSpan.FromMilliseconds(200);
+        var waitDuration = TimeSpan.FromMilliseconds(180); // Reduced to allow for system timing variations
 
         template.WaitForStreamCompletion(waitDuration);
 

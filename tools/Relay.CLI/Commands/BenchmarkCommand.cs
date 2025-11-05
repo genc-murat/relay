@@ -526,7 +526,7 @@ public static class BenchmarkCommand
         return csv.ToString();
     }
 
-    private static int GetTestCount(string[] tests)
+    internal static int GetTestCount(string[] tests)
     {
         if (tests.Contains("all")) return 6; // 4 Relay + 2 comparison
         int count = 0;

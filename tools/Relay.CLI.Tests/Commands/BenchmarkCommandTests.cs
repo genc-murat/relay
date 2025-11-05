@@ -1,7 +1,10 @@
 using Relay.CLI.Commands;
 using System.CommandLine;
+using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
+using Spectre.Console.Testing;
+using TestConsole = System.CommandLine.IO.TestConsole;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -245,217 +248,97 @@ public class BenchmarkCommandTests : IDisposable
     public async Task BenchmarkCommand_DetectsRegressions()
     {
         // Arrange
-        var baseline = TimeSpan.FromMilliseconds(5);
-        var current = TimeSpan.FromMilliseconds(8);
+        var command = BenchmarkCommand.Create();
+        var console = new TestConsole();
+        var outputPath = Path.Combine(_testPath, "complete-csv.csv");
 
         // Act
-        var regression = (current - baseline).TotalMilliseconds / baseline.TotalMilliseconds * 100;
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format csv", console);
 
         // Assert
-        Assert.Equal(60, regression); // 60% slower - regression detected!
+        Assert.Equal(0, result);
+        Assert.True(File.Exists(outputPath));
+        var content = await File.ReadAllTextAsync(outputPath);
+        Assert.Contains("Implementation", content);
+        Assert.Contains("Average Time", content);
     }
 
     [Fact]
-    public void BenchmarkOutput_GeneratesMarkdownTable()
+    public void BenchmarkCommand_GetTestCount_WithAllTests_Returns6()
     {
         // Arrange
-        var results = new[]
-        {
-            new BenchmarkResult { Name = "Handler1", ExecutionTime = TimeSpan.FromMicroseconds(1000), Allocations = 0 },
-            new BenchmarkResult { Name = "Handler2", ExecutionTime = TimeSpan.FromMicroseconds(2000), Allocations = 1024 }
-        };
+        var tests = new[] { "all" };
 
         // Act
-        var markdown = @"
-| Handler  | Time (μs) | Allocations |
-|----------|-----------|-------------|
-| Handler1 |    1000.0 |         0 B |
-| Handler2 |    2000.0 |      1024 B |";
+        var count = BenchmarkCommand.GetTestCount(tests);
 
         // Assert
-        Assert.Contains("Handler1", markdown);
-        Assert.Contains("1000.0", markdown);
-        Assert.Contains("0 B", markdown);
+        Assert.Equal(6, count); // 4 relay + 2 comparison
     }
 
     [Fact]
-    public async Task BenchmarkCommand_ExportsResults()
+    public void BenchmarkCommand_GetTestCount_WithRelayOnly_Returns4()
     {
         // Arrange
-        var results = new[]
-        {
-            new BenchmarkResult { Name = "Test", ExecutionTime = TimeSpan.FromMilliseconds(1) }
-        };
+        var tests = new[] { "relay" };
 
         // Act
-        var csvPath = Path.Combine(_testPath, "results.csv");
-        var csv = "Name,Time(ms),Allocations\nTest,1,0";
-        await File.WriteAllTextAsync(csvPath, csv);
+        var count = BenchmarkCommand.GetTestCount(tests);
 
         // Assert
-        Assert.True(File.Exists(csvPath));
-        var content = await File.ReadAllTextAsync(csvPath);
-        Assert.Contains("Test", content);
+        Assert.Equal(4, count);
     }
 
     [Fact]
-    public void BenchmarkValidation_EnsuresAccuracy()
+    public void BenchmarkCommand_GetTestCount_WithComparisonOnly_Returns2()
     {
         // Arrange
-        var minIterations = 100;
-        var actualIterations = 150;
-
-        // Assert
-        Assert.True(actualIterations >= minIterations);
-    }
-
-    [Fact]
-    public void BenchmarkComparison_ShowsRelativePerformance()
-    {
-        // Arrange
-        var relayResult = new BenchmarkResult
-        {
-            Name = "Relay",
-            ExecutionTime = TimeSpan.FromMicroseconds(3000)
-        };
-
-        var mediatrResult = new BenchmarkResult
-        {
-            Name = "MediatR",
-            ExecutionTime = TimeSpan.FromMicroseconds(9000)
-        };
+        var tests = new[] { "comparison" };
 
         // Act
-        var ratio = mediatrResult.ExecutionTime.TotalMicroseconds / relayResult.ExecutionTime.TotalMicroseconds;
+        var count = BenchmarkCommand.GetTestCount(tests);
 
         // Assert
-        Assert.Equal(3.0, ratio, 0.1); // MediatR is ~3x slower
+        Assert.Equal(2, count);
     }
 
     [Fact]
-    public void BenchmarkResult_ShouldHaveZeroAllocations()
+    public void BenchmarkCommand_GetTestCount_WithMultipleTests_ReturnsSum()
     {
         // Arrange
-        var result = new BenchmarkResult { Allocations = 0 };
-
-        // Assert
-        Assert.Equal(0, result.Allocations);
-    }
-
-    [Fact]
-    public void BenchmarkResult_ShouldTrackMultipleMetrics()
-    {
-        // Arrange
-        var result = new BenchmarkResult
-        {
-            Name = "Handler",
-            ExecutionTime = TimeSpan.FromMicroseconds(1500),
-            Allocations = 512,
-            Gen0Collections = 1,
-            ThroughputPerSecond = 666666
-        };
-
-        // Assert
-        Assert.NotEmpty(result.Name);
-        Assert.True(result.ExecutionTime > TimeSpan.Zero);
-        Assert.True(result.Allocations > 0);
-        Assert.True(result.Gen0Collections > 0);
-        Assert.True(result.ThroughputPerSecond > 0);
-    }
-
-    [Fact]
-    public void BenchmarkCommand_ShouldCalculateMinTime()
-    {
-        // Arrange
-        var times = new[] { 5.0, 3.0, 7.0, 2.0, 9.0 };
+        var tests = new[] { "relay", "comparison" };
 
         // Act
-        var min = times.Min();
+        var count = BenchmarkCommand.GetTestCount(tests);
 
         // Assert
-        Assert.Equal(2.0, min);
+        Assert.Equal(6, count); // 4 + 2
     }
 
     [Fact]
-    public void BenchmarkCommand_ShouldCalculateMaxTime()
+    public void BenchmarkCommand_GetTestCount_WithEmptyArray_Returns1()
     {
         // Arrange
-        var times = new[] { 5.0, 3.0, 7.0, 2.0, 9.0 };
+        var tests = Array.Empty<string>();
 
         // Act
-        var max = times.Max();
+        var count = BenchmarkCommand.GetTestCount(tests);
 
         // Assert
-        Assert.Equal(9.0, max);
+        Assert.Equal(1, count); // Math.Max(count, 1)
     }
 
     [Fact]
-    public void BenchmarkCommand_ShouldCalculateRange()
+    public void BenchmarkCommand_GetTestCount_WithUnknownTests_Returns1()
     {
         // Arrange
-        var times = new[] { 5.0, 3.0, 7.0, 2.0, 9.0 };
+        var tests = new[] { "unknown" };
 
         // Act
-        var range = times.Max() - times.Min();
+        var count = BenchmarkCommand.GetTestCount(tests);
 
         // Assert
-        Assert.Equal(7.0, range);
-    }
-
-    [Theory]
-    [InlineData(1, 1000000)]
-    [InlineData(10, 100000)]
-    [InlineData(100, 10000)]
-    [InlineData(1000, 1000)]
-    public void BenchmarkCommand_ShouldCalculateThroughput(double microseconds, long expectedThroughput)
-    {
-        // Act
-        var throughput = (long)(1_000_000 / microseconds);
-
-        // Assert
-        Assert.Equal(expectedThroughput, throughput);
-    }
-
-    [Fact]
-    public void BenchmarkCommand_ShouldFormatMicroseconds()
-    {
-        // Arrange
-        var time = TimeSpan.FromMicroseconds(1234.56);
-
-        // Act
-        var formatted = $"{time.TotalMicroseconds:F2}μs";
-
-        // Assert
-        Assert.Contains("1234", formatted);
-        Assert.Contains("μs", formatted);
-    }
-
-    [Fact]
-    public void BenchmarkCommand_ShouldFormatMilliseconds()
-    {
-        // Arrange
-        var time = TimeSpan.FromMilliseconds(12.34);
-
-        // Act
-        var formatted = $"{time.TotalMilliseconds:F2}ms";
-
-        // Assert
-        Assert.Contains("12", formatted);
-        Assert.Contains("ms", formatted);
-    }
-
-    [Fact]
-    public void BenchmarkCommand_ShouldFormatSeconds()
-    {
-        // Arrange
-        var time = TimeSpan.FromSeconds(1.234);
-
-        // Act
-        var formatted = $"{time.TotalSeconds:F2}s";
-
-        // Assert
-        Assert.Contains("1", formatted);
-        Assert.Contains("s", formatted);
+        Assert.Equal(1, count); // Math.Max(count, 1)
     }
 
     [Fact]
@@ -1049,13 +932,15 @@ public class BenchmarkCommandTests : IDisposable
         var outputPath = Path.Combine(_testPath, "mediatr-compare.json");
 
         // Act
-        var result = await command.InvokeAsync($"--iterations 100 --tests all --output {outputPath} --format json", console);
+        var result = await command.InvokeAsync($"--iterations 100 --output {outputPath} --format html", console);
 
         // Assert
         Assert.Equal(0, result);
+        Assert.True(File.Exists(outputPath));
         var content = await File.ReadAllTextAsync(outputPath);
-        Assert.Contains("MediatR", content);
-        Assert.Contains("DirectCall", content);
+        Assert.Contains("<!DOCTYPE html>", content);
+        Assert.Contains("Relay Performance Benchmark Results", content);
+        Assert.Contains("Direct Call", content);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ using Moq;
 using Relay.Core.Telemetry;
 using Relay.Core.Testing;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry;
 
@@ -38,7 +39,7 @@ public class DefaultMetricsProviderLoggingTests
         // Assert
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Debug,
+                MsLogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Recorded handler execution: TestRequest`1 -> String in 150ms (Success: True)")),
                 null,
@@ -64,7 +65,7 @@ public class DefaultMetricsProviderLoggingTests
         // Assert
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Debug,
+                MsLogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Recorded notification publish: TestNotification to 5 handlers in 75ms (Success: True)")),
                 null,
@@ -92,7 +93,7 @@ public class DefaultMetricsProviderLoggingTests
         // Assert
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Debug,
+                MsLogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Recorded streaming operation: TestStreamRequest`1 -> String (50 items) in 300ms (Success: True)")),
                 null,

@@ -12,6 +12,7 @@ using Relay.Core.Testing;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Interfaces;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry;
 
@@ -45,7 +46,7 @@ public class MessageBrokerValidationAdapterValidateMessageAsyncTests
         Assert.False(result);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Message validation failed: message is null")),
                 null,
@@ -107,7 +108,7 @@ public class MessageBrokerValidationAdapterValidateMessageAsyncTests
         validatorMock.Verify(v => v.ValidateAsync(message, It.IsAny<CancellationToken>()), Times.Once);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Message validation error: Error 1")),
                 null,
@@ -115,7 +116,7 @@ public class MessageBrokerValidationAdapterValidateMessageAsyncTests
             Times.Once);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Message validation error: Error 2")),
                 null,
@@ -141,7 +142,7 @@ public class MessageBrokerValidationAdapterValidateMessageAsyncTests
         Assert.False(result);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Error,
+                MsLogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Message validation failed with exception")),
                 It.IsAny<Exception>(),

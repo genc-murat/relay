@@ -31,7 +31,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Register InMemoryDatabase as singleton
-builder.Services.AddSingleton<InMemoryDatabase>();
+builder.Services.AddSingleton<InMemoryDatabase>(new InMemoryDatabase(true));
 
 // Register email service for validation examples
 builder.Services.AddSingleton<IEmailService, ConsoleEmailService>();

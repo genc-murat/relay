@@ -3,12 +3,13 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry;
 
 /// <summary>
-using Relay.Core.Testing;
 /// Tests for DefaultTelemetryProvider activity functionality
 /// </summary>
 public class DefaultTelemetryProviderActivityTests
@@ -48,7 +49,7 @@ public class DefaultTelemetryProviderActivityTests
 
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Debug,
+                MsLogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Started activity {activity.Id} for {requestType.Name}")),
                 null,

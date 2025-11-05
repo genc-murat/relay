@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using System;
 using System.Collections.Generic;
 
@@ -8,7 +9,6 @@ namespace Relay.Core.Tests.Telemetry;
 /// <summary>
 /// Shared test utilities for telemetry tests
 /// </summary>
-using Relay.Core.Testing;
 public static class TestUtilities
 {
     // Supporting test classes shared across multiple test files
@@ -27,9 +27,9 @@ public class TestLogger : ILogger<Relay.Core.Telemetry.RelayTelemetryProvider>
 
     public IDisposable BeginScope<TState>(TState state) => null;
 
-    public bool IsEnabled(LogLevel logLevel) => true;
+    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
 
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+    public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
         var message = formatter(state, exception);
         LoggedMessages.Add(message);

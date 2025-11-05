@@ -3,12 +3,13 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry;
 
 /// <summary>
-using Relay.Core.Testing;
 /// Tests for DefaultTelemetryProvider notification publishing functionality
 /// </summary>
 public class DefaultTelemetryProviderNotificationTests
@@ -62,7 +63,7 @@ public class DefaultTelemetryProviderNotificationTests
 
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Debug,
+                MsLogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Notification published: {notificationType.Name} to {handlerCount} handlers in {duration.TotalMilliseconds}ms (Success: True)")),
                 null,

@@ -12,6 +12,7 @@ using Relay.Core.Testing;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Interfaces;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry;
 
@@ -45,7 +46,7 @@ public class MessageBrokerValidationAdapterValidateBasicMessageFieldsTests
         Assert.False(result);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Message unknown missing 'type' field")),
                 null,
@@ -67,7 +68,7 @@ public class MessageBrokerValidationAdapterValidateBasicMessageFieldsTests
         Assert.False(result);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Message unknown missing 'type' field")),
                 null,
@@ -89,7 +90,7 @@ public class MessageBrokerValidationAdapterValidateBasicMessageFieldsTests
         Assert.False(result);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Message unknown missing 'type' field")),
                 null,
@@ -111,7 +112,7 @@ public class MessageBrokerValidationAdapterValidateBasicMessageFieldsTests
         Assert.False(result);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Message unknown missing 'data' field")),
                 null,
@@ -148,7 +149,7 @@ public class MessageBrokerValidationAdapterValidateBasicMessageFieldsTests
         Assert.False(result);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Message {messageId} missing 'type' field")),
                 null,

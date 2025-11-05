@@ -6,23 +6,27 @@
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
+    <!-- Documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+
     <!-- Package Metadata -->
     <PackageId>Relay.Core.Testing</PackageId>
-    <PackageVersion>1.1.0</PackageVersion>
-    <Title>Relay.Core.Testing - Testing Framework</Title>
+    <PackageVersion>1.3.0</PackageVersion>
+    <Title>Relay.Core.Testing - Advanced Testing Framework</Title>
     <Authors>Relay Framework Contributors</Authors>
     <Company>Relay Framework</Company>
     <Product>Relay Mediator Framework</Product>
-    <Description>Testing framework for Relay-based applications. Provides scenario-based testing, load testing, and behavior verification.</Description>
-    <Summary>Advanced testing framework for high-performance mediator operations.</Summary>
-    <PackageTags>mediator;cqrs;messaging;testing;performance;load-testing;scenario-testing</PackageTags>
+    <Description>Comprehensive testing framework for Relay-based applications. Features async testing utilities, test isolation, dependency mocking, error handling, performance profiling, and scenario-based testing.</Description>
+    <Summary>Advanced testing framework with async utilities, isolation, mocking, and comprehensive error handling for high-performance mediator operations.</Summary>
+    <PackageTags>mediator;cqrs;messaging;testing;async;isolation;mocking;performance;benchmarking;load-testing;error-handling;scenario-testing</PackageTags>
     <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
     <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
-    <PackageReleaseNotes>v1.1.0: Initial release of Relay.Core.Testing as separate package.</PackageReleaseNotes>
+    <PackageReleaseNotes>v1.3.0: Added comprehensive performance benchmarking suite, memory allocation tracking, load testing capabilities, and performance documentation. Enhanced async utilities with deadlock detection and improved error handling patterns.</PackageReleaseNotes>
 
     <!-- Build Configuration -->
     <IncludeSymbols>true</IncludeSymbols>
@@ -31,10 +35,14 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
-  <!-- Dependencies -->
-  <ItemGroup>
-    <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
-  </ItemGroup>
+   <!-- Dependencies -->
+   <ItemGroup>
+     <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
+     <PackageReference Include="System.Text.Json" />
+     <PackageReference Include="xunit" />
+     <PackageReference Include="NUnit" Condition="'$(IncludeNUnit)' == 'true'" />
+     <PackageReference Include="MSTest.TestFramework" Condition="'$(IncludeMSTest)' == 'true'" />
+   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Update="Microsoft.SourceLink.GitHub" />

@@ -3,12 +3,13 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry.DefaultTelemetryProviderTests;
 
 /// <summary>
-using Relay.Core.Testing;
 /// Tests for DefaultTelemetryProvider circuit breaker functionality
 /// </summary>
 public class DefaultTelemetryProviderCircuitBreakerTests
@@ -104,7 +105,7 @@ public class DefaultTelemetryProviderCircuitBreakerTests
         // Assert
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Information,
+                MsLogLevel.Information,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Circuit breaker 'TestCircuitBreaker' state changed from Closed to Open")),
                 null,
@@ -183,7 +184,7 @@ public class DefaultTelemetryProviderCircuitBreakerTests
         // Assert
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Debug,
+                MsLogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Circuit breaker 'TestCircuitBreaker' operation 'Check' (Success: True)")),
                 null,

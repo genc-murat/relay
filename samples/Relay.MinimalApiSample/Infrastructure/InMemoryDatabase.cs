@@ -11,13 +11,34 @@ public class InMemoryDatabase
     private readonly ConcurrentDictionary<Guid, User> _users = new();
     private readonly ConcurrentDictionary<Guid, Product> _products = new();
 
-    public InMemoryDatabase()
+    public InMemoryDatabase(bool seed = false)
     {
-        SeedData();
+        if (seed)
+        {
+            SeedData();
+        }
     }
 
     public ConcurrentDictionary<Guid, User> Users => _users;
     public ConcurrentDictionary<Guid, Product> Products => _products;
+
+    /// <summary>
+    /// Clears all data from the database
+    /// </summary>
+    public void Clear()
+    {
+        _users.Clear();
+        _products.Clear();
+    }
+
+    /// <summary>
+    /// Clears all data and reseeds with initial data
+    /// </summary>
+    public void Reseed()
+    {
+        Clear();
+        SeedData();
+    }
 
     private void SeedData()
     {

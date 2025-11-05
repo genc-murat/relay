@@ -1,0 +1,204 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="e48937b7-1556-4f91-a08e-612f320a5baf" name="murad@LAZONA 2025-11-05 17:17:49" runUser="LAZONA\murad" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-11-05T17:17:49.0189927+03:00" queuing="2025-11-05T17:17:49.0189929+03:00" start="2025-11-05T17:17:48.5586826+03:00" finish="2025-11-05T17:17:49.8483820+03:00" />
+  <TestSettings name="default" id="e6c4b3bb-94af-4056-8fd3-81c0d69d24f6">
+    <Deployment runDeploymentRoot="murad_LAZONA_2025-11-05_17_17_49" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="9f0fd0fc-3886-424f-8ed6-6581f27ec88b" testId="314a1575-7f22-cf57-21da-d68b74868146" testName="UserApiTests.GetAllUsers_ReturnsUsersIncludingSeededData" computerName="LAZONA" duration="00:00:00.0002442" startTime="2025-11-05T17:17:49.0028402+03:00" endTime="2025-11-05T17:17:49.0030612+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9f0fd0fc-3886-424f-8ed6-6581f27ec88b" />
+    <UnitTestResult executionId="2056ce77-c3bf-4b41-8766-ffbda8805374" testId="f58d0461-ce47-8a78-cefe-64414b3125bb" testName="UserApiTests.GetUser_WithValidId_ReturnsUser" computerName="LAZONA" duration="00:00:00.0006438" startTime="2025-11-05T17:17:48.9853782+03:00" endTime="2025-11-05T17:17:49.0009670+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2056ce77-c3bf-4b41-8766-ffbda8805374" />
+    <UnitTestResult executionId="cdb556cc-371e-4d38-bddc-eec088954ea4" testId="f5bc0947-99c7-68b8-2fcf-ec31d4159459" testName="ProductApiTests.GetProduct_WithValidId_ReturnsProduct" computerName="LAZONA" duration="00:00:00.0016375" startTime="2025-11-05T17:17:48.9852895+03:00" endTime="2025-11-05T17:17:48.9853987+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cdb556cc-371e-4d38-bddc-eec088954ea4" />
+    <UnitTestResult executionId="f4b2f9d4-365a-4367-9d01-1e0d0d34bee8" testId="d659cef6-d7e2-9c40-7cf7-7ff14c968014" testName="ProductApiTests.GetProduct_WithInvalidId_ReturnsNull" computerName="LAZONA" duration="00:00:00.0061267" startTime="2025-11-05T17:17:48.9313364+03:00" endTime="2025-11-05T17:17:48.9666299+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f4b2f9d4-365a-4367-9d01-1e0d0d34bee8" />
+    <UnitTestResult executionId="848877a4-9102-4991-9675-a5833db22557" testId="9135602a-9608-8930-ea2f-25bfb316469e" testName="AdvancedScenarioTests.UserRegistration_WithInvalidEmail_Fails" computerName="LAZONA" duration="00:00:00.0006750" startTime="2025-11-05T17:17:49.7698212+03:00" endTime="2025-11-05T17:17:49.7708415+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="848877a4-9102-4991-9675-a5833db22557" />
+    <UnitTestResult executionId="b7246acf-66f1-461d-84c5-e70b9bfe041c" testId="862aeb10-4779-8412-667b-93a893d38ebf" testName="UserApiTests.UserOperations_AreIsolatedBetweenTests" computerName="LAZONA" duration="00:00:00.0007658" startTime="2025-11-05T17:17:49.0011713+03:00" endTime="2025-11-05T17:17:49.0018516+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b7246acf-66f1-461d-84c5-e70b9bfe041c">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Empty() Failure: Collection was not empty&#xD;
+Collection: [UserDto { Id = 6a4e4929-fc7b-4993-af53-202ba142a4a8, Name = Murat Doe, Email = murat@example.com, IsActive = True }, UserDto { Id = 072f016a-c4bc-43d1-befb-fec663dda500, Name = Jane Smith, Email = jane@example.com, IsActive = True }]</Message>
+          <StackTrace>   at UserApiTests.UserOperations_AreIsolatedBetweenTests() in C:\projects\relay\samples\Relay.MinimalApiSample.Tests\UserApiTests.cs:line 148&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8d51f3be-38b0-4e87-bf0a-6bbb9bf93237" testId="f21a0ee3-367d-790c-d521-6701358d89af" testName="AdvancedScenarioTests.Performance_UserOperations_UnderLoad" computerName="LAZONA" duration="00:00:00.0022372" startTime="2025-11-05T17:17:49.7709254+03:00" endTime="2025-11-05T17:17:49.7732802+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8d51f3be-38b0-4e87-bf0a-6bbb9bf93237" />
+    <UnitTestResult executionId="3c4a48fc-dc0c-4644-8167-b5f2fd57c4d8" testId="4e772f48-30a1-6416-1dc7-7b335e0b4cfe" testName="UserApiTests.CreateUser_WithValidData_CreatesUserSuccessfully" computerName="LAZONA" duration="00:00:00.0004578" startTime="2025-11-05T17:17:49.0024596+03:00" endTime="2025-11-05T17:17:49.0024868+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3c4a48fc-dc0c-4644-8167-b5f2fd57c4d8" />
+    <UnitTestResult executionId="661c51d8-7ead-4296-a4ac-a92d07ae0d38" testId="147ae0bb-1d03-d897-f6d7-74b1706845f8" testName="ProductApiTests.ProductOperations_AreIsolatedBetweenTests" computerName="LAZONA" duration="00:00:00.0031405" startTime="2025-11-05T17:17:48.9760152+03:00" endTime="2025-11-05T17:17:48.9849901+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="661c51d8-7ead-4296-a4ac-a92d07ae0d38">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Empty() Failure: Collection was not empty&#xD;
+Collection: [ProductDto { Id = d05ffaef-3ed1-41f9-9901-e8b850519c1a, Name = Mouse, Price = 29.99, Stock = 200 }, ProductDto { Id = d1b3d005-280e-4626-ae4b-e8c45a8eeab1, Name = Laptop, Price = 1299.99, Stock = 50 }]</Message>
+          <StackTrace>   at ProductApiTests.ProductOperations_AreIsolatedBetweenTests() in C:\projects\relay\samples\Relay.MinimalApiSample.Tests\ProductApiTests.cs:line 150&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="3c546dd7-f78c-4019-a873-e9d878160824" testId="1803037f-ea59-631a-f88b-8f883d4b2d9f" testName="UserApiTests.CreateUser_HandlesMultipleUsersCorrectly" computerName="LAZONA" duration="00:00:00.0127393" startTime="2025-11-05T17:17:48.9313156+03:00" endTime="2025-11-05T17:17:48.9817664+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3c546dd7-f78c-4019-a873-e9d878160824">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 3&#xD;
+Actual:   5</Message>
+          <StackTrace>   at UserApiTests.CreateUser_HandlesMultipleUsersCorrectly() in C:\projects\relay\samples\Relay.MinimalApiSample.Tests\UserApiTests.cs:line 133&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="95306ae7-c63d-45bd-b865-52addeff5167" testId="9369d2f1-381a-49e2-0dc0-2e68041e9c7b" testName="AdvancedScenarioTests.EventPublishing_UserCreatedNotification_Works" computerName="LAZONA" duration="00:00:00.8096660" startTime="2025-11-05T17:17:48.9306520+03:00" endTime="2025-11-05T17:17:49.7694710+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="95306ae7-c63d-45bd-b865-52addeff5167" />
+    <UnitTestResult executionId="1677efd9-cad3-43db-980c-c2c84ccb682c" testId="2f6fb207-a87c-5976-aa8a-9d5720ba89d2" testName="UserApiTests.GetUser_WithInvalidId_ReturnsNull" computerName="LAZONA" duration="00:00:00.0007544" startTime="2025-11-05T17:17:48.9852786+03:00" endTime="2025-11-05T17:17:48.9853260+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1677efd9-cad3-43db-980c-c2c84ccb682c" />
+    <UnitTestResult executionId="0f64c518-e700-4242-9768-c44228d32aca" testId="8bcdcd6b-5aca-b857-42ee-0195726e713a" testName="AdvancedScenarioTests.MockedEmailService_VerifiesEmailSending" computerName="LAZONA" duration="00:00:00.0298017" startTime="2025-11-05T17:17:49.7747894+03:00" endTime="2025-11-05T17:17:49.8040114+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0f64c518-e700-4242-9768-c44228d32aca" />
+    <UnitTestResult executionId="c421cf34-e310-41bf-bb6c-dce47703e74e" testId="19cb6651-2771-0697-d257-60aef06dd385" testName="ProductApiTests.CreateProduct_WithValidData_CreatesProductSuccessfully" computerName="LAZONA" duration="00:00:00.0050172" startTime="2025-11-05T17:17:48.9759068+03:00" endTime="2025-11-05T17:17:48.9759490+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c421cf34-e310-41bf-bb6c-dce47703e74e" />
+    <UnitTestResult executionId="7c1865a7-f753-421f-a4cb-cc80f64dea2d" testId="eab3a1b0-2638-dbc1-358a-d962f9deda9e" testName="ProductApiTests.GetAllProducts_ReturnsProductsIncludingSeededData" computerName="LAZONA" duration="00:00:00.0020180" startTime="2025-11-05T17:17:48.9754645+03:00" endTime="2025-11-05T17:17:48.9755142+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7c1865a7-f753-421f-a4cb-cc80f64dea2d" />
+    <UnitTestResult executionId="5ea03dd4-519d-4948-b27b-6948fe3ed6b3" testId="bddfd3b7-c457-dcfb-c210-95b542f17c0e" testName="AdvancedScenarioTests.UserRegistration_WithValidData_Succeeds" computerName="LAZONA" duration="00:00:00.0004304" startTime="2025-11-05T17:17:49.7733748+03:00" endTime="2025-11-05T17:17:49.7738808+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5ea03dd4-519d-4948-b27b-6948fe3ed6b3" />
+    <UnitTestResult executionId="2f4ef763-a9c2-42a9-96ce-0972ad81c442" testId="cf5c264b-8b4d-619a-d58c-01615ad26982" testName="ProductApiTests.CreateProduct_HandlesMultipleProductsCorrectly" computerName="LAZONA" duration="00:00:00.0007911" startTime="2025-11-05T17:17:49.0009138+03:00" endTime="2025-11-05T17:17:49.0016682+03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2f4ef763-a9c2-42a9-96ce-0972ad81c442">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 3&#xD;
+Actual:   5</Message>
+          <StackTrace>   at ProductApiTests.CreateProduct_HandlesMultipleProductsCorrectly() in C:\projects\relay\samples\Relay.MinimalApiSample.Tests\ProductApiTests.cs:line 135&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="AdvancedScenarioTests.UserRegistration_WithInvalidEmail_Fails" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="9135602a-9608-8930-ea2f-25bfb316469e">
+      <Execution id="848877a4-9102-4991-9675-a5833db22557" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdvancedScenarioTests" name="UserRegistration_WithInvalidEmail_Fails" />
+    </UnitTest>
+    <UnitTest name="ProductApiTests.CreateProduct_WithValidData_CreatesProductSuccessfully" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="19cb6651-2771-0697-d257-60aef06dd385">
+      <Execution id="c421cf34-e310-41bf-bb6c-dce47703e74e" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="ProductApiTests" name="CreateProduct_WithValidData_CreatesProductSuccessfully" />
+    </UnitTest>
+    <UnitTest name="UserApiTests.GetUser_WithInvalidId_ReturnsNull" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="2f6fb207-a87c-5976-aa8a-9d5720ba89d2">
+      <Execution id="1677efd9-cad3-43db-980c-c2c84ccb682c" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="UserApiTests" name="GetUser_WithInvalidId_ReturnsNull" />
+    </UnitTest>
+    <UnitTest name="UserApiTests.CreateUser_WithValidData_CreatesUserSuccessfully" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="4e772f48-30a1-6416-1dc7-7b335e0b4cfe">
+      <Execution id="3c4a48fc-dc0c-4644-8167-b5f2fd57c4d8" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="UserApiTests" name="CreateUser_WithValidData_CreatesUserSuccessfully" />
+    </UnitTest>
+    <UnitTest name="ProductApiTests.GetProduct_WithInvalidId_ReturnsNull" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="d659cef6-d7e2-9c40-7cf7-7ff14c968014">
+      <Execution id="f4b2f9d4-365a-4367-9d01-1e0d0d34bee8" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="ProductApiTests" name="GetProduct_WithInvalidId_ReturnsNull" />
+    </UnitTest>
+    <UnitTest name="AdvancedScenarioTests.UserRegistration_WithValidData_Succeeds" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="bddfd3b7-c457-dcfb-c210-95b542f17c0e">
+      <Execution id="5ea03dd4-519d-4948-b27b-6948fe3ed6b3" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdvancedScenarioTests" name="UserRegistration_WithValidData_Succeeds" />
+    </UnitTest>
+    <UnitTest name="UserApiTests.GetAllUsers_ReturnsUsersIncludingSeededData" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="314a1575-7f22-cf57-21da-d68b74868146">
+      <Execution id="9f0fd0fc-3886-424f-8ed6-6581f27ec88b" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="UserApiTests" name="GetAllUsers_ReturnsUsersIncludingSeededData" />
+    </UnitTest>
+    <UnitTest name="UserApiTests.UserOperations_AreIsolatedBetweenTests" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="862aeb10-4779-8412-667b-93a893d38ebf">
+      <Execution id="b7246acf-66f1-461d-84c5-e70b9bfe041c" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="UserApiTests" name="UserOperations_AreIsolatedBetweenTests" />
+    </UnitTest>
+    <UnitTest name="ProductApiTests.GetAllProducts_ReturnsProductsIncludingSeededData" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="eab3a1b0-2638-dbc1-358a-d962f9deda9e">
+      <Execution id="7c1865a7-f753-421f-a4cb-cc80f64dea2d" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="ProductApiTests" name="GetAllProducts_ReturnsProductsIncludingSeededData" />
+    </UnitTest>
+    <UnitTest name="ProductApiTests.CreateProduct_HandlesMultipleProductsCorrectly" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="cf5c264b-8b4d-619a-d58c-01615ad26982">
+      <Execution id="2f4ef763-a9c2-42a9-96ce-0972ad81c442" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="ProductApiTests" name="CreateProduct_HandlesMultipleProductsCorrectly" />
+    </UnitTest>
+    <UnitTest name="UserApiTests.CreateUser_HandlesMultipleUsersCorrectly" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="1803037f-ea59-631a-f88b-8f883d4b2d9f">
+      <Execution id="3c546dd7-f78c-4019-a873-e9d878160824" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="UserApiTests" name="CreateUser_HandlesMultipleUsersCorrectly" />
+    </UnitTest>
+    <UnitTest name="ProductApiTests.ProductOperations_AreIsolatedBetweenTests" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="147ae0bb-1d03-d897-f6d7-74b1706845f8">
+      <Execution id="661c51d8-7ead-4296-a4ac-a92d07ae0d38" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="ProductApiTests" name="ProductOperations_AreIsolatedBetweenTests" />
+    </UnitTest>
+    <UnitTest name="AdvancedScenarioTests.EventPublishing_UserCreatedNotification_Works" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="9369d2f1-381a-49e2-0dc0-2e68041e9c7b">
+      <Execution id="95306ae7-c63d-45bd-b865-52addeff5167" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdvancedScenarioTests" name="EventPublishing_UserCreatedNotification_Works" />
+    </UnitTest>
+    <UnitTest name="ProductApiTests.GetProduct_WithValidId_ReturnsProduct" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="f5bc0947-99c7-68b8-2fcf-ec31d4159459">
+      <Execution id="cdb556cc-371e-4d38-bddc-eec088954ea4" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="ProductApiTests" name="GetProduct_WithValidId_ReturnsProduct" />
+    </UnitTest>
+    <UnitTest name="UserApiTests.GetUser_WithValidId_ReturnsUser" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="f58d0461-ce47-8a78-cefe-64414b3125bb">
+      <Execution id="2056ce77-c3bf-4b41-8766-ffbda8805374" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="UserApiTests" name="GetUser_WithValidId_ReturnsUser" />
+    </UnitTest>
+    <UnitTest name="AdvancedScenarioTests.MockedEmailService_VerifiesEmailSending" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="8bcdcd6b-5aca-b857-42ee-0195726e713a">
+      <Execution id="0f64c518-e700-4242-9768-c44228d32aca" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdvancedScenarioTests" name="MockedEmailService_VerifiesEmailSending" />
+    </UnitTest>
+    <UnitTest name="AdvancedScenarioTests.Performance_UserOperations_UnderLoad" storage="c:\projects\relay\samples\relay.minimalapisample.tests\bin\windows\debug\net8.0\relay.minimalapisample.tests.dll" id="f21a0ee3-367d-790c-d521-6701358d89af">
+      <Execution id="8d51f3be-38b0-4e87-bf0a-6bbb9bf93237" />
+      <TestMethod codeBase="C:\projects\relay\samples\Relay.MinimalApiSample.Tests\bin\windows\Debug\net8.0\Relay.MinimalApiSample.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="AdvancedScenarioTests" name="Performance_UserOperations_UnderLoad" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="314a1575-7f22-cf57-21da-d68b74868146" executionId="9f0fd0fc-3886-424f-8ed6-6581f27ec88b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f58d0461-ce47-8a78-cefe-64414b3125bb" executionId="2056ce77-c3bf-4b41-8766-ffbda8805374" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f5bc0947-99c7-68b8-2fcf-ec31d4159459" executionId="cdb556cc-371e-4d38-bddc-eec088954ea4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d659cef6-d7e2-9c40-7cf7-7ff14c968014" executionId="f4b2f9d4-365a-4367-9d01-1e0d0d34bee8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9135602a-9608-8930-ea2f-25bfb316469e" executionId="848877a4-9102-4991-9675-a5833db22557" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="862aeb10-4779-8412-667b-93a893d38ebf" executionId="b7246acf-66f1-461d-84c5-e70b9bfe041c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f21a0ee3-367d-790c-d521-6701358d89af" executionId="8d51f3be-38b0-4e87-bf0a-6bbb9bf93237" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4e772f48-30a1-6416-1dc7-7b335e0b4cfe" executionId="3c4a48fc-dc0c-4644-8167-b5f2fd57c4d8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="147ae0bb-1d03-d897-f6d7-74b1706845f8" executionId="661c51d8-7ead-4296-a4ac-a92d07ae0d38" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1803037f-ea59-631a-f88b-8f883d4b2d9f" executionId="3c546dd7-f78c-4019-a873-e9d878160824" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9369d2f1-381a-49e2-0dc0-2e68041e9c7b" executionId="95306ae7-c63d-45bd-b865-52addeff5167" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2f6fb207-a87c-5976-aa8a-9d5720ba89d2" executionId="1677efd9-cad3-43db-980c-c2c84ccb682c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8bcdcd6b-5aca-b857-42ee-0195726e713a" executionId="0f64c518-e700-4242-9768-c44228d32aca" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="19cb6651-2771-0697-d257-60aef06dd385" executionId="c421cf34-e310-41bf-bb6c-dce47703e74e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="eab3a1b0-2638-dbc1-358a-d962f9deda9e" executionId="7c1865a7-f753-421f-a4cb-cc80f64dea2d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bddfd3b7-c457-dcfb-c210-95b542f17c0e" executionId="5ea03dd4-519d-4948-b27b-6948fe3ed6b3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cf5c264b-8b4d-619a-d58c-01615ad26982" executionId="2f4ef763-a9c2-42a9-96ce-0972ad81c442" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="17" executed="17" passed="13" failed="4" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 8.0.21)&#xD;
+[xUnit.net 00:00:00.06]   Discovering: Relay.MinimalApiSample.Tests&#xD;
+[xUnit.net 00:00:00.09]   Discovered:  Relay.MinimalApiSample.Tests&#xD;
+[xUnit.net 00:00:00.10]   Starting:    Relay.MinimalApiSample.Tests&#xD;
+[xUnit.net 00:00:00.16]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:00.16]       Expected: 3&#xD;
+[xUnit.net 00:00:00.16]       Actual:   5&#xD;
+[xUnit.net 00:00:00.16]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.16]         C:\projects\relay\samples\Relay.MinimalApiSample.Tests\UserApiTests.cs(133,0): at UserApiTests.CreateUser_HandlesMultipleUsersCorrectly()&#xD;
+[xUnit.net 00:00:00.16]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.16]       Assert.Empty() Failure: Collection was not empty&#xD;
+[xUnit.net 00:00:00.16]       Collection: [ProductDto { Id = d05ffaef-3ed1-41f9-9901-e8b850519c1a, Name = Mouse, Price = 29.99, Stock = 200 }, ProductDto { Id = d1b3d005-280e-4626-ae4b-e8c45a8eeab1, Name = Laptop, Price = 1299.99, Stock = 50 }]&#xD;
+[xUnit.net 00:00:00.16]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.16]         C:\projects\relay\samples\Relay.MinimalApiSample.Tests\ProductApiTests.cs(150,0): at ProductApiTests.ProductOperations_AreIsolatedBetweenTests()&#xD;
+[xUnit.net 00:00:00.16]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.18]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:00.18]       Expected: 3&#xD;
+[xUnit.net 00:00:00.18]       Actual:   5&#xD;
+[xUnit.net 00:00:00.18]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.18]         C:\projects\relay\samples\Relay.MinimalApiSample.Tests\ProductApiTests.cs(135,0): at ProductApiTests.CreateProduct_HandlesMultipleProductsCorrectly()&#xD;
+[xUnit.net 00:00:00.18]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.18]       Assert.Empty() Failure: Collection was not empty&#xD;
+[xUnit.net 00:00:00.18]       Collection: [UserDto { Id = 6a4e4929-fc7b-4993-af53-202ba142a4a8, Name = Murat Doe, Email = murat@example.com, IsActive = True }, UserDto { Id = 072f016a-c4bc-43d1-befb-fec663dda500, Name = Jane Smith, Email = jane@example.com, IsActive = True }]&#xD;
+[xUnit.net 00:00:00.18]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.18]         C:\projects\relay\samples\Relay.MinimalApiSample.Tests\UserApiTests.cs(148,0): at UserApiTests.UserOperations_AreIsolatedBetweenTests()&#xD;
+[xUnit.net 00:00:00.18]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.98]   Finished:    Relay.MinimalApiSample.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="LAZONA" outcome="Error" timestamp="2025-11-05T17:17:48.9845140+03:00">
+        <Text>[xUnit.net 00:00:00.16]     UserApiTests.CreateUser_HandlesMultipleUsersCorrectly [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAZONA" outcome="Error" timestamp="2025-11-05T17:17:48.9853282+03:00">
+        <Text>[xUnit.net 00:00:00.16]     ProductApiTests.ProductOperations_AreIsolatedBetweenTests [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAZONA" outcome="Error" timestamp="2025-11-05T17:17:49.0246144+03:00">
+        <Text>[xUnit.net 00:00:00.18]     ProductApiTests.CreateProduct_HandlesMultipleProductsCorrectly [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="LAZONA" outcome="Error" timestamp="2025-11-05T17:17:49.0246399+03:00">
+        <Text>[xUnit.net 00:00:00.18]     UserApiTests.UserOperations_AreIsolatedBetweenTests [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

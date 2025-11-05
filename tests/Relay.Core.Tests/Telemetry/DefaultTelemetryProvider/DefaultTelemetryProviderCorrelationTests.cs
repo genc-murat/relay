@@ -3,12 +3,13 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry;
 
 /// <summary>
-using Relay.Core.Testing;
 /// Tests for DefaultTelemetryProvider correlation ID functionality
 /// </summary>
 public class DefaultTelemetryProviderCorrelationTests

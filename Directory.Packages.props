@@ -93,13 +93,18 @@
     <PackageVersion Include="Grpc.AspNetCore" Version="2.59.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.25.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.59.0" />
-    <!-- Testing packages -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
-    <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="Moq" Version="4.20.72" />
-    <PackageVersion Include="Shouldly" Version="4.2.1" />
+     <!-- Testing packages -->
+     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
+     <PackageVersion Include="xunit" Version="2.9.3" />
+     <PackageVersion Include="xunit.assert" Version="2.9.3" />
+     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+     <PackageVersion Include="Moq" Version="4.20.72" />
+     <PackageVersion Include="Shouldly" Version="4.2.1" />
+     <PackageVersion Include="NUnit" Version="4.2.2" />
+     <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
+     <PackageVersion Include="MSTest.TestAdapter" Version="3.6.1" />
+     <PackageVersion Include="MSTest.TestFramework" Version="3.6.1" />
     <!-- CLI and Console packages -->
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageVersion Include="Spectre.Console" Version="0.49.1" />
@@ -115,8 +120,9 @@
     <!-- NuGet packages -->
     <PackageVersion Include="NuGet.Packaging" Version="6.14.0" />
     <PackageVersion Include="NuGet.Protocol" Version="6.14.0" />
-    <!-- Relay packages (for inter-project dependencies) -->
-    <PackageVersion Include="Relay.Core" Version="1.1.0" />
+     <!-- Relay packages (for inter-project dependencies) -->
+     <PackageVersion Include="Relay.Core" Version="1.1.0" />
+     <PackageVersion Include="Relay.Core.Testing" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>
     <!-- Code Analysis and Fixes -->

@@ -3,12 +3,13 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry;
 
 /// <summary>
-using Relay.Core.Testing;
 /// Tests for DefaultTelemetryProvider streaming operation functionality
 /// </summary>
 public class DefaultTelemetryProviderStreamingTests
@@ -68,7 +69,7 @@ public class DefaultTelemetryProviderStreamingTests
 
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Debug,
+                MsLogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($"Streaming operation completed: {requestType.Name} -> {responseType.Name} ({itemCount} items) in {duration.TotalMilliseconds}ms (Success: True)")),
                 null,

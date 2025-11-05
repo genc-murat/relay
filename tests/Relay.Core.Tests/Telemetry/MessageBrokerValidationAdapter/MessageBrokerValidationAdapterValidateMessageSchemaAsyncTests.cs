@@ -13,6 +13,7 @@ using Relay.Core.Telemetry;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Interfaces;
 using Xunit;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Relay.Core.Tests.Telemetry;
 
@@ -47,7 +48,7 @@ public class MessageBrokerValidationAdapterValidateMessageSchemaAsyncTests
         Assert.Contains("Message cannot be null", errors);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Schema validation failed: message is null")),
                 null,
@@ -70,7 +71,7 @@ public class MessageBrokerValidationAdapterValidateMessageSchemaAsyncTests
         Assert.Contains("Schema cannot be null", errors);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Schema validation failed: schema is null")),
                 null,
@@ -94,7 +95,7 @@ public class MessageBrokerValidationAdapterValidateMessageSchemaAsyncTests
         Assert.Empty(errors);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Schema validation skipped: no contract validator available")),
                 null,
@@ -122,7 +123,7 @@ public class MessageBrokerValidationAdapterValidateMessageSchemaAsyncTests
         _contractValidatorMock.Verify(v => v.ValidateRequestAsync(message, schema, It.IsAny<CancellationToken>()), Times.Once);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Schema validation error: Validation error 1")),
                 null,
@@ -130,7 +131,7 @@ public class MessageBrokerValidationAdapterValidateMessageSchemaAsyncTests
             Times.Once);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Warning,
+                MsLogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Schema validation error: Validation error 2")),
                 null,
@@ -157,7 +158,7 @@ public class MessageBrokerValidationAdapterValidateMessageSchemaAsyncTests
         Assert.Contains("Schema validation failed with exception: Contract validation error", errors);
         _loggerMock.Verify(
             x => x.Log(
-                LogLevel.Error,
+                MsLogLevel.Error,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Schema validation failed with exception")),
                 exception,

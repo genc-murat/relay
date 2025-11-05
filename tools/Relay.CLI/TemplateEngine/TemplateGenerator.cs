@@ -37,6 +37,9 @@ public class TemplateGenerator
                 return result;
             }
 
+            // Use default options if null
+            options ??= new GenerationOptions();
+
             Console.WriteLine();
             Console.WriteLine($"🎨 Generating project '{projectName}' from template '{templateId}'...");
             Console.WriteLine();

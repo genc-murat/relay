@@ -222,9 +222,9 @@ public class TemplatePublisher
 
     private string CreateNuspecContent(TemplateMetadata metadata)
     {
-        var version = metadata.Version ?? "1.0.0";
-        var author = metadata.Author ?? "Unknown";
-        var description = metadata.Description ?? metadata.Name;
+        var version = string.IsNullOrEmpty(metadata.Version) ? "1.0.0" : metadata.Version;
+        var author = string.IsNullOrEmpty(metadata.Author) ? "Unknown" : metadata.Author;
+        var description = string.IsNullOrEmpty(metadata.Description) ? metadata.Name : metadata.Description;
 
         return $"""
             <?xml version="1.0" encoding="utf-8"?>

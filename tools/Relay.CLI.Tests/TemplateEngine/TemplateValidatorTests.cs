@@ -189,12 +189,255 @@ public class TemplateValidatorTests : IDisposable
         Assert.Contains(result.Warnings, w => w.Contains("reserved keyword"));
     }
 
+    [Theory]
+    [InlineData("My<Project>")]
+    [InlineData("My:Project")]
+    [InlineData("My\"Project\"")]
+    [InlineData("My|Project")]
+    [InlineData("My?Project")]
+    [InlineData("My*Project")]
+    [InlineData("My\\Project")]
+    [InlineData("My/Project")]
+    public void ValidateProjectName_WithInvalidFileNameChars_ReturnsFailure(string invalidName)
+    {
+        // Act
+        var result = _validator.ValidateProjectName(invalidName);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains("invalid characters"));
+    }
+
+    [Fact]
+    public void ValidateProjectName_WithUnicodeCharacters_IsValid()
+    {
+        // Arrange
+        var unicodeName = "MyPröject_123";
+
+        // Act
+        var result = _validator.ValidateProjectName(unicodeName);
+
+        // Assert
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateProjectName_WithVeryLongName_IsValid()
+    {
+        // Arrange
+        var longName = new string('A', 200);
+
+        // Act
+        var result = _validator.ValidateProjectName(longName);
+
+        // Assert
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateProjectName_WithNumbersOnly_ReturnsWarning()
+    {
+        // Arrange
+        var numbersOnly = "123456";
+
+        // Act
+        var result = _validator.ValidateProjectName(numbersOnly);
+
+        // Assert
+        Assert.Contains(result.Warnings, w => w.Contains("start with a letter"));
+    }
+
+    [Fact]
+    public void ValidateProjectName_WithUnderscore_IsValid()
+    {
+        // Arrange
+        var nameWithUnderscore = "My_Project";
+
+        // Act
+        var result = _validator.ValidateProjectName(nameWithUnderscore);
+
+        // Assert
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateProjectName_WithHyphen_IsValid()
+    {
+        // Arrange
+        var nameWithHyphen = "My-Project";
+
+        // Act
+        var result = _validator.ValidateProjectName(nameWithHyphen);
+
+        // Assert
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateProjectName_WithMixedCase_IsValid()
+    {
+        // Arrange
+        var mixedCaseName = "MyProject123";
+
+        // Act
+        var result = _validator.ValidateProjectName(mixedCaseName);
+
+        // Assert
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithMalformedJson_ReturnsFailure()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "MalformedJson_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        Directory.CreateDirectory(configPath);
+
+        var malformedJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test Author"",
+            ""name"": ""Test Template""
+            // Missing comma and closing brace
+        ";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, malformedJson);
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.Contains("Error validating template.json"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithEmptyTemplateJson_ReturnsFailure()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "EmptyJson_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        Directory.CreateDirectory(configPath);
+
+        var emptyJson = "{}";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, emptyJson);
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.Contains("'name' is required"));
+            Assert.Contains(result.Errors, e => e.Contains("'shortName' is required"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithTemplateJsonMissingRequiredFields_ReturnsMultipleErrors()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "MissingFields_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        Directory.CreateDirectory(configPath);
+
+        var incompleteJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test Author"",
+            ""classifications"": [""Test""]
+        }";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, incompleteJson);
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.Contains("'name' is required"));
+            Assert.Contains(result.Errors, e => e.Contains("'shortName' is required"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithTemplateJsonSpecialCharacters_IsValid()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "SpecialChars_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test & Author <test@example.com>"",
+            ""classifications"": [""Test & Sample""],
+            ""identity"": ""Test.Template.Valid"",
+            ""name"": ""Test Template & More"",
+            ""shortName"": ""test-template"",
+            ""description"": ""A test template with <tags> & 'quotes'"",
+            ""sourceName"": ""TestProject""
+        }";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, templateJson);
+
+        // Create sample content
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "README.md"), "# Test Project");
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "TestProject.csproj"), "<Project />");
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.True(result.IsValid);
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
     private string CreateValidTemplate()
     {
         var templatePath = Path.Combine(_testDataPath, "ValidTemplate_" + Guid.NewGuid().ToString("N"));
         var configPath = Path.Combine(templatePath, ".template.config");
         var contentPath = Path.Combine(templatePath, "content");
-        
+
         Directory.CreateDirectory(configPath);
         Directory.CreateDirectory(contentPath);
 

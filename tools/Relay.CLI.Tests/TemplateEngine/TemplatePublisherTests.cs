@@ -431,6 +431,86 @@ public class TemplatePublisherTests : IDisposable
         Assert.Contains("&gt;", nuspecContent);
     }
 
+    [Fact]
+    public async Task PackTemplateAsync_WithNullVersion_UsesDefaultVersion()
+    {
+        // Arrange
+        var templatePath = CreateValidTemplateWithVersion(null, "Test Author", "Test Description");
+
+        // Act
+        var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
+
+        // Assert
+        Assert.True(result.Success);
+
+        using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
+        var nuspecEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".nuspec"));
+
+        using var reader = new StreamReader(nuspecEntry!.Open());
+        var nuspecContent = await reader.ReadToEndAsync();
+
+        Assert.Contains("<version>1.0.0</version>", nuspecContent);
+    }
+
+    [Fact]
+    public async Task PackTemplateAsync_WithNullAuthor_UsesDefaultAuthor()
+    {
+        // Arrange
+        var templatePath = CreateValidTemplateWithVersion("2.0.0", null, "Test Description");
+
+        // Act
+        var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
+
+        // Assert
+        Assert.True(result.Success);
+
+        using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
+        var nuspecEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".nuspec"));
+
+        using var reader = new StreamReader(nuspecEntry!.Open());
+        var nuspecContent = await reader.ReadToEndAsync();
+
+        Assert.Contains("<authors>Unknown</authors>", nuspecContent);
+    }
+
+    [Fact]
+    public async Task PackTemplateAsync_WithNullDescription_UsesNameAsDescription()
+    {
+        // Arrange
+        var templatePath = CreateValidTemplateWithVersion("2.0.0", "Test Author", null);
+
+        // Act
+        var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
+
+        // Assert
+        Assert.True(result.Success);
+
+        using var zipArchive = System.IO.Compression.ZipFile.OpenRead(result.PackagePath);
+        var nuspecEntry = zipArchive.Entries.FirstOrDefault(e => e.FullName.EndsWith(".nuspec"));
+
+        using var reader = new StreamReader(nuspecEntry!.Open());
+        var nuspecContent = await reader.ReadToEndAsync();
+
+        Assert.Contains("<description>Test Template</description>", nuspecContent);
+    }
+
+    [Fact]
+    public async Task PackTemplateAsync_HandlesCleanupGracefully()
+    {
+        // Arrange
+        var templatePath = CreateValidTemplate();
+
+        // Act - Pack multiple times to test cleanup
+        var result1 = await _publisher.PackTemplateAsync(templatePath, _outputPath);
+        var result2 = await _publisher.PackTemplateAsync(templatePath, _outputPath);
+
+        // Assert - Both should succeed even with cleanup operations
+        Assert.True(result1.Success);
+        Assert.True(result2.Success);
+        Assert.True(File.Exists(result1.PackagePath));
+        Assert.True(File.Exists(result2.PackagePath));
+    }
+
     private string CreateValidTemplate(string? suffix = null)
     {
         var templateName = "ValidTemplate" + (suffix ?? Guid.NewGuid().ToString("N"));

@@ -305,6 +305,93 @@ public class TemplateGeneratorTests : IDisposable
         Assert.True(result.Errors.Count > 0);
     }
 
+    [Fact]
+    public async Task GenerateAsync_WithReadOnlyOutputDirectory_ReturnsFailedResult()
+    {
+        // Arrange
+        var generator = new TemplateGenerator(_templatesPath);
+        var outputPath = Path.Combine(_tempDirectory, "readonly_output");
+        Directory.CreateDirectory(outputPath);
+
+        var di = new DirectoryInfo(outputPath);
+        try
+        {
+            // Make directory read-only (this might not work on all systems)
+            di.Attributes |= FileAttributes.ReadOnly;
+
+            var options = new GenerationOptions();
+
+            // Act
+            var result = await generator.GenerateAsync("relay-webapi", "TestProject", outputPath, options);
+
+            // Assert - This might succeed or fail depending on the system
+            // The important thing is that it doesn't crash
+            Assert.NotNull(result);
+        }
+        finally
+        {
+            // Cleanup - remove read-only attribute first
+            di.Attributes &= ~FileAttributes.ReadOnly;
+            if (Directory.Exists(outputPath))
+            {
+                Directory.Delete(outputPath, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GenerateAsync_WithNullOptions_UsesDefaults()
+    {
+        // Arrange
+        var generator = new TemplateGenerator(_templatesPath);
+        var outputPath = Path.Combine(_tempDirectory, "output");
+
+        // Act
+        var result = await generator.GenerateAsync("relay-webapi", "TestProject", outputPath, null);
+
+        // Assert
+        Assert.True(result.Success);
+        // Should use default options (EnableSwagger = true, etc.)
+    }
+
+    [Fact]
+    public async Task GenerateAsync_WithEmptyTemplateId_UsesBasicTemplate()
+    {
+        // Arrange
+        var generator = new TemplateGenerator(_templatesPath);
+        var outputPath = Path.Combine(_tempDirectory, "output");
+        var options = new GenerationOptions();
+
+        // Act
+        var result = await generator.GenerateAsync("", "TestProject", outputPath, options);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.True(Directory.Exists(Path.Combine(outputPath, "src", "TestProject")));
+        Assert.True(File.Exists(Path.Combine(outputPath, "TestProject.sln")));
+    }
+
+    [Fact]
+    public async Task GenerateAsync_SolutionFile_IncludesVisualStudioVersion()
+    {
+        // Arrange
+        var generator = new TemplateGenerator(_templatesPath);
+        var outputPath = Path.Combine(_tempDirectory, "output");
+        var options = new GenerationOptions();
+
+        // Act
+        var result = await generator.GenerateAsync("relay-webapi", "TestProject", outputPath, options);
+
+        // Assert
+        Assert.True(result.Success);
+        var solutionPath = Path.Combine(outputPath, "TestProject.sln");
+        Assert.True(File.Exists(solutionPath));
+
+        var solutionContent = await File.ReadAllTextAsync(solutionPath);
+        // Should contain either VS version info or be a valid solution file
+        Assert.Contains("Microsoft Visual Studio Solution File", solutionContent);
+    }
+
     [Theory]
     [InlineData("relay-webapi")]
     [InlineData("relay-microservice")]

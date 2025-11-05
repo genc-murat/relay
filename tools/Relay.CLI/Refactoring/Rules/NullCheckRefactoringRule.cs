@@ -319,13 +319,13 @@ public class NullCheckRefactoringRule : IRefactoringRule
             if (statement is ReturnStatementSyntax returnStatement &&
                 returnStatement.Expression != null)
             {
-                var rightSide = returnStatement.Expression.ToString();
+                var returnExpression = returnStatement.Expression.ToString();
 
                 // Check if the return expression already uses null-conditional and extends the checked expression
-                if (rightSide.StartsWith(checkedExpression) && rightSide.Length > checkedExpression.Length)
+                if (returnExpression.Contains("?.") && returnExpression.StartsWith(checkedExpression) && returnExpression.Length > checkedExpression.Length)
                 {
                     // This is a case where we can remove the redundant null check
-                    var suggestedCode = $"return {rightSide};";
+                    var suggestedCode = $"return {returnExpression};";
 
                     return new RefactoringSuggestion
                     {
@@ -343,19 +343,51 @@ public class NullCheckRefactoringRule : IRefactoringRule
                         Context = ifStatement
                     };
                 }
+                // Check if the return expression uses regular access but extends the checked expression (converted to regular)
+                else if (!returnExpression.Contains("?."))
+                {
+                    // Convert null-conditional expression to regular access for comparison
+                    var checkedExpressionWithoutConditional = checkedExpression.Replace("?.", ".");
+
+                    // Check if the return expression starts with the non-conditional version and extends it
+                    if (returnExpression.StartsWith(checkedExpressionWithoutConditional) && returnExpression.Length > checkedExpressionWithoutConditional.Length)
+                    {
+                        // This is a case where we can remove the redundant null check
+                        var suggestedCode = $"return {returnExpression};";
+
+                        return new RefactoringSuggestion
+                        {
+                            RuleName = RuleName,
+                            Description = "Remove redundant null check when null-conditional operator is already used",
+                            Category = Category,
+                            Severity = RefactoringSeverity.Suggestion,
+                            FilePath = filePath,
+                            LineNumber = GetLineNumber(root, ifStatement),
+                            StartPosition = ifStatement.Span.Start,
+                            EndPosition = ifStatement.Span.End,
+                            OriginalCode = ifStatement.ToString(),
+                            SuggestedCode = suggestedCode,
+                            Rationale = "Null-conditional operators already handle null checks, making explicit checks redundant.",
+                            Context = ifStatement
+                        };
+                    }
+                }
             }
 
             // Handle assignment statements
             if (statement is ExpressionStatementSyntax expressionStatement &&
                 expressionStatement.Expression is AssignmentExpressionSyntax assignment)
             {
-                var rightSide = assignment.Right.ToString();
+                var targetExpression = assignment.Left.ToString();
 
-                // Check if the assignment already uses null-conditional and extends the checked expression
-                if (rightSide.StartsWith(checkedExpression) && rightSide.Length > checkedExpression.Length)
+                // Convert null-conditional expression to regular access for comparison
+                var checkedExpressionWithoutConditional = checkedExpression.Replace("?.", ".");
+
+                // Check if the assignment target starts with the non-conditional version and extends it
+                if (targetExpression.StartsWith(checkedExpressionWithoutConditional) && targetExpression.Length > checkedExpressionWithoutConditional.Length)
                 {
                     // This is a case where we can remove the redundant null check
-                    var suggestedCode = $"{assignment.Left} = {rightSide};";
+                    var suggestedCode = $"{targetExpression} = {assignment.Right};";
 
                     return new RefactoringSuggestion
                     {
@@ -490,7 +522,25 @@ public class NullCheckRefactoringRule : IRefactoringRule
             }
         }
 
-        return string.Join("", result);
+        var resultString = string.Join("", result);
+
+        // Check if all conditions are actually used in the result
+        // For each condition beyond the root, ensure it appears as ?. in the result
+        foreach (var condition in conditions.Skip(1))
+        {
+            var conditionParts = condition.Split('.');
+            if (conditionParts.Length > 1)
+            {
+                // For condition "person.Address", check if "?.Address" appears in result
+                var conditionalPart = "?." + conditionParts[1];
+                if (!resultString.Contains(conditionalPart))
+                {
+                    return null; // This condition is not used in the access chain
+                }
+            }
+        }
+
+        return resultString;
     }
 
     public async Task<SyntaxNode> ApplyRefactoringAsync(SyntaxNode root, RefactoringSuggestion suggestion)

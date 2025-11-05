@@ -1,5 +1,6 @@
-using Relay.Core.Validation.Extensions;
+
 using Relay.Core.Pipeline.Extensions;
+using Relay.Core.Extensions;
 using Relay.ControllerApiSample.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);

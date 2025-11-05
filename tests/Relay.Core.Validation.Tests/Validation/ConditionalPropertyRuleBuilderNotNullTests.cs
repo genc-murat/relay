@@ -27,20 +27,16 @@ public class ConditionalPropertyRuleBuilderNotNullTests
     #region Constructor and Basic Setup Tests
 
     [Fact]
-    public void ConditionalPropertyRuleBuilder_Constructor_ShouldInitializeCorrectly()
+    public void ConditionalPropertyRuleBuilder_When_ShouldCreateConditionalBuilderCorrectly()
     {
         // Arrange
-        var rules = new List<IValidationRuleConfiguration<TestRequest>>();
-        var propertyFunc = new Func<TestRequest, string?>(x => x.Name);
-        var condition = new Func<TestRequest, bool>(x => x.IsActive);
+        var ruleBuilder = new ValidationRuleBuilder<TestRequest>();
 
         // Act
-        var builder = new ConditionalPropertyRuleBuilder<TestRequest, string?>(
-            "Name", propertyFunc, rules, condition, true);
+        var conditionalBuilder = ruleBuilder.RuleFor(r => r.Name).When(r => r.IsActive);
 
         // Assert
-        Assert.NotNull(builder);
-        // Constructor is internal, so we can't directly test it, but we can test through public API
+        Assert.NotNull(conditionalBuilder);
     }
 
     #endregion

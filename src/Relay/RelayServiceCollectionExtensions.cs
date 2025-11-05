@@ -12,7 +12,7 @@ using Relay.Core.Implementation.Fallback;
 using Relay.Core.Performance;
 using Relay.Core.Pipeline.Extensions;
 using Relay.Core.Telemetry;
-using Relay.Core.Validation.Extensions;
+
 using System;
 using System.Reflection;
 using RelayScenario = Relay.RelayScenario;

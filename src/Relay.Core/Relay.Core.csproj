@@ -104,9 +104,13 @@
     <None Include="lib\netstandard2.0\_._" Pack="true" PackagePath="lib\netstandard2.0\_._" />
     <None Include="lib\net6.0\_._" Pack="true" PackagePath="lib\net6.0\_._" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="Microsoft.SourceLink.GitHub" />
-  </ItemGroup>
+   <ItemGroup>
+     <ProjectReference Include="..\Relay.Core.Validation\Relay.Core.Validation.csproj" />
+   </ItemGroup>
+
+   <ItemGroup>
+     <PackageReference Update="Microsoft.SourceLink.GitHub" />
+   </ItemGroup>
 
 
 

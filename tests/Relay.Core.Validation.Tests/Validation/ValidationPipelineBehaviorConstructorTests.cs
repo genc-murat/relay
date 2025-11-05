@@ -1,6 +1,6 @@
 using System;
 using Xunit;
-using Relay.Core.Validation.Pipeline;
+using Relay.Core.Pipeline.Validation;
 
 namespace Relay.Core.Tests.Validation
 {

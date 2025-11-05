@@ -1,8 +1,9 @@
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Pipeline.Interfaces;
-using Relay.Core.Validation.Extensions;
+
 using Relay.Core.Pipeline.Extensions;
+using Relay.Core.Extensions;
 using Relay.MinimalApiSample.Features.Products;
 using Relay.MinimalApiSample.Features.Users;
 using Relay.MinimalApiSample.Features.Examples.Validation;

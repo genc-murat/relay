@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Relay.Core.Validation.Exceptions;
 using Relay.Core.Validation.Interfaces;
 
-namespace Relay.Core.Validation.Pipeline;
+namespace Relay.Core.Pipeline.Validation;
 
 /// <summary>
 /// Pipeline behavior that automatically validates requests before they reach handlers.

@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Relay.Core.Validation;
-using Relay.Core.Validation.Extensions;
+using Relay.Core.Extensions;
+
 using Relay.Core.Validation.Interfaces;
-using Relay.Core.Validation.Pipeline;
+using Relay.Core.Pipeline.Validation;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Validation.Rules;
 

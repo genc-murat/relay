@@ -389,6 +389,11 @@ public class PluginSecurityValidator
     /// <returns>True if permissions are valid, false otherwise</returns>
     private bool ValidatePermissions(PluginPermissions permissions)
     {
+        if (permissions == null)
+        {
+            return true; // No permissions to validate
+        }
+
         // Validate file system permissions
         if (permissions.FileSystem != null)
         {
@@ -433,9 +438,82 @@ public class PluginSecurityValidator
 
     private bool ValidateNetworkPermissions(NetworkPermissions networkPermissions)
     {
-        // Validate network access permissions
-        // For example, ensure plugins can't make unauthorized network calls
-        return true; // Placeholder
+        // Validate HTTP permissions - allow but log warning
+        if (networkPermissions.Http)
+        {
+            _logger.LogWarning("Plugin requests HTTP permissions. Consider using HTTPS for security.");
+        }
+
+        // HTTPS is allowed
+        if (networkPermissions.Https)
+        {
+            _logger.LogDebug("Plugin has HTTPS permissions.");
+        }
+
+        // Validate allowed hosts
+        if (networkPermissions.AllowedHosts != null)
+        {
+            foreach (var host in networkPermissions.AllowedHosts)
+            {
+                if (string.IsNullOrWhiteSpace(host))
+                {
+                    _logger.LogWarning("Plugin has empty or null allowed host.");
+                    continue;
+                }
+
+                // Check for potentially dangerous hosts
+                if (IsDangerousHost(host))
+                {
+                    _logger.LogError($"Plugin requests access to dangerous host: {host}");
+                    return false;
+                }
+            }
+        }
+
+        // Validate denied hosts - these should not be dangerous
+        if (networkPermissions.DeniedHosts != null)
+        {
+            foreach (var host in networkPermissions.DeniedHosts)
+            {
+                if (string.IsNullOrWhiteSpace(host))
+                {
+                    _logger.LogWarning("Plugin has empty or null denied host.");
+                    continue;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private bool IsDangerousHost(string host)
+    {
+        // Check for localhost and internal network access
+        var lowerHost = host.ToLowerInvariant();
+
+        // Localhost variations
+        if (lowerHost.Contains("localhost") || lowerHost.Contains("127.0.0.1") ||
+            lowerHost.Contains("::1") || lowerHost == "0.0.0.0")
+        {
+            return true;
+        }
+
+        // Internal network ranges (simplified check)
+        if (lowerHost.StartsWith("10.") || lowerHost.StartsWith("192.168.") ||
+            lowerHost.StartsWith("172.") || lowerHost.Contains("internal") ||
+            lowerHost.Contains("local"))
+        {
+            return true;
+        }
+
+        // Dangerous protocols or patterns
+        if (lowerHost.Contains("file://") || lowerHost.Contains("\\\\") ||
+            lowerHost.Contains("..") || lowerHost.Contains("%"))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -444,6 +522,11 @@ public class PluginSecurityValidator
     /// <param name="source">Trusted source URL</param>
     public void AddTrustedSource(string source)
     {
+        if (source == null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         if (!_trustedSources.Contains(source))
         {
             _trustedSources.Add(source);

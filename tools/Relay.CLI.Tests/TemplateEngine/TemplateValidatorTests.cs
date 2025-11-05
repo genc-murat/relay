@@ -76,6 +76,31 @@ public class TemplateValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateAsync_WithMissingTemplateJsonFile_ReturnsFailure()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "NoTemplateJson_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        Directory.CreateDirectory(configPath);
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, e => e.Contains("Missing template.json file"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
     public async Task ValidateAsync_WithMissingRequiredFields_ReturnsErrors()
     {
         // Arrange

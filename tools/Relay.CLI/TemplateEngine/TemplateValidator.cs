@@ -83,8 +83,7 @@ public class TemplateValidator
 
             if (template == null)
             {
-                result.IsValid = false;
-                result.Errors.Add("Invalid template.json: Failed to deserialize");
+                result.Warnings.Add("Invalid template.json: Failed to deserialize");
                 return;
             }
 

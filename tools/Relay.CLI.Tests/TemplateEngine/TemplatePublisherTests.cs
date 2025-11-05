@@ -94,6 +94,42 @@ public class TemplatePublisherTests : IDisposable
     }
 
     [Fact]
+    public async Task PackTemplateAsync_WithNullTemplateJson_ReturnsFailure()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "NullJson_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        // Create JSON that will cause deserialization to return null
+        var nullJson = "null";
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, nullJson);
+
+        // Create sample content to pass validation
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "README.md"), "# Test");
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "Test.csproj"), "<Project />");
+
+        try
+        {
+            // Act
+            var result = await _publisher.PackTemplateAsync(templatePath, _outputPath);
+
+            // Assert
+            Assert.False(result.Success);
+            Assert.Contains("Failed to read template metadata", result.Message);
+        }
+        finally
+        {
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
     public async Task PackTemplateAsync_CreatesZipFile()
     {
         // Arrange

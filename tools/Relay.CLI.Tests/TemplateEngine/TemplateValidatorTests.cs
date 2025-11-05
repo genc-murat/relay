@@ -161,6 +161,20 @@ public class TemplateValidatorTests : IDisposable
     }
 
     [Fact]
+    public void ValidateProjectName_WithWhitespaceOnly_ReturnsFailure()
+    {
+        // Arrange
+        var whitespaceName = "   \t\n  ";
+
+        // Act
+        var result = _validator.ValidateProjectName(whitespaceName);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Contains("cannot be empty"));
+    }
+
+    [Fact]
     public void ValidateProjectName_WithInvalidCharacters_ReturnsFailure()
     {
         // Arrange
@@ -448,6 +462,281 @@ public class TemplateValidatorTests : IDisposable
 
             // Assert
             Assert.True(result.IsValid);
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithMissingIdentity_ReturnsWarning()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "MissingIdentity_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test Author"",
+            ""classifications"": [""Test""],
+            ""name"": ""Test Template"",
+            ""shortName"": ""test-template"",
+            ""description"": ""A test template"",
+            ""sourceName"": ""TestProject""
+        }";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, templateJson);
+
+        // Create sample content
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "README.md"), "# Test Project");
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "TestProject.csproj"), "<Project />");
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.True(result.IsValid);
+            Assert.Contains(result.Warnings, w => w.Contains("'identity' is not set"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithEmptyClassifications_ReturnsWarning()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "EmptyClassifications_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test Author"",
+            ""classifications"": [],
+            ""identity"": ""Test.Template"",
+            ""name"": ""Test Template"",
+            ""shortName"": ""test-template"",
+            ""description"": ""A test template"",
+            ""sourceName"": ""TestProject""
+        }";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, templateJson);
+
+        // Create sample content
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "README.md"), "# Test Project");
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "TestProject.csproj"), "<Project />");
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.True(result.IsValid);
+            Assert.Contains(result.Warnings, w => w.Contains("No classifications specified"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithEmptyContentDirectory_ReturnsWarning()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "EmptyContent_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test Author"",
+            ""classifications"": [""Test""],
+            ""identity"": ""Test.Template"",
+            ""name"": ""Test Template"",
+            ""shortName"": ""test-template"",
+            ""description"": ""A test template"",
+            ""sourceName"": ""TestProject""
+        }";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, templateJson);
+
+        // Content directory is empty
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.True(result.IsValid);
+            Assert.Contains(result.Warnings, w => w.Contains("Content directory is empty"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithContentNoProjectFile_ReturnsWarning()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "NoProjectFile_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test Author"",
+            ""classifications"": [""Test""],
+            ""identity"": ""Test.Template"",
+            ""name"": ""Test Template"",
+            ""shortName"": ""test-template"",
+            ""description"": ""A test template"",
+            ""sourceName"": ""TestProject""
+        }";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, templateJson);
+
+        // Create content without project file
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "README.md"), "# Test Project");
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "Program.cs"), "Console.WriteLine(\"Hello\");");
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.True(result.IsValid);
+            Assert.Contains(result.Warnings, w => w.Contains("No .csproj or .sln files found"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithContentNoReadme_ReturnsWarning()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "NoReadme_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test Author"",
+            ""classifications"": [""Test""],
+            ""identity"": ""Test.Template"",
+            ""name"": ""Test Template"",
+            ""shortName"": ""test-template"",
+            ""description"": ""A test template"",
+            ""sourceName"": ""TestProject""
+        }";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, templateJson);
+
+        // Create content without README
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "TestProject.csproj"), "<Project />");
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "Program.cs"), "Console.WriteLine(\"Hello\");");
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.True(result.IsValid);
+            Assert.Contains(result.Warnings, w => w.Contains("No README.md found"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithWarningsOnly_ReturnsWarningMessage()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "WarningsOnly_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+        var contentPath = Path.Combine(templatePath, "content");
+
+        Directory.CreateDirectory(configPath);
+        Directory.CreateDirectory(contentPath);
+
+        var templateJson = @"{
+            ""$schema"": ""http://json.schemastore.org/template"",
+            ""author"": ""Test Author"",
+            ""classifications"": [""Test""],
+            ""name"": ""Test Template"",
+            ""shortName"": ""test-template"",
+            ""description"": ""A test template"",
+            ""sourceName"": ""TestProject""
+        }";
+
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, templateJson);
+
+        // Create content without README (to trigger warning)
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "TestProject.csproj"), "<Project />");
+        await File.WriteAllTextAsync(Path.Combine(contentPath, "Program.cs"), "Console.WriteLine(\"Hello\");");
+
+        try
+        {
+            // Act
+            var result = await _validator.ValidateAsync(templatePath);
+
+            // Assert
+            Assert.True(result.IsValid);
+            Assert.Contains(result.Warnings, w => w.Contains("'identity' is not set"));
+            Assert.Contains(result.Warnings, w => w.Contains("No README.md found"));
+            Assert.NotNull(result.Message);
+            Assert.True(result.Message.StartsWith("⚠️"));
         }
         finally
         {

@@ -156,6 +156,8 @@ public class TemplatePublisherTests : IDisposable
         Assert.False(result.Success);
     }
 
+
+
     [Fact]
     public async Task PublishTemplateAsync_WithValidPackage_Succeeds()
     {
@@ -242,6 +244,61 @@ public class TemplatePublisherTests : IDisposable
         Assert.NotEmpty(template.Name);
         Assert.NotEmpty(template.Description);
         Assert.NotEmpty(template.Path);
+    }
+
+    [Fact]
+    public async Task ListAvailableTemplatesAsync_WithInvalidJson_SkipsInvalidTemplates()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "InvalidJson_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+
+        Directory.CreateDirectory(configPath);
+
+        // Create invalid JSON
+        var invalidJson = "{ invalid json content }";
+        var templateJsonPath = Path.Combine(configPath, "template.json");
+        await File.WriteAllTextAsync(templateJsonPath, invalidJson);
+
+        try
+        {
+            // Act
+            var templates = await _publisher.ListAvailableTemplatesAsync();
+
+            // Assert - Should return empty or skip invalid template
+            // Since deserialization fails, metadata will be null, so template not added
+            Assert.Empty(templates);
+        }
+        finally
+        {
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
+    }
+
+    [Fact]
+    public async Task ListAvailableTemplatesAsync_WithDirectoryWithoutTemplateJson_SkipsDirectory()
+    {
+        // Arrange
+        var templatePath = Path.Combine(_testDataPath, "NoJson_" + Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(templatePath, ".template.config");
+
+        Directory.CreateDirectory(configPath);
+        // No template.json file
+
+        try
+        {
+            // Act
+            var templates = await _publisher.ListAvailableTemplatesAsync();
+
+            // Assert - Should skip directory without template.json
+            Assert.Empty(templates);
+        }
+        finally
+        {
+            if (Directory.Exists(templatePath))
+                Directory.Delete(templatePath, true);
+        }
     }
 
     [Fact]

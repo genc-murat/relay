@@ -161,7 +161,12 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
         SyntaxNode? contextNode = null;
         MethodDeclarationSyntax? method = null;
 
-        if (suggestion.Context is MemberAccessExpressionSyntax memberAccess)
+        // Find the node to replace by span
+        var nodeToReplace = root.DescendantNodes().FirstOrDefault(n =>
+            n.Span.Start == suggestion.StartPosition &&
+            n.Span.End == suggestion.EndPosition);
+
+        if (nodeToReplace is MemberAccessExpressionSyntax memberAccess)
         {
             // Replace .Result with await
             var awaitExpression = SyntaxFactory.AwaitExpression(memberAccess.Expression)
@@ -172,7 +177,7 @@ public class AsyncAwaitRefactoringRule : IRefactoringRule
             contextNode = memberAccess;
             method = contextNode.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
         }
-        else if (suggestion.Context is InvocationExpressionSyntax invocation)
+        else if (nodeToReplace is InvocationExpressionSyntax invocation)
         {
             // Replace .Wait() with await
             if (invocation.Expression is MemberAccessExpressionSyntax memberAccessInv)

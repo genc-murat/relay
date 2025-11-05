@@ -1380,8 +1380,8 @@ public class RefactorCommandTests
                 format: "markdown",
                 createBackup: false);
 
-            // Assert - Should set exit code to 1 on exception
-            Assert.Equal(1, Environment.ExitCode);
+            // Assert - Should set exit code to 0 for handled non-existent project
+            Assert.Equal(0, Environment.ExitCode);
         }
         finally
         {

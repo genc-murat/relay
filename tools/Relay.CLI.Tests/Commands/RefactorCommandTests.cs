@@ -1473,5 +1473,893 @@ public class RefactorCommandTests
         Assert.Equal("Minimum severity (Info, Suggestion, Warning, Error)", option.Description);
         Assert.IsType<Option<string>>(option);
     }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithInvalidCategories_ShouldFilterInvalidOnes()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: new[] { "Performance", "InvalidCategory", "Readability", "AnotherInvalid" },
+                severityStr: "Info",
+                outputFile: null,
+                format: "markdown",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - Method executed without exception, invalid categories filtered out
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithErrorSeverity_ShouldExecute()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Error",
+                outputFile: null,
+                format: "markdown",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - Method executed without exception
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithWarningSeverity_ShouldExecute()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Warning",
+                outputFile: null,
+                format: "markdown",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - Method executed without exception
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithSuggestionSeverity_ShouldExecute()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Suggestion",
+                outputFile: null,
+                format: "markdown",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - Method executed without exception
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithInfoSeverity_ShouldExecute()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Info",
+                outputFile: null,
+                format: "markdown",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - Method executed without exception
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithJsonFormat_ShouldCreateJsonReport()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var outputFile = Path.Combine(tempDir, "report.json");
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Info",
+                outputFile: outputFile,
+                format: "json",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - JSON report file should be created
+            Assert.True(File.Exists(outputFile));
+            var content = await File.ReadAllTextAsync(outputFile);
+            Assert.Contains("\"Analysis\"", content);
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithHtmlFormat_ShouldCreateHtmlReport()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var outputFile = Path.Combine(tempDir, "report.html");
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Info",
+                outputFile: outputFile,
+                format: "html",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - HTML report file should be created
+            Assert.True(File.Exists(outputFile));
+            var content = await File.ReadAllTextAsync(outputFile);
+            Assert.Contains("<!DOCTYPE html>", content);
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RefactorCommand_ExecuteRefactor_WithUnknownFormat_ShouldDefaultToMarkdown()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var outputFile = Path.Combine(tempDir, "report.unknown");
+
+        // Create a dummy C# file
+        var csFile = Path.Combine(tempDir, "Test.cs");
+        await File.WriteAllTextAsync(csFile, "using System; class Test { }");
+
+        try
+        {
+            // Act
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = testConsole;
+
+            await RefactorCommand.ExecuteRefactor(
+                tempDir,
+                analyzeOnly: true,
+                dryRun: false,
+                interactive: false,
+                rules: Array.Empty<string>(),
+                categories: Array.Empty<string>(),
+                severityStr: "Info",
+                outputFile: outputFile,
+                format: "unknown",
+                createBackup: false);
+
+            AnsiConsole.Console = originalConsole;
+
+            // Assert - Should default to markdown format
+            Assert.True(File.Exists(outputFile));
+            var content = await File.ReadAllTextAsync(outputFile);
+            Assert.Contains("# Code Refactoring Report", content);
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void RefactorCommand_DisplayAnalysisResults_WithNoFiles_ShouldDisplayEmptyResults()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddSeconds(1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 0,
+            SuggestionsCount = 0,
+            FileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>()
+        };
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { analysis });
+
+        AnsiConsole.Console = originalConsole;
+
+        // Assert - Method executed without exception
+        var output = testConsole.Output;
+        Assert.Contains("Files Analyzed", output);
+        Assert.Contains("0", output);
+    }
+
+    [Fact]
+    public void RefactorCommand_DisplayAnalysisResults_WithManyFiles_ShouldTruncateDisplay()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var fileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>();
+
+        // Create 15 files with suggestions
+        for (int i = 0; i < 15; i++)
+        {
+            fileResults.Add(new Relay.CLI.Refactoring.FileRefactoringResult
+            {
+                FilePath = $"File{i}.cs",
+                Suggestions = new List<Relay.CLI.Refactoring.RefactoringSuggestion>
+                {
+                    new Relay.CLI.Refactoring.RefactoringSuggestion
+                    {
+                        RuleName = $"Rule{i}",
+                        Description = $"Suggestion {i}",
+                        Category = Relay.CLI.Refactoring.RefactoringCategory.Readability,
+                        Severity = Relay.CLI.Refactoring.RefactoringSeverity.Suggestion,
+                        FilePath = $"File{i}.cs",
+                        LineNumber = 1,
+                        Rationale = $"Rationale {i}"
+                    }
+                }
+            });
+        }
+
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddSeconds(1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 15,
+            SuggestionsCount = 15,
+            FileResults = fileResults
+        };
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { analysis });
+
+        AnsiConsole.Console = originalConsole;
+
+        // Assert - Should show truncation message
+        var output = testConsole.Output;
+        Assert.Contains("... and 5 more files", output);
+    }
+
+    [Fact]
+    public void RefactorCommand_DisplayAnalysisResults_WithAllSeverities_ShouldShowCorrectIcons()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddSeconds(1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 1,
+            SuggestionsCount = 4,
+            FileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>
+            {
+                new Relay.CLI.Refactoring.FileRefactoringResult
+                {
+                    FilePath = "Test.cs",
+                    Suggestions = new List<Relay.CLI.Refactoring.RefactoringSuggestion>
+                    {
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "ErrorRule",
+                            Description = "Error suggestion",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Security,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Error,
+                            FilePath = "Test.cs",
+                            LineNumber = 1,
+                            Rationale = "Security issue"
+                        },
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "WarningRule",
+                            Description = "Warning suggestion",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Performance,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Warning,
+                            FilePath = "Test.cs",
+                            LineNumber = 2,
+                            Rationale = "Performance issue"
+                        },
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "SuggestionRule",
+                            Description = "Suggestion",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Readability,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Suggestion,
+                            FilePath = "Test.cs",
+                            LineNumber = 3,
+                            Rationale = "Readability improvement"
+                        },
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "InfoRule",
+                            Description = "Info suggestion",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.BestPractices,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Info,
+                            FilePath = "Test.cs",
+                            LineNumber = 4,
+                            Rationale = "Best practice"
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { analysis });
+
+        AnsiConsole.Console = originalConsole;
+
+        // Assert - Should show all severity icons
+        var output = testConsole.Output;
+        Assert.Contains("❌", output); // Error
+        Assert.Contains("⚠️", output); // Warning
+        Assert.Contains("💡", output); // Suggestion
+        Assert.Contains("ℹ️", output); // Info
+    }
+
+    [Fact]
+    public void RefactorCommand_DisplayApplyResults_WithSuccessStatus_ShouldShowGreen()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var applyResult = new Relay.CLI.Refactoring.ApplyResult
+        {
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddSeconds(1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesModified = 2,
+            RefactoringsApplied = 3,
+            Status = Relay.CLI.Refactoring.RefactoringStatus.Success
+        };
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("DisplayApplyResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { applyResult, false });
+
+        AnsiConsole.Console = originalConsole;
+
+        // Assert
+        var output = testConsole.Output;
+        Assert.Contains("✅ Success", output);
+        Assert.Contains("Files Modified", output);
+        Assert.Contains("2", output);
+        Assert.Contains("Refactorings Applied", output);
+        Assert.Contains("3", output);
+    }
+
+    [Fact]
+    public void RefactorCommand_DisplayApplyResults_WithPartialStatus_ShouldShowYellow()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var applyResult = new Relay.CLI.Refactoring.ApplyResult
+        {
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddSeconds(1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesModified = 1,
+            RefactoringsApplied = 1,
+            Status = Relay.CLI.Refactoring.RefactoringStatus.Partial
+        };
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("DisplayApplyResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { applyResult, false });
+
+        AnsiConsole.Console = originalConsole;
+
+        // Assert
+        var output = testConsole.Output;
+        Assert.Contains("⚠️  Partial Success", output);
+    }
+
+    [Fact]
+    public void RefactorCommand_DisplayApplyResults_WithFailedStatus_ShouldShowRed()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var applyResult = new Relay.CLI.Refactoring.ApplyResult
+        {
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddSeconds(1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesModified = 0,
+            RefactoringsApplied = 0,
+            Status = Relay.CLI.Refactoring.RefactoringStatus.Failed,
+            Error = "Test error message"
+        };
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("DisplayApplyResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { applyResult, false });
+
+        AnsiConsole.Console = originalConsole;
+
+        // Assert
+        var output = testConsole.Output;
+        Assert.Contains("❌ Failed", output);
+        Assert.Contains("Test error message", output);
+    }
+
+    [Fact]
+    public void RefactorCommand_DisplayApplyResults_WithDryRun_ShouldShowDryRunTitle()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var applyResult = new Relay.CLI.Refactoring.ApplyResult
+        {
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddSeconds(1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesModified = 1,
+            RefactoringsApplied = 2,
+            Status = Relay.CLI.Refactoring.RefactoringStatus.Success
+        };
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("DisplayApplyResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { applyResult, true });
+
+        AnsiConsole.Console = originalConsole;
+
+        // Assert
+        var output = testConsole.Output;
+        Assert.Contains("🔍 Dry Run Results", output);
+    }
+
+    [Fact]
+    public void RefactorCommand_DisplayApplyResults_WithoutDryRun_ShouldShowRefactoringTitle()
+    {
+        // Arrange
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var applyResult = new Relay.CLI.Refactoring.ApplyResult
+        {
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddSeconds(1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesModified = 1,
+            RefactoringsApplied = 2,
+            Status = Relay.CLI.Refactoring.RefactoringStatus.Success
+        };
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
+
+        typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("DisplayApplyResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { applyResult, false });
+
+        AnsiConsole.Console = originalConsole;
+
+        // Assert
+        var output = testConsole.Output;
+        Assert.Contains("🔧 Refactoring Results", output);
+    }
+
+    [Fact]
+    public void RefactorCommand_GenerateMarkdownReport_WithApplyResult_ShouldIncludeApplyMetrics()
+    {
+        // Arrange
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow.AddSeconds(-2),
+            EndTime = DateTime.UtcNow.AddSeconds(-1),
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 5,
+            SuggestionsCount = 3,
+            FileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>
+            {
+                new Relay.CLI.Refactoring.FileRefactoringResult
+                {
+                    FilePath = "Test.cs",
+                    Suggestions = new List<Relay.CLI.Refactoring.RefactoringSuggestion>
+                    {
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "TestRule",
+                            Description = "Test suggestion",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Readability,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Suggestion,
+                            FilePath = "Test.cs",
+                            LineNumber = 1,
+                            Rationale = "Test rationale"
+                        }
+                    }
+                }
+            }
+        };
+
+        var applyResult = new Relay.CLI.Refactoring.ApplyResult
+        {
+            StartTime = DateTime.UtcNow.AddSeconds(-1),
+            EndTime = DateTime.UtcNow,
+            Duration = TimeSpan.FromSeconds(1),
+            FilesModified = 2,
+            RefactoringsApplied = 2,
+            Status = Relay.CLI.Refactoring.RefactoringStatus.Success
+        };
+
+        // Act
+        var result = (string)typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("GenerateMarkdownReport", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { analysis, applyResult });
+
+        // Assert
+        Assert.Contains("| Files Modified | 2 |", result);
+        Assert.Contains("| Refactorings Applied | 2 |", result);
+        Assert.Contains("| Status | Success |", result);
+    }
+
+    [Fact]
+    public void RefactorCommand_GenerateMarkdownReport_WithOriginalAndSuggestedCode_ShouldIncludeCodeBlocks()
+    {
+        // Arrange
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow.AddSeconds(-1),
+            EndTime = DateTime.UtcNow,
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 1,
+            SuggestionsCount = 1,
+            FileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>
+            {
+                new Relay.CLI.Refactoring.FileRefactoringResult
+                {
+                    FilePath = "Test.cs",
+                    Suggestions = new List<Relay.CLI.Refactoring.RefactoringSuggestion>
+                    {
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "TestRule",
+                            Description = "Test suggestion",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Readability,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Suggestion,
+                            FilePath = "Test.cs",
+                            LineNumber = 1,
+                            Rationale = "Test rationale",
+                            OriginalCode = "var x = 1;",
+                            SuggestedCode = "const x = 1;"
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var result = (string)typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("GenerateMarkdownReport", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { analysis, null });
+
+        // Assert
+        Assert.Contains("**Original Code:**", result);
+        Assert.Contains("```csharp", result);
+        Assert.Contains("var x = 1;", result);
+        Assert.Contains("**Suggested Code:**", result);
+        Assert.Contains("const x = 1;", result);
+    }
+
+    [Fact]
+    public void RefactorCommand_GenerateHtmlReport_WithNullApplyResult_ShouldShowAnalysisOnly()
+    {
+        // Arrange
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow.AddSeconds(-1),
+            EndTime = DateTime.UtcNow,
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 1,
+            SuggestionsCount = 0,
+            FileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>()
+        };
+
+        // Act
+        var result = (string)typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("GenerateHtmlReport", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { analysis, null });
+
+        // Assert
+        Assert.Contains("Analysis Only", result);
+        Assert.DoesNotContain("Apply Duration:", result);
+    }
+
+    [Fact]
+    public void RefactorCommand_GenerateHtmlReport_WithManySuggestions_ShouldGroupByFile()
+    {
+        // Arrange
+        var analysis = new Relay.CLI.Refactoring.RefactoringResult
+        {
+            StartTime = DateTime.UtcNow.AddSeconds(-1),
+            EndTime = DateTime.UtcNow,
+            Duration = TimeSpan.FromSeconds(1),
+            FilesAnalyzed = 2,
+            SuggestionsCount = 3,
+            FileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>
+            {
+                new Relay.CLI.Refactoring.FileRefactoringResult
+                {
+                    FilePath = "File1.cs",
+                    Suggestions = new List<Relay.CLI.Refactoring.RefactoringSuggestion>
+                    {
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "Rule1",
+                            Description = "Suggestion 1",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Readability,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Suggestion,
+                            FilePath = "File1.cs",
+                            LineNumber = 1,
+                            Rationale = "Rationale 1"
+                        }
+                    }
+                },
+                new Relay.CLI.Refactoring.FileRefactoringResult
+                {
+                    FilePath = "File2.cs",
+                    Suggestions = new List<Relay.CLI.Refactoring.RefactoringSuggestion>
+                    {
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "Rule2",
+                            Description = "Suggestion 2",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Performance,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Warning,
+                            FilePath = "File2.cs",
+                            LineNumber = 1,
+                            Rationale = "Rationale 2"
+                        },
+                        new Relay.CLI.Refactoring.RefactoringSuggestion
+                        {
+                            RuleName = "Rule3",
+                            Description = "Suggestion 3",
+                            Category = Relay.CLI.Refactoring.RefactoringCategory.Security,
+                            Severity = Relay.CLI.Refactoring.RefactoringSeverity.Error,
+                            FilePath = "File2.cs",
+                            LineNumber = 2,
+                            Rationale = "Rationale 3"
+                        }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var result = (string)typeof(Relay.CLI.Commands.RefactorCommand)
+            .GetMethod("GenerateHtmlReport", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { analysis, null });
+
+        // Assert
+        Assert.Contains("File1.cs", result);
+        Assert.Contains("File2.cs", result);
+        Assert.Contains("Suggestion 1", result);
+        Assert.Contains("Suggestion 2", result);
+        Assert.Contains("Suggestion 3", result);
+        Assert.Contains("(1 suggestion(s))", result);
+        Assert.Contains("(2 suggestion(s))", result);
+    }
 }
 

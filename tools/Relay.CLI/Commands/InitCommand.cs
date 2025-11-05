@@ -46,7 +46,7 @@ public static class InitCommand
         bool includeDocker,
         bool includeCI)
     {
-        var rule = new Rule("[cyan]🚀 Initializing {projectName}[/]");
+        var rule = new Rule($"[cyan]🚀 Initializing {projectName}[/]");
         AnsiConsole.Write(rule);
         AnsiConsole.WriteLine();
 

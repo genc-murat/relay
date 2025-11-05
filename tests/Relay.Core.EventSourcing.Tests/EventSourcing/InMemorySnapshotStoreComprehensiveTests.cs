@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Relay.Core.Tests.EventSourcing;
+namespace Relay.Core.EventSourcing.Tests;
 
 public class InMemorySnapshotStoreComprehensiveTests
 {

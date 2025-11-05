@@ -5,7 +5,7 @@ using Relay.Core.EventSourcing.Core;
 using Relay.Core.EventSourcing.Versioning;
 using Xunit;
 
-namespace Relay.Core.Tests.EventSourcing;
+namespace Relay.Core.EventSourcing.Tests;
 
 public class EventVersioningTests
 {

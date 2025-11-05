@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Relay.Core.Tests.EventSourcing
+namespace Relay.Core.EventSourcing.Tests
 {
     public class EventSourcingTests
     {
@@ -190,53 +190,5 @@ namespace Relay.Core.Tests.EventSourcing
             Assert.Equal("Updated Name", loadedAggregate.Name);
             Assert.Equal(1, loadedAggregate.Version);
         }
-    }
-
-    // Test aggregate implementation
-    public class TestAggregate : AggregateRoot<Guid>
-    {
-        public string Name { get; private set; } = string.Empty;
-
-        public void Create(Guid id, string name)
-        {
-            Apply(new TestAggregateCreated
-            {
-                AggregateId = id,
-                AggregateName = name,
-                AggregateVersion = 0
-            });
-        }
-
-        public void ChangeName(string newName)
-        {
-            Apply(new TestAggregateNameChanged
-            {
-                AggregateId = Id,
-                NewName = newName,
-                AggregateVersion = Version + 1
-            });
-        }
-
-        public void When(TestAggregateCreated @event)
-        {
-            Id = @event.AggregateId;
-            Name = @event.AggregateName;
-        }
-
-        public void When(TestAggregateNameChanged @event)
-        {
-            Name = @event.NewName;
-        }
-    }
-
-    // Test events
-    public class TestAggregateCreated : Event
-    {
-        public string AggregateName { get; set; } = string.Empty;
-    }
-
-    public class TestAggregateNameChanged : Event
-    {
-        public string NewName { get; set; } = string.Empty;
     }
 }

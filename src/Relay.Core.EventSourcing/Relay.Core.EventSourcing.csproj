@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Relay.Core.Tests" />
+    <InternalsVisibleTo Include="Relay.Core.EventSourcing.Tests" />
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" Key="0024000004800000940000000602000000240000525341310004000001000100c547cac37abd99c8db225ef2f6c8a3602f3b3606cc9891605d02baa56104f4cfc0734aa39b93bf7852f7d9266654753cc297e7d2edfe0bac1cdcf9f717241550e0a7b191195b7667bb4f64bcb8e2121380fd1d9d46ad2d92d2d15605093924cceaf74c4861eff62abf69b9291ed0a340e113be11e6a7d3113e92484cf7045cc7" />
   </ItemGroup>
 
@@ -36,41 +36,32 @@
 
   <PropertyGroup>
     <!-- Package Metadata -->
-    <PackageId>Relay.Core</PackageId>
+    <PackageId>Relay.Core.EventSourcing</PackageId>
     <PackageVersion>1.1.0</PackageVersion>
-    <Title>Relay.Core - Core Runtime Components</Title>
+    <Title>Relay.Core.EventSourcing - Event Sourcing Components</Title>
     <Authors>Relay Framework Contributors</Authors>
     <Company>Relay Framework</Company>
     <Product>Relay Mediator Framework</Product>
-    <Description>Core runtime components for the Relay mediator framework. Provides high-performance request/response handling, notification publishing, and pipeline execution without runtime reflection.</Description>
-    <Summary>Core runtime components for high-performance mediator operations.</Summary>
-    <PackageTags>mediator;cqrs;messaging;performance;runtime;async;pipeline;notification</PackageTags>
+    <Description>Event sourcing components for the Relay mediator framework. Provides event store implementations, snapshot stores, and event-sourced repositories with database independence.</Description>
+    <Summary>Event sourcing components for high-performance event storage and retrieval.</Summary>
+    <PackageTags>mediator;cqrs;event-sourcing;events;store;snapshot;repository;database</PackageTags>
     <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
     <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
-    <PackageReleaseNotes>v1.1.0: Added BaseRequestDispatcher base class for source generator support. Enables optimized request dispatchers with compile-time code generation. Includes validation helpers and common dispatcher functionality.</PackageReleaseNotes>
-    
+    <PackageReleaseNotes>v1.1.0: Event sourcing components extracted to separate package. Includes EF Core event stores, in-memory stores, snapshot support, and database provider abstraction.</PackageReleaseNotes>
+
     <!-- Build Configuration -->
     <IncludeSymbols>true</IncludeSymbols>
-  <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
+    <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
   <!-- Dependencies -->
   <ItemGroup>
-    <PackageReference Include="JsonSchema.Net" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -81,18 +72,13 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Scrutor" />
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
-    <PackageReference Include="OpenTelemetry" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="System.Text.Json" />
     <PackageReference Include="System.Threading.Tasks.Extensions" Condition="'$(TargetFramework)' == 'netstandard2.1'" />
-
-
   </ItemGroup>
 
   <!-- Add placeholder libs for multi-target expectations in packaging tests -->
@@ -100,18 +86,9 @@
     <None Include="lib\netstandard2.0\_._" Pack="true" PackagePath="lib\netstandard2.0\_._" />
     <None Include="lib\net6.0\_._" Pack="true" PackagePath="lib\net6.0\_._" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Remove="Testing\**" />
-    <ProjectReference Include="..\Relay.Core.Validation\Relay.Core.Validation.csproj" />
-    <ProjectReference Include="..\Relay.Core.EventSourcing\Relay.Core.EventSourcing.csproj" />
+    <PackageReference Update="Microsoft.SourceLink.GitHub" />
   </ItemGroup>
-
-   <ItemGroup>
-     <PackageReference Update="Microsoft.SourceLink.GitHub" />
-   </ItemGroup>
-
-
-
-
 
 </Project>

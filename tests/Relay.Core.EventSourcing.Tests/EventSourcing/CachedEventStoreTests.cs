@@ -9,7 +9,7 @@ using Relay.Core.EventSourcing.Stores;
 using Relay.Core.Extensions;
 using Xunit;
 
-namespace Relay.Core.Tests.EventSourcing
+namespace Relay.Core.EventSourcing.Tests
 {
     public class CachedEventStoreTests
     {

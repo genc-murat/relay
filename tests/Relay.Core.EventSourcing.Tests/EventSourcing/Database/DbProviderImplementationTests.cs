@@ -4,7 +4,7 @@ using Relay.Core.EventSourcing.Infrastructure;
 using Relay.Core.EventSourcing.Infrastructure.Database;
 using Xunit;
 
-namespace Relay.Core.Tests.EventSourcing.Database;
+namespace Relay.Core.EventSourcing.Tests.Database;
 
 /// <summary>
 /// Tests for database provider implementations (PostgreSQL, SQL Server, SQLite).

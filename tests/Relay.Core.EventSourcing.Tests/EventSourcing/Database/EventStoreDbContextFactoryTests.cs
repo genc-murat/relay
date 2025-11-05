@@ -2,7 +2,7 @@ using Relay.Core.EventSourcing.Infrastructure;
 using System;
 using Xunit;
 
-namespace Relay.Core.Tests.EventSourcing.Database;
+namespace Relay.Core.EventSourcing.Tests.Database;
 
 /// <summary>
 /// Unit tests for database-independent EventStoreDbContextFactory.

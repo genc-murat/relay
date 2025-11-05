@@ -2,7 +2,7 @@ using System;
 using Relay.Core.EventSourcing.Infrastructure.Database;
 using Xunit;
 
-namespace Relay.Core.Tests.EventSourcing.Database;
+namespace Relay.Core.EventSourcing.Tests.Database;
 
 /// <summary>
 /// Unit tests for DatabaseProvider enum and enum-based factory methods.

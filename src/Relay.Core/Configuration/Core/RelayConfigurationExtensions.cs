@@ -10,6 +10,8 @@ using Relay.Core.Configuration.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Pipeline;
 using Relay.Core.Contracts.Infrastructure;
+using Relay.Core.EventSourcing.Core;
+using Relay.Core.EventSourcing.Stores;
 
 namespace Relay.Core.Configuration.Core;
 
@@ -253,13 +255,14 @@ public static class RelayConfigurationExtensions
 
     /// <summary>
     /// Adds and configures event sourcing for Relay.
-    /// This registers the event sourcing services.
+    /// This registers the event sourcing services with in-memory stores by default.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddRelayEventSourcing(this IServiceCollection services)
     {
-        // Event sourcing implementation - interfaces exist, implementation is functional
+        services.AddSingleton<IEventStore, Relay.Core.EventSourcing.Stores.InMemoryEventStore>();
+        services.AddSingleton<ISnapshotStore, Relay.Core.EventSourcing.Stores.InMemorySnapshotStore>();
         return services;
     }
 

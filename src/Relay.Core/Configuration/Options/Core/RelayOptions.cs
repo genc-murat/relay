@@ -5,7 +5,7 @@ using Relay.Core.Configuration.Options.Caching;
 using Relay.Core.Configuration.Options.ContractValidation;
 using Relay.Core.Configuration.Options.DistributedTracing;
 using Relay.Core.Configuration.Options.Endpoints;
-using Relay.Core.Configuration.Options.EventSourcing;
+using Relay.Core.EventSourcing.Configuration.Options;
 using Relay.Core.Configuration.Options.Handlers;
 using Relay.Core.Configuration.Options.MessageQueue;
 using Relay.Core.Configuration.Options.Notifications;

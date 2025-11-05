@@ -8,6 +8,7 @@ namespace Relay.Core.Tests.Telemetry;
 /// <summary>
 /// Shared test utilities for telemetry tests
 /// </summary>
+using Relay.Core.Testing;
 public static class TestUtilities
 {
     // Supporting test classes shared across multiple test files

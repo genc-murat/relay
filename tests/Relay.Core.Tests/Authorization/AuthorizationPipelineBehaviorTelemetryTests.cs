@@ -8,6 +8,7 @@ using Relay.Core.Configuration.Options.Core;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -208,3 +209,4 @@ namespace Relay.Core.Tests.Authorization
         #endregion
     }
 }
+

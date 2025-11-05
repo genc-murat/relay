@@ -4,7 +4,7 @@ using Relay.Core;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Requests;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Utilities for creating mock Relay instances for testing

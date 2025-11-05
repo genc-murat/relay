@@ -87,3 +87,4 @@ public class CacheDependencyAttributeTests
         Assert.True(Enum.IsDefined(typeof(CacheDependencyType), CacheDependencyType.InvalidateOnAnyChange));
     }
 }
+

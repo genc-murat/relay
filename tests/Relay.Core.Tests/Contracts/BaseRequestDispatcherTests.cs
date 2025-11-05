@@ -149,3 +149,4 @@ namespace Relay.Core.Tests.Contracts
         private class TestRequest : IRequest<string> { }
     }
 }
+

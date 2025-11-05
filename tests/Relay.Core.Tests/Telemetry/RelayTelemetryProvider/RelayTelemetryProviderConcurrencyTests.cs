@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Relay.Core.Tests.Telemetry
 {
+using Relay.Core.Testing;
     [Collection("Sequential")]
     public class RelayTelemetryProviderConcurrencyTests
     {

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Telemetry;
-using Relay.Core.Tests.Testing;
+using Relay.Core.Testing;
 using Xunit;
 
 namespace Relay.Core.Tests;

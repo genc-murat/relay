@@ -8,6 +8,7 @@ namespace Relay.Core.Tests.Telemetry;
 /// <summary>
 /// Tests for TelemetryContext static methods
 /// </summary>
+using Relay.Core.Testing;
 public class TelemetryContextTests
 {
     [Fact]

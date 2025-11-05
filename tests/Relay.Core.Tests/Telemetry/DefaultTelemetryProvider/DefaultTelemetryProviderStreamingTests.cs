@@ -8,6 +8,7 @@ using Xunit;
 namespace Relay.Core.Tests.Telemetry;
 
 /// <summary>
+using Relay.Core.Testing;
 /// Tests for DefaultTelemetryProvider streaming operation functionality
 /// </summary>
 public class DefaultTelemetryProviderStreamingTests

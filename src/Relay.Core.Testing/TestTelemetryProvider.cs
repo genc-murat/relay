@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.Tests;
+namespace Relay.Core.Testing;
 
 public class TestTelemetryProvider : ITelemetryProvider
 {

@@ -130,3 +130,4 @@ public class DistributedCachingTests
         memoryCache.Dispose();
     }
 }
+

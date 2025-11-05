@@ -352,3 +352,4 @@ namespace Relay.Core.Tests.Authorization
         public SecurityException(string message) : base(message) { }
     }
 }
+

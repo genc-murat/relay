@@ -136,3 +136,4 @@ namespace Relay.Core.Tests.Configuration
         }
     }
 }
+

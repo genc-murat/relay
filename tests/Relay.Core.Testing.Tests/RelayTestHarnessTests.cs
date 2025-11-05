@@ -10,7 +10,7 @@ using Relay.Core.Contracts.Requests;
 using Relay.Core.Tests.Testing;
 using Xunit;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 public class RelayTestHarnessTests
 {

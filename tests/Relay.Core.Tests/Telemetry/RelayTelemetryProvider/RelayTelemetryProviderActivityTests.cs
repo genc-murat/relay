@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using System;
 using System.Diagnostics;
 using Xunit;

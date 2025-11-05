@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Relay.Core.Tests.Telemetry;
 
+using Relay.Core.Testing;
 public class DefaultMetricsProviderSnapshotTests
 {
     private readonly Mock<ILogger<DefaultMetricsProvider>> _loggerMock;

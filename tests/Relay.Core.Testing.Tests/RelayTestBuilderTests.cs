@@ -7,7 +7,7 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 public class RelayTestBuilderTests
 {

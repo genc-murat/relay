@@ -17,7 +17,7 @@ using Relay.Core.Diagnostics.Tracing;
 using Relay.Core.Implementation.Core;
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Fluent API builder for creating test Relay instances with type-safe handler registration

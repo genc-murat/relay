@@ -603,3 +603,4 @@ public class RelayServiceCollectionExtensionsTests
         Assert.True(pipelineBehaviorDescriptors.Count() >= 3); // At least validation, AI, and others
     }
 }
+

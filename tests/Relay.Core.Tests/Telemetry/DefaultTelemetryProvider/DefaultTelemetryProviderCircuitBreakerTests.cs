@@ -8,6 +8,7 @@ using Xunit;
 namespace Relay.Core.Tests.Telemetry.DefaultTelemetryProviderTests;
 
 /// <summary>
+using Relay.Core.Testing;
 /// Tests for DefaultTelemetryProvider circuit breaker functionality
 /// </summary>
 public class DefaultTelemetryProviderCircuitBreakerTests

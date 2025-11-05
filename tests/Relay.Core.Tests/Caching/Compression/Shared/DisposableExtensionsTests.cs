@@ -173,3 +173,4 @@ public class DisposableExtensionsTests
         Assert.True(disposable.IsDisposed);
     }
 }
+

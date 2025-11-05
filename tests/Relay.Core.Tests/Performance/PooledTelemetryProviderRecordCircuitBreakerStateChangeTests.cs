@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Relay.Core.Tests.Performance;
 
+using Relay.Core.Testing;
 public class PooledTelemetryProviderRecordCircuitBreakerStateChangeTests
 {
     [Fact]

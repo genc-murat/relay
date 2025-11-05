@@ -20,7 +20,7 @@ using Relay.Core.Diagnostics.Validation;
 using Relay.Core.Implementation.Core;
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Core test harness functionality for setting up Relay instances for testing

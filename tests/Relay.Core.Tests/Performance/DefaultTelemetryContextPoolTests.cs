@@ -1,6 +1,7 @@
 using Microsoft.Extensions.ObjectPool;
 using Relay.Core.Performance.Telemetry;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using System;
 using Xunit;
 

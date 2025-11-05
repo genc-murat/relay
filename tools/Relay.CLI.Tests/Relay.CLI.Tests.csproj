@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Relay.CLI\Relay.CLI.csproj" />
+    <ProjectReference Include="..\..\src\Relay.Core.Testing\Relay.Core.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

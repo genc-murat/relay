@@ -117,3 +117,4 @@ public class CompressionFactoryTests
         Assert.False(compressor.ShouldCompress(1000));
     }
 }
+

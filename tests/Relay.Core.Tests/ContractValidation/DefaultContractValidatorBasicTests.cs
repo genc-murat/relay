@@ -92,3 +92,4 @@ namespace Relay.Core.Tests.ContractValidation
         }
     }
 }
+

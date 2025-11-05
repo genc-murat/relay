@@ -10,7 +10,7 @@ using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Infrastructure;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Tests.Testing;
+using Relay.Core.Testing;
 
 namespace Relay.Core.Tests.Performance;
 

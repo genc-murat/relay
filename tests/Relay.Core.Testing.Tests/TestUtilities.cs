@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Utility methods for testing Relay components

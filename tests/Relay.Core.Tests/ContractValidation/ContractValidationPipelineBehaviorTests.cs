@@ -976,3 +976,4 @@ public class ContractValidationPipelineBehaviorTests
         }
     }
 }
+

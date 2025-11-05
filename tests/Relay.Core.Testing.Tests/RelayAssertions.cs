@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Specialized assertion methods for common Relay testing patterns

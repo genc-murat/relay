@@ -10,7 +10,7 @@ using Relay.Core.Configuration.Options;
 using Relay.Core.Contracts.Dispatchers;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Implementation.Core;
-using Relay.Core.Tests.Testing;
+using Relay.Core.Testing;
 using Relay.Core.Configuration.Options.Core;
 
 namespace Relay.Core.Tests.Core;

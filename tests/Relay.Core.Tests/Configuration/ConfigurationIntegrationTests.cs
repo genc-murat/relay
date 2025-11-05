@@ -126,3 +126,4 @@ namespace Relay.Core.Tests.Configuration
         private class TestHandler { }
     }
 }
+

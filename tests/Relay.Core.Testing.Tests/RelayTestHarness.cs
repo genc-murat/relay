@@ -10,7 +10,7 @@ using Relay.Core.Diagnostics.Core;
 using Relay.Core.Diagnostics.Tracing;
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Test harness for easily setting up Relay instances for testing

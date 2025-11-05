@@ -12,7 +12,7 @@ using Relay.Core.Contracts.Requests;
 using Relay.Core.Implementation.Core;
 using Relay.Core.Telemetry;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Test request dispatcher that uses DI to resolve handlers and supports pipelines

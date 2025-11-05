@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Xunit;
 
 namespace Relay.Core.Tests.Telemetry;
+using Relay.Core.Testing;
 
 public class DefaultMetricsProviderCoverageExtensionTests
 {

@@ -205,3 +205,4 @@ public class DefaultCacheMetricsTests
         Assert.InRange(stats.HitRatio, expectedRatio - 0.0001, expectedRatio + 0.0001);
     }
 }
+

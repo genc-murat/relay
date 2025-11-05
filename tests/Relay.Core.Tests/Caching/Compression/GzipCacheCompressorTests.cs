@@ -138,3 +138,4 @@ public class GzipCacheCompressorTests
         Assert.Equal(originalData, decompressed);
     }
 }
+

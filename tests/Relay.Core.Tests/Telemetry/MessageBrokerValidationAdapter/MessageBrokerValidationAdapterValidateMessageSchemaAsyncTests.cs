@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Relay.Core.ContractValidation;
 using Relay.Core.Metadata.MessageQueue;
+using Relay.Core.Testing;
 using Relay.Core.Telemetry;
 using Relay.Core.Validation;
 using Relay.Core.Validation.Interfaces;

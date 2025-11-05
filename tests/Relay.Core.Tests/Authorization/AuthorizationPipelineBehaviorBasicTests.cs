@@ -103,3 +103,4 @@ namespace Relay.Core.Tests.Authorization
         #endregion
     }
 }
+

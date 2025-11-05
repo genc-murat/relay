@@ -8,6 +8,7 @@ using Xunit;
 using HandlerExecutionMetrics = Relay.Core.Telemetry.HandlerExecutionMetrics;
 using IMetricsProvider = Relay.Core.Telemetry.IMetricsProvider;
 using NotificationPublishMetrics = Relay.Core.Telemetry.NotificationPublishMetrics;
+using Relay.Core.Testing;
 using RelayTelemetryOptions = Relay.Core.Telemetry.RelayTelemetryOptions;
 using RelayTelemetryProvider = Relay.Core.Telemetry.RelayTelemetryProvider;
 using StreamingOperationMetrics = Relay.Core.Telemetry.StreamingOperationMetrics;

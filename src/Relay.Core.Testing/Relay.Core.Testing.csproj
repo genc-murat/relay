@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <!-- Package Metadata -->
+    <PackageId>Relay.Core.Testing</PackageId>
+    <PackageVersion>1.1.0</PackageVersion>
+    <Title>Relay.Core.Testing - Testing Framework</Title>
+    <Authors>Relay Framework Contributors</Authors>
+    <Company>Relay Framework</Company>
+    <Product>Relay Mediator Framework</Product>
+    <Description>Testing framework for Relay-based applications. Provides scenario-based testing, load testing, and behavior verification.</Description>
+    <Summary>Advanced testing framework for high-performance mediator operations.</Summary>
+    <PackageTags>mediator;cqrs;messaging;testing;performance;load-testing;scenario-testing</PackageTags>
+    <PackageProjectUrl>https://github.com/genc-murat/relay</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/genc-murat/relay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright (c) 2024 Relay Framework Contributors</Copyright>
+    <PackageReleaseNotes>v1.1.0: Initial release of Relay.Core.Testing as separate package.</PackageReleaseNotes>
+
+    <!-- Build Configuration -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <!-- Dependencies -->
+  <ItemGroup>
+    <ProjectReference Include="..\Relay.Core\Relay.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.SourceLink.GitHub" />
+  </ItemGroup>
+
+</Project>

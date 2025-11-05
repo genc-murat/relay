@@ -8,7 +8,7 @@ using Moq;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Implementation.Dispatchers;
-using Relay.Core.Tests.Testing;
+using Relay.Core.Testing;
 using Xunit;
 
 namespace Relay.Core.Tests.Dispatchers

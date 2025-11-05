@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Telemetry;
 using Xunit;
+using Relay.Core.Testing;
 
 namespace Relay.Core.Tests;
 

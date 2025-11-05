@@ -8,6 +8,7 @@ using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Implementation.Configuration;
 using Relay.Core.Implementation.Dispatchers;
+using Relay.Core.Testing;
 using Relay.Core.Telemetry;
 using Xunit;
 

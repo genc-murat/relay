@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Xunit;
 using Relay.Core.Performance.Extensions;
 using System.Threading;
+using Relay.Core.Testing;
 using Relay.Core.Telemetry;
 using Microsoft.Extensions.Logging;
 using Moq;

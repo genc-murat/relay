@@ -8,6 +8,7 @@ using Xunit;
 namespace Relay.Core.Tests.Telemetry;
 
 /// <summary>
+using Relay.Core.Testing;
 /// Tests for DefaultTelemetryProvider handler execution recording functionality
 /// </summary>
 public class DefaultTelemetryProviderHandlerExecutionTests

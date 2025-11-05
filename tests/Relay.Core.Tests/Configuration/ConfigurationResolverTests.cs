@@ -523,3 +523,4 @@ namespace Relay.Core.Tests.Configuration
         private class TestPipeline { }
     }
 }
+

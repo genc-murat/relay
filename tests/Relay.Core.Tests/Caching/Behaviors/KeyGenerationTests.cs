@@ -64,3 +64,4 @@ public class KeyGenerationTests
         memoryCache.Dispose();
     }
 }
+

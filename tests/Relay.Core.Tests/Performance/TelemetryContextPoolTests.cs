@@ -8,6 +8,7 @@ using Xunit;
 using Relay.Core.Performance.Extensions;
 
 namespace Relay.Core.Tests.Performance;
+using Relay.Core.Testing;
 
 public class TelemetryContextPoolTests
 {

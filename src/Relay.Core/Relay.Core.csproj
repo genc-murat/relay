@@ -101,6 +101,7 @@
     <None Include="lib\net6.0\_._" Pack="true" PackagePath="lib\net6.0\_._" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="Testing\**" />
     <ProjectReference Include="..\Relay.Core.Validation\Relay.Core.Validation.csproj" />
   </ItemGroup>
 

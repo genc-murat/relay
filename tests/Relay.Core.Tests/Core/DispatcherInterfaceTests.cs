@@ -8,7 +8,7 @@ using Relay.Core.Contracts.Dispatchers;
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Infrastructure;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Tests.Testing;
+using Relay.Core.Testing;
 using Xunit;
 
 namespace Relay.Core.Tests.Core;
@@ -166,12 +166,12 @@ public class DispatcherInterfaceTests
     public async Task TestNotificationDispatcher_ShouldDispatchCorrectly()
     {
         // Arrange
-        var handler = new TestNotificationHandler<Relay.Core.Tests.Testing.TestNotification>();
+        var handler = new TestNotificationHandler<Relay.Core.Testing.TestNotification>();
         var harness = new RelayTestHarness()
             .AddHandler(handler);
 
         var dispatcher = harness.GetService<INotificationDispatcher>();
-        var notification = new Relay.Core.Tests.Testing.TestNotification { Message = "test message" };
+        var notification = new Relay.Core.Testing.TestNotification { Message = "test message" };
 
         // Act
         await dispatcher.DispatchAsync(notification, CancellationToken.None);

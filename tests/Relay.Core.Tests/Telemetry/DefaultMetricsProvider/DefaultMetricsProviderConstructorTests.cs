@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using Relay.Core.Testing;
 using Xunit;
 using DefaultMetricsProvider = Relay.Core.Telemetry.DefaultMetricsProvider;
 

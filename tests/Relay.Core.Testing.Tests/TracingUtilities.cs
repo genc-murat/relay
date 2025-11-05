@@ -6,7 +6,7 @@ using Relay.Core.Contracts.Requests;
 using Relay.Core.Diagnostics.Core;
 using Relay.Core.Diagnostics.Tracing;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Utilities for tracing and diagnostics in test scenarios

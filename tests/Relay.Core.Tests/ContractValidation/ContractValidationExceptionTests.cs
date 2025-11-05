@@ -295,3 +295,4 @@ public class ContractValidationExceptionTests
         // Test class for type testing
     }
 }
+

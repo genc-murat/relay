@@ -298,3 +298,4 @@ public class RelayCompressorTests
         Assert.Equal(originalData, decompressed);
     }
 }
+

@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using Relay.Core.Telemetry;
+using Relay.Core.Testing;
 using Xunit;
 
 namespace Relay.Core.Tests.Telemetry

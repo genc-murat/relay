@@ -267,3 +267,4 @@ public class DefaultContractValidatorDataTypeTests
         Assert.Contains(errors, e => e.Contains("Validation failed") || e.Contains("const"));
     }
 }
+

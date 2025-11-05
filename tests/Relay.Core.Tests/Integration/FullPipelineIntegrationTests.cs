@@ -1,7 +1,7 @@
 using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
-using Relay.Core.Tests.Testing;
+using Relay.Core.Testing;
 using System;
 using System.Collections.Generic;
 using System.Linq;

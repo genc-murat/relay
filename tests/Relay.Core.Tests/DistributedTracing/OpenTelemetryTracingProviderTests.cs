@@ -1,5 +1,6 @@
 using OpenTelemetry.Trace;
 using Relay.Core.DistributedTracing;
+using Relay.Core.Testing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

@@ -8,6 +8,7 @@ namespace Relay.Core.Tests.Telemetry;
 
 /// <summary>
 /// Test class for DefaultMetricsProvider with access to protected methods
+using Relay.Core.Testing;
 /// </summary>
 public class TestableDefaultMetricsProvider(ILogger<DefaultMetricsProvider>? logger = null) : DefaultMetricsProvider(logger)
 {

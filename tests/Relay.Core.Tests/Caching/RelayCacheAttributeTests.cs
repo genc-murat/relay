@@ -157,3 +157,4 @@ public class RelayCacheAttributeTests
         Assert.Equal(AttributeTargets.Class, attributeUsage.ValidOn);
     }
 }
+

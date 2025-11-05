@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Xunit;
 
 namespace Relay.Core.Tests.Performance;
+using Relay.Core.Testing;
 
 public class PooledTelemetryProviderRecordHandlerExecutionTests
 {

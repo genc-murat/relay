@@ -35,6 +35,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj" />
+    <ProjectReference Include="..\..\src\Relay.Core.Testing\Relay.Core.Testing.csproj" />
+    <ProjectReference Include="..\..\tests\Relay.Core.Testing.Tests\Relay.Core.Testing.Tests.csproj" />
     <ProjectReference Include="..\..\src\Relay\Relay.csproj" />
   </ItemGroup>
 

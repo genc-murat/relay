@@ -32,3 +32,4 @@ public class SlidingExpiryRequest : TestRequest { }
 
 [RelayCacheAttribute(KeyPattern = "absolute-expiry-key", AbsoluteExpirationSeconds = 600)]
 public class AbsoluteExpiryRequest : TestRequest { }
+

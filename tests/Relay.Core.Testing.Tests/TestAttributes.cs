@@ -1,7 +1,7 @@
 using System;
 using Relay.Core;
 
-namespace Relay.Core.Tests.Testing;
+namespace Relay.Core.Testing;
 
 /// <summary>
 /// Test-specific handle attribute that allows test-only handler registration

@@ -8,7 +8,8 @@ using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Security.Exceptions;
 using Relay.Core.Security.Interfaces;
-using Relay.Core.Security.RateLimiting;
+using Relay.Core.RateLimiting.Interfaces;
+using Relay.Core.RateLimiting.Exceptions;
 
 namespace Relay.Core.Security.Behaviors;
 
@@ -103,12 +104,13 @@ public class SecurityPipelineBehavior<TRequest, TResponse> : IPipelineBehavior<T
             return;
 
         var rateLimitKey = $"{userId}:{requestType}";
-        var isAllowed = await _rateLimiter.CheckRateLimitAsync(rateLimitKey);
+        var isAllowed = await _rateLimiter.IsAllowedAsync(rateLimitKey);
 
         if (!isAllowed)
         {
             _logger.LogWarning("Rate limit exceeded for user {UserId} on {RequestType}", userId, requestType);
-            throw new RateLimitExceededException(userId, requestType);
+            var retryAfter = await _rateLimiter.GetRetryAfterAsync(rateLimitKey);
+            throw new RateLimitExceededException(rateLimitKey, retryAfter);
         }
     }
 

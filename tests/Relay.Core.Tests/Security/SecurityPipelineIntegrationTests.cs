@@ -3,7 +3,8 @@ using Moq;
 using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Security.Behaviors;
-using Relay.Core.Security.RateLimiting;
+using Relay.Core.RateLimiting.Interfaces;
+using Relay.Core.RateLimiting.Exceptions;
 using Relay.Core.Security.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -41,7 +42,7 @@ namespace Relay.Core.Tests.Security
 
             _securityContextMock.Setup(x => x.UserId).Returns(userId);
             _securityContextMock.Setup(x => x.HasPermissions(requiredPermissions)).Returns(true);
-            _rateLimiterMock.Setup(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest")).ReturnsAsync(true);
+            _rateLimiterMock.Setup(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
             var nextMock = new Mock<RequestHandlerDelegate<IntegrationTestResponse>>();
             nextMock.Setup(x => x()).Returns(new ValueTask<IntegrationTestResponse>(response));
@@ -57,7 +58,7 @@ namespace Relay.Core.Tests.Security
 
             // Verify all security steps were called
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", request, cancellationToken), Times.Once);
-            _rateLimiterMock.Verify(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest"), Times.Once);
+            _rateLimiterMock.Verify(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>()), Times.Once);
             _auditorMock.Verify(x => x.LogSuccessAsync(userId, "IntegrationTestRequest", cancellationToken), Times.Once);
             _auditorMock.Verify(x => x.LogFailureAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Exception>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -73,7 +74,7 @@ namespace Relay.Core.Tests.Security
 
             _securityContextMock.Setup(x => x.UserId).Returns(userId);
             _securityContextMock.Setup(x => x.HasPermissions(It.IsAny<IEnumerable<string>>())).Returns(true);
-            _rateLimiterMock.Setup(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest")).ReturnsAsync(true);
+            _rateLimiterMock.Setup(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
             var nextMock = new Mock<RequestHandlerDelegate<IntegrationTestResponse>>();
             nextMock.Setup(x => x()).Returns(new ValueTask<IntegrationTestResponse>(response));
@@ -89,7 +90,7 @@ namespace Relay.Core.Tests.Security
 
             // Verify all security steps were called
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", request, cancellationToken), Times.Once);
-            _rateLimiterMock.Verify(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest"), Times.Once);
+            _rateLimiterMock.Verify(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>()), Times.Once);
             _auditorMock.Verify(x => x.LogSuccessAsync(userId, "IntegrationTestRequest", cancellationToken), Times.Once);
             _auditorMock.Verify(x => x.LogFailureAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Exception>(), It.IsAny<CancellationToken>()), Times.Never);
         }
@@ -104,7 +105,8 @@ namespace Relay.Core.Tests.Security
 
             _securityContextMock.Setup(x => x.UserId).Returns(userId);
             _securityContextMock.Setup(x => x.HasPermissions(It.IsAny<IEnumerable<string>>())).Returns(true);
-            _rateLimiterMock.Setup(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest")).ReturnsAsync(false);
+            _rateLimiterMock.Setup(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _rateLimiterMock.Setup(x => x.GetRetryAfterAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>())).ReturnsAsync(TimeSpan.FromSeconds(30));
 
             var nextMock = new Mock<RequestHandlerDelegate<IntegrationTestResponse>>();
 
@@ -115,11 +117,11 @@ namespace Relay.Core.Tests.Security
             var exception = await Assert.ThrowsAsync<RateLimitExceededException>(() =>
                 behavior.HandleAsync(request, nextMock.Object, cancellationToken).AsTask());
 
-            Assert.Equal(userId, exception.UserId);
-            Assert.Equal("IntegrationTestRequest", exception.RequestType);
+            Assert.Equal($"{userId}:IntegrationTestRequest", exception.Key);
+            Assert.Equal(TimeSpan.FromSeconds(30), exception.RetryAfter);
 
             // Verify pipeline stopped at rate limit check (before audit logging)
-            _rateLimiterMock.Verify(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest"), Times.Once);
+            _rateLimiterMock.Verify(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>()), Times.Once);
             nextMock.Verify(x => x(), Times.Never);
             _auditorMock.Verify(x => x.LogRequestAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never);
             _auditorMock.Verify(x => x.LogSuccessAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -136,7 +138,7 @@ namespace Relay.Core.Tests.Security
 
             _securityContextMock.Setup(x => x.UserId).Returns(userId);
             _securityContextMock.Setup(x => x.HasPermissions(It.IsAny<IEnumerable<string>>())).Returns(true);
-            _rateLimiterMock.Setup(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest")).ReturnsAsync(true);
+            _rateLimiterMock.Setup(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
             var nextMock = new Mock<RequestHandlerDelegate<IntegrationTestResponse>>();
             nextMock.Setup(x => x()).ThrowsAsync(exception);
@@ -152,7 +154,7 @@ namespace Relay.Core.Tests.Security
 
             // Verify failure was logged
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", request, cancellationToken), Times.Once);
-            _rateLimiterMock.Verify(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest"), Times.Once);
+            _rateLimiterMock.Verify(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>()), Times.Once);
             nextMock.Verify(x => x(), Times.Once);
             _auditorMock.Verify(x => x.LogFailureAsync(userId, "IntegrationTestRequest", exception, cancellationToken), Times.Once);
             _auditorMock.Verify(x => x.LogSuccessAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -184,7 +186,7 @@ namespace Relay.Core.Tests.Security
 
             // Verify rate limiter was not called
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", request, cancellationToken), Times.Once);
-            _rateLimiterMock.Verify(x => x.CheckRateLimitAsync(It.IsAny<string>()), Times.Never);
+            _rateLimiterMock.Verify(x => x.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
             _auditorMock.Verify(x => x.LogSuccessAsync(userId, "IntegrationTestRequest", cancellationToken), Times.Once);
         }
 
@@ -203,7 +205,7 @@ namespace Relay.Core.Tests.Security
 
             _securityContextMock.Setup(x => x.UserId).Returns(userId);
             _securityContextMock.Setup(x => x.HasPermissions(It.IsAny<IEnumerable<string>>())).Returns(true);
-            _rateLimiterMock.Setup(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest")).ReturnsAsync(true);
+            _rateLimiterMock.Setup(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
             var behavior = new SecurityPipelineBehavior<IntegrationTestRequest, IntegrationTestResponse>(
                 _loggerMock.Object, _securityContextMock.Object, _auditorMock.Object, _rateLimiterMock.Object);
@@ -228,7 +230,7 @@ namespace Relay.Core.Tests.Security
 
             // Verify all requests were processed
             _auditorMock.Verify(x => x.LogRequestAsync(userId, "IntegrationTestRequest", It.IsAny<object>(), cancellationToken), Times.Exactly(10));
-            _rateLimiterMock.Verify(x => x.CheckRateLimitAsync($"{userId}:IntegrationTestRequest"), Times.Exactly(10));
+            _rateLimiterMock.Verify(x => x.IsAllowedAsync($"{userId}:IntegrationTestRequest", It.IsAny<CancellationToken>()), Times.Exactly(10));
             _auditorMock.Verify(x => x.LogSuccessAsync(userId, "IntegrationTestRequest", cancellationToken), Times.Exactly(10));
         }
 

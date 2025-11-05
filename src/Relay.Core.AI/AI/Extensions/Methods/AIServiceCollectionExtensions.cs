@@ -56,7 +56,7 @@ public static class AIServiceCollectionExtensions
                 svc.TryAddSingleton<ISystemLoadMetricsProvider, SystemLoadMetricsProvider>();
 
                 // Register pipeline behaviors
-                ServiceRegistrationHelper.AddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
+                ServiceRegistrationHelper.AddTransient(svc, typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
             });
     }
 
@@ -82,7 +82,7 @@ public static class AIServiceCollectionExtensions
             svc.TryAddSingleton<ISystemLoadMetricsProvider, SystemLoadMetricsProvider>();
 
                 // Register pipeline behaviors
-                ServiceRegistrationHelper.TryAddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
+                ServiceRegistrationHelper.TryAddTransient(svc, typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>), typeof(AIOptimizationPipelineBehavior<,>));
             },
             postConfigure: options => options.Validate());
     }
@@ -111,9 +111,9 @@ public static class AIServiceCollectionExtensions
                 ServiceRegistrationHelper.TryAddSingleton<IAIMetricsExporter, DefaultAIMetricsExporter>(svc);
 
                 // Add specialized pipeline behaviors
-                ServiceRegistrationHelper.AddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIPerformanceTrackingBehavior<,>));
-                ServiceRegistrationHelper.AddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AIBatchOptimizationBehavior<,>));
-                ServiceRegistrationHelper.AddTransient(svc, typeof(IPipelineBehavior<,>), typeof(AICachingOptimizationBehavior<,>));
+                ServiceRegistrationHelper.AddTransient(svc, typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>), typeof(AIPerformanceTrackingBehavior<,>));
+                ServiceRegistrationHelper.AddTransient(svc, typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>), typeof(AIBatchOptimizationBehavior<,>));
+                ServiceRegistrationHelper.AddTransient(svc, typeof(Relay.Core.Contracts.Pipeline.IPipelineBehavior<,>), typeof(AICachingOptimizationBehavior<,>));
             });
         }
 

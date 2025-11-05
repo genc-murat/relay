@@ -4,7 +4,8 @@ using Relay.Core.Contracts.Pipeline;
 using Relay.Core.Contracts.Requests;
 using Relay.Core.Security.Behaviors;
 using Relay.Core.Security.Interfaces;
-using Relay.Core.Security.RateLimiting;
+using Relay.Core.RateLimiting.Interfaces;
+using Relay.Core.RateLimiting.Exceptions;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -206,7 +207,7 @@ namespace Relay.Core.Tests.Security
             await behavior.HandleAsync(request, _nextMock.Object, cancellationToken);
 
             // Assert
-            _rateLimiterMock.Verify(x => x.CheckRateLimitAsync(It.IsAny<string>()), Times.Never);
+            _rateLimiterMock.Verify(x => x.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
@@ -220,7 +221,7 @@ namespace Relay.Core.Tests.Security
 
             _securityContextMock.Setup(x => x.UserId).Returns(userId);
             _nextMock.Setup(x => x()).Returns(new ValueTask<TestResponse>(response));
-            _rateLimiterMock.Setup(x => x.CheckRateLimitAsync(It.IsAny<string>())).ReturnsAsync(true);
+            _rateLimiterMock.Setup(x => x.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
             var behavior = new SecurityPipelineBehavior<TestRequest, TestResponse>(
                 _loggerMock.Object, _securityContextMock.Object, _auditorMock.Object, _rateLimiterMock.Object);
@@ -229,7 +230,7 @@ namespace Relay.Core.Tests.Security
             await behavior.HandleAsync(request, _nextMock.Object, cancellationToken);
 
             // Assert
-            _rateLimiterMock.Verify(x => x.CheckRateLimitAsync("user123:TestRequest"), Times.Once);
+            _rateLimiterMock.Verify(x => x.IsAllowedAsync("user123:TestRequest", It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -239,9 +240,11 @@ namespace Relay.Core.Tests.Security
             var userId = "user123";
             var request = new TestRequest();
             var cancellationToken = CancellationToken.None;
+            var retryAfter = TimeSpan.FromSeconds(30);
 
             _securityContextMock.Setup(x => x.UserId).Returns(userId);
-            _rateLimiterMock.Setup(x => x.CheckRateLimitAsync(It.IsAny<string>())).ReturnsAsync(false);
+            _rateLimiterMock.Setup(x => x.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _rateLimiterMock.Setup(x => x.GetRetryAfterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(retryAfter);
 
             var behavior = new SecurityPipelineBehavior<TestRequest, TestResponse>(
                 _loggerMock.Object, _securityContextMock.Object, _auditorMock.Object, _rateLimiterMock.Object);
@@ -250,8 +253,8 @@ namespace Relay.Core.Tests.Security
             var exception = await Assert.ThrowsAsync<RateLimitExceededException>(() =>
                 behavior.HandleAsync(request, _nextMock.Object, cancellationToken).AsTask());
 
-            Assert.Equal(userId, exception.UserId);
-            Assert.Equal("TestRequest", exception.RequestType);
+            Assert.Equal("user123:TestRequest", exception.Key);
+            Assert.Equal(retryAfter, exception.RetryAfter);
         }
 
         [Fact]
@@ -261,9 +264,11 @@ namespace Relay.Core.Tests.Security
             var userId = "user123";
             var request = new TestRequest();
             var cancellationToken = CancellationToken.None;
+            var retryAfter = TimeSpan.FromSeconds(30);
 
             _securityContextMock.Setup(x => x.UserId).Returns(userId);
-            _rateLimiterMock.Setup(x => x.CheckRateLimitAsync(It.IsAny<string>())).ReturnsAsync(false);
+            _rateLimiterMock.Setup(x => x.IsAllowedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+            _rateLimiterMock.Setup(x => x.GetRetryAfterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(retryAfter);
 
             var behavior = new SecurityPipelineBehavior<TestRequest, TestResponse>(
                 _loggerMock.Object, _securityContextMock.Object, _auditorMock.Object, _rateLimiterMock.Object);

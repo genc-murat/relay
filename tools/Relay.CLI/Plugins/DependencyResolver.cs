@@ -52,7 +52,7 @@ public class DependencyResolver
             {
                 var assemblyPath = resolver.ResolveAssemblyToPath(reference);
                 
-                if (!string.IsNullOrEmpty(assemblyPath) && File.Exists(assemblyPath))
+                if (!string.IsNullOrWhiteSpace(assemblyPath) && File.Exists(assemblyPath))
                 {
                     // Check for version conflicts
                     var conflict = await CheckVersionConflictAsync(reference, assemblyPath);
@@ -62,7 +62,7 @@ public class DependencyResolver
                         
                         // Attempt to resolve conflict
                         var resolvedPath = await ResolveVersionConflictAsync(reference, assemblyPath);
-                        if (!string.IsNullOrEmpty(resolvedPath))
+                        if (!string.IsNullOrWhiteSpace(resolvedPath))
                         {
                             resolvedDependencies.Add(resolvedPath);
                         }

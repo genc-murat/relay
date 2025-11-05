@@ -371,4 +371,172 @@ public class DependencyResolverTests
             Directory.Delete(tempDir, true);
         }
     }
+
+    [Fact]
+    public async Task CheckVersionConflictAsync_WithNoConflicts_ShouldReturnNull()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var assemblyPath = Path.Combine(tempDir, "TestAssembly.dll");
+            File.Copy(typeof(DependencyResolver).Assembly.Location, assemblyPath);
+
+            var method = typeof(DependencyResolver).GetMethod("CheckVersionConflictAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            var reference = new AssemblyName("TestAssembly, Version=1.0.0.0");
+
+            // Act
+            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, [reference, assemblyPath])!;
+
+            // Assert
+            Assert.Null(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task CheckVersionConflictAsync_WithInvalidDirectory_ShouldReturnNull()
+    {
+        // Arrange
+        var invalidPath = "C:\\NonExistentDirectory\\TestAssembly.dll";
+        var method = typeof(DependencyResolver).GetMethod("CheckVersionConflictAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        var reference = new AssemblyName("TestAssembly, Version=1.0.0.0");
+
+        // Act
+        var result = await (Task<string?>)method!.Invoke(_dependencyResolver, [reference, invalidPath])!;
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task CheckVersionConflictAsync_WithExceptionInGetAssemblyName_ShouldLogWarningAndContinue()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var baseName = "TestAssembly";
+            var validPath = Path.Combine(tempDir, $"{baseName}.dll");
+            var invalidPath = Path.Combine(tempDir, $"{baseName}Invalid.dll");
+
+            File.Copy(typeof(DependencyResolver).Assembly.Location, validPath);
+            File.WriteAllText(invalidPath, "invalid dll");
+
+            var method = typeof(DependencyResolver).GetMethod("CheckVersionConflictAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            var reference = new AssemblyName($"{baseName}, Version=1.0.0.0");
+
+            // Act
+            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, [reference, validPath])!;
+
+            // Assert
+            Assert.Null(result); // No conflict found
+            _loggerMock.Verify(x => x.LogWarning(It.Is<string>(s => s.Contains("Could not compare assembly"))), Times.AtLeastOnce);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task CheckVersionConflictAsync_WithNoVersionConflict_ShouldReturnNull()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var baseName = "TestAssembly";
+            var assemblyPath = Path.Combine(tempDir, $"{baseName}.dll");
+
+            File.Copy(typeof(DependencyResolver).Assembly.Location, assemblyPath);
+
+            var method = typeof(DependencyResolver).GetMethod("CheckVersionConflictAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            var reference = new AssemblyName($"{baseName}, Version=1.0.0.0"); // Same version
+
+            // Act
+            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, [reference, assemblyPath])!;
+
+            // Assert
+            Assert.Null(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveVersionConflictAsync_WithNoMatchingAssemblies_ShouldReturnOriginalPath()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var assemblyPath = Path.Combine(tempDir, "TestAssembly.dll");
+            File.Copy(typeof(DependencyResolver).Assembly.Location, assemblyPath);
+
+            var method = typeof(DependencyResolver).GetMethod("ResolveVersionConflictAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            var reference = new AssemblyName("NonMatchingAssembly, Version=1.0.0.0");
+
+            // Act
+            var result = await (Task<string?>)method!.Invoke(_dependencyResolver, [reference, assemblyPath])!;
+
+            // Assert
+            Assert.Equal(assemblyPath, result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task ValidateDependenciesAsync_WithAssembly_ShouldComplete()
+    {
+        // Arrange
+        var pluginPath = typeof(DependencyResolver).Assembly.Location;
+
+        // Act & Assert
+        await _dependencyResolver.ValidateDependenciesAsync(pluginPath); // Should complete without throwing
+    }
+
+    [Fact]
+    public async Task ResolveDependenciesAsync_WithAssemblyLoadFailure_ShouldReturnEmptyAndLogError()
+    {
+        // Arrange
+        var pluginPath = "InvalidPath.dll"; // Path that causes AssemblyDependencyResolver to fail
+
+        // Act
+        var result = await _dependencyResolver.ResolveDependenciesAsync(pluginPath);
+
+        // Assert
+        Assert.Empty(result);
+        _loggerMock.Verify(x => x.LogError(It.Is<string>(s => s.Contains("Error resolving dependencies for InvalidPath.dll")), It.IsAny<Exception>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateDependenciesAsync_WithAssemblyLoadFailure_ShouldReturnFalseAndLogError()
+    {
+        // Arrange
+        var pluginPath = "InvalidPath.dll";
+
+        // Act
+        var result = await _dependencyResolver.ValidateDependenciesAsync(pluginPath);
+
+        // Assert
+        Assert.False(result);
+        _loggerMock.Verify(x => x.LogError(It.Is<string>(s => s.Contains("Error validating dependencies for InvalidPath.dll")), It.IsAny<Exception>()), Times.Once);
+    }
 }

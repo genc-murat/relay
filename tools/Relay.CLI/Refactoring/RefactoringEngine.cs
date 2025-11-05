@@ -42,20 +42,26 @@ public class RefactoringEngine
         List<string> files;
         try
         {
-            var allCsFiles = Directory.GetFiles(options.ProjectPath, "*.cs", SearchOption.TopDirectoryOnly);
+            if (!Directory.Exists(options.ProjectPath))
+            {
+                // Directory doesn't exist, return empty result
+                result.FilesAnalyzed = 0;
+                result.EndTime = DateTime.UtcNow;
+                result.Duration = result.EndTime - result.StartTime;
+                return result;
+            }
+            var allCsFiles = Directory.GetFiles(options.ProjectPath, "*.cs", SearchOption.AllDirectories);
             files = allCsFiles
                 .Where(f => ShouldIncludeFile(f, options.ProjectPath, options.ExcludePatterns))
                 .ToList();
 
-            // Debug: Log found files
-            if (files.Count == 0 && allCsFiles.Length > 0)
+            if (files.Count == 0)
             {
-                Console.WriteLine($"Found {allCsFiles.Length} .cs files but all filtered out: {string.Join(", ", allCsFiles)}");
-            }
-            else if (allCsFiles.Length == 0)
-            {
-                var allFiles = Directory.GetFiles(options.ProjectPath, "*", SearchOption.AllDirectories);
-                Console.WriteLine($"No .cs files found in {options.ProjectPath}. All files: {string.Join(", ", allFiles)}");
+                // No valid .cs files found, return empty result
+                result.FilesAnalyzed = 0;
+                result.EndTime = DateTime.UtcNow;
+                result.Duration = result.EndTime - result.StartTime;
+                return result;
             }
         }
         catch (DirectoryNotFoundException)
@@ -90,13 +96,11 @@ public class RefactoringEngine
                     var diagnostics = tree.GetDiagnostics();
                     if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
                     {
-                        Console.WriteLine($"Skipping file with syntax errors: {file}");
                         return new { FilePath = file, Suggestions = new List<RefactoringSuggestion>(), Skipped = true };
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to parse file {file}: {ex.Message}");
                     return new { FilePath = file, Suggestions = new List<RefactoringSuggestion>(), Skipped = true };
                 }
 
@@ -107,16 +111,15 @@ public class RefactoringEngine
                     if (options.SpecificRules.Count > 0 && !options.SpecificRules.Contains(rule.RuleName))
                         continue;
 
-                    try
-                    {
-                        var suggestions = await rule.AnalyzeAsync(file, root, options);
-                        fileRefactorings.AddRange(suggestions);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error analyzing file {file} with rule {rule.RuleName}: {ex.Message}");
-                        // Continue with other rules
-                    }
+                     try
+                     {
+                         var suggestions = await rule.AnalyzeAsync(file, root, options);
+                         fileRefactorings.AddRange(suggestions);
+                     }
+                     catch (Exception ex)
+                     {
+                         // Continue with other rules
+                     }
                 }
 
                 return new { FilePath = file, Suggestions = fileRefactorings, Skipped = false };
@@ -148,8 +151,8 @@ public class RefactoringEngine
                 result.SuggestionsCount += analysisResult.Suggestions.Count;
             }
 
-            // Count skipped files (those with no suggestions due to errors)
-            if (analysisResult.Suggestions.Count == 0 && !string.IsNullOrEmpty(analysisResult.FilePath))
+            // Count files that were actually skipped due to errors
+            if (analysisResult.Skipped)
             {
                 result.FilesSkipped++;
             }

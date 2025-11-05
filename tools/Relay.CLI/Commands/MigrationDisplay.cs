@@ -155,7 +155,7 @@ internal static class MigrationDisplay
         // Rollback info
         if (!isDryRun && result.CreatedBackup && result.BackupPath != null)
         {
-            AnsiConsole.MarkupLine("[dim]💡 To rollback: relay migrate rollback --backup {0}[/]", result.BackupPath);
+            AnsiConsole.MarkupLine($"[dim]💡 To rollback: relay migrate rollback --backup {result.BackupPath}[/]");
         }
     }
 }

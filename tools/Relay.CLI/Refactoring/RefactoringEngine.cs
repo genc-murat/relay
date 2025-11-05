@@ -42,9 +42,33 @@ public class RefactoringEngine
             StartTime = DateTime.UtcNow
         };
 
-        var files = Directory.GetFiles(options.ProjectPath, "*.cs", SearchOption.AllDirectories)
-            .Where(f => ShouldIncludeFile(f, options.ProjectPath, options.ExcludePatterns))
-            .ToList();
+        List<string> files;
+        try
+        {
+            var allCsFiles = Directory.GetFiles(options.ProjectPath, "*.cs", SearchOption.TopDirectoryOnly);
+            files = allCsFiles
+                .Where(f => ShouldIncludeFile(f, options.ProjectPath, options.ExcludePatterns))
+                .ToList();
+
+            // Debug: Log found files
+            if (files.Count == 0 && allCsFiles.Length > 0)
+            {
+                Console.WriteLine($"Found {allCsFiles.Length} .cs files but all filtered out: {string.Join(", ", allCsFiles)}");
+            }
+            else if (allCsFiles.Length == 0)
+            {
+                var allFiles = Directory.GetFiles(options.ProjectPath, "*", SearchOption.AllDirectories);
+                Console.WriteLine($"No .cs files found in {options.ProjectPath}. All files: {string.Join(", ", allFiles)}");
+            }
+        }
+        catch (DirectoryNotFoundException)
+        {
+            // Directory doesn't exist, return empty result
+            result.FilesAnalyzed = 0;
+            result.EndTime = DateTime.UtcNow;
+            result.Duration = result.EndTime - result.StartTime;
+            return result;
+        }
 
         result.FilesAnalyzed = files.Count;
         result.FilesSkipped = 0;
@@ -180,7 +204,10 @@ public class RefactoringEngine
                     {
                         root = await rule.ApplyRefactoringAsync(root, suggestion);
                         modified = true;
-                        result.RefactoringsApplied++;
+                        if (!options.DryRun)
+                        {
+                            result.RefactoringsApplied++;
+                        }
                     }
                 }
 

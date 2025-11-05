@@ -2471,4 +2471,79 @@ public class Test
         var catchAllSuggestions = suggestions.Where(s => s.Description.Contains("catch-all")).ToList();
         Assert.Empty(catchAllSuggestions);
     }
+
+    [Fact]
+    public async Task ExceptionHandlingRule_ShouldDetectExceptionFilterOpportunity_EarlyReturnPattern()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessData(string data)
+    {
+        try
+        {
+            // Some operation
+        }
+        catch (Exception ex)
+        {
+            if (!ex.Message.Contains(""timeout""))
+            {
+                throw;
+            }
+            Console.WriteLine(""Timeout occurred"");
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new ExceptionHandlingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("exception filter", suggestions.First().Description.ToLower());
+    }
+
+    [Fact]
+    public async Task ExceptionHandlingRule_ShouldDetectCatchAllWithOnlyLogging()
+    {
+        // Arrange
+        var code = @"
+public class Test
+{
+    public void ProcessData()
+    {
+        try
+        {
+            Console.WriteLine(""Processing"");
+        }
+        catch
+        {
+            Console.WriteLine(""Error occurred"");
+            Debug.WriteLine(""Debug info"");
+        }
+    }
+}";
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var root = await tree.GetRootAsync();
+
+        var rule = new ExceptionHandlingRefactoringRule();
+        var options = new RefactoringOptions();
+
+        // Act
+        var suggestions = (await rule.AnalyzeAsync("test.cs", root, options)).ToList();
+
+        // Assert
+        Assert.True(suggestions.Count > 0);
+        Assert.Contains("catch-all", suggestions.First().Description.ToLower());
+    }
+
+
 }

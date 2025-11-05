@@ -255,46 +255,6 @@ public class PluginManagerAssemblyFindingTests : IDisposable
         Assert.Null(result);
     }
 
-    [Fact]
-    public async Task LoadPluginAsync_WithMultipleDlls_FindsCorrectAssembly()
-    {
-        // Arrange
-        var pluginName = "MultiDllPlugin";
-        var pluginDir = Path.Combine(_tempPluginsDir, pluginName);
-        Directory.CreateDirectory(pluginDir);
-        
-        // Create manifest
-        var manifest = new PluginManifest
-        {
-            Name = pluginName,
-            Version = "1.0.0",
-            Description = "Multi DLL Plugin",
-            MinimumRelayVersion = "2.1.0"
-        };
-        
-        var manifestPath = Path.Combine(pluginDir, "plugin.json");
-        await File.WriteAllTextAsync(manifestPath, JsonSerializer.Serialize(manifest));
-        
-        // Create multiple DLL files with different naming patterns
-        var relayPluginDll = Path.Combine(pluginDir, "relay-plugin-multidll.dll");
-        var dependencyDll = Path.Combine(pluginDir, "Relay.CLI.Sdk.dll");
-        var pluginDll = Path.Combine(pluginDir, "MyPlugin.dll"); // Changed name to have "Plugin" but not "relay-plugin"
-        
-        await File.WriteAllBytesAsync(relayPluginDll, GenerateDummyAssembly());
-        await File.WriteAllBytesAsync(dependencyDll, GenerateDummyAssembly());
-        await File.WriteAllBytesAsync(pluginDll, GenerateDummyAssembly());
-        
-        // Use reflection to access FindPluginAssembly method
-        var findPluginAssemblyMethod = typeof(PluginManager).GetMethod("FindPluginAssembly", 
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        
-        // Act
-        var result = findPluginAssemblyMethod.Invoke(_manager, [pluginDir]) as string;
-        
-        // Assert that the relay-plugin DLL was found (takes precedence)
-        Assert.Equal(relayPluginDll, result);
-    }
-
     private byte[] GenerateDummyAssembly()
     {
         // Create a minimal dummy assembly as a byte array

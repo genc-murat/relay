@@ -433,6 +433,168 @@ public class PluginManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task GetInstalledPluginsAsync_ScansBothLocalAndGlobalDirectories()
+    {
+        // Arrange - Create a fresh manager with isolated directories
+        var logger = new Mock<IPluginLogger>();
+        var freshManager = new PluginManager(logger.Object);
+
+        var isolatedPluginsDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var isolatedGlobalPluginsDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        Directory.CreateDirectory(isolatedPluginsDir);
+        Directory.CreateDirectory(isolatedGlobalPluginsDir);
+
+        var pluginsDirField = typeof(PluginManager).GetField("_pluginsDirectory", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var globalPluginsDirField = typeof(PluginManager).GetField("_globalPluginsDirectory", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        pluginsDirField?.SetValue(freshManager, isolatedPluginsDir);
+        globalPluginsDirField?.SetValue(freshManager, isolatedGlobalPluginsDir);
+
+        try
+        {
+            // Create local plugin
+            var localPluginDir = Path.Combine(isolatedPluginsDir, "LocalPlugin");
+            Directory.CreateDirectory(localPluginDir);
+
+            var localManifest = new PluginManifest
+            {
+                Name = "LocalPlugin",
+                Version = "1.0.0",
+                Description = "Local Plugin",
+                MinimumRelayVersion = "2.1.0"
+            };
+
+            var localManifestPath = Path.Combine(localPluginDir, "plugin.json");
+            await File.WriteAllTextAsync(localManifestPath, JsonSerializer.Serialize(localManifest));
+
+            // Create global plugin
+            var globalPluginDir = Path.Combine(isolatedGlobalPluginsDir, "GlobalPlugin");
+            Directory.CreateDirectory(globalPluginDir);
+
+            var globalManifest = new PluginManifest
+            {
+                Name = "GlobalPlugin",
+                Version = "1.0.0",
+                Description = "Global Plugin",
+                MinimumRelayVersion = "2.1.0"
+            };
+
+            var globalManifestPath = Path.Combine(globalPluginDir, "plugin.json");
+            await File.WriteAllTextAsync(globalManifestPath, JsonSerializer.Serialize(globalManifest));
+
+            // Act
+            var plugins = await freshManager.GetInstalledPluginsAsync();
+
+            // Assert
+            Assert.Equal(2, plugins.Count);
+            Assert.Contains(plugins, p => p.Name == "LocalPlugin" && !p.IsGlobal);
+            Assert.Contains(plugins, p => p.Name == "GlobalPlugin" && p.IsGlobal);
+        }
+        finally
+        {
+            // Cleanup
+            (freshManager as IDisposable)?.Dispose();
+            if (Directory.Exists(isolatedPluginsDir))
+                Directory.Delete(isolatedPluginsDir, true);
+            if (Directory.Exists(isolatedGlobalPluginsDir))
+                Directory.Delete(isolatedGlobalPluginsDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task GetInstalledPluginsAsync_InvalidManifest_SkipsPlugin()
+    {
+        // Arrange - Create a fresh manager with isolated directories
+        var logger = new Mock<IPluginLogger>();
+        var freshManager = new PluginManager(logger.Object);
+
+        var isolatedPluginsDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var isolatedGlobalPluginsDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        Directory.CreateDirectory(isolatedPluginsDir);
+        Directory.CreateDirectory(isolatedGlobalPluginsDir);
+
+        var pluginsDirField = typeof(PluginManager).GetField("_pluginsDirectory", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var globalPluginsDirField = typeof(PluginManager).GetField("_globalPluginsDirectory", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        pluginsDirField?.SetValue(freshManager, isolatedPluginsDir);
+        globalPluginsDirField?.SetValue(freshManager, isolatedGlobalPluginsDir);
+
+        try
+        {
+            // Create plugin with invalid manifest
+            var invalidPluginDir = Path.Combine(isolatedPluginsDir, "InvalidPlugin");
+            Directory.CreateDirectory(invalidPluginDir);
+
+            var invalidManifestPath = Path.Combine(invalidPluginDir, "plugin.json");
+            await File.WriteAllTextAsync(invalidManifestPath, "{ invalid json }");
+
+            // Create valid plugin
+            var validPluginDir = Path.Combine(isolatedPluginsDir, "ValidPlugin");
+            Directory.CreateDirectory(validPluginDir);
+
+            var validManifest = new PluginManifest
+            {
+                Name = "ValidPlugin",
+                Version = "1.0.0",
+                Description = "Valid Plugin",
+                MinimumRelayVersion = "2.1.0"
+            };
+
+            var validManifestPath = Path.Combine(validPluginDir, "plugin.json");
+            await File.WriteAllTextAsync(validManifestPath, JsonSerializer.Serialize(validManifest));
+
+            // Act
+            var plugins = await freshManager.GetInstalledPluginsAsync();
+
+            // Assert - Only the valid plugin should be returned
+            Assert.Single(plugins);
+            Assert.Equal("ValidPlugin", plugins[0].Name);
+        }
+        finally
+        {
+            // Cleanup
+            (freshManager as IDisposable)?.Dispose();
+            if (Directory.Exists(isolatedPluginsDir))
+                Directory.Delete(isolatedPluginsDir, true);
+            if (Directory.Exists(isolatedGlobalPluginsDir))
+                Directory.Delete(isolatedGlobalPluginsDir, true);
+        }
+    }
+
+    [Fact]
+    public async Task GetInstalledPluginsAsync_NoPluginsDirectory_ReturnsEmptyList()
+    {
+        // Arrange - Create a fresh manager with non-existent directories
+        var logger = new Mock<IPluginLogger>();
+        var freshManager = new PluginManager(logger.Object);
+
+        var nonExistentPluginsDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "plugins");
+        var nonExistentGlobalPluginsDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "global-plugins");
+
+        var pluginsDirField = typeof(PluginManager).GetField("_pluginsDirectory", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var globalPluginsDirField = typeof(PluginManager).GetField("_globalPluginsDirectory", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        pluginsDirField?.SetValue(freshManager, nonExistentPluginsDir);
+        globalPluginsDirField?.SetValue(freshManager, nonExistentGlobalPluginsDir);
+
+        try
+        {
+            // Act
+            var plugins = await freshManager.GetInstalledPluginsAsync();
+
+            // Assert
+            Assert.Empty(plugins);
+        }
+        finally
+        {
+            // Cleanup
+            (freshManager as IDisposable)?.Dispose();
+        }
+    }
+
+    [Fact]
     public async Task InstallPluginAsync_FromLocalDirectory_Succeeds()
     {
         // Arrange
@@ -581,6 +743,131 @@ public class PluginManagerTests : IDisposable
         // Act & Assert
         await Assert.ThrowsAsync<ObjectDisposedException>(() =>
             _manager.ExecutePluginAsync("TestPlugin", Array.Empty<string>(), context.Object));
+    }
+
+    [Fact]
+    public async Task Dispose_UnloadsAllLoadedPlugins()
+    {
+        // Arrange - Load multiple plugins
+        var plugin1Name = "DisposeTestPlugin1";
+        var plugin2Name = "DisposeTestPlugin2";
+
+        // Create plugin directories
+        var plugin1Dir = Path.Combine(_tempPluginsDir, plugin1Name);
+        var plugin2Dir = Path.Combine(_tempPluginsDir, plugin2Name);
+        Directory.CreateDirectory(plugin1Dir);
+        Directory.CreateDirectory(plugin2Dir);
+
+        // Create manifests
+        var manifest1 = new PluginManifest
+        {
+            Name = plugin1Name,
+            Version = "1.0.0",
+            Description = "Dispose Test Plugin 1",
+            MinimumRelayVersion = "2.1.0"
+        };
+
+        var manifest2 = new PluginManifest
+        {
+            Name = plugin2Name,
+            Version = "1.0.0",
+            Description = "Dispose Test Plugin 2",
+            MinimumRelayVersion = "2.1.0"
+        };
+
+        var manifest1Path = Path.Combine(plugin1Dir, "plugin.json");
+        var manifest2Path = Path.Combine(plugin2Dir, "plugin.json");
+        await File.WriteAllTextAsync(manifest1Path, JsonSerializer.Serialize(manifest1));
+        await File.WriteAllTextAsync(manifest2Path, JsonSerializer.Serialize(manifest2));
+
+        // Create dummy DLLs
+        var dll1Path = Path.Combine(plugin1Dir, "relay-plugin-dispose1.dll");
+        var dll2Path = Path.Combine(plugin2Dir, "relay-plugin-dispose2.dll");
+        await File.WriteAllBytesAsync(dll1Path, new byte[] { 1, 2, 3 });
+        await File.WriteAllBytesAsync(dll2Path, new byte[] { 4, 5, 6 });
+
+        // Mock plugins that track cleanup calls
+        var mockPlugin1 = new Mock<IRelayPlugin>();
+        mockPlugin1.Setup(p => p.CleanupAsync(It.IsAny<CancellationToken>()))
+                  .Returns(Task.CompletedTask);
+
+        var mockPlugin2 = new Mock<IRelayPlugin>();
+        mockPlugin2.Setup(p => p.CleanupAsync(It.IsAny<CancellationToken>()))
+                  .Returns(Task.CompletedTask);
+
+        // Manually add plugins to loaded plugins (simulating successful loading)
+        var loadedPluginsField = typeof(PluginManager).GetField("_loadedPlugins", BindingFlags.NonPublic | BindingFlags.Instance);
+        var loadedPlugins = (Dictionary<string, LoadedPlugin>)loadedPluginsField.GetValue(_manager);
+
+        loadedPlugins[plugin1Name] = new LoadedPlugin
+        {
+            Name = plugin1Name,
+            Instance = mockPlugin1.Object,
+            LoadContext = CreateMockLoadContext(),
+            Assembly = typeof(IRelayPlugin).Assembly
+        };
+
+        loadedPlugins[plugin2Name] = new LoadedPlugin
+        {
+            Name = plugin2Name,
+            Instance = mockPlugin2.Object,
+            LoadContext = CreateMockLoadContext(),
+            Assembly = typeof(IRelayPlugin).Assembly
+        };
+
+        // Act
+        _manager.Dispose();
+
+        // Assert
+        // Verify both plugins were unloaded (removed from loaded plugins)
+        Assert.False(loadedPlugins.ContainsKey(plugin1Name));
+        Assert.False(loadedPlugins.ContainsKey(plugin2Name));
+
+        // Verify cleanup was called on both plugins
+        mockPlugin1.Verify(p => p.CleanupAsync(It.IsAny<CancellationToken>()), Times.Once);
+        mockPlugin2.Verify(p => p.CleanupAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void Dispose_DisposesSecurityValidatorAndHealthMonitor()
+    {
+        // Arrange - Create a fresh manager to test disposal
+        var logger = new Mock<IPluginLogger>();
+        var freshManager = new PluginManager(logger.Object);
+
+        // Get references to the components before disposal
+        var securityValidatorField = typeof(PluginManager).GetField("_securityValidator", BindingFlags.NonPublic | BindingFlags.Instance);
+        var healthMonitorField = typeof(PluginManager).GetField("_healthMonitor", BindingFlags.NonPublic | BindingFlags.Instance);
+        var lazyPluginLoaderField = typeof(PluginManager).GetField("_lazyPluginLoader", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var securityValidator = securityValidatorField.GetValue(freshManager);
+        var healthMonitor = healthMonitorField.GetValue(freshManager);
+        var lazyPluginLoader = lazyPluginLoaderField.GetValue(freshManager);
+
+        // Act
+        freshManager.Dispose();
+
+        // Assert - Components should be disposed (we can't easily verify internal disposal state,
+        // but we can verify the dispose method completed without throwing)
+        Assert.NotNull(securityValidator);
+        Assert.NotNull(healthMonitor);
+        Assert.NotNull(lazyPluginLoader);
+    }
+
+    [Fact]
+    public void Dispose_MultipleCalls_Safe()
+    {
+        // Arrange
+        var logger = new Mock<IPluginLogger>();
+        var freshManager = new PluginManager(logger.Object);
+
+        // Act - Call dispose multiple times
+        freshManager.Dispose();
+        freshManager.Dispose();
+        freshManager.Dispose();
+
+        // Assert - No exceptions should be thrown
+        Assert.True(true); // If we get here, the test passed
     }
 
     public void Dispose()

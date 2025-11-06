@@ -111,8 +111,30 @@ public class PackageValidationTests
             Path.Combine(baseDir, "Release"),
             Path.Combine(baseDir, "windows", "Release"),
             Path.Combine(baseDir, "Debug"),
-            Path.Combine(baseDir, "windows", "Debug")
+            Path.Combine(baseDir, "windows", "Debug"),
+            Path.Combine(AppContext.BaseDirectory, "../../../artifacts/packages"),
+            Path.Combine(AppContext.BaseDirectory, "../../../artifacts/test"),
+            Path.Combine(AppContext.BaseDirectory, "../../../../../../artifacts/packages"),
+            Path.Combine(AppContext.BaseDirectory, "../../../../../../artifacts/test")
         };
+
+        // Try to get the project root directory by going up from AppContext.BaseDirectory
+        var currentDir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (currentDir != null)
+        {
+            // Check if we've reached the project root by looking for the solution file
+            if (File.Exists(Path.Combine(currentDir.FullName, "Relay.sln")))
+            {
+                possibleDirs = possibleDirs.Concat(new[]
+                {
+                    Path.Combine(currentDir.FullName, "artifacts", "packages"),
+                    Path.Combine(currentDir.FullName, "artifacts", "test"),
+                    Path.Combine(currentDir.FullName, "packoutput")
+                }).ToArray();
+                break;
+            }
+            currentDir = currentDir.Parent;
+        }
 
         string? packageFile = null;
         foreach (var packageDir in possibleDirs)
@@ -147,8 +169,30 @@ public class PackageValidationTests
             Path.Combine(baseDir, "Release"),
             Path.Combine(baseDir, "windows", "Release"),
             Path.Combine(baseDir, "Debug"),
-            Path.Combine(baseDir, "windows", "Debug")
+            Path.Combine(baseDir, "windows", "Debug"),
+            Path.Combine(AppContext.BaseDirectory, "../../../artifacts/packages"),
+            Path.Combine(AppContext.BaseDirectory, "../../../artifacts/test"),
+            Path.Combine(AppContext.BaseDirectory, "../../../../../../artifacts/packages"),
+            Path.Combine(AppContext.BaseDirectory, "../../../../../../artifacts/test")
         };
+
+        // Try to get the project root directory by going up from AppContext.BaseDirectory
+        var currentDir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (currentDir != null)
+        {
+            // Check if we've reached the project root by looking for the solution file
+            if (File.Exists(Path.Combine(currentDir.FullName, "Relay.sln")))
+            {
+                possibleDirs = possibleDirs.Concat(new[]
+                {
+                    Path.Combine(currentDir.FullName, "artifacts", "packages"),
+                    Path.Combine(currentDir.FullName, "artifacts", "test"),
+                    Path.Combine(currentDir.FullName, "packoutput")
+                }).ToArray();
+                break;
+            }
+            currentDir = currentDir.Parent;
+        }
 
         foreach (var packageDir in possibleDirs)
         {

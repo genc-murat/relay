@@ -95,12 +95,13 @@ public static class PipelineCommand
 
             stopwatch.Stop();
             pipelineResult.TotalDuration = stopwatch.Elapsed;
+            pipelineResult.Success = pipelineResult.Stages.All(s => s.Success);
 
             // Display results
             DisplayPipelineResults(pipelineResult, ciMode);
 
             // Generate report
-            if (!string.IsNullOrEmpty(reportPath))
+            if (!string.IsNullOrWhiteSpace(reportPath))
             {
                 await GeneratePipelineReport(pipelineResult, reportPath);
                 AnsiConsole.MarkupLine($"[green]📄 Report saved: {reportPath}[/]");
@@ -119,6 +120,15 @@ public static class PipelineCommand
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[red]❌ Pipeline failed:[/]");
             AnsiConsole.WriteException(ex);
+
+            // Generate report even on failure if requested
+            if (!string.IsNullOrWhiteSpace(reportPath))
+            {
+                pipelineResult.Success = false;
+                await GeneratePipelineReport(pipelineResult, reportPath);
+                AnsiConsole.MarkupLine($"[yellow]📄 Report saved: {reportPath}[/]");
+            }
+
             Environment.ExitCode = 1;
         }
     }

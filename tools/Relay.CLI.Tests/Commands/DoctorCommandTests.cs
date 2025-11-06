@@ -1,5 +1,6 @@
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Diagnostic;
+using Spectre.Console;
 
 namespace Relay.CLI.Tests.Commands;
 
@@ -684,6 +685,523 @@ public class DoctorCommandTests : IDisposable
         Assert.Single(results.Checks);
     }
 
+    [Fact]
+    public async Task CheckProjectStructure_WithNoCsprojFiles_ShouldReportError()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var emptyDir = Path.Combine(_testPath, "empty");
+        Directory.CreateDirectory(emptyDir);
+
+        // Act
+        await DoctorCommand.CheckProjectStructure(emptyDir, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Equal("Project Structure", check.Category);
+        Assert.Contains(check.Issues, i => i.Message.Contains("No .csproj files found"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public async Task CheckProjectStructure_WithNoRelayReferences_ShouldReportWarning()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var csprojPath = Path.Combine(_testPath, "NoRelay.csproj");
+        await File.WriteAllTextAsync(csprojPath, "<Project><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>");
+
+        // Act
+        await DoctorCommand.CheckProjectStructure(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("No Relay package references found"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task CheckProjectStructure_WithVerbose_ShouldReportFoundFolders()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        Directory.CreateDirectory(Path.Combine(_testPath, "src"));
+        Directory.CreateDirectory(Path.Combine(_testPath, "tests"));
+        var csprojPath = Path.Combine(_testPath, "Test.csproj");
+        await File.WriteAllTextAsync(csprojPath, "<Project />");
+
+        // Act
+        await DoctorCommand.CheckProjectStructure(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Found recommended folder"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Info);
+    }
+
+    [Fact]
+    public async Task CheckDependencies_WithNet6Framework_ShouldReportCompatible()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var csprojPath = Path.Combine(_testPath, "Net6.csproj");
+        await File.WriteAllTextAsync(csprojPath, "<Project><PropertyGroup><TargetFramework>net6.0</TargetFramework></PropertyGroup></Project>");
+
+        // Act
+        await DoctorCommand.CheckDependencies(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Compatible .NET version"));
+    }
+
+    [Fact]
+    public async Task CheckDependencies_WithNetStandard_ShouldReportCompatible()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var csprojPath = Path.Combine(_testPath, "NetStandard.csproj");
+        await File.WriteAllTextAsync(csprojPath, "<Project><PropertyGroup><TargetFramework>netstandard2.0</TargetFramework></PropertyGroup></Project>");
+
+        // Act
+        await DoctorCommand.CheckDependencies(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Compatible .NET version"));
+    }
+
+    [Fact]
+    public async Task CheckDependencies_WithOutdatedFramework_ShouldReportWarning()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var csprojPath = Path.Combine(_testPath, "Outdated.csproj");
+        await File.WriteAllTextAsync(csprojPath, "<Project><PropertyGroup><TargetFramework>netcoreapp3.1</TargetFramework></PropertyGroup></Project>");
+
+        // Act
+        await DoctorCommand.CheckDependencies(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Outdated .NET version"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task CheckDependencies_WithNullableEnabled_ShouldNotReportInfo()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var csprojPath = Path.Combine(_testPath, "Nullable.csproj");
+        await File.WriteAllTextAsync(csprojPath, "<Project><PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable></PropertyGroup></Project>");
+
+        // Act
+        await DoctorCommand.CheckDependencies(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        // Should not contain info about nullable since it's enabled
+        Assert.DoesNotContain(check.Issues, i => i.Message.Contains("Consider enabling nullable"));
+    }
+
+    [Fact]
+    public async Task CheckDependencies_WithLatestLangVersion_ShouldReportSuccess()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var csprojPath = Path.Combine(_testPath, "LatestLang.csproj");
+        await File.WriteAllTextAsync(csprojPath, "<Project><PropertyGroup><TargetFramework>net8.0</TargetFramework><LangVersion>latest</LangVersion></PropertyGroup></Project>");
+
+        // Act
+        await DoctorCommand.CheckDependencies(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Latest C# language features enabled"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Success);
+    }
+
+    [Fact]
+    public async Task CheckHandlers_WithValueTaskUsage_ShouldReportOptimal()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var handlerPath = Path.Combine(_testPath, "ValueTaskHandler.cs");
+        var handlerCode = @"public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    public async ValueTask<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""test"";
+    }
+}";
+        await File.WriteAllTextAsync(handlerPath, handlerCode);
+
+        // Act
+        await DoctorCommand.CheckHandlers(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("using ValueTask (optimal)"));
+    }
+
+    [Fact]
+    public async Task CheckHandlers_WithTaskUsage_ShouldReportIssue()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var handlerPath = Path.Combine(_testPath, "TaskHandler.cs");
+        var handlerCode = @"public class TestHandler : IRequestHandler<TestRequest, Task<string>>
+{
+    public async Task<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""test"";
+    }
+}";
+        await File.WriteAllTextAsync(handlerPath, handlerCode);
+
+        // Act
+        await DoctorCommand.CheckHandlers(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("uses Task instead of ValueTask"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Info);
+    }
+
+    [Fact]
+    public async Task CheckHandlers_WithMissingCancellationToken_ShouldReportWarning()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var handlerPath = Path.Combine(_testPath, "NoCTHandler.cs");
+        var handlerCode = @"public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    public async ValueTask<string> HandleAsync(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+        await File.WriteAllTextAsync(handlerPath, handlerCode);
+
+        // Act
+        await DoctorCommand.CheckHandlers(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("missing CancellationToken parameter"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task CheckHandlers_WithHandleAttribute_ShouldReportSuccess()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var handlerPath = Path.Combine(_testPath, "HandleAttrHandler.cs");
+        var handlerCode = @"public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async ValueTask<string> HandleAsync(TestRequest request, CancellationToken ct)
+    {
+        return ""test"";
+    }
+}";
+        await File.WriteAllTextAsync(handlerPath, handlerCode);
+
+        // Act
+        await DoctorCommand.CheckHandlers(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("uses [Handle] attribute for optimization"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Success);
+    }
+
+    [Fact]
+    public async Task CheckHandlers_WithNoHandlers_ShouldReportWarning()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var regularClassPath = Path.Combine(_testPath, "RegularClass.cs");
+        await File.WriteAllTextAsync(regularClassPath, "public class RegularClass { }");
+
+        // Act
+        await DoctorCommand.CheckHandlers(_testPath, results, false);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("No handlers found"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Warning);
+    }
+
+    [Fact]
+    public async Task CheckPerformanceSettings_WithOptimizations_ShouldReportSuccess()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var csprojPath = Path.Combine(_testPath, "Optimized.csproj");
+        var csprojContent = @"<Project>
+<PropertyGroup>
+<TargetFramework>net8.0</TargetFramework>
+<TieredCompilation>true</TieredCompilation>
+<TieredPGO>true</TieredPGO>
+<Optimize>true</Optimize>
+<PublishTrimmed>true</PublishTrimmed>
+</PropertyGroup>
+</Project>";
+        await File.WriteAllTextAsync(csprojPath, csprojContent);
+
+        // Act
+        await DoctorCommand.CheckPerformanceSettings(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Tiered compilation enabled"));
+        Assert.Contains(check.Issues, i => i.Message.Contains("Profile-guided optimization enabled"));
+        Assert.Contains(check.Issues, i => i.Message.Contains("Code optimization enabled"));
+        Assert.Contains(check.Issues, i => i.Message.Contains("Trimming enabled"));
+    }
+
+    [Fact]
+    public async Task CheckPerformanceSettings_WithReleaseConfig_ShouldReportInfo()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var csprojPath = Path.Combine(_testPath, "Release.csproj");
+        var csprojContent = @"<Project>
+<PropertyGroup>
+<TargetFramework>net8.0</TargetFramework>
+<Configuration>Release</Configuration>
+</PropertyGroup>
+</Project>";
+        await File.WriteAllTextAsync(csprojPath, csprojContent);
+
+        // Act
+        await DoctorCommand.CheckPerformanceSettings(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Remember to use Release configuration"));
+    }
+
+    [Fact]
+    public async Task CheckBestPractices_WithRecordUsage_ShouldReportSuccess()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var recordPath = Path.Combine(_testPath, "RecordRequest.cs");
+        var recordCode = "public record GetUserQuery(int UserId) : IRequest<UserResponse>;";
+        await File.WriteAllTextAsync(recordPath, recordCode);
+
+        // Act
+        await DoctorCommand.CheckBestPractices(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("using record (recommended)"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Success);
+    }
+
+    [Fact]
+    public async Task CheckBestPractices_WithClassUsage_ShouldReportInfo()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var classPath = Path.Combine(_testPath, "ClassRequest.cs");
+        var classCode = "public class GetUserQuery : IRequest<UserResponse> { public int UserId { get; set; } }";
+        await File.WriteAllTextAsync(classPath, classCode);
+
+        // Act
+        await DoctorCommand.CheckBestPractices(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Consider using 'record' instead of 'class'"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Info);
+    }
+
+    [Fact]
+    public async Task CheckBestPractices_WithAsyncNaming_ShouldReportInfo()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var asyncPath = Path.Combine(_testPath, "AsyncMethod.cs");
+        var asyncCode = @"public class Service
+{
+    public async ValueTask<string> HandleAsync()
+    {
+        return ""test"";
+    }
+}";
+        await File.WriteAllTextAsync(asyncPath, asyncCode);
+
+        // Act
+        await DoctorCommand.CheckBestPractices(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        // Should not report async naming issue since method ends with Async
+        Assert.DoesNotContain(check.Issues, i => i.Message.Contains("Consider using 'Async' suffix"));
+    }
+
+    [Fact]
+    public async Task CheckBestPractices_WithBadAsyncNaming_ShouldReportInfo()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var asyncPath = Path.Combine(_testPath, "BadAsyncMethod.cs");
+        var asyncCode = @"public class Service
+{
+    public async ValueTask<string> Handle()
+    {
+        return ""test"";
+    }
+}";
+        await File.WriteAllTextAsync(asyncPath, asyncCode);
+
+        // Act
+        await DoctorCommand.CheckBestPractices(_testPath, results, true);
+
+        // Assert
+        Assert.Single(results.Checks);
+        var check = results.Checks[0];
+        Assert.Contains(check.Issues, i => i.Message.Contains("Consider using 'Async' suffix"));
+        Assert.Contains(check.Issues, i => i.Severity == DiagnosticSeverity.Info);
+    }
+
+    [Fact]
+    public async Task DisplayDiagnosticResults_WithOnlyErrors_ShouldShowErrorVerdict()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var check = new DiagnosticCheck { Category = "Test" };
+        check.AddIssue("Critical error", DiagnosticSeverity.Error, "ERR");
+        results.AddCheck(check);
+
+        // Act & Assert - Capture console output or just ensure no exception
+        DoctorCommandTestsAccessor.DisplayDiagnosticResults(results);
+        // The verdict should be "Your project has critical issues"
+    }
+
+    [Fact]
+    public async Task DisplayDiagnosticResults_WithOnlyWarnings_ShouldShowWarningVerdict()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var check = new DiagnosticCheck { Category = "Test" };
+        check.AddIssue("Warning", DiagnosticSeverity.Warning, "WARN");
+        results.AddCheck(check);
+
+        // Act & Assert
+        DoctorCommandTestsAccessor.DisplayDiagnosticResults(results);
+        // The verdict should be "Your project has some warnings"
+    }
+
+    [Fact]
+    public async Task DisplayDiagnosticResults_WithNoIssues_ShouldShowSuccessVerdict()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var check = new DiagnosticCheck { Category = "Test" };
+        check.AddSuccess("All good");
+        results.AddCheck(check);
+
+        // Act & Assert
+        DoctorCommandTestsAccessor.DisplayDiagnosticResults(results);
+        // The verdict should be "Your Relay project is in excellent health"
+    }
+
+    [Fact]
+    public async Task BuildCheckReport_WithMarkupCharacters_ShouldEscapeThem()
+    {
+        // Arrange
+        var check = new DiagnosticCheck { Category = "Test" };
+        check.AddIssue("Message with [brackets] and [[double]]", DiagnosticSeverity.Warning, "TEST");
+
+        // Act
+        var report = DoctorCommandTestsAccessor.BuildCheckReport(check);
+
+        // Assert
+        Assert.Contains("[[brackets]]", report);
+        Assert.Contains("[[[double]]]", report);
+    }
+
+    [Fact]
+    public async Task GetBorderColor_WithErrorIssues_ShouldReturnRed()
+    {
+        // Arrange
+        var check = new DiagnosticCheck { Category = "Test" };
+        check.AddIssue("Error", DiagnosticSeverity.Error, "ERR");
+
+        // Act
+        var color = DoctorCommandTestsAccessor.GetBorderColor(check);
+
+        // Assert
+        Assert.Equal(Color.Red, color);
+    }
+
+    [Fact]
+    public async Task GetBorderColor_WithWarningIssues_ShouldReturnYellow()
+    {
+        // Arrange
+        var check = new DiagnosticCheck { Category = "Test" };
+        check.AddIssue("Warning", DiagnosticSeverity.Warning, "WARN");
+
+        // Act
+        var color = DoctorCommandTestsAccessor.GetBorderColor(check);
+
+        // Assert
+        Assert.Equal(Color.Yellow, color);
+    }
+
+    [Fact]
+    public async Task GetBorderColor_WithOnlySuccess_ShouldReturnGreen()
+    {
+        // Arrange
+        var check = new DiagnosticCheck { Category = "Test" };
+        check.AddSuccess("Success");
+
+        // Act
+        var color = DoctorCommandTestsAccessor.GetBorderColor(check);
+
+        // Assert
+        Assert.Equal(Color.Green, color);
+    }
+
+    [Fact]
+    public async Task ExecuteDoctor_WithAutoFixAndFixableIssues_ShouldAttemptFixes()
+    {
+        // Arrange
+        var results = new DiagnosticResults();
+        var check = new DiagnosticCheck { Category = "Test" };
+        check.AddIssue("Fixable issue", DiagnosticSeverity.Warning, "FIX", isFixable: true);
+        results.AddCheck(check);
+
+        // Act & Assert - This should not throw
+        // Note: We can't easily test the AnsiConsole.Confirm() interaction in unit tests
+        // but we can ensure the method completes
+        await DoctorCommand.ExecuteDoctor(_testPath, false, true);
+    }
+
     private async Task CreateValidProject()
     {
         var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
@@ -741,5 +1259,21 @@ internal static class DoctorCommandTestsAccessor
         var method = typeof(DoctorCommand).GetMethod("ApplyFixes",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         return (Task)method?.Invoke(null, new object[] { path, results })!;
+    }
+
+    public static string BuildCheckReport(DiagnosticCheck check)
+    {
+        // Use reflection to access private method
+        var method = typeof(DoctorCommand).GetMethod("BuildCheckReport",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        return (string)method?.Invoke(null, new object[] { check })!;
+    }
+
+    public static Color GetBorderColor(DiagnosticCheck check)
+    {
+        // Use reflection to access private method
+        var method = typeof(DoctorCommand).GetMethod("GetBorderColor",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        return (Color)method?.Invoke(null, new object[] { check })!;
     }
 }

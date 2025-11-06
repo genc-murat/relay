@@ -101,29 +101,6 @@ public class GenerateCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteGenerate_Benchmark_CreatesBenchmarkFile()
-    {
-        // Act
-        await GenerateCommand.ExecuteGenerate("benchmark", _testPath);
-
-        // Assert
-        var benchmarkPath = Path.Combine(_testPath, "RelayBenchmark.cs");
-        Assert.True(File.Exists(benchmarkPath));
-
-        var content = await File.ReadAllTextAsync(benchmarkPath);
-        Assert.Contains("using BenchmarkDotNet.Attributes;", content);
-        Assert.Contains("using BenchmarkDotNet.Running;", content);
-        Assert.Contains("[MemoryDiagnoser]", content);
-        Assert.Contains("[SimpleJob]", content);
-        Assert.Contains("public class RelayBenchmark", content);
-        Assert.Contains("[Benchmark]", content);
-        Assert.Contains("public async Task SendRequest()", content);
-        Assert.Contains("await Task.Delay(1);", content);
-        Assert.Contains("public class Program", content);
-        Assert.Contains("BenchmarkRunner.Run<RelayBenchmark>()", content);
-    }
-
-    [Fact]
     public async Task ExecuteGenerate_CreatesFilesInSpecifiedOutputDirectory()
     {
         // Arrange

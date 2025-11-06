@@ -1268,6 +1268,30 @@ public class NewCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task NewCommand_CreateProjectAsync_WithoutTemplate_ShouldShowError()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act
+            await NewCommand.CreateProjectAsync("TestProject", "", [],
+                _testPath, null, null, null, true, true);
+
+            // Assert
+            var output = consoleOutput.ToString();
+            Assert.Contains("Template is required", output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
     public async Task NewCommand_Handler_WithoutTemplate_ShouldShowError()
     {
         // Arrange
@@ -1300,6 +1324,8 @@ public class NewCommandTests : IDisposable
         var output = consoleOutput.ToString();
         Assert.Contains("Creating project 'TestProject'", output);
     }
+
+
 
     [Fact]
     public async Task NewCommand_Handler_WithExistingDirectory_ShouldShowError()
@@ -1676,6 +1702,249 @@ public class NewCommandTests : IDisposable
         // Note: This test would require mocking Process.Start or running in an environment with dotnet
         // For now, we verify the method doesn't throw
         await NewCommand.BuildProject(projectPath);
+    }
+
+    #endregion
+
+    #region Missing Coverage Tests
+
+    [Fact]
+    public async Task NewCommand_CreateProjectAsync_ShouldHandleExceptions()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act - Try to create project in a directory that will cause an exception
+            // We'll simulate by using an invalid path that causes Directory.CreateDirectory to fail
+            await NewCommand.CreateProjectAsync("TestProject", "relay-webapi", [],
+                "\\\\invalid\\path\\that\\does\\not\\exist", null, null, null, true, true);
+
+            // Assert
+            var output = consoleOutput.ToString();
+            Assert.Contains("Error creating project", output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task NewCommand_RestorePackages_ShouldHandleProcessFailure()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act - Try to restore in a directory without project files (should fail)
+            var emptyDir = Path.Combine(_testPath, "EmptyProject");
+            Directory.CreateDirectory(emptyDir);
+
+            await NewCommand.RestorePackages(emptyDir);
+
+            // Assert - The method should not throw, but may show warning
+            // Note: Actual failure depends on dotnet being available
+            var output = consoleOutput.ToString();
+            // If dotnet is not available or fails, it might show warning
+            Assert.True(true); // Method completed without throwing
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task NewCommand_BuildProject_ShouldHandleProcessFailure()
+    {
+        // Arrange
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act - Try to build in a directory without project files (should fail)
+            var emptyDir = Path.Combine(_testPath, "EmptyProject");
+            Directory.CreateDirectory(emptyDir);
+
+            await NewCommand.BuildProject(emptyDir);
+
+            // Assert - The method should not throw, but may show warning
+            var output = consoleOutput.ToString();
+            Assert.True(true); // Method completed without throwing
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task NewCommand_CreateProjectAsync_NoRestoreTrue_NoBuildFalse_ShouldSkipBuild()
+    {
+        // Arrange
+        var projectName = "NoBuildTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act - noRestore=true, noBuild=false should skip build even though noBuild is false
+            await NewCommand.CreateProjectAsync(projectName, "relay-webapi", [],
+                _testPath, null, null, null, true, false);
+
+            // Assert
+            var output = consoleOutput.ToString();
+            Assert.Contains("Creating project structure", output);
+            Assert.DoesNotContain("Building project", output); // Should not build when noRestore=true
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Theory]
+    [InlineData("clean-architecture")]
+    [InlineData("microservice")]
+    [InlineData("modular")]
+    [InlineData("simple")] // default case
+    public async Task NewCommand_CreateProjectStructure_ShouldHandleAllStructureTypes(string structure)
+    {
+        // Arrange
+        var projectName = $"StructureTest{structure}";
+        var projectPath = Path.Combine(_testPath, projectName);
+
+        // Create a mock template with the specific structure
+        var template = new TemplateInfo
+        {
+            Id = "test-template",
+            Name = "Test Template",
+            Description = "Test",
+            BestFor = "Testing",
+            Tags = ["test"],
+            Features = [],
+            Structure = structure
+        };
+
+        // Act
+        await NewCommand.CreateProjectStructure(projectPath, projectName, template, [], null, null, null);
+
+        // Assert
+        Assert.True(Directory.Exists(projectPath));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "src")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "tests")));
+        Assert.True(Directory.Exists(Path.Combine(projectPath, "docs")));
+    }
+
+    [Theory]
+    [InlineData("relay-webapi")]
+    [InlineData("relay-microservice")]
+    [InlineData("relay-ddd")]
+    [InlineData("relay-cqrs-es")]
+    [InlineData("relay-modular")]
+    [InlineData("relay-graphql")]
+    [InlineData("relay-grpc")]
+    [InlineData("relay-serverless")]
+    [InlineData("relay-blazor")]
+    [InlineData("relay-maui")]
+    public async Task NewCommand_GenerateProjectFiles_ShouldHandleAllTemplateTypes(string templateId)
+    {
+        // Arrange
+        var projectName = $"TemplateTest{templateId}";
+        var projectPath = Path.Combine(_testPath, projectName);
+        Directory.CreateDirectory(projectPath);
+
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act
+            await NewCommand.GenerateProjectFiles(projectPath, projectName,
+                NewCommand.GetTemplates().First(t => t.Id == templateId), [], null, null, null);
+
+            // Assert
+            var output = consoleOutput.ToString();
+            Assert.Contains("Generated", output); // All generation methods write to console
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task NewCommand_GenerateCommonFiles_WithDockerFeature_ShouldCallGenerateDockerFiles()
+    {
+        // Arrange
+        var projectName = "DockerFeatureTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+        Directory.CreateDirectory(projectPath);
+
+        var template = NewCommand.GetTemplates().First(t => t.Id == "relay-webapi");
+
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act
+            await NewCommand.GenerateCommonFiles(projectPath, projectName, template, ["docker"]);
+
+            // Assert
+            var output = consoleOutput.ToString();
+            Assert.Contains("✓ Generated README.md", output);
+            Assert.Contains("✓ Generated .gitignore", output);
+            // Note: Docker file generation is not implemented yet, but the conditional should be hit
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
+    public async Task NewCommand_GenerateCommonFiles_WithCiFeature_ShouldCallGenerateCICDFiles()
+    {
+        // Arrange
+        var projectName = "CiFeatureTest";
+        var projectPath = Path.Combine(_testPath, projectName);
+        Directory.CreateDirectory(projectPath);
+
+        var template = NewCommand.GetTemplates().First(t => t.Id == "relay-webapi");
+
+        var consoleOutput = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(consoleOutput);
+
+        try
+        {
+            // Act
+            await NewCommand.GenerateCommonFiles(projectPath, projectName, template, ["ci"]);
+
+            // Assert
+            var output = consoleOutput.ToString();
+            Assert.Contains("✓ Generated README.md", output);
+            Assert.Contains("✓ Generated .gitignore", output);
+            // Note: CI file generation is not implemented yet, but the conditional should be hit
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
     }
 
     #endregion

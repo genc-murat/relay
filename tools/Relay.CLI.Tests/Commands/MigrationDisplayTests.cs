@@ -236,22 +236,26 @@ public class MigrationDisplayTests
             ],
             CanMigrate = true
         };
-        var console = new TestConsole();
-        var originalConsole = AnsiConsole.Console;
-        AnsiConsole.Console = console;
 
-        try
+        lock (typeof(AnsiConsole))
         {
-            // Act
-            MigrationDisplay.DisplayAnalysisResults(analysis);
+            var console = new TestConsole();
+            var originalConsole = AnsiConsole.Console;
+            AnsiConsole.Console = console;
 
-            // Assert
-            var output = console.Output;
-            Assert.Contains("Issue with", output);
-        }
-        finally
-        {
-            AnsiConsole.Console = originalConsole;
+            try
+            {
+                // Act
+                MigrationDisplay.DisplayAnalysisResults(analysis);
+
+                // Assert
+                var output = console.Output;
+                Assert.Contains("Issue with", output);
+            }
+            finally
+            {
+                AnsiConsole.Console = originalConsole;
+            }
         }
     }
 

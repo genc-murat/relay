@@ -942,4 +942,140 @@ public class TestHandler
         Assert.DoesNotContain("ResponseType =", result);
         Assert.DoesNotContain("ResponseSchema =", result);
     }
+
+    [Fact]
+    public void GenerateEndpointMetadata_WithConstructorRouteArgument_UsesConstructorValue()
+    {
+        // Arrange
+        var source = @"
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint(""/api/constructor-route"")]
+    public string HandleTest(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var context = new RelayCompilationContext(compilation, default);
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var diagnosticReporter = new TestDiagnosticReporter();
+
+        var syntaxTrees = compilation.SyntaxTrees.ToList();
+        var candidateMethods = syntaxTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Count > 0)
+            .ToList();
+
+        var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Act
+        var result = generator.GenerateEndpointMetadata(discoveryResult.Handlers);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("Route = \"/api/constructor-route\"", result);
+        Assert.Contains("HttpMethod = \"POST\"", result); // Default value
+    }
+
+    [Fact]
+    public void GenerateEndpointMetadata_WithConstructorRouteAndHttpMethodArguments_UsesConstructorValues()
+    {
+        // Arrange
+        var source = @"
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint(""/api/constructor-route"", ""PUT"")]
+    public string HandleTest(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var context = new RelayCompilationContext(compilation, default);
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var diagnosticReporter = new TestDiagnosticReporter();
+
+        var syntaxTrees = compilation.SyntaxTrees.ToList();
+        var candidateMethods = syntaxTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Count > 0)
+            .ToList();
+
+        var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Act
+        var result = generator.GenerateEndpointMetadata(discoveryResult.Handlers);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("Route = \"/api/constructor-route\"", result);
+        Assert.Contains("HttpMethod = \"PUT\"", result);
+    }
+
+    [Fact]
+    public void GenerateEndpointMetadata_WithConstructorArgumentsAndNamedArguments_NamedArgumentsTakePrecedence()
+    {
+        // Arrange
+        var source = @"
+using Relay.Core;
+
+public class TestRequest : IRequest<string> { }
+
+public class TestHandler
+{
+    [Handle]
+    [ExposeAsEndpoint(""/api/constructor-route"", ""PUT"", Version = ""v2"")]
+    public string HandleTest(TestRequest request)
+    {
+        return ""test"";
+    }
+}";
+
+        var (compilation, diagnostics) = TestHelpers.CreateCompilation(source);
+        Assert.DoesNotContain(diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+
+        var context = new RelayCompilationContext(compilation, default);
+        var discoveryEngine = new HandlerDiscoveryEngine(context);
+        var diagnosticReporter = new TestDiagnosticReporter();
+
+        var syntaxTrees = compilation.SyntaxTrees.ToList();
+        var candidateMethods = syntaxTrees
+            .SelectMany(tree => tree.GetRoot().DescendantNodes())
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Count > 0)
+            .ToList();
+
+        var discoveryResult = discoveryEngine.DiscoverHandlers(candidateMethods, diagnosticReporter);
+        var generator = new EndpointMetadataGenerator(compilation, diagnosticReporter);
+
+        // Act
+        var result = generator.GenerateEndpointMetadata(discoveryResult.Handlers);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("Route = \"/api/constructor-route\"", result);
+        Assert.Contains("HttpMethod = \"PUT\"", result);
+        Assert.Contains("Version = \"v2\"", result);
+    }
 }

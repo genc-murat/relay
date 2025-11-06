@@ -36,8 +36,21 @@ namespace Relay.Core
     [AttributeUsage(AttributeTargets.Method)]
     public sealed class ExposeAsEndpointAttribute : Attribute
     {
+        public ExposeAsEndpointAttribute() { }
+
+        public ExposeAsEndpointAttribute(string route)
+        {
+            Route = route;
+        }
+
+        public ExposeAsEndpointAttribute(string route, string httpMethod)
+        {
+            Route = route;
+            HttpMethod = httpMethod;
+        }
+
         public string? Route { get; set; }
-        public string HttpMethod { get; set; } = ""POST"";
+        public string HttpMethod { get; set; }
         public string? Version { get; set; }
     }
 }

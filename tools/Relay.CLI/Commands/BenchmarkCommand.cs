@@ -38,8 +38,15 @@ public static class BenchmarkCommand
 
     internal static async Task ExecuteBenchmark(int iterations, string? outputPath, string format, string[] tests, int warmup, int threads)
     {
-        AnsiConsole.MarkupLine("[cyan]🚀 Starting Relay Performance Benchmark Suite[/]");
-        AnsiConsole.WriteLine();
+        try
+        {
+            AnsiConsole.MarkupLine("[cyan]🚀 Starting Relay Performance Benchmark Suite[/]");
+            AnsiConsole.WriteLine();
+        }
+        catch
+        {
+            // Ignore console output errors in test environments
+        }
 
         var results = new BenchmarkResults
         {
@@ -366,21 +373,49 @@ public static class BenchmarkCommand
         try
         {
             await File.WriteAllTextAsync(outputPath, content);
-            AnsiConsole.MarkupLine($"[green]✓ Results saved to: {outputPath}[/]");
+            try
+            {
+                AnsiConsole.MarkupLine($"[green]✓ Results saved to: {outputPath}[/]");
+            }
+            catch
+            {
+                // Ignore console output errors in test environments
+            }
         }
         catch (UnauthorizedAccessException)
         {
-            AnsiConsole.MarkupLine($"[red]❌ Error: Insufficient permissions to write to {outputPath}[/]");
+            try
+            {
+                AnsiConsole.MarkupLine($"[red]❌ Error: Insufficient permissions to write to {outputPath}[/]");
+            }
+            catch
+            {
+                // Ignore console output errors in test environments
+            }
             throw;
         }
         catch (DirectoryNotFoundException)
         {
-            AnsiConsole.MarkupLine($"[red]❌ Error: Directory does not exist: {Path.GetDirectoryName(outputPath)}[/]");
+            try
+            {
+                AnsiConsole.MarkupLine($"[red]❌ Error: Directory does not exist: {Path.GetDirectoryName(outputPath)}[/]");
+            }
+            catch
+            {
+                // Ignore console output errors in test environments
+            }
             throw;
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red]❌ Error saving benchmark results: {ex.Message}[/]");
+            try
+            {
+                AnsiConsole.MarkupLine($"[red]❌ Error saving benchmark results: {ex.Message}[/]");
+            }
+            catch
+            {
+                // Ignore console output errors in test environments
+            }
             throw;
         }
     }

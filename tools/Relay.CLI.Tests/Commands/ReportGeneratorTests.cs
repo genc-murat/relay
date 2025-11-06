@@ -237,4 +237,29 @@ public class ReportGeneratorTests
         Assert.Contains("- Action 2", markdown);
         Assert.Contains("**Estimated Impact:** High impact", markdown);
     }
+
+    [Fact]
+    public void GenerateHtmlAnalysisReport_ShouldHandleExceptionsAndReturnMinimalHtml()
+    {
+        // Arrange - Create analysis with null collections to trigger NullReferenceException
+        var analysis = new ProjectAnalysis
+        {
+            Timestamp = DateTime.Now,
+            ProjectFiles = null!, // This will cause exception when accessing .Count
+            SourceFiles = new List<string>(),
+            Handlers = new List<HandlerInfo>(),
+            Requests = new List<RequestInfo>(),
+            PerformanceIssues = new List<PerformanceIssue>(),
+            Recommendations = new List<Recommendation>()
+        };
+
+        // Act
+        var html = ReportGenerator.GenerateHtmlAnalysisReport(analysis);
+
+        // Assert - Should return minimal HTML instead of throwing
+        Assert.Contains("<html>", html);
+        Assert.Contains("<body>", html);
+        Assert.Contains("<h1>Relay Project Analysis Report</h1>", html);
+        Assert.Contains("Report generation failed:", html);
+    }
 }

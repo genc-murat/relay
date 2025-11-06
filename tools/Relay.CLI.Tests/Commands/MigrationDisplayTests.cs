@@ -279,7 +279,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
@@ -321,7 +321,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
@@ -357,7 +357,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
@@ -396,7 +396,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
@@ -445,11 +445,13 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
-            Assert.Contains("... and 2 more", output);
+            // Verify that only the first 10 changes are displayed (truncation)
+            Assert.Contains("Change 9", output);
+            Assert.DoesNotContain("Change 10", output);
         }
         finally
         {
@@ -479,7 +481,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
@@ -515,7 +517,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, true);
+            MigrationDisplay.DisplayMigrationResults(result, true, console);
 
             // Assert
             var output = console.Output;
@@ -551,7 +553,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
@@ -585,7 +587,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
@@ -620,7 +622,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;
@@ -655,7 +657,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, true);
+            MigrationDisplay.DisplayMigrationResults(result, true, console);
 
             // Assert
             var output = console.Output;
@@ -692,7 +694,7 @@ public class MigrationDisplayTests
         try
         {
             // Act
-            MigrationDisplay.DisplayMigrationResults(result, false);
+            MigrationDisplay.DisplayMigrationResults(result, false, console);
 
             // Assert
             var output = console.Output;

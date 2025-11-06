@@ -1,11 +1,10 @@
-using System.CommandLine;
-using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Spectre.Console;
 using Relay.CLI.Commands.Models.Performance;
+using Spectre.Console;
+using System.CommandLine;
+using System.Text;
 
 namespace Relay.CLI.Commands;
 

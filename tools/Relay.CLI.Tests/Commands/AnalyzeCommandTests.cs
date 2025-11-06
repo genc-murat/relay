@@ -1108,6 +1108,21 @@ public class SimpleClass
     }
 
     [Fact]
+    public async Task AnalyzeCommand_WithNonExistentProjectPath_ReturnsErrorExitCode()
+    {
+        // Arrange
+        var nonExistentPath = Path.Combine(_testPath, "nonexistent");
+        var command = AnalyzeCommand.Create();
+        var console = new System.CommandLine.IO.TestConsole();
+
+        // Act
+        var result = await command.InvokeAsync($"--path {nonExistentPath}", console);
+
+        // Assert - Should return error exit code 1 for non-existent directory
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
     public async Task AnalyzeCommand_SavesReportToSpecifiedLocation()
     {
         // Arrange
@@ -1525,6 +1540,75 @@ public record UserDto(int Id, string Name, string Email);";
             if (File.Exists(testPath))
                 File.Delete(testPath);
         }
+    }
+
+    [Fact]
+    public async Task SaveAnalysisResults_WithUnauthorizedAccessException_ShouldThrow()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = "/test/path",
+            Handlers = [new() { Name = "TestHandler" }]
+        };
+
+        // Try to write to a system directory that should cause UnauthorizedAccessException
+        var systemPath = @"C:\Windows\System32\relay-test.json";
+
+        // Act & Assert - Should throw UnauthorizedAccessException
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            AnalyzeCommand.SaveAnalysisResults(analysis, systemPath, "json"));
+    }
+
+    [Fact]
+    public async Task SaveAnalysisResults_WithDirectoryNotFoundException_ShouldThrow()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = "/test/path",
+            Handlers = [new() { Name = "TestHandler" }]
+        };
+
+        // Try to write to a non-existent directory
+        var invalidPath = @"C:\NonExistentDirectory\That\Does\Not\Exist\relay-report.json";
+
+        // Act & Assert - Should throw DirectoryNotFoundException
+        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
+            AnalyzeCommand.SaveAnalysisResults(analysis, invalidPath, "json"));
+    }
+
+    [Fact]
+    public async Task SaveAnalysisResults_WithInvalidPath_ShouldThrow()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = "/test/path",
+            Handlers = [new() { Name = "TestHandler" }]
+        };
+
+        // Try to write to a path with invalid characters
+        var invalidPath = @"C:\Invalid<Characters>\relay-report.json";
+
+        // Act & Assert - Should throw IOException for invalid path
+        await Assert.ThrowsAsync<IOException>(() =>
+            AnalyzeCommand.SaveAnalysisResults(analysis, invalidPath, "json"));
+    }
+
+    [Fact]
+    public async Task SaveAnalysisResults_WithGeneralException_ShouldThrow()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = "/test/path",
+            Handlers = [new() { Name = "TestHandler" }]
+        };
+
+        // Act & Assert - Passing null path should throw ArgumentNullException, caught by general catch
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            AnalyzeCommand.SaveAnalysisResults(analysis, null!, "json"));
     }
 
     [Theory]

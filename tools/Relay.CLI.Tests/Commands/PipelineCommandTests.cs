@@ -1779,6 +1779,171 @@ public class PipelineCommandTests
     }
 
     [Fact]
+    public void PipelineCommand_DisplayPipelineResults_InInteractiveMode_WithSuccessfulPipeline_ShowsNextSteps()
+    {
+        // Arrange
+        var pipelineResult = new PipelineResult
+        {
+            Success = true,
+            TotalDuration = TimeSpan.FromSeconds(2.5),
+            Stages = new List<PipelineStageResult>
+            {
+                new PipelineStageResult
+                {
+                    StageName = "Init",
+                    StageEmoji = "🎬",
+                    Success = true,
+                    Duration = TimeSpan.FromSeconds(0.8),
+                    Details = new List<string> { "Template: standard" }
+                },
+                new PipelineStageResult
+                {
+                    StageName = "Doctor",
+                    StageEmoji = "🏥",
+                    Success = true,
+                    Duration = TimeSpan.FromSeconds(0.5),
+                    Message = "All health checks passed"
+                },
+                new PipelineStageResult
+                {
+                    StageName = "Validate",
+                    StageEmoji = "✅",
+                    Success = true,
+                    Duration = TimeSpan.FromSeconds(0.6),
+                    Message = "Code validation passed"
+                },
+                new PipelineStageResult
+                {
+                    StageName = "Optimize",
+                    StageEmoji = "⚡",
+                    Success = true,
+                    Duration = TimeSpan.FromSeconds(0.6),
+                    Message = "2 optimization(s) applied"
+                }
+            }
+        };
+
+        // Act
+        PipelineCommand.DisplayPipelineResults(pipelineResult, ciMode: false);
+
+        // Assert - Method should complete without exception and display next steps
+    }
+
+    [Fact]
+    public void PipelineCommand_DisplayPipelineResults_InCIMode_WithMixedStageResults()
+    {
+        // Arrange
+        var pipelineResult = new PipelineResult
+        {
+            Success = false,
+            TotalDuration = TimeSpan.FromSeconds(1.8),
+            Stages = new List<PipelineStageResult>
+            {
+                new PipelineStageResult
+                {
+                    StageName = "Init",
+                    StageEmoji = "🎬",
+                    Success = true,
+                    Duration = TimeSpan.FromSeconds(0.8)
+                },
+                new PipelineStageResult
+                {
+                    StageName = "Doctor",
+                    StageEmoji = "🏥",
+                    Success = false,
+                    Duration = TimeSpan.FromSeconds(0.5)
+                },
+                new PipelineStageResult
+                {
+                    StageName = "Validate",
+                    StageEmoji = "✅",
+                    Success = true,
+                    Duration = TimeSpan.FromSeconds(0.5)
+                }
+            }
+        };
+
+        // Act
+        PipelineCommand.DisplayPipelineResults(pipelineResult, ciMode: true);
+
+        // Assert - Method should complete without exception and show PASS/FAIL for each stage
+    }
+
+    [Fact]
+    public void PipelineCommand_DisplayPipelineResults_InInteractiveMode_WithSuccessfulStagesHavingNoDetails_FallsBackToMessage()
+    {
+        // Arrange
+        var pipelineResult = new PipelineResult
+        {
+            Success = true,
+            TotalDuration = TimeSpan.FromSeconds(2.0),
+            Stages = new List<PipelineStageResult>
+            {
+                new PipelineStageResult
+                {
+                    StageName = "Init",
+                    StageEmoji = "🎬",
+                    Success = true,
+                    Message = "Project initialized",
+                    Duration = TimeSpan.FromSeconds(0.8),
+                    Details = new List<string>() // Empty details
+                },
+                new PipelineStageResult
+                {
+                    StageName = "Doctor",
+                    StageEmoji = "🏥",
+                    Success = true,
+                    Message = "Health checks passed",
+                    Duration = TimeSpan.FromSeconds(0.5),
+                    Details = new List<string>() // Empty details
+                }
+            }
+        };
+
+        // Act
+        PipelineCommand.DisplayPipelineResults(pipelineResult, ciMode: false);
+
+        // Assert - Method should complete without exception and fall back to Message when Details is empty
+    }
+
+    [Fact]
+    public void PipelineCommand_DisplayPipelineResults_InInteractiveMode_WithFailedStagesHavingNoError_FallsBackToMessage()
+    {
+        // Arrange
+        var pipelineResult = new PipelineResult
+        {
+            Success = false,
+            TotalDuration = TimeSpan.FromSeconds(1.5),
+            Stages = new List<PipelineStageResult>
+            {
+                new PipelineStageResult
+                {
+                    StageName = "Init",
+                    StageEmoji = "🎬",
+                    Success = true,
+                    Message = "Project initialized",
+                    Duration = TimeSpan.FromSeconds(0.8),
+                    Details = new List<string> { "Template: standard" }
+                },
+                new PipelineStageResult
+                {
+                    StageName = "Doctor",
+                    StageEmoji = "🏥",
+                    Success = false,
+                    Message = "Health check failed",
+                    Duration = TimeSpan.FromSeconds(0.7),
+                    Error = null // No error set, should fall back to Message
+                }
+            }
+        };
+
+        // Act
+        PipelineCommand.DisplayPipelineResults(pipelineResult, ciMode: false);
+
+        // Assert - Method should complete without exception and fall back to Message when Error is null
+    }
+
+    [Fact]
     public async Task PipelineCommand_GeneratePipelineReport_WithFailedPipeline_IncludesFailureStatus()
     {
         // Arrange

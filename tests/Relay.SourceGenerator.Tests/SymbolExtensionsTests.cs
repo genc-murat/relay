@@ -257,6 +257,24 @@ namespace TestNamespace
     #region GetInterface with TypeArgumentCount Tests
 
     [Fact]
+    public void GetInterface_WithTypeArgumentCount_WithNullTypeSymbol_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((ITypeSymbol)null!).GetInterface("ITest", 1));
+    }
+
+    [Fact]
+    public void GetInterface_WithTypeArgumentCount_WithNullInterfaceName_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var compilation = TestCompilationHelper.CreateCompilation("class Test {}");
+        var typeSymbol = compilation.GetTypeByMetadataName("Test");
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => typeSymbol!.GetInterface(null!, 1));
+    }
+
+    [Fact]
     public void GetInterface_WithTypeArgumentCount_WithMatchingGenericInterface_ReturnsInterfaceSymbol()
     {
         // Arrange

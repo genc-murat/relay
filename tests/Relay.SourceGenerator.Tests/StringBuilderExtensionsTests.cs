@@ -49,6 +49,23 @@ public class StringBuilderExtensionsTests
     }
 
     [Fact]
+    public void AppendIndentedLine_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendIndentedLine(0, "test"));
+    }
+
+    [Fact]
+    public void AppendIndentedLine_WithNegativeIndentLevel_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var builder = new StringBuilder();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => builder.AppendIndentedLine(-1, "test"));
+    }
+
+    [Fact]
     public void AppendIndentedLines_WithMultipleLines_AppendsAllWithIndentation()
     {
         // Arrange
@@ -60,6 +77,23 @@ public class StringBuilderExtensionsTests
         // Assert
         var expected = "    line1\r\n    line2\r\n    line3\r\n";
         Assert.Equal(expected, builder.ToString());
+    }
+
+    [Fact]
+    public void AppendIndentedLines_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendIndentedLines(0, "line1"));
+    }
+
+    [Fact]
+    public void AppendIndentedLines_WithNullLines_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var builder = new StringBuilder();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => builder.AppendIndentedLines(0, null));
     }
 
     [Fact]
@@ -94,6 +128,13 @@ public class StringBuilderExtensionsTests
     }
 
     [Fact]
+    public void AppendXmlSummary_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendXmlSummary(0, "summary"));
+    }
+
+    [Fact]
     public void AppendXmlParam_GeneratesCorrectParameterDoc()
     {
         // Arrange
@@ -107,6 +148,23 @@ public class StringBuilderExtensionsTests
     }
 
     [Fact]
+    public void AppendXmlParam_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendXmlParam(0, "param", "desc"));
+    }
+
+    [Fact]
+    public void AppendXmlParam_WithEmptyParamName_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var builder = new StringBuilder();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => builder.AppendXmlParam(0, "", "desc"));
+    }
+
+    [Fact]
     public void AppendXmlReturns_GeneratesCorrectReturnsDoc()
     {
         // Arrange
@@ -117,6 +175,13 @@ public class StringBuilderExtensionsTests
 
         // Assert
         Assert.Equal("/// <returns>Return value description</returns>\r\n", builder.ToString());
+    }
+
+    [Fact]
+    public void AppendXmlReturns_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendXmlReturns(0, "desc"));
     }
 
     [Fact]
@@ -135,6 +200,13 @@ public class StringBuilderExtensionsTests
     }
 
     [Fact]
+    public void AppendFileHeader_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendFileHeader("gen"));
+    }
+
+    [Fact]
     public void AppendNamespaceStart_GeneratesNamespaceDeclaration()
     {
         // Arrange
@@ -149,16 +221,54 @@ public class StringBuilderExtensionsTests
     }
 
     [Fact]
-    public void AppendNamespaceEnd_GeneratesClosingBrace()
+    public void AppendNamespaceStart_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendNamespaceStart("ns"));
+    }
+
+    [Fact]
+    public void AppendNamespaceStart_WithEmptyNamespaceName_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var builder = new StringBuilder();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => builder.AppendNamespaceStart(""));
+    }
+
+    [Fact]
+    public void AppendMethodEnd_GeneratesClosingBrace()
     {
         // Arrange
         var builder = new StringBuilder();
 
         // Act
-        builder.AppendNamespaceEnd();
+        builder.AppendMethodEnd(2);
 
         // Assert
-        Assert.Equal("}\r\n", builder.ToString());
+        Assert.Equal("        }\r\n", builder.ToString());
+    }
+
+    [Fact]
+    public void AppendMethodEnd_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendMethodEnd(0));
+    }
+
+    [Fact]
+    public void AppendClassEnd_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendClassEnd(0));
+    }
+
+    [Fact]
+    public void AppendNamespaceEnd_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendNamespaceEnd());
     }
 
     [Fact]
@@ -204,6 +314,23 @@ public class StringBuilderExtensionsTests
     }
 
     [Fact]
+    public void AppendClassStart_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendClassStart(0, "public", "Class"));
+    }
+
+    [Fact]
+    public void AppendClassStart_WithEmptyClassName_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var builder = new StringBuilder();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => builder.AppendClassStart(0, "public", ""));
+    }
+
+    [Fact]
     public void AppendMethodStart_GeneratesMethodDeclaration()
     {
         // Arrange
@@ -233,6 +360,23 @@ public class StringBuilderExtensionsTests
     }
 
     [Fact]
+    public void AppendMethodStart_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendMethodStart(0, "public", "void", "Method"));
+    }
+
+    [Fact]
+    public void AppendMethodStart_WithEmptyMethodName_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var builder = new StringBuilder();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => builder.AppendMethodStart(0, "public", "void", ""));
+    }
+
+    [Fact]
     public void AppendUsings_GeneratesOrderedUsingDirectives()
     {
         // Arrange
@@ -247,6 +391,13 @@ public class StringBuilderExtensionsTests
         Assert.Equal("using System;", lines[0]);
         Assert.Equal("using System.Collections.Generic;", lines[1]);
         Assert.Equal("using System.Linq;", lines[2]);
+    }
+
+    [Fact]
+    public void AppendUsings_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendUsings("System"));
     }
 
     [Fact]
@@ -273,6 +424,13 @@ public class StringBuilderExtensionsTests
 
         // Assert
         Assert.Contains("#nullable disable", builder.ToString());
+    }
+
+    [Fact]
+    public void AppendNullableDirective_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => ((StringBuilder)null).AppendNullableDirective(true));
     }
 
     [Fact]

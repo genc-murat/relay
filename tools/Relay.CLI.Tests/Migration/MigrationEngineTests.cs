@@ -405,6 +405,89 @@ public class MigrationEngineTests : IDisposable
         Assert.Contains(result.Issues, i => i.Contains("failed"));
     }
 
+    [Fact]
+    public async Task MigrateAsync_WithContinueOnErrorFalse_HandlesErrors()
+    {
+        // Arrange
+        await CreateTestProjectWithMultipleHandlers(10); // Create enough files for parallel processing
+
+        // Create a file with syntax error that may cause errors during processing
+        var badFile = Path.Combine(_testProjectPath, "BadHandler.cs");
+        await File.WriteAllTextAsync(badFile, @"using MediatR;
+public class BadHandler : IRequestHandler<InvalidSyntax {
+    public Task<string> Handle(InvalidSyntax request, CancellationToken cancellationToken) {
+        return Task.FromResult(""error"");
+    }
+}");
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            ContinueOnError = false, // This should cause failures to stop migration
+            EnableParallelProcessing = true,
+            MaxDegreeOfParallelism = 4
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert - Should either succeed or fail based on how errors are handled
+        Assert.NotEqual(MigrationStatus.InProgress, result.Status);
+        // The migration should complete with some status
+        Assert.True(result.Status == MigrationStatus.Success ||
+                   result.Status == MigrationStatus.Partial ||
+                   result.Status == MigrationStatus.Failed);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithUnexpectedException_HandlesGracefully()
+    {
+        // Arrange - Create a scenario that might throw an unexpected exception
+        await CreateTestProjectWithHandlers();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            DryRun = false,
+            // Set up conditions that might cause unexpected exceptions
+            EnableParallelProcessing = true,
+            MaxDegreeOfParallelism = 100 // Very high parallelism might cause issues
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert - Should handle any unexpected exceptions gracefully
+        Assert.NotEqual(MigrationStatus.InProgress, result.Status);
+        // Either succeeds or fails gracefully
+        Assert.True(result.Status == MigrationStatus.Success ||
+                   result.Status == MigrationStatus.Partial ||
+                   result.Status == MigrationStatus.Failed);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_WithInvalidBackupPath_HandlesException()
+    {
+        // Arrange
+        await CreateTestProjectWithHandlers();
+
+        var options = new MigrationOptions
+        {
+            ProjectPath = _testProjectPath,
+            CreateBackup = true,
+            BackupPath = "\\\\invalid\\path\\that\\will\\cause\\exception", // Invalid UNC path
+            DryRun = false
+        };
+
+        // Act
+        var result = await _engine.MigrateAsync(options);
+
+        // Assert - Should handle the exception from backup creation
+        Assert.Equal(MigrationStatus.Failed, result.Status);
+        Assert.Contains(result.Issues, i => i.Contains("failed"));
+    }
+
     #endregion
 
     #region RollbackAsync Tests

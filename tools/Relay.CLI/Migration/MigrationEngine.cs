@@ -1,11 +1,8 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Logging;
+using Spectre.Console;
 using System.Diagnostics;
 using System.Xml.Linq;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Relay.CLI.Migration;
-using Spectre.Console;
 
 namespace Relay.CLI.Migration;
 

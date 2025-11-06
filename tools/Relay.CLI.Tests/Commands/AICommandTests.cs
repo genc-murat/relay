@@ -1199,6 +1199,25 @@ public void ProcessOrder(Order order)
     }
 
     [Fact]
+    public async Task OutputPredictions_WithUnsupportedFormat_FallsBackToConsole()
+    {
+        // Arrange
+        var predictions = new AIPredictionResults
+        {
+            ExpectedThroughput = 1250,
+            ExpectedResponseTime = 85,
+            ExpectedErrorRate = 0.02,
+            ExpectedCpuUsage = 0.65,
+            ExpectedMemoryUsage = 0.45,
+            Bottlenecks = [],
+            Recommendations = []
+        };
+
+        // Act & Assert - Should not throw exception and fall back to console display
+        await AICommand.OutputPredictions(predictions, "unsupported");
+    }
+
+    [Fact]
     public void DisplayPredictions_WithValidResults_DisplaysCorrectly()
     {
         // Arrange
@@ -1300,6 +1319,48 @@ public void ProcessOrder(Order order)
 
         // Act & Assert - Should not throw exception
         await AICommand.OutputInsights(insights, "json", null);
+    }
+
+    [Fact]
+    public async Task OutputInsights_WithHtmlFormatAndOutput_WritesToFile()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = [],
+            OptimizationOpportunities = [],
+            Predictions = []
+        };
+        var outputPath = Path.Combine(_testPath, "insights_report.html");
+
+        // Act
+        await AICommand.OutputInsights(insights, "html", outputPath);
+
+        // Assert
+        Assert.True(File.Exists(outputPath));
+        var content = await File.ReadAllTextAsync(outputPath);
+        Assert.Contains("<!DOCTYPE html>", content);
+    }
+
+    [Fact]
+    public async Task OutputInsights_WithUnsupportedFormat_FallsBackToConsole()
+    {
+        // Arrange
+        var insights = new AIInsightsResults
+        {
+            HealthScore = 8.2,
+            PerformanceGrade = 'B',
+            ReliabilityScore = 9.1,
+            CriticalIssues = [],
+            OptimizationOpportunities = [],
+            Predictions = []
+        };
+
+        // Act & Assert - Should not throw exception and fall back to console display
+        await AICommand.OutputInsights(insights, "unsupported", null);
     }
 
     [Fact]
@@ -1532,30 +1593,6 @@ public void ProcessOrder(Order order)
 
         // Act
         await AICommand.OutputResults(results, "html", outputPath);
-
-        // Assert
-        Assert.True(File.Exists(outputPath));
-        var content = await File.ReadAllTextAsync(outputPath);
-        Assert.Contains("<!DOCTYPE html>", content);
-    }
-
-    [Fact]
-    public async Task OutputInsights_WithHtmlFormatAndOutput_WritesToFile()
-    {
-        // Arrange
-        var insights = new AIInsightsResults
-        {
-            HealthScore = 8.2,
-            PerformanceGrade = 'B',
-            ReliabilityScore = 9.1,
-            CriticalIssues = [],
-            OptimizationOpportunities = [],
-            Predictions = []
-        };
-        var outputPath = Path.Combine(_testPath, "insights.html");
-
-        // Act
-        await AICommand.OutputInsights(insights, "html", outputPath);
 
         // Assert
         Assert.True(File.Exists(outputPath));

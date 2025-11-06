@@ -141,7 +141,7 @@ public class MediatRAnalyzer
         }
     }
 
-    private async Task AnalyzeCodeFile(string filePath, AnalysisResult result)
+    internal async Task AnalyzeCodeFile(string filePath, AnalysisResult result)
     {
         var content = await File.ReadAllTextAsync(filePath);
 

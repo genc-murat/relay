@@ -51,6 +51,80 @@ public class MediatRAnalyzerTests
     }
 
     [Fact]
+    public async Task AnalyzeProjectAsync_WithMediatRExtensionsPackage_DetectsPackageReference()
+    {
+        // Arrange
+        var csprojContent = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""MediatR.Extensions.Microsoft.DependencyInjection"" Version=""11.1.0"" />
+  </ItemGroup>
+</Project>";
+
+        var projectFile = Path.Combine(_testProjectPath, "Test.csproj");
+        await File.WriteAllTextAsync(projectFile, csprojContent);
+
+        // Act
+        var result = await _analyzer.AnalyzeProjectAsync(_testProjectPath);
+
+        // Assert
+        Assert.Single(result.PackageReferences);
+        Assert.Equal("MediatR.Extensions.Microsoft.DependencyInjection", result.PackageReferences.First().Name);
+        Assert.Equal("11.1.0", result.PackageReferences.First().CurrentVersion);
+    }
+
+    [Fact]
+    public async Task AnalyzeProjectAsync_WithMediatRContractsPackage_DetectsPackageReference()
+    {
+        // Arrange
+        var csprojContent = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""MediatR.Contracts"" Version=""2.0.1"" />
+  </ItemGroup>
+</Project>";
+
+        var projectFile = Path.Combine(_testProjectPath, "Test.csproj");
+        await File.WriteAllTextAsync(projectFile, csprojContent);
+
+        // Act
+        var result = await _analyzer.AnalyzeProjectAsync(_testProjectPath);
+
+        // Assert
+        Assert.Single(result.PackageReferences);
+        Assert.Equal("MediatR.Contracts", result.PackageReferences.First().Name);
+        Assert.Equal("2.0.1", result.PackageReferences.First().CurrentVersion);
+    }
+
+    [Fact]
+    public async Task AnalyzeProjectAsync_WithIncompatiblePackage_DetectsWarning()
+    {
+        // Arrange
+        var csprojContent = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""AutoMapper.Extensions.Microsoft.DependencyInjection"" Version=""12.0.1"" />
+  </ItemGroup>
+</Project>";
+
+        var projectFile = Path.Combine(_testProjectPath, "Test.csproj");
+        await File.WriteAllTextAsync(projectFile, csprojContent);
+
+        // Act
+        var result = await _analyzer.AnalyzeProjectAsync(_testProjectPath);
+
+        // Assert
+        Assert.Contains(result.Issues, i => i.Code == "PACKAGE_WARNING");
+        Assert.Contains(result.Issues, i => i.Message.Contains("AutoMapper.Extensions.Microsoft.DependencyInjection"));
+    }
+
+    [Fact]
     public async Task AnalyzeProjectAsync_WithHandler_DetectsHandler()
     {
         // Arrange
@@ -132,8 +206,57 @@ public class CustomComplexBehavior<TRequest, TResponse> : IPipelineBehavior<TReq
         // Line 8
         // Line 9
         // Line 10
-        // ... many more lines to exceed 50 line threshold
-        for (int i = 0; i < 50; i++)
+        // Line 11
+        // Line 12
+        // Line 13
+        // Line 14
+        // Line 15
+        // Line 16
+        // Line 17
+        // Line 18
+        // Line 19
+        // Line 20
+        // Line 21
+        // Line 22
+        // Line 23
+        // Line 24
+        // Line 25
+        // Line 26
+        // Line 27
+        // Line 28
+        // Line 29
+        // Line 30
+        // Line 31
+        // Line 32
+        // Line 33
+        // Line 34
+        // Line 35
+        // Line 36
+        // Line 37
+        // Line 38
+        // Line 39
+        // Line 40
+        // Line 41
+        // Line 42
+        // Line 43
+        // Line 44
+        // Line 45
+        // Line 46
+        // Line 47
+        // Line 48
+        // Line 49
+        // Line 50
+        // Line 51
+        // Line 52
+        // Line 53
+        // Line 54
+        // Line 55
+        // Line 56
+        // Line 57
+        // Line 58
+        // Line 59
+        // Line 60
+        for (int i = 0; i < 10; i++)
         {
             // Complex logic
         }
@@ -147,8 +270,7 @@ public class CustomComplexBehavior<TRequest, TResponse> : IPipelineBehavior<TReq
         var result = await _analyzer.AnalyzeProjectAsync(_testProjectPath);
 
         // Assert
-        // The behavior might be detected as CUSTOM_BEHAVIOR since it doesn't have enough lines
-        Assert.Contains(result.Issues, i => i.Code == "CUSTOM_BEHAVIOR" || i.Code == "COMPLEX_BEHAVIOR");
+        Assert.Contains(result.Issues, i => i.Code == "COMPLEX_BEHAVIOR");
         Assert.True(result.HasCustomBehaviors);
     }
 
@@ -349,6 +471,8 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
         // Standard behaviors (Logging, Validation, Transaction, Performance) should not be reported as custom
         Assert.DoesNotContain(result.Issues, i => i.Code == "CUSTOM_BEHAVIOR" && i.Message.Contains("LoggingBehavior"));
     }
+
+
 
     [Fact]
     public async Task AnalyzeProjectAsync_WithMultipleAdvancedPatterns_DetectsAll()

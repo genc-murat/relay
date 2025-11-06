@@ -1,4 +1,5 @@
 using Relay.CLI.Migration;
+using System.Text.Json;
 
 namespace Relay.CLI.Tests.Migration;
 
@@ -103,6 +104,38 @@ public class BackupManagerTests : IDisposable
         Assert.True(restored);
         Assert.True(File.Exists(Path.Combine(_testSourcePath, "test.cs")));
         Assert.True(File.Exists(Path.Combine(_testSourcePath, "test.csproj")));
+    }
+
+    [Fact]
+    public async Task RestoreBackupAsync_WithEmptySourcePath_ReturnsFalse()
+    {
+        // Arrange
+        Directory.CreateDirectory(_testBackupPath);
+        var metadataPath = Path.Combine(_testBackupPath, "backup-metadata.json");
+        var metadata = new BackupMetadata { SourcePath = "" };
+        var json = JsonSerializer.Serialize(metadata);
+        await File.WriteAllTextAsync(metadataPath, json);
+
+        // Act
+        var restored = await _backupManager.RestoreBackupAsync(_testBackupPath);
+
+        // Assert
+        Assert.False(restored);
+    }
+
+    [Fact]
+    public async Task RestoreBackupAsync_WithInvalidMetadataJson_ReturnsFalse()
+    {
+        // Arrange
+        Directory.CreateDirectory(_testBackupPath);
+        var metadataPath = Path.Combine(_testBackupPath, "backup-metadata.json");
+        await File.WriteAllTextAsync(metadataPath, "invalid json");
+
+        // Act
+        var restored = await _backupManager.RestoreBackupAsync(_testBackupPath);
+
+        // Assert
+        Assert.False(restored);
     }
 
     [Fact]

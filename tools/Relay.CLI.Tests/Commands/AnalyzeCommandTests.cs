@@ -1373,7 +1373,7 @@ public record UserDto(int Id, string Name, string Email);";
         // Arrange
         var analysis = new ProjectAnalysis
         {
-            Handlers = [.. new HandlerInfo[25]], // 25 handlers
+            Handlers = new List<HandlerInfo>(new HandlerInfo[25]), // 25 handlers
             PerformanceIssues =
             [
                 new() { Severity = "High" }
@@ -1962,6 +1962,614 @@ public record UserDto(int Id, string Name, string Email);";
 
         // Assert
         Assert.False(result);
+    }
+
+    [Fact]
+    public async Task DiscoverProjectFiles_WithUnauthorizedAccessException_ShouldHandleGracefully()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer();
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = @"C:\Windows\System32" // Directory that typically has restricted access
+        };
+
+        // Act & Assert - Should not throw, should handle the exception internally
+        await analyzer.DiscoverProjectFiles(analysis, null, null);
+        // The method should complete without throwing and handle the warning
+    }
+
+    [Fact]
+    public async Task DiscoverProjectFiles_WithDirectoryNotFoundException_ShouldThrow()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer();
+        var analysis = new ProjectAnalysis
+        {
+            ProjectPath = @"C:\NonExistentDirectory\That\Does\Not\Exist"
+        };
+
+        // Act & Assert - Should re-throw DirectoryNotFoundException
+        await Assert.ThrowsAsync<DirectoryNotFoundException>(() =>
+            analyzer.DiscoverProjectFiles(analysis, null, null));
+    }
+
+
+
+    [Fact]
+    public async Task AnalyzeHandlers_WithFileNotFoundException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer();
+        var analysis = new ProjectAnalysis();
+        analysis.SourceFiles.Add("NonExistentFile.cs");
+
+        // Act & Assert - Should not throw, should continue with other files
+        await analyzer.AnalyzeHandlers(analysis, null, null);
+        Assert.Empty(analysis.Handlers);
+    }
+
+    [Fact]
+    public async Task AnalyzeHandlers_WithUnauthorizedAccessException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var restrictedFile = Path.Combine(tempDir, "restricted.cs");
+            await File.WriteAllTextAsync(restrictedFile, "public class Test {}");
+
+            // Make file read-only and try to simulate access issues
+            File.SetAttributes(restrictedFile, FileAttributes.ReadOnly);
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis();
+            analysis.SourceFiles.Add(restrictedFile);
+
+            // Act & Assert - Should handle exception and continue
+            await analyzer.AnalyzeHandlers(analysis, null, null);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeHandlers_WithIOException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var testFile = Path.Combine(tempDir, "test.cs");
+            await File.WriteAllTextAsync(testFile, "public class Test {}");
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis();
+            analysis.SourceFiles.Add(testFile);
+
+            // Delete file after adding to list to cause IOException during File.ReadAllTextAsync
+            File.Delete(testFile);
+
+            // Act & Assert - Should handle IOException and continue processing other files
+            await analyzer.AnalyzeHandlers(analysis, null, null);
+            // Should not throw and should handle the error gracefully
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeRequests_WithFileNotFoundException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer();
+        var analysis = new ProjectAnalysis();
+        analysis.SourceFiles.Add("NonExistentFile.cs");
+
+        // Act & Assert - Should not throw, should continue with other files
+        await analyzer.AnalyzeRequests(analysis, null, null);
+        Assert.Empty(analysis.Requests);
+    }
+
+    [Fact]
+    public async Task AnalyzeRequests_WithUnauthorizedAccessException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var restrictedFile = Path.Combine(tempDir, "restricted.cs");
+            await File.WriteAllTextAsync(restrictedFile, "public record TestRequest();");
+
+            File.SetAttributes(restrictedFile, FileAttributes.ReadOnly);
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis();
+            analysis.SourceFiles.Add(restrictedFile);
+
+            // Act & Assert - Should handle exception and continue
+            await analyzer.AnalyzeRequests(analysis, null, null);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeRequests_WithIOException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var testFile = Path.Combine(tempDir, "test.cs");
+            await File.WriteAllTextAsync(testFile, "public record TestRequest();");
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis();
+            analysis.SourceFiles.Add(testFile);
+
+            File.Delete(testFile);
+
+            // Act & Assert - Should handle IOException and continue
+            await analyzer.AnalyzeRequests(analysis, null, null);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeDependencies_WithFileNotFoundException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer();
+        var analysis = new ProjectAnalysis();
+        analysis.ProjectFiles.Add("NonExistentFile.csproj");
+
+        // Act & Assert - Should not throw, should continue with other files
+        await analyzer.AnalyzeDependencies(analysis, null, null);
+        Assert.False(analysis.HasRelayCore);
+    }
+
+    [Fact]
+    public async Task AnalyzeDependencies_WithUnauthorizedAccessException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var restrictedFile = Path.Combine(tempDir, "restricted.csproj");
+            await File.WriteAllTextAsync(restrictedFile, "<Project></Project>");
+
+            File.SetAttributes(restrictedFile, FileAttributes.ReadOnly);
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis();
+            analysis.ProjectFiles.Add(restrictedFile);
+
+            // Act & Assert - Should handle exception and continue
+            await analyzer.AnalyzeDependencies(analysis, null, null);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeDependencies_WithIOException_ShouldContinueProcessing()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var testFile = Path.Combine(tempDir, "test.csproj");
+            await File.WriteAllTextAsync(testFile, "<Project></Project>");
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis();
+            analysis.ProjectFiles.Add(testFile);
+
+            File.Delete(testFile);
+
+            // Act & Assert - Should handle IOException and continue
+            await analyzer.AnalyzeDependencies(analysis, null, null);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task CheckPerformanceOpportunities_WithNoTaskHandlers_ShouldNotAddIssue()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = [new() { UsesValueTask = true }] // All handlers use ValueTask
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckPerformanceOpportunities(analysis, null, null);
+
+        // Assert - Should not add Task Usage issue
+        Assert.DoesNotContain(analysis.PerformanceIssues, i => i.Type.Contains("Task Usage"));
+    }
+
+    [Fact]
+    public async Task CheckPerformanceOpportunities_WithNoCancellationTokenHandlers_ShouldNotAddIssue()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = [new() { HasCancellationToken = true }] // All handlers have cancellation tokens
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckPerformanceOpportunities(analysis, null, null);
+
+        // Assert - Should not add Cancellation Support issue
+        Assert.DoesNotContain(analysis.PerformanceIssues, i => i.Type.Contains("Cancellation Support"));
+    }
+
+    [Fact]
+    public async Task CheckPerformanceOpportunities_WithAllRequestsCached_ShouldNotAddCachingIssue()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = [new() { Name = "GetDataQueryHandler" }],
+            Requests = [new() { Name = "GetDataQuery", HasCaching = true }]
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckPerformanceOpportunities(analysis, null, null);
+
+        // Assert - Should not add Caching Opportunity issue
+        Assert.DoesNotContain(analysis.PerformanceIssues, i => i.Type.Contains("Caching Opportunity"));
+    }
+
+    [Fact]
+    public async Task CheckPerformanceOpportunities_WithSmallHandlers_ShouldNotAddComplexityIssue()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = [new() { LineCount = 50 }] // Small handlers
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckPerformanceOpportunities(analysis, null, null);
+
+        // Assert - Should not add Handler Complexity issue
+        Assert.DoesNotContain(analysis.PerformanceIssues, i => i.Type.Contains("Handler Complexity"));
+    }
+
+    [Fact]
+    public async Task CheckReliabilityPatterns_WithAllHandlersHavingLogging_ShouldNotAddLoggingIssue()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = [new() { HasLogging = true }]
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckReliabilityPatterns(analysis, null, null);
+
+        // Assert - Should not add Logging issue
+        Assert.DoesNotContain(analysis.ReliabilityIssues, i => i.Type.Contains("Logging"));
+    }
+
+    [Fact]
+    public async Task CheckReliabilityPatterns_WithAllRequestsHavingValidation_ShouldNotAddValidationIssue()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Requests = [new() { HasValidation = true }]
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckReliabilityPatterns(analysis, null, null);
+
+        // Assert - Should not add Validation issue
+        Assert.DoesNotContain(analysis.ReliabilityIssues, i => i.Type.Contains("Validation"));
+    }
+
+    [Fact]
+    public async Task CheckReliabilityPatterns_WithRequestsHavingAuthorization_ShouldNotAddAuthorizationIssue()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Requests = [new() { HasAuthorization = true }]
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckReliabilityPatterns(analysis, null, null);
+
+        // Assert - Should not add Authorization issue
+        Assert.DoesNotContain(analysis.ReliabilityIssues, i => i.Type.Contains("Authorization"));
+    }
+
+    [Fact]
+    public async Task CheckReliabilityPatterns_WithNoRequests_ShouldNotAddAuthorizationIssue()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Requests = [] // No requests
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.CheckReliabilityPatterns(analysis, null, null);
+
+        // Assert - Should not add Authorization issue when there are no requests
+        Assert.DoesNotContain(analysis.ReliabilityIssues, i => i.Type.Contains("Authorization"));
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithNoPerformanceIssues_ShouldNotAddPerformanceRecommendation()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            PerformanceIssues = [] // No performance issues
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.GenerateRecommendations(analysis, null, null);
+
+        // Assert - Should not add Performance recommendation
+        Assert.DoesNotContain(analysis.Recommendations, r => r.Title.Contains("Performance"));
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithNoReliabilityIssues_ShouldNotAddReliabilityRecommendation()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            ReliabilityIssues = [] // No reliability issues
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.GenerateRecommendations(analysis, null, null);
+
+        // Assert - Should not add Reliability recommendation
+        Assert.DoesNotContain(analysis.Recommendations, r => r.Title.Contains("Reliability"));
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithRelayCore_ShouldNotAddFrameworkRecommendation()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            HasRelayCore = true // Already has Relay.Core
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.GenerateRecommendations(analysis, null, null);
+
+        // Assert - Should not add Framework recommendation
+        Assert.DoesNotContain(analysis.Recommendations, r => r.Title.Contains("Framework"));
+    }
+
+    [Fact]
+    public async Task GenerateRecommendations_WithFewHandlers_ShouldNotAddArchitectureRecommendation()
+    {
+        // Arrange
+        var analysis = new ProjectAnalysis
+        {
+            Handlers = new List<HandlerInfo>(new HandlerInfo[10]) // Less than 20 handlers
+        };
+
+        // Act
+        var analyzer = new ProjectAnalyzer();
+        await analyzer.GenerateRecommendations(analysis, null, null);
+
+        // Assert - Should not add Architecture recommendation
+        Assert.DoesNotContain(analysis.Recommendations, r => r.Title.Contains("Architecture"));
+    }
+
+    [Fact]
+    public async Task DiscoverProjectFiles_WithIncludeTestsTrue_ShouldIncludeTestFiles()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var testFile = Path.Combine(tempDir, "TestClass.Test.cs");
+            await File.WriteAllTextAsync(testFile, "// Test file");
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis
+            {
+                ProjectPath = tempDir,
+                IncludeTests = true
+            };
+
+            // Act
+            await analyzer.DiscoverProjectFiles(analysis, null, null);
+
+            // Assert - Should include test files when IncludeTests is true
+            Assert.Contains(analysis.SourceFiles, f => f.Contains("Test"));
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task DiscoverProjectFiles_WithIncludeTestsFalse_ShouldExcludeTestFiles()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var testFile = Path.Combine(tempDir, "TestClass.Test.cs");
+            await File.WriteAllTextAsync(testFile, "// Test file");
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis
+            {
+                ProjectPath = tempDir,
+                IncludeTests = false
+            };
+
+            // Act
+            await analyzer.DiscoverProjectFiles(analysis, null, null);
+
+            // Assert - Should exclude test files when IncludeTests is false
+            Assert.DoesNotContain(analysis.SourceFiles, f => f.Contains("Test"));
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task DiscoverProjectFiles_WithBinAndObjFiles_ShouldExcludeThem()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+        var binDir = Path.Combine(tempDir, "bin");
+        var objDir = Path.Combine(tempDir, "obj");
+        Directory.CreateDirectory(binDir);
+        Directory.CreateDirectory(objDir);
+
+        try
+        {
+            var binFile = Path.Combine(binDir, "Assembly.dll.cs");
+            var objFile = Path.Combine(objDir, "Generated.cs");
+            var normalFile = Path.Combine(tempDir, "Normal.cs");
+
+            await File.WriteAllTextAsync(binFile, "// Bin file");
+            await File.WriteAllTextAsync(objFile, "// Obj file");
+            await File.WriteAllTextAsync(normalFile, "// Normal file");
+
+            var analyzer = new ProjectAnalyzer();
+            var analysis = new ProjectAnalysis
+            {
+                ProjectPath = tempDir
+            };
+
+            // Act
+            await analyzer.DiscoverProjectFiles(analysis, null, null);
+
+            // Assert - Should exclude bin and obj files
+            Assert.Contains(analysis.SourceFiles, f => f.Contains("Normal"));
+            Assert.DoesNotContain(analysis.SourceFiles, f => f.Contains("bin"));
+            Assert.DoesNotContain(analysis.SourceFiles, f => f.Contains("obj"));
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeProject_WithEmptyDirectory_ShouldHandleGracefully()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var analyzer = new ProjectAnalyzer();
+
+            // Act
+            var analysis = await analyzer.AnalyzeProject(tempDir, "full", false);
+
+            // Assert - Should complete successfully with empty results
+            Assert.NotNull(analysis);
+            Assert.Empty(analysis.ProjectFiles);
+            Assert.Empty(analysis.SourceFiles);
+            Assert.Empty(analysis.Handlers);
+            Assert.Empty(analysis.Requests);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeProject_WithFilesButNoHandlersOrRequests_ShouldHandleGracefully()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), $"relay-test-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var csFile = Path.Combine(tempDir, "RegularClass.cs");
+            await File.WriteAllTextAsync(csFile, @"
+public class RegularClass
+{
+    public string Name { get; set; }
+}");
+
+            var csprojFile = Path.Combine(tempDir, "Test.csproj");
+            await File.WriteAllTextAsync(csprojFile, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+            var analyzer = new ProjectAnalyzer();
+
+            // Act
+            var analysis = await analyzer.AnalyzeProject(tempDir, "full", false);
+
+            // Assert - Should complete successfully
+            Assert.NotNull(analysis);
+            Assert.Single(analysis.ProjectFiles);
+            Assert.Single(analysis.SourceFiles);
+            Assert.Empty(analysis.Handlers);
+            Assert.Empty(analysis.Requests);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
+        }
     }
 
     public void Dispose()

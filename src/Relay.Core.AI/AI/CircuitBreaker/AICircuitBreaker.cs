@@ -147,23 +147,48 @@ namespace Relay.Core.AI.CircuitBreaker
                 timeoutCts.CancelAfter(_options.Timeout);
 
                 var operationTask = operation(timeoutCts.Token);
-
-                var result = await operationTask;
-                stopwatch.Stop();
-
-                // Record response time
-                RecordResponseTime(stopwatch.Elapsed.TotalMilliseconds);
-
-                // Check if call was slow
-                var slowCallThreshold = _options.Timeout * _options.SlowCallThreshold;
-                var isSlowCall = stopwatch.Elapsed > slowCallThreshold;
-                if (isSlowCall)
+                var operationAsTask = operationTask.AsTask();
+                
+                // Use Task.WhenAny to ensure timeout enforcement regardless of whether 
+                // the operation respects the cancellation token
+                var timeoutTask = Task.Delay(_options.Timeout, CancellationToken.None);
+                var completedTask = await Task.WhenAny(operationAsTask, timeoutTask);
+                
+                if (completedTask == operationAsTask)
                 {
-                    Interlocked.Increment(ref _slowCalls);
-                }
+                    // Operation completed within timeout
+                    var result = await operationAsTask; // Won't block as task is already complete
+                    stopwatch.Stop();
 
-                OnSuccess(stopwatch.Elapsed, isSlowCall);
-                return result;
+                    // Record response time
+                    RecordResponseTime(stopwatch.Elapsed.TotalMilliseconds);
+
+                    // Check if call was slow
+                    var slowCallThreshold = _options.Timeout * _options.SlowCallThreshold;
+                    var isSlowCall = stopwatch.Elapsed > slowCallThreshold;
+                    if (isSlowCall)
+                    {
+                        Interlocked.Increment(ref _slowCalls);
+                    }
+
+                    OnSuccess(stopwatch.Elapsed, isSlowCall);
+                    return result;
+                }
+                else
+                {
+                    // Timeout occurred before operation completed
+                    timeoutCts.Cancel(); // Attempt to cancel the operation
+                    
+                    stopwatch.Stop();
+                    Interlocked.Increment(ref _timeoutCalls);
+                    var timeoutException = new TimeoutException($"Operation timed out after {_options.Timeout.TotalMilliseconds}ms");
+                    var failureArgs = new CircuitBreakerFailureEventArgs(
+                        timeoutException,
+                        stopwatch.Elapsed,
+                        true);
+                    OnFailure(failureArgs);
+                    throw timeoutException;
+                }
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {

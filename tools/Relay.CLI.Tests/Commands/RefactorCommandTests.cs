@@ -1876,8 +1876,8 @@ public class RefactorCommandTests
         var testConsole = new Spectre.Console.Testing.TestConsole();
         var fileResults = new List<Relay.CLI.Refactoring.FileRefactoringResult>();
 
-        // Create 15 files with suggestions
-        for (int i = 0; i < 15; i++)
+        // Create 11 files with suggestions
+        for (int i = 0; i < 11; i++)
         {
             fileResults.Add(new Relay.CLI.Refactoring.FileRefactoringResult
             {
@@ -1903,8 +1903,8 @@ public class RefactorCommandTests
             StartTime = DateTime.UtcNow,
             EndTime = DateTime.UtcNow.AddSeconds(1),
             Duration = TimeSpan.FromSeconds(1),
-            FilesAnalyzed = 15,
-            SuggestionsCount = 15,
+            FilesAnalyzed = 11,
+            SuggestionsCount = 11,
             FileResults = fileResults
         };
 
@@ -1920,7 +1920,7 @@ public class RefactorCommandTests
 
         // Assert - Should show truncation message
         var output = testConsole.Output;
-        Assert.Contains("... and 5 more files", output);
+        Assert.Contains("... and 1 more file", output);
     }
 
     [Fact]

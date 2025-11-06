@@ -143,7 +143,10 @@ public static class RefactorCommand
             if (!string.IsNullOrEmpty(outputFile) && analysis != null)
             {
                 await SaveRefactoringReport(analysis, applyResult, outputFile, format);
-                AnsiConsole.MarkupLine($"[green]📄 Report saved to: {outputFile}[/]");
+                var fileName = Path.GetFileName(outputFile);
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"[green]📄 Report saved to:[/] {fileName}");
+                AnsiConsole.MarkupLine($"[dim]Full path:[/] {outputFile}");
             }
 
             // Set exit code
@@ -353,8 +356,44 @@ public static class RefactorCommand
         var report = new
         {
             GeneratedAt = DateTime.Now,
-            Analysis = analysis,
-            ApplyResult = applyResult
+            Analysis = new 
+            {
+                analysis.StartTime,
+                analysis.EndTime,
+                analysis.Duration,
+                analysis.FilesAnalyzed,
+                analysis.FilesSkipped,
+                analysis.SuggestionsCount,
+                FileResults = analysis.FileResults.Select(fr => new
+                {
+                    fr.FilePath,
+                    Suggestions = fr.Suggestions.Select(s => new
+                    {
+                        s.RuleName,
+                        s.Description,
+                        s.Category,
+                        s.Severity,
+                        s.FilePath,
+                        s.LineNumber,
+                        s.StartPosition,
+                        s.EndPosition,
+                        s.OriginalCode,
+                        s.SuggestedCode,
+                        s.Rationale
+                        // Omit Context property which might cause serialization issues
+                    }).ToList()
+                }).ToList()
+            },
+            ApplyResult = applyResult == null ? null : new
+            {
+                applyResult.StartTime,
+                applyResult.EndTime,
+                applyResult.Duration,
+                applyResult.FilesModified,
+                applyResult.RefactoringsApplied,
+                applyResult.Status,
+                applyResult.Error
+            }
         };
 
         return System.Text.Json.JsonSerializer.Serialize(report, new System.Text.Json.JsonSerializerOptions

@@ -559,8 +559,8 @@ public static class PipelineCommand
     {
         var report = $@"# Relay Pipeline Report
 
-**Generated:** {{timestamp}}
-**Status:** {(result.Success ? "✅ Success" : "❌ Failed")}
+**Generated:** {{timestamp}}  
+**Status:** {(result.Success ? "✅ Success" : "❌ Failed")}  
 **Total Duration:** {result.TotalDuration.TotalSeconds:F2}s
 
 ## Stages

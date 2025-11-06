@@ -161,35 +161,27 @@ public static class RefactorCommand
 
     private static void DisplayAnalysisResults(RefactoringResult analysis)
     {
-        AnsiConsole.WriteLine();
+        DisplayAnalysisResults(analysis, AnsiConsole.Console);
+    }
 
-        var summary = new Table()
-            .Border(TableBorder.Rounded)
-            .AddColumn("[bold]Metric[/]")
-            .AddColumn("[bold]Value[/]");
-
-        summary.AddRow("Files Analyzed", analysis.FilesAnalyzed.ToString());
-        summary.AddRow("Suggestions Found", analysis.SuggestionsCount.ToString());
-        summary.AddRow("Files with Issues", analysis.FileResults.Count.ToString());
-        summary.AddRow("Analysis Duration", $"{analysis.Duration.TotalSeconds:F2}s");
-
-        var panel = new Panel(summary)
-            .Header("[bold cyan]📊 Analysis Results[/]")
-            .BorderColor(Color.Cyan1);
-
-        AnsiConsole.Write(panel);
-        AnsiConsole.WriteLine();
+    private static void DisplayAnalysisResults(RefactoringResult analysis, IAnsiConsole console)
+    {
+        console.WriteLine();
+        console.MarkupLine("[bold cyan]📊 Analysis Results[/]");
+        console.MarkupLine($"[bold]Files Analyzed:[/] {analysis.FilesAnalyzed}");
+        console.MarkupLine($"[bold]Suggestions Found:[/] {analysis.SuggestionsCount}");
+        console.MarkupLine($"[bold]Files with Issues:[/] {analysis.FileResults.Count}");
+        console.MarkupLine($"[bold]Analysis Duration:[/] {analysis.Duration.TotalSeconds:F2}s");
+        console.WriteLine();
 
         if (analysis.SuggestionsCount > 0)
         {
-            AnsiConsole.MarkupLine("[bold cyan]🔍 Refactoring Suggestions:[/]");
-
-            var tree = new Tree("Suggestions");
+            console.MarkupLine("[bold cyan]🔍 Refactoring Suggestions:[/]");
 
             foreach (var fileResult in analysis.FileResults.Take(10))
             {
                 var fileName = Path.GetFileName(fileResult.FilePath);
-                var fileNode = tree.AddNode($"[yellow]{fileName}[/] ({fileResult.Suggestions.Count} suggestion(s))");
+                console.MarkupLine($"[yellow]{fileName}[/] ({fileResult.Suggestions.Count} suggestion(s))");
 
                 foreach (var suggestion in fileResult.Suggestions.Take(5))
                 {
@@ -202,22 +194,21 @@ public static class RefactorCommand
                     };
 
                     var categoryBadge = $"[dim]({suggestion.Category})[/]";
-                    fileNode.AddNode($"{icon} Line {suggestion.LineNumber}: {suggestion.Description} {categoryBadge}");
+                    console.MarkupLine($"  {icon} Line {suggestion.LineNumber}: {suggestion.Description} {categoryBadge}");
                 }
 
                 if (fileResult.Suggestions.Count > 5)
                 {
-                    fileNode.AddNode($"[dim]... and {fileResult.Suggestions.Count - 5} more[/]");
+                    console.MarkupLine($"  [dim]... and {fileResult.Suggestions.Count - 5} more[/]");
                 }
             }
 
             if (analysis.FileResults.Count > 10)
             {
-                tree.AddNode($"[dim]... and {analysis.FileResults.Count - 10} more files[/]");
+                console.MarkupLine($"[dim]... and {analysis.FileResults.Count - 10} more files[/]");
             }
 
-            AnsiConsole.Write(tree);
-            AnsiConsole.WriteLine();
+            console.WriteLine();
         }
     }
 

@@ -1,5 +1,7 @@
 using Relay.CLI.Commands;
 using Relay.CLI.Commands.Models.Validation;
+using ValidationResult = Relay.CLI.Commands.Models.Validation.ValidationResult;
+using Spectre.Console;
 using System.CommandLine;
 using System.Reflection;
 
@@ -473,12 +475,6 @@ public record TestRequest : IRequest<string>;";
     [Fact]
     public void DisplayValidationResults_WithVarietyOfStatuses_DisplaysCorrectly()
     {
-        // Skip in CI/test environments where console output may not be captured
-        if (!Environment.UserInteractive)
-        {
-            return;
-        }
-
         // Arrange
         var results = new List<ValidationResult>
         {
@@ -487,10 +483,11 @@ public record TestRequest : IRequest<string>;";
             new() { Type = "Test Fail", Status = ValidationStatus.Fail, Message = "Critical error", Severity = ValidationSeverity.Critical }
         };
 
-        // Act - Capture console output
-        using var stringWriter = new StringWriter();
-        var originalOut = Console.Out;
-        Console.SetOut(stringWriter);
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+
+        // Act
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = testConsole;
 
         try
         {
@@ -499,10 +496,10 @@ public record TestRequest : IRequest<string>;";
         }
         finally
         {
-            Console.SetOut(originalOut);
+            AnsiConsole.Console = originalConsole;
         }
 
-        var output = stringWriter.ToString();
+        var output = testConsole.Output;
 
         // Assert - Check that the method executes without error and produces some output
         Assert.NotEmpty(output);

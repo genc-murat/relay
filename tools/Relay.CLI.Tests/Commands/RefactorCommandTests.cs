@@ -1858,7 +1858,7 @@ public class RefactorCommandTests
         AnsiConsole.Console = testConsole;
 
         typeof(Relay.CLI.Commands.RefactorCommand)
-            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static, null, [typeof(Relay.CLI.Refactoring.RefactoringResult)], null)!
             .Invoke(null, new object[] { analysis });
 
         AnsiConsole.Console = originalConsole;
@@ -1913,7 +1913,7 @@ public class RefactorCommandTests
         AnsiConsole.Console = testConsole;
 
         typeof(Relay.CLI.Commands.RefactorCommand)
-            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static, null, [typeof(Relay.CLI.Refactoring.RefactoringResult)], null)!
             .Invoke(null, new object[] { analysis });
 
         AnsiConsole.Console = originalConsole;
@@ -1992,7 +1992,7 @@ public class RefactorCommandTests
         AnsiConsole.Console = testConsole;
 
         typeof(Relay.CLI.Commands.RefactorCommand)
-            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static)!
+            .GetMethod("DisplayAnalysisResults", BindingFlags.NonPublic | BindingFlags.Static, null, [typeof(Relay.CLI.Refactoring.RefactoringResult)], null)!
             .Invoke(null, new object[] { analysis });
 
         AnsiConsole.Console = originalConsole;

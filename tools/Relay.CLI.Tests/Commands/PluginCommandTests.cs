@@ -872,6 +872,123 @@ public class PluginCommandTests
     }
 
     [Fact]
+    public async Task PluginCommand_ListCommand_IntegrationTest_InvokesHandler()
+    {
+        // Arrange
+        var rootCommand = new RootCommand();
+        rootCommand.AddCommand(PluginCommand.Create());
+
+        // Act
+        var result = await rootCommand.InvokeAsync(new[] { "plugin", "list", "--all" });
+
+        // Assert - Command should execute successfully
+        // The handler should be invoked, covering the lambda expression
+        Assert.Equal(0, result); // Exit code 0 means success
+    }
+
+    [Fact]
+    public async Task PluginCommand_SearchCommand_IntegrationTest_InvokesHandler()
+    {
+        // Arrange
+        var rootCommand = new RootCommand();
+        rootCommand.AddCommand(PluginCommand.Create());
+
+        // Act
+        var result = await rootCommand.InvokeAsync(new[] { "plugin", "search", "test" });
+
+        // Assert - Command should execute successfully
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task PluginCommand_InstallCommand_IntegrationTest_InvokesHandler()
+    {
+        // Arrange
+        var rootCommand = new RootCommand();
+        rootCommand.AddCommand(PluginCommand.Create());
+        var pluginCommand = rootCommand.Subcommands.First(c => c.Name == "plugin");
+        var installCommand = pluginCommand.Subcommands.First(c => c.Name == "install");
+
+        // Act
+        var result = await rootCommand.InvokeAsync(new[] { "plugin", "install", "test-plugin" });
+
+        // Assert - Command should execute successfully
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task PluginCommand_UninstallCommand_IntegrationTest_InvokesHandler()
+    {
+        // Arrange
+        var rootCommand = new RootCommand();
+        rootCommand.AddCommand(PluginCommand.Create());
+
+        // Act
+        var result = await rootCommand.InvokeAsync(new[] { "plugin", "uninstall", "test-plugin" });
+
+        // Assert - Command should execute successfully
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task PluginCommand_UpdateCommand_IntegrationTest_InvokesHandler()
+    {
+        // Arrange
+        var rootCommand = new RootCommand();
+        rootCommand.AddCommand(PluginCommand.Create());
+
+        // Act
+        var result = await rootCommand.InvokeAsync(new[] { "plugin", "update" });
+
+        // Assert - Command should execute successfully
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task PluginCommand_InfoCommand_IntegrationTest_InvokesHandler()
+    {
+        // Arrange
+        var rootCommand = new RootCommand();
+        rootCommand.AddCommand(PluginCommand.Create());
+
+        // Act
+        var result = await rootCommand.InvokeAsync(new[] { "plugin", "info", "test-plugin" });
+
+        // Assert - Command should execute successfully
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task PluginCommand_CreateCommand_IntegrationTest_InvokesHandler()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var rootCommand = new RootCommand();
+        rootCommand.AddCommand(PluginCommand.Create());
+
+        try
+        {
+            // Act
+            var result = await rootCommand.InvokeAsync(new[] { "plugin", "create", "--name", "test-plugin", "--output", tempDir });
+
+            // Assert - Command should execute successfully
+            Assert.Equal(0, result);
+
+            // Verify plugin was created
+            var pluginDir = Path.Combine(tempDir, "test-plugin");
+            Assert.True(Directory.Exists(pluginDir));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task PluginCommand_CreatePluginProject_ShouldCreateValidCsprojFile()
     {
         // Arrange

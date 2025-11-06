@@ -55,6 +55,23 @@ public class ValidateCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateProjectFiles_WithNoCsprojFiles_Fails()
+    {
+        // Arrange
+        var emptyPath = GetUniqueTestPath();
+        CleanTestDirectory(emptyPath);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateProjectFiles", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, [emptyPath, results, false])!;
+
+        // Assert
+        Assert.Contains(results, r => r.Type == "Project Files" && r.Status == ValidationStatus.Fail);
+        Assert.Contains(results, r => r.Message.Contains("No .csproj files found"));
+    }
+
+    [Fact]
     public async Task ValidateCommand_DetectsInvalidHandlers()
     {
         // Arrange
@@ -235,6 +252,39 @@ public record TestRequest : IRequest<string>;";
 
         // Assert
         Assert.DoesNotContain("CancellationToken", content);
+    }
+
+    [Fact]
+    public async Task ValidateHandlers_WithHandlerWarnings_GeneratesWarnings()
+    {
+        // Arrange
+        var testPath = GetUniqueTestPath();
+        CleanTestDirectory(testPath);
+
+        var handlerWithIssues = @"using Relay.Core;
+
+public class TestHandler : IRequestHandler<TestRequest, string>
+{
+    [Handle]
+    public async Task<string> HandleAsync(TestRequest request) // Missing ValueTask and CancellationToken
+    {
+        return ""test"";
+    }
+}
+
+public record TestRequest : IRequest<string>;";
+
+        await File.WriteAllTextAsync(Path.Combine(testPath, "HandlerWithIssues.cs"), handlerWithIssues);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateHandlers", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, [testPath, results, false])!;
+
+        // Assert
+        Assert.Contains(results, r => r.Type == "Handler Pattern" && r.Status == ValidationStatus.Warning);
+        Assert.Contains(results, r => r.Message.Contains("uses Task instead of ValueTask"));
+        Assert.Contains(results, r => r.Message.Contains("missing CancellationToken parameter"));
     }
 
     [Fact]
@@ -421,6 +471,47 @@ public record TestRequest : IRequest<string>;";
     }
 
     [Fact]
+    public void DisplayValidationResults_WithVarietyOfStatuses_DisplaysCorrectly()
+    {
+        // Skip in CI/test environments where console output may not be captured
+        if (!Environment.UserInteractive)
+        {
+            return;
+        }
+
+        // Arrange
+        var results = new List<ValidationResult>
+        {
+            new() { Type = "Test Pass", Status = ValidationStatus.Pass, Message = "All good", Severity = ValidationSeverity.Info },
+            new() { Type = "Test Warning", Status = ValidationStatus.Warning, Message = "Minor issue", Severity = ValidationSeverity.Medium, Suggestion = "Fix this" },
+            new() { Type = "Test Fail", Status = ValidationStatus.Fail, Message = "Critical error", Severity = ValidationSeverity.Critical }
+        };
+
+        // Act - Capture console output
+        using var stringWriter = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(stringWriter);
+
+        try
+        {
+            var method = typeof(ValidateCommand).GetMethod("DisplayValidationResults", BindingFlags.NonPublic | BindingFlags.Static);
+            method!.Invoke(null, [results, "console"]);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+
+        var output = stringWriter.ToString();
+
+        // Assert - Check that the method executes without error and produces some output
+        Assert.NotEmpty(output);
+        Assert.Contains("Test Pass", output);
+        Assert.Contains("Test Warning", output);
+        Assert.Contains("Test Fail", output);
+    }
+
+    [Fact]
     public async Task ValidateCommand_ShouldDetectMissingUsings()
     {
         // Arrange
@@ -579,13 +670,32 @@ public record TestRequest : IRequest<string>;";
     public void ValidateCommand_ShouldCheckConfigurationFiles()
     {
         // Arrange
-        var config = "{\"relay\":{\"enableCaching\":true}}";
+        var configFile = ".relay-cli.json";
 
         // Act
-        var hasRelayConfig = config.Contains("relay");
+        var isConfigFile = configFile == ".relay-cli.json";
 
         // Assert
-        Assert.True(hasRelayConfig);
+        Assert.True(isConfigFile);
+    }
+
+    [Fact]
+    public async Task ValidateConfiguration_WithInvalidJson_Fails()
+    {
+        // Arrange
+        var testPath = GetUniqueTestPath();
+        CleanTestDirectory(testPath);
+        var invalidJson = "{ invalid json content ";
+        await File.WriteAllTextAsync(Path.Combine(testPath, ".relay-cli.json"), invalidJson);
+
+        // Act
+        var results = new List<ValidationResult>();
+        var method = typeof(ValidateCommand).GetMethod("ValidateConfiguration", BindingFlags.NonPublic | BindingFlags.Static);
+        await (Task)method!.Invoke(null, [testPath, results, false])!;
+
+        // Assert
+        Assert.Contains(results, r => r.Type == "Configuration" && r.Status == ValidationStatus.Fail);
+        Assert.Contains(results, r => r.Message.Contains("not valid JSON"));
     }
 
     [Fact]

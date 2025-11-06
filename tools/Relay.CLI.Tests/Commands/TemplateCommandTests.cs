@@ -266,6 +266,39 @@ public class TemplateCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task TemplateCommand_Create_WithExistingTemplate_PrintsErrorMessage()
+    {
+        // Arrange
+        var sourcePath = CreateSourceProject("ExistingTest");
+        var outputPath = Path.Combine(_testPath, "output");
+        var templateName = "existing-template";
+
+        // Pre-create the template directory
+        var templatePath = Path.Combine(outputPath, templateName);
+        Directory.CreateDirectory(templatePath);
+
+        // Capture console output
+        using var stringWriter = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(stringWriter);
+
+        try
+        {
+            // Act
+            await TemplateCommand.CreateCustomTemplateAsync(templateName, sourcePath, outputPath);
+
+            // Assert
+            var output = stringWriter.ToString();
+            Assert.Contains("Template directory already exists", output);
+            Assert.Contains(templatePath, output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
+    }
+
+    [Fact]
     public async Task TemplateCommand_Create_WithNonexistentSource_ExecutesWithoutCrash()
     {
         // Arrange
@@ -281,6 +314,35 @@ public class TemplateCommandTests : IDisposable
 
         // Assert - Command executes without throwing
         Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public async Task TemplateCommand_Create_WithNonexistentSource_PrintsErrorMessage()
+    {
+        // Arrange
+        var sourcePath = Path.Combine(_testPath, "nonexistent");
+        var outputPath = Path.Combine(_testPath, "output");
+        var templateName = "fail-test";
+
+        // Capture console output
+        using var stringWriter = new StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(stringWriter);
+
+        try
+        {
+            // Act
+            await TemplateCommand.CreateCustomTemplateAsync(templateName, sourcePath, outputPath);
+
+            // Assert
+            var output = stringWriter.ToString();
+            Assert.Contains("Source directory not found", output);
+            Assert.Contains(sourcePath, output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+        }
     }
 
     [Fact]
@@ -373,6 +435,23 @@ public class TemplateCommandTests : IDisposable
 
         // Act & Assert - Method executes without throwing
         await TemplateCommand.PublishTemplateAsync(nonexistentPackage, registryUrl);
+    }
+
+    [Fact]
+    public async Task TemplateCommand_Publish_UsesDefaultRegistry_WhenNotSpecified()
+    {
+        // Arrange
+        var packagePath = Path.Combine(_testPath, "test-package.nupkg");
+        await File.WriteAllTextAsync(packagePath, "fake package content");
+
+        var command = new TemplateCommand();
+        var publishCommand = command.Subcommands.First(s => s.Name == "publish");
+
+        // Act - Call without --registry to use default
+        var result = await publishCommand.InvokeAsync($"--package {packagePath}");
+
+        // Assert - Command executes (default registry is used)
+        Assert.True(result >= 0);
     }
 
     [Fact]
@@ -582,6 +661,33 @@ public class TemplateCommandTests : IDisposable
         // Assert
         var contentPath = Path.Combine(outputPath, templateName, "content");
         Assert.False(Directory.Exists(Path.Combine(contentPath, ".git")));
+    }
+
+    [Fact]
+    public async Task TemplateCommand_Create_SkipsForbiddenNamedFiles()
+    {
+        // Arrange
+        var sourcePath = CreateSourceProject("SkipFilesTest");
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, "bin"), "binary file");
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, "obj"), "object file");
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, ".vs"), "vs file");
+        await File.WriteAllTextAsync(Path.Combine(sourcePath, ".git"), "git file");
+
+        var outputPath = Path.Combine(_testPath, "output");
+        var templateName = "skip-files-template";
+
+        var command = new TemplateCommand();
+        var createCommand = command.Subcommands.First(s => s.Name == "create");
+
+        // Act
+        await createCommand.InvokeAsync($"--name {templateName} --from {sourcePath} --output {outputPath}");
+
+        // Assert
+        var contentPath = Path.Combine(outputPath, templateName, "content");
+        Assert.False(File.Exists(Path.Combine(contentPath, "bin")));
+        Assert.False(File.Exists(Path.Combine(contentPath, "obj")));
+        Assert.False(File.Exists(Path.Combine(contentPath, ".vs")));
+        Assert.False(File.Exists(Path.Combine(contentPath, ".git")));
     }
 
     private string CreateValidTemplate(string name)

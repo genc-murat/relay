@@ -125,8 +125,15 @@ public static class PipelineCommand
             if (!string.IsNullOrWhiteSpace(reportPath))
             {
                 pipelineResult.Success = false;
-                await GeneratePipelineReport(pipelineResult, reportPath);
-                AnsiConsole.MarkupLine($"[yellow]📄 Report saved: {reportPath}[/]");
+                try
+                {
+                    await GeneratePipelineReport(pipelineResult, reportPath);
+                    AnsiConsole.MarkupLine($"[yellow]📄 Report saved: {reportPath}[/]");
+                }
+                catch (Exception reportEx)
+                {
+                    AnsiConsole.MarkupLine($"[red]❌ Failed to generate report: {reportEx.Message}[/]");
+                }
             }
 
             Environment.ExitCode = 1;

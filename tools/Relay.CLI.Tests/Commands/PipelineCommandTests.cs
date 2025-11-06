@@ -1710,6 +1710,35 @@ public class PipelineCommandTests
     }
 
     [Fact]
+    public async Task PipelineCommand_ExecutePipeline_WithGeneralException_HandlesGracefully()
+    {
+        // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "test-exception-pipeline");
+        Directory.CreateDirectory(path);
+        var reportPath = @"C:\Invalid<Characters>\pipeline-report.md"; // Invalid path to cause IOException in GeneratePipelineReport
+
+        try
+        {
+            // Act & Assert - Should complete without throwing, exception handled internally
+            await PipelineCommand.ExecutePipeline(
+                path: path,
+                projectName: null,
+                template: "standard",
+                skipStages: Array.Empty<string>(),
+                aggressive: false,
+                autoFix: false,
+                reportPath: reportPath,
+                ciMode: true,
+                cancellationToken: CancellationToken.None);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
+    }
+
+    [Fact]
     public async Task PipelineCommand_ExecutePipeline_WithReportPath_GeneratesReportFile()
     {
         // Arrange

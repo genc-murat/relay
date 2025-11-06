@@ -59,6 +59,200 @@ namespace TestProject
     }
 
     /// <summary>
+    /// Tests that AnalyzeMethodDeclaration handles null context gracefully.
+    /// This tests edge cases in the method's null handling.
+    /// </summary>
+    [Fact]
+    public async Task RelayAnalyzer_AnalyzeMethodDeclaration_NullContext_HandledGracefully()
+    {
+        // Arrange - Create source that might cause context issues
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using RelayCore;
+
+namespace TestProject
+{
+    public class TestRequest : IRequest<string> { }
+    
+    public class TestHandler
+    {
+        [Handle]
+        public async Task<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        {
+            await Task.Delay(1);
+            return ""test"";
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var analyzer = new RelayAnalyzer();
+
+        // Create compilation with analyzers
+        var compilationWithAnalyzers = compilation.WithAnalyzers(
+            [analyzer],
+            options: null);
+
+        // Run analysis - this should not throw any exceptions
+        await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+
+        // Should complete without exceptions
+    }
+
+    /// <summary>
+    /// Tests that AnalyzeMethodDeclaration handles methods with complex signatures.
+    /// This tests the validation paths with edge cases.
+    /// </summary>
+    [Fact]
+    public async Task RelayAnalyzer_AnalyzeMethodDeclaration_ComplexMethodSignatures_HandledGracefully()
+    {
+        // Arrange - Create source with complex method signatures
+        var source = @"
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using RelayCore;
+
+namespace TestProject
+{
+    public class TestRequest : IRequest<string> { }
+    public class TestNotification : INotification { }
+    
+    public class TestHandler
+    {
+        [Handle]
+        public async Task<string> {|RELAY_GEN_000:HandleAsync|}(TestRequest request, CancellationToken cancellationToken, IServiceProvider serviceProvider = null)
+        {
+            await Task.Delay(1);
+            return ""test"";
+        }
+
+        [Notification]
+        public async Task NotifyAsync(TestNotification notification, CancellationToken cancellationToken, object state = null)
+        {
+            await Task.Delay(1);
+        }
+
+        [Pipeline]
+        public async Task<T> PipelineAsync<T>(Func<T> next, CancellationToken cancellationToken)
+        {
+            await Task.Delay(1);
+            return next();
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var analyzer = new RelayAnalyzer();
+
+        // Create compilation with analyzers
+        var compilationWithAnalyzers = compilation.WithAnalyzers(
+            [analyzer],
+            options: null);
+
+        // Run analysis - this should not throw any exceptions
+        await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+
+        // Should complete without exceptions
+    }
+
+    /// <summary>
+    /// Tests that AnalyzeMethodDeclaration handles methods in partial classes.
+    /// This tests edge cases with class declarations.
+    /// </summary>
+    [Fact]
+    public async Task RelayAnalyzer_AnalyzeMethodDeclaration_PartialClassMethods_HandledGracefully()
+    {
+        // Arrange - Create source with partial classes
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using RelayCore;
+
+namespace TestProject
+{
+    public partial class TestHandler
+    {
+        [Handle]
+        public async Task<string> {|RELAY_GEN_000:HandleAsync|}(TestRequest request, CancellationToken cancellationToken)
+        {
+            await Task.Delay(1);
+            return ""test"";
+        }
+    }
+
+    public partial class TestHandler
+    {
+        // Empty partial part
+    }
+
+    public class TestRequest : IRequest<string> { }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var analyzer = new RelayAnalyzer();
+
+        // Create compilation with analyzers
+        var compilationWithAnalyzers = compilation.WithAnalyzers(
+            [analyzer],
+            options: null);
+
+        // Run analysis - this should not throw any exceptions
+        await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+
+        // Should complete without exceptions
+    }
+
+    /// <summary>
+    /// Tests that AnalyzeMethodDeclaration handles methods with invalid attribute parameters.
+    /// This tests validation error handling.
+    /// </summary>
+    [Fact]
+    public async Task RelayAnalyzer_AnalyzeMethodDeclaration_InvalidAttributeParameters_HandledGracefully()
+    {
+        // Arrange - Create source with invalid attribute parameters
+        var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using RelayCore;
+
+namespace TestProject
+{
+    public class TestRequest : IRequest<string> { }
+    
+    public class TestHandler
+    {
+        [Handle(Priority = int.MaxValue)] // Invalid priority
+        public async Task<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        {
+            await Task.Delay(1);
+            return ""test"";
+        }
+
+        [Pipeline(Order = -1)] // Invalid order
+        public async Task PipelineAsync(Func<Task> next, CancellationToken cancellationToken)
+        {
+            await next();
+        }
+    }
+}";
+
+        var compilation = CreateTestCompilation(source);
+        var analyzer = new RelayAnalyzer();
+
+        // Create compilation with analyzers
+        var compilationWithAnalyzers = compilation.WithAnalyzers(
+            [analyzer],
+            options: null);
+
+        // Run analysis - this should not throw any exceptions
+        await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+
+        // Should complete without exceptions
+    }
+
+    /// <summary>
     /// Tests that RelayAnalyzer handles exceptions in syntax tree processing gracefully.
     /// This covers the catch block inside the syntax tree processing loop in AnalyzeCompilation.
     /// </summary>

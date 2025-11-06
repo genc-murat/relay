@@ -1,5 +1,6 @@
 extern alias RelayCore;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Relay.SourceGenerator.Core;
 using System.Reflection;
 
@@ -219,6 +220,116 @@ namespace TestNamespace
 
         // Act & Assert - The analyzer should handle any exceptions during validation gracefully
         // This test ensures the general Exception catch block is exercised if needed
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
+
+    [Fact]
+    public async Task AnalyzeMethodDeclaration_With_Malformed_Attribute_Does_Not_Crash()
+    {
+        // Test that malformed attributes don't crash the analyzer
+        var source = @"
+using System;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace TestNamespace
+{
+    public class TestRequest : IRequest<string> { }
+
+    public class TestClass
+    {
+        [Handle(Priority = -1)] // Invalid priority value
+        public async Task<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        {
+            return ""test"";
+        }
+    }
+}";
+
+        // This test verifies that the analyzer handles malformed attributes gracefully
+        // The analyzer should not crash even with invalid attribute values
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
+
+    [Fact]
+    public async Task AnalyzeMethodDeclaration_With_Abstract_Class_Method_Does_Not_Crash()
+    {
+        // Test that methods in abstract classes are handled properly
+        var source = @"
+using System;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace TestNamespace
+{
+    public class TestRequest : IRequest<string> { }
+
+    public abstract class AbstractTestClass
+    {
+        [Handle]
+        public abstract Task<string> HandleAsync(TestRequest request, CancellationToken cancellationToken);
+    }
+}";
+
+        // Act & Assert - Should not throw any exceptions and should complete successfully
+        // The analyzer should handle abstract methods gracefully
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
+
+    [Fact]
+    public async Task AnalyzeMethodDeclaration_With_Multiple_Attributes_On_Same_Method_Does_Not_Crash()
+    {
+        // Test that multiple Relay attributes on the same method are handled without crashing
+        var source = @"
+using System;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace TestNamespace
+{
+    public class TestRequest : IRequest<string> { }
+
+    public class TestClass
+    {
+        [Handle]
+        [Pipeline]
+        public async Task<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        {
+            return ""test"";
+        }
+    }
+}";
+
+        // Act & Assert - Should not throw any exceptions and should complete successfully
+        // The analyzer should handle multiple compatible attributes on the same method gracefully
+        await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
+    }
+
+    [Fact]
+    public async Task AnalyzeMethodDeclaration_With_Missing_Parameters_Does_Not_Crash()
+    {
+        // Test that methods with missing required parameters are handled gracefully
+        var source = @"
+using System;
+using System.Threading.Tasks;
+using Relay.Core;
+
+namespace TestNamespace
+{
+    public class TestRequest : IRequest<string> { }
+
+    public class TestClass
+    {
+        [Handle]
+        public async Task<string> {|RELAY_GEN_205:HandleAsync|}()
+        {
+            return ""test"";
+        }
+    }
+}";
+
+        // This test verifies that the analyzer handles missing parameters gracefully
+        // The analyzer should report RELAY_GEN_205 for missing parameters and not crash
         await RelayAnalyzerTestHelpers.VerifyAnalyzerAsync(source);
     }
 

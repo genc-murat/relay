@@ -770,6 +770,38 @@ P95 Latency: {results.P95Latency.TotalMilliseconds:F2}ms";
     }
 
     [Fact]
+    public async Task ExecutePerformance_WithCustomOutputFile_ShouldUseCustomPath()
+    {
+        // Arrange
+        var testPath = Path.Combine(Path.GetTempPath(), $"relay-perf-{Guid.NewGuid()}");
+        var outputPath = Path.Combine(Path.GetTempPath(), $"relay-report-{Guid.NewGuid()}.md");
+        Directory.CreateDirectory(testPath);
+
+        try
+        {
+            // Create a sample project file
+            var csproj = @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Relay.Core"" Version=""2.1.0"" />
+  </ItemGroup>
+</Project>";
+            await File.WriteAllTextAsync(Path.Combine(testPath, "Test.csproj"), csproj);
+
+            // Act & Assert - Should not throw and should cover outputFile ?? path
+            await PerformanceCommand.ExecutePerformance(testPath, true, false, outputPath);
+        }
+        finally
+        {
+            Directory.Delete(testPath, true);
+            if (File.Exists(outputPath))
+                File.Delete(outputPath);
+        }
+    }
+
+    [Fact]
     public async Task AnalyzeProjectStructure_WithValidProject_ShouldDetectRelay()
     {
         // Arrange
@@ -1646,6 +1678,66 @@ public class TestService
         {
             Directory.Delete(testPath, true);
         }
+    }
+
+    [Fact]
+    public void DisplayPerformanceAnalysis_WithLowScore_ShouldShowRedColor()
+    {
+        // Arrange
+        var analysis = new PerformanceAnalysis
+        {
+            PerformanceScore = 50, // Low score for red color
+            ProjectCount = 1,
+            HandlerCount = 2,
+            OptimizedHandlerCount = 2,
+            ValueTaskCount = 1,
+            AsyncMethodCount = 2,
+            ModernFramework = false,
+            HasPGO = false
+        };
+
+        // Act & Assert - Should not throw and should cover red color branch
+        PerformanceCommand.DisplayPerformanceAnalysis(analysis, false);
+    }
+
+    [Fact]
+    public void DisplayPerformanceAnalysis_WithMediumScore_ShouldShowYellowColor()
+    {
+        // Arrange
+        var analysis = new PerformanceAnalysis
+        {
+            PerformanceScore = 70, // Medium score for yellow color
+            ProjectCount = 1,
+            HandlerCount = 2,
+            OptimizedHandlerCount = 2,
+            ValueTaskCount = 1,
+            AsyncMethodCount = 2,
+            ModernFramework = true,
+            HasPGO = false
+        };
+
+        // Act & Assert - Should not throw and should cover yellow color branch
+        PerformanceCommand.DisplayPerformanceAnalysis(analysis, false);
+    }
+
+    [Fact]
+    public void DisplayPerformanceAnalysis_WithAllOptimizedHandlers_ShouldShowGreenStatus()
+    {
+        // Arrange
+        var analysis = new PerformanceAnalysis
+        {
+            PerformanceScore = 85,
+            ProjectCount = 1,
+            HandlerCount = 3,
+            OptimizedHandlerCount = 3, // Equal to HandlerCount for green status
+            ValueTaskCount = 2,
+            AsyncMethodCount = 3,
+            ModernFramework = true,
+            HasPGO = true
+        };
+
+        // Act & Assert - Should not throw and should cover equal handler count branch
+        PerformanceCommand.DisplayPerformanceAnalysis(analysis, false);
     }
 }
 

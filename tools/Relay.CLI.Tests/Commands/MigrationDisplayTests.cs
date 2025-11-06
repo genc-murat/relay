@@ -218,6 +218,46 @@ public class MigrationDisplayTests
     }
 
     [Fact]
+    public void DisplayAnalysisResults_WithIssuesContainingMarkupCharacters_ShouldEscapeCorrectly()
+    {
+        // Arrange
+        var analysis = new AnalysisResult
+        {
+            ProjectPath = "C:\\TestProject\\Test.csproj",
+            FilesAffected = 1,
+            HandlersFound = 1,
+            RequestsFound = 1,
+            NotificationsFound = 1,
+            PipelineBehaviorsFound = 1,
+            PackageReferences = new(),
+            Issues =
+            [
+                new() { Severity = IssueSeverity.Warning, Message = "Issue with [bold]markup[/] in message" }
+            ],
+            CanMigrate = true
+        };
+        var console = new TestConsole();
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = console;
+
+        try
+        {
+            // Act
+            MigrationDisplay.DisplayAnalysisResults(analysis);
+
+            // Assert
+            var output = console.Output;
+            Assert.Contains("Issue with", output);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+    }
+
+
+
+    [Fact]
     public void DisplayMigrationResults_WithSuccessStatus_ShouldDisplayCorrectly()
     {
         // Arrange
@@ -626,4 +666,43 @@ public class MigrationDisplayTests
             AnsiConsole.Console = originalConsole;
         }
     }
+
+    [Fact]
+    public void DisplayMigrationResults_WithChangesContainingMarkupCharacters_ShouldEscapeCorrectly()
+    {
+        // Arrange
+        var result = new MigrationResult
+        {
+            Status = MigrationStatus.Success,
+            Duration = TimeSpan.FromSeconds(1.0),
+            FilesModified = 1,
+            LinesChanged = 10,
+            HandlersMigrated = 1,
+            CreatedBackup = false,
+            Changes =
+            [
+                new() { Category = "Test", Type = ChangeType.Add, Description = "Change with [red]color[/] in description" }
+            ],
+            ManualSteps = new()
+        };
+        var console = new TestConsole();
+        var originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = console;
+
+        try
+        {
+            // Act
+            MigrationDisplay.DisplayMigrationResults(result, false);
+
+            // Assert
+            var output = console.Output;
+            Assert.Contains("Change with", output);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
+        }
+    }
+
+
 }

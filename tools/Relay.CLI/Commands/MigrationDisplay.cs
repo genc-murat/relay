@@ -15,48 +15,15 @@ internal static class MigrationDisplay
     {
         console.WriteLine();
         console.MarkupLine("[bold cyan]📊 Analysis Results[/]");
-        console.MarkupLine($"[bold]Project:[/] {Path.GetFileName(analysis.ProjectPath)}");
-        console.MarkupLine($"[bold]Files Affected:[/] {analysis.FilesAffected}");
-        console.MarkupLine($"[bold]Handlers Found:[/] {analysis.HandlersFound}");
-        console.MarkupLine($"[bold]Requests Found:[/] {analysis.RequestsFound}");
-        console.MarkupLine($"[bold]Notifications Found:[/] {analysis.NotificationsFound}");
-        console.MarkupLine($"[bold]Pipeline Behaviors:[/] {analysis.PipelineBehaviorsFound}");
-        console.WriteLine();
-
-        if (analysis.PackageReferences.Count > 0)
+        string report = BuildAnalysisReport(analysis);
+        var lines = report.Replace("\r\n", "\n").Split('\n');
+        foreach (var line in lines)
         {
-            console.MarkupLine("[bold]📦 Packages to Update:[/]");
-            foreach (var pkg in analysis.PackageReferences)
-            {
-                console.MarkupLine($"  • {pkg.Name} ([red]{pkg.CurrentVersion}[/] → [green]Relay.Core[/])");
-            }
-            console.WriteLine();
+            if (string.IsNullOrEmpty(line))
+                console.WriteLine();
+            else
+                console.MarkupLine(line);
         }
-
-        if (analysis.Issues.Count > 0)
-        {
-            console.MarkupLine($"[bold yellow]⚠️  Issues Found: {analysis.Issues.Count}[/]");
-            foreach (var issue in analysis.Issues.Take(5))
-            {
-                var icon = issue.Severity switch
-                {
-                    IssueSeverity.Error => "[red]❌[/]",
-                    IssueSeverity.Warning => "[yellow]⚠️[/]",
-                    _ => "[blue]ℹ️[/]"
-                };
-                console.MarkupLine($"  {icon} {issue.Message.Replace("[", "[[").Replace("]", "]]")}");
-            }
-            if (analysis.Issues.Count > 5)
-            {
-                console.MarkupLine($"  [dim]... and {analysis.Issues.Count - 5} more[/]");
-            }
-            console.WriteLine();
-        }
-
-        var canMigrateText = analysis.CanMigrate
-            ? "[green]✅ Migration can proceed[/]"
-            : "[red]❌ Migration blocked - fix critical issues first[/]";
-        console.MarkupLine(canMigrateText);
         console.WriteLine();
     }
 

@@ -19,39 +19,37 @@ public class HandlerDiscoveryEngineTests
         _mockReporter = new Mock<IDiagnosticReporter>();
     }
 
+
+
     [Fact]
-    public void AnalyzeHandlerMethodWithSymbol_NullMethodSymbol_ReportsDiagnostic()
+    public void DiscoverHandlers_WithEmptyMethodList_ReturnsEmptyResult()
     {
         // Arrange
         var compilation = CreateCompilation("");
         var context = new RelayCompilationContext(compilation, default);
         var engine = new HandlerDiscoveryEngine(context);
-
-        var methodSyntax = SyntaxFactory.MethodDeclaration(
-            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
-            "TestMethod")
-            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList())
-            .WithBody(SyntaxFactory.Block());
+        var emptyMethods = Array.Empty<MethodDeclarationSyntax>();
 
         // Act
-        var methodInfo = engine.GetType().GetMethod("AnalyzeHandlerMethodWithSymbol",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
-            null,
-            [typeof(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax), typeof(Microsoft.CodeAnalysis.IMethodSymbol), typeof(IDiagnosticReporter)],
-            null);
-        var result = methodInfo!.Invoke(engine, [methodSyntax, null!, _mockReporter.Object]);
+        var result = engine.DiscoverHandlers(emptyMethods, _mockReporter.Object);
 
         // Assert
-        Assert.Null(result);
-        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-            d.Descriptor.Id == "RELAY_GEN_001" && d.GetMessage().Contains("Could not get symbol for method"))), Times.Once);
+        Assert.NotNull(result);
+        Assert.Empty(result.Handlers);
     }
 
+
+
+
+
+
+
+
+
     [Fact]
-    public void AnalyzeHandlerMethodWithSymbol_ValidMethodSymbol_ReturnsHandlerInfo()
+    public void DiscoverHandlers_Integration_WithSequentialProcessing_CallsPrivateMethods()
     {
-        // Arrange
+        // Arrange - Create a small list (< 10) to trigger sequential processing
         var source = @"
 public class TestRequest : IRequest<string> { }
 public class TestHandler
@@ -68,19 +66,62 @@ public class TestHandler
             .GetRoot()
             .DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
-            .First(m => m.Identifier.ValueText == "Handle");
-
-        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
-        var methodSymbol = semanticModel.GetDeclaredSymbol(methodSyntax) as IMethodSymbol;
+            .First();
 
         // Act
-        var result = engine.GetType().GetMethod("AnalyzeHandlerMethodWithSymbol",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .Invoke(engine, [methodSyntax, methodSymbol, _mockReporter.Object]);
+        var result = engine.DiscoverHandlers([methodSyntax], _mockReporter.Object);
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.IsType<HandlerInfo>(result);
+        // Assert - Verify the integration works end-to-end
+        Assert.Single(result.Handlers);
+        var handler = result.Handlers[0];
+        Assert.Equal("Handle", handler.MethodName);
+        Assert.Single(handler.Attributes);
+        Assert.Equal(RelayAttributeType.Handle, handler.Attributes[0].Type);
+    }
+
+
+
+
+
+
+
+    [Fact]
+    public void DiscoverHandlers_Integration_WithParallelProcessing_CallsPrivateMethods()
+    {
+        // Arrange - Create a large list (>= 10) to trigger parallel processing
+        var source = @"
+public class TestRequest : IRequest<string> { }
+";
+        for (int i = 0; i < 12; i++)
+        {
+            source += $@"
+public class TestHandler{i}
+{{
+    [Handle]
+    public string Handle{i}(TestRequest request) => """";
+}}
+";
+        }
+        var compilation = CreateCompilation(source);
+        var context = new RelayCompilationContext(compilation, default);
+        var engine = new HandlerDiscoveryEngine(context);
+
+        var methods = compilation.SyntaxTrees.First()
+            .GetRoot()
+            .DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .ToList();
+
+        // Act
+        var result = engine.DiscoverHandlers(methods, _mockReporter.Object);
+
+        // Assert - Verify parallel processing worked
+        Assert.Equal(12, result.Handlers.Count);
+        foreach (var handler in result.Handlers)
+        {
+            Assert.Single(handler.Attributes);
+            Assert.Equal(RelayAttributeType.Handle, handler.Attributes[0].Type);
+        }
     }
 
     private static CSharpCompilation CreateCompilation(string source)

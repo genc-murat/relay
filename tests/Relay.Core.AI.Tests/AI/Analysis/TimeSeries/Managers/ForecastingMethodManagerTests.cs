@@ -91,6 +91,55 @@ public class ForecastingMethodManagerTests
         Assert.Contains(ForecastingMethod.Ensemble, methods);
     }
 
+    [Fact]
+    public void Constructor_Should_Log_Initialization()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<ForecastingMethodManager>>();
+        var config = new ForecastingConfiguration
+        {
+            DefaultForecastingMethod = ForecastingMethod.ExponentialSmoothing
+        };
+
+        // Act
+        var manager = new ForecastingMethodManager(loggerMock.Object, config);
+
+        // Assert
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Forecasting method manager initialized") &&
+                                                o.ToString()!.Contains("ExponentialSmoothing")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void RegisterStrategy_Should_Log_Debug()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<ForecastingMethodManager>>();
+        var config = new ForecastingConfiguration();
+        var manager = new ForecastingMethodManager(loggerMock.Object, config);
+        var mockStrategy = new Mock<IForecastingStrategy>();
+        mockStrategy.Setup(s => s.Method).Returns(ForecastingMethod.SSA);
+
+        // Act
+        // We can't call RegisterStrategy directly as it's private, but it's called in constructor
+        // So we verify the logs from constructor
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Registered forecasting strategy") &&
+                                                o.ToString()!.Contains("SSA")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce); // At least once for SSA
+    }
+
     #endregion
 
     #region GetForecastingMethod Tests
@@ -111,6 +160,46 @@ public class ForecastingMethodManagerTests
     public void GetForecastingMethod_Should_Throw_When_MetricName_Is_Whitespace()
     {
         Assert.Throws<ArgumentException>(() => _manager.GetForecastingMethod("   "));
+    }
+
+    [Theory]
+    [InlineData("very_long_metric_name_that_exceeds_normal_length_and_should_still_work_fine")]
+    [InlineData("metric.with.dots")]
+    [InlineData("metric-with-dashes")]
+    [InlineData("metric_with_underscores")]
+    [InlineData("metric123")]
+    [InlineData("métric")]  // Unicode
+    [InlineData("метрика")]  // Cyrillic
+    [InlineData("指標")]  // Chinese
+    [InlineData("metric@domain")]
+    [InlineData("metric#tag")]
+    public void GetForecastingMethod_Should_Accept_Various_Metric_Name_Formats(string metricName)
+    {
+        // Act
+        var method = _manager.GetForecastingMethod(metricName);
+
+        // Assert
+        Assert.Equal(_config.DefaultForecastingMethod, method);
+    }
+
+    [Theory]
+    [InlineData("very_long_metric_name_that_exceeds_normal_length_and_should_still_work_fine")]
+    [InlineData("metric.with.dots")]
+    [InlineData("metric-with-dashes")]
+    [InlineData("metric_with_underscores")]
+    [InlineData("metric123")]
+    [InlineData("métric")]  // Unicode
+    [InlineData("метрика")]  // Cyrillic
+    [InlineData("指標")]  // Chinese
+    [InlineData("metric@domain")]
+    [InlineData("metric#tag")]
+    public void SetForecastingMethod_Should_Accept_Various_Metric_Name_Formats(string metricName)
+    {
+        // Act
+        _manager.SetForecastingMethod(metricName, ForecastingMethod.ExponentialSmoothing);
+
+        // Assert
+        Assert.Equal(ForecastingMethod.ExponentialSmoothing, _manager.GetForecastingMethod(metricName));
     }
 
     [Fact]
@@ -268,6 +357,21 @@ public class ForecastingMethodManagerTests
         Assert.Equal(ForecastingMethod.SSA, strategy!.Method);
     }
 
+    [Theory]
+    [InlineData(ForecastingMethod.SSA)]
+    [InlineData(ForecastingMethod.ExponentialSmoothing)]
+    [InlineData(ForecastingMethod.MovingAverage)]
+    [InlineData(ForecastingMethod.Ensemble)]
+    public void GetStrategy_Should_Return_Correct_Strategy_For_All_Registered_Methods(ForecastingMethod method)
+    {
+        // Act
+        var strategy = _manager.GetStrategy(method);
+
+        // Assert
+        Assert.NotNull(strategy);
+        Assert.Equal(method, strategy!.Method);
+    }
+
     [Fact]
     public void GetStrategy_Should_Return_Null_For_Unregistered_Method()
     {
@@ -307,6 +411,47 @@ public class ForecastingMethodManagerTests
                 _manager.SetForecastingMethod(metricName, ForecastingMethod.SSA);
                 var method = _manager.GetForecastingMethod(metricName);
                 Assert.Equal(ForecastingMethod.SSA, method);
+            });
+        }
+
+        // Act & Assert
+        System.Threading.Tasks.Task.WaitAll(tasks);
+    }
+
+    [Fact]
+    public void GetAvailableStrategies_Should_Be_Thread_Safe_For_Concurrent_Access()
+    {
+        // Arrange
+        var tasks = new System.Threading.Tasks.Task[10];
+
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                var strategies = _manager.GetAvailableStrategies().ToList();
+                Assert.Equal(4, strategies.Count);
+                Assert.All(strategies, s => Assert.NotNull(s));
+            });
+        }
+
+        // Act & Assert
+        System.Threading.Tasks.Task.WaitAll(tasks);
+    }
+
+    [Fact]
+    public void GetStrategy_Should_Be_Thread_Safe_For_Concurrent_Access()
+    {
+        // Arrange
+        var tasks = new System.Threading.Tasks.Task[10];
+
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            var method = (ForecastingMethod)(i % 4); // Cycle through 0-3
+            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            {
+                var strategy = _manager.GetStrategy(method);
+                Assert.NotNull(strategy);
+                Assert.Equal(method, strategy!.Method);
             });
         }
 

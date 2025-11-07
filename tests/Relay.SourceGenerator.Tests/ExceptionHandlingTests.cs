@@ -105,6 +105,69 @@ namespace TestProject
         }
         
         [Fact]
+        public void GenerateOptimizedDispatchers_Should_Handle_Exception_And_Use_Fallback()
+        {
+            // Arrange - Create a scenario that will cause an exception in optimized dispatcher generation
+            // We'll use the TestForceException flag to simulate an exception
+            RelayIncrementalGenerator.TestForceException = true;
+            
+            try
+            {
+                var source = @"
+using System.Threading;
+using System.Threading.Tasks;
+using Relay.Core.Contracts.Requests;
+using Relay.Core.Contracts.Handlers;
+
+namespace TestProject
+{
+    public class TestRequest : IRequest<string> { }
+    
+    public class ValidHandler : IRequestHandler<TestRequest, string>
+    {
+        public ValueTask<string> HandleAsync(TestRequest request, CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(""test"");
+        }
+    }
+}";
+
+                var generator = new RelayIncrementalGenerator();
+                var compilation = CreateTestCompilation(source);
+
+                // Act
+                var driver = CSharpGeneratorDriver.Create(generator);
+                driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
+                    compilation,
+                    out var outputCompilation,
+                    out var diagnostics);
+
+                // Assert - Should catch the exception and generate fallback dispatcher
+                var runResult = driver.GetRunResult();
+                
+                // Should have generated some output (fallback)
+                Assert.NotNull(runResult.GeneratedTrees);
+                Assert.True(runResult.GeneratedTrees.Length > 0);
+                
+                // Should contain the fallback dispatcher source
+                var generatedSources = runResult.GeneratedTrees
+                    .Where(t => t.FilePath.Contains("OptimizedRequestDispatcher.g.cs"))
+                    .ToList();
+                
+                Assert.True(generatedSources.Count > 0, "Should generate fallback optimized dispatcher");
+                
+                // The generated source should contain fallback indicators
+                var fallbackSource = generatedSources.First().ToString();
+                Assert.Contains("fallback", fallbackSource, StringComparison.OrdinalIgnoreCase);
+            }
+            finally
+            {
+                // Cleanup - Reset the test flag
+                RelayIncrementalGenerator.TestForceException = false;
+            }
+        }
+
+        [Fact]
         public void IsRelayAttributeName_Method_Should_Return_Correct_Values()
         {
             // Test the static method directly

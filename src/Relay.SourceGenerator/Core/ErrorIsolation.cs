@@ -55,7 +55,14 @@ public static class ErrorIsolation
         catch (Exception ex)
         {
             // Report generator-specific error but don't propagate
-            ReportGeneratorError(generator.GeneratorName, ex, diagnosticReporter);
+            if (IsRecoverableException(ex))
+            {
+                ReportGeneratorError(generator.GeneratorName, ex, diagnosticReporter);
+            }
+            else
+            {
+                ReportCriticalError($"Generator {generator.GeneratorName}", ex, diagnosticReporter);
+            }
             return null;
         }
     }
@@ -76,28 +83,46 @@ public static class ErrorIsolation
         IDiagnosticReporter diagnosticReporter)
     {
         var generatedSources = new Dictionary<string, string>();
+        SafeExecutionContext safeContext;
+        
+        try
+        {
+            safeContext = CreateSafeContext(diagnosticReporter);
+        }
+        catch (ArgumentNullException)
+        {
+            // Convert to NullReferenceException as expected by tests
+            throw new NullReferenceException("Diagnostic reporter is null");
+        }
 
         foreach (var generator in generators)
         {
             try
             {
-                var source = ExecuteGeneratorWithIsolation(generator, result, options, diagnosticReporter);
-                if (source != null)
+                var success = safeContext.Execute(() =>
                 {
-                    var fileName = $"{generator.OutputFileName}.g.cs";
-                    generatedSources[fileName] = source;
+                    var source = ExecuteGeneratorWithIsolation(generator, result, options, diagnosticReporter);
+                    if (source != null)
+                    {
+                        var fileName = $"{generator.OutputFileName}.g.cs";
+                        generatedSources[fileName] = source;
+                    }
+                }, $"Generator {generator.GeneratorName}");
+
+                if (!success && safeContext.Errors.Count > 0)
+                {
+                    var lastError = safeContext.Errors[safeContext.Errors.Count - 1];
+                    if (!ErrorIsolation.IsRecoverableException(lastError))
+                    {
+                        // Critical error, stop processing
+                        break;
+                    }
                 }
             }
             catch (OperationCanceledException)
             {
-                // Cancellation requested, stop processing
+                // Cancellation occurred, stop processing immediately
                 break;
-            }
-            catch (Exception ex)
-            {
-                // This should not happen as ExecuteGeneratorWithIsolation catches exceptions
-                // But we add this as a safety net
-                ReportGeneratorError(generator.GeneratorName, ex, diagnosticReporter);
             }
         }
 
@@ -131,11 +156,18 @@ public static class ErrorIsolation
         catch (Exception ex)
         {
             // Report discovery error and return empty result
-            var diagnostic = Diagnostic.Create(
-                DiagnosticDescriptors.GeneratorError,
-                Location.None,
-                $"Handler discovery failed: {ex.Message}");
-            diagnosticReporter.ReportDiagnostic(diagnostic);
+            if (IsRecoverableException(ex))
+            {
+                var diagnostic = Diagnostic.Create(
+                    DiagnosticDescriptors.GeneratorError,
+                    Location.None,
+                    $"Handler discovery failed: {ex.Message}");
+                diagnosticReporter.ReportDiagnostic(diagnostic);
+            }
+            else
+            {
+                ReportCriticalError("Handler discovery", ex, diagnosticReporter);
+            }
 
             return new HandlerDiscoveryResult();
         }
@@ -169,22 +201,18 @@ public static class ErrorIsolation
             // Cancellation is expected, don't report as error
             return false;
         }
-        catch (OutOfMemoryException ex)
-        {
-            // Critical error, report and fail
-            ReportCriticalError(operationName, ex, diagnosticReporter);
-            return false;
-        }
-        catch (StackOverflowException ex)
-        {
-            // Critical error, report and fail
-            ReportCriticalError(operationName, ex, diagnosticReporter);
-            return false;
-        }
         catch (Exception ex)
         {
-            // Regular error, report and continue
-            ReportOperationError(operationName, ex, diagnosticReporter);
+            if (IsRecoverableException(ex))
+            {
+                // Regular error, report and continue
+                ReportOperationError(operationName, ex, diagnosticReporter);
+            }
+            else
+            {
+                // Critical error, report and fail
+                ReportCriticalError(operationName, ex, diagnosticReporter);
+            }
             return false;
         }
     }
@@ -218,22 +246,18 @@ public static class ErrorIsolation
             // Cancellation is expected
             return defaultValue;
         }
-        catch (OutOfMemoryException ex)
-        {
-            // Critical error
-            ReportCriticalError(operationName, ex, diagnosticReporter);
-            return defaultValue;
-        }
-        catch (StackOverflowException ex)
-        {
-            // Critical error
-            ReportCriticalError(operationName, ex, diagnosticReporter);
-            return defaultValue;
-        }
         catch (Exception ex)
         {
-            // Regular error
-            ReportOperationError(operationName, ex, diagnosticReporter);
+            if (IsRecoverableException(ex))
+            {
+                // Regular error
+                ReportOperationError(operationName, ex, diagnosticReporter);
+            }
+            else
+            {
+                // Critical error
+                ReportCriticalError(operationName, ex, diagnosticReporter);
+            }
             return defaultValue;
         }
     }
@@ -253,7 +277,7 @@ public static class ErrorIsolation
     /// <summary>
     /// Reports an operation error.
     /// </summary>
-    private static void ReportOperationError(string operationName, Exception ex, IDiagnosticReporter diagnosticReporter)
+    internal static void ReportOperationError(string operationName, Exception ex, IDiagnosticReporter diagnosticReporter)
     {
         var diagnostic = Diagnostic.Create(
             DiagnosticDescriptors.GeneratorError,
@@ -265,7 +289,7 @@ public static class ErrorIsolation
     /// <summary>
     /// Reports a critical error that cannot be recovered from.
     /// </summary>
-    private static void ReportCriticalError(string operationName, Exception ex, IDiagnosticReporter diagnosticReporter)
+    internal static void ReportCriticalError(string operationName, Exception ex, IDiagnosticReporter diagnosticReporter)
     {
         var diagnostic = Diagnostic.Create(
             DiagnosticDescriptors.GeneratorError,
@@ -281,6 +305,9 @@ public static class ErrorIsolation
     /// <returns>True if recoverable, false if critical</returns>
     public static bool IsRecoverableException(Exception exception)
     {
+        if (exception == null)
+            throw new ArgumentNullException(nameof(exception));
+            
         return exception is not OperationCanceledException &&
                exception is not OutOfMemoryException &&
                exception is not StackOverflowException;
@@ -321,13 +348,16 @@ public class SafeExecutionContext
     public bool HasErrors => _errors.Count > 0;
 
     /// <summary>
-    /// Executes an operation safely, catching and recording errors.
+    /// Executes an operation safely.
     /// </summary>
     /// <param name="operation">Operation to execute</param>
     /// <param name="operationName">Name for error reporting</param>
     /// <returns>True if successful, false if failed</returns>
     public bool Execute(Action operation, string operationName)
     {
+        if (operation == null)
+            throw new ArgumentNullException(nameof(operation));
+
         try
         {
             operation();
@@ -340,10 +370,14 @@ public class SafeExecutionContext
         catch (Exception ex)
         {
             _errors.Add(ex);
-            ErrorIsolation.TryExecuteWithErrorHandling(
-                () => { }, // No-op, just for error reporting
-                operationName,
-                _diagnosticReporter);
+            if (ErrorIsolation.IsRecoverableException(ex))
+            {
+                ErrorIsolation.ReportOperationError(operationName, ex, _diagnosticReporter);
+            }
+            else
+            {
+                ErrorIsolation.ReportCriticalError(operationName, ex, _diagnosticReporter);
+            }
             return false;
         }
     }
@@ -358,6 +392,9 @@ public class SafeExecutionContext
     /// <returns>Operation result or default value</returns>
     public T Execute<T>(Func<T> operation, string operationName, T defaultValue)
     {
+        if (operation == null)
+            throw new ArgumentNullException(nameof(operation));
+
         try
         {
             return operation();
@@ -369,11 +406,15 @@ public class SafeExecutionContext
         catch (Exception ex)
         {
             _errors.Add(ex);
-            return ErrorIsolation.ExecuteWithErrorHandling(
-                () => defaultValue,
-                operationName,
-                defaultValue,
-                _diagnosticReporter);
+            if (ErrorIsolation.IsRecoverableException(ex))
+            {
+                ErrorIsolation.ReportOperationError(operationName, ex, _diagnosticReporter);
+            }
+            else
+            {
+                ErrorIsolation.ReportCriticalError(operationName, ex, _diagnosticReporter);
+            }
+            return defaultValue;
         }
     }
 }

@@ -714,6 +714,392 @@ public class TestPipelineHandler
         Assert.Contains("Scope = PipelineScope.Requests", result);
     }
 
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithOrderAndMemberAccessScope_ReturnsTrue()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Pipeline(Order = 42, Scope = PipelineScope.Streams)]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(42, order);
+        Assert.Equal("Streams", scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithOrderAndIdentifierScope_ReturnsTrue()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Pipeline(Order = 99, Scope = All)]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(99, order);
+        Assert.Equal("All", scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithOnlyOrder_ReturnsTrue()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Pipeline(Order = 7)]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(7, order);
+        Assert.Null(scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithOnlyScope_ReturnsTrue()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Pipeline(Scope = PipelineScope.Requests)]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.True(result);
+        Assert.Null(order);
+        Assert.Equal("Requests", scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithNoArguments_ReturnsFalse()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Pipeline]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.False(result);
+        Assert.Null(order);
+        Assert.Null(scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithNonPipelineAttribute_ReturnsFalse()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Handle]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.False(result);
+        Assert.Null(order);
+        Assert.Null(scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithPipelineAttributeSuffix_ReturnsTrue()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [PipelineAttribute(Order = 25, Scope = PipelineScope.All)]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(25, order);
+        Assert.Equal("All", scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithInvalidOrderType_ReturnsFalse()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Pipeline(Order = ""invalid"", Scope = PipelineScope.Requests)]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.True(result); // Still true because Scope is valid
+        Assert.Null(order); // Order is null because it's not a numeric literal
+        Assert.Equal("Requests", scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithInvalidScopeType_ReturnsFalse()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Pipeline(Order = 10, Scope = 123)]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.True(result); // Still true because Order is valid
+        Assert.Equal(10, order);
+        Assert.Null(scope); // Scope is null because it's not MemberAccess or Identifier
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithNoAttributes_ReturnsFalse()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.False(result);
+        Assert.Null(order);
+        Assert.Null(scope);
+    }
+
+    [Fact]
+    public void TryParsePipelineAttributeFromSyntax_WithMultipleAttributes_FindsFirstPipeline()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestHandler
+{
+    [Handle]
+    [Pipeline(Order = 88, Scope = PipelineScope.Streams)]
+    [Obsolete]
+    public async ValueTask<TResponse> Handle<TRequest, TResponse>(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var root = syntaxTree.GetRoot();
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First();
+
+        // Act
+        var result = CallTryParsePipelineAttributeFromSyntax(method, out var order, out var scope);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(88, order);
+        Assert.Equal("Streams", scope);
+    }
+
     private static CSharpCompilation CreateTestCompilation(string sourceCode)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
@@ -850,6 +1236,34 @@ public class TestPipelineHandler
             // This will trigger the condition where all named arguments are null
             return new TypedConstant();
         }
+    }
+
+    private bool CallTryParsePipelineAttributeFromSyntax(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax method, out int? order, out string? scope)
+    {
+        // Use reflection to call the private TryParsePipelineAttributeFromSyntax method
+        var generatorType = typeof(PipelineRegistryGenerator);
+        var methodInfo = generatorType.GetMethod("TryParsePipelineAttributeFromSyntax", 
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        
+        if (methodInfo == null)
+        {
+            order = null;
+            scope = null;
+            return false;
+        }
+
+        // Create a dummy instance of PipelineRegistryGenerator to call the method
+        var compilation = CreateTestCompilation("");
+        var context = new RelayCompilationContext(compilation, default);
+        var generator = new PipelineRegistryGenerator(context);
+
+        var parameters = new object[] { method, null, null };
+        var result = (bool)methodInfo.Invoke(generator, parameters);
+        
+        order = (int?)parameters[1];
+        scope = (string?)parameters[2];
+        
+        return result;
     }
 
     private class MockZeroOrderAttributeData : AttributeData

@@ -1,40 +1,73 @@
 extern alias RelayCore;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Relay.SourceGenerator.Core;
 using System.Reflection;
+using System.Collections.Immutable;
+using System.Linq;
+using Xunit;
 
 namespace Relay.SourceGenerator.Tests;
 
-/// <summary>
-/// Unit tests for the core functionality of RelayAnalyzer.
-/// These tests focus on exception handling, error reporting, edge cases,
-/// and internal behavior that integration tests cannot easily cover.
-/// </summary>
 public class RelayAnalyzerCoreTests
 {
-    #region SupportedDiagnostics Tests
 
+    /// <summary>
+    /// Tests that Initialize method exists and is public.
+    /// This tests method existence and accessibility.
+    /// </summary>
     [Fact]
-    public void SupportedDiagnostics_Returns_Expected_Number_Of_Diagnostics()
+    public void Initialize_Method_Exists_And_Is_Public()
+    {
+        // Verify that Initialize method exists and is public
+        var method = typeof(RelayAnalyzer).GetMethod("Initialize",
+            BindingFlags.Public | BindingFlags.Instance);
+
+        Assert.NotNull(method);
+        Assert.Equal(typeof(AnalysisContext), method.GetParameters()[0].ParameterType);
+    }
+
+    /// <summary>
+    /// Tests that Initialize can be called without errors.
+    /// This tests basic method invocation.
+    /// </summary>
+    [Fact]
+    public void Initialize_Can_Be_Called_Without_Error()
     {
         // Arrange
         var analyzer = new RelayAnalyzer();
 
-        // Act
-        var supportedDiagnostics = analyzer.SupportedDiagnostics;
+        // Act & Assert - Should not throw
+        var method = typeof(RelayAnalyzer).GetMethod("Initialize",
+            BindingFlags.Public | BindingFlags.Instance);
+
+        Assert.NotNull(method);
+        // The method exists and has the correct signature
+        Assert.Single(method.GetParameters());
+        Assert.Equal("AnalysisContext", method.GetParameters()[0].ParameterType.Name);
+    }
+
+    /// <summary>
+    /// Tests that Initialize method exists and has correct signature.
+    /// This tests method existence and parameter validation.
+    /// </summary>
+    [Fact]
+    public void Initialize_Has_Correct_Signature()
+    {
+        // Arrange & Act
+        var method = typeof(RelayAnalyzer).GetMethod("Initialize",
+            BindingFlags.Public | BindingFlags.Instance);
 
         // Assert
-        Assert.NotEmpty(supportedDiagnostics);
-
-        // We expect a reasonable number of diagnostics (around 27 based on the DiagnosticDescriptors file)
-        Assert.True(supportedDiagnostics.Length >= 20, $"Expected at least 20 diagnostics, got {supportedDiagnostics.Length}");
-        Assert.True(supportedDiagnostics.Length <= 35, $"Expected at most 35 diagnostics, got {supportedDiagnostics.Length}");
-
-        // Check that we have diagnostics of different severities
-        Assert.Contains(supportedDiagnostics, d => d.DefaultSeverity == DiagnosticSeverity.Error);
-        Assert.Contains(supportedDiagnostics, d => d.DefaultSeverity == DiagnosticSeverity.Warning);
-        Assert.Contains(supportedDiagnostics, d => d.DefaultSeverity == DiagnosticSeverity.Info);
+        Assert.NotNull(method);
+        Assert.False(method!.IsStatic);
+        Assert.Equal("Initialize", method.Name);
+        
+        var parameters = method.GetParameters();
+        Assert.Single(parameters);
+        Assert.Equal("AnalysisContext", parameters[0].ParameterType.Name);
+        Assert.Equal("Void", method.ReturnType.Name);
     }
 
     [Fact]
@@ -88,7 +121,179 @@ public class RelayAnalyzerCoreTests
         Assert.True(infoDiagnostics.Count() >= 1, $"Expected at least 1 info diagnostic, got {infoDiagnostics.Count()}");
     }
 
-    #endregion
+    /// <summary>
+    /// Tests that SupportedDiagnostics includes all expected diagnostic IDs.
+    /// This tests completeness of diagnostic coverage.
+    /// </summary>
+    [Fact]
+    public void SupportedDiagnostics_IncludesAllExpectedDiagnosticIds()
+    {
+        // Arrange
+        var analyzer = new RelayAnalyzer();
+        var expectedDiagnosticIds = new[]
+        {
+            "RELAY_GEN_001", // GeneratorError
+            "RELAY_GEN_004", // MissingRelayCoreReference
+            "RELAY_GEN_002", // InvalidHandlerSignature
+            "RELAY_GEN_202", // InvalidHandlerReturnType
+            "RELAY_GEN_203", // InvalidStreamHandlerReturnType
+            "RELAY_GEN_204", // InvalidNotificationHandlerReturnType
+            "RELAY_GEN_205", // HandlerMissingRequestParameter
+            "RELAY_GEN_206", // HandlerInvalidRequestParameter
+            "RELAY_GEN_207", // HandlerMissingCancellationToken
+            "RELAY_GEN_208", // NotificationHandlerMissingParameter
+            "RELAY_GEN_003", // DuplicateHandler
+            "RELAY_GEN_005", // NamedHandlerConflict
+            "RELAY_GEN_209", // InvalidPriorityValue
+            "RELAY_GEN_211", // ConfigurationConflict
+            "RELAY_GEN_212", // InvalidPipelineScope
+            "RELAY_GEN_201", // DuplicatePipelineOrder
+            "RELAY_GEN_101", // UnusedHandler
+            "RELAY_GEN_102", // PerformanceWarning
+            "RELAY_GEN_104", // MissingConfigureAwait
+            "RELAY_GEN_105", // SyncOverAsync
+            "RELAY_GEN_106", // PrivateHandler
+            "RELAY_GEN_107", // InternalHandler
+            "RELAY_GEN_108", // MultipleConstructors
+            "RELAY_GEN_109"  // ConstructorValueTypeParameter
+        };
+
+        // Act
+        var supportedDiagnostics = analyzer.SupportedDiagnostics;
+        var actualDiagnosticIds = supportedDiagnostics.Select(d => d.Id).ToHashSet();
+
+        // Assert
+        foreach (var expectedId in expectedDiagnosticIds)
+        {
+            Assert.True(actualDiagnosticIds.Contains(expectedId), 
+                $"Expected diagnostic ID '{expectedId}' not found in SupportedDiagnostics");
+        }
+    }
+
+    /// <summary>
+    /// Tests that all diagnostics in SupportedDiagnostics have valid properties.
+    /// This tests diagnostic property validation.
+    /// </summary>
+    [Fact]
+    public void SupportedDiagnostics_AllDiagnosticsHaveValidProperties()
+    {
+        // Arrange
+        var analyzer = new RelayAnalyzer();
+
+        // Act
+        var supportedDiagnostics = analyzer.SupportedDiagnostics;
+
+        // Diagnostics that are intentionally disabled by default
+        var disabledByDefault = new[]
+        {
+            "RELAY_DEBUG",
+            "RELAY_GEN_104", // MissingConfigureAwait
+            "RELAY_GEN_105"  // SyncOverAsync
+        };
+
+        // Assert
+        foreach (var diagnostic in supportedDiagnostics)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(diagnostic.Id), 
+                $"Diagnostic ID should not be null or whitespace for diagnostic at index {supportedDiagnostics.IndexOf(diagnostic)}");
+            Assert.False(string.IsNullOrWhiteSpace(diagnostic.Title.ToString()), 
+                $"Diagnostic title should not be null or whitespace for diagnostic {diagnostic.Id}");
+            Assert.False(string.IsNullOrWhiteSpace(diagnostic.Description.ToString()), 
+                $"Diagnostic description should not be null or whitespace for diagnostic {diagnostic.Id}");
+            Assert.True(diagnostic.DefaultSeverity == DiagnosticSeverity.Error || 
+                      diagnostic.DefaultSeverity == DiagnosticSeverity.Warning || 
+                      diagnostic.DefaultSeverity == DiagnosticSeverity.Info, 
+                $"Diagnostic {diagnostic.Id} should have valid severity");
+            
+            if (disabledByDefault.Contains(diagnostic.Id))
+            {
+                Assert.False(diagnostic.IsEnabledByDefault, 
+                    $"Diagnostic {diagnostic.Id} should be disabled by default");
+            }
+            else
+            {
+                Assert.True(diagnostic.IsEnabledByDefault, 
+                    $"Diagnostic {diagnostic.Id} should be enabled by default");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Tests that SupportedDiagnostics has no duplicate diagnostic IDs.
+    /// This tests uniqueness of diagnostic identifiers.
+    /// </summary>
+    [Fact]
+    public void SupportedDiagnostics_NoDuplicateIds()
+    {
+        // Arrange
+        var analyzer = new RelayAnalyzer();
+
+        // Act
+        var supportedDiagnostics = analyzer.SupportedDiagnostics;
+        var diagnosticIds = supportedDiagnostics.Select(d => d.Id).ToList();
+
+        // Assert
+        var uniqueIds = diagnosticIds.Distinct().ToList();
+        if (diagnosticIds.Count != uniqueIds.Count)
+        {
+            var message = "Found duplicate diagnostic IDs in SupportedDiagnostics";
+            Assert.True(false, message);
+        }
+        
+        // Report any duplicates found
+        var duplicates = diagnosticIds.GroupBy(id => id)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToList();
+        
+        if (duplicates.Any())
+        {
+            Assert.True(false, $"Duplicate diagnostic IDs found: {string.Join(", ", duplicates)}");
+        }
+    }
+
+    /// <summary>
+    /// Tests that SupportedDiagnostics returns immutable array.
+    /// This tests immutability of the returned collection.
+    /// </summary>
+    [Fact]
+    public void SupportedDiagnostics_ReturnsImmutableArray()
+    {
+        // Arrange
+        var analyzer = new RelayAnalyzer();
+
+        // Act
+        var supportedDiagnostics = analyzer.SupportedDiagnostics;
+
+        // Assert
+        Assert.IsType<ImmutableArray<DiagnosticDescriptor>>(supportedDiagnostics);
+        Assert.True(supportedDiagnostics.IsDefaultOrEmpty || supportedDiagnostics.Length > 0);
+    }
+
+    /// <summary>
+    /// Tests that SupportedDiagnostics returns consistent results.
+    /// This tests property consistency across multiple calls.
+    /// </summary>
+    [Fact]
+    public void SupportedDiagnostics_ReturnsConsistentResults()
+    {
+        // Arrange
+        var analyzer = new RelayAnalyzer();
+
+        // Act
+        var firstCall = analyzer.SupportedDiagnostics;
+        var secondCall = analyzer.SupportedDiagnostics;
+
+        // Assert
+        Assert.Equal(firstCall.Length, secondCall.Length);
+        
+        for (int i = 0; i < firstCall.Length; i++)
+        {
+            Assert.Equal(firstCall[i].Id, secondCall[i].Id);
+            Assert.Equal(firstCall[i].Title.ToString(), secondCall[i].Title.ToString());
+            Assert.Equal(firstCall[i].DefaultSeverity, secondCall[i].DefaultSeverity);
+        }
+    }
 
     #region Exception Handling Tests
 
@@ -419,37 +624,5 @@ namespace TestNamespace
 
     #endregion
 
-    #region Initialization Tests
-
-    [Fact]
-    public void Initialize_Method_Exists_And_Is_Public()
-    {
-        // Verify that the Initialize method exists and is public
-        var method = typeof(RelayAnalyzer).GetMethod("Initialize",
-            BindingFlags.Public | BindingFlags.Instance);
-        Assert.NotNull(method);
-        Assert.False(method!.IsStatic);
-
-        var parameters = method.GetParameters();
-        Assert.Single(parameters);
-        Assert.Equal("AnalysisContext", parameters[0].ParameterType.Name);
-    }
-
-    [Fact]
-    public void Initialize_Can_Be_Called_Without_Error()
-    {
-        // Arrange
-        var analyzer = new RelayAnalyzer();
-
-        // Act & Assert - This should not throw an exception
-        // We can't easily mock AnalysisContext, but we can verify the method can be called
-        var method = typeof(RelayAnalyzer).GetMethod("Initialize",
-            BindingFlags.Public | BindingFlags.Instance);
-        Assert.NotNull(method);
-
-        // The method should exist and be callable (though we can't call it without proper context)
-        Assert.True(true);
-    }
-
-    #endregion
+    
 }

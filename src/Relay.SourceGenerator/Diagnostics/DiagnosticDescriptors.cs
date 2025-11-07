@@ -34,6 +34,7 @@ namespace Relay.SourceGenerator
             Category,
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
+            description: "An error occurred during source generation. This typically indicates an internal error in the source generator itself.",
             customTags: new[] { "CompilationEnd", "NotConfigurable" });
 
         public static readonly DiagnosticDescriptor InvalidHandlerSignature = new(
@@ -42,7 +43,8 @@ namespace Relay.SourceGenerator
             "Invalid signature for {0} '{1}': {2}",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler signature is invalid and does not conform to expected patterns.");
 
         public static readonly DiagnosticDescriptor DuplicateHandler = new(
             "RELAY_GEN_003",
@@ -50,7 +52,8 @@ namespace Relay.SourceGenerator
             "Multiple handlers found for request type '{0}': {1}",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "Multiple handlers were found for the same request type, which is not allowed. Each request type should have at most one handler implementation.");
 
         public static readonly DiagnosticDescriptor NamedHandlerConflict = new(
             "RELAY_GEN_005",
@@ -58,7 +61,8 @@ namespace Relay.SourceGenerator
             "Multiple handlers with the same name '{0}' found for request type '{1}'",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "Multiple handlers with the same name were found for the same request type, which creates a conflict in handler resolution.");
 
         public static readonly DiagnosticDescriptor MissingRelayCoreReference = new(
             "RELAY_GEN_004",
@@ -66,7 +70,8 @@ namespace Relay.SourceGenerator
             "The Relay.Core package must be referenced to use the Relay source generator",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The Relay.Core package is not referenced in the project, which is required for the Relay source generator to function properly.");
 
         // Warning diagnostics
         public static readonly DiagnosticDescriptor UnusedHandler = new(
@@ -75,7 +80,8 @@ namespace Relay.SourceGenerator
             "Handler method '{0}' is registered but may not be reachable",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "A handler method has been registered but may not be reachable by the dependency injection container or may not be called by the application logic.");
 
         public static readonly DiagnosticDescriptor PerformanceWarning = new(
             "RELAY_GEN_102",
@@ -83,7 +89,8 @@ namespace Relay.SourceGenerator
             "Handler '{0}' may have performance implications: {1}",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler method may have performance implications that could affect the request processing throughput or latency.");
 
         public static readonly DiagnosticDescriptor MissingConfigureAwait = new(
             "RELAY_GEN_104",
@@ -91,7 +98,8 @@ namespace Relay.SourceGenerator
             "Await on a task without calling .ConfigureAwait(false) can lead to deadlocks. Consider using .ConfigureAwait(false).",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: false);
+            isEnabledByDefault: false,
+            description: "The await expression is missing ConfigureAwait(false) which can lead to deadlocks in synchronous contexts. Consider using .ConfigureAwait(false) to prevent potential issues with sync-context switches.");
 
         public static readonly DiagnosticDescriptor SyncOverAsync = new(
             "RELAY_GEN_105",
@@ -99,7 +107,8 @@ namespace Relay.SourceGenerator
             "Calling .Result or .Wait() on a task can lead to deadlocks. Use await instead.",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: false);
+            isEnabledByDefault: false,
+            description: "The code is using synchronous methods (.Result or .Wait()) on asynchronous operations, which can lead to deadlocks. Use await instead for proper asynchronous execution.");
 
         // Configuration validation diagnostics
         public static readonly DiagnosticDescriptor DuplicatePipelineOrder = new(
@@ -108,7 +117,8 @@ namespace Relay.SourceGenerator
             "Multiple pipelines found with order '{0}' in scope '{1}'. Pipeline orders must be unique within each scope.",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "Multiple pipeline attributes have been assigned the same order value within a single scope, which causes ambiguity in pipeline execution order.");
 
         public static readonly DiagnosticDescriptor InvalidHandlerReturnType = new(
             "RELAY_GEN_202",
@@ -116,7 +126,8 @@ namespace Relay.SourceGenerator
             "Handler return type '{0}' is invalid. Expected '{1}' or Task<{1}> or ValueTask<{1}>.",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler method has an invalid return type that does not conform to the expected patterns for the request type.");
 
         public static readonly DiagnosticDescriptor InvalidStreamHandlerReturnType = new(
             "RELAY_GEN_203",
@@ -124,7 +135,8 @@ namespace Relay.SourceGenerator
             "Stream handler return type '{0}' is invalid. Expected IAsyncEnumerable<{1}>.",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The stream handler method has an invalid return type that should be IAsyncEnumerable<T> for streaming responses.");
 
         public static readonly DiagnosticDescriptor InvalidNotificationHandlerReturnType = new(
             "RELAY_GEN_204",
@@ -132,7 +144,8 @@ namespace Relay.SourceGenerator
             "Notification handler return type '{0}' is invalid. Expected Task or ValueTask.",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The notification handler method has an invalid return type that should be Task or ValueTask for proper async execution.");
 
         public static readonly DiagnosticDescriptor HandlerMissingRequestParameter = new(
             "RELAY_GEN_205",
@@ -140,7 +153,8 @@ namespace Relay.SourceGenerator
             "Handler method '{0}' is missing the required request parameter.",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler method is missing the required request parameter that should match the IRequest interface implementation.");
 
         public static readonly DiagnosticDescriptor HandlerInvalidRequestParameter = new(
             "RELAY_GEN_206",
@@ -148,7 +162,8 @@ namespace Relay.SourceGenerator
             "Handler method request parameter type '{0}' does not match expected type '{1}'.",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler method has a request parameter with a type that does not match the expected request type for the handler.");
 
         public static readonly DiagnosticDescriptor HandlerMissingCancellationToken = new(
             "RELAY_GEN_207",
@@ -156,7 +171,8 @@ namespace Relay.SourceGenerator
             "Handler method '{0}' should include a CancellationToken parameter for proper cancellation support.",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler method is missing an optional but recommended CancellationToken parameter for proper cancellation support during long-running operations.");
 
         public static readonly DiagnosticDescriptor NotificationHandlerMissingParameter = new(
             "RELAY_GEN_208",
@@ -164,7 +180,8 @@ namespace Relay.SourceGenerator
             "Notification handler method '{0}' is missing the required notification parameter.",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The notification handler method is missing the required notification parameter that should match the INotification interface implementation.");
 
         public static readonly DiagnosticDescriptor InvalidPriorityValue = new(
             "RELAY_GEN_209",
@@ -172,7 +189,8 @@ namespace Relay.SourceGenerator
             "Priority value '{0}' is invalid. Priority must be a valid integer value.",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The priority value specified for a handler is invalid and must be a valid integer value.");
 
         public static readonly DiagnosticDescriptor NoHandlersFound = new(
             "RELAY_GEN_210",
@@ -180,7 +198,8 @@ namespace Relay.SourceGenerator
             "No handlers or notification handlers were found. Add [Handle] or [Notification] attributes to methods.",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "No handlers or notification handlers were found in the compilation. Add [Handle] or [Notification] attributes to handler methods to register them with the Relay framework.");
 
         public static readonly DiagnosticDescriptor ConfigurationConflict = new(
             "RELAY_GEN_211",
@@ -188,7 +207,8 @@ namespace Relay.SourceGenerator
             "Configuration conflict detected: {0}",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "A configuration conflict was detected that prevents proper handler registration or pipeline setup. Check the configuration for conflicting values.");
 
         public static readonly DiagnosticDescriptor InvalidPipelineScope = new(
             "RELAY_GEN_212",
@@ -196,7 +216,8 @@ namespace Relay.SourceGenerator
             "Pipeline scope '{0}' is invalid for method '{1}'. Expected scope: {2}",
             Category,
             DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The pipeline scope specified for a method is invalid and does not match the expected scope for the handler type.");
 
         public static readonly DiagnosticDescriptor PrivateHandler = new(
             "RELAY_GEN_106",
@@ -204,7 +225,8 @@ namespace Relay.SourceGenerator
             "Handler method '{0}' is private. Private handlers may not be discoverable by the dependency injection container.",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler method is marked as private, which can make it undiscoverable by the dependency injection container. Consider making the handler method public.");
 
         public static readonly DiagnosticDescriptor InternalHandler = new(
             "RELAY_GEN_107",
@@ -212,7 +234,8 @@ namespace Relay.SourceGenerator
             "Handler method '{0}' is internal. This is a valid accessibility, but consider making it public if it needs to be accessed from other assemblies.",
             Category,
             DiagnosticSeverity.Info,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler method is marked as internal, which is valid but limits its accessibility. Consider making it public if it needs to be accessed from other assemblies.");
 
         public static readonly DiagnosticDescriptor MultipleConstructors = new(
             "RELAY_GEN_108",
@@ -220,7 +243,8 @@ namespace Relay.SourceGenerator
             "Handler class '{0}' has multiple constructors. The dependency injection container may not be able to resolve the correct one. Consider using a single constructor.",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler class has multiple constructors which can cause issues with dependency injection resolution. Consider using a single constructor with all required dependencies.");
 
         public static readonly DiagnosticDescriptor ConstructorValueTypeParameter = new(
             "RELAY_GEN_109",
@@ -228,7 +252,8 @@ namespace Relay.SourceGenerator
             "Handler class '{0}' has a constructor with a value type parameter '{1}'. Value types are not typically registered as services and may cause issues with dependency injection.",
             Category,
             DiagnosticSeverity.Warning,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true,
+            description: "The handler class constructor has a value type parameter which is not typically registered as a service and may cause dependency injection issues.");
 
         // New diagnostic descriptors for improved error reporting
         public static readonly DiagnosticDescriptor InvalidConfigurationValue = new(

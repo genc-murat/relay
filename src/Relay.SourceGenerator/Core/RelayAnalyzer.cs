@@ -24,6 +24,10 @@ public class RelayAnalyzer : DiagnosticAnalyzer
     /// </summary>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         ImmutableArray.Create(
+            // Generator errors
+            DiagnosticDescriptors.GeneratorError,
+            DiagnosticDescriptors.MissingRelayCoreReference,
+
             // Handler signature validation
             DiagnosticDescriptors.InvalidHandlerSignature,
             DiagnosticDescriptors.InvalidHandlerReturnType,
@@ -131,6 +135,9 @@ public class RelayAnalyzer : DiagnosticAnalyzer
     {
         try
         {
+            // Check for cancellation immediately
+            context.CancellationToken.ThrowIfCancellationRequested();
+            
             var compilation = context.Compilation;
             var handlerRegistry = new HandlerRegistry();
             var pipelineRegistry = new List<PipelineInfo>();

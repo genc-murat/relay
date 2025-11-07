@@ -1,6 +1,6 @@
 using System;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.AI.Analysis.TimeSeries;
 using Xunit;
@@ -241,6 +241,111 @@ public class ForecastingServiceCollectionExtensionsTests
         Assert.Equal(7, config.TrainingDataWindowDays);
         Assert.True(config.AutoTrainOnForecast);
         Assert.Equal(42, config.MlContextSeed);
+    }
+
+    [Fact]
+    public void AddForecasting_MultipleCalls_RegistersServicesMultipleTimes()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(Mock.Of<ITimeSeriesRepository>());
+
+        // Act
+        services.AddForecasting();
+        services.AddForecasting(); // Call again
+
+        // Assert
+        // Multiple registrations should not prevent resolution
+        var serviceProvider = services.BuildServiceProvider();
+
+        Assert.NotNull(serviceProvider.GetService<ForecastingConfiguration>());
+        Assert.NotNull(serviceProvider.GetService<IForecastingModelManager>());
+        Assert.NotNull(serviceProvider.GetService<IForecastingService>());
+
+        // Check that we have multiple descriptors for the same service
+        var configDescriptors = services.Where(d => d.ServiceType == typeof(ForecastingConfiguration)).ToList();
+        Assert.Equal(2, configDescriptors.Count); // Two registrations
+    }
+
+    [Fact]
+    public void AddForecasting_WithConfigureActionThrowingException_PropagatesException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act & Assert
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            services.AddForecasting(config => throw new InvalidOperationException("Configure failed")));
+
+        Assert.Equal("Configure failed", ex.Message);
+    }
+
+    [Fact]
+    public void AddForecasting_WithExtremeConfigurationValues_AppliesConfigurationCorrectly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddForecasting(config =>
+        {
+            config.DefaultForecastHorizon = int.MaxValue;
+            config.MinimumDataPoints = 1;
+            config.TrainingDataWindowDays = 0;
+            config.AutoTrainOnForecast = false;
+            config.MlContextSeed = int.MinValue;
+        });
+
+        // Assert
+        var serviceProvider = services.BuildServiceProvider();
+        var config = serviceProvider.GetService<ForecastingConfiguration>();
+
+        Assert.NotNull(config);
+        Assert.Equal(int.MaxValue, config.DefaultForecastHorizon);
+        Assert.Equal(1, config.MinimumDataPoints);
+        Assert.Equal(0, config.TrainingDataWindowDays);
+        Assert.False(config.AutoTrainOnForecast);
+        Assert.Equal(int.MinValue, config.MlContextSeed);
+    }
+
+    [Fact]
+    public void AddForecasting_AllServicesCanBeResolvedAndAreUsable()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton(Mock.Of<ITimeSeriesRepository>());
+
+        // Act
+        services.AddForecasting();
+
+        // Assert
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Verify all services can be resolved
+        var config = serviceProvider.GetService<ForecastingConfiguration>();
+        var modelManager = serviceProvider.GetService<IForecastingModelManager>();
+        var methodManager = serviceProvider.GetService<IForecastingMethodManager>();
+        var trainer = serviceProvider.GetService<IForecastingTrainer>();
+        var predictor = serviceProvider.GetService<IForecastingPredictor>();
+        var forecastingService = serviceProvider.GetService<IForecastingService>();
+
+        // Ensure they are not null and of expected types
+        Assert.NotNull(config);
+        Assert.IsType<ForecastingModelManager>(modelManager);
+        Assert.IsType<ForecastingMethodManager>(methodManager);
+        Assert.IsType<ForecastingTrainer>(trainer);
+        Assert.IsType<ForecastingPredictor>(predictor);
+        Assert.IsType<ForecastingService>(forecastingService);
+
+        // Verify they have required dependencies (basic usability check)
+        // This ensures the services were constructed properly
+        Assert.NotNull(modelManager);
+        Assert.NotNull(methodManager);
+        Assert.NotNull(trainer);
+        Assert.NotNull(predictor);
+        Assert.NotNull(forecastingService);
     }
 
     #endregion

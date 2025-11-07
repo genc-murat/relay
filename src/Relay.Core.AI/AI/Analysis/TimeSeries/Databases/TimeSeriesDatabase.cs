@@ -41,6 +41,12 @@ public class TimeSeriesDatabase : IDisposable
         int maxHistorySize = 10000,
         IConfiguration? configuration = null)
     {
+        // Validate parameters
+        if (maxHistorySize <= 0)
+            throw new ArgumentException("MaxHistorySize must be positive", nameof(maxHistorySize));
+        if (maxHistorySize > 1000000)
+            throw new ArgumentException("MaxHistorySize cannot exceed 1,000,000", nameof(maxHistorySize));
+
         // Validate and get configuration values
         var validatedMaxHistorySize = ValidateMaxHistorySize(maxHistorySize, configuration);
         var forecastHorizon = ValidateForecastHorizon(configuration);

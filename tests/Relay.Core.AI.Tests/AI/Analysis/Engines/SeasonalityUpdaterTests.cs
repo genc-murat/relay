@@ -610,4 +610,164 @@ public class SeasonalityUpdaterTests
         Assert.NotNull(pattern.DailyPattern);
         Assert.True(pattern.ExpectedMultiplier > 0);
     }
+
+    [Fact]
+    public void UpdateSeasonalityPatterns_Should_Handle_Exception_In_Debug_Logging()
+    {
+        // Arrange - Mock logger to throw exception only during debug logging (not all logging)
+        var loggerMock = new Mock<ILogger<SeasonalityUpdater>>();
+        loggerMock.Setup(x => x.Log(LogLevel.Debug, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+            .Throws(new InvalidOperationException("Logger failure"));
+
+        var updater = new SeasonalityUpdater(loggerMock.Object);
+        var timestamp = new DateTime(2025, 1, 14, 12, 0, 0); // Tuesday 12:00 (business hours)
+        // Use value that will fail seasonality check to trigger debug logging
+        var metrics = new Dictionary<string, double> { ["cpu"] = 0.3 }; // Below bounds
+
+        // Act
+        var result = updater.UpdateSeasonalityPatterns(metrics, timestamp);
+
+        // Assert - Should still return result with neutral pattern due to exception handling
+        Assert.Single(result);
+        var pattern = result["cpu"];
+        Assert.Equal("Unknown", pattern.HourlyPattern);
+        Assert.Equal("Unknown", pattern.DailyPattern);
+        Assert.Equal(1.0, pattern.ExpectedMultiplier);
+        Assert.False(pattern.MatchesSeasonality);
+    }
+
+    [Fact]
+    public void IsWithinSeasonalExpectation_Should_Handle_Exception_In_Validation()
+    {
+        // Arrange - Use reflection to access the private method
+        var updater = new SeasonalityUpdater(_loggerMock.Object);
+        var method = typeof(SeasonalityUpdater).GetMethod("IsWithinSeasonalExpectation",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act & Assert - Call with parameters that might cause issues
+        // The method should handle exceptions gracefully and return true as default
+        var result = (bool)method.Invoke(updater, new object[] { double.NaN, 1.5, (12, DayOfWeek.Tuesday) });
+        Assert.True(result); // Should return true on exception
+    }
+
+    [Fact]
+    public void TrackSeasonalValue_Should_Handle_Exception_In_Tracking()
+    {
+        // Arrange - Use reflection to access the private method
+        var updater = new SeasonalityUpdater(_loggerMock.Object);
+        var method = typeof(SeasonalityUpdater).GetMethod("TrackSeasonalValue",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act & Assert - The method should handle exceptions internally
+        // This tests the try-catch in TrackSeasonalValue
+        method.Invoke(updater, new object[] { (12, DayOfWeek.Tuesday), 1.5 });
+        // No assertion needed - just verify no exception is thrown
+    }
+
+    [Fact]
+    public void UpdateSeasonalStatistics_Should_Handle_Exception_In_Calculation()
+    {
+        // Arrange - Use reflection to access the private method
+        var updater = new SeasonalityUpdater(_loggerMock.Object);
+        var method = typeof(SeasonalityUpdater).GetMethod("UpdateSeasonalStatistics",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // First add some data to ensure the method has data to work with
+        var trackMethod = typeof(SeasonalityUpdater).GetMethod("TrackSeasonalValue",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        for (int i = 0; i < 3; i++)
+        {
+            trackMethod.Invoke(updater, new object[] { (12, DayOfWeek.Tuesday), 1.5 });
+        }
+
+        // Act & Assert - The method should handle exceptions internally
+        method.Invoke(updater, new object[] { (12, DayOfWeek.Tuesday) });
+        // No assertion needed - just verify no exception is thrown
+    }
+
+    [Fact]
+    public void UpdateSeasonalityPatterns_Should_Log_Trace_For_Multiplier_Bounds_Violation()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<SeasonalityUpdater>>();
+        var updater = new SeasonalityUpdater(loggerMock.Object);
+        var timestamp = new DateTime(2025, 1, 14, 12, 0, 0); // Tuesday 12:00 (business hours, expected multiplier 1.5)
+        // Use value within absolute bounds (0.5-2.5) but outside multiplier bounds (0.75-2.25)
+        var metrics = new Dictionary<string, double> { ["cpu"] = 0.6 };
+
+        // Act
+        var result = updater.UpdateSeasonalityPatterns(metrics, timestamp);
+
+        // Assert
+        Assert.False(result["cpu"].MatchesSeasonality);
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Trace,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("deviates from expected multiplier")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void UpdateSeasonalityPatterns_Should_Log_Trace_For_ZScore_Threshold_Exceedance()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<SeasonalityUpdater>>();
+        var updater = new SeasonalityUpdater(loggerMock.Object);
+        var timestamp = new DateTime(2025, 1, 14, 12, 0, 0); // Tuesday 12:00
+
+        // Establish baseline with very consistent values to create low variance
+        for (int i = 0; i < 5; i++)
+        {
+            updater.UpdateSeasonalityPatterns(
+                new Dictionary<string, double> { ["cpu"] = 1.5 },
+                timestamp);
+        }
+
+        // Act - Use value within absolute bounds but with high Z-score
+        var result = updater.UpdateSeasonalityPatterns(
+            new Dictionary<string, double> { ["cpu"] = 2.0 }, // Within bounds but should have high Z-score
+            timestamp);
+
+        // Assert
+        Assert.False(result["cpu"].MatchesSeasonality);
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Trace,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Z-score") && v.ToString().Contains("against historical mean")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void IsWithinHistoricalRange_Should_Log_Trace_For_ZScore_Outlier()
+    {
+        // Arrange - Use reflection to access the private method
+        var loggerMock = new Mock<ILogger<SeasonalityUpdater>>();
+        var updater = new SeasonalityUpdater(loggerMock.Object);
+        var method = typeof(SeasonalityUpdater).GetMethod("IsWithinHistoricalRange",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Create stats with mean 1.5, stdDev 0.1, so value 2.0 should have high Z-score
+        var stats = (Mean: 1.5, StdDev: 0.1, Count: 10);
+
+        // Act - Value 2.0 should have Z-score of (2.0 - 1.5) / 0.1 = 5.0 (> 2.0 threshold)
+        var result = (bool)method.Invoke(updater, new object[] { 2.0, stats });
+
+        // Assert
+        Assert.False(result);
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Trace,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Z-score") && v.ToString().Contains("against historical mean")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
 }

@@ -609,4 +609,214 @@ public class AnomalyUpdaterTests
         Assert.NotNull(iqrAnomaly);
         Assert.True(iqrAnomaly.Severity >= AnomalySeverity.High);
     }
+
+    [Fact]
+    public void ClearHistory_Should_Log_Debug_Message()
+    {
+        // Arrange
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+
+        // Act
+        updater.ClearHistory();
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void DetectHighVelocity_Should_Return_Null_When_History_Less_Than_Two()
+    {
+        // Arrange
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+        var movingAverages = new Dictionary<string, MovingAverageData>
+        {
+            ["metric"] = new MovingAverageData { MA15 = 100.0, Timestamp = DateTime.UtcNow }
+        };
+
+        // Act - First call adds one value to history
+        var metrics = new Dictionary<string, double> { ["metric"] = 100.0 };
+        var anomalies = updater.UpdateAnomalies(metrics, movingAverages);
+
+        // Assert - No velocity anomaly since history < 2
+        Assert.DoesNotContain(anomalies, a => a.Description.Contains("High velocity"));
+    }
+
+    [Fact]
+    public void DetectHighVelocity_Should_Return_Null_When_Previous_Value_Is_Zero()
+    {
+        // Arrange
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+        var movingAverages = new Dictionary<string, MovingAverageData>
+        {
+            ["metric"] = new MovingAverageData { MA15 = 0.0, Timestamp = DateTime.UtcNow }
+        };
+
+        // Build history with zero value
+        var metrics1 = new Dictionary<string, double> { ["metric"] = 0.0 };
+        updater.UpdateAnomalies(metrics1, movingAverages);
+
+        // Act - Add non-zero value
+        var metrics2 = new Dictionary<string, double> { ["metric"] = 100.0 };
+        var anomalies = updater.UpdateAnomalies(metrics2, movingAverages);
+
+        // Assert - No velocity anomaly since previous value is zero
+        Assert.DoesNotContain(anomalies, a => a.Description.Contains("High velocity"));
+    }
+
+    [Fact]
+    public void DetectAnomalyByZScore_Should_Return_Null_When_StdDev_Is_Zero()
+    {
+        // Arrange
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+        var movingAverages = new Dictionary<string, MovingAverageData>
+        {
+            ["metric"] = new MovingAverageData { MA15 = 100.0, Timestamp = DateTime.UtcNow }
+        };
+
+        // Build history with identical values to make stdDev = 0
+        for (int i = 0; i < 5; i++)
+        {
+            var metrics = new Dictionary<string, double> { ["metric"] = 100.0 };
+            updater.UpdateAnomalies(metrics, movingAverages);
+        }
+
+        // Act - Add same value, stdDev should be 0
+        var testMetrics = new Dictionary<string, double> { ["metric"] = 100.0 };
+        var anomalies = updater.UpdateAnomalies(testMetrics, movingAverages);
+
+        // Assert - No Z-Score anomaly since stdDev = 0
+        Assert.DoesNotContain(anomalies, a => a.Description.Contains("Z-Score anomaly"));
+    }
+
+    [Fact]
+    public void UpdateAnomalies_Should_Log_Warnings_For_Detected_Anomalies()
+    {
+        // Arrange
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+        var currentMetrics = new Dictionary<string, double>
+        {
+            ["cpu"] = 97.5
+        };
+        var movingAverages = new Dictionary<string, MovingAverageData>
+        {
+            ["cpu"] = new MovingAverageData { MA15 = 75.0, Timestamp = DateTime.UtcNow }
+        };
+
+        // Act
+        var anomalies = updater.UpdateAnomalies(currentMetrics, movingAverages);
+
+        // Assert - Should detect anomalies and log warnings
+        Assert.NotEmpty(anomalies);
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void DetectAnomalyByZScore_Should_Return_Anomaly_When_ZScore_Exceeds_Threshold()
+    {
+        // Arrange
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+
+        // Use reflection to invoke private method
+        var method = typeof(AnomalyUpdater).GetMethod("DetectAnomalyByZScore",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var ma = new MovingAverageData { MA15 = 75.0, Timestamp = DateTime.UtcNow };
+
+        // Act
+        var result = method.Invoke(updater, new object[] { "cpu", 97.5, ma });
+
+        // Assert - Should return anomaly since 97.5 - 75 = 22.5, stdDev = 7.5, zscore = 22.5/7.5 = 3 > 2
+        Assert.NotNull(result);
+        var anomaly = result as MetricAnomaly;
+        Assert.Equal("cpu", anomaly.MetricName);
+        Assert.Equal(97.5, anomaly.CurrentValue);
+        Assert.Equal(75.0, anomaly.ExpectedValue);
+    }
+
+    [Fact]
+    public void DetectAnomalyByIQR_Should_Handle_Exception_And_Return_Null()
+    {
+        // Arrange
+        _loggerMock.Setup(x => x.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>())).Throws(new Exception("Logger failed"));
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+
+        // Use reflection to invoke private method
+        var method = typeof(AnomalyUpdater).GetMethod("DetectAnomalyByIQR",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var ma = new MovingAverageData { MA15 = 75.0, Timestamp = DateTime.UtcNow };
+
+        // Act
+        var result = method.Invoke(updater, new object[] { "cpu", 97.5, ma });
+
+        // Assert - Should return null
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void DetectSpikeOrDrop_Should_Handle_Exception_And_Return_Null()
+    {
+        // Arrange
+        _loggerMock.Setup(x => x.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>())).Throws(new Exception("Logger failed"));
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+
+        // Use reflection
+        var method = typeof(AnomalyUpdater).GetMethod("DetectSpikeOrDrop",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var ma = new MovingAverageData { MA15 = 75.0, Timestamp = DateTime.UtcNow };
+
+        // Act
+        var result = method.Invoke(updater, new object[] { "cpu", 97.5, ma });
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void DetectHighVelocity_Should_Handle_Exception_And_Return_Null()
+    {
+        // Arrange
+        _loggerMock.Setup(x => x.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>())).Throws(new Exception("Logger failed"));
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+
+        // Use reflection
+        var method = typeof(AnomalyUpdater).GetMethod("DetectHighVelocity",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var ma = new MovingAverageData { MA15 = 75.0, Timestamp = DateTime.UtcNow };
+
+        // Act
+        var result = method.Invoke(updater, new object[] { "cpu", 97.5, ma });
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void CalculateStandardDeviation_Should_Return_Fallback_Value_When_No_History()
+    {
+        // Arrange
+        var updater = new AnomalyUpdater(_loggerMock.Object, _config);
+
+        // Use reflection
+        var method = typeof(AnomalyUpdater).GetMethod("CalculateStandardDeviation",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act
+        var result = (double)method.Invoke(updater, new object[] { "cpu", 75.0 });
+
+        // Assert - Should return mean * 0.1 = 7.5
+        Assert.Equal(7.5, result);
+    }
 }

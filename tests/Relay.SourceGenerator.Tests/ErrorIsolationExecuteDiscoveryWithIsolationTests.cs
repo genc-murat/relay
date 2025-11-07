@@ -382,6 +382,60 @@ public class ErrorIsolationExecuteDiscoveryWithIsolationTests
     }
 
     #endregion
+
+    #region Non-Recoverable Exception Tests (Else Block Coverage)
+
+    [Fact]
+    public void ExecuteDiscoveryWithIsolation_NonRecoverableException_ReportsCriticalErrorAndReturnsEmptyResult()
+    {
+        // Arrange
+        var testException = new OutOfMemoryException("Out of memory during discovery");
+        Func<HandlerDiscoveryResult> discoveryAction = () => throw testException;
+
+        // Act
+        var result = ErrorIsolation.ExecuteDiscoveryWithIsolation(discoveryAction, _diagnosticReporter);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result.Handlers);
+        Assert.Empty(result.NotificationHandlers);
+        Assert.Empty(result.PipelineBehaviors);
+        Assert.Empty(result.StreamHandlers);
+        
+        // Should have one critical error diagnostic
+        Assert.Single(_diagnosticReporter.Diagnostics);
+        var diagnostic = _diagnosticReporter.Diagnostics[0];
+        Assert.Contains("Critical error in operation 'Handler discovery'", diagnostic.GetMessage());
+        Assert.Contains("OutOfMemoryException", diagnostic.GetMessage());
+        Assert.Contains("Out of memory during discovery", diagnostic.GetMessage());
+    }
+
+    [Fact]
+    public void ExecuteDiscoveryWithIsolation_StackOverflowException_ReportsCriticalErrorAndReturnsEmptyResult()
+    {
+        // Arrange
+        var testException = new StackOverflowException("Stack overflow during discovery");
+        Func<HandlerDiscoveryResult> discoveryAction = () => throw testException;
+
+        // Act
+        var result = ErrorIsolation.ExecuteDiscoveryWithIsolation(discoveryAction, _diagnosticReporter);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result.Handlers);
+        Assert.Empty(result.NotificationHandlers);
+        Assert.Empty(result.PipelineBehaviors);
+        Assert.Empty(result.StreamHandlers);
+        
+        // Should have one critical error diagnostic
+        Assert.Single(_diagnosticReporter.Diagnostics);
+        var diagnostic = _diagnosticReporter.Diagnostics[0];
+        Assert.Contains("Critical error in operation 'Handler discovery'", diagnostic.GetMessage());
+        Assert.Contains("StackOverflowException", diagnostic.GetMessage());
+        Assert.Contains("Stack overflow during discovery", diagnostic.GetMessage());
+    }
+
+    #endregion
 }
 
 /// <summary>

@@ -114,7 +114,8 @@ public static class ErrorIsolation
                     var lastError = safeContext.Errors[safeContext.Errors.Count - 1];
                     if (!ErrorIsolation.IsRecoverableException(lastError))
                     {
-                        // Critical error, stop processing
+                        // Critical error, report and stop processing
+                        ReportCriticalError($"Generator {generator.GeneratorName}", lastError, diagnosticReporter);
                         break;
                     }
                 }

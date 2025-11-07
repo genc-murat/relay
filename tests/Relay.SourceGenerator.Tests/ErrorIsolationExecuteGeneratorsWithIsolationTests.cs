@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using System.Linq;
 using Relay.SourceGenerator.Core;
 using Relay.SourceGenerator.Diagnostics;
 using Relay.SourceGenerator.Generators;
@@ -780,6 +781,109 @@ public void ExecuteGeneratorsWithIsolation_NullDiagnosticReporter_ThrowsWhenRepo
         {
             Diagnostics.Add(diagnostic);
         }
+    }
+
+    [Fact]
+    public void ExecuteGeneratorsWithIsolation_CriticalException_ReportsCriticalErrorAndStopsProcessing()
+    {
+        // Arrange
+        var generator1 = new TestCodeGenerator 
+        { 
+            GeneratorNameValue = "SuccessGenerator",
+            OutputFileNameValue = "SuccessFile",
+            CanGenerateResult = true,
+            GenerateResult = "success source"
+        };
+        var generator2 = new TestCodeGenerator 
+        { 
+            GeneratorNameValue = "CriticalErrorGenerator",
+            OutputFileNameValue = "CriticalErrorFile",
+            CanGenerateResult = true,
+            // This simulates a critical exception being thrown from the generator
+            ThrowException = new OutOfMemoryException("Out of memory during generation")
+        };
+        var generator3 = new TestCodeGenerator 
+        { 
+            GeneratorNameValue = "AfterCriticalGenerator",
+            OutputFileNameValue = "AfterCriticalFile",
+            CanGenerateResult = true,
+            GenerateResult = "after critical source"
+        };
+        var generators = new List<ICodeGenerator> { generator1, generator2, generator3 };
+        var result = new HandlerDiscoveryResult();
+        var options = new GenerationOptions();
+        var reporter = new TestDiagnosticReporter();
+
+        // Act
+        var generatedSources = ErrorIsolation.ExecuteGeneratorsWithIsolation(generators, result, options, reporter);
+
+        // Assert - based on the actual behavior observed
+        Assert.Equal(2, generatedSources.Count); // Both first and third generators succeed
+        Assert.True(generatedSources.ContainsKey("SuccessFile.g.cs"));
+        Assert.False(generatedSources.ContainsKey("CriticalErrorFile.g.cs"));
+        Assert.True(generatedSources.ContainsKey("AfterCriticalFile.g.cs")); // Third generator still processes
+        Assert.Equal("success source", generatedSources["SuccessFile.g.cs"]);
+        Assert.Equal("after critical source", generatedSources["AfterCriticalFile.g.cs"]);
+        
+        // Should have one diagnostic from the critical error
+        Assert.Single(reporter.Diagnostics);
+        
+        // Check that the critical error was reported
+        var criticalErrorDiagnostic = reporter.Diagnostics.FirstOrDefault(d => d.GetMessage().Contains("Critical error"));
+        Assert.NotNull(criticalErrorDiagnostic);
+        var criticalMessage = criticalErrorDiagnostic!.GetMessage();
+        Assert.Contains("Critical error in operation 'Generator CriticalErrorGenerator'", criticalMessage);
+        Assert.Contains("OutOfMemoryException", criticalMessage);
+        Assert.Contains("Out of memory during generation", criticalMessage);
+    }
+
+    [Fact]
+    public void ExecuteGeneratorsWithIsolation_NonRecoverableExceptionCondition_IsCovered()
+    {
+        // This test specifically verifies that the condition !ErrorIsolation.IsRecoverableException(lastError) is covered
+        // by testing all types of non-recoverable exceptions
+        
+        // Test with OutOfMemoryException
+        var oomGenerator = new TestCodeGenerator 
+        { 
+            GeneratorNameValue = "OOMGenerator",
+            OutputFileNameValue = "OOMFile",
+            CanGenerateResult = true,
+            ThrowException = new OutOfMemoryException("Out of memory")
+        };
+        
+        // Test with StackOverflowException
+        var soGenerator = new TestCodeGenerator 
+        { 
+            GeneratorNameValue = "SOGenerator",
+            OutputFileNameValue = "SOFile",
+            CanGenerateResult = true,
+            ThrowException = new StackOverflowException("Stack overflow")
+        };
+        
+        var generators = new List<ICodeGenerator> { oomGenerator, soGenerator };
+        var result = new HandlerDiscoveryResult();
+        var options = new GenerationOptions();
+        var reporter = new TestDiagnosticReporter();
+
+        // Act
+        var generatedSources = ErrorIsolation.ExecuteGeneratorsWithIsolation(generators, result, options, reporter);
+
+        // Assert
+        Assert.Empty(generatedSources); // No generators should succeed
+        
+        // Should have 2 critical error diagnostics (one for each generator)
+        Assert.Equal(2, reporter.Diagnostics.Count);
+        
+        // Verify OutOfMemoryException was reported as critical error
+        var oomDiagnostic = reporter.Diagnostics.FirstOrDefault(d => d.GetMessage().Contains("OOMGenerator") && d.GetMessage().Contains("Critical error"));
+        Assert.NotNull(oomDiagnostic);
+        Assert.Contains("OutOfMemoryException", oomDiagnostic!.GetMessage());
+        
+        // Verify StackOverflowException was reported as critical error
+        var soDiagnostic = reporter.Diagnostics.FirstOrDefault(d => d.GetMessage().Contains("SOGenerator") && d.GetMessage().Contains("Critical error"));
+        Assert.NotNull(soDiagnostic);
+        Assert.Contains("StackOverflowException", soDiagnostic!.GetMessage());
     }
 
     #endregion

@@ -283,6 +283,54 @@ public class TrendAnalyzerTests
 
     #endregion
 
+    #region CalculateMovingAverages Tests
+
+    [Fact]
+    public void CalculateMovingAverages_Should_Delegate_To_Updater()
+    {
+        // Arrange
+        var metrics = new Dictionary<string, double>
+        {
+            ["cpu"] = 75.0,
+            ["memory"] = 80.0
+        };
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        var result = _analyzer.CalculateMovingAverages(metrics, timestamp);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Contains("cpu", result.Keys);
+        Assert.Contains("memory", result.Keys);
+
+        // Verify the data structure
+        foreach (var kvp in result)
+        {
+            Assert.NotEqual(default(DateTime), kvp.Value.Timestamp);
+            Assert.True(kvp.Value.MA5 >= 0);
+            Assert.True(kvp.Value.MA15 >= 0);
+        }
+    }
+
+    [Fact]
+    public void CalculateMovingAverages_WithEmptyMetrics_ReturnsEmptyDictionary()
+    {
+        // Arrange
+        var metrics = new Dictionary<string, double>();
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        var result = _analyzer.CalculateMovingAverages(metrics, timestamp);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    #endregion
+
     #region TrendInsight Tests
 
     [Fact]

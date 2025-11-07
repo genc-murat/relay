@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moq;
 using Relay.Core.AI;
 using System;
 using System.Collections.Generic;
@@ -511,6 +512,90 @@ public class TrendAnalyzerAnomalyDeduplicationTests
                 Assert.True(metricAnomalies[0].Severity >= testCase.ExpectedMinSeverity);
             }
         }
+    }
+
+    #endregion
+
+    #region Severity-Based Deduplication with Mock Tests
+
+    [Fact]
+    public void DetectPerformanceAnomalies_Deduplication_KeepsHighestSeverityAnomaly_WithMockedUpdater()
+    {
+        // Arrange - Use mocks to control exactly what anomalies are returned
+        var loggerMock = new Mock<ILogger<TrendAnalyzer>>();
+        var movingAverageUpdaterMock = new Mock<IMovingAverageUpdater>();
+        var trendDirectionUpdaterMock = new Mock<ITrendDirectionUpdater>();
+        var trendVelocityUpdaterMock = new Mock<ITrendVelocityUpdater>();
+        var seasonalityUpdaterMock = new Mock<ISeasonalityUpdater>();
+        var regressionUpdaterMock = new Mock<IRegressionUpdater>();
+        var correlationUpdaterMock = new Mock<ICorrelationUpdater>();
+        var anomalyUpdaterMock = new Mock<IAnomalyUpdater>();
+
+        var analyzer = new TrendAnalyzer(
+            loggerMock.Object,
+            movingAverageUpdaterMock.Object,
+            trendDirectionUpdaterMock.Object,
+            trendVelocityUpdaterMock.Object,
+            seasonalityUpdaterMock.Object,
+            regressionUpdaterMock.Object,
+            correlationUpdaterMock.Object,
+            anomalyUpdaterMock.Object);
+
+        var metrics = new Dictionary<string, double> { ["cpu"] = 90.0 };
+        var movingAverages = new Dictionary<string, MovingAverageData>
+        {
+            ["cpu"] = new MovingAverageData { MA15 = 70.0, Timestamp = DateTime.UtcNow }
+        };
+
+        // Mock the anomaly updater to return multiple anomalies for the same metric with different severities
+        var anomalies = new List<MetricAnomaly>
+        {
+            new MetricAnomaly
+            {
+                MetricName = "cpu",
+                CurrentValue = 90.0,
+                ExpectedValue = 70.0,
+                Severity = AnomalySeverity.Low, // Lower severity
+                Description = "Low severity anomaly",
+                Timestamp = DateTime.UtcNow,
+                Deviation = 20.0,
+                ZScore = 2.0
+            },
+            new MetricAnomaly
+            {
+                MetricName = "cpu",
+                CurrentValue = 90.0,
+                ExpectedValue = 70.0,
+                Severity = AnomalySeverity.Critical, // Higher severity - should be kept
+                Description = "Critical severity anomaly",
+                Timestamp = DateTime.UtcNow,
+                Deviation = 20.0,
+                ZScore = 2.0
+            },
+            new MetricAnomaly
+            {
+                MetricName = "cpu",
+                CurrentValue = 90.0,
+                ExpectedValue = 70.0,
+                Severity = AnomalySeverity.Medium, // Medium severity
+                Description = "Medium severity anomaly",
+                Timestamp = DateTime.UtcNow,
+                Deviation = 20.0,
+                ZScore = 2.0
+            }
+        };
+
+        anomalyUpdaterMock.Setup(x => x.UpdateAnomalies(metrics, movingAverages)).Returns(anomalies);
+
+        // Act
+        var result = analyzer.DetectPerformanceAnomalies(metrics, movingAverages);
+
+        // Assert
+        Assert.Single(result); // Only one anomaly should remain after deduplication
+        var keptAnomaly = result[0];
+        Assert.Equal("cpu", keptAnomaly.MetricName);
+        Assert.Equal(AnomalySeverity.Critical, keptAnomaly.Severity); // Highest severity should be kept
+        Assert.Equal("Critical severity anomaly", keptAnomaly.Description);
     }
 
     #endregion

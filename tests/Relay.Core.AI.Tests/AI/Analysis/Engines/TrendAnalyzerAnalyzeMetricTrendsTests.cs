@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moq;
 using Relay.Core.AI;
 using System;
 using System.Collections.Generic;
@@ -660,4 +661,14 @@ public class TrendAnalyzerAnalyzeMetricTrendsTests
     }
 
     #endregion
+
+
+
+
+
+
+
+
+
+
 }

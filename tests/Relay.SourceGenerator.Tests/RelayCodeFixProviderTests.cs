@@ -515,6 +515,156 @@ public class TestHandler
         }
 
         /// <summary>
+        /// Tests that code fix works when syntax root is not a CompilationUnitSyntax.
+        /// This covers the case where oldRoot is not CompilationUnitSyntax compilationUnit.
+        /// </summary>
+        [Fact]
+        public async Task AddCancellationTokenParameter_NonCompilationUnitRoot_FixesHandlerMethod()
+        {
+            var source = @"
+using System.Threading.Tasks;
+
+namespace Relay.Core
+{
+    public interface IRequest { }
+    public interface IRequest<out TResponse> { }
+    
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public sealed class HandleAttribute : System.Attribute
+    {
+        public string? Name { get; set; }
+        public int Priority { get; set; }
+    }
+}
+
+public class TestRequest : Relay.Core.IRequest<string> { }
+
+public class TestHandler
+{
+    [Relay.Core.Handle]
+    public ValueTask<string> {|RELAY_GEN_207:HandleAsync|}(TestRequest request)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+            var expected = @"
+using System.Threading.Tasks;
+
+namespace Relay.Core
+{
+    public interface IRequest { }
+    public interface IRequest<out TResponse> { }
+    
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public sealed class HandleAttribute : System.Attribute
+    {
+        public string? Name { get; set; }
+        public int Priority { get; set; }
+    }
+}
+
+public class TestRequest : Relay.Core.IRequest<string> { }
+
+public class TestHandler
+{
+    [Relay.Core.Handle]
+    public ValueTask<string> HandleAsync(TestRequest request, System.Threading.CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+            await VerifyCodeFixAsync(source, expected);
+        }
+
+
+
+
+
+        /// <summary>
+        /// Tests the AddCancellationTokenAsync method directly with a non-CompilationUnitSyntax root.
+        /// This specifically tests the uncovered code path where oldRoot is not CompilationUnitSyntax.
+        /// </summary>
+        [Fact]
+        public async Task AddCancellationTokenAsync_WithNonCompilationUnitRoot_CoversUncoveredBranch()
+        {
+            // Create a method declaration syntax directly (not wrapped in CompilationUnitSyntax)
+            var methodDeclaration = SyntaxFactory.MethodDeclaration(
+                SyntaxFactory.ParseTypeName("System.Threading.Tasks.ValueTask<string>"),
+                "HandleAsync")
+                .AddParameterListParameters(
+                    SyntaxFactory.Parameter(SyntaxFactory.Identifier("request"))
+                        .WithType(SyntaxFactory.ParseTypeName("TestRequest")))
+                .WithBody(SyntaxFactory.Block(
+                    SyntaxFactory.ReturnStatement(
+                        SyntaxFactory.InvocationExpression(
+                            SyntaxFactory.MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                SyntaxFactory.ParseExpression("ValueTask"),
+                                SyntaxFactory.IdentifierName("FromResult")))
+                        .AddArgumentListArguments(
+                            SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal("test")))))));
+
+            // Create a document with just the method (this will still be CompilationUnitSyntax normally)
+            var source = @"
+using System.Threading.Tasks;
+
+namespace Relay.Core
+{
+    public interface IRequest { }
+    public interface IRequest<out TResponse> { }
+    
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public sealed class HandleAttribute : System.Attribute
+    {
+        public string? Name { get; set; }
+        public int Priority { get; set; }
+    }
+}
+
+public class TestRequest : Relay.Core.IRequest<string> { }
+
+public class TestHandler
+{
+    [Relay.Core.Handle]
+    public ValueTask<string> {|RELAY_GEN_207:HandleAsync|}(TestRequest request)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+            var expected = @"
+using System.Threading.Tasks;
+
+namespace Relay.Core
+{
+    public interface IRequest { }
+    public interface IRequest<out TResponse> { }
+    
+    [System.AttributeUsage(System.AttributeTargets.Method)]
+    public sealed class HandleAttribute : System.Attribute
+    {
+        public string? Name { get; set; }
+        public int Priority { get; set; }
+    }
+}
+
+public class TestRequest : Relay.Core.IRequest<string> { }
+
+public class TestHandler
+{
+    [Relay.Core.Handle]
+    public ValueTask<string> HandleAsync(TestRequest request, System.Threading.CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(""test"");
+    }
+}";
+
+            await VerifyCodeFixAsync(source, expected);
+        }
+
+        /// <summary>
         /// Helper method to verify code fix.
         /// </summary>
         private static async Task VerifyCodeFixAsync(string source, string expected)

@@ -241,6 +241,21 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
     }
 
     [Fact]
+    public void Create_Should_Throw_When_Config_Has_Invalid_Data_Types()
+    {
+        // Arrange - Configuration with invalid data types
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:MaxHistorySize"] = "notanumber"
+            })
+            .Build();
+
+        // Act & Assert - Should throw InvalidOperationException for invalid conversion
+        Assert.Throws<InvalidOperationException>(() => TimeSeriesDatabase.Create(_logger, configuration: config));
+    }
+
+    [Fact]
     public void Create_Should_Use_Config_Values_For_Forecasting()
     {
         // Arrange
@@ -257,6 +272,28 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
 
         // Assert - Should not throw and use config values
         db.StoreMetric("test", 1.0, DateTime.UtcNow);
+    }
+
+    [Fact]
+    public void Constructor_Should_Log_Initialization_Message()
+    {
+        // Arrange
+        var loggerMock = new Moq.Mock<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        // Act
+        var db = new TimeSeriesDatabase(loggerMock.Object, repository, forecastingService, anomalyDetectionService, statisticsService);
+
+        // Assert - Should have logged the initialization message
+        loggerMock.Verify(x => x.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Time-series database initialized")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
     }
 
     #endregion
@@ -768,6 +805,86 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
             It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Time-series database disposed")),
             It.IsAny<Exception>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public void Dispose_Should_Dispose_Repository_If_IDisposable()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repositoryMock = new Moq.Mock<ITimeSeriesRepository>();
+        repositoryMock.As<IDisposable>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repositoryMock.Object, forecastingService, anomalyDetectionService, statisticsService);
+
+        // Act
+        db.Dispose();
+
+        // Assert - Repository Dispose should be called
+        repositoryMock.As<IDisposable>().Verify(x => x.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void Dispose_Should_Dispose_ForecastingService_If_IDisposable()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingServiceMock = new Moq.Mock<IForecastingService>();
+        forecastingServiceMock.As<IDisposable>();
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingServiceMock.Object, anomalyDetectionService, statisticsService);
+
+        // Act
+        db.Dispose();
+
+        // Assert - ForecastingService Dispose should be called
+        forecastingServiceMock.As<IDisposable>().Verify(x => x.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void Dispose_Should_Dispose_AnomalyDetectionService_If_IDisposable()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.As<IDisposable>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act
+        db.Dispose();
+
+        // Assert - AnomalyDetectionService Dispose should be called
+        anomalyDetectionServiceMock.As<IDisposable>().Verify(x => x.Dispose(), Times.Once);
+    }
+
+    [Fact]
+    public void Dispose_Should_Dispose_StatisticsService_If_IDisposable()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsServiceMock = new Moq.Mock<ITimeSeriesStatisticsService>();
+        statisticsServiceMock.As<IDisposable>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionService, statisticsServiceMock.Object);
+
+        // Act
+        db.Dispose();
+
+        // Assert - StatisticsService Dispose should be called
+        statisticsServiceMock.As<IDisposable>().Verify(x => x.Dispose(), Times.Once);
     }
 
     #endregion

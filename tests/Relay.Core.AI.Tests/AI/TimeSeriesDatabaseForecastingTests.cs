@@ -168,6 +168,27 @@ namespace Relay.Core.Tests.AI
         }
 
         [Fact]
+        public async System.Threading.Tasks.Task ForecastAsync_Should_Handle_Different_Horizons()
+        {
+            // Arrange
+            var baseTime = DateTime.UtcNow.AddDays(-7);
+            for (int i = 0; i < 100; i++)
+            {
+                _database.StoreMetric("test", 50.0 + i * 0.1, baseTime.AddHours(i));
+            }
+
+            // Act
+            var forecast12 = await _database.ForecastAsync("test", 12);
+            var forecast24 = await _database.ForecastAsync("test", 24);
+
+            // Assert - Both should work
+            Assert.NotNull(forecast12);
+            Assert.NotNull(forecast24);
+            Assert.True(forecast12.ForecastedValues.Length > 0);
+            Assert.True(forecast24.ForecastedValues.Length > 0);
+        }
+
+        [Fact]
         public void Forecast_Should_Return_Consistent_Results_For_Same_Data()
         {
             // Arrange

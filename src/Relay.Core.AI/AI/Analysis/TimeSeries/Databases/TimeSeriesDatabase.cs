@@ -201,9 +201,9 @@ public class TimeSeriesDatabase : IDisposable
     /// <summary>
     /// Forecast future values for a metric using ML.NET (async)
     /// </summary>
-    public Task<MetricForecastResult?> ForecastAsync(string metricName)
+    public Task<MetricForecastResult?> ForecastAsync(string metricName, int horizon = 12)
     {
-        return _forecastingService.ForecastAsync(metricName);
+        return _forecastingService.ForecastAsync(metricName, horizon);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.AI;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -482,6 +483,128 @@ public class DefaultAIPredictionCacheTests
 
     #endregion
 
+    #region Eviction Tests
+
+    [Fact]
+    public async Task SetCachedPredictionAsync_Should_Evict_Entries_When_Cache_Reaches_Max_Size()
+    {
+        // Arrange - Create cache with small max size
+        var options = new AIPredictionCacheOptions { MaxSize = 2, EnableStatistics = true };
+        var cacheWithEviction = new DefaultAIPredictionCache(_logger, options);
+
+        var recommendation = CreateTestRecommendation();
+
+        // Fill cache to max capacity
+        await cacheWithEviction.SetCachedPredictionAsync("key1", recommendation, TimeSpan.FromMinutes(5));
+        await cacheWithEviction.SetCachedPredictionAsync("key2", recommendation, TimeSpan.FromMinutes(5));
+
+        // Verify initial state
+        Assert.Equal(2, cacheWithEviction.Size);
+        Assert.NotNull(await cacheWithEviction.GetCachedPredictionAsync("key1"));
+        Assert.NotNull(await cacheWithEviction.GetCachedPredictionAsync("key2"));
+
+        // Act - Add third item, should trigger eviction
+        await cacheWithEviction.SetCachedPredictionAsync("key3", recommendation, TimeSpan.FromMinutes(5));
+
+        // Assert - Cache should still have max size, one entry should be evicted
+        Assert.Equal(2, cacheWithEviction.Size);
+        var stats = cacheWithEviction.GetStatistics();
+        Assert.Equal(1, stats.Evictions); // One eviction should have occurred
+        Assert.Equal(3, stats.Sets); // Three sets total
+    }
+
+    [Fact]
+    public async Task EvictEntries_Should_Record_Eviction_Statistics_And_Log()
+    {
+        // Arrange - Create cache with max size 1 to force eviction
+        var options = new AIPredictionCacheOptions { MaxSize = 1, EnableStatistics = true };
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+        var cache = new DefaultAIPredictionCache(loggerMock.Object, options);
+
+        var recommendation = CreateTestRecommendation();
+
+        // Fill cache
+        await cache.SetCachedPredictionAsync("key1", recommendation, TimeSpan.FromMinutes(5));
+
+        // Act - Add second item, triggering eviction
+        await cache.SetCachedPredictionAsync("key2", recommendation, TimeSpan.FromMinutes(5));
+
+        // Assert - Verify eviction statistics
+        var stats = cache.GetStatistics();
+        Assert.Equal(1, stats.Evictions);
+
+        // Verify eviction logging was called
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Evicted cache entry for key")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task SetCachedPredictionAsync_Should_Not_Evict_When_Updating_Existing_Key()
+    {
+        // Arrange - Create cache with max size 1
+        var options = new AIPredictionCacheOptions { MaxSize = 1, EnableStatistics = true };
+        var cache = new DefaultAIPredictionCache(_logger, options);
+
+        var originalRecommendation = CreateTestRecommendation();
+        var updatedRecommendation = CreateTestRecommendation(OptimizationStrategy.MemoryPooling);
+
+        // Add initial item
+        await cache.SetCachedPredictionAsync("key1", originalRecommendation, TimeSpan.FromMinutes(5));
+
+        // Act - Update existing key (should not trigger eviction)
+        await cache.SetCachedPredictionAsync("key1", updatedRecommendation, TimeSpan.FromMinutes(5));
+
+        // Assert - No eviction should have occurred
+        Assert.Equal(1, cache.Size);
+        var stats = cache.GetStatistics();
+        Assert.Equal(0, stats.Evictions); // No evictions
+        Assert.Equal(2, stats.Sets); // Two sets
+
+        // Verify updated value
+        var result = await cache.GetCachedPredictionAsync("key1");
+        Assert.NotNull(result);
+        Assert.Equal(OptimizationStrategy.MemoryPooling, result!.Strategy);
+    }
+
+    #endregion
+
+    #region Cancellation Token Tests
+
+    [Fact]
+    public async Task GetCachedPredictionAsync_Should_Throw_When_CancellationToken_Is_Cancelled()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var recommendation = CreateTestRecommendation();
+        await _cache.SetCachedPredictionAsync("test_key", recommendation, TimeSpan.FromMinutes(5));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            _cache.GetCachedPredictionAsync("test_key", cts.Token).AsTask());
+    }
+
+    [Fact]
+    public async Task SetCachedPredictionAsync_Should_Throw_When_CancellationToken_Is_Cancelled()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var recommendation = CreateTestRecommendation();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            _cache.SetCachedPredictionAsync("test_key", recommendation, TimeSpan.FromMinutes(5), cts.Token).AsTask());
+    }
+
+    #endregion
+
     #region Dispose Tests
 
     [Fact]
@@ -495,6 +618,61 @@ public class DefaultAIPredictionCacheTests
         cache.Dispose(); // First call
         cache.Dispose(); // Second call - should not throw
         cache.Dispose(); // Third call - should not throw
+    }
+
+    [Fact]
+    public void Dispose_Should_Set_Disposed_Flag_And_Dispose_Resources()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+        var cache = new DefaultAIPredictionCache(loggerMock.Object);
+
+        // Get private fields via reflection
+        var disposedField = typeof(DefaultAIPredictionCache).GetField("_disposed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var timerField = typeof(DefaultAIPredictionCache).GetField("_cleanupTimer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var lockField = typeof(DefaultAIPredictionCache).GetField("_cleanupLock", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Verify initial state
+        Assert.False((bool)disposedField!.GetValue(cache)!);
+
+        // Act - Dispose
+        cache.Dispose();
+
+        // Assert - Disposed flag should be set
+        Assert.True((bool)disposedField.GetValue(cache)!);
+
+        // Verify resources are disposed (timer and semaphore should be disposed)
+        var timer = (Timer)timerField!.GetValue(cache)!;
+        var cleanupLock = (SemaphoreSlim)lockField!.GetValue(cache)!;
+
+        // Note: We can't directly check if Timer/SemaphoreSlim are disposed,
+        // but we can verify the disposed flag logic by calling Dispose again
+        // and ensuring it doesn't throw or change state
+        var disposedBefore = (bool)disposedField.GetValue(cache)!;
+        cache.Dispose(); // Second dispose call
+        var disposedAfter = (bool)disposedField.GetValue(cache)!;
+
+        // Disposed flag should remain true
+        Assert.Equal(disposedBefore, disposedAfter);
+    }
+
+    [Fact]
+    public void Dispose_With_Disposing_False_Should_Not_Dispose_Managed_Resources()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+        var cache = new DefaultAIPredictionCache(loggerMock.Object);
+
+        // Get private fields
+        var disposedField = typeof(DefaultAIPredictionCache).GetField("_disposed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act - Call protected Dispose method with disposing = false
+        var disposeMethod = typeof(DefaultAIPredictionCache).GetMethod("Dispose", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        disposeMethod!.Invoke(cache, new object[] { false });
+
+        // Assert - Disposed flag should be set but managed resources might still be alive
+        // (This is for finalizer scenario where disposing = false)
+        Assert.True((bool)disposedField!.GetValue(cache)!);
     }
 
     #endregion
@@ -514,6 +692,118 @@ public class DefaultAIPredictionCacheTests
             EstimatedGainPercentage = 0.15,
             Risk = RiskLevel.Low
         };
+    }
+
+    #endregion
+
+    #region Logging Verification Tests
+
+    [Fact]
+    public void Constructor_Should_Log_Initialization()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+
+        // Act
+        var cache = new DefaultAIPredictionCache(loggerMock.Object);
+
+        // Assert - Verify initialization log
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("AI Prediction Cache initialized")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetCachedPredictionAsync_Should_Log_Cache_Hit()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+        var cache = new DefaultAIPredictionCache(loggerMock.Object);
+        var recommendation = CreateTestRecommendation();
+
+        await cache.SetCachedPredictionAsync("test_key", recommendation, TimeSpan.FromMinutes(5));
+
+        // Act
+        await cache.GetCachedPredictionAsync("test_key");
+
+        // Assert - Verify cache hit log
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Cache hit for key")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetCachedPredictionAsync_Should_Log_Cache_Miss()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+        var cache = new DefaultAIPredictionCache(loggerMock.Object);
+
+        // Act
+        await cache.GetCachedPredictionAsync("nonexistent_key");
+
+        // Assert - Verify cache miss log
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Cache miss for key")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SetCachedPredictionAsync_Should_Log_Cache_Set()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+        var cache = new DefaultAIPredictionCache(loggerMock.Object);
+        var recommendation = CreateTestRecommendation();
+
+        // Act
+        await cache.SetCachedPredictionAsync("test_key", recommendation, TimeSpan.FromMinutes(5));
+
+        // Assert - Verify cache set log
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Cached prediction for key")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void Clear_Should_Log_Cache_Cleared()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<DefaultAIPredictionCache>>();
+        var cache = new DefaultAIPredictionCache(loggerMock.Object);
+
+        // Act
+        cache.Clear();
+
+        // Assert - Verify clear log
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Cache cleared")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     #endregion

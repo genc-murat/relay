@@ -1,44 +1,43 @@
 using System;
 using Microsoft.Extensions.Logging;
 
-namespace Relay.Core.AI.Analysis.Engines
+namespace Relay.Core.AI.Analysis.Engines;
+
+/// <summary>
+/// Updates ensemble model weights
+/// </summary>
+internal class EnsembleWeightsUpdater : IPatternUpdater
 {
-    /// <summary>
-    /// Updates ensemble model weights
-    /// </summary>
-    internal class EnsembleWeightsUpdater : IPatternUpdater
+    private readonly ILogger<EnsembleWeightsUpdater> _logger;
+    private readonly PatternRecognitionConfig _config;
+
+    public EnsembleWeightsUpdater(ILogger<EnsembleWeightsUpdater> logger, PatternRecognitionConfig config)
     {
-        private readonly ILogger<EnsembleWeightsUpdater> _logger;
-        private readonly PatternRecognitionConfig _config;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _config = config ?? throw new ArgumentNullException(nameof(config));
+    }
 
-        public EnsembleWeightsUpdater(ILogger<EnsembleWeightsUpdater> logger, PatternRecognitionConfig config)
+    public int UpdatePatterns(PredictionResult[] predictions, PatternAnalysisResult analysis)
+    {
+        try
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            var updatedCount = 0;
+
+            foreach (var model in _config.EnsembleModels)
+            {
+                var modelWeight = 1.0 / _config.EnsembleModels.Length;
+
+                _logger.LogDebug("Model {Model} ensemble weight: {Weight:F3}", model, modelWeight);
+
+                updatedCount++;
+            }
+
+            return updatedCount;
         }
-
-        public int UpdatePatterns(PredictionResult[] predictions, PatternAnalysisResult analysis)
+        catch (Exception ex)
         {
-            try
-            {
-                var updatedCount = 0;
-
-                foreach (var model in _config.EnsembleModels)
-                {
-                    var modelWeight = 1.0 / _config.EnsembleModels.Length;
-
-                    _logger.LogDebug("Model {Model} ensemble weight: {Weight:F3}", model, modelWeight);
-
-                    updatedCount++;
-                }
-
-                return updatedCount;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error updating ensemble weights");
-                return 0;
-            }
+            _logger.LogWarning(ex, "Error updating ensemble weights");
+            return 0;
         }
     }
 }

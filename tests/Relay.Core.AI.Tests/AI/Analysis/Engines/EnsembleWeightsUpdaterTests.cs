@@ -50,12 +50,12 @@ public class EnsembleWeightsUpdaterTests
         // Assert
         Assert.Equal(3, result); // Should return the number of models updated
 
-        // Verify logging for each model
+        // Verify logging for each model with exact weight
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Debug,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Model Model1 ensemble weight")),
+                It.Is<It.IsAnyType>((o, t) => o.ToString() == "Model Model1 ensemble weight: 0.333"),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -64,7 +64,7 @@ public class EnsembleWeightsUpdaterTests
             x => x.Log(
                 LogLevel.Debug,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Model Model2 ensemble weight")),
+                It.Is<It.IsAnyType>((o, t) => o.ToString() == "Model Model2 ensemble weight: 0.333"),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -73,7 +73,7 @@ public class EnsembleWeightsUpdaterTests
             x => x.Log(
                 LogLevel.Debug,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Model Model3 ensemble weight")),
+                It.Is<It.IsAnyType>((o, t) => o.ToString() == "Model Model3 ensemble weight: 0.333"),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);
@@ -103,6 +103,64 @@ public class EnsembleWeightsUpdaterTests
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Error updating ensemble weights")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public void UpdatePatterns_Should_Return_Zero_For_Empty_EnsembleModels()
+    {
+        // Arrange
+        var emptyConfig = new PatternRecognitionConfig
+        {
+            EnsembleModels = Array.Empty<string>()
+        };
+        var updater = new EnsembleWeightsUpdater(_loggerMock.Object, emptyConfig);
+        var predictions = Array.Empty<PredictionResult>();
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions, analysis);
+
+        // Assert
+        Assert.Equal(0, result);
+
+        // Verify no logging occurred
+        _loggerMock.Verify(
+            x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void UpdatePatterns_Should_Handle_Single_Model()
+    {
+        // Arrange
+        var singleConfig = new PatternRecognitionConfig
+        {
+            EnsembleModels = new[] { "Model1" }
+        };
+        var updater = new EnsembleWeightsUpdater(_loggerMock.Object, singleConfig);
+        var predictions = Array.Empty<PredictionResult>();
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions, analysis);
+
+        // Assert
+        Assert.Equal(1, result);
+
+        // Verify logging for the single model
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString().Contains("Model Model1 ensemble weight: 1.000")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()),
             Times.Once);

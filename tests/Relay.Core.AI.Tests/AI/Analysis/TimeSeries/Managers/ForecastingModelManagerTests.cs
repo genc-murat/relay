@@ -301,6 +301,58 @@ public class ForecastingModelManagerTests
         Assert.NotSame(result1, result2);
     }
 
+    [Fact]
+    public void GetAvailableMetrics_Should_Return_Snapshot_Unaffected_By_Concurrent_Modifications()
+    {
+        // Arrange
+        var model1 = Mock.Of<ITransformer>();
+        var model2 = Mock.Of<ITransformer>();
+        _manager.StoreModel("metric1", model1, ForecastingMethod.SSA);
+        _manager.StoreModel("metric2", model2, ForecastingMethod.ExponentialSmoothing);
+
+        // Act
+        var snapshot = _manager.GetAvailableMetrics();
+        _manager.RemoveModel("metric1"); // Modify after getting snapshot
+        _manager.StoreModel("metric3", Mock.Of<ITransformer>(), ForecastingMethod.MovingAverage);
+
+        // Assert
+        Assert.Equal(2, snapshot.Count()); // Original count
+        Assert.Contains("metric1", snapshot);
+        Assert.Contains("metric2", snapshot);
+        Assert.DoesNotContain("metric3", snapshot); // Not in snapshot
+    }
+
+    [Theory]
+    [InlineData("very_long_metric_name_that_exceeds_normal_length_and_should_still_work_fine")]
+    [InlineData("metric.with.dots")]
+    [InlineData("metric-with-dashes")]
+    [InlineData("metric_with_underscores")]
+    [InlineData("metric123")]
+    [InlineData("métric")]  // Unicode
+    [InlineData("метрика")]  // Cyrillic
+    [InlineData("指標")]  // Chinese
+    [InlineData("metric@domain")]
+    [InlineData("metric#tag")]
+    public void Manager_Methods_Should_Accept_Various_Metric_Name_Formats(string metricName)
+    {
+        // Arrange
+        var model = Mock.Of<ITransformer>();
+        var method = ForecastingMethod.SSA;
+
+        // Act
+        _manager.StoreModel(metricName, model, method);
+
+        // Assert
+        Assert.True(_manager.HasModel(metricName));
+        Assert.Equal(model, _manager.GetModel(metricName));
+        Assert.Equal((ForecastingMethod?)method, _manager.GetMethod(metricName));
+        Assert.Contains(metricName, _manager.GetAvailableMetrics());
+
+        // Cleanup
+        _manager.RemoveModel(metricName);
+        Assert.False(_manager.HasModel(metricName));
+    }
+
     #endregion
 
     #region RemoveModel Tests
@@ -539,6 +591,35 @@ public class ForecastingModelManagerTests
             Times.Once);
     }
 
+    [Fact]
+    public void StoreModels_Should_Throw_When_Models_Contain_Null_Model()
+    {
+        // Arrange
+        var models = new Dictionary<string, (ITransformer, ForecastingMethod)>
+        {
+            ["metric1"] = (Mock.Of<ITransformer>(), ForecastingMethod.SSA),
+            ["metric2"] = (null!, ForecastingMethod.ExponentialSmoothing)
+        };
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => _manager.StoreModels(models));
+    }
+
+    [Fact]
+    public void StoreModels_Should_Throw_When_Models_Contain_Invalid_Method()
+    {
+        // Arrange
+        var models = new Dictionary<string, (ITransformer, ForecastingMethod)>
+        {
+            ["metric1"] = (Mock.Of<ITransformer>(), ForecastingMethod.SSA),
+            ["metric2"] = (Mock.Of<ITransformer>(), (ForecastingMethod)999)
+        };
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => _manager.StoreModels(models));
+        Assert.Contains("Invalid forecasting method", exception.Message);
+    }
+
     #endregion
 
     #region RemoveModels Tests
@@ -628,6 +709,22 @@ public class ForecastingModelManagerTests
             Times.Never);
     }
 
+    [Fact]
+    public void RemoveModels_Should_Handle_Duplicate_Metric_Names_Gracefully()
+    {
+        // Arrange
+        var metricName = "test.metric";
+        var model = Mock.Of<ITransformer>();
+        _manager.StoreModel(metricName, model, ForecastingMethod.SSA);
+
+        // Act
+        _manager.RemoveModels(new[] { metricName, metricName, metricName }); // Duplicates
+
+        // Assert
+        Assert.False(_manager.HasModel(metricName));
+        Assert.Equal(0, _manager.GetModelCount());
+    }
+
     #endregion
 
     #region ClearAll Tests
@@ -692,6 +789,23 @@ public class ForecastingModelManagerTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Never);
+    }
+
+    [Fact]
+    public void ClearAll_Should_Handle_Multiple_Calls_Gracefully()
+    {
+        // Arrange
+        var model = Mock.Of<ITransformer>();
+        _manager.StoreModel("test.metric", model, ForecastingMethod.SSA);
+
+        // Act - Call ClearAll multiple times
+        _manager.ClearAll();
+        _manager.ClearAll();
+        _manager.ClearAll();
+
+        // Assert
+        Assert.Equal(0, _manager.GetModelCount());
+        Assert.Empty(_manager.GetAvailableMetrics());
     }
 
     #endregion

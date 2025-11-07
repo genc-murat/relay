@@ -151,14 +151,226 @@ public class CodeGenerationHelperTests
         Assert.Equal("<T, TResult>", result);
     }
 
-    [Fact]
+[Fact]
     public void GenerateProperty_AsAutoProperty_GeneratesCorrectSyntax()
     {
         // Act
         var result = CodeGenerationHelper.GenerateProperty("public", "string", "Name");
 
         // Assert
-        Assert.Contains("public string Name { get; set; }", result);
+        Assert.Equal("public string Name { get; set; }", result);
+    }
+
+    [Theory]
+    [InlineData("public", "string", "Name", "public string Name { get; set; }")]
+    [InlineData("private", "int", "Age", "private int Age { get; set; }")]
+    [InlineData("protected", "bool", "IsActive", "protected bool IsActive { get; set; }")]
+    [InlineData("internal", "DateTime", "CreatedAt", "internal DateTime CreatedAt { get; set; }")]
+    [InlineData("public readonly", "string", "ReadOnly", "public readonly string ReadOnly { get; set; }")]
+    public void GenerateProperty_WithDifferentAccessibility_GeneratesCorrectSyntax(
+        string accessibility, string type, string name, string expected)
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(accessibility, type, name);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithCustomGetter_GeneratesCorrectSyntax()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            getter: "return _name;");
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get { return _name; }\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithCustomSetter_GeneratesCorrectSyntax()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            setter: "_name = value;");
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get;\r\n    set { _name = value; }\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithCustomGetterAndSetter_GeneratesCorrectSyntax()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            getter: "return _name;",
+            setter: "_name = value;");
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get { return _name; }\r\n    set { _name = value; }\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithInitOnlySetter_GeneratesCorrectSyntax()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            setter: "");
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get;\r\n    init;\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithCustomGetterAndInitOnlySetter_GeneratesCorrectSyntax()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            getter: "return _name;",
+            setter: "");
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get { return _name; }\r\n    init;\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithGetterOnly_GeneratesReadOnlyProperty()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            getter: "return _name;",
+            setter: null);
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get { return _name; }\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("List<string>", "Items")]
+    [InlineData("Dictionary<string, int>", "Values")]
+    [InlineData("Task<bool>", "IsCompleted")]
+    [InlineData("Func<string, int>", "Converter")]
+    public void GenerateProperty_WithComplexTypes_GeneratesCorrectSyntax(string type, string name)
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty("public", type, name);
+
+        // Assert
+        Assert.Equal($"public {type} {name} {{ get; set; }}", result);
+    }
+
+    [Theory]
+    [InlineData("public", "string", "_privateField", "public string _privateField { get; set; }")]
+    [InlineData("private", "int", "123Invalid", "private int 123Invalid { get; set; }")]
+    [InlineData("protected", "bool", "property-with-dashes", "protected bool property-with-dashes { get; set; }")]
+    public void GenerateProperty_WithSpecialCharacterNames_GeneratesCorrectSyntax(
+        string accessibility, string type, string name, string expected)
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(accessibility, type, name);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithMultilineGetter_GeneratesCorrectSyntax()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            getter: "// Some comment\nreturn _name?.Trim() ?? string.Empty;");
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get { // Some comment\nreturn _name?.Trim() ?? string.Empty; }\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithMultilineSetter_GeneratesCorrectSyntax()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            setter: "// Validation\nif (value == null) throw new ArgumentNullException();\n_name = value;");
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get;\r\n    set { // Validation\nif (value == null) throw new ArgumentNullException();\n_name = value; }\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithEmptyGetter_GeneratesCorrectSyntax()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            getter: "",
+            setter: null);
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get {  }\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void GenerateProperty_WithEmptySetter_GeneratesInitOnly()
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(
+            "public", 
+            "string", 
+            "Name", 
+            getter: null,
+            setter: "");
+
+        // Assert
+        var expected = "public string Name\r\n{\r\n    get;\r\n    init;\r\n}";
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("public", "string", "Name", "return _name;", "", "public string Name\r\n{\r\n    get { return _name; }\r\n    init;\r\n}")]
+    [InlineData("private", "int", "Count", "return _count;", "_count = value;", "private int Count\r\n{\r\n    get { return _count; }\r\n    set { _count = value; }\r\n}")]
+    public void GenerateProperty_CombinationScenarios_GeneratesCorrectSyntax(
+        string accessibility, string type, string name, string getter, string setter, string expected)
+    {
+        // Act
+        var result = CodeGenerationHelper.GenerateProperty(accessibility, type, name, getter, setter);
+
+        // Assert
+        Assert.Equal(expected, result);
     }
 
     [Fact]

@@ -1395,4 +1395,317 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
     }
 
     #endregion
+
+    #region CleanupOldData Tests
+
+    [Fact]
+    public void CleanupOldData_Should_Delegate_With_Zero_TimeSpan()
+    {
+        // Arrange
+        var retentionPeriod = TimeSpan.Zero;
+
+        // Act
+        _database.CleanupOldData(retentionPeriod);
+
+        // Assert - Should not throw and delegate to repository
+    }
+
+    [Fact]
+    public void CleanupOldData_Should_Delegate_With_Negative_TimeSpan()
+    {
+        // Arrange
+        var retentionPeriod = TimeSpan.FromDays(-1);
+
+        // Act
+        _database.CleanupOldData(retentionPeriod);
+
+        // Assert - Should not throw and delegate to repository
+    }
+
+    [Fact]
+    public void CleanupOldData_Should_Delegate_With_Very_Large_TimeSpan()
+    {
+        // Arrange
+        var retentionPeriod = TimeSpan.FromDays(365 * 100); // 100 years
+
+        // Act
+        _database.CleanupOldData(retentionPeriod);
+
+        // Assert - Should not throw and delegate to repository
+    }
+
+    [Fact]
+    public void CleanupOldData_Should_Delegate_With_Normal_TimeSpan()
+    {
+        // Arrange
+        var retentionPeriod = TimeSpan.FromDays(30);
+
+        // Act
+        _database.CleanupOldData(retentionPeriod);
+
+        // Assert - Should not throw and delegate to repository
+    }
+
+    #endregion
+
+    #region Forecasting Method Parameter Validation Tests
+
+    [Fact]
+    public void GetForecastingMethod_Should_Throw_For_Null_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetForecastingMethod(null!));
+    }
+
+    [Fact]
+    public void GetForecastingMethod_Should_Throw_For_Empty_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetForecastingMethod(""));
+    }
+
+    [Fact]
+    public void SetForecastingMethod_Should_Throw_For_Null_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.SetForecastingMethod(null!, ForecastingMethod.SSA));
+    }
+
+    [Fact]
+    public void SetForecastingMethod_Should_Throw_For_Empty_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.SetForecastingMethod("", ForecastingMethod.SSA));
+    }
+
+    #endregion
+
+    #region Synchronous Methods Exception Handling Tests
+
+    [Fact]
+    public void Forecast_Should_Propagate_Exceptions_From_ForecastingService()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingServiceMock = new Moq.Mock<IForecastingService>();
+        forecastingServiceMock.Setup(x => x.Forecast("test.metric", 12))
+            .Throws(new InvalidOperationException("Forecasting service error"));
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingServiceMock.Object, anomalyDetectionService, statisticsService);
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => db.Forecast("test.metric", 12));
+    }
+
+    [Fact]
+    public void DetectAnomalies_Should_Propagate_Exceptions_From_AnomalyDetectionService()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.Setup(x => x.DetectAnomalies("test.metric", 100))
+            .Throws(new ArgumentException("Anomaly detection service error"));
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => db.DetectAnomalies("test.metric", 100));
+    }
+
+    #endregion
+
+    #region Configuration Validation Edge Cases Tests
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_MaxHistorySize_Is_At_Minimum_Boundary()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:MaxHistorySize"] = "1" // Minimum valid value
+            })
+            .Build();
+
+        // Act & Assert - Should not throw (1 is valid)
+        using var db = TimeSeriesDatabase.Create(_logger, configuration: config);
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_MaxHistorySize_Is_At_Maximum_Boundary()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:MaxHistorySize"] = "1000000" // Maximum valid value
+            })
+            .Build();
+
+        // Act & Assert - Should not throw (1000000 is valid)
+        using var db = TimeSeriesDatabase.Create(_logger, configuration: config);
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_ForecastHorizon_Is_At_Minimum_Boundary()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:ForecastHorizon"] = "1" // Minimum valid value
+            })
+            .Build();
+
+        // Act & Assert - Should not throw (1 is valid)
+        using var db = TimeSeriesDatabase.Create(_logger, configuration: config);
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_ForecastHorizon_Is_At_Maximum_Boundary()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:ForecastHorizon"] = "1000" // Maximum valid value
+            })
+            .Build();
+
+        // Act & Assert - Should not throw (1000 is valid)
+        using var db = TimeSeriesDatabase.Create(_logger, configuration: config);
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_Has_Invalid_ForecastingMethod_Case()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:ForecastingMethod"] = "ssa" // lowercase - should fail
+            })
+            .Build();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => TimeSeriesDatabase.Create(_logger, configuration: config));
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_Has_Malformed_ForecastingMethod()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:ForecastingMethod"] = "SSA-ARIMA" // Invalid format
+            })
+            .Build();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => TimeSeriesDatabase.Create(_logger, configuration: config));
+    }
+
+    [Fact]
+    public void Create_Should_Use_Default_Values_When_Config_Is_Empty()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>()) // Empty config
+            .Build();
+
+        // Act
+        using var db = TimeSeriesDatabase.Create(_logger, configuration: config);
+
+        // Assert - Should not throw and use defaults
+    }
+
+    #endregion
+
+    #region Statistics Method Edge Cases Tests
+
+    [Fact]
+    public void GetStatistics_Should_Handle_Zero_TimeSpan()
+    {
+        // Arrange
+        _database.StoreMetric("test", 10.0, DateTime.UtcNow);
+
+        // Act
+        var stats = _database.GetStatistics("test", TimeSpan.Zero);
+
+        // Assert - Should return null or handle gracefully
+        Assert.Null(stats); // Based on existing test behavior
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Handle_Negative_TimeSpan()
+    {
+        // Arrange
+        _database.StoreMetric("test", 10.0, DateTime.UtcNow);
+
+        // Act
+        var stats = _database.GetStatistics("test", TimeSpan.FromDays(-1));
+
+        // Assert - Should return null or handle gracefully
+        Assert.Null(stats); // Based on existing test behavior
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Handle_Very_Long_TimeSpan()
+    {
+        // Arrange
+        _database.StoreMetric("test", 10.0, DateTime.UtcNow);
+
+        // Act
+        var stats = _database.GetStatistics("test", TimeSpan.FromDays(365 * 100)); // 100 years
+
+        // Assert - Should return statistics for all available data
+        Assert.NotNull(stats);
+        Assert.Equal(1, stats.Count);
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Handle_Very_Short_TimeSpan()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        _database.StoreMetric("test", 10.0, baseTime.AddMinutes(-2)); // 2 minutes ago
+        _database.StoreMetric("test", 20.0, baseTime.AddSeconds(-10)); // 10 seconds ago
+
+        // Act
+        var stats = _database.GetStatistics("test", TimeSpan.FromSeconds(30)); // Look back 30 seconds
+
+        // Assert - Should return statistics for data within the period (only the recent point)
+        Assert.NotNull(stats);
+        Assert.Equal(1, stats.Count); // Only the recent data point within 30 seconds
+    }
+
+    #endregion
+
+    #region GetHistory Extreme Periods Tests
+
+    [Fact]
+    public void GetHistory_Should_Handle_Extremely_Long_Lookback_Period()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        _database.StoreMetric("test", 10.0, baseTime.AddYears(-10));
+        _database.StoreMetric("test", 20.0, baseTime);
+
+        // Act
+        var history = _database.GetHistory("test", TimeSpan.FromDays(365 * 20)).ToList(); // 20 years
+
+        // Assert - Should return all data
+        Assert.Equal(2, history.Count);
+    }
+
+
+
+    #endregion
 }

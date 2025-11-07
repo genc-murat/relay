@@ -512,6 +512,71 @@ public class TestPipelineHandler
     }
 
     [Fact]
+    public void GeneratePipelineMetadata_WithEmptyNamedArguments_InspectsSymbolAttributes()
+    {
+        // Arrange - Test the specific if block that handles empty named arguments
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestPipelineHandler
+{
+    [Pipeline(Order = 10, Scope = PipelineScope.Requests)]
+    public async ValueTask<TResponse> HandlePipeline<TRequest, TResponse>(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var context = new RelayCompilationContext(compilation, default);
+        var generator = new PipelineRegistryGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+
+        // Parse the source and create handler info with empty named arguments
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var semanticModel = compilation.GetSemanticModel(syntaxTree);
+        var root = syntaxTree.GetRoot();
+
+        var method = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .First(m => m.AttributeLists.Any());
+
+        var methodSymbol = semanticModel.GetDeclaredSymbol(method);
+        if (methodSymbol != null)
+        {
+            // Create handler with MockEmptyAttributeData that has empty named arguments
+            HandlerInfo handlerInfo = new()
+            {
+                Method = method,
+                MethodSymbol = methodSymbol,
+                Attributes =
+                [
+                    new() {
+                        Type = RelayAttributeType.Pipeline,
+                        AttributeData = new MockEmptyAttributeData() // Empty named arguments to trigger symbol attributes inspection
+                    }
+                ]
+            };
+            discoveryResult.Handlers.Add(handlerInfo);
+        }
+
+        // Act
+        var result = generator.GeneratePipelineRegistry(discoveryResult);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("internal static class PipelineRegistry", result);
+        // Should extract values from symbol attributes since named arguments are empty
+        Assert.Contains("Order = 10", result);
+        Assert.Contains("Scope = PipelineScope.Requests", result);
+    }
+
+    [Fact]
     public void GeneratePipelineRegistry_WithZeroOrderAndSyntaxParsing_UsesFallback()
     {
         // Arrange

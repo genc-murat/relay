@@ -427,6 +427,50 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
         Assert.Equal(30.0f, history[2].Value, 2);
     }
 
+    [Fact]
+    public void StoreMetric_Should_Throw_For_Empty_Metric_Name()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.StoreMetric("", 42.0, timestamp));
+    }
+
+    [Fact]
+    public void StoreMetric_Should_Handle_Extreme_Values()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        _database.StoreMetric("extreme", double.MaxValue, timestamp);
+        _database.StoreMetric("extreme", double.MinValue, timestamp.AddMinutes(1));
+        _database.StoreMetric("extreme", double.NaN, timestamp.AddMinutes(2));
+        _database.StoreMetric("extreme", double.PositiveInfinity, timestamp.AddMinutes(3));
+        _database.StoreMetric("extreme", double.NegativeInfinity, timestamp.AddMinutes(4));
+
+        // Assert
+        var history = _database.GetHistory("extreme").ToList();
+        Assert.Equal(5, history.Count);
+        // Values should be stored (may be converted to float)
+    }
+
+    [Fact]
+    public void StoreMetric_Should_Handle_Future_Timestamps()
+    {
+        // Arrange
+        var futureTimestamp = DateTime.UtcNow.AddDays(1);
+
+        // Act
+        _database.StoreMetric("future", 100.0, futureTimestamp);
+
+        // Assert
+        var history = _database.GetHistory("future").ToList();
+        Assert.Single(history);
+        Assert.Equal(futureTimestamp, history[0].Timestamp);
+    }
+
     #endregion
 
     #region StoreBatch Tests
@@ -515,6 +559,44 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
         // Assert - Should not throw
     }
 
+    [Fact]
+    public void StoreBatch_Should_Throw_For_Empty_Metric_Names_In_Dictionary()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+        var metrics = new Dictionary<string, double>
+        {
+            [""] = 42.0,
+            ["valid.metric"] = 24.0
+        };
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.StoreBatch(metrics, timestamp));
+    }
+
+    [Fact]
+    public void StoreBatch_Should_Handle_Extreme_Values_In_Dictionary()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+        var metrics = new Dictionary<string, double>
+        {
+            ["max"] = double.MaxValue,
+            ["min"] = double.MinValue,
+            ["nan"] = double.NaN,
+            ["inf"] = double.PositiveInfinity
+        };
+
+        // Act
+        _database.StoreBatch(metrics, timestamp);
+
+        // Assert - Should not throw and store all values
+        Assert.Single(_database.GetHistory("max"));
+        Assert.Single(_database.GetHistory("min"));
+        Assert.Single(_database.GetHistory("nan"));
+        Assert.Single(_database.GetHistory("inf"));
+    }
+
     #endregion
 
     #region GetHistory Tests
@@ -581,6 +663,43 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
         Assert.True(history[1].Timestamp <= history[2].Timestamp);
     }
 
+    [Fact]
+    public void GetHistory_Should_Throw_For_Empty_Metric_Name()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetHistory(""));
+    }
+
+    [Fact]
+    public void GetHistory_Should_Handle_Very_Long_Lookback_Period()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        _database.StoreMetric("test", 10.0, baseTime.AddYears(-10));
+        _database.StoreMetric("test", 20.0, baseTime);
+
+        // Act
+        var history = _database.GetHistory("test", TimeSpan.FromDays(365 * 20)).ToList();
+
+        // Assert - Should return all data
+        Assert.Equal(2, history.Count);
+    }
+
+    [Fact]
+    public void GetHistory_Should_Handle_Zero_Lookback_Period()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        _database.StoreMetric("test", 10.0, baseTime.AddMinutes(-10));
+        _database.StoreMetric("test", 20.0, baseTime);
+
+        // Act
+        var history = _database.GetHistory("test", TimeSpan.Zero).ToList();
+
+        // Assert - Should return no data (zero lookback)
+        Assert.Empty(history);
+    }
+
     #endregion
 
     #region GetRecentMetrics Tests
@@ -645,6 +764,52 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
 
         // Assert
         Assert.Equal(2, recent.Count);
+    }
+
+    [Fact]
+    public void GetRecentMetrics_Should_Return_Empty_When_Count_Is_Zero()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        _database.StoreMetric("test", 10.0, baseTime);
+        _database.StoreMetric("test", 20.0, baseTime.AddMinutes(1));
+
+        // Act
+        var recent = _database.GetRecentMetrics("test", 0);
+
+        // Assert
+        Assert.Empty(recent);
+    }
+
+    [Fact]
+    public void GetRecentMetrics_Should_Return_Empty_When_Count_Is_Negative()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        _database.StoreMetric("test", 10.0, baseTime);
+        _database.StoreMetric("test", 20.0, baseTime.AddMinutes(1));
+
+        // Act
+        var recent = _database.GetRecentMetrics("test", -5);
+
+        // Assert
+        Assert.Empty(recent);
+    }
+
+    [Fact]
+    public void GetRecentMetrics_Should_Handle_Very_Large_Count()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        _database.StoreMetric("test", 10.0, baseTime);
+        _database.StoreMetric("test", 20.0, baseTime.AddMinutes(1));
+        _database.StoreMetric("test", 30.0, baseTime.AddMinutes(2));
+
+        // Act
+        var recent = _database.GetRecentMetrics("test", 1000);
+
+        // Assert - Should return all available data
+        Assert.Equal(3, recent.Count);
     }
 
     #endregion
@@ -754,6 +919,48 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
         // Assert
         Assert.NotNull(stats);
         Assert.Equal(2, stats.Count); // Only last 2 within 6 minutes
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Throw_For_Empty_Metric_Name()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetStatistics(""));
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Handle_Very_Large_Dataset()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        for (int i = 0; i < 1000; i++)
+        {
+            _database.StoreMetric("large", i * 0.1, baseTime.AddMinutes(i));
+        }
+
+        // Act
+        var stats = _database.GetStatistics("large");
+
+        // Assert
+        Assert.NotNull(stats);
+        Assert.Equal(1000, stats.Count);
+        Assert.True(stats.Min >= 0);
+        Assert.True(stats.Max < 100);
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Handle_Zero_Period()
+    {
+        // Arrange
+        var baseTime = DateTime.UtcNow;
+        _database.StoreMetric("test", 10.0, baseTime.AddMinutes(-10));
+        _database.StoreMetric("test", 20.0, baseTime);
+
+        // Act
+        var stats = _database.GetStatistics("test", TimeSpan.Zero);
+
+        // Assert - Should return null or empty stats for zero period
+        Assert.Null(stats);
     }
 
     #endregion

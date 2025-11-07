@@ -578,6 +578,142 @@ public class TestPipelineHandler
         Assert.Contains("Scope = PipelineScope.All", result);
     }
 
+    [Fact]
+    public void GeneratePipelineMetadata_WithMockedEmptyAttributeData_InspectsSymbolAttributes()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestPipelineHandler
+{
+    [Pipeline(Order = 7, Scope = PipelineScope.Streams)]
+    public async ValueTask<TResponse> HandlePipeline<TRequest, TResponse>(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var context = new RelayCompilationContext(compilation, default);
+        var generator = new PipelineRegistryGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+
+        // Parse the source and find methods with Pipeline attributes
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var semanticModel = compilation.GetSemanticModel(syntaxTree);
+        var root = syntaxTree.GetRoot();
+
+        var methods = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Any())
+            .ToList();
+
+        foreach (var method in methods)
+        {
+            var methodSymbol = semanticModel.GetDeclaredSymbol(method);
+            if (methodSymbol != null)
+            {
+                HandlerInfo handlerInfo = new()
+                {
+                    Method = method,
+                    MethodSymbol = methodSymbol,
+                    Attributes =
+                    [
+                        new() {
+                            Type = RelayAttributeType.Pipeline,
+                            AttributeData = CreateMockEmptyAttributeData() // Empty to trigger symbol attributes inspection
+                        }
+                    ]
+                };
+                discoveryResult.Handlers.Add(handlerInfo);
+            }
+        }
+
+        // Act
+        var result = generator.GeneratePipelineRegistry(discoveryResult);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("internal static class PipelineRegistry", result);
+        // The fallback logic should inspect symbol attributes and extract Order = 7 and Scope = Streams
+        Assert.Contains("Order = 7", result);
+        Assert.Contains("Scope = PipelineScope.Streams", result);
+    }
+
+    [Fact]
+    public void GeneratePipelineMetadata_WithMockedInvalidAttributeData_InspectsSymbolAttributes()
+    {
+        // Arrange
+        var sourceCode = @"
+using Relay.Core;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class TestPipelineHandler
+{
+    [Pipeline(Order = 15, Scope = PipelineScope.Requests)]
+    public async ValueTask<TResponse> HandlePipeline<TRequest, TResponse>(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        return await next();
+    }
+}";
+
+        var compilation = CreateTestCompilation(sourceCode);
+        var context = new RelayCompilationContext(compilation, default);
+        var generator = new PipelineRegistryGenerator(context);
+        var discoveryResult = new HandlerDiscoveryResult();
+
+        // Parse the source and find methods with Pipeline attributes
+        var syntaxTree = compilation.SyntaxTrees.First();
+        var semanticModel = compilation.GetSemanticModel(syntaxTree);
+        var root = syntaxTree.GetRoot();
+
+        var methods = root.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
+            .Where(m => m.AttributeLists.Any())
+            .ToList();
+
+        foreach (var method in methods)
+        {
+            var methodSymbol = semanticModel.GetDeclaredSymbol(method);
+            if (methodSymbol != null)
+            {
+                HandlerInfo handlerInfo = new()
+                {
+                    Method = method,
+                    MethodSymbol = methodSymbol,
+                    Attributes =
+                    [
+                        new() {
+                            Type = RelayAttributeType.Pipeline,
+                            AttributeData = CreateMockInvalidAttributeData() // Invalid values to trigger symbol attributes inspection
+                        }
+                    ]
+                };
+                discoveryResult.Handlers.Add(handlerInfo);
+            }
+        }
+
+        // Act
+        var result = generator.GeneratePipelineRegistry(discoveryResult);
+
+        // Assert
+        Assert.NotEmpty(result);
+        Assert.Contains("internal static class PipelineRegistry", result);
+        // The fallback logic should inspect symbol attributes and extract Order = 15 and Scope = Requests
+        Assert.Contains("Order = 15", result);
+        Assert.Contains("Scope = PipelineScope.Requests", result);
+    }
+
     private static CSharpCompilation CreateTestCompilation(string sourceCode)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
@@ -653,6 +789,12 @@ public class TestPipelineHandler
         return new MockZeroOrderAttributeData();
     }
 
+    private static AttributeData CreateMockInvalidAttributeData()
+    {
+        // Create a mock AttributeData with invalid/null values to trigger symbol attributes inspection
+        return new MockInvalidAttributeData();
+    }
+
     private class MockAttributeData : AttributeData
     {
         protected override INamedTypeSymbol? CommonAttributeClass => null;
@@ -701,6 +843,13 @@ public class TestPipelineHandler
         {
             return new TypedConstant();
         }
+
+        public static TypedConstant CreateNullTypedConstant()
+        {
+            // Create a TypedConstant that represents a null value
+            // This will trigger the condition where all named arguments are null
+            return new TypedConstant();
+        }
     }
 
     private class MockZeroOrderAttributeData : AttributeData
@@ -716,6 +865,22 @@ public class TestPipelineHandler
             [
                 new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Order", MockHelper.CreateTypedConstant(0)), // Order = 0 to trigger syntax parsing
                 new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Scope", MockHelper.CreateEmptyTypedConstant())
+            ];
+    }
+
+    private class MockInvalidAttributeData : AttributeData
+    {
+        protected override INamedTypeSymbol? CommonAttributeClass => null;
+        protected override IMethodSymbol? CommonAttributeConstructor => null;
+        protected override SyntaxReference? CommonApplicationSyntaxReference => null;
+
+        protected override System.Collections.Immutable.ImmutableArray<TypedConstant> CommonConstructorArguments =>
+            [];
+
+        protected override System.Collections.Immutable.ImmutableArray<System.Collections.Generic.KeyValuePair<string, TypedConstant>> CommonNamedArguments =>
+            [
+                new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Order", MockHelper.CreateNullTypedConstant()), // Null value to trigger symbol attributes inspection
+                new System.Collections.Generic.KeyValuePair<string, TypedConstant>("Scope", MockHelper.CreateNullTypedConstant()) // Null value to trigger symbol attributes inspection
             ];
     }
 }

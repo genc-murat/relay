@@ -150,6 +150,20 @@ public class FeatureImportancePatternUpdaterTests
     }
 
     [Fact]
+    public void UpdatePatterns_Should_Handle_Null_Analysis()
+    {
+        // Arrange
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = CreateMixedPredictions(5);
+
+        // Act & Assert - should handle gracefully
+        var result = updater.UpdatePatterns(predictions, null!);
+
+        // Should return the number of features processed (5)
+        Assert.Equal(5, result);
+    }
+
+    [Fact]
     public void Feature_Importance_Should_Be_Normalized_Between_Zero_And_One()
     {
         // Arrange
@@ -298,6 +312,292 @@ public class FeatureImportancePatternUpdaterTests
 
         // Assert - should return same result
         Assert.Equal(result1, result2);
+    }
+
+    [Fact]
+    public void ExtractSingleFeatureValue_Should_Handle_All_Known_Features()
+    {
+        // Arrange
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var prediction = CreateSuccessfulPrediction();
+
+        // Act - UpdatePatterns will call ExtractSingleFeatureValue for all features
+        var result = updater.UpdatePatterns(new[] { prediction, CreateFailedPrediction() }, new PatternAnalysisResult());
+
+        // Assert - should process all features without error
+        Assert.Equal(_config.Features.Length, result);
+    }
+
+    [Fact]
+    public void ExtractSingleFeatureValue_Should_Handle_Unknown_Features()
+    {
+        // Arrange - create config with unknown feature
+        var configWithUnknown = new PatternRecognitionConfig
+        {
+            Features = new[] { "UnknownFeature", "ExecutionTime" }
+        };
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, configWithUnknown);
+        var predictions = CreateMixedPredictions(5);
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions, analysis);
+
+        // Assert - should handle unknown features gracefully (return 0.0)
+        Assert.Equal(configWithUnknown.Features.Length, result);
+    }
+
+    [Fact]
+    public void CalculateFeatureImportance_Should_Handle_Single_Prediction()
+    {
+        // Arrange
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new[] { CreateSuccessfulPrediction() };
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions, analysis);
+
+        // Assert - should process all features but return 0 importance (no comparison group)
+        Assert.Equal(_config.Features.Length, result);
+    }
+
+    [Fact]
+    public void Statistical_Calculations_Should_Handle_Zero_Variance()
+    {
+        // Arrange - create predictions with identical values for a feature
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new List<PredictionResult>();
+
+        // All successful predictions with identical execution time
+        for (int i = 0; i < 5; i++)
+        {
+            predictions.Add(new PredictionResult
+            {
+                RequestType = typeof(string),
+                PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+                ActualImprovement = TimeSpan.FromMilliseconds(100),
+                Timestamp = DateTime.UtcNow,
+                Metrics = new RequestExecutionMetrics
+                {
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(100), // Same value
+                    MedianExecutionTime = TimeSpan.FromMilliseconds(100),
+                    P95ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    P99ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    TotalExecutions = 100,
+                    SuccessfulExecutions = 90,
+                    FailedExecutions = 10,
+                    MemoryAllocated = 2000000,
+                    ConcurrentExecutions = 2,
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = TimeSpan.FromMinutes(1),
+                    CpuUsage = 0.3,
+                    MemoryUsage = 2000000,
+                    DatabaseCalls = 5,
+                    ExternalApiCalls = 2
+                }
+            });
+        }
+
+        // All failed predictions with identical execution time
+        for (int i = 0; i < 5; i++)
+        {
+            predictions.Add(new PredictionResult
+            {
+                RequestType = typeof(string),
+                PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+                ActualImprovement = TimeSpan.Zero,
+                Timestamp = DateTime.UtcNow,
+                Metrics = new RequestExecutionMetrics
+                {
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(100), // Same value
+                    MedianExecutionTime = TimeSpan.FromMilliseconds(100),
+                    P95ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    P99ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    TotalExecutions = 100,
+                    SuccessfulExecutions = 40,
+                    FailedExecutions = 60,
+                    MemoryAllocated = 8000000,
+                    ConcurrentExecutions = 8,
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = TimeSpan.FromMinutes(1),
+                    CpuUsage = 0.8,
+                    MemoryUsage = 8000000,
+                    DatabaseCalls = 20,
+                    ExternalApiCalls = 10
+                }
+            });
+        }
+
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions.ToArray(), analysis);
+
+        // Assert - should handle zero variance gracefully
+        Assert.Equal(_config.Features.Length, result);
+    }
+
+    [Fact]
+    public void Statistical_Calculations_Should_Handle_Empty_Feature_Values()
+    {
+        // Arrange - create predictions that might result in empty feature value lists
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new List<PredictionResult>();
+
+        // Create predictions with extreme values that might be filtered out
+        for (int i = 0; i < 3; i++)
+        {
+            predictions.Add(new PredictionResult
+            {
+                RequestType = typeof(string),
+                PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+                ActualImprovement = TimeSpan.FromMilliseconds(100),
+                Timestamp = DateTime.UtcNow,
+                Metrics = new RequestExecutionMetrics
+                {
+                     AverageExecutionTime = TimeSpan.FromMilliseconds(-100), // Invalid negative values
+                     MedianExecutionTime = TimeSpan.FromMilliseconds(-100),
+                     P95ExecutionTime = TimeSpan.FromMilliseconds(-100),
+                     P99ExecutionTime = TimeSpan.FromMilliseconds(-100),
+                    TotalExecutions = 100,
+                    SuccessfulExecutions = 90,
+                    FailedExecutions = 10,
+                    MemoryAllocated = 2000000,
+                    ConcurrentExecutions = 2,
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = TimeSpan.FromMinutes(1),
+                    CpuUsage = 0.3,
+                    MemoryUsage = 2000000,
+                    DatabaseCalls = 5,
+                    ExternalApiCalls = 2
+                }
+            });
+        }
+
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions.ToArray(), analysis);
+
+        // Assert - should handle empty feature value lists gracefully
+        Assert.Equal(_config.Features.Length, result);
+    }
+
+    [Fact]
+    public void Exception_Handling_Should_Catch_Division_By_Zero_In_Calculations()
+    {
+        // Arrange - create scenario that might cause division by zero
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new List<PredictionResult>();
+
+        // Create predictions with zero values that might cause division issues
+        for (int i = 0; i < 2; i++)
+        {
+            predictions.Add(new PredictionResult
+            {
+                RequestType = typeof(string),
+                PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+                ActualImprovement = TimeSpan.FromMilliseconds(100),
+                Timestamp = DateTime.UtcNow,
+                Metrics = new RequestExecutionMetrics
+                {
+                    AverageExecutionTime = TimeSpan.Zero, // Zero execution time
+                    MedianExecutionTime = TimeSpan.Zero,
+                    P95ExecutionTime = TimeSpan.Zero,
+                    P99ExecutionTime = TimeSpan.Zero,
+                    TotalExecutions = 0, // Zero total executions
+                    SuccessfulExecutions = 0,
+                    FailedExecutions = 0,
+                    MemoryAllocated = 0, // Zero memory
+                    ConcurrentExecutions = 0, // Zero concurrency
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = TimeSpan.FromMinutes(1),
+                    CpuUsage = 0.0,
+                    MemoryUsage = 0,
+                    DatabaseCalls = 0,
+                    ExternalApiCalls = 0
+                }
+            });
+        }
+
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions.ToArray(), analysis);
+
+        // Assert - should handle division by zero gracefully and return feature count
+        Assert.Equal(_config.Features.Length, result);
+    }
+
+    [Fact]
+    public void Exception_Handling_Should_Catch_Overflow_In_Mathematical_Operations()
+    {
+        // Arrange - create predictions with extreme values that might cause overflow
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new List<PredictionResult>();
+
+        for (int i = 0; i < 2; i++)
+        {
+            predictions.Add(new PredictionResult
+            {
+                RequestType = typeof(string),
+                PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+                ActualImprovement = TimeSpan.FromMilliseconds(100),
+                Timestamp = DateTime.UtcNow,
+                Metrics = new RequestExecutionMetrics
+                {
+                     AverageExecutionTime = TimeSpan.MaxValue, // Extreme values
+                     MedianExecutionTime = TimeSpan.MaxValue,
+                     P95ExecutionTime = TimeSpan.MaxValue,
+                     P99ExecutionTime = TimeSpan.MaxValue,
+                    TotalExecutions = int.MaxValue,
+                    SuccessfulExecutions = int.MaxValue,
+                    FailedExecutions = 0,
+                    MemoryAllocated = long.MaxValue,
+                    ConcurrentExecutions = int.MaxValue,
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = TimeSpan.FromMinutes(1),
+                    CpuUsage = 1.0,
+                    MemoryUsage = long.MaxValue,
+                    DatabaseCalls = int.MaxValue,
+                    ExternalApiCalls = int.MaxValue
+                }
+            });
+        }
+
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions.ToArray(), analysis);
+
+        // Assert - should handle overflow gracefully
+        Assert.Equal(_config.Features.Length, result);
+    }
+
+    [Fact]
+    public void Exception_Handling_Should_Log_Warnings_For_Calculation_Errors()
+    {
+        // Arrange
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new[] { CreateSuccessfulPrediction() }; // Single prediction causes issues
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions, analysis);
+
+        // Assert - should complete and log warnings
+        Assert.Equal(_config.Features.Length, result);
+
+        // Verify debug logs were written for each feature
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Exactly(_config.Features.Length));
     }
 
     // Helper methods

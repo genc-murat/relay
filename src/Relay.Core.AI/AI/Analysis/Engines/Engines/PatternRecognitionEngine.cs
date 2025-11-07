@@ -29,6 +29,9 @@ namespace Relay.Core.AI.Analysis.Engines
 
         public void RetrainPatternRecognition(PredictionResult[] recentPredictions)
         {
+            if (recentPredictions == null)
+                throw new ArgumentNullException(nameof(recentPredictions));
+
             if (recentPredictions.Length < _config.MinimumPredictionsForRetraining)
             {
                 _logger.LogDebug("Insufficient data for pattern retraining: {Count} predictions (minimum: {Minimum})",

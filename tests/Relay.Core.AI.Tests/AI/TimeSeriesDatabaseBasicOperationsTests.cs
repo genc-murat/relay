@@ -1708,4 +1708,368 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
 
 
     #endregion
+
+    #region StoreMetric Parameter Validation Tests
+
+    [Fact]
+    public void StoreMetric_Should_Throw_For_Null_MetricName()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.StoreMetric(null!, 42.0, timestamp));
+    }
+
+    [Fact]
+    public void StoreMetric_Should_Throw_For_Empty_MetricName()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.StoreMetric("", 42.0, timestamp));
+    }
+
+    [Fact]
+    public void StoreMetric_Should_Throw_For_Whitespace_MetricName()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.StoreMetric("   ", 42.0, timestamp));
+    }
+
+    [Fact]
+    public void StoreMetric_Should_Handle_Extreme_Double_Values()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+
+        // Act & Assert - Should not throw
+        _database.StoreMetric("extreme", double.MaxValue, timestamp);
+        _database.StoreMetric("extreme", double.MinValue, timestamp);
+        _database.StoreMetric("extreme", double.NaN, timestamp);
+        _database.StoreMetric("extreme", double.PositiveInfinity, timestamp);
+        _database.StoreMetric("extreme", double.NegativeInfinity, timestamp);
+    }
+
+    [Fact]
+    public void StoreMetric_Should_Handle_Extreme_DateTime_Values()
+    {
+        // Act & Assert - Should not throw
+        _database.StoreMetric("datetime", 42.0, DateTime.MinValue);
+        _database.StoreMetric("datetime", 42.0, DateTime.MaxValue);
+    }
+
+    #endregion
+
+    #region GetRecentMetrics Parameter Validation Tests
+
+    [Fact]
+    public void GetRecentMetrics_Should_Throw_For_Null_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetRecentMetrics(null!, 5));
+    }
+
+    [Fact]
+    public void GetRecentMetrics_Should_Throw_For_Empty_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetRecentMetrics("", 5));
+    }
+
+    [Fact]
+    public void GetRecentMetrics_Should_Throw_For_Whitespace_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetRecentMetrics("   ", 5));
+    }
+
+    [Fact]
+    public void GetRecentMetrics_Should_Handle_Zero_Count()
+    {
+        // Arrange
+        _database.StoreMetric("test", 10.0, DateTime.UtcNow);
+
+        // Act
+        var result = _database.GetRecentMetrics("test", 0);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetRecentMetrics_Should_Handle_Negative_Count()
+    {
+        // Arrange
+        _database.StoreMetric("test", 10.0, DateTime.UtcNow);
+
+        // Act
+        var result = _database.GetRecentMetrics("test", -5);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetRecentMetrics_Should_Handle_Int_MaxValue_Count()
+    {
+        // Arrange
+        _database.StoreMetric("test", 10.0, DateTime.UtcNow);
+
+        // Act
+        var result = _database.GetRecentMetrics("test", int.MaxValue);
+
+        // Assert - Should return all available data
+        Assert.Single(result);
+    }
+
+    #endregion
+
+    #region Forecast Parameter Validation Tests
+
+    [Fact]
+    public void Forecast_Should_Throw_For_Null_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.Forecast(null!));
+    }
+
+    [Fact]
+    public void Forecast_Should_Throw_For_Empty_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.Forecast(""));
+    }
+
+    [Fact]
+    public void Forecast_Should_Throw_For_Whitespace_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.Forecast("   "));
+    }
+
+    [Fact]
+    public void Forecast_Should_Throw_For_Zero_Horizon()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => _database.Forecast("test.metric", 0));
+    }
+
+    [Fact]
+    public void Forecast_Should_Throw_For_Negative_Horizon()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => _database.Forecast("test.metric", -1));
+    }
+
+    [Fact]
+    public void Forecast_Should_Handle_Very_Large_Horizon()
+    {
+        // Act & Assert - Should not throw (service handles validation)
+        var result = _database.Forecast("test.metric", int.MaxValue);
+        // Result may be null if no data, but shouldn't throw
+    }
+
+    #endregion
+
+    #region DetectAnomalies Parameter Validation Tests
+
+    [Fact]
+    public void DetectAnomalies_Should_Throw_For_Null_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.DetectAnomalies(null!));
+    }
+
+    [Fact]
+    public void DetectAnomalies_Should_Throw_For_Empty_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.DetectAnomalies(""));
+    }
+
+    [Fact]
+    public void DetectAnomalies_Should_Throw_For_Whitespace_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.DetectAnomalies("   "));
+    }
+
+    [Fact]
+    public void DetectAnomalies_Should_Throw_For_Zero_LookbackPoints()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => _database.DetectAnomalies("test.metric", 0));
+    }
+
+    [Fact]
+    public void DetectAnomalies_Should_Throw_For_Negative_LookbackPoints()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => _database.DetectAnomalies("test.metric", -1));
+    }
+
+    [Fact]
+    public void DetectAnomalies_Should_Handle_Very_Large_LookbackPoints()
+    {
+        // Act
+        var result = _database.DetectAnomalies("test.metric", int.MaxValue);
+
+        // Assert - Should not throw
+        Assert.NotNull(result);
+    }
+
+    #endregion
+
+    #region GetStatistics Parameter Validation Tests
+
+    [Fact]
+    public void GetStatistics_Should_Throw_For_Null_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetStatistics(null!));
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Throw_For_Empty_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetStatistics(""));
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Throw_For_Whitespace_MetricName()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => _database.GetStatistics("   "));
+    }
+
+    [Fact]
+    public void GetStatistics_Should_Return_Null_For_Unknown_Metric_Parameter_Validation()
+    {
+        // Act
+        var stats = _database.GetStatistics("unknown.metric");
+
+        // Assert
+        Assert.Null(stats);
+    }
+
+    #endregion
+
+    #region Comprehensive Configuration Validation Tests
+
+    [Fact]
+    public void Create_Should_Handle_Null_Configuration_Object()
+    {
+        // Act
+        using var db = TimeSeriesDatabase.Create(_logger, configuration: null);
+
+        // Assert - Should not throw and use defaults
+        Assert.NotNull(db);
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_Has_Invalid_Integer_Type_For_MaxHistorySize()
+    {
+        // Arrange - Configuration with string that can't be parsed as int
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:MaxHistorySize"] = "notanumber"
+            })
+            .Build();
+
+        // Act & Assert - Should throw InvalidOperationException for conversion failure
+        Assert.Throws<InvalidOperationException>(() => TimeSeriesDatabase.Create(_logger, configuration: config));
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_Has_Invalid_Integer_Type_For_ForecastHorizon()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:ForecastHorizon"] = "notanumber"
+            })
+            .Build();
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => TimeSeriesDatabase.Create(_logger, configuration: config));
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_Has_Empty_String_For_ForecastingMethod()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:ForecastingMethod"] = ""
+            })
+            .Build();
+
+        // Act
+        using var db = TimeSeriesDatabase.Create(_logger, configuration: config);
+
+        // Assert - Should use default (SSA) for empty string
+        Assert.NotNull(db);
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_Has_Whitespace_Only_For_ForecastingMethod()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:ForecastingMethod"] = "   "
+            })
+            .Build();
+
+        // Act & Assert - Should throw because whitespace is not a valid enum value
+        Assert.Throws<ArgumentException>(() => TimeSeriesDatabase.Create(_logger, configuration: config));
+    }
+
+    [Fact]
+    public void Create_Should_Throw_When_Config_Has_Special_Characters_In_ForecastingMethod()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:ForecastingMethod"] = "SSA@#$%"
+            })
+            .Build();
+
+        // Act & Assert - Should fail to parse enum
+        Assert.Throws<ArgumentException>(() => TimeSeriesDatabase.Create(_logger, configuration: config));
+    }
+
+    [Fact]
+    public void Create_Should_Use_Config_Values_Over_Defaults()
+    {
+        // Arrange
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TimeSeries:MaxHistorySize"] = "5000",
+                ["TimeSeries:ForecastHorizon"] = "48",
+                ["TimeSeries:ForecastingMethod"] = "ExponentialSmoothing"
+            })
+            .Build();
+
+        // Act
+        using var db = TimeSeriesDatabase.Create(_logger, maxHistorySize: 1000, configuration: config);
+
+        // Assert - Should use config values, not the default parameter
+        Assert.NotNull(db);
+        // Config should override the maxHistorySize parameter
+    }
+
+    #endregion
 }

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Relay.Core.AI;
+using Relay.Core.AI.Analysis.Models;
 using Relay.Core.AI.Analysis.TimeSeries;
 using Xunit;
 
@@ -560,6 +562,16 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
     }
 
     [Fact]
+    public void StoreBatch_Should_Accept_Null_Metrics_Dictionary()
+    {
+        // Arrange
+        var timestamp = DateTime.UtcNow;
+
+        // Act & Assert - Should not throw
+        _database.StoreBatch(null!, timestamp);
+    }
+
+    [Fact]
     public void StoreBatch_Should_Throw_For_Empty_Metric_Names_In_Dictionary()
     {
         // Arrange
@@ -1092,6 +1104,294 @@ public class TimeSeriesDatabaseBasicOperationsTests : IDisposable
 
         // Assert - StatisticsService Dispose should be called
         statisticsServiceMock.As<IDisposable>().Verify(x => x.Dispose(), Times.Once);
+    }
+
+    #endregion
+
+    #region Forecasting Method Tests
+
+    [Fact]
+    public void GetForecastingMethod_Should_Delegate_To_ForecastingService()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingServiceMock = new Moq.Mock<IForecastingService>();
+        forecastingServiceMock.Setup(x => x.GetForecastingMethod("test.metric")).Returns(ForecastingMethod.SSA);
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingServiceMock.Object, anomalyDetectionService, statisticsService);
+
+        // Act
+        var result = db.GetForecastingMethod("test.metric");
+
+        // Assert
+        Assert.Equal(ForecastingMethod.SSA, result);
+        forecastingServiceMock.Verify(x => x.GetForecastingMethod("test.metric"), Times.Once);
+    }
+
+    [Fact]
+    public void SetForecastingMethod_Should_Delegate_To_ForecastingService()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingServiceMock = new Moq.Mock<IForecastingService>();
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingServiceMock.Object, anomalyDetectionService, statisticsService);
+
+        // Act
+        db.SetForecastingMethod("test.metric", ForecastingMethod.ExponentialSmoothing);
+
+        // Assert
+        forecastingServiceMock.Verify(x => x.SetForecastingMethod("test.metric", ForecastingMethod.ExponentialSmoothing), Times.Once);
+    }
+
+    #endregion
+
+    #region Anomaly Detection Edge Cases Tests
+
+    [Fact]
+    public void DetectAnomalies_Should_Delegate_With_Zero_LookbackPoints()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.Setup(x => x.DetectAnomalies("test.metric", 0))
+            .Returns(new List<AnomalyDetectionResult>());
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act
+        var result = db.DetectAnomalies("test.metric", 0);
+
+        // Assert
+        Assert.NotNull(result);
+        anomalyDetectionServiceMock.Verify(x => x.DetectAnomalies("test.metric", 0), Times.Once);
+    }
+
+    [Fact]
+    public void DetectAnomalies_Should_Delegate_With_Negative_LookbackPoints()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.Setup(x => x.DetectAnomalies("test.metric", -1))
+            .Returns(new List<AnomalyDetectionResult>());
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act
+        var result = db.DetectAnomalies("test.metric", -1);
+
+        // Assert
+        Assert.NotNull(result);
+        anomalyDetectionServiceMock.Verify(x => x.DetectAnomalies("test.metric", -1), Times.Once);
+    }
+
+    [Fact]
+    public void DetectAnomalies_Should_Delegate_With_Very_Large_LookbackPoints()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.Setup(x => x.DetectAnomalies("test.metric", 100000))
+            .Returns(new List<AnomalyDetectionResult>());
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act
+        var result = db.DetectAnomalies("test.metric", 100000);
+
+        // Assert
+        Assert.NotNull(result);
+        anomalyDetectionServiceMock.Verify(x => x.DetectAnomalies("test.metric", 100000), Times.Once);
+    }
+
+    [Fact]
+    public async Task DetectAnomaliesAsync_Should_Delegate_With_Zero_LookbackPoints()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.Setup(x => x.DetectAnomaliesAsync("test.metric", 0))
+            .ReturnsAsync(new List<AnomalyDetectionResult>());
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act
+        var result = await db.DetectAnomaliesAsync("test.metric", 0);
+
+        // Assert
+        Assert.NotNull(result);
+        anomalyDetectionServiceMock.Verify(x => x.DetectAnomaliesAsync("test.metric", 0), Times.Once);
+    }
+
+    [Fact]
+    public async Task DetectAnomaliesAsync_Should_Delegate_With_Negative_LookbackPoints()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.Setup(x => x.DetectAnomaliesAsync("test.metric", -50))
+            .ReturnsAsync(new List<AnomalyDetectionResult>());
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act
+        var result = await db.DetectAnomaliesAsync("test.metric", -50);
+
+        // Assert
+        Assert.NotNull(result);
+        anomalyDetectionServiceMock.Verify(x => x.DetectAnomaliesAsync("test.metric", -50), Times.Once);
+    }
+
+    [Fact]
+    public async Task DetectAnomaliesAsync_Should_Delegate_With_Very_Large_LookbackPoints()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.Setup(x => x.DetectAnomaliesAsync("test.metric", int.MaxValue))
+            .ReturnsAsync(new List<AnomalyDetectionResult>());
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act
+        var result = await db.DetectAnomaliesAsync("test.metric", int.MaxValue);
+
+        // Assert
+        Assert.NotNull(result);
+        anomalyDetectionServiceMock.Verify(x => x.DetectAnomaliesAsync("test.metric", int.MaxValue), Times.Once);
+    }
+
+    #endregion
+
+    #region Dispose Repository Clear Tests
+
+    [Fact]
+    public void Dispose_Should_Call_Repository_Clear_Before_Disposing_Services()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repositoryMock = new Moq.Mock<ITimeSeriesRepository>();
+        repositoryMock.As<IDisposable>();
+        var forecastingServiceMock = new Moq.Mock<IForecastingService>();
+        forecastingServiceMock.As<IDisposable>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.As<IDisposable>();
+        var statisticsServiceMock = new Moq.Mock<ITimeSeriesStatisticsService>();
+        statisticsServiceMock.As<IDisposable>();
+
+        var db = new TimeSeriesDatabase(logger, repositoryMock.Object, forecastingServiceMock.Object,
+            anomalyDetectionServiceMock.Object, statisticsServiceMock.Object);
+
+        // Act
+        db.Dispose();
+
+        // Assert - Verify Clear is called before Dispose
+        var callOrder = repositoryMock.Invocations.Select(i => i.Method.Name).ToList();
+        Assert.Contains("Clear", callOrder);
+        Assert.Contains("Dispose", callOrder);
+
+        // Clear should be called before Dispose
+        var clearIndex = callOrder.IndexOf("Clear");
+        var disposeIndex = callOrder.IndexOf("Dispose");
+        Assert.True(clearIndex < disposeIndex);
+
+        // Verify all services are disposed
+        forecastingServiceMock.As<IDisposable>().Verify(x => x.Dispose(), Times.Once);
+        anomalyDetectionServiceMock.As<IDisposable>().Verify(x => x.Dispose(), Times.Once);
+        statisticsServiceMock.As<IDisposable>().Verify(x => x.Dispose(), Times.Once);
+    }
+
+    #endregion
+
+    #region Async Cancellation Tests
+
+    [Fact]
+    public async Task TrainForecastModelAsync_Should_Handle_Cancellation_Gracefully()
+    {
+        // Arrange
+        var loggerMock = new Moq.Mock<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingServiceMock = new Moq.Mock<IForecastingService>();
+        forecastingServiceMock.Setup(x => x.TrainForecastModelAsync("test.metric", null))
+            .ThrowsAsync(new OperationCanceledException());
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(loggerMock.Object, repository, forecastingServiceMock.Object,
+            anomalyDetectionService, statisticsService);
+
+        // Act & Assert - Should not throw, should log error
+        await db.TrainForecastModelAsync("test.metric");
+
+        // Verify error was logged
+        loggerMock.Verify(x => x.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Error training forecast model for test.metric")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ForecastAsync_Should_Propagate_Cancellation()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingServiceMock = new Moq.Mock<IForecastingService>();
+        forecastingServiceMock.Setup(x => x.ForecastAsync("test.metric", 12))
+            .ThrowsAsync(new OperationCanceledException());
+        var anomalyDetectionService = Mock.Of<IAnomalyDetectionService>();
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingServiceMock.Object,
+            anomalyDetectionService, statisticsService);
+
+        // Act & Assert - Should propagate the cancellation
+        await Assert.ThrowsAsync<OperationCanceledException>(() => db.ForecastAsync("test.metric", 12));
+    }
+
+    [Fact]
+    public async Task DetectAnomaliesAsync_Should_Propagate_Cancellation()
+    {
+        // Arrange
+        var logger = Mock.Of<ILogger<TimeSeriesDatabase>>();
+        var repository = Mock.Of<ITimeSeriesRepository>();
+        var forecastingService = Mock.Of<IForecastingService>();
+        var anomalyDetectionServiceMock = new Moq.Mock<IAnomalyDetectionService>();
+        anomalyDetectionServiceMock.Setup(x => x.DetectAnomaliesAsync("test.metric", 100))
+            .ThrowsAsync(new OperationCanceledException());
+        var statisticsService = Mock.Of<ITimeSeriesStatisticsService>();
+
+        var db = new TimeSeriesDatabase(logger, repository, forecastingService, anomalyDetectionServiceMock.Object, statisticsService);
+
+        // Act & Assert - Should propagate the cancellation
+        await Assert.ThrowsAsync<OperationCanceledException>(() => db.DetectAnomaliesAsync("test.metric", 100));
     }
 
     #endregion

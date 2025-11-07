@@ -315,17 +315,25 @@ public class NotificationDispatcherGenerator : BaseCodeGenerator
         }
         else
         {
-            sourceBuilder.AppendLine("                        using var scope = CreateScope();");
-            sourceBuilder.AppendLine($"                        var handler = scope.ServiceProvider.GetRequiredService<{handlerType}>();");
+            sourceBuilder.AppendLine("                        try");
+            sourceBuilder.AppendLine("                        {");
+            sourceBuilder.AppendLine("                            using var scope = CreateScope();");
+            sourceBuilder.AppendLine($"                            var handler = scope.ServiceProvider.GetRequiredService<{handlerType}>();");
 
             if (isAsync)
             {
-                sourceBuilder.AppendLine($"                        await handler.{methodName}({notificationParam}, {cancellationTokenParam});");
+                sourceBuilder.AppendLine($"                            await handler.{methodName}({notificationParam}, {cancellationTokenParam});");
             }
             else
             {
-                sourceBuilder.AppendLine($"                        handler.{methodName}({notificationParam}, {cancellationTokenParam});");
+                sourceBuilder.AppendLine($"                            handler.{methodName}({notificationParam}, {cancellationTokenParam});");
             }
+
+            sourceBuilder.AppendLine("                        }");
+            sourceBuilder.AppendLine("                        catch (Exception ex)");
+            sourceBuilder.AppendLine("                        {");
+            sourceBuilder.AppendLine($"                            _logger?.LogError(ex, \"Handler {{HandlerType}} failed while processing notification {{NotificationType}}\", \"{handlerType}\", typeof({handler.MethodSymbol.Parameters[0].Type.ToDisplayString()}).Name);");
+            sourceBuilder.AppendLine("                        }");
         }
 
         sourceBuilder.AppendLine("                    }");

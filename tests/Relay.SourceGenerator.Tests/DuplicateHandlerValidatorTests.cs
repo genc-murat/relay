@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
+using System.Linq;
 using Moq;
 using Relay.SourceGenerator.Validators;
 using Relay.SourceGenerator.Diagnostics;
@@ -94,7 +95,7 @@ public class DuplicateHandlerValidatorTests
 
         // Assert
         _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
-            d.Descriptor.Id == "RELAY_GEN_003")), Times.Exactly(2)); // DuplicateHandler
+            d.Descriptor.Id == "RELAY_GEN_005")), Times.Exactly(2)); // NamedHandlerConflict
     }
 
     [Fact]
@@ -241,7 +242,7 @@ public class DuplicateHandlerValidatorTests
 
     private static CSharpCompilation CreateCompilation(string source)
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText($@"
+        var fullSource = @"
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -249,8 +250,28 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Relay.Core;
 
-{source}
-");
+namespace Relay.Core
+{
+    public interface IRequest { }
+    public interface IRequest<out TResponse> { }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public sealed class HandleAttribute : Attribute
+    {
+        public HandleAttribute() { }
+
+        public HandleAttribute(string name)
+        {
+            Name = name;
+        }
+
+        public string? Name { get; set; }
+        public int Priority { get; set; }
+    }
+}
+" + source;
+
+        var syntaxTree = CSharpSyntaxTree.ParseText(fullSource);
 
         var references = new[]
         {

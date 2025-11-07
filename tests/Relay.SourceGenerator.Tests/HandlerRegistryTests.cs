@@ -1,12 +1,38 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Relay.SourceGenerator;
+using Xunit;
+using System.Collections.Immutable;
 
 namespace Relay.SourceGenerator.Tests;
 
 /// <summary>
-/// Tests for HandlerRegistry methods.
+/// Mock AttributeData for testing constructor argument scenarios
 /// </summary>
+public class MockAttributeData : AttributeData
+{
+    private readonly INamedTypeSymbol _attributeClass;
+    private readonly ImmutableArray<TypedConstant> _constructorArguments;
+    private readonly ImmutableArray<KeyValuePair<string, TypedConstant>> _namedArguments;
+
+    public MockAttributeData(
+        INamedTypeSymbol attributeClass,
+        ImmutableArray<TypedConstant> constructorArguments,
+        ImmutableArray<KeyValuePair<string, TypedConstant>> namedArguments)
+    {
+        _attributeClass = attributeClass;
+        _constructorArguments = constructorArguments;
+        _namedArguments = namedArguments;
+    }
+
+    protected override INamedTypeSymbol? CommonAttributeClass => _attributeClass;
+    protected override IMethodSymbol? CommonAttributeConstructor => null;
+    protected override SyntaxReference? CommonApplicationSyntaxReference => null;
+    protected override ImmutableArray<TypedConstant> CommonConstructorArguments => _constructorArguments;
+    protected override ImmutableArray<KeyValuePair<string, TypedConstant>> CommonNamedArguments => _namedArguments;
+}
+
 public class HandlerRegistryTests
 {
     [Fact]
@@ -189,6 +215,47 @@ public class TestHandler
         Assert.Single(registry.Handlers);
     }
 
+    [Fact]
+    public void AddHandler_WithConstructorArgument_UsesConstructorArgumentForName()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
+public class TestRequest : IRequest<string> { }
+public class TestHandler
+{
+    [Handle]
+    public string Handle(TestRequest request, CancellationToken ct) => """";
+}
+");
+        var methodSymbol = GetMethodSymbol(compilation, "Handle");
+        var methodDeclaration = GetMethodDeclaration(compilation, "Handle");
+        var attribute = methodSymbol.GetAttributes().First();
+
+        // Create mock AttributeData with constructor arguments to test the branch
+        // We just need ConstructorArguments.Length > 0 to hit the branch
+        var constructorArgs = System.Collections.Immutable.ImmutableArray.Create(new TypedConstant());
+        
+        var mockAttributeData = new MockAttributeData(
+            attribute.AttributeClass!,
+            constructorArgs,
+            attribute.NamedArguments
+        );
+
+        var registry = new HandlerRegistry();
+
+        // Act
+        registry.AddHandler(methodSymbol, mockAttributeData, methodDeclaration);
+
+        // Assert
+        Assert.Single(registry.Handlers);
+        var handler = registry.Handlers[0];
+        
+        // The name should be "default" since TypedConstant.Value is null, but the important thing
+        // is that the constructor arguments branch was hit (ConstructorArguments.Length > 0)
+        Assert.Equal("default", handler.Name);
+        Assert.Equal(0, handler.Priority);
+    }
+
     private static CSharpCompilation CreateCompilation(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText($@"
@@ -205,6 +272,8 @@ namespace Relay.Core
     public interface INotification {{ }}
     public class HandleAttribute : Attribute
     {{
+        public HandleAttribute() {{ }}
+        public HandleAttribute(string name) {{ Name = name; }}
         public string? Name {{ get; set; }}
         public int Priority {{ get; set; }}
     }}

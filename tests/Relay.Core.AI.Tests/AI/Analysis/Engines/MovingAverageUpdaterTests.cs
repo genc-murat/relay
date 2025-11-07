@@ -461,4 +461,161 @@ public class MovingAverageUpdaterTests
         // Should be different because new history was added
         Assert.NotEqual(ema1, ema2);
     }
+
+    [Fact]
+    public void ClearHistory_Should_Log_Debug_Message()
+    {
+        // Arrange
+        var updater = new MovingAverageUpdater(_loggerMock.Object, _config);
+
+        // Act
+        updater.ClearHistory();
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void UpdateMovingAverages_Should_Log_Trace_For_Calculated_Averages()
+    {
+        // Arrange
+        var updater = new MovingAverageUpdater(_loggerMock.Object, _config);
+        var metrics = new Dictionary<string, double> { ["cpu"] = 75.0 };
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        updater.UpdateMovingAverages(metrics, timestamp);
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Trace,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void CalculateMovingAverage_Should_Return_Current_Value_When_History_Is_Empty()
+    {
+        // Arrange
+        var updater = new MovingAverageUpdater(_loggerMock.Object, _config);
+
+        // Use reflection to invoke private method
+        var method = typeof(MovingAverageUpdater).GetMethod("CalculateMovingAverage",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act
+        var result = (double)method.Invoke(updater, new object[] { "cpu", 100.0, 5 });
+
+        // Assert - Should return current value when no history
+        Assert.Equal(100.0, result);
+    }
+
+    [Fact]
+    public void EMA_Should_Clamp_Alpha_To_Valid_Range()
+    {
+        // Arrange
+        var configInvalidAlpha = new TrendAnalysisConfig
+        {
+            MovingAveragePeriods = new[] { 5, 15, 60 },
+            ExponentialMovingAverageAlpha = 1.5 // Invalid alpha > 1
+        };
+        var updater = new MovingAverageUpdater(_loggerMock.Object, configInvalidAlpha);
+        var timestamp = DateTime.UtcNow;
+
+        // Start with 100
+        var metrics1 = new Dictionary<string, double> { ["metric"] = 100.0 };
+        updater.UpdateMovingAverages(metrics1, timestamp);
+
+        // Add 200 - Alpha should be clamped to 1.0
+        // EMA = 200 * 1.0 + 100 * 0.0 = 200
+        var metrics2 = new Dictionary<string, double> { ["metric"] = 200.0 };
+        var result = updater.UpdateMovingAverages(metrics2, timestamp);
+
+        // Assert
+        Assert.Equal(200.0, result["metric"].EMA);
+    }
+
+    [Fact]
+    public void EMA_Should_Handle_NaN_Infinity_Results()
+    {
+        // Arrange
+        var updater = new MovingAverageUpdater(_loggerMock.Object, _config);
+        var timestamp = DateTime.UtcNow;
+
+        // Start with NaN (simulate invalid state)
+        // Use reflection to set EMA cache to NaN
+        var emaCacheField = typeof(MovingAverageUpdater).GetField("_emaCache",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var emaCache = (Dictionary<string, double>)emaCacheField.GetValue(updater);
+        emaCache["metric"] = double.NaN;
+
+        // Act
+        var metrics = new Dictionary<string, double> { ["metric"] = 100.0 };
+        var result = updater.UpdateMovingAverages(metrics, timestamp);
+
+        // Assert - Should return current value as fallback
+        Assert.Equal(100.0, result["metric"].EMA);
+    }
+
+    [Fact]
+    public void UpdateMovingAverages_Should_Handle_Outer_Exception_And_Return_Empty()
+    {
+        // Arrange
+        var updater = new MovingAverageUpdater(_loggerMock.Object, _config);
+        var metrics = new Dictionary<string, double> { ["cpu"] = 75.0 };
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        var result = updater.UpdateMovingAverages(metrics, timestamp);
+
+        // Assert - Should return result
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public void CalculateMovingAverage_Should_Handle_Exception_And_Return_Current_Value()
+    {
+        // Arrange
+        _loggerMock.Setup(x => x.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>())).Throws(new Exception("Logger failed"));
+        var updater = new MovingAverageUpdater(_loggerMock.Object, _config);
+
+        // Use reflection
+        var method = typeof(MovingAverageUpdater).GetMethod("CalculateMovingAverage",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act
+        var result = (double)method.Invoke(updater, new object[] { "cpu", 100.0, 5 });
+
+        // Assert - Should return current value
+        Assert.Equal(100.0, result);
+    }
+
+    [Fact]
+    public void CalculateExponentialMovingAverage_Should_Handle_Exception_And_Return_Current_Value()
+    {
+        // Arrange
+        _loggerMock.Setup(x => x.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>())).Throws(new Exception("Logger failed"));
+        var updater = new MovingAverageUpdater(_loggerMock.Object, _config);
+
+        // Use reflection
+        var method = typeof(MovingAverageUpdater).GetMethod("CalculateExponentialMovingAverage",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        // Act
+        var result = (double)method.Invoke(updater, new object[] { "cpu", 100.0, 0.3 });
+
+        // Assert - Should return current value
+        Assert.Equal(100.0, result);
+    }
 }

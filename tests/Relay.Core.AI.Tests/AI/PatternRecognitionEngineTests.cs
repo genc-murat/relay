@@ -350,6 +350,200 @@ namespace Relay.Core.Tests.AI
             // Assert - Should complete without throwing
         }
 
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Null_Predictions_Array()
+        {
+            // Arrange
+            PredictionResult[] predictions = null!;
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => _engine.RetrainPatternRecognition(predictions));
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Null_Prediction_In_Array()
+        {
+            // Arrange
+            var predictions = new PredictionResult[]
+            {
+                CreatePrediction(typeof(TestRequest), 100, true),
+                null!,
+                CreatePrediction(typeof(TestRequest), 120, true)
+            };
+
+            // Act - Should handle null prediction gracefully
+            _engine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should complete without throwing
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Log_Debug_For_Insufficient_Data()
+        {
+            // Arrange
+            var predictions = new[]
+            {
+                CreatePrediction(typeof(TestRequest), 100, true),
+                CreatePrediction(typeof(TestRequest), 120, false)
+            };
+
+            // Act
+            _engine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should log debug message about insufficient data
+            // Note: This would require logger mock to verify, but we're using real logger
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Log_Information_For_Successful_Retraining()
+        {
+            // Arrange
+            var predictions = Enumerable.Range(0, 15)
+                .Select(i => CreatePrediction(typeof(TestRequest), 100 + i * 10, true))
+                .ToArray();
+
+            // Act
+            _engine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should log information about successful retraining
+            // Note: This would require logger mock to verify, but we're using real logger
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Zero_Minimum_Predictions_Configuration()
+        {
+            // Arrange - Create custom engine with zero minimum
+            var serviceProvider = CreateServiceProvider();
+            var config = serviceProvider.GetRequiredService<PatternRecognitionConfig>();
+            config.MinimumPredictionsForRetraining = 0;
+            
+            var analyzer = serviceProvider.GetRequiredService<IPatternAnalyzer>();
+            var updaters = serviceProvider.GetRequiredService<IEnumerable<IPatternUpdater>>();
+            var logger = serviceProvider.GetRequiredService<ILogger<PatternRecognitionEngine>>();
+            
+            var customEngine = new PatternRecognitionEngine(logger, analyzer, updaters, config);
+            
+            var predictions = new[]
+            {
+                CreatePrediction(typeof(TestRequest), 100, true)
+            };
+
+            // Act
+            customEngine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should process even with single prediction
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Very_High_Minimum_Predictions_Configuration()
+        {
+            // Arrange - Create custom engine with very high minimum
+            var serviceProvider = CreateServiceProvider();
+            var config = serviceProvider.GetRequiredService<PatternRecognitionConfig>();
+            config.MinimumPredictionsForRetraining = 1000;
+            
+            var analyzer = serviceProvider.GetRequiredService<IPatternAnalyzer>();
+            var updaters = serviceProvider.GetRequiredService<IEnumerable<IPatternUpdater>>();
+            var logger = serviceProvider.GetRequiredService<ILogger<PatternRecognitionEngine>>();
+            
+            var customEngine = new PatternRecognitionEngine(logger, analyzer, updaters, config);
+            
+            var predictions = Enumerable.Range(0, 50)
+                .Select(i => CreatePrediction(typeof(TestRequest), 100 + i * 10, true))
+                .ToArray();
+
+            // Act
+            customEngine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should skip due to insufficient data
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Predictions_With_Zero_Improvement()
+        {
+            // Arrange
+            var predictions = new[]
+            {
+                CreatePrediction(typeof(TestRequest), 0, true),
+                CreatePrediction(typeof(TestRequest), 0, true),
+                CreatePrediction(typeof(TestRequest), 0, false),
+                CreatePrediction(typeof(TestRequest), 0, true)
+            };
+
+            // Act
+            _engine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should complete without throwing
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Negative_Improvement_Values()
+        {
+            // Arrange
+            var predictions = new[]
+            {
+                CreatePrediction(typeof(TestRequest), -50, false),
+                CreatePrediction(typeof(TestRequest), -100, false),
+                CreatePrediction(typeof(TestRequest), -25, false),
+                CreatePrediction(typeof(TestRequest), -75, false)
+            };
+
+            // Act
+            _engine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should complete without throwing
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Very_Large_Improvement_Values()
+        {
+            // Arrange
+            var predictions = Enumerable.Range(0, 15)
+                .Select(i => CreatePrediction(typeof(TestRequest), 10000 + i * 1000, true))
+                .ToArray();
+
+            // Act
+            _engine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should complete without throwing
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Predictions_With_Future_Timestamps()
+        {
+            // Arrange
+            var predictions = new[]
+            {
+                CreatePredictionAtTime(typeof(TestRequest), 100, true, DateTime.UtcNow.AddHours(1)),
+                CreatePredictionAtTime(typeof(TestRequest), 120, true, DateTime.UtcNow.AddMinutes(30)),
+                CreatePredictionAtTime(typeof(TestRequest), 90, false, DateTime.UtcNow.AddMinutes(15)),
+                CreatePredictionAtTime(typeof(TestRequest), 110, true, DateTime.UtcNow.AddMinutes(5))
+            };
+
+            // Act
+            _engine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should complete without throwing
+        }
+
+        [Fact]
+        public void RetrainPatternRecognition_Should_Handle_Predictions_With_Very_Old_Timestamps()
+        {
+            // Arrange
+            var predictions = new[]
+            {
+                CreatePredictionAtTime(typeof(TestRequest), 100, true, DateTime.UtcNow.AddDays(-30)),
+                CreatePredictionAtTime(typeof(TestRequest), 120, true, DateTime.UtcNow.AddDays(-60)),
+                CreatePredictionAtTime(typeof(TestRequest), 90, false, DateTime.UtcNow.AddDays(-90)),
+                CreatePredictionAtTime(typeof(TestRequest), 110, true, DateTime.UtcNow.AddDays(-120))
+            };
+
+            // Act
+            _engine.RetrainPatternRecognition(predictions);
+
+            // Assert - Should complete without throwing
+        }
+
         #region Helper Methods
 
         private PredictionResult CreatePrediction(

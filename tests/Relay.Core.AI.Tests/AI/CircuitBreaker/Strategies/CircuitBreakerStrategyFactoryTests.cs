@@ -87,9 +87,15 @@ public class CircuitBreakerStrategyFactoryTests
 
     [Theory]
     [InlineData(0.0)]
+    [InlineData(0.001)]
+    [InlineData(0.01)]
+    [InlineData(0.1)]
     [InlineData(0.25)]
     [InlineData(0.5)]
     [InlineData(0.75)]
+    [InlineData(0.9)]
+    [InlineData(0.99)]
+    [InlineData(0.999)]
     [InlineData(1.0)]
     public void CreatePercentageBasedStrategy_Should_Accept_Valid_Thresholds(double threshold)
     {
@@ -145,8 +151,16 @@ public class CircuitBreakerStrategyFactoryTests
     }
 
     [Theory]
+    [InlineData(0.1, 0.0)]
     [InlineData(1.0, 0.0)]
+    [InlineData(5.0, 0.0)]
+    [InlineData(10.0, 0.0)]
+    [InlineData(100.0, 0.0)]
+    [InlineData(1.0, 0.001)]
+    [InlineData(1.0, 0.1)]
     [InlineData(5.0, 0.5)]
+    [InlineData(10.0, 0.9)]
+    [InlineData(10.0, 0.999)]
     [InlineData(10.0, 1.0)]
     public void CreateAdaptiveStrategy_Should_Accept_Valid_Parameters(double baseFailureThreshold, double loadSensitivity)
     {

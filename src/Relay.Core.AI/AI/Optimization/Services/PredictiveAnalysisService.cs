@@ -119,7 +119,7 @@ public class PredictiveAnalysisService
         }
     }
 
-    public LoadPatternData AnalyzeLoadPatterns()
+    public virtual LoadPatternData AnalyzeLoadPatterns()
     {
         lock (_historyLock)
         {

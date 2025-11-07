@@ -38,8 +38,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
     // Dependencies for SystemMetricsService
     private readonly IMetricsAggregator _metricsAggregator;
-    private readonly IHealthScorer _healthScorer;
-    private readonly ISystemAnalyzer _systemAnalyzer;
+    private IHealthScorer _healthScorer; // Made non-readonly for testing
+    private ISystemAnalyzer _systemAnalyzer; // Made non-readonly for testing
     private readonly IMetricsPublisher _metricsPublisher;
     private readonly MetricsCollectionOptions _metricsOptions;
     private readonly HealthScoringOptions _healthOptions;
@@ -236,7 +236,8 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
         RequestExecutionMetrics actualMetrics,
         CancellationToken cancellationToken = default)
     {
-        if (_disposed || !_learningEnabled) return;
+        if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
+        if (!_learningEnabled) return;
         if (requestType == null) throw new ArgumentNullException(nameof(requestType));
         if (appliedOptimizations == null) throw new ArgumentNullException(nameof(appliedOptimizations));
         if (actualMetrics == null) throw new ArgumentNullException(nameof(actualMetrics));
@@ -290,12 +291,14 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
     public void SetLearningMode(bool enabled)
     {
+        if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
         _learningEnabled = enabled;
         _logger.LogInformation("AI learning mode {Status}", enabled ? "enabled" : "disabled");
     }
 
     public AIModelStatistics GetModelStatistics()
     {
+        if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
         return _modelStatisticsService.GetModelStatistics();
     }
 
@@ -306,6 +309,10 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
     public async Task<LoadPatternData> GetLoadPatternAnalysisAsync(CancellationToken cancellationToken = default)
     {
+        if (_disposed) throw new ObjectDisposedException(nameof(AIOptimizationEngine));
+
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Aggregate load pattern data from system metrics and predictive analysis services
         var systemLoadData = await _systemMetricsService.AnalyzeLoadPatternsAsync(cancellationToken);
         var predictiveLoadData = _predictiveAnalysisService.AnalyzeLoadPatterns();
@@ -500,8 +507,9 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
     private async Task<char> CalculatePerformanceGradeAsync()
     {
-        var healthScore = await _systemMetricsService.CalculateSystemHealthScoreAsync();
-        return healthScore.Overall switch
+        var metrics = _systemMetricsService.GetCurrentMetricsAsDictionary();
+        var overall = await _healthScorer.CalculateScoreAsync(metrics);
+        return overall switch
         {
             > 0.9 => 'A',
             > 0.8 => 'B',
@@ -667,7 +675,7 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
             return patterns;
 
         // Test common periods
-        var testPeriods = new[] { 8, 12, 24, 48, 168, 336 };
+        var testPeriods = new[] { 6, 8, 12, 24, 48, 168, 336 };
 
         foreach (var period in testPeriods)
         {
@@ -973,11 +981,24 @@ public sealed class AIOptimizationEngine : IAIOptimizationEngine, IDisposable
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected void Dispose(bool disposing)
+    {
         if (_disposed) return;
 
         _disposed = true;
-        _modelUpdateTimer?.Dispose();
-        _metricsCollectionTimer?.Dispose();
-        (_timeSeriesDb as IDisposable)?.Dispose();
+
+        if (disposing)
+        {
+            // Dispose managed resources
+            _modelUpdateTimer?.Dispose();
+            _metricsCollectionTimer?.Dispose();
+            (_timeSeriesDb as IDisposable)?.Dispose();
+        }
+
+        // Dispose unmanaged resources (none in this case)
     }
 }

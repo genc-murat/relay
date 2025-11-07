@@ -117,6 +117,150 @@ namespace Relay.Core.Tests.AI
         }
 
         [Fact]
+        public void Constructor_Should_Throw_When_MetricsAggregator_Is_Null()
+        {
+            // Arrange
+            var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
+            optionsMock.Setup(o => o.Value).Returns(_options);
+            var healthScorerMock = new Mock<IHealthScorer>();
+            var systemAnalyzerMock = new Mock<ISystemAnalyzer>();
+            var metricsPublisherMock = new Mock<IMetricsPublisher>();
+            var metricsOptions = new MetricsCollectionOptions();
+            var healthOptions = new HealthScoringOptions();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new AIOptimizationEngine(
+                _loggerMock.Object,
+                optionsMock.Object,
+                null!,
+                healthScorerMock.Object,
+                systemAnalyzerMock.Object,
+                metricsPublisherMock.Object,
+                metricsOptions,
+                healthOptions));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_HealthScorer_Is_Null()
+        {
+            // Arrange
+            var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
+            optionsMock.Setup(o => o.Value).Returns(_options);
+            var metricsAggregatorMock = new Mock<IMetricsAggregator>();
+            var systemAnalyzerMock = new Mock<ISystemAnalyzer>();
+            var metricsPublisherMock = new Mock<IMetricsPublisher>();
+            var metricsOptions = new MetricsCollectionOptions();
+            var healthOptions = new HealthScoringOptions();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new AIOptimizationEngine(
+                _loggerMock.Object,
+                optionsMock.Object,
+                metricsAggregatorMock.Object,
+                null!,
+                systemAnalyzerMock.Object,
+                metricsPublisherMock.Object,
+                metricsOptions,
+                healthOptions));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_SystemAnalyzer_Is_Null()
+        {
+            // Arrange
+            var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
+            optionsMock.Setup(o => o.Value).Returns(_options);
+            var metricsAggregatorMock = new Mock<IMetricsAggregator>();
+            var healthScorerMock = new Mock<IHealthScorer>();
+            var metricsPublisherMock = new Mock<IMetricsPublisher>();
+            var metricsOptions = new MetricsCollectionOptions();
+            var healthOptions = new HealthScoringOptions();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new AIOptimizationEngine(
+                _loggerMock.Object,
+                optionsMock.Object,
+                metricsAggregatorMock.Object,
+                healthScorerMock.Object,
+                null!,
+                metricsPublisherMock.Object,
+                metricsOptions,
+                healthOptions));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_MetricsPublisher_Is_Null()
+        {
+            // Arrange
+            var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
+            optionsMock.Setup(o => o.Value).Returns(_options);
+            var metricsAggregatorMock = new Mock<IMetricsAggregator>();
+            var healthScorerMock = new Mock<IHealthScorer>();
+            var systemAnalyzerMock = new Mock<ISystemAnalyzer>();
+            var metricsOptions = new MetricsCollectionOptions();
+            var healthOptions = new HealthScoringOptions();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new AIOptimizationEngine(
+                _loggerMock.Object,
+                optionsMock.Object,
+                metricsAggregatorMock.Object,
+                healthScorerMock.Object,
+                systemAnalyzerMock.Object,
+                null!,
+                metricsOptions,
+                healthOptions));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_MetricsOptions_Is_Null()
+        {
+            // Arrange
+            var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
+            optionsMock.Setup(o => o.Value).Returns(_options);
+            var metricsAggregatorMock = new Mock<IMetricsAggregator>();
+            var healthScorerMock = new Mock<IHealthScorer>();
+            var systemAnalyzerMock = new Mock<ISystemAnalyzer>();
+            var metricsPublisherMock = new Mock<IMetricsPublisher>();
+            var healthOptions = new HealthScoringOptions();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new AIOptimizationEngine(
+                _loggerMock.Object,
+                optionsMock.Object,
+                metricsAggregatorMock.Object,
+                healthScorerMock.Object,
+                systemAnalyzerMock.Object,
+                metricsPublisherMock.Object,
+                null!,
+                healthOptions));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_HealthOptions_Is_Null()
+        {
+            // Arrange
+            var optionsMock = new Mock<IOptions<AIOptimizationOptions>>();
+            optionsMock.Setup(o => o.Value).Returns(_options);
+            var metricsAggregatorMock = new Mock<IMetricsAggregator>();
+            var healthScorerMock = new Mock<IHealthScorer>();
+            var systemAnalyzerMock = new Mock<ISystemAnalyzer>();
+            var metricsPublisherMock = new Mock<IMetricsPublisher>();
+            var metricsOptions = new MetricsCollectionOptions();
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new AIOptimizationEngine(
+                _loggerMock.Object,
+                optionsMock.Object,
+                metricsAggregatorMock.Object,
+                healthScorerMock.Object,
+                systemAnalyzerMock.Object,
+                metricsPublisherMock.Object,
+                metricsOptions,
+                null!));
+        }
+
+        [Fact]
         public void Dispose_Should_Handle_Multiple_Calls()
         {
             // Act

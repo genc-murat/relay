@@ -78,7 +78,7 @@ public class AIOptimizationEngineCachingTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
-            await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns));
+            await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns, CancellationToken.None));
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class AIOptimizationEngineCachingTests : IDisposable
         };
 
         // Act
-        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns, CancellationToken.None);
 
         // Assert
         Assert.NotNull(recommendation);
@@ -158,7 +158,7 @@ public class AIOptimizationEngineCachingTests : IDisposable
         };
 
         // Act
-        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns, CancellationToken.None);
 
         // Assert
         Assert.NotNull(recommendation);
@@ -214,7 +214,7 @@ public class AIOptimizationEngineCachingTests : IDisposable
         };
 
         // Act
-        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns, CancellationToken.None);
 
         // Assert
         Assert.NotNull(recommendation);
@@ -228,7 +228,7 @@ public class AIOptimizationEngineCachingTests : IDisposable
         var accessPatterns = Array.Empty<AccessPattern>();
 
         // Act
-        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns, CancellationToken.None);
 
         // Assert
         Assert.NotNull(recommendation);
@@ -270,7 +270,7 @@ public class AIOptimizationEngineCachingTests : IDisposable
         };
 
         // Act
-        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns, CancellationToken.None);
 
         // Assert
         Assert.NotNull(recommendation);
@@ -349,7 +349,7 @@ public class AIOptimizationEngineCachingTests : IDisposable
         };
 
         // Act
-        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns, CancellationToken.None);
 
         // Assert
         Assert.NotNull(recommendation);
@@ -438,7 +438,7 @@ public class AIOptimizationEngineCachingTests : IDisposable
         };
 
         // Act
-        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns);
+        var recommendation = await _engine.ShouldCacheAsync(typeof(TestRequest), accessPatterns, CancellationToken.None);
 
         // Assert
         Assert.NotNull(recommendation);

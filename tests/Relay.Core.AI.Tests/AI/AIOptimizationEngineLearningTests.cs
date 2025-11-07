@@ -70,15 +70,17 @@ namespace Relay.Core.Tests.AI
         }
 
         [Fact]
-        public async Task LearnFromExecutionAsync_Should_Not_Throw_When_Disposed()
+        public async Task LearnFromExecutionAsync_Should_Throw_ObjectDisposedException_When_Disposed()
         {
             // Arrange
             _engine.Dispose();
             var optimizations = new[] { OptimizationStrategy.Caching };
             var metrics = CreateMetrics();
 
-            // Act & Assert - Should complete without throwing (learning operations fail silently)
-            await _engine.LearnFromExecutionAsync(typeof(TestRequest), optimizations, metrics);
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+                await _engine.LearnFromExecutionAsync(typeof(TestRequest), optimizations, metrics));
+            Assert.NotNull(exception);
         }
 
         [Fact]
@@ -265,6 +267,40 @@ namespace Relay.Core.Tests.AI
             // Assert - Should fallback gracefully and return a recommendation
             Assert.NotNull(result);
             Assert.True(result.ConfidenceScore >= 0);
+        }
+
+        [Fact]
+        public void SetLearningMode_Should_Log_When_Enabling_Learning()
+        {
+            // Act
+            _engine.SetLearningMode(true);
+
+            // Assert - Should log learning enabled
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("enabled")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void SetLearningMode_Should_Log_When_Disabling_Learning()
+        {
+            // Act
+            _engine.SetLearningMode(false);
+
+            // Assert - Should log learning disabled
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("disabled")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
         }
 
         #region Helper Methods

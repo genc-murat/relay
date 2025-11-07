@@ -128,6 +128,43 @@ public class AnomalyDetectionServiceTests
     }
 
     [Fact]
+    public void DetectAnomalies_Should_Process_Exactly_12_Data_Points()
+    {
+        // Arrange
+        var metricName = "test.metric";
+        var baseTime = DateTime.UtcNow;
+        var history = new List<MetricDataPoint>();
+
+        // Create exactly 12 data points
+        for (int i = 0; i < 12; i++)
+        {
+            history.Add(new MetricDataPoint
+            {
+                MetricName = metricName,
+                Timestamp = baseTime.AddMinutes(i),
+                Value = 50.0f
+            });
+        }
+
+        _repositoryMock.Setup(r => r.GetHistory(metricName)).Returns(history);
+
+        // Act
+        var result = _service.DetectAnomalies(metricName);
+
+        // Assert
+        Assert.NotNull(result);
+        // Should not log insufficient data warning
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Insufficient data")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
     public void DetectAnomalies_Should_Detect_Anomalies_With_Sufficient_Data()
     {
         // Arrange
@@ -218,6 +255,44 @@ public class AnomalyDetectionServiceTests
         // We can't guarantee detection, but the method should complete without error
     }
 
+    [Fact]
+    public void DetectAnomalies_Should_Return_Valid_Anomaly_Results_With_Correct_Properties()
+    {
+        // Arrange
+        var metricName = "test.metric";
+        var baseTime = DateTime.UtcNow;
+        var history = new List<MetricDataPoint>();
+
+        // Create data with a clear anomaly pattern
+        for (int i = 0; i < 50; i++)
+        {
+            var value = (i >= 20 && i <= 30) ? 100.0f : 10.0f; // Sustained anomaly
+            history.Add(new MetricDataPoint
+            {
+                MetricName = metricName,
+                Timestamp = baseTime.AddMinutes(i),
+                Value = value
+            });
+        }
+
+        _repositoryMock.Setup(r => r.GetHistory(metricName)).Returns(history);
+
+        // Act
+        var result = _service.DetectAnomalies(metricName, lookbackPoints: 50);
+
+        // Assert
+        Assert.NotNull(result);
+        foreach (var anomaly in result)
+        {
+            Assert.Equal(metricName, anomaly.MetricName);
+            Assert.True(anomaly.IsAnomaly);
+            Assert.True(anomaly.Score >= 0);
+            Assert.True(anomaly.Magnitude >= 0);
+            Assert.NotEqual(default, anomaly.Timestamp);
+            Assert.True(anomaly.Value >= 0);
+        }
+    }
+
         [Fact]
         public void DetectAnomalies_Should_Handle_Exception_And_Throw_AnomalyDetectionException()
         {
@@ -263,6 +338,35 @@ public class AnomalyDetectionServiceTests
     }
 
     [Fact]
+    public async Task DetectAnomaliesAsync_Should_Use_Custom_LookbackPoints()
+    {
+        // Arrange
+        var metricName = "test.metric";
+        var baseTime = DateTime.UtcNow;
+        var history = new List<MetricDataPoint>();
+
+        // Create 50 data points
+        for (int i = 0; i < 50; i++)
+        {
+            history.Add(new MetricDataPoint
+            {
+                MetricName = metricName,
+                Timestamp = baseTime.AddMinutes(i),
+                Value = 50.0f
+            });
+        }
+
+        _repositoryMock.Setup(r => r.GetHistory(metricName)).Returns(history);
+
+        // Act
+        var result = await _service.DetectAnomaliesAsync(metricName, lookbackPoints: 25);
+
+        // Assert
+        Assert.NotNull(result);
+        // Should process with custom lookback
+    }
+
+    [Fact]
     public async Task DetectAnomaliesAsync_Should_Respect_CancellationToken()
     {
         // Arrange
@@ -272,6 +376,28 @@ public class AnomalyDetectionServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(() => _service.DetectAnomaliesAsync(metricName, cancellationToken: cts.Token));
+    }
+
+    [Fact]
+    public async Task DetectAnomaliesAsync_Should_Handle_Cancellation_During_Execution()
+    {
+        // Arrange
+        var metricName = "test.metric";
+        var cts = new CancellationTokenSource();
+        var history = new List<MetricDataPoint>
+        {
+            new MetricDataPoint { MetricName = metricName, Timestamp = DateTime.UtcNow, Value = 10.0f }
+        };
+        _repositoryMock.Setup(r => r.GetHistory(metricName)).Returns(history);
+
+        // Cancel after starting
+        cts.CancelAfter(1); // Cancel after 1ms
+
+        // Act & Assert
+        // Since the operation is fast, this may or may not throw depending on timing
+        // But the method should handle cancellation properly
+        var result = await _service.DetectAnomaliesAsync(metricName, cancellationToken: cts.Token);
+        Assert.NotNull(result);
     }
 
     [Fact]

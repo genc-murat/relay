@@ -87,6 +87,27 @@ public class ForecastingServiceTests
             new ForecastingService(logger, _trainerMock.Object, _predictorMock.Object, null!));
     }
 
+    [Fact]
+    public void Constructor_Should_Log_Initialization_Message()
+    {
+        // Arrange
+        var loggerMock = new Mock<ILogger<ForecastingService>>();
+
+        // Act
+        var service = new ForecastingService(loggerMock.Object, _trainerMock.Object, _predictorMock.Object, _methodManagerMock.Object);
+
+        // Assert
+        Assert.NotNull(service);
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((o, t) => o.ToString()!.Contains("Forecasting service initialized")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     #endregion
 
     #region TrainForecastModel Tests
@@ -214,6 +235,25 @@ public class ForecastingServiceTests
         _methodManagerMock.Verify(m => m.SetForecastingMethod(It.IsAny<string>(), It.IsAny<ForecastingMethod>()), Times.Never);
     }
 
+    [Fact]
+    public async Task TrainForecastModelAsync_Should_Respect_CancellationToken()
+    {
+        // Arrange
+        var metricName = "cpu_usage";
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        _trainerMock.Setup(t => t.TrainModelAsync(metricName, null, cts.Token))
+                    .ThrowsAsync(new OperationCanceledException());
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            _service.TrainForecastModelAsync(metricName, cancellationToken: cts.Token));
+
+        // The exception should be from the cancellation token
+        Assert.IsType<OperationCanceledException>(exception);
+    }
+
     #endregion
 
     #region Forecast Tests
@@ -272,6 +312,20 @@ public class ForecastingServiceTests
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => _service.ForecastAsync(null!));
+    }
+
+    [Fact]
+    public async Task ForecastAsync_Should_Throw_When_Horizon_Is_Zero()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _service.ForecastAsync("cpu", 0));
+    }
+
+    [Fact]
+    public async Task ForecastAsync_Should_Throw_When_Horizon_Is_Negative()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _service.ForecastAsync("cpu", -1));
     }
 
     [Fact]

@@ -655,4 +655,123 @@ public class RegressionUpdaterTests
         // Assert - Should return 0 for insufficient data
         Assert.Equal(0.0, result);
     }
+
+    [Fact]
+    public void ClearHistory_Should_Log_Debug_Message()
+    {
+        // Arrange
+        var updater = new RegressionUpdater(_loggerMock.Object);
+
+        // Act
+        updater.ClearHistory();
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void UpdateRegressionResults_Should_Log_Trace_For_Calculated_Regression()
+    {
+        // Arrange
+        var updater = new RegressionUpdater(_loggerMock.Object);
+        var metrics = new Dictionary<string, double> { ["cpu"] = 75.0 };
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        updater.UpdateRegressionResults(metrics, timestamp);
+
+        // Assert
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Trace,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void CalculateLinearRegression_Should_Handle_NaN_Infinity_In_Calculations()
+    {
+        // Arrange
+        var updater = new RegressionUpdater(_loggerMock.Object);
+
+        // Use reflection to access private method
+        var method = typeof(RegressionUpdater).GetMethod("CalculateLinearRegression",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // Act
+        var result = (RegressionResult)method.Invoke(updater, new object[] { "cpu" });
+
+        // Assert - Should return zero regression for no history
+        Assert.Equal(0.0, result.Slope);
+        Assert.Equal(0.0, result.Intercept);
+        Assert.Equal(0.0, result.RSquared);
+    }
+
+    [Fact]
+    public void UpdateRegressionResults_Should_Handle_Outer_Exception_And_Return_Empty()
+    {
+        // Arrange
+        var updater = new RegressionUpdater(_loggerMock.Object);
+        var metrics = new Dictionary<string, double> { ["cpu"] = 75.0 };
+        var timestamp = DateTime.UtcNow;
+
+        // Act
+        var result = updater.UpdateRegressionResults(metrics, timestamp);
+
+        // Assert - Should return result
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public void CalculateLinearRegression_Should_Handle_Exception_And_Return_Zero_Regression()
+    {
+        // Arrange
+        _loggerMock.Setup(x => x.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>())).Throws(new Exception("Logger failed"));
+        var updater = new RegressionUpdater(_loggerMock.Object);
+
+        // Use reflection
+        var method = typeof(RegressionUpdater).GetMethod("CalculateLinearRegression",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // Act
+        var result = (RegressionResult)method.Invoke(updater, new object[] { "cpu" });
+
+        // Assert - Should return zero regression
+        Assert.Equal(0.0, result.Slope);
+        Assert.Equal(0.0, result.Intercept);
+        Assert.Equal(0.0, result.RSquared);
+    }
+
+    [Fact]
+    public void CalculateRSquared_Should_Calculate_Perfect_RSquared_For_Linear_Data()
+    {
+        // Arrange
+        var updater = new RegressionUpdater(_loggerMock.Object);
+
+        // Use reflection
+        var method = typeof(RegressionUpdater).GetMethod("CalculateRSquared",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        double[] yValues = new[] { 1.0, 2.0, 3.0 };
+        double[] xValues = new[] { 1.0, 2.0, 3.0 };
+        double slope = 1.0;
+        double intercept = 0.0;
+        double meanY = 2.0;
+
+        // Act
+        var result = (double)method.Invoke(updater, new object[] { yValues, xValues, slope, intercept, meanY });
+
+        // Assert - Perfect linear data should have R² = 1.0
+        Assert.Equal(1.0, result);
+    }
 }

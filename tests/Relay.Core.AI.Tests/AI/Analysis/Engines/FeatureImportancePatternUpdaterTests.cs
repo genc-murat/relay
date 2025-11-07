@@ -600,6 +600,200 @@ public class FeatureImportancePatternUpdaterTests
             Times.Exactly(_config.Features.Length));
     }
 
+    [Fact]
+    public void UpdatePatterns_Should_Return_Zero_For_Empty_Features()
+    {
+        // Arrange
+        var emptyConfig = new PatternRecognitionConfig
+        {
+            Features = Array.Empty<string>()
+        };
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, emptyConfig);
+        var predictions = CreateMixedPredictions(5);
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions, analysis);
+
+        // Assert
+        Assert.Equal(0, result);
+
+        // Verify no logging occurred
+        _loggerMock.Verify(
+            x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void Mutual_Information_Should_Handle_Identical_Feature_Values()
+    {
+        // Arrange - create predictions with identical execution times
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new List<PredictionResult>();
+
+        // All successful with identical execution time
+        for (int i = 0; i < 5; i++)
+        {
+            predictions.Add(new PredictionResult
+            {
+                RequestType = typeof(string),
+                PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+                ActualImprovement = TimeSpan.FromMilliseconds(100),
+                Timestamp = DateTime.UtcNow,
+                Metrics = new RequestExecutionMetrics
+                {
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(100), // Identical
+                    MedianExecutionTime = TimeSpan.FromMilliseconds(100),
+                    P95ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    P99ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    TotalExecutions = 100,
+                    SuccessfulExecutions = 90,
+                    FailedExecutions = 10,
+                    MemoryAllocated = 2000000,
+                    ConcurrentExecutions = 2,
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = TimeSpan.FromMinutes(1),
+                    CpuUsage = 0.3,
+                    MemoryUsage = 2000000,
+                    DatabaseCalls = 5,
+                    ExternalApiCalls = 2
+                }
+            });
+        }
+
+        // All failed with identical execution time
+        for (int i = 0; i < 5; i++)
+        {
+            predictions.Add(new PredictionResult
+            {
+                RequestType = typeof(string),
+                PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+                ActualImprovement = TimeSpan.Zero,
+                Timestamp = DateTime.UtcNow,
+                Metrics = new RequestExecutionMetrics
+                {
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(100), // Identical
+                    MedianExecutionTime = TimeSpan.FromMilliseconds(100),
+                    P95ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    P99ExecutionTime = TimeSpan.FromMilliseconds(100),
+                    TotalExecutions = 100,
+                    SuccessfulExecutions = 40,
+                    FailedExecutions = 60,
+                    MemoryAllocated = 8000000,
+                    ConcurrentExecutions = 8,
+                    LastExecution = DateTime.UtcNow,
+                    SamplePeriod = TimeSpan.FromMinutes(1),
+                    CpuUsage = 0.8,
+                    MemoryUsage = 8000000,
+                    DatabaseCalls = 20,
+                    ExternalApiCalls = 10
+                }
+            });
+        }
+
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions.ToArray(), analysis);
+
+        // Assert - should handle identical values gracefully (mutual info returns 0.0 due to zero range)
+        Assert.Equal(_config.Features.Length, result);
+    }
+
+    [Fact]
+    public void Feature_Extraction_Should_Filter_Invalid_Values()
+    {
+        // Arrange - create predictions with invalid (negative) execution times
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new List<PredictionResult>();
+
+        // Successful with negative execution time (invalid)
+        predictions.Add(new PredictionResult
+        {
+            RequestType = typeof(string),
+            PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+            ActualImprovement = TimeSpan.FromMilliseconds(100),
+            Timestamp = DateTime.UtcNow,
+            Metrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromMilliseconds(-100), // Invalid negative
+                MedianExecutionTime = TimeSpan.FromMilliseconds(-100),
+                P95ExecutionTime = TimeSpan.FromMilliseconds(-100),
+                P99ExecutionTime = TimeSpan.FromMilliseconds(-100),
+                TotalExecutions = 100,
+                SuccessfulExecutions = 90,
+                FailedExecutions = 10,
+                MemoryAllocated = 2000000,
+                ConcurrentExecutions = 2,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromMinutes(1),
+                CpuUsage = 0.3,
+                MemoryUsage = 2000000,
+                DatabaseCalls = 5,
+                ExternalApiCalls = 2
+            }
+        });
+
+        // Failed with valid execution time
+        predictions.Add(new PredictionResult
+        {
+            RequestType = typeof(string),
+            PredictedStrategies = Array.Empty<OptimizationStrategy>(),
+            ActualImprovement = TimeSpan.Zero,
+            Timestamp = DateTime.UtcNow,
+            Metrics = new RequestExecutionMetrics
+            {
+                AverageExecutionTime = TimeSpan.FromMilliseconds(500), // Valid
+                MedianExecutionTime = TimeSpan.FromMilliseconds(500),
+                P95ExecutionTime = TimeSpan.FromMilliseconds(500),
+                P99ExecutionTime = TimeSpan.FromMilliseconds(500),
+                TotalExecutions = 100,
+                SuccessfulExecutions = 40,
+                FailedExecutions = 60,
+                MemoryAllocated = 8000000,
+                ConcurrentExecutions = 8,
+                LastExecution = DateTime.UtcNow,
+                SamplePeriod = TimeSpan.FromMinutes(1),
+                CpuUsage = 0.8,
+                MemoryUsage = 8000000,
+                DatabaseCalls = 20,
+                ExternalApiCalls = 10
+            }
+        });
+
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions.ToArray(), analysis);
+
+        // Assert - should filter out invalid values and process remaining
+        Assert.Equal(_config.Features.Length, result);
+    }
+
+    [Fact]
+    public void Statistical_Calculations_Should_Work_With_Minimal_Data()
+    {
+        // Arrange - create minimal data: 1 successful + 1 failed prediction
+        var updater = new FeatureImportancePatternUpdater(_loggerMock.Object, _config);
+        var predictions = new[]
+        {
+            CreateSuccessfulPrediction(),
+            CreateFailedPrediction()
+        };
+        var analysis = new PatternAnalysisResult();
+
+        // Act
+        var result = updater.UpdatePatterns(predictions, analysis);
+
+        // Assert - should handle minimal data gracefully
+        Assert.Equal(_config.Features.Length, result);
+    }
+
     // Helper methods
 
     private PredictionResult[] CreateMixedPredictions(int count)

@@ -973,6 +973,464 @@ public class ServiceCollectionExtensionsGeneralTests
             }));
     }
 
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQNullHostName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = null!,
+                    Port = 5672,
+                    UserName = "guest",
+                    Password = "guest",
+                    VirtualHost = "/"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQEmptyHostName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "",
+                    Port = 5672,
+                    UserName = "guest",
+                    Password = "guest",
+                    VirtualHost = "/"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQInvalidPortZero_ShouldThrowArgumentOutOfRangeException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "localhost",
+                    Port = 0,
+                    UserName = "guest",
+                    Password = "guest",
+                    VirtualHost = "/"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQInvalidPortNegative_ShouldThrowArgumentOutOfRangeException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "localhost",
+                    Port = -1,
+                    UserName = "guest",
+                    Password = "guest",
+                    VirtualHost = "/"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQInvalidPortTooHigh_ShouldThrowArgumentOutOfRangeException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "localhost",
+                    Port = 65536,
+                    UserName = "guest",
+                    Password = "guest",
+                    VirtualHost = "/"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQNullUserName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "localhost",
+                    Port = 5672,
+                    UserName = null!,
+                    Password = "guest",
+                    VirtualHost = "/"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQNullPassword_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "localhost",
+                    Port = 5672,
+                    UserName = "guest",
+                    Password = null!,
+                    VirtualHost = "/"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQNullVirtualHost_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "localhost",
+                    Port = 5672,
+                    UserName = "guest",
+                    Password = "guest",
+                    VirtualHost = null!
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQZeroPrefetchCount_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "localhost",
+                    Port = 5672,
+                    UserName = "guest",
+                    Password = "guest",
+                    VirtualHost = "/",
+                    PrefetchCount = 0
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRabbitMQNullExchangeType_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RabbitMQ;
+                options.RabbitMQ = new RabbitMQOptions
+                {
+                    HostName = "localhost",
+                    Port = 5672,
+                    UserName = "guest",
+                    Password = "guest",
+                    VirtualHost = "/",
+                    ExchangeType = null!
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithKafkaNullBootstrapServers_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.Kafka;
+                options.Kafka = new KafkaOptions
+                {
+                    BootstrapServers = null!,
+                    ConsumerGroupId = "test-group"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithKafkaNullConsumerGroupId_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.Kafka;
+                options.Kafka = new KafkaOptions
+                {
+                    BootstrapServers = "localhost:9092",
+                    ConsumerGroupId = null!
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithAzureServiceBusNullConnectionString_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.AzureServiceBus;
+                options.AzureServiceBus = new AzureServiceBusOptions
+                {
+                    ConnectionString = null!,
+                    EntityType = AzureEntityType.Queue
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithAzureServiceBusTopicWithoutSubscription_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.AzureServiceBus;
+                options.AzureServiceBus = new AzureServiceBusOptions
+                {
+                    ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=test",
+                    EntityType = AzureEntityType.Topic,
+                    SubscriptionName = null!
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithAwsSqsSnsNullRegion_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.AwsSqsSns;
+                options.AwsSqsSns = new AwsSqsSnsOptions
+                {
+                    Region = null!
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithNatsNullServers_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.Nats;
+                options.Nats = new NatsOptions
+                {
+                    Servers = null!
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithNatsEmptyServers_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.Nats;
+                options.Nats = new NatsOptions
+                {
+                    Servers = new string[0]
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRedisStreamsNullConnectionString_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RedisStreams;
+                options.RedisStreams = new RedisStreamsOptions
+                {
+                    ConnectionString = null!,
+                    DefaultStreamName = "test-stream",
+                    ConsumerGroupName = "test-group",
+                    ConsumerName = "test-consumer"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRedisStreamsNullDefaultStreamName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RedisStreams;
+                options.RedisStreams = new RedisStreamsOptions
+                {
+                    ConnectionString = "localhost:6379",
+                    DefaultStreamName = null!,
+                    ConsumerGroupName = "test-group",
+                    ConsumerName = "test-consumer"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRedisStreamsNullConsumerGroupName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RedisStreams;
+                options.RedisStreams = new RedisStreamsOptions
+                {
+                    ConnectionString = "localhost:6379",
+                    DefaultStreamName = "test-stream",
+                    ConsumerGroupName = null!,
+                    ConsumerName = "test-consumer"
+                };
+            }));
+    }
+
+    [Fact]
+    public void AddMessageBroker_WithRedisStreamsNullConsumerName_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            services.AddMessageBroker(options =>
+            {
+                options.BrokerType = MessageBrokerType.RedisStreams;
+                options.RedisStreams = new RedisStreamsOptions
+                {
+                    ConnectionString = "localhost:6379",
+                    DefaultStreamName = "test-stream",
+                    ConsumerGroupName = "test-group",
+                    ConsumerName = null!
+                };
+            }));
+    }
+
     private class TestContractValidator : IContractValidator
     {
         public ValueTask<IEnumerable<string>> ValidateRequestAsync(object request, JsonSchemaContract schema, CancellationToken cancellationToken = default)

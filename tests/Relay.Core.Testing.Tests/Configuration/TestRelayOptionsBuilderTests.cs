@@ -614,6 +614,23 @@ public class TestRelayOptionsExtensionsTests
     }
 
     [Fact]
+    public void ApplyEnvironmentVariable_ValidTimeSpanValue_SetsDefaultTimeout()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var expectedTimeout = TimeSpan.FromMinutes(10);
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("ApplyEnvironmentVariable",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { "DEFAULTTIMEOUT", "00:10:00" });
+
+        // Assert
+        var options = builder.Build();
+        Assert.Equal(expectedTimeout, options.DefaultTimeout);
+    }
+
+    [Fact]
     public void ApplyEnvironmentVariable_InvalidTimeSpanValue_IgnoresInvalidValue()
     {
         // Arrange
@@ -629,6 +646,22 @@ public class TestRelayOptionsExtensionsTests
         // Assert
         var options = builder.Build();
         Assert.Equal(originalTimeout, options.DefaultTimeout); // Should remain unchanged
+    }
+
+    [Fact]
+    public void ApplyEnvironmentVariable_ValidBooleanValue_SetsEnableParallelExecution()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("ApplyEnvironmentVariable",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { "ENABLEPARALLEL", "true" });
+
+        // Assert
+        var options = builder.Build();
+        Assert.True(options.EnableParallelExecution);
     }
 
     [Fact]
@@ -649,6 +682,22 @@ public class TestRelayOptionsExtensionsTests
     }
 
     [Fact]
+    public void ApplyEnvironmentVariable_ValidIntegerValue_SetsMaxDegreeOfParallelism()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("ApplyEnvironmentVariable",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { "MAXPARALLELISM", "8" });
+
+        // Assert
+        var options = builder.Build();
+        Assert.Equal(8, options.MaxDegreeOfParallelism);
+    }
+
+    [Fact]
     public void ApplyEnvironmentVariable_InvalidIntegerValue_IgnoresInvalidValue()
     {
         // Arrange
@@ -663,6 +712,70 @@ public class TestRelayOptionsExtensionsTests
         // Assert
         var options = builder.Build();
         Assert.Equal(originalMaxParallelism, options.MaxDegreeOfParallelism); // Should remain unchanged
+    }
+
+    [Fact]
+    public void ApplyEnvironmentVariable_EnableIsolation_ValidValue_SetsEnableIsolation()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("ApplyEnvironmentVariable",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { "ENABLEISOLATION", "true" });
+
+        // Assert
+        var options = builder.Build();
+        Assert.True(options.EnableIsolation);
+    }
+
+    [Fact]
+    public void ApplyEnvironmentVariable_EnableProfiling_ValidValue_SetsEnablePerformanceProfiling()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("ApplyEnvironmentVariable",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { "ENABLEPROFILING", "true" });
+
+        // Assert
+        var options = builder.Build();
+        Assert.True(options.EnablePerformanceProfiling);
+    }
+
+    [Fact]
+    public void ApplyEnvironmentVariable_EnableCoverage_ValidValue_SetsEnableCoverageTracking()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("ApplyEnvironmentVariable",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { "ENABLECOVERAGE", "true" });
+
+        // Assert
+        var options = builder.Build();
+        Assert.True(options.EnableCoverageTracking);
+    }
+
+    [Fact]
+    public void ApplyEnvironmentVariable_EnableLogging_ValidValue_SetsEnableDiagnosticLogging()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("ApplyEnvironmentVariable",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { "ENABLELOGGING", "true" });
+
+        // Assert
+        var options = builder.Build();
+        Assert.True(options.EnableDiagnosticLogging);
     }
 
     [Fact]

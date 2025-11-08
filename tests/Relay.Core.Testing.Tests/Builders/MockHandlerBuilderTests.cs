@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Requests;
@@ -452,5 +453,185 @@ public class MockHandlerBuilderTests
         Assert.Equal("second", results[4]);
         Assert.Equal("third", results[5]);
         Assert.Equal("first", results[6]); // One more cycle
+    }
+
+    [Fact]
+    public void Delays_WithPriorBehavior_SetsDelayOnLastBehavior()
+    {
+        // Arrange
+        var builder = new MockHandlerBuilder<MockTestRequest, MockTestResponse>();
+        var delay = TimeSpan.FromSeconds(1);
+
+        // Act - Add behavior first, then delay
+        builder.Returns(new MockTestResponse { Result = "test" });
+        var result = builder.Delays(delay);
+
+        // Assert
+        Assert.Equal(builder, result); // Returns builder for chaining
+        // Verify delay was set on the behavior using reflection
+        var behaviorField = typeof(MockHandlerBuilder<MockTestRequest, MockTestResponse>)
+            .GetField("_behaviors", BindingFlags.NonPublic | BindingFlags.Instance);
+        var behaviors = behaviorField?.GetValue(builder) as List<MockHandlerBehavior<MockTestRequest, MockTestResponse>>;
+        Assert.NotNull(behaviors);
+        Assert.Single(behaviors);
+        Assert.Equal(delay, behaviors[0].Delay);
+    }
+
+    [Fact]
+    public async Task Build_WithoutDelay_UsesSynchronousExecution()
+    {
+        // Arrange
+        var builder = new MockHandlerBuilder<MockTestRequest, MockTestResponse>();
+        builder.Returns(new MockTestResponse { Result = "sync" });
+        var handler = builder.Build();
+
+        // Act - Call without delay to ensure ExecuteBehavior path
+        var response = await handler(new MockTestRequest(), CancellationToken.None);
+
+        // Assert
+        Assert.Equal("sync", response.Result);
+    }
+
+    [Fact]
+    public async Task ExecuteBehavior_WithInvalidBehaviorType_ThrowsException()
+    {
+        // Arrange - Need to create a behavior with invalid type using reflection
+        var builder = new MockHandlerBuilder<MockTestRequest, MockTestResponse>();
+        builder.Returns(new MockTestResponse { Result = "sync" }); // Add a behavior so Build() doesn't throw
+        var handler = builder.Build();
+
+        // Use reflection to create a behavior with invalid MockBehaviorType
+        var behaviorField = typeof(MockHandlerBuilder<MockTestRequest, MockTestResponse>)
+            .GetField("_behaviors", BindingFlags.NonPublic | BindingFlags.Instance);
+        var behaviors = behaviorField?.GetValue(builder) as List<MockHandlerBehavior<MockTestRequest, MockTestResponse>>;
+
+        // Create behavior with invalid type (e.g., cast -1 to MockBehaviorType)
+        var invalidBehavior = new MockHandlerBehavior<MockTestRequest, MockTestResponse>
+        {
+            BehaviorType = (MockBehaviorType)(-1), // Invalid enum value
+            Response = new MockTestResponse { Result = "invalid" },
+            Delay = TimeSpan.FromTicks(1) // Ensure async execution path
+        };
+        behaviors?.Clear();
+        behaviors?.Add(invalidBehavior);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler(new MockTestRequest(), CancellationToken.None));
+        Assert.Contains("Unknown behavior type", exception.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteBehaviorAsync_WithInvalidBehaviorType_ThrowsException()
+    {
+        // Arrange - Similar to above but force async execution with delay
+        var builder = new MockHandlerBuilder<MockTestRequest, MockTestResponse>();
+        builder.Returns(new MockTestResponse { Result = "test" }).Delays(TimeSpan.FromTicks(1));
+        var handler = builder.Build();
+
+        // Use reflection to modify the behavior type to invalid value
+        var behaviorField = typeof(MockHandlerBuilder<MockTestRequest, MockTestResponse>)
+            .GetField("_behaviors", BindingFlags.NonPublic | BindingFlags.Instance);
+        var behaviors = behaviorField?.GetValue(builder) as List<MockHandlerBehavior<MockTestRequest, MockTestResponse>>;
+
+        if (behaviors?.Count > 0)
+        {
+            behaviors[0].BehaviorType = (MockBehaviorType)(-1); // Invalid enum value
+        }
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler(new MockTestRequest(), CancellationToken.None));
+        Assert.Contains("Unknown behavior type", exception.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteBehaviorAsync_WithReturnBehavior_UsesAsyncPath()
+    {
+        // Arrange - Force async execution with delay for Return behavior
+        var relay = new TestRelay();
+        var expectedResponse = new MockTestResponse { Result = "async_return" };
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+            builder.Returns(expectedResponse).Delays(TimeSpan.FromTicks(1)));
+
+        // Act
+        var response = await relay.SendAsync(new MockTestRequest());
+
+        // Assert
+        Assert.Equal(expectedResponse, response);
+    }
+
+    [Fact]
+    public async Task ExecuteBehaviorAsync_WithReturnFactoryBehavior_UsesAsyncPath()
+    {
+        // Arrange - Force async execution with delay for ReturnFactory behavior
+        var relay = new TestRelay();
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+            builder.Returns(r => new MockTestResponse { Result = r.Data + "_factory" })
+                   .Delays(TimeSpan.FromTicks(1)));
+
+        // Act
+        var response = await relay.SendAsync(new MockTestRequest { Data = "async" });
+
+        // Assert
+        Assert.Equal("async_factory", response.Result);
+    }
+
+    [Fact]
+    public async Task ExecuteBehaviorAsync_WithThrowFactoryBehavior_UsesAsyncPath()
+    {
+        // Arrange - Force async execution with delay for ThrowFactory behavior
+        var relay = new TestRelay();
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+            builder.Throws(r => new ArgumentException($"Error for {r.Data}"))
+                   .Delays(TimeSpan.FromTicks(1)));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await relay.SendAsync(new MockTestRequest { Data = "async_error" }));
+        Assert.Contains("Error for async_error", exception.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteBehaviorAsync_WithThrowBehavior_UsesAsyncPath()
+    {
+        // Arrange - Force async execution with delay for Throw behavior
+        var relay = new TestRelay();
+        var expectedException = new InvalidOperationException("Async throw test");
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+            builder.Throws(expectedException).Delays(TimeSpan.FromTicks(1)));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await relay.SendAsync(new MockTestRequest()));
+        Assert.Equal(expectedException, exception);
+    }
+
+    [Fact]
+    public async Task ReturnsInSequence_Method_UsesConvenienceApi()
+    {
+        // Arrange
+        var relay = new TestRelay();
+        var response1 = new MockTestResponse { Result = "first" };
+        var response2 = new MockTestResponse { Result = "second" };
+        var response3 = new MockTestResponse { Result = "third" };
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+            builder.ReturnsInSequence(response1, response2, response3));
+
+        // Act & Assert
+        var firstResult = await relay.SendAsync(new MockTestRequest());
+        Assert.Equal("first", firstResult.Result);
+        var secondResult = await relay.SendAsync(new MockTestRequest());
+        Assert.Equal("second", secondResult.Result);
+        var thirdResult = await relay.SendAsync(new MockTestRequest());
+        Assert.Equal("third", thirdResult.Result);
+        // Should cycle back to first response
+        var fourthResult = await relay.SendAsync(new MockTestRequest());
+        Assert.Equal("first", fourthResult.Result);
     }
 }

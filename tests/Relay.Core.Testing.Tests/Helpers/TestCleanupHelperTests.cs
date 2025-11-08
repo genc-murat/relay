@@ -153,10 +153,28 @@ public class TestCleanupHelperTests : IDisposable
         // Assert
         Assert.False(string.IsNullOrEmpty(tempFile));
         Assert.EndsWith(".txt", tempFile);
+        Assert.StartsWith(Path.GetTempPath(), tempFile);
 
         // Cleanup should remove the file
         helper.Cleanup();
         Assert.False(File.Exists(tempFile));
+    }
+
+    [Fact]
+    public void CreateTempFile_CreatesUniqueFiles()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+
+        // Act
+        var tempFile1 = helper.CreateTempFile("txt");
+        var tempFile2 = helper.CreateTempFile("txt");
+
+        // Assert
+        Assert.NotEqual(tempFile1, tempFile2);
+
+        // Cleanup
+        helper.Cleanup();
     }
 
     [Fact]
@@ -171,10 +189,28 @@ public class TestCleanupHelperTests : IDisposable
         // Assert
         Assert.False(string.IsNullOrEmpty(tempDir));
         Assert.True(Directory.Exists(tempDir));
+        Assert.StartsWith(Path.GetTempPath(), tempDir);
 
         // Cleanup should remove the directory
         helper.Cleanup();
         Assert.False(Directory.Exists(tempDir));
+    }
+
+    [Fact]
+    public void CreateTempDirectory_CreatesUniqueDirectories()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+
+        // Act
+        var tempDir1 = helper.CreateTempDirectory();
+        var tempDir2 = helper.CreateTempDirectory();
+
+        // Assert
+        Assert.NotEqual(tempDir1, tempDir2);
+
+        // Cleanup
+        helper.Cleanup();
     }
 
     [Fact]
@@ -312,6 +348,86 @@ public class TestCleanupHelperTests : IDisposable
     }
 
     [Fact]
+    public async Task CleanupAsync_CanCallMultipleTimes()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        var executionCount = 0;
+
+        helper.RegisterCleanupAction(async () =>
+        {
+            await Task.Delay(1);
+            executionCount++;
+        });
+
+        // Act
+        await helper.CleanupAsync();
+        await helper.CleanupAsync();
+
+        // Assert
+        Assert.Equal(2, executionCount); // Should execute each time
+    }
+
+    [Fact]
+    public void Cleanup_CanCallMultipleTimes()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        var executionCount = 0;
+
+        helper.RegisterCleanupAction(() => executionCount++);
+
+        // Act
+        helper.Cleanup();
+        helper.Cleanup();
+
+        // Assert
+        Assert.Equal(2, executionCount); // Should execute each time
+    }
+
+    [Fact]
+    public async Task Dispose_ThenDisposeAsync_DoesNotExecuteAgain()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        var executionCount = 0;
+
+        helper.RegisterCleanupAction(async () =>
+        {
+            await Task.Delay(1);
+            executionCount++;
+        });
+
+        // Act
+        helper.Dispose();
+        await helper.DisposeAsync();
+
+        // Assert
+        Assert.Equal(1, executionCount); // Should only execute once
+    }
+
+    [Fact]
+    public async Task DisposeAsync_ThenDispose_DoesNotExecuteAgain()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        var executionCount = 0;
+
+        helper.RegisterCleanupAction(async () =>
+        {
+            await Task.Delay(1);
+            executionCount++;
+        });
+
+        // Act
+        await helper.DisposeAsync();
+        helper.Dispose();
+
+        // Assert
+        Assert.Equal(1, executionCount); // Should only execute once
+    }
+
+    [Fact]
     public void RegisterCleanupAction_AfterDispose_ThrowsObjectDisposedException()
     {
         // Arrange
@@ -369,6 +485,54 @@ public class TestCleanupHelperTests : IDisposable
         // Act & Assert
         Assert.Throws<ObjectDisposedException>(() =>
             helper.CreateTempDirectory());
+    }
+
+    [Fact]
+    public void RegisterDisposable_AfterDispose_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        helper.Dispose();
+
+        // Act & Assert
+        Assert.Throws<ObjectDisposedException>(() =>
+            helper.RegisterDisposable(new TestDisposable()));
+    }
+
+    [Fact]
+    public void RegisterAsyncDisposable_AfterDispose_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        helper.Dispose();
+
+        // Act & Assert
+        Assert.Throws<ObjectDisposedException>(() =>
+            helper.RegisterAsyncDisposable(new TestAsyncDisposable()));
+    }
+
+    [Fact]
+    public void RegisterStaticReset_AfterDispose_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        helper.Dispose();
+
+        // Act & Assert
+        Assert.Throws<ObjectDisposedException>(() =>
+            helper.RegisterStaticReset<TestCleanupHelper>(() => { }));
+    }
+
+    [Fact]
+    public void RegisterCollectionClear_AfterDispose_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        helper.Dispose();
+
+        // Act & Assert
+        Assert.Throws<ObjectDisposedException>(() =>
+            helper.RegisterCollectionClear(new List<string>()));
     }
 
     [Fact]
@@ -444,6 +608,25 @@ public class TestCleanupHelperTests : IDisposable
 
         // Assert
         Assert.True(executed);
+    }
+
+    [Fact]
+    public void CreateScope_DisposeMultipleTimes_Idempotent()
+    {
+        // Arrange
+        var helper = new TestCleanupHelper();
+        var executionCount = 0;
+
+        helper.RegisterCleanupAction(() => executionCount++);
+
+        var scope = helper.CreateScope();
+
+        // Act
+        scope.Dispose();
+        scope.Dispose();
+
+        // Assert
+        Assert.Equal(1, executionCount); // Should only execute once
     }
 
     [Fact]

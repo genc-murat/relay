@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using Xunit;
 
 namespace Relay.Core.Testing.Tests;
@@ -65,9 +66,12 @@ public class TestTelemetryProviderTests
         // Verify tags are set on the actual Activity (if it exists)
         if (activity != null)
         {
-            // The foreach loop should have executed and set the tags
-            // We can't directly verify activity tags, but we can verify the loop executed by checking recorded tags
-            Assert.True(true, "Activity was created and foreach loop should have executed");
+            var tags = activity.Tags.ToDictionary(kvp => kvp.Key, kvp => (string?)kvp.Value);
+            Assert.Equal(2, tags.Count);
+            Assert.Contains("relay.request_type", tags);
+            Assert.Contains("relay.operation", tags);
+            Assert.Equal("System.String", tags["relay.request_type"]);
+            Assert.Equal("TestOperation", tags["relay.operation"]);
         }
     }
 
@@ -94,8 +98,14 @@ public class TestTelemetryProviderTests
         // Verify tags are set on the actual Activity (if it exists)
         if (activity != null)
         {
-            // The foreach loop should have executed and set all 3 tags
-            Assert.True(true, "Activity was created and foreach loop should have executed for 3 tags");
+            var tags = activity.Tags.ToDictionary(kvp => kvp.Key, kvp => (string?)kvp.Value);
+            Assert.Equal(3, tags.Count);
+            Assert.Contains("relay.request_type", tags);
+            Assert.Contains("relay.operation", tags);
+            Assert.Contains("relay.correlation_id", tags);
+            Assert.Equal("System.String", tags["relay.request_type"]);
+            Assert.Equal("TestOperation", tags["relay.operation"]);
+            Assert.Equal(correlationId, tags["relay.correlation_id"]);
         }
     }
 

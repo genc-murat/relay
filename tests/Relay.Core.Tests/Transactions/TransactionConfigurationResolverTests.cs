@@ -56,6 +56,20 @@ namespace Relay.Core.Tests.Transactions
         }
 
         [Fact]
+        public void Resolve_WithTransactionalRequestMissingAttributeAndRequireExplicitFalse_ThrowsTransactionConfigurationException()
+        {
+            // Arrange
+            var options = new TransactionOptions { RequireExplicitTransactionAttribute = false };
+            var optionsWrapper = new OptionsWrapper<TransactionOptions>(options);
+            var resolver = new TransactionConfigurationResolver(optionsWrapper);
+            var requestType = typeof(RequestWithoutAttribute);
+
+            // Act & Assert
+            var ex = Assert.Throws<TransactionConfigurationException>(() => resolver.Resolve(requestType));
+            Assert.Contains("is missing transaction configuration", ex.Message);
+        }
+
+        [Fact]
         public void Resolve_WithValidTransactionalRequest_ReturnsCorrectConfiguration()
         {
             // Arrange
@@ -95,6 +109,27 @@ namespace Relay.Core.Tests.Transactions
         }
 
         [Fact]
+        public void Resolve_WithInheritedAttributes_ReturnsCorrectConfiguration()
+        {
+            // Arrange
+            var requestType = typeof(DerivedTransactionalRequest);
+
+            // Act
+            var config = _resolver.Resolve(requestType);
+
+            // Assert
+            Assert.NotNull(config);
+            Assert.Equal(IsolationLevel.Serializable, config.IsolationLevel);
+            Assert.Equal(TimeSpan.FromSeconds(120), config.Timeout);
+            Assert.True(config.IsReadOnly);
+            Assert.False(config.UseDistributedTransaction);
+            Assert.NotNull(config.RetryPolicy);
+            Assert.Equal(2, config.RetryPolicy.MaxRetries);
+            Assert.Equal(TimeSpan.FromMilliseconds(1000), config.RetryPolicy.InitialDelay);
+            Assert.Equal(RetryStrategy.ExponentialBackoff, config.RetryPolicy.Strategy);
+        }
+
+        [Fact]
         public void Resolve_WithInvalidTransactionAttribute_ThrowsTransactionConfigurationException()
         {
             // Arrange
@@ -128,6 +163,17 @@ namespace Relay.Core.Tests.Transactions
         }
 
         [Fact]
+        public void Resolve_WithUnspecifiedIsolationLevel_ThrowsArgumentException()
+        {
+            // Arrange
+            var requestType = typeof(RequestWithUnspecifiedIsolationLevel);
+
+            // Act & Assert
+            var ex = Assert.Throws<ArgumentException>(() => _resolver.Resolve(requestType));
+            Assert.Contains("Transaction isolation level cannot be Unspecified", ex.Message);
+        }
+
+        [Fact]
         public void Resolve_WithGenericMethodAndValidRequest_ReturnsCorrectConfiguration()
         {
             // Arrange
@@ -139,6 +185,13 @@ namespace Relay.Core.Tests.Transactions
             // Assert
             Assert.NotNull(config);
             Assert.Equal(IsolationLevel.ReadCommitted, config.IsolationLevel);
+        }
+
+        [Fact]
+        public void Resolve_WithGenericMethodAndNullRequest_ThrowsArgumentNullException()
+        {
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => _resolver.Resolve((ValidTransactionalRequest)null));
         }
 
         [Fact]
@@ -234,7 +287,7 @@ namespace Relay.Core.Tests.Transactions
         {
             // Arrange
             var resolverType = typeof(TransactionConfigurationResolver);
-            var method = resolverType.GetMethod("BuildRetryPolicy", 
+            var method = resolverType.GetMethod("BuildRetryPolicy",
                 BindingFlags.NonPublic | BindingFlags.Instance);
 
             // Act
@@ -242,6 +295,39 @@ namespace Relay.Core.Tests.Transactions
 
             // Assert
             Assert.Null(result);
+        }
+
+        [Fact]
+        public void BuildRetryPolicy_WithNullRetryAttributeAndDefaultPolicy_ReturnsDefaultPolicy()
+        {
+            // Arrange
+            var defaultPolicy = new TransactionRetryPolicy
+            {
+                MaxRetries = 2,
+                InitialDelay = TimeSpan.FromMilliseconds(100),
+                Strategy = RetryStrategy.Linear
+            };
+            var options = new TransactionOptions
+            {
+                RequireExplicitTransactionAttribute = true,
+                DefaultRetryPolicy = defaultPolicy
+            };
+            var optionsWrapper = new OptionsWrapper<TransactionOptions>(options);
+            var resolver = new TransactionConfigurationResolver(optionsWrapper);
+
+            var resolverType = typeof(TransactionConfigurationResolver);
+            var method = resolverType.GetMethod("BuildRetryPolicy",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            // Act
+            var result = method.Invoke(resolver, new object[] { null });
+
+            // Assert
+            var policy = (TransactionRetryPolicy)result;
+            Assert.NotNull(policy);
+            Assert.Equal(2, policy.MaxRetries);
+            Assert.Equal(TimeSpan.FromMilliseconds(100), policy.InitialDelay);
+            Assert.Equal(RetryStrategy.Linear, policy.Strategy);
         }
 
         // Test classes
@@ -280,6 +366,23 @@ namespace Relay.Core.Tests.Transactions
         private class InvalidRetryAttributeRequest : ITransactionalRequest
         {
             public object Handle() => new object();
+        }
+
+        [Transaction(IsolationLevel.Unspecified)]
+        private class RequestWithUnspecifiedIsolationLevel : ITransactionalRequest
+        {
+            public object Handle() => new object();
+        }
+
+        [Transaction(IsolationLevel.Serializable, TimeoutSeconds = 120, IsReadOnly = true, UseDistributedTransaction = false)]
+        [TransactionRetry(MaxRetries = 2, InitialDelayMs = 1000, Strategy = RetryStrategy.ExponentialBackoff)]
+        private class BaseTransactionalRequest : ITransactionalRequest
+        {
+            public object Handle() => new object();
+        }
+
+        private class DerivedTransactionalRequest : BaseTransactionalRequest
+        {
         }
     }
 }

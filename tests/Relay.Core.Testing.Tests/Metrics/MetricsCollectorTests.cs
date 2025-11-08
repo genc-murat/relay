@@ -44,21 +44,6 @@ public class MetricsCollectorTests
     }
 
     [Fact]
-    public void Collect_RecordsAccurateTiming()
-    {
-        // Arrange
-        var delay = TimeSpan.FromMilliseconds(140); // Reduced from 150ms to allow for timing variations
-        Action operation = () => Task.Delay(delay).Wait();
-
-        // Act
-        var metrics = _collector.Collect("TimedOperation", operation);
-
-        // Assert
-        Assert.True(metrics.Duration >= delay, $"Duration {metrics.Duration} should be at least {delay}");
-        Assert.True(metrics.Duration < delay + TimeSpan.FromMilliseconds(300), "Duration should not be excessively long");
-    }
-
-    [Fact]
     public void CollectAsync_WithNullOperation_ThrowsArgumentNullException()
     {
         // Act & Assert

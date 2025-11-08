@@ -73,6 +73,18 @@ public class NotificationBuilderTests
         Assert.Contains("Expression must be a member expression", exception.Message);
     }
 
+    [Fact]
+    public void WithProperty_PropertyNotFound_ThrowsArgumentException()
+    {
+        // Arrange
+        var builder = new NotificationBuilder<TestNotificationWithField>();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() =>
+            builder.WithProperty(n => n.SomeField, "value"));
+        Assert.Contains("Property 'SomeField' not found on type 'TestNotificationWithField'", exception.Message);
+    }
+
 
 
     [Fact]
@@ -152,5 +164,10 @@ public class NotificationBuilderTests
     public class TestNotificationWithMessage : INotification
     {
         public string Message { get; set; } = string.Empty;
+    }
+
+    public class TestNotificationWithField : INotification
+    {
+        public string SomeField = string.Empty;
     }
 }

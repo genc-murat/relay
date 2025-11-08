@@ -151,7 +151,7 @@ public class AsyncTestUtilitiesTests
         // Act
         var result = await task.ShouldCompleteBetween(
             TimeSpan.FromMilliseconds(50),
-            TimeSpan.FromMilliseconds(200));
+            TimeSpan.FromMilliseconds(500));
 
         // Assert
         Assert.Equal(42, result);

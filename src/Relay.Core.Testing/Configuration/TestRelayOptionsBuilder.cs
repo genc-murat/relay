@@ -158,7 +158,7 @@ public class TestRelayOptionsBuilder
 
         var envBuilder = new TestRelayOptionsBuilder();
         configure(envBuilder);
-        _options.EnvironmentOverrides[environment] = envBuilder.Build();
+        _options.EnvironmentOverrides[environment] = envBuilder._options;
         return this;
     }
 

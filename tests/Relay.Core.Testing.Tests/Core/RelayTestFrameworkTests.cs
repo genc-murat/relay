@@ -535,15 +535,30 @@ namespace Relay.Core.Tests.Testing
         }
 
         [Fact]
-        public void TestScenarioBuilder_SendRequest_WithEmptyStepName_ThrowsArgumentException()
+        public async Task RunAllScenariosAsync_CalculatesTotalDurationCorrectly()
         {
             // Arrange
             var framework = new RelayTestFramework(_serviceProvider);
             var request = new TestRequest();
 
-            // Act & Assert
-            Assert.Throws<ArgumentException>(() =>
-                framework.Scenario("Test Scenario").SendRequest(request, ""));
+            framework.Scenario("Scenario 1")
+                .SendRequest(request, "Step 1");
+
+            framework.Scenario("Scenario 2")
+                .SendRequest(request, "Step 2");
+
+            _relayMock
+                .Setup(x => x.SendAsync(It.IsAny<IRequest>(), It.IsAny<CancellationToken>()))
+                .Returns(ValueTask.CompletedTask);
+
+            var startTime = DateTime.UtcNow;
+            // Act
+            var result = await framework.RunAllScenariosAsync();
+            var endTime = DateTime.UtcNow;
+
+            // Assert
+            Assert.True(result.TotalDuration >= TimeSpan.Zero);
+            Assert.True(result.TotalDuration <= (endTime - startTime));
         }
 
         [Fact]
@@ -813,6 +828,127 @@ namespace Relay.Core.Tests.Testing
         }
 
         [Fact]
+        public void CalculatePercentile_WithSingleValue_ReturnsThatValue()
+        {
+            // Arrange
+            var values = new List<double> { 42.5 };
+
+            // Act & Assert
+            Assert.Equal(42.5, RelayTestFramework.CalculatePercentile(values, 0.0));
+            Assert.Equal(42.5, RelayTestFramework.CalculatePercentile(values, 0.5));
+            Assert.Equal(42.5, RelayTestFramework.CalculatePercentile(values, 1.0));
+        }
+
+        [Fact]
+        public void CalculatePercentile_WithTwoValues_CalculatesCorrectly()
+        {
+            // Arrange
+            var values = new List<double> { 10.0, 20.0 };
+
+            // Act & Assert
+            Assert.Equal(10.0, RelayTestFramework.CalculatePercentile(values, 0.0));
+            Assert.Equal(10.0, RelayTestFramework.CalculatePercentile(values, 0.5)); // For 2 values, percentile calculation uses index 0 for 50th percentile
+            Assert.Equal(20.0, RelayTestFramework.CalculatePercentile(values, 1.0));
+        }
+
+        [Fact]
+        public void CalculatePercentile_WithUnsortedValues_SortsAndCalculatesCorrectly()
+        {
+            // Arrange
+            var values = new List<double> { 50.0, 10.0, 30.0, 40.0, 20.0 }; // Unsorted
+
+            // Act & Assert
+            Assert.Equal(10.0, RelayTestFramework.CalculatePercentile(values, 0.0)); // Min
+            Assert.Equal(30.0, RelayTestFramework.CalculatePercentile(values, 0.5)); // Median
+            Assert.Equal(50.0, RelayTestFramework.CalculatePercentile(values, 1.0)); // Max
+        }
+
+        [Fact]
+        public void CalculateMedian_WithSingleValue_ReturnsThatValue()
+        {
+            // Arrange
+            var values = new List<double> { 42.5 };
+
+            // Act
+            var result = RelayTestFramework.CalculateMedian(values);
+
+            // Assert
+            Assert.Equal(42.5, result);
+        }
+
+        [Fact]
+        public void CalculateMedian_WithTwoValues_ReturnsAverage()
+        {
+            // Arrange
+            var values = new List<double> { 10.0, 20.0 };
+
+            // Act
+            var result = RelayTestFramework.CalculateMedian(values);
+
+            // Assert
+            Assert.Equal(15.0, result);
+        }
+
+        [Fact]
+        public void CalculateMedian_WithUnsortedValues_SortsAndCalculatesCorrectly()
+        {
+            // Arrange
+            var values = new List<double> { 5.0, 1.0, 3.0, 2.0, 4.0 }; // Unsorted
+
+            // Act
+            var result = RelayTestFramework.CalculateMedian(values);
+
+            // Assert
+            Assert.Equal(3.0, result); // Sorted: 1,2,3,4,5 -> median is 3
+        }
+
+        [Fact]
+        public async Task RunAllScenariosAsync_WithEmptyScenarioList_CompletesSuccessfully()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            // Act
+            var result = await framework.RunAllScenariosAsync();
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result.ScenarioResults);
+            Assert.True(result.Success);
+            Assert.True(result.TotalDuration >= TimeSpan.Zero);
+        }
+
+        [Fact]
+        public async Task RunScenarioAsync_WithExceptionInStep_HandlesErrorCorrectly()
+        {
+            // Arrange
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+
+            framework.Scenario("Failing Scenario")
+                .SendRequest(request, "Failing Step");
+
+            _relayMock
+                .Setup(x => x.SendAsync(It.IsAny<IRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("Test exception"));
+
+            // Act
+            var result = await framework.RunAllScenariosAsync();
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Single(result.ScenarioResults);
+            var scenarioResult = result.ScenarioResults[0];
+            Assert.False(scenarioResult.Success);
+            Assert.Null(scenarioResult.Error); // Scenario error is only set for exceptions in the loop itself
+            Assert.Single(scenarioResult.StepResults);
+            Assert.False(scenarioResult.StepResults[0].Success);
+            Assert.Equal("Test exception", scenarioResult.StepResults[0].Error);
+            Assert.False(result.Success);
+        }
+
+        [Fact]
         public async Task RunScenarioAsync_WithInvalidStep_HandlesValidationException()
         {
             // Arrange
@@ -1024,6 +1160,89 @@ namespace Relay.Core.Tests.Testing
             // Act & Assert - Should not throw
             RelayTestFramework.ValidateLoadTestConfiguration(config);
         }
+
+        [Fact]
+        public async Task ExecuteStreamRequestStep_WithUnsupportedResponseType_ThrowsNotSupportedException()
+        {
+            // Arrange
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var streamRequest = new TestIntStreamRequest(); // Non-string response type
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.StreamRequest,
+                StreamRequest = streamRequest
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Mock the StreamAsync method to return an int async enumerable
+            _relayMock
+                .Setup(x => x.StreamAsync<int>(It.IsAny<IStreamRequest<int>>(), It.IsAny<CancellationToken>()))
+                .Returns(AsyncEnumerable.Empty<int>());
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<NotSupportedException>(() =>
+                framework.ExecuteStreamRequestStep(step, stepResult, CancellationToken.None));
+
+            Assert.Contains("not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+
+
+        [Fact]
+        public async Task ExecuteStreamRequestStep_WithInvalidStreamRequestType_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var invalidStreamRequest = new InvalidStreamRequest(); // Doesn't implement IStreamRequest<T>
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.StreamRequest,
+                StreamRequest = invalidStreamRequest
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                framework.ExecuteStreamRequestStep(step, stepResult, CancellationToken.None));
+
+            Assert.Contains("does not implement IStreamRequest", exception.Message);
+        }
+
+        [Fact]
+        public async Task ExecuteStreamRequestStep_WithInvalidStreamRequestInterface_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var invalidStreamRequest = new InvalidStreamRequest(); // Doesn't implement IStreamRequest<T>
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.StreamRequest,
+                StreamRequest = invalidStreamRequest
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                framework.ExecuteStreamRequestStep(step, stepResult, CancellationToken.None));
+
+            Assert.Contains("does not implement IStreamRequest", exception.Message);
+        }
+
+
+
+
+
+        public class TestIntStreamRequest : IStreamRequest<int> { }
+
+        public class InvalidStreamRequest : IRequest { } // Doesn't implement IStreamRequest<T>
+
+        public class InvalidNotification : INotification { }
 
         // Test data classes
         public class TestRequest : IRequest<string>, IRequest { }

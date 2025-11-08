@@ -415,5 +415,48 @@ public class TestDataBuilderTests
         Assert.Contains("Notification instance is null", exception.Message);
     }
 
+    [Fact]
+    public void RequestBuilder_WithProperty_ThrowsArgumentException_WhenExpressionIsNotMemberExpression()
+    {
+        // Arrange
+        var builder = new RequestBuilder<TestRequest>();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() =>
+            builder.WithProperty(r => r.Name.ToString(), "test"));
+        Assert.Contains("Expression must be a member expression", exception.Message);
+        Assert.Equal("property", exception.ParamName);
+    }
+
+
+
+    [Fact]
+    public void RequestBuilder_Build_ThrowsInvalidOperationException_WhenInstanceIsNull()
+    {
+        // Arrange
+        var builder = new RequestBuilder<TestRequest>();
+        // Simulate null instance by accessing private property (this is a test edge case)
+        var instanceProperty = typeof(RequestBuilder<TestRequest>)
+            .BaseType.GetProperty("Instance", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        instanceProperty.SetValue(builder, null);
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.Build());
+        Assert.Contains("Request instance is null", exception.Message);
+    }
+
+    [Fact]
+    public void RequestBuilder_WithDefaults_ReturnsBuilderInstance()
+    {
+        // Arrange
+        var builder = new RequestBuilder<TestRequest>();
+
+        // Act
+        var result = builder.WithDefaults();
+
+        // Assert
+        Assert.Same(builder, result);
+    }
+
 
 }

@@ -131,5 +131,109 @@ namespace Relay.Core.Tests.Transactions
             Assert.Contains("3", exception.Message);
             Assert.Same(innerException, exception.InnerException);
         }
+
+        [Fact]
+        public void UnsupportedDatabaseFeatureException_Default_Constructor_Should_Have_Default_Message()
+        {
+            // Arrange & Act
+            var exception = new UnsupportedDatabaseFeatureException();
+
+            // Assert
+            Assert.Equal("The requested transaction feature is not supported by the database provider.", exception.Message);
+            Assert.Null(exception.DatabaseProvider);
+            Assert.Null(exception.FeatureName);
+            Assert.Null(exception.InnerException);
+        }
+
+        [Fact]
+        public void UnsupportedDatabaseFeatureException_Message_Constructor_Should_Set_Message()
+        {
+            // Arrange
+            var message = "Custom error message";
+
+            // Act
+            var exception = new UnsupportedDatabaseFeatureException(message);
+
+            // Assert
+            Assert.Equal(message, exception.Message);
+            Assert.Null(exception.DatabaseProvider);
+            Assert.Null(exception.FeatureName);
+            Assert.Null(exception.InnerException);
+        }
+
+        [Fact]
+        public void UnsupportedDatabaseFeatureException_Message_And_InnerException_Constructor_Should_Set_Both()
+        {
+            // Arrange
+            var message = "Custom error message";
+            var innerException = new InvalidOperationException("Inner error");
+
+            // Act
+            var exception = new UnsupportedDatabaseFeatureException(message, innerException);
+
+            // Assert
+            Assert.Equal(message, exception.Message);
+            Assert.Same(innerException, exception.InnerException);
+            Assert.Null(exception.DatabaseProvider);
+            Assert.Null(exception.FeatureName);
+        }
+
+        [Fact]
+        public void UnsupportedDatabaseFeatureException_DatabaseProvider_And_FeatureName_Constructor_Should_Build_Message_And_Set_Properties()
+        {
+            // Arrange
+            var databaseProvider = "SQLite";
+            var featureName = "DistributedTransactions";
+
+            // Act
+            var exception = new UnsupportedDatabaseFeatureException(databaseProvider, featureName);
+
+            // Assert
+            Assert.Equal(databaseProvider, exception.DatabaseProvider);
+            Assert.Equal(featureName, exception.FeatureName);
+            Assert.Null(exception.InnerException);
+            Assert.Contains(databaseProvider, exception.Message);
+            Assert.Contains(featureName, exception.Message);
+            Assert.Contains("does not support", exception.Message);
+        }
+
+        [Fact]
+        public void UnsupportedDatabaseFeatureException_DatabaseProvider_FeatureName_And_InnerException_Constructor_Should_Set_All()
+        {
+            // Arrange
+            var databaseProvider = "MySQL";
+            var featureName = "NestedSavepoints";
+            var innerException = new NotSupportedException("Database limitation");
+
+            // Act
+            var exception = new UnsupportedDatabaseFeatureException(databaseProvider, featureName, innerException);
+
+            // Assert
+            Assert.Equal(databaseProvider, exception.DatabaseProvider);
+            Assert.Equal(featureName, exception.FeatureName);
+            Assert.Same(innerException, exception.InnerException);
+            Assert.Contains(databaseProvider, exception.Message);
+            Assert.Contains(featureName, exception.Message);
+        }
+
+        [Fact]
+        public void UnsupportedDatabaseFeatureException_Custom_Message_DatabaseProvider_And_FeatureName_Constructor_Should_Set_Custom_Message_And_Properties()
+        {
+            // Arrange
+            var message = "Custom unsupported feature message";
+            var databaseProvider = "Oracle";
+            var featureName = "SnapshotIsolation";
+
+            // Act
+            var exception = new UnsupportedDatabaseFeatureException(message, databaseProvider, featureName);
+
+            // Assert
+            Assert.Equal(message, exception.Message);
+            Assert.Equal(databaseProvider, exception.DatabaseProvider);
+            Assert.Equal(featureName, exception.FeatureName);
+            Assert.Null(exception.InnerException);
+        }
+
+
     }
 }

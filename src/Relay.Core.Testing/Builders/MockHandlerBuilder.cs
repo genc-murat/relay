@@ -239,31 +239,3 @@ public class MockHandlerBuilder<TRequest, TResponse>
         }
     }
 }
-
-/// <summary>
-/// Represents a single behavior configuration for a mock handler.
-/// </summary>
-/// <typeparam name="TRequest">The request type.</typeparam>
-/// <typeparam name="TResponse">The response type.</typeparam>
-internal class MockHandlerBehavior<TRequest, TResponse>
-{
-    public MockBehaviorType BehaviorType { get; set; }
-    public TResponse? Response { get; set; }
-    public Func<TRequest, TResponse>? ResponseFactory { get; set; }
-    public Func<TRequest, CancellationToken, Task<TResponse>>? AsyncResponseFactory { get; set; }
-    public Exception? Exception { get; set; }
-    public Func<object, Exception>? ExceptionFactory { get; set; }
-    public TimeSpan? Delay { get; set; }
-}
-
-/// <summary>
-/// Defines the types of mock behaviors.
-/// </summary>
-internal enum MockBehaviorType
-{
-    Return,
-    ReturnFactory,
-    ReturnAsyncFactory,
-    Throw,
-    ThrowFactory
-}

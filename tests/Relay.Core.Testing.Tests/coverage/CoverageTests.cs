@@ -247,6 +247,39 @@ public class CoverageTests
     }
 
     [Fact]
+    public void CoverageReport_AddAssemblyMetrics_ThrowsOnNullAssemblyName()
+    {
+        // Arrange
+        var report = new CoverageReport();
+        var metrics = new CoverageMetrics();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => report.AddAssemblyMetrics(null!, metrics));
+    }
+
+    [Fact]
+    public void CoverageReport_AddAssemblyMetrics_ThrowsOnEmptyAssemblyName()
+    {
+        // Arrange
+        var report = new CoverageReport();
+        var metrics = new CoverageMetrics();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => report.AddAssemblyMetrics("", metrics));
+        Assert.Throws<ArgumentException>(() => report.AddAssemblyMetrics("   ", metrics));
+    }
+
+    [Fact]
+    public void CoverageReport_AddAssemblyMetrics_ThrowsOnNullMetrics()
+    {
+        // Arrange
+        var report = new CoverageReport();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => report.AddAssemblyMetrics("TestAssembly", null!));
+    }
+
+    [Fact]
     public void CoverageReport_MeetsThreshold_ReturnsCorrectValue()
     {
         // Arrange
@@ -608,6 +641,39 @@ public class CoverageTests
     }
 
     [Fact]
+    public void CoverageReport_AddMethodMetrics_ThrowsOnNullMethodName()
+    {
+        // Arrange
+        var report = new CoverageReport();
+        var metrics = new CoverageMetrics();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => report.AddMethodMetrics(null!, metrics));
+    }
+
+    [Fact]
+    public void CoverageReport_AddMethodMetrics_ThrowsOnEmptyMethodName()
+    {
+        // Arrange
+        var report = new CoverageReport();
+        var metrics = new CoverageMetrics();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => report.AddMethodMetrics("", metrics));
+        Assert.Throws<ArgumentException>(() => report.AddMethodMetrics("   ", metrics));
+    }
+
+    [Fact]
+    public void CoverageReport_AddMethodMetrics_ThrowsOnNullMetrics()
+    {
+        // Arrange
+        var report = new CoverageReport();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => report.AddMethodMetrics("TestMethod", null!));
+    }
+
+    [Fact]
     public void CoverageReport_GetClassMetrics_ReturnsNullWhenNotFound()
     {
         // Arrange
@@ -631,6 +697,117 @@ public class CoverageTests
 
         // Assert
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void CoverageReport_AddTestScenario_ThrowsOnNullScenarioName()
+    {
+        // Arrange
+        var report = new CoverageReport();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => report.AddTestScenario(null!));
+    }
+
+    [Fact]
+    public void CoverageReport_AddTestScenario_ThrowsOnEmptyScenarioName()
+    {
+        // Arrange
+        var report = new CoverageReport();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => report.AddTestScenario(""));
+        Assert.Throws<ArgumentException>(() => report.AddTestScenario("   "));
+    }
+
+    [Fact]
+    public void CoverageReport_AddTestScenario_AddsNewScenario()
+    {
+        // Arrange
+        var report = new CoverageReport();
+
+        // Act
+        report.AddTestScenario("TestScenario");
+
+        // Assert
+        Assert.Single(report.TestScenarios);
+        Assert.Contains("TestScenario", report.TestScenarios);
+    }
+
+    [Fact]
+    public void CoverageReport_AddTestScenario_IgnoresDuplicateScenario()
+    {
+        // Arrange
+        var report = new CoverageReport();
+
+        // Act
+        report.AddTestScenario("TestScenario");
+        report.AddTestScenario("TestScenario"); // Duplicate
+
+        // Assert
+        Assert.Single(report.TestScenarios);
+        Assert.Contains("TestScenario", report.TestScenarios);
+    }
+
+    [Fact]
+    public void CoverageReport_GetAssemblyMetrics_ReturnsMetricsWhenFound()
+    {
+        // Arrange
+        var report = new CoverageReport();
+        var metrics = new CoverageMetrics { TotalLines = 100, CoveredLines = 80 };
+        report.AddAssemblyMetrics("TestAssembly", metrics);
+
+        // Act
+        var result = report.GetAssemblyMetrics("TestAssembly");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(metrics, result);
+    }
+
+    [Fact]
+    public void CoverageReport_GetAssemblyMetrics_ReturnsNullWhenNotFound()
+    {
+        // Arrange
+        var report = new CoverageReport();
+
+        // Act
+        var result = report.GetAssemblyMetrics("NonExistentAssembly");
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void CoverageReport_GetClassMetrics_ReturnsMetricsWhenFound()
+    {
+        // Arrange
+        var report = new CoverageReport();
+        var metrics = new CoverageMetrics { TotalLines = 50, CoveredLines = 40 };
+        report.AddClassMetrics("TestClass", metrics);
+
+        // Act
+        var result = report.GetClassMetrics("TestClass");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(metrics, result);
+    }
+
+    [Fact]
+    public void CoverageReport_GetMethodMetrics_ReturnsMetricsWhenFound()
+    {
+        // Arrange
+        var report = new CoverageReport();
+        var metrics = new CoverageMetrics { TotalLines = 20, CoveredLines = 15 };
+        report.AddMethodMetrics("TestMethod", metrics);
+
+        // Act
+        var result = report.GetMethodMetrics("TestMethod");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(metrics, result);
     }
 
     [Fact]

@@ -66,6 +66,11 @@ public class TestResponseWithIsSuccessAndErrorMessage
     public string ErrorMessage { get; set; }
 }
 
+public class TestRequestWithField
+{
+    public string SomeField = string.Empty;
+}
+
 public class TestDataBuilderTests
 {
     [Fact]
@@ -673,13 +678,13 @@ public class TestDataBuilderTests
     public void TestDataBuilderExtensions_WithProperty_ThrowsArgumentException_WhenPropertyDoesNotExist()
     {
         // Arrange
-        var builder = new RequestBuilder<TestRequest>();
+        var builder = new RequestBuilder<TestRequestWithField>();
 
         // Act & Assert
-        // Since we can't easily create a MemberExpression for a non-existent property,
-        // and the nested property test already covers the property not found case,
-        // we'll verify that the existing test covers it
-        // The DoesNotSupportNestedProperties test already hits the property not found branch
+        // Use a field instead of property to trigger property not found
+        var exception = Assert.Throws<ArgumentException>(() =>
+            TestDataBuilderExtensions.WithProperty(builder, r => r.SomeField, "test"));
+        Assert.Contains("Property 'SomeField' not found on type 'TestRequestWithField'", exception.Message);
     }
 
 }

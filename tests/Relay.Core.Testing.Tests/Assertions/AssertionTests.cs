@@ -179,6 +179,20 @@ public class AssertionTests
     }
 
     [Fact]
+    public async Task ShouldHaveHandledInOrder_Throws_WhenInsufficientRequests()
+    {
+        // Arrange
+        var relay = new TestRelay();
+        await relay.SendAsync(new AssertionTestRequest());
+
+        // Act & Assert
+        var exception = Assert.Throws<Xunit.Sdk.XunitException>(() =>
+            relay.ShouldHaveHandledInOrder(typeof(AssertionTestRequest), typeof(AssertionTestRequest2)));
+
+        Assert.Contains("Expected at least 2 requests, but only 1 were sent", exception.Message);
+    }
+
+    [Fact]
     public async Task ShouldNotHaveHandled_Throws_WhenRequestsExist()
     {
         // Arrange

@@ -111,8 +111,6 @@ public class EventDrivenScenarioTemplate : ScenarioTemplate
     public EventDrivenScenarioTemplate SendRequest<TRequest, TResponse>(TRequest request, string stepName = "Send Request")
         where TRequest : class, IRequest<TResponse>
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
-
         Scenario.Steps.Add(new TestStep
         {
             Name = stepName,

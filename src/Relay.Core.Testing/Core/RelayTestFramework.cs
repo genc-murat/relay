@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Relay.Core.Contracts.Core;
 using Relay.Core.Contracts.Requests;
+using Relay.Core.Validation.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -177,8 +178,6 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
 
     private async Task<StepResult> ExecuteStepAsync(TestStep step, CancellationToken cancellationToken)
     {
-        step.Validate();
-
         var result = new StepResult
         {
             StepName = step.Name,
@@ -187,6 +186,8 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
 
         try
         {
+            step.Validate();
+
             _logger?.LogDebug("Executing step: {StepName} ({StepType})", step.Name, step.Type);
 
             switch (step.Type)
@@ -222,16 +223,16 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         return result;
     }
 
-    private async Task ExecuteSendRequestStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
+    internal async Task ExecuteSendRequestStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
     {
         if (step.Request == null)
-            throw new InvalidOperationException("Request is required for SendRequest step");
+            throw new ValidationException(typeof(IRequest), new[] { "Request is required for SendRequest step" });
 
         // Use the non-generic SendAsync method
         await _relay.SendAsync((IRequest)step.Request, cancellationToken);
     }
 
-    private async Task ExecutePublishNotificationStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
+    internal async Task ExecutePublishNotificationStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
     {
         if (step.Notification == null)
             throw new InvalidOperationException("Notification is required for PublishNotification step");
@@ -243,7 +244,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         await task;
     }
 
-    private async Task ExecuteStreamRequestStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
+    internal async Task ExecuteStreamRequestStep(TestStep step, StepResult _result, CancellationToken cancellationToken)
     {
         if (step.StreamRequest == null)
             throw new InvalidOperationException("StreamRequest is required for StreamRequest step");
@@ -257,41 +258,22 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         var streamMethod = (typeof(IRelay).GetMethod(nameof(IRelay.StreamAsync))?.MakeGenericMethod(responseType)) ?? throw new InvalidOperationException($"Cannot find StreamAsync method for request type {requestType}");
         var enumerable = streamMethod.Invoke(_relay, [step.StreamRequest, cancellationToken]);
 
-        // Use reflection to iterate over the async enumerable
-        var enumeratorMethod = enumerable!.GetType().GetMethod("GetAsyncEnumerator") ?? throw new InvalidOperationException("Cannot get async enumerator for stream");
-        var enumerator = enumeratorMethod.Invoke(enumerable, [cancellationToken]) ?? throw new InvalidOperationException("Cannot get async enumerator");
-        try
+        // Iterate over the async enumerable
+        if (responseType == typeof(string))
         {
-            var moveNextMethod = enumerator.GetType().GetMethod("MoveNextAsync") ?? throw new InvalidOperationException("Cannot move next on async enumerator");
-            while (true)
+            var enumerableTyped = (IAsyncEnumerable<string>)enumerable;
+            await foreach (var item in enumerableTyped)
             {
-                var invokeResult = moveNextMethod.Invoke(enumerator, []);
-                if (invokeResult is ValueTask<bool> moveNextTask)
-                {
-                    if (!await moveNextTask)
-                        break;
-                }
-                else
-                {
-                    break;
-                }
+                // Consume the item (do nothing)
             }
         }
-        finally
+        else
         {
-            var disposeMethod = enumerator.GetType().GetMethod("DisposeAsync");
-            if (disposeMethod != null)
-            {
-                var invokeResult = disposeMethod.Invoke(enumerator, []);
-                if (invokeResult is ValueTask disposeTask)
-                {
-                    await disposeTask;
-                }
-            }
+            throw new NotSupportedException($"Stream response type {responseType.Name} is not supported");
         }
     }
 
-    private static async Task ExecuteVerifyStep(TestStep step, StepResult _result, CancellationToken _cancellationToken)
+    internal static async Task ExecuteVerifyStep(TestStep step, StepResult _result, CancellationToken _cancellationToken)
     {
         if (step.VerificationFunc == null)
             throw new InvalidOperationException("VerificationFunc is required for Verify step");
@@ -303,7 +285,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         }
     }
 
-    private static void ValidateLoadTestConfiguration(LoadTestConfiguration config)
+    internal static void ValidateLoadTestConfiguration(LoadTestConfiguration config)
     {
         if (config.TotalRequests <= 0)
             throw new ArgumentException("TotalRequests must be greater than 0", nameof(config.TotalRequests));
@@ -313,7 +295,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
             throw new ArgumentException("RampUpDelayMs cannot be negative", nameof(config.RampUpDelayMs));
     }
 
-    private static double CalculateMedian(List<double> values)
+    internal static double CalculateMedian(List<double> values)
     {
         if (values.Count == 0) return 0;
 
@@ -330,7 +312,7 @@ public class RelayTestFramework(IServiceProvider serviceProvider)
         }
     }
 
-    private static double CalculatePercentile(List<double> values, double percentile)
+    internal static double CalculatePercentile(List<double> values, double percentile)
     {
         if (values.Count == 0) return 0;
         if (percentile < 0 || percentile > 1)

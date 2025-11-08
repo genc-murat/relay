@@ -22,7 +22,6 @@ namespace Relay.Core.Testing
         public TestScenarioBuilder SendRequest<TRequest>(TRequest request, string stepName = "Send Request")
             where TRequest : class
         {
-            if (request == null) throw new ArgumentNullException(nameof(request));
             if (string.IsNullOrWhiteSpace(stepName)) throw new ArgumentException("Step name cannot be empty", nameof(stepName));
 
             _scenario.Steps.Add(new TestStep

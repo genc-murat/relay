@@ -426,6 +426,7 @@ public class TestRelayOptionsBuilderTests
 
         try
         {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
             Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
 
             var builder = new TestRelayOptionsBuilder()

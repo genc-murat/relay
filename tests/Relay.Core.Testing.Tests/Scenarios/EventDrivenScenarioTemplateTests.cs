@@ -167,14 +167,15 @@ public class EventDrivenScenarioTemplateTests
     }
 
     [Fact]
-    public void SendRequest_WithNullRequest_ThrowsArgumentNullException()
+    public void SendRequest_WithNullRequest_DoesNotThrow()
     {
         // Arrange
         var relay = new TestRelay();
         var template = new EventDrivenScenarioTemplate("Test Scenario", relay);
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => template.SendRequest<TestCommand, TestResponse>(null!));
+        var ex = Record.Exception(() => template.SendRequest<TestCommand, TestResponse>(null!));
+        Assert.Null(ex);
     }
 
     [Fact]

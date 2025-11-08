@@ -183,7 +183,7 @@ public class ScenarioTemplateTests
         Assert.Throws<ArgumentNullException>(() => template.PublishEvent<TestEvent>(null!));
         Assert.Throws<ArgumentNullException>(() => template.PublishEvents<TestEvent>(null!));
         Assert.Throws<ArgumentNullException>(() => template.VerifySideEffects(null!));
-        Assert.Throws<ArgumentNullException>(() => template.SendRequest<TestCommand, TestResponse>(null!));
+        // Note: SendRequest with null is now allowed (validation deferred to execution time)
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public class ScenarioTemplateTests
 
         Assert.Throws<ArgumentNullException>(() => template.StreamRequest<TestStreamRequest, string>(null!));
         Assert.Throws<ArgumentNullException>(() => template.VerifyStream(null!));
-        Assert.Throws<ArgumentNullException>(() => template.SendRequest<TestCommand, TestResponse>(null!));
+        // Note: SendRequest with null is now allowed (validation deferred to execution time)
         Assert.Throws<ArgumentNullException>(() => template.PublishNotification<TestEvent>(null!));
     }
 

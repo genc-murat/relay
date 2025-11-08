@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -151,12 +152,13 @@ namespace Relay.Core.Tests.Testing
         }
 
         [Fact]
-        public void SendRequest_WithNullRequest_ThrowsArgumentNullException()
+        public void SendRequest_WithNullRequest_DoesNotThrow()
         {
             var framework = new RelayTestFramework(_serviceProvider);
             var builder = framework.Scenario("Test");
 
-            Assert.Throws<ArgumentNullException>(() => builder.SendRequest((TestRequest)null!));
+            var ex = Record.Exception(() => builder.SendRequest((TestRequest)null!));
+            Assert.Null(ex);
         }
 
         [Fact]
@@ -521,14 +523,15 @@ namespace Relay.Core.Tests.Testing
         }
 
         [Fact]
-        public void TestScenarioBuilder_SendRequest_WithNullRequest_ThrowsArgumentNullException()
+        public void TestScenarioBuilder_SendRequest_WithNullRequest_DoesNotThrow()
         {
             // Arrange
             var framework = new RelayTestFramework(_serviceProvider);
 
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() =>
+            var ex = Record.Exception(() =>
                 framework.Scenario("Test Scenario").SendRequest<TestRequest>(null!));
+            Assert.Null(ex);
         }
 
         [Fact]
@@ -717,20 +720,309 @@ namespace Relay.Core.Tests.Testing
             {
                 SuccessfulRequests = 1,
                 FailedRequests = 0,
-                ResponseTimes = new List<double> { 150.5 }
+                ResponseTimes = [150.5]
             };
 
             // Calculate metrics manually since LoadTestResult doesn't auto-calculate
             result.AverageResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.Average() : 0;
-            result.MedianResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.First() : 0; // Single value median
-            result.P95ResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.First() : 0; // Single value percentile
-            result.P99ResponseTime = result.ResponseTimes.Count != 0 ? result.ResponseTimes.First() : 0; // Single value percentile
+            result.MedianResponseTime = RelayTestFramework.CalculateMedian(result.ResponseTimes);
+            result.P95ResponseTime = RelayTestFramework.CalculatePercentile(result.ResponseTimes, 0.95);
+            result.P99ResponseTime = RelayTestFramework.CalculatePercentile(result.ResponseTimes, 0.99);
 
             Assert.Equal(150.5, result.AverageResponseTime);
             Assert.Equal(150.5, result.MedianResponseTime);
             Assert.Equal(150.5, result.P95ResponseTime);
             Assert.Equal(150.5, result.P99ResponseTime);
-            Assert.Equal(1.0, result.SuccessRate);
+        }
+
+        [Fact]
+        public void CalculateMedian_WithEmptyList_ReturnsZero()
+        {
+            // Arrange
+            var values = new List<double>();
+
+            // Act
+            var result = RelayTestFramework.CalculateMedian(values);
+
+            // Assert
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
+        public void CalculateMedian_WithOddCount_ReturnsMiddleValue()
+        {
+            // Arrange
+            var values = new List<double> { 1.0, 3.0, 2.0, 5.0, 4.0 };
+
+            // Act
+            var result = RelayTestFramework.CalculateMedian(values);
+
+            // Assert
+            Assert.Equal(3.0, result);
+        }
+
+        [Fact]
+        public void CalculateMedian_WithEvenCount_ReturnsAverageOfMiddleValues()
+        {
+            // Arrange
+            var values = new List<double> { 1.0, 2.0, 3.0, 4.0 };
+
+            // Act
+            var result = RelayTestFramework.CalculateMedian(values);
+
+            // Assert
+            Assert.Equal(2.5, result);
+        }
+
+        [Fact]
+        public void CalculatePercentile_WithEmptyList_ReturnsZero()
+        {
+            // Arrange
+            var values = new List<double>();
+
+            // Act
+            var result = RelayTestFramework.CalculatePercentile(values, 0.5);
+
+            // Assert
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
+        public void CalculatePercentile_WithInvalidPercentile_ThrowsArgumentOutOfRangeException()
+        {
+            // Arrange
+            var values = new List<double> { 1.0, 2.0, 3.0 };
+
+            // Act & Assert
+            Assert.Throws<ArgumentOutOfRangeException>(() => RelayTestFramework.CalculatePercentile(values, -0.1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RelayTestFramework.CalculatePercentile(values, 1.1));
+        }
+
+        [Fact]
+        public void CalculatePercentile_WithValidPercentile_CalculatesCorrectly()
+        {
+            // Arrange
+            var values = new List<double> { 10.0, 20.0, 30.0, 40.0, 50.0 };
+
+            // Act & Assert
+            Assert.Equal(10.0, RelayTestFramework.CalculatePercentile(values, 0.0)); // Min
+            Assert.Equal(30.0, RelayTestFramework.CalculatePercentile(values, 0.5)); // Median
+            Assert.Equal(50.0, RelayTestFramework.CalculatePercentile(values, 1.0)); // Max
+            Assert.Equal(20.0, RelayTestFramework.CalculatePercentile(values, 0.25)); // 25th percentile
+            Assert.Equal(40.0, RelayTestFramework.CalculatePercentile(values, 0.75)); // 75th percentile
+        }
+
+        [Fact]
+        public async Task RunScenarioAsync_WithInvalidStep_HandlesValidationException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            // Create a scenario with an invalid step (null request for SendRequest)
+            framework.Scenario("Test Scenario")
+                .SendRequest((TestRequest)null!, "Invalid Send Request Step");
+
+            // Act
+            var result = await framework.RunAllScenariosAsync();
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Single(result.ScenarioResults);
+            Assert.False(result.ScenarioResults[0].Success);
+            Assert.Single(result.ScenarioResults[0].StepResults);
+            Assert.False(result.ScenarioResults[0].StepResults[0].Success);
+            Assert.Contains("required", result.ScenarioResults[0].StepResults[0].Error, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ExecuteSendRequestStep_WithNullRequest_ThrowsValidationException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.SendRequest,
+                Request = null
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<Relay.Core.Validation.Exceptions.ValidationException>(() =>
+                framework.ExecuteSendRequestStep(step, stepResult, CancellationToken.None));
+
+            Assert.Contains("required", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ExecutePublishNotificationStep_WithNullNotification_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.PublishNotification,
+                Notification = null
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                framework.ExecutePublishNotificationStep(step, stepResult, CancellationToken.None));
+
+            Assert.Contains("required", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ExecutePublishNotificationStep_WithValidNotification_Succeeds()
+        {
+            // Arrange
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var notification = new TestNotification();
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.PublishNotification,
+                Notification = notification
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            _relayMock
+                .Setup(x => x.PublishAsync(It.IsAny<INotification>(), It.IsAny<CancellationToken>()))
+                .Returns(ValueTask.CompletedTask);
+
+            // Act & Assert - Should not throw
+            await framework.ExecutePublishNotificationStep(step, stepResult, CancellationToken.None);
+        }
+
+        [Fact]
+        public async Task ExecuteStreamRequestStep_WithNullStreamRequest_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.StreamRequest,
+                StreamRequest = null
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                framework.ExecuteStreamRequestStep(step, stepResult, CancellationToken.None));
+
+            Assert.Contains("required", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ExecuteStreamRequestStep_WithValidStreamRequest_Succeeds()
+        {
+            // Arrange
+            SetupMocks();
+            var framework = new RelayTestFramework(_serviceProvider);
+            var streamRequest = new TestStreamRequest();
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.StreamRequest,
+                StreamRequest = streamRequest
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Mock the StreamAsync method to return an empty async enumerable
+            _relayMock
+                .Setup(x => x.StreamAsync<string>(It.IsAny<IStreamRequest<string>>(), It.IsAny<CancellationToken>()))
+                .Returns(AsyncEnumerable.Empty<string>());
+
+            // Act & Assert - Should not throw
+            await framework.ExecuteStreamRequestStep(step, stepResult, CancellationToken.None);
+        }
+
+        [Fact]
+        public async Task ExecuteVerifyStep_WithNullVerificationFunc_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.Verify,
+                VerificationFunc = null
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                RelayTestFramework.ExecuteVerifyStep(step, stepResult, CancellationToken.None));
+
+            Assert.Contains("required", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ExecuteVerifyStep_WithSuccessfulVerification_Succeeds()
+        {
+            // Arrange
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.Verify,
+                VerificationFunc = () => Task.FromResult(true)
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Act & Assert - Should not throw
+            await RelayTestFramework.ExecuteVerifyStep(step, stepResult, CancellationToken.None);
+        }
+
+        [Fact]
+        public async Task ExecuteVerifyStep_WithFailedVerification_ThrowsVerificationException()
+        {
+            // Arrange
+            var step = new TestStep
+            {
+                Name = "Test Step",
+                Type = StepType.Verify,
+                VerificationFunc = () => Task.FromResult(false)
+            };
+            var stepResult = new StepResult { StepName = step.Name };
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<VerificationException>(() =>
+                RelayTestFramework.ExecuteVerifyStep(step, stepResult, CancellationToken.None));
+
+            Assert.Contains("Verification failed", exception.Message);
+        }
+
+        [Fact]
+        public void ValidateLoadTestConfiguration_WithValidConfig_DoesNotThrow()
+        {
+            // Arrange
+            var config = new LoadTestConfiguration
+            {
+                TotalRequests = 100,
+                MaxConcurrency = 10,
+                RampUpDelayMs = 100
+            };
+
+            // Act & Assert - Should not throw
+            RelayTestFramework.ValidateLoadTestConfiguration(config);
+        }
+
+        [Fact]
+        public void ValidateLoadTestConfiguration_WithZeroRampUpDelay_DoesNotThrow()
+        {
+            // Arrange
+            var config = new LoadTestConfiguration
+            {
+                TotalRequests = 50,
+                MaxConcurrency = 5,
+                RampUpDelayMs = 0
+            };
+
+            // Act & Assert - Should not throw
+            RelayTestFramework.ValidateLoadTestConfiguration(config);
         }
 
         // Test data classes

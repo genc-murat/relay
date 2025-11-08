@@ -395,9 +395,18 @@ public class AnomalyDetectionServiceTests
 
         // Act & Assert
         // Since the operation is fast, this may or may not throw depending on timing
-        // But the method should handle cancellation properly
-        var result = await _service.DetectAnomaliesAsync(metricName, cancellationToken: cts.Token);
-        Assert.NotNull(result);
+        // Both outcomes are valid: either the operation completes before cancellation,
+        // or it gets cancelled and throws OperationCanceledException
+        try
+        {
+            var result = await _service.DetectAnomaliesAsync(metricName, cancellationToken: cts.Token);
+            Assert.NotNull(result);
+        }
+        catch (OperationCanceledException)
+        {
+            // This is also a valid outcome if cancellation happens during execution
+            Assert.True(cts.IsCancellationRequested);
+        }
     }
 
     [Fact]

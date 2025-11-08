@@ -1,8 +1,10 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
+using Relay.SourceGenerator.Diagnostics;
 using Relay.SourceGenerator.Validators;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -1277,6 +1279,32 @@ public class TestClass
     }
 
     #endregion
+
+    [Fact]
+    public void ValidateDuplicatePipelineOrders_Covers_ForeachLoop_In_Method()
+    {
+        // Arrange - Create a compilation and context
+        var source = @"
+using System;
+namespace Test { public class Dummy {} }";
+        var compilation = CSharpCompilation.Create("Test", [CSharpSyntaxTree.ParseText(source)]);
+        var diagnostics = new List<Diagnostic>();
+        var context = new CompilationAnalysisContext(compilation, null!, (diagnostic) => diagnostics.Add(diagnostic), _ => true, CancellationToken.None);
+
+        // Create pipeline registry with duplicates that have identical method names
+        List<PipelineInfo> pipelineRegistry =
+        [
+            new() { MethodName = "SameMethod", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
+            new() { MethodName = "SameMethod", Order = 1, Scope = 0, ContainingType = "Test.TestClass", Location = Location.None },
+        ];
+
+        // Act - Call ValidateDuplicatePipelineOrders directly
+        PipelineValidator.ValidateDuplicatePipelineOrders(context, pipelineRegistry);
+
+        // Assert - Verify diagnostics were reported (indicating the foreach loop was executed)
+        Assert.Equal(2, diagnostics.Count);
+        Assert.All(diagnostics, d => Assert.Equal(DiagnosticDescriptors.DuplicatePipelineOrder.Id, d.Id));
+    }
 
     #region Test Helper Classes
 

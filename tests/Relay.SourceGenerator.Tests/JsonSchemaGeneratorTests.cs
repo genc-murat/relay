@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Moq;
 using Xunit;
 
 namespace Relay.SourceGenerator.Tests
@@ -565,7 +566,7 @@ namespace Relay.SourceGenerator.Tests
                         Active,
                         Inactive
                     }
-                    
+
                     public class ClassWithNullableEnum
                     {
                         public Status? Status { get; set; }
@@ -583,6 +584,53 @@ namespace Relay.SourceGenerator.Tests
             Assert.Contains("\"status\"", result);
             Assert.Contains("\"type\": \"string\"", result);
             Assert.Contains("\"enum\"", result);
+        }
+
+        [Fact]
+        public void GetMemberType_WithUnsupportedMemberType_ReturnsNull()
+        {
+            // Arrange - Create a mock symbol that's neither property nor field
+            // This tests the default case in the switch expression
+            var mockSymbol = new Mock<ISymbol>();
+            mockSymbol.Setup(s => s.Kind).Returns(SymbolKind.Method); // Not a property or field
+
+            // Act - Use reflection to access the private method
+            var method = typeof(Relay.SourceGenerator.JsonSchemaGenerator).GetMethod("GetMemberType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var result = method?.Invoke(null, new object[] { mockSymbol.Object });
+
+            // Assert
+            Assert.Null(result);
+        }
+
+
+
+        [Fact]
+        public void GetCollectionElementType_WithNonGenericType_ReturnsNull()
+        {
+            // Arrange - Test with a non-generic type
+            var compilation = CreateCompilation("namespace Test { public class TestClass { } }");
+            var stringType = compilation.GetSpecialType(SpecialType.System_String);
+
+            // Act - Use reflection to access the private method
+            var method = typeof(Relay.SourceGenerator.JsonSchemaGenerator).GetMethod("GetCollectionElementType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var result = method?.Invoke(null, new object[] { stringType });
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public void ToCamelCase_WithAlreadyLowercaseInput_ReturnsUnchanged()
+        {
+            // Arrange
+            var input = "alreadylowercase";
+
+            // Act - Use reflection to access the private method
+            var method = typeof(Relay.SourceGenerator.JsonSchemaGenerator).GetMethod("ToCamelCase", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var result = method?.Invoke(null, new object[] { input });
+
+            // Assert
+            Assert.Equal("alreadylowercase", result);
         }
 
         private Compilation CreateCompilation(string sourceCode)

@@ -19,22 +19,18 @@ public class InitCommandTests : IDisposable
     private async Task ExecuteInitWithMockedConsole(string projectName, string template, string outputPath, string framework, bool initGit, bool includeDocker, bool includeCI)
     {
         // Mock console to avoid concurrency issues with Spectre.Console
-        // Use a lock to prevent concurrent access to Spectre.Console
-        lock (typeof(AnsiConsole))
+        var testConsole = new Spectre.Console.Testing.TestConsole();
+        var originalConsole = AnsiConsole.Console;
+
+        AnsiConsole.Console = testConsole;
+
+        try
         {
-            var testConsole = new Spectre.Console.Testing.TestConsole();
-            var originalConsole = AnsiConsole.Console;
-
-            AnsiConsole.Console = testConsole;
-
-            try
-            {
-                InitCommand.ExecuteInit(projectName, template, outputPath, framework, initGit, includeDocker, includeCI).Wait();
-            }
-            finally
-            {
-                AnsiConsole.Console = originalConsole;
-            }
+            await InitCommand.ExecuteInit(projectName, template, outputPath, framework, initGit, includeDocker, includeCI);
+        }
+        finally
+        {
+            AnsiConsole.Console = originalConsole;
         }
     }
 

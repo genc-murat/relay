@@ -276,6 +276,45 @@ public class EfCoreSnapshotStoreEdgeCasesTests : IDisposable
         Assert.Equal(5, remainingSnapshots.First().Version);
     }
 
+    [Fact]
+    public async Task GetSnapshotAsync_WithNoSnapshotExists_ReturnsNull()
+    {
+        // Arrange
+        var aggregateId = Guid.NewGuid();
+
+        // Act
+        var result = await _snapshotStore.GetSnapshotAsync<TestSnapshot>(aggregateId);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetSnapshotAsync_WithJsonNullData_ThrowsInvalidOperationException()
+    {
+        // Arrange - Manually insert snapshot with "null" JSON data
+        var aggregateId = Guid.NewGuid();
+        var snapshotEntity = new SnapshotEntity
+        {
+            Id = Guid.NewGuid(),
+            AggregateId = aggregateId,
+            Version = 1,
+            AggregateType = typeof(TestSnapshot).AssemblyQualifiedName!,
+            SnapshotData = "null", // JSON null value
+            Timestamp = DateTime.UtcNow
+        };
+
+        _context.Snapshots.Add(snapshotEntity);
+        await _context.SaveChangesAsync();
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _snapshotStore.GetSnapshotAsync<TestSnapshot>(aggregateId));
+
+        Assert.Contains($"Failed to deserialize snapshot for aggregate {aggregateId}", exception.Message);
+        Assert.Contains("at version 1", exception.Message);
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();

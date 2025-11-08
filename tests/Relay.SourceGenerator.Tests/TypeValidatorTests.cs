@@ -349,6 +349,8 @@ namespace TestNamespace
         Assert.False(result);
     }
 
+
+
     /// <summary>
     /// Tests that IsValidRequestType returns false for a class not implementing any request interface.
     /// </summary>

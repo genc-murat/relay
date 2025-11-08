@@ -158,6 +158,74 @@ public class NotificationConfigurationValidationTests
     }
 
     [Fact]
+    public void ValidateNotificationConfigurations_ValidNotificationHandlerWithTaskReturnType_ShouldNotReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
+                public class TestNotification : INotification { }
+                public class TestNotificationHandler
+                {
+                    [Notification] public System.Threading.Tasks.Task Handle(TestNotification notification) => Task.CompletedTask;
+                }
+            ");
+
+        var notificationType = GetTypeSymbol(compilation, "TestNotification");
+        var handlerType = GetTypeSymbol(compilation, "TestNotificationHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+
+        var notificationHandlers = new[]
+        {
+            new NotificationHandlerRegistration
+            {
+                NotificationType = notificationType,
+                Method = method,
+                Priority = 0,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateNotificationConfigurations(notificationHandlers);
+
+        // Assert - Should not report any errors for valid Task return type
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.IsAny<Diagnostic>()), Times.Never);
+    }
+
+    [Fact]
+    public void ValidateNotificationConfigurations_ValidNotificationHandlerWithValueTaskReturnType_ShouldNotReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
+                public class TestNotification : INotification { }
+                public class TestNotificationHandler
+                {
+                    [Notification] public System.Threading.Tasks.ValueTask Handle(TestNotification notification) => ValueTask.CompletedTask;
+                }
+            ");
+
+        var notificationType = GetTypeSymbol(compilation, "TestNotification");
+        var handlerType = GetTypeSymbol(compilation, "TestNotificationHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+
+        var notificationHandlers = new[]
+        {
+            new NotificationHandlerRegistration
+            {
+                NotificationType = notificationType,
+                Method = method,
+                Priority = 0,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateNotificationConfigurations(notificationHandlers);
+
+        // Assert - Should not report any errors for valid ValueTask return type
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.IsAny<Diagnostic>()), Times.Never);
+    }
+
+    [Fact]
     public void ValidateNotificationConfigurations_MultipleNotificationHandlers_ShouldValidateEach()
     {
         // Arrange
@@ -203,6 +271,42 @@ public class NotificationConfigurationValidationTests
         // Assert - Should report invalid return type for the second handler (void instead of Task/ValueTask)
         _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
             d.Id == "RELAY_GEN_204")), Times.Once);
+    }
+
+
+
+    [Fact]
+    public void ValidateNotificationConfigurations_ValidNotificationHandlerWithValueTask_ShouldNotReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
+                public class TestNotification : INotification { }
+                public class TestNotificationHandler
+                {
+                    [Notification] public System.Threading.Tasks.ValueTask Handle(TestNotification notification) => ValueTask.CompletedTask;
+                }
+            ");
+
+        var notificationType = GetTypeSymbol(compilation, "TestNotification");
+        var handlerType = GetTypeSymbol(compilation, "TestNotificationHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+
+        var notificationHandlers = new[]
+        {
+            new NotificationHandlerRegistration
+            {
+                NotificationType = notificationType,
+                Method = method,
+                Priority = 0,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateNotificationConfigurations(notificationHandlers);
+
+        // Assert - Should not report any errors for valid ValueTask return type
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.IsAny<Diagnostic>()), Times.Never);
     }
 
     private static Compilation CreateCompilation(string source)

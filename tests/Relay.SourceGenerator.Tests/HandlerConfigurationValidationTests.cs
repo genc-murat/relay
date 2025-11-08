@@ -433,6 +433,84 @@ public class HandlerConfigurationValidationTests
     }
 
     [Fact]
+    public void ValidateHandlerConfigurations_HandlerWithTaskGenericReturnType_ShouldNotReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
+                public class TestRequest : IRequest<string> { }
+                public class TestHandler
+                {
+                    [Handle] public System.Threading.Tasks.Task<string> Handle(TestRequest request, CancellationToken ct) => Task.FromResult(string.Empty);
+                }
+            ");
+
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+
+        var handlers = new[]
+        {
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert - No error diagnostics should be reported for valid Task<T> return type
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Severity == DiagnosticSeverity.Error)), Times.Never);
+    }
+
+    [Fact]
+    public void ValidateHandlerConfigurations_HandlerWithValueTaskGenericReturnType_ShouldNotReportError()
+    {
+        // Arrange
+        var compilation = CreateCompilation(@"
+                public class TestRequest : IRequest<string> { }
+                public class TestHandler
+                {
+                    [Handle] public System.Threading.Tasks.ValueTask<string> Handle(TestRequest request, CancellationToken ct) => ValueTask.FromResult(string.Empty);
+                }
+            ");
+
+        var requestType = GetTypeSymbol(compilation, "TestRequest");
+        var responseType = GetTypeSymbol(compilation, "string");
+        var handlerType = GetTypeSymbol(compilation, "TestHandler");
+        var method = handlerType.GetMembers("Handle").OfType<IMethodSymbol>().First();
+
+        var handlers = new[]
+        {
+            new HandlerRegistration
+            {
+                RequestType = requestType,
+                ResponseType = responseType,
+                Method = method,
+                Name = null,
+                Priority = 0,
+                Kind = HandlerKind.Request,
+                Location = Location.None
+            }
+        };
+
+        // Act
+        _validator.ValidateHandlerConfigurations(handlers);
+
+        // Assert - No error diagnostics should be reported for valid ValueTask<T> return type
+        _mockReporter.Verify(r => r.ReportDiagnostic(It.Is<Diagnostic>(d =>
+            d.Severity == DiagnosticSeverity.Error)), Times.Never);
+    }
+
+    [Fact]
     public void ValidateHandlerConfigurations_MultipleValidationErrors_ShouldReportAll()
     {
         // Arrange

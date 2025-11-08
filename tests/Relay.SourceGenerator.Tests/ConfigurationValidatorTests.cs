@@ -283,4 +283,46 @@ public class ConfigurationValidatorTests
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => new ConfigurationValidator(null!));
     }
+
+    [Fact]
+    public void ValidateGenerationOptions_NamespaceWithEmptyParts_ReportsDiagnostic()
+    {
+        // Arrange
+        var reporter = new TestDiagnosticReporter();
+        var validator = new ConfigurationValidator(reporter);
+        var options = new GenerationOptions
+        {
+            CustomNamespace = "Valid..Namespace",
+            EnableDIGeneration = true
+        };
+
+        // Act
+        validator.ValidateGenerationOptions(options);
+
+        // Assert
+        Assert.Single(reporter.Diagnostics);
+        Assert.Contains("RelayCustomNamespace", reporter.Diagnostics[0].GetMessage());
+    }
+
+    [Fact]
+    public void ValidateGenerationOptions_NamespaceWithPartStartingWithDigit_ReportsDiagnostic()
+    {
+        // Arrange
+        var reporter = new TestDiagnosticReporter();
+        var validator = new ConfigurationValidator(reporter);
+        var options = new GenerationOptions
+        {
+            CustomNamespace = "Valid.123Namespace",
+            EnableDIGeneration = true
+        };
+
+        // Act
+        validator.ValidateGenerationOptions(options);
+
+        // Assert
+        Assert.Single(reporter.Diagnostics);
+        Assert.Contains("RelayCustomNamespace", reporter.Diagnostics[0].GetMessage());
+    }
+
+
 }

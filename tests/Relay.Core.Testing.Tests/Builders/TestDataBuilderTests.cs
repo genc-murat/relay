@@ -48,6 +48,24 @@ public class TestNotificationNoTimestamps : INotification
     public string Message { get; set; }
 }
 
+public class TestResponseWithIsSuccess
+{
+    public bool IsSuccess { get; set; }
+    public string Message { get; set; }
+}
+
+public class TestResponseWithErrorMessage
+{
+    public bool Success { get; set; }
+    public string ErrorMessage { get; set; }
+}
+
+public class TestResponseWithIsSuccessAndErrorMessage
+{
+    public bool IsSuccess { get; set; }
+    public string ErrorMessage { get; set; }
+}
+
 public class TestDataBuilderTests
 {
     [Fact]
@@ -488,5 +506,84 @@ public class TestDataBuilderTests
         Assert.Same(builder, result);
     }
 
+    [Fact]
+    public void ResponseBuilder_WithDefaults_SetsIsSuccessProperty()
+    {
+        // Act
+        var response = new ResponseBuilder<TestResponseWithIsSuccess>().Build();
+
+        // Assert
+        Assert.True(response.IsSuccess);
+        Assert.Equal("Success", response.Message);
+    }
+
+    [Fact]
+    public void ResponseBuilder_WithSuccess_SetsIsSuccessProperty()
+    {
+        // Act
+        var response = new ResponseBuilder<TestResponseWithIsSuccess>()
+            .WithSuccess()
+            .Build();
+
+        // Assert
+        Assert.True(response.IsSuccess);
+    }
+
+    [Fact]
+    public void ResponseBuilder_WithFailure_SetsIsSuccessAndErrorMessageProperties()
+    {
+        // Arrange
+        var errorMessage = "Custom error";
+
+        // Act
+        var response = new ResponseBuilder<TestResponseWithIsSuccessAndErrorMessage>()
+            .WithFailure(errorMessage)
+            .Build();
+
+        // Assert
+        Assert.False(response.IsSuccess);
+        Assert.Equal(errorMessage, response.ErrorMessage);
+    }
+
+    [Fact]
+    public void ResponseBuilder_WithFailure_SetsErrorMessageProperty()
+    {
+        // Arrange
+        var errorMessage = "Custom error";
+
+        // Act
+        var response = new ResponseBuilder<TestResponseWithErrorMessage>()
+            .WithFailure(errorMessage)
+            .Build();
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal(errorMessage, response.ErrorMessage);
+    }
+
+
+
+    [Fact]
+    public void ResponseBuilder_MethodChaining_ReturnsBuilderInstance()
+    {
+        // Arrange
+        var builder = new ResponseBuilder<TestResponse>();
+
+        // Act
+        var result1 = builder.WithDefaults();
+        var result2 = builder.WithSuccess();
+        var result3 = builder.WithFailure("error");
+        var result4 = builder.WithProperty(r => r.Message, "test");
+
+        // Assert
+        Assert.Same(builder, result1);
+        Assert.Same(builder, result2);
+        Assert.Same(builder, result3);
+        Assert.Same(builder, result4);
+    }
+
+
 
 }
+
+

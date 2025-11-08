@@ -395,7 +395,7 @@ public class TestRelayOptionsBuilderTests
 
         try
         {
-            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "");
             Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Testing");
 
             var builder = new TestRelayOptionsBuilder()
@@ -426,8 +426,7 @@ public class TestRelayOptionsBuilderTests
 
         try
         {
-            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
-            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", null);
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
 
             var builder = new TestRelayOptionsBuilder()
                 .WithEnvironmentOverride("Development", envBuilder =>

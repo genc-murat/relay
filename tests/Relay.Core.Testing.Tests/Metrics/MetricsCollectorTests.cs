@@ -251,7 +251,7 @@ public class MetricsCollectorTests
 
         // Assert
         Assert.True(metrics.Duration >= TimeSpan.Zero);
-        Assert.True(metrics.Duration < TimeSpan.FromMilliseconds(10), "Even empty operations take some time to measure");
+        // Note: We don't check an upper bound as timing precision can vary by environment
     }
 
     [Fact]

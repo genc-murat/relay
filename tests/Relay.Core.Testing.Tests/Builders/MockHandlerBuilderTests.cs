@@ -505,12 +505,12 @@ public class MockHandlerBuilderTests
             .GetField("_behaviors", BindingFlags.NonPublic | BindingFlags.Instance);
         var behaviors = behaviorField?.GetValue(builder) as List<MockHandlerBehavior<MockTestRequest, MockTestResponse>>;
 
-        // Create behavior with invalid type (e.g., cast -1 to MockBehaviorType)
+        // Create behavior with invalid type (no delay to ensure sync execution path)
         var invalidBehavior = new MockHandlerBehavior<MockTestRequest, MockTestResponse>
         {
             BehaviorType = (MockBehaviorType)(-1), // Invalid enum value
-            Response = new MockTestResponse { Result = "invalid" },
-            Delay = TimeSpan.FromTicks(1) // Ensure async execution path
+            Response = new MockTestResponse { Result = "invalid" }
+            // No Delay to ensure synchronous execution path
         };
         behaviors?.Clear();
         behaviors?.Add(invalidBehavior);

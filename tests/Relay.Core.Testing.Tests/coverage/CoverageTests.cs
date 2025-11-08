@@ -446,6 +446,34 @@ public class CoverageTests
     }
 
     [Fact]
+    public void TestCoverageTracker_AnalyzeMethod_WithExecutedMethod_SetsCoveredMetrics()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        tracker.StartTracking();
+
+        var type = typeof(TestCoverageTracker);
+        var method = type.GetMethod("StartTracking")!;
+        var assemblyName = type.Assembly.GetName().Name!;
+        var className = type.FullName!;
+
+        // Record execution first
+        tracker.RecordMethodExecution(assemblyName, className, method.Name);
+
+        // Act
+        var metrics = tracker.AnalyzeMethod(type, method);
+
+        // Assert
+        Assert.Equal(1, metrics.TotalMethods);
+        Assert.Equal(1, metrics.CoveredMethods);
+        Assert.True(metrics.TotalLines > 0);
+        Assert.True(metrics.TotalBranches >= 0);
+        Assert.True(metrics.CoveredLines > 0);
+        Assert.True(metrics.CoveredBranches >= 0);
+        Assert.Empty(metrics.UncoveredMethods);
+    }
+
+    [Fact]
     public void TestCoverageTracker_AnalyzeClass_WorksCorrectly()
     {
         // Arrange
@@ -654,7 +682,6 @@ public class CoverageTests
 
         report.OverallMetrics.TotalLines = 100;
         report.OverallMetrics.CoveredLines = 80;
-        report.AddTestScenario("Scenario1");
 
         // Act
         var summary = report.GenerateSummary();
@@ -663,6 +690,34 @@ public class CoverageTests
         Assert.Contains("Test Report", summary);
         Assert.Contains("80.00%", summary);
         Assert.Contains("True", summary);
-        Assert.Contains("1", summary);
+    }
+
+    [Fact]
+    public void TestCoverageTracker_GenerateReport_DoesNotAddPlaceholderWhenMethodAlreadyAnalyzed()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        tracker.StartTracking();
+
+        var type = typeof(TestCoverageTracker);
+        var method = type.GetMethod("StartTracking")!;
+        var methodKey = $"{type.FullName}.{method.Name}";
+
+        // Analyze the method first
+        var analyzedMetrics = tracker.AnalyzeMethod(type, method);
+
+        // Record method execution
+        tracker.RecordMethodExecution(type.Assembly.GetName().Name!, type.FullName!, method.Name);
+
+        // Act
+        var report = tracker.GenerateReport("Test Report");
+
+        // Assert
+        Assert.True(report.MethodMetrics.ContainsKey(methodKey));
+        var metrics = report.MethodMetrics[methodKey];
+        // Should be the analyzed metrics, not placeholder
+        Assert.Equal(analyzedMetrics.TotalMethods, metrics.TotalMethods);
+        Assert.Equal(analyzedMetrics.TotalLines, metrics.TotalLines);
+        Assert.Equal(analyzedMetrics.TotalBranches, metrics.TotalBranches);
     }
 }

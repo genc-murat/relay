@@ -212,8 +212,11 @@ public class TestRelayOptionsBuilder
     public TestRelayOptions Build()
     {
         // Apply environment-specific overrides if applicable
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ??
-                         Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ??
+        var aspNetCoreEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var dotnetEnv = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+        var environment = (!string.IsNullOrWhiteSpace(aspNetCoreEnv) ? aspNetCoreEnv : null) ??
+                         (!string.IsNullOrWhiteSpace(dotnetEnv) ? dotnetEnv : null) ??
                          "Development";
 
         if (_options.EnvironmentOverrides.TryGetValue(environment, out var envOptions))

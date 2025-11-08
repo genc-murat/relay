@@ -1,5 +1,6 @@
 using System;
 using System.Linq.Expressions;
+using System.Reflection;
 using Relay.Core.Testing;
 using Relay.Core.Contracts.Requests;
 using Xunit;
@@ -27,6 +28,24 @@ public class TestResponse
     public bool Success { get; set; }
     public string Message { get; set; }
     public object Data { get; set; }
+}
+
+public class TestNotificationWithCreatedAt : INotification
+{
+    public string Message { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public class TestNotificationWithBothTimestamps : INotification
+{
+    public string Message { get; set; }
+    public DateTimeOffset Timestamp { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public class TestNotificationNoTimestamps : INotification
+{
+    public string Message { get; set; }
 }
 
 public class TestDataBuilderTests
@@ -283,6 +302,117 @@ public class TestDataBuilderTests
         // Assert
         Assert.False(response.Success);
         Assert.Equal("Operation failed", response.Message);
+    }
+
+    [Fact]
+    public void NotificationBuilder_WithDefaults_SetsCreatedAt_WhenPropertyExists()
+    {
+        // Act
+        var notification = new NotificationBuilder<TestNotificationWithCreatedAt>().Build();
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.True(notification.CreatedAt > DateTimeOffset.MinValue);
+        Assert.True(notification.CreatedAt <= DateTimeOffset.UtcNow);
+    }
+
+    [Fact]
+    public void NotificationBuilder_WithDefaults_SetsBothTimestamps_WhenBothPropertiesExist()
+    {
+        // Act
+        var notification = new NotificationBuilder<TestNotificationWithBothTimestamps>().Build();
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.True(notification.Timestamp > DateTimeOffset.MinValue);
+        Assert.True(notification.CreatedAt > DateTimeOffset.MinValue);
+        Assert.True(notification.Timestamp <= DateTimeOffset.UtcNow);
+        Assert.True(notification.CreatedAt <= DateTimeOffset.UtcNow);
+    }
+
+    [Fact]
+    public void NotificationBuilder_WithDefaults_DoesNotThrow_WhenNoTimestampProperties()
+    {
+        // Act - Should not throw
+        var notification = new NotificationBuilder<TestNotificationNoTimestamps>().Build();
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.IsType<TestNotificationNoTimestamps>(notification);
+    }
+
+    [Fact]
+    public void NotificationBuilder_WithProperty_ThrowsArgumentException_WhenExpressionIsNotMemberExpression()
+    {
+        // Arrange
+        var builder = new NotificationBuilder<TestNotification>();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() =>
+            builder.WithProperty(n => n.Message.ToString(), "test"));
+        Assert.Contains("Expression must be a member expression", exception.Message);
+    }
+
+    [Fact]
+    public void NotificationBuilder_WithTimestamp_SetsCreatedAt_WhenPropertyExists()
+    {
+        // Arrange
+        var customTimestamp = new DateTimeOffset(2023, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        // Act
+        var notification = new NotificationBuilder<TestNotificationWithCreatedAt>()
+            .WithTimestamp(customTimestamp)
+            .Build();
+
+        // Assert
+        Assert.Equal(customTimestamp, notification.CreatedAt);
+    }
+
+    [Fact]
+    public void NotificationBuilder_WithTimestamp_SetsBothTimestamps_WhenBothPropertiesExist()
+    {
+        // Arrange
+        var customTimestamp = new DateTimeOffset(2023, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        // Act
+        var notification = new NotificationBuilder<TestNotificationWithBothTimestamps>()
+            .WithTimestamp(customTimestamp)
+            .Build();
+
+        // Assert
+        Assert.Equal(customTimestamp, notification.Timestamp);
+        Assert.Equal(customTimestamp, notification.CreatedAt);
+    }
+
+    [Fact]
+    public void NotificationBuilder_WithTimestamp_DoesNotThrow_WhenNoTimestampProperties()
+    {
+        // Arrange
+        var customTimestamp = new DateTimeOffset(2023, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+        // Act - Should not throw
+        var notification = new NotificationBuilder<TestNotificationNoTimestamps>()
+            .WithTimestamp(customTimestamp)
+            .Build();
+
+        // Assert
+        Assert.NotNull(notification);
+        Assert.IsType<TestNotificationNoTimestamps>(notification);
+    }
+
+    [Fact]
+    public void NotificationBuilder_Build_ThrowsInvalidOperationException_WhenInstanceIsNull()
+    {
+        // Arrange
+        var builder = new NotificationBuilder<TestNotification>();
+        // Simulate null instance by accessing private property (this is a test edge case)
+        var instanceProperty = typeof(NotificationBuilder<TestNotification>)
+            .BaseType.GetProperty("Instance", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        instanceProperty.SetValue(builder, null);
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.Build());
+        Assert.Contains("Notification instance is null", exception.Message);
     }
 
 

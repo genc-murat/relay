@@ -58,13 +58,13 @@ jobs:
         name: test-results
         path: ./TestResults/
     
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
-      if: always()
-      with:
-        files: '**/coverage.cobertura.xml'
-        fail_ci_if_error: false
-        verbose: true
+     - name: Upload coverage reports
+       uses: codecov/codecov-action@v3
+       if: always()
+       with:
+         files: '**/coverage.cobertura.xml'
+         fail_ci_if_error: true
+         verbose: true
 
   package:
     runs-on: ubuntu-latest

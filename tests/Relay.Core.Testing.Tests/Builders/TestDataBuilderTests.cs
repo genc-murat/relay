@@ -305,6 +305,36 @@ public class TestDataBuilderTests
     }
 
     [Fact]
+    public void ResponseBuilder_WithProperty_ThrowsArgumentException_WhenExpressionIsNotMemberExpression()
+    {
+        // Arrange
+        var builder = new ResponseBuilder<TestResponse>();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() =>
+            builder.WithProperty(r => r.Message.ToString(), "test"));
+        Assert.Contains("Expression must be a member expression", exception.Message);
+        Assert.Equal("property", exception.ParamName);
+    }
+
+    [Fact]
+    public void ResponseBuilder_Build_ThrowsInvalidOperationException_WhenInstanceIsNull()
+    {
+        // Arrange
+        var builder = new ResponseBuilder<TestResponse>();
+        // Simulate null instance by accessing private property (this is a test edge case)
+        var instanceProperty = typeof(ResponseBuilder<TestResponse>)
+            .BaseType.GetProperty("Instance", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        instanceProperty.SetValue(builder, null);
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.Build());
+        Assert.Contains("Response instance is null", exception.Message);
+    }
+
+
+
+    [Fact]
     public void NotificationBuilder_WithDefaults_SetsCreatedAt_WhenPropertyExists()
     {
         // Act

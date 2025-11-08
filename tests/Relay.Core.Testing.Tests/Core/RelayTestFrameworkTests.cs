@@ -497,6 +497,159 @@ namespace Relay.Core.Tests.Testing
         }
 
         [Fact]
+        public void TestScenarioBuilder_SendRequest_WithValidRequest_AddsStep()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+
+            // Act
+            framework.Scenario("Test Scenario")
+                .SendRequest(request, "Send Step");
+
+            // Access private field for testing
+            var scenariosField = typeof(RelayTestFramework).GetField("_scenarios", BindingFlags.NonPublic | BindingFlags.Instance);
+            var scenarios = (List<TestScenario>)scenariosField!.GetValue(framework)!;
+
+            // Assert
+            Assert.Single(scenarios);
+            Assert.Equal("Test Scenario", scenarios[0].Name);
+            Assert.Single(scenarios[0].Steps);
+            Assert.Equal("Send Step", scenarios[0].Steps[0].Name);
+            Assert.Equal(StepType.SendRequest, scenarios[0].Steps[0].Type);
+            Assert.Equal(request, scenarios[0].Steps[0].Request);
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_SendRequest_WithNullRequest_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                framework.Scenario("Test Scenario").SendRequest<TestRequest>(null!));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_SendRequest_WithEmptyStepName_ThrowsArgumentException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() =>
+                framework.Scenario("Test Scenario").SendRequest(request, ""));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_PublishNotification_WithValidNotification_AddsStep()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var notification = new TestNotification();
+
+            // Act
+            framework.Scenario("Test Scenario")
+                .PublishNotification(notification, "Publish Step");
+
+            // Access private field for testing
+            var scenariosField = typeof(RelayTestFramework).GetField("_scenarios", BindingFlags.NonPublic | BindingFlags.Instance);
+            var scenarios = (List<TestScenario>)scenariosField!.GetValue(framework)!;
+
+            // Assert
+            Assert.Single(scenarios);
+            Assert.Equal("Test Scenario", scenarios[0].Name);
+            Assert.Single(scenarios[0].Steps);
+            Assert.Equal("Publish Step", scenarios[0].Steps[0].Name);
+            Assert.Equal(StepType.PublishNotification, scenarios[0].Steps[0].Type);
+            Assert.Equal(notification, scenarios[0].Steps[0].Notification);
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_PublishNotification_WithNullNotification_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() =>
+                framework.Scenario("Test Scenario").PublishNotification<TestNotification>(null!));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_PublishNotification_WithEmptyStepName_ThrowsArgumentException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var notification = new TestNotification();
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() =>
+                framework.Scenario("Test Scenario").PublishNotification(notification, ""));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_StreamRequest_WithEmptyStepName_ThrowsArgumentException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestStreamRequest();
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() =>
+                framework.Scenario("Test Scenario").StreamRequest(request, ""));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_Verify_WithEmptyStepName_ThrowsArgumentException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() =>
+                framework.Scenario("Test Scenario").Verify(() => Task.FromResult(true), ""));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_Wait_WithEmptyStepName_ThrowsArgumentException()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() =>
+                framework.Scenario("Test Scenario").Wait(TimeSpan.FromSeconds(1), ""));
+        }
+
+        [Fact]
+        public void TestScenarioBuilder_MethodChaining_ReturnsBuilderInstance()
+        {
+            // Arrange
+            var framework = new RelayTestFramework(_serviceProvider);
+            var request = new TestRequest();
+            var notification = new TestNotification();
+            var streamRequest = new TestStreamRequest();
+
+            // Act
+            var builder = framework.Scenario("Test Scenario");
+            var result1 = builder.SendRequest(request);
+            var result2 = builder.PublishNotification(notification);
+            var result3 = builder.StreamRequest(streamRequest);
+            var result4 = builder.Verify(() => Task.FromResult(true));
+            var result5 = builder.Wait(TimeSpan.FromSeconds(1));
+
+            // Assert
+            Assert.Same(builder, result1);
+            Assert.Same(builder, result2);
+            Assert.Same(builder, result3);
+            Assert.Same(builder, result4);
+            Assert.Same(builder, result5);
+        }
+
+        [Fact]
         public async Task RunAllScenariosAsync_WithCancellation_CancelsExecution()
         {
             var framework = new RelayTestFramework(_serviceProvider);

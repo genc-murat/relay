@@ -153,6 +153,9 @@ public class TestRelayOptionsBuilder
     /// <returns>The builder instance for chaining.</returns>
     public TestRelayOptionsBuilder WithEnvironmentOverride(string environment, Action<TestRelayOptionsBuilder> configure)
     {
+        if (configure == null)
+            throw new ArgumentNullException(nameof(configure));
+
         var envBuilder = new TestRelayOptionsBuilder();
         configure(envBuilder);
         _options.EnvironmentOverrides[environment] = envBuilder.Build();

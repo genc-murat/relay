@@ -126,6 +126,32 @@ public class AssertionTests
     }
 
     [Fact]
+    public async Task ShouldHavePublished_WithCount_Succeeds_WhenExactCount()
+    {
+        // Arrange
+        var relay = new TestRelay();
+        await relay.PublishAsync(new AssertionTestNotification());
+        await relay.PublishAsync(new AssertionTestNotification());
+
+        // Act & Assert - Should not throw
+        relay.ShouldHavePublished<AssertionTestNotification>(2);
+    }
+
+    [Fact]
+    public async Task ShouldHavePublished_WithCount_Throws_WhenWrongCount()
+    {
+        // Arrange
+        var relay = new TestRelay();
+        await relay.PublishAsync(new AssertionTestNotification());
+
+        // Act & Assert
+        var exception = Assert.Throws<Xunit.Sdk.XunitException>(() =>
+            relay.ShouldHavePublished<AssertionTestNotification>(2));
+
+        Assert.Contains("Expected to find 2 notification(s) of type 'AssertionTestNotification', but found 1", exception.Message);
+    }
+
+    [Fact]
     public async Task ShouldHaveHandledInOrder_Succeeds_WhenCorrectOrder()
     {
         // Arrange

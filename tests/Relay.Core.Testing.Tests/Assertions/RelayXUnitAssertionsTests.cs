@@ -48,6 +48,56 @@ public class RelayXUnitAssertionsTests : RelayTestBase
     }
 
     [Fact]
+    public async Task ShouldHavePublishedInOrder_Throws_WhenWrongOrder()
+    {
+        // Arrange
+        await RunScenarioAsync("WrongOrderNotifications", builder =>
+        {
+            builder.PublishNotification(new TestNotification2 { Message = "first" });
+            builder.PublishNotification(new TestNotification { Message = "second" });
+        });
+
+        // Act & Assert
+        var exception = Assert.Throws<Xunit.Sdk.XunitException>(() =>
+            TestRelay.ShouldHavePublishedInOrder(typeof(TestNotification), typeof(TestNotification2)));
+
+        Assert.Contains("Expected notification at position 0 to be of type 'TestNotification', but was 'TestNotification2'", exception.Message);
+    }
+
+    [Fact]
+    public async Task ShouldHavePublishedInOrder_Throws_WhenInsufficientNotifications()
+    {
+        // Arrange
+        await RunScenarioAsync("InsufficientNotifications", builder =>
+        {
+            builder.PublishNotification(new TestNotification { Message = "only one" });
+        });
+
+        // Act & Assert
+        var exception = Assert.Throws<Xunit.Sdk.XunitException>(() =>
+            TestRelay.ShouldHavePublishedInOrder(typeof(TestNotification), typeof(TestNotification2)));
+
+        Assert.Contains("Expected at least 2 notifications, but only 1 were published", exception.Message);
+    }
+
+    [Fact]
+    public async Task ShouldHavePublishedInOrder_Throws_WhenWrongTypeAtPosition()
+    {
+        // Arrange
+        await RunScenarioAsync("WrongTypeNotifications", builder =>
+        {
+            builder.PublishNotification(new TestNotification2 { Message = "first" });
+            builder.PublishNotification(new TestNotification { Message = "second" });
+        });
+
+        // Act & Assert
+        var exception = Assert.Throws<Xunit.Sdk.XunitException>(() =>
+            TestRelay.ShouldHavePublishedInOrder(typeof(TestNotification), typeof(TestNotification)));
+
+        Assert.Contains("Expected notification at position 0 to be of type 'TestNotification', but was 'TestNotification2'", exception.Message);
+    }
+
+    [Fact]
     public void ShouldBeSuccessful_WithSuccessfulResult_Passes()
     {
         // Arrange
@@ -114,6 +164,11 @@ public class RelayXUnitAssertionsTests : RelayTestBase
     }
 
     public class TestNotification : INotification
+    {
+        public string? Message { get; set; }
+    }
+
+    public class TestNotification2 : INotification
     {
         public string? Message { get; set; }
     }

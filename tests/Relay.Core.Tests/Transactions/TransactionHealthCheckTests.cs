@@ -4,6 +4,7 @@ using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Moq;
 using Relay.Core.Transactions;
 using Xunit;
 
@@ -320,13 +321,20 @@ namespace Relay.Core.Tests.Transactions
         [Fact]
         public async Task CheckHealthAsync_Should_Handle_Exceptions()
         {
-            // We can't easily test this with the current TransactionMetricsCollector implementation
-            // since GetMetrics is not virtual and can't be mocked to throw.
-            // Instead, this test would require creating a scenario that would cause an exception
-            // during actual execution, which is difficult to reliably create.
-            
-            // Test still demonstrates the structure of how exception handling would be tested
-            Assert.True(true);
+            var mockCollector = new Moq.Mock<ITransactionMetricsCollector>();
+            mockCollector.Setup(c => c.GetMetrics()).Throws(new InvalidOperationException("Test exception"));
+
+            var healthCheck = new TransactionHealthCheck(mockCollector.Object);
+            var context = new HealthCheckContext
+            {
+                Registration = new HealthCheckRegistration("test", healthCheck, HealthStatus.Unhealthy, null)
+            };
+
+            var result = await healthCheck.CheckHealthAsync(context, CancellationToken.None);
+
+            Assert.Equal(HealthStatus.Unhealthy, result.Status);
+            Assert.Contains("Failed to evaluate transaction health", result.Description);
+            Assert.IsType<InvalidOperationException>(result.Exception);
         }
 
         [Fact]

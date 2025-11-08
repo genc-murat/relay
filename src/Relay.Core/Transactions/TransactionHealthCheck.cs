@@ -60,7 +60,7 @@ namespace Relay.Core.Transactions;
 /// </remarks>
 public class TransactionHealthCheck : IHealthCheck
 {
-    private readonly TransactionMetricsCollector _metricsCollector;
+    private readonly ITransactionMetricsCollector _metricsCollector;
     private readonly TransactionHealthCheckOptions _options;
     private long _activeTransactions;
 
@@ -70,7 +70,7 @@ public class TransactionHealthCheck : IHealthCheck
     /// <param name="metricsCollector">The metrics collector to retrieve transaction statistics from.</param>
     /// <param name="options">The health check configuration options.</param>
     public TransactionHealthCheck(
-        TransactionMetricsCollector metricsCollector,
+        ITransactionMetricsCollector metricsCollector,
         TransactionHealthCheckOptions? options = null)
     {
         _metricsCollector = metricsCollector ?? throw new ArgumentNullException(nameof(metricsCollector));

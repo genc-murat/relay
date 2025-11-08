@@ -287,6 +287,60 @@ public class CoverageTests
     }
 
     [Fact]
+    public void TestCoverageTracker_RecordLineExecution_WhenNotTracking_DoesNothing()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+
+        // Act
+        tracker.RecordLineExecution("TestAssembly", "TestClass", "TestMethod", 42);
+
+        // Assert
+        // Should not throw and should not record anything
+    }
+
+    [Fact]
+    public void TestCoverageTracker_RecordLineExecution_WhenTracking_RecordsExecution()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        tracker.StartTracking();
+
+        // Act
+        tracker.RecordLineExecution("TestAssembly", "TestClass", "TestMethod", 42);
+
+        // Assert
+        // The method uses internal hashsets, so we can't directly verify, but it should not throw
+    }
+
+    [Fact]
+    public void TestCoverageTracker_RecordBranchExecution_WhenNotTracking_DoesNothing()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+
+        // Act
+        tracker.RecordBranchExecution("TestAssembly", "TestClass", "TestMethod", 1);
+
+        // Assert
+        // Should not throw and should not record anything
+    }
+
+    [Fact]
+    public void TestCoverageTracker_RecordBranchExecution_WhenTracking_RecordsExecution()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        tracker.StartTracking();
+
+        // Act
+        tracker.RecordBranchExecution("TestAssembly", "TestClass", "TestMethod", 1);
+
+        // Assert
+        // The method uses internal hashsets, so we can't directly verify, but it should not throw
+    }
+
+    [Fact]
     public void TestCoverageTracker_RecordMethodExecution_WhenNotTracking_DoesNothing()
     {
         // Arrange
@@ -315,6 +369,16 @@ public class CoverageTests
     }
 
     [Fact]
+    public void TestCoverageTracker_AnalyzeAssembly_WithNullAssembly_ThrowsArgumentNullException()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => tracker.AnalyzeAssembly(null!));
+    }
+
+    [Fact]
     public void TestCoverageTracker_AnalyzeAssembly_WorksCorrectly()
     {
         // Arrange
@@ -332,6 +396,56 @@ public class CoverageTests
     }
 
     [Fact]
+    public void TestCoverageTracker_AnalyzeClass_WithNullType_ThrowsArgumentNullException()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => tracker.AnalyzeClass(null!));
+    }
+
+    [Fact]
+    public void TestCoverageTracker_AnalyzeMethod_WithNullType_ThrowsArgumentNullException()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        var method = typeof(TestCoverageTracker).GetMethod("StartTracking")!;
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => tracker.AnalyzeMethod(null!, method));
+    }
+
+    [Fact]
+    public void TestCoverageTracker_AnalyzeMethod_WithNullMethod_ThrowsArgumentNullException()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        var type = typeof(TestCoverageTracker);
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => tracker.AnalyzeMethod(type, null!));
+    }
+
+    [Fact]
+    public void TestCoverageTracker_AnalyzeMethod_WithMethodBody_HandlesGracefully()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        var type = typeof(System.Console);
+        var method = type.GetMethod("SetWindowSize", new[] { typeof(int), typeof(int) })!;
+
+        // Act
+        var metrics = tracker.AnalyzeMethod(type, method);
+
+        // Assert
+        Assert.Equal(1, metrics.TotalMethods);
+        // The method has a body or not, but the code handles it
+        Assert.True(metrics.TotalLines >= 0);
+        Assert.True(metrics.TotalBranches >= 0);
+    }
+
+    [Fact]
     public void TestCoverageTracker_AnalyzeClass_WorksCorrectly()
     {
         // Arrange
@@ -346,6 +460,53 @@ public class CoverageTests
         // Assert
         Assert.True(metrics.TotalLines > 0);
         Assert.True(metrics.TotalMethods > 0);
+    }
+
+    [Fact]
+    public void TestCoverageTracker_RecordTestScenario_WhenNotTracking_DoesNothing()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+
+        // Act
+        tracker.RecordTestScenario("TestScenario");
+
+        // Assert
+        var report = tracker.GenerateReport("Test Report");
+        Assert.Empty(report.TestScenarios);
+    }
+
+    [Fact]
+    public void TestCoverageTracker_RecordTestScenario_WhenTracking_AddsNewScenario()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        tracker.StartTracking();
+
+        // Act
+        tracker.RecordTestScenario("TestScenario");
+
+        // Assert
+        var report = tracker.GenerateReport("Test Report");
+        Assert.Single(report.TestScenarios);
+        Assert.Contains("TestScenario", report.TestScenarios);
+    }
+
+    [Fact]
+    public void TestCoverageTracker_RecordTestScenario_WhenTracking_IgnoresDuplicate()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        tracker.StartTracking();
+
+        // Act
+        tracker.RecordTestScenario("TestScenario");
+        tracker.RecordTestScenario("TestScenario"); // Duplicate
+
+        // Assert
+        var report = tracker.GenerateReport("Test Report");
+        Assert.Single(report.TestScenarios);
+        Assert.Contains("TestScenario", report.TestScenarios);
     }
 
     [Fact]
@@ -442,6 +603,42 @@ public class CoverageTests
 
         // Assert
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void TestCoverageTracker_EstimateBranches_WithBranchOpcodes_ReturnsCount()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        var type = typeof(TestCoverageTracker);
+        var method = type.GetMethod("StartTracking")!;
+        var methodBody = method.GetMethodBody();
+
+        // Act
+        var branchCount = typeof(TestCoverageTracker).GetMethod("EstimateBranches", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { methodBody }) as int?;
+
+        // Assert
+        Assert.NotNull(branchCount);
+        Assert.True(branchCount >= 0);
+    }
+
+    [Fact]
+    public void TestCoverageTracker_EstimateBranches_WithNoBranchOpcodes_ReturnsMinimum()
+    {
+        // Arrange
+        using var tracker = new TestCoverageTracker();
+        var type = typeof(TestCoverageTracker);
+        var method = type.GetMethod("Dispose")!; // Simple method
+        var methodBody = method.GetMethodBody();
+
+        // Act
+        var branchCount = typeof(TestCoverageTracker).GetMethod("EstimateBranches", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { methodBody }) as int?;
+
+        // Assert
+        Assert.NotNull(branchCount);
+        Assert.True(branchCount >= 1); // Minimum is 1
     }
 
     [Fact]

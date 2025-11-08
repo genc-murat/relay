@@ -151,6 +151,79 @@ public class TestErrorHandlerTests
     }
 
     [Fact]
+    public async Task ExecuteWithRetryAsync_ActionFailsButShouldNotRetry_DoesNotRetry()
+    {
+        // Arrange
+        var handler = new TestErrorHandler(_defaultOptions);
+        var executionCount = 0;
+        var retryPolicy = new RetryPolicy
+        {
+            MaxAttempts = 3,
+            Delay = TimeSpan.FromMilliseconds(10),
+            RetryCondition = (ex, attempt) => false // Never retry
+        };
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ExecuteWithRetryAsync(() =>
+            {
+                executionCount++;
+                throw new InvalidOperationException("Test failure");
+            }, retryPolicy));
+
+        // Assert
+        Assert.Equal(1, executionCount); // Only one attempt, no retry
+        Assert.Empty(handler.CapturedErrors); // No retry exhausted error
+    }
+
+    [Fact]
+    public async Task ExecuteWithRetryAsync_WithDiagnosticLoggingEnabled_LogsRetryAttempts()
+    {
+        // Arrange
+        var options = new TestRelayOptions
+        {
+            EnableDiagnosticLogging = true,
+            DiagnosticLogging = { EnableConsoleLogging = true }
+        };
+        var handler = new TestErrorHandler(options);
+        var executionCount = 0;
+        var retryPolicy = new RetryPolicy { MaxAttempts = 2, Delay = TimeSpan.FromMilliseconds(10) };
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ExecuteWithRetryAsync(() =>
+            {
+                executionCount++;
+                throw new InvalidOperationException("Test failure");
+            }, retryPolicy));
+
+        // Assert
+        Assert.Equal(2, executionCount);
+        Assert.Single(handler.CapturedErrors);
+    }
+
+    [Fact]
+    public async Task ExecuteWithRetryAsync_WithZeroDelay_RetriesWithoutDelay()
+    {
+        // Arrange
+        var handler = new TestErrorHandler(_defaultOptions);
+        var executionCount = 0;
+        var retryPolicy = new RetryPolicy { MaxAttempts = 2, Delay = TimeSpan.Zero };
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ExecuteWithRetryAsync(() =>
+            {
+                executionCount++;
+                throw new InvalidOperationException("Test failure");
+            }, retryPolicy));
+
+        // Assert
+        Assert.Equal(2, executionCount);
+        Assert.Single(handler.CapturedErrors);
+    }
+
+    [Fact]
     public async Task ExecuteWithRetryAsync_FunctionSucceedsOnFirstTry_ReturnsResult()
     {
         // Arrange
@@ -199,6 +272,79 @@ public class TestErrorHandlerTests
     }
 
     [Fact]
+    public async Task ExecuteWithRetryAsync_GenericFunctionFailsButShouldNotRetry_DoesNotRetry()
+    {
+        // Arrange
+        var handler = new TestErrorHandler(_defaultOptions);
+        var executionCount = 0;
+        var retryPolicy = new RetryPolicy
+        {
+            MaxAttempts = 3,
+            Delay = TimeSpan.FromMilliseconds(10),
+            RetryCondition = (ex, attempt) => false
+        };
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ExecuteWithRetryAsync<string>(() =>
+            {
+                executionCount++;
+                throw new InvalidOperationException("Test failure");
+            }, retryPolicy));
+
+        // Assert
+        Assert.Equal(1, executionCount);
+        Assert.Empty(handler.CapturedErrors);
+    }
+
+    [Fact]
+    public async Task ExecuteWithRetryAsync_GenericWithDiagnosticLoggingEnabled_LogsRetryAttempts()
+    {
+        // Arrange
+        var options = new TestRelayOptions
+        {
+            EnableDiagnosticLogging = true,
+            DiagnosticLogging = { EnableConsoleLogging = true }
+        };
+        var handler = new TestErrorHandler(options);
+        var executionCount = 0;
+        var retryPolicy = new RetryPolicy { MaxAttempts = 2, Delay = TimeSpan.FromMilliseconds(10) };
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ExecuteWithRetryAsync<string>(() =>
+            {
+                executionCount++;
+                throw new InvalidOperationException("Test failure");
+            }, retryPolicy));
+
+        // Assert
+        Assert.Equal(2, executionCount);
+        Assert.Single(handler.CapturedErrors);
+    }
+
+    [Fact]
+    public async Task ExecuteWithRetryAsync_GenericWithZeroDelay_RetriesWithoutDelay()
+    {
+        // Arrange
+        var handler = new TestErrorHandler(_defaultOptions);
+        var executionCount = 0;
+        var retryPolicy = new RetryPolicy { MaxAttempts = 2, Delay = TimeSpan.Zero };
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ExecuteWithRetryAsync<string>(() =>
+            {
+                executionCount++;
+                throw new InvalidOperationException("Test failure");
+            }, retryPolicy));
+
+        // Assert
+        Assert.Equal(2, executionCount);
+        Assert.Single(handler.CapturedErrors);
+    }
+
+    [Fact]
     public async Task ExecuteWithTimeoutAsync_ActionCompletesBeforeTimeout_DoesNotThrow()
     {
         // Arrange
@@ -230,6 +376,28 @@ public class TestErrorHandlerTests
         Assert.Contains("timed out after 0.05 seconds", capturedError.Message);
         Assert.Equal("TimeoutHandler", capturedError.Source);
         Assert.Equal(exception.Message, capturedError.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteWithTimeoutAsync_ActionThrowsException_CapturesException()
+    {
+        // Arrange
+        var handler = new TestErrorHandler(_defaultOptions);
+        var timeout = TimeSpan.FromSeconds(1);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ExecuteWithTimeoutAsync(() =>
+            {
+                throw new InvalidOperationException("Test exception");
+            }, timeout));
+
+        // Assert
+        Assert.Single(handler.CapturedErrors);
+        var capturedError = handler.CapturedErrors[0];
+        Assert.Equal(TestErrorType.Exception, capturedError.ErrorType);
+        Assert.Equal("Test exception", capturedError.Message);
+        Assert.Equal("TimeoutHandler", capturedError.Source);
     }
 
     [Fact]
@@ -265,6 +433,28 @@ public class TestErrorHandlerTests
         var capturedError = handler.CapturedErrors[0];
         Assert.Equal(TestErrorType.Timeout, capturedError.ErrorType);
         Assert.Contains("timed out after 0.05 seconds", capturedError.Message);
+        Assert.Equal("TimeoutHandler", capturedError.Source);
+    }
+
+    [Fact]
+    public async Task ExecuteWithTimeoutAsync_FunctionThrowsException_CapturesException()
+    {
+        // Arrange
+        var handler = new TestErrorHandler(_defaultOptions);
+        var timeout = TimeSpan.FromSeconds(1);
+
+        // Act
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.ExecuteWithTimeoutAsync<int>(() =>
+            {
+                throw new InvalidOperationException("Test exception");
+            }, timeout));
+
+        // Assert
+        Assert.Single(handler.CapturedErrors);
+        var capturedError = handler.CapturedErrors[0];
+        Assert.Equal(TestErrorType.Exception, capturedError.ErrorType);
+        Assert.Equal("Test exception", capturedError.Message);
         Assert.Equal("TimeoutHandler", capturedError.Source);
     }
 
@@ -385,6 +575,90 @@ public class TestErrorHandlerTests
         Assert.Equal("Connection failed to host {number}.{number}.{number}.{number}", pattern.Pattern);
         Assert.Equal(3, pattern.Occurrences);
         Assert.Equal("NetworkClient", pattern.Sources[0]);
+    }
+
+    [Fact]
+    public void GetDiagnosticReport_WithUniqueErrors_NoPatternsDetected()
+    {
+        // Arrange
+        var handler = new TestErrorHandler(_defaultOptions);
+        var now = DateTime.UtcNow;
+
+        // Add unique errors (no patterns)
+        handler.CaptureError(new TestError
+        {
+            Message = "Unique error one",
+            Source = "Source1",
+            ErrorType = TestErrorType.Exception,
+            Timestamp = now.AddMinutes(-10)
+        });
+
+        handler.CaptureError(new TestError
+        {
+            Message = "Unique error two",
+            Source = "Source2",
+            ErrorType = TestErrorType.Exception,
+            Timestamp = now.AddMinutes(-8)
+        });
+
+        // Act
+        var report = handler.GetDiagnosticReport();
+
+        // Assert
+        Assert.Empty(report.ErrorPatterns); // No patterns since all messages are unique
+    }
+
+    [Fact]
+    public void GetDiagnosticReport_AnalyzesPatternsWithEmptyMessagesAndGuids()
+    {
+        // Arrange
+        var handler = new TestErrorHandler(_defaultOptions);
+        var now = DateTime.UtcNow;
+        var guid = Guid.NewGuid().ToString();
+
+        // Add errors with empty message and GUID
+        handler.CaptureError(new TestError
+        {
+            Message = "",
+            Source = "Source1",
+            ErrorType = TestErrorType.Exception,
+            Timestamp = now.AddMinutes(-10)
+        });
+
+        handler.CaptureError(new TestError
+        {
+            Message = "",
+            Source = "Source1",
+            ErrorType = TestErrorType.Exception,
+            Timestamp = now.AddMinutes(-9)
+        });
+
+        handler.CaptureError(new TestError
+        {
+            Message = $"Error with GUID {guid}",
+            Source = "Source2",
+            ErrorType = TestErrorType.Exception,
+            Timestamp = now.AddMinutes(-8)
+        });
+
+        handler.CaptureError(new TestError
+        {
+            Message = $"Error with GUID {guid}",
+            Source = "Source2",
+            ErrorType = TestErrorType.Exception,
+            Timestamp = now.AddMinutes(-6)
+        });
+
+        // Act
+        var report = handler.GetDiagnosticReport();
+
+        // Assert
+        Assert.Equal(2, report.ErrorPatterns.Count);
+        var emptyPattern = report.ErrorPatterns.First(p => p.Pattern == "Empty");
+        Assert.Equal(2, emptyPattern.Occurrences);
+
+        var guidPattern = report.ErrorPatterns.First(p => p.Pattern.Contains("{guid}"));
+        Assert.Equal(2, guidPattern.Occurrences);
     }
 
     [Fact]

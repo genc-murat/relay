@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -341,8 +340,7 @@ public class TestErrorHandler
         if (string.IsNullOrEmpty(message))
             return "Empty";
 
-        // Simple pattern extraction - remove specific values
-        var result = System.Text.RegularExpressions.Regex.Replace(message, @"\d+", "{number}");
+        var result = message;
 
         // Replace GUIDs if present
         var guidMatch = System.Text.RegularExpressions.Regex.Match(result, @"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
@@ -350,6 +348,9 @@ public class TestErrorHandler
         {
             result = result.Replace(guidMatch.Value, "{guid}");
         }
+
+        // Simple pattern extraction - remove specific values
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"\d+", "{number}");
 
         return result;
     }

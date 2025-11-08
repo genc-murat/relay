@@ -57,6 +57,30 @@ public class TestExtensionsTests
     }
 
     [Fact]
+    public async Task ShouldCompleteWithin_Action_WithCustomTimeoutMessage_ThrowsWithCustomMessage()
+    {
+        // Arrange
+        var action = () => Task.Delay(1000);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<TimeoutException>(() =>
+            TestExtensions.ShouldCompleteWithin(action, TimeSpan.FromMilliseconds(100), "Custom timeout message"));
+        Assert.Equal("Custom timeout message", exception.Message);
+    }
+
+    [Fact]
+    public async Task ShouldCompleteWithin_Function_WithCustomTimeoutMessage_ThrowsWithCustomMessage()
+    {
+        // Arrange
+        var function = () => Task.Delay(1000).ContinueWith(_ => 42);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<TimeoutException>(() =>
+            TestExtensions.ShouldCompleteWithin(function, TimeSpan.FromMilliseconds(100), "Custom timeout message"));
+        Assert.Equal("Custom timeout message", exception.Message);
+    }
+
+    [Fact]
     public async Task ShouldThrow_Action_ThrowsExpectedException()
     {
         // Arrange
@@ -93,6 +117,56 @@ public class TestExtensionsTests
         // Assert
         Assert.IsType<InvalidOperationException>(exception);
         Assert.Equal("Test exception", exception.Message);
+    }
+
+    [Fact]
+    public async Task ShouldThrow_Action_WithMatchingExceptionMessage_DoesNotThrow()
+    {
+        // Arrange
+        var action = () => Task.FromException(new InvalidOperationException("Expected message"));
+
+        // Act
+        var exception = await action.ShouldThrow<InvalidOperationException>("Expected message");
+
+        // Assert
+        Assert.IsType<InvalidOperationException>(exception);
+        Assert.Equal("Expected message", exception.Message);
+    }
+
+    [Fact]
+    public async Task ShouldThrow_Action_WithNonMatchingExceptionMessage_ThrowsAssertionException()
+    {
+        // Arrange
+        var action = () => Task.FromException(new InvalidOperationException("Actual message"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<AssertionException>(() =>
+            action.ShouldThrow<InvalidOperationException>("Expected message"));
+    }
+
+    [Fact]
+    public async Task ShouldThrow_Function_WithMatchingExceptionMessage_DoesNotThrow()
+    {
+        // Arrange
+        var function = () => Task.FromException<int>(new InvalidOperationException("Expected message"));
+
+        // Act
+        var exception = await function.ShouldThrow<int, InvalidOperationException>("Expected message");
+
+        // Assert
+        Assert.IsType<InvalidOperationException>(exception);
+        Assert.Equal("Expected message", exception.Message);
+    }
+
+    [Fact]
+    public async Task ShouldThrow_Function_WithNonMatchingExceptionMessage_ThrowsAssertionException()
+    {
+        // Arrange
+        var function = () => Task.FromException<int>(new InvalidOperationException("Actual message"));
+
+        // Act & Assert
+        await Assert.ThrowsAsync<AssertionException>(() =>
+            function.ShouldThrow<int, InvalidOperationException>("Expected message"));
     }
 
     [Fact]
@@ -508,6 +582,26 @@ public class TestExtensionsTests
 
         // Act & Assert
         Assert.Throws<AssertionException>(() => str.ShouldEndWith("Hello"));
+    }
+
+    [Fact]
+    public void ShouldMatch_StringMatchesPattern_DoesNotThrow()
+    {
+        // Arrange
+        var str = "test123";
+
+        // Act & Assert - Should not throw
+        str.ShouldMatch(@"^test\d+$");
+    }
+
+    [Fact]
+    public void ShouldMatch_StringDoesNotMatchPattern_ThrowsAssertionException()
+    {
+        // Arrange
+        var str = "testabc";
+
+        // Act & Assert
+        Assert.Throws<AssertionException>(() => str.ShouldMatch(@"^test\d+$"));
     }
 
     #endregion

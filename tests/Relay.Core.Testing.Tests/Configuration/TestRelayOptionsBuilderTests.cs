@@ -898,4 +898,543 @@ public class TestRelayOptionsExtensionsTests
         Assert.False(target.EnableReplay);
         Assert.True(target.EnableStepValidation);
     }
+
+    [Fact]
+    public void WithTestData_NullConfigureAction_DoesNotThrow()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act & Assert
+        // Should not throw when configure is null due to null-conditional operator
+        var result = builder.WithTestData(null);
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void WithMock_NullConfigureAction_DoesNotThrow()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act & Assert
+        // Should not throw when configure is null due to null-conditional operator
+        var result = builder.WithMock(null);
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void WithScenario_NullConfigureAction_DoesNotThrow()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        // Act & Assert
+        // Should not throw when configure is null due to null-conditional operator
+        var result = builder.WithScenario(null);
+        Assert.Same(builder, result);
+    }
+
+    [Fact]
+    public void LoadFromEnvironment_InvalidIntegerValue_IgnoresInvalidValue()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var originalMaxParallelism = builder.Build().MaxDegreeOfParallelism;
+
+        try
+        {
+            Environment.SetEnvironmentVariable("TESTRELAY_MAXPARALLELISM", "not-a-number");
+
+            // Act
+            builder.LoadFromEnvironment();
+
+            // Assert
+            var options = builder.Build();
+            Assert.Equal(originalMaxParallelism, options.MaxDegreeOfParallelism); // Should remain unchanged
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("TESTRELAY_MAXPARALLELISM", null);
+        }
+    }
+
+    [Fact]
+    public void LoadFromEnvironment_InvalidBooleanValues_IgnoreInvalidValues()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var originalOptions = builder.Build();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLEPARALLEL", "maybe");
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLEISOLATION", "perhaps");
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLEPROFILING", "sortof");
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLECOVERAGE", "kinda");
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLELOGGING", "ish");
+
+            // Act
+            builder.LoadFromEnvironment();
+
+            // Assert
+            var options = builder.Build();
+            Assert.Equal(originalOptions.EnableParallelExecution, options.EnableParallelExecution);
+            Assert.Equal(originalOptions.EnableIsolation, options.EnableIsolation);
+            Assert.Equal(originalOptions.EnablePerformanceProfiling, options.EnablePerformanceProfiling);
+            Assert.Equal(originalOptions.EnableCoverageTracking, options.EnableCoverageTracking);
+            Assert.Equal(originalOptions.EnableDiagnosticLogging, options.EnableDiagnosticLogging);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLEPARALLEL", null);
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLEISOLATION", null);
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLEPROFILING", null);
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLECOVERAGE", null);
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLELOGGING", null);
+        }
+    }
+
+    [Fact]
+    public void LoadFromEnvironment_UnknownOptionName_IgnoresUnknownOption()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var originalOptions = builder.Build();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("TESTRELAY_UNKNOWNOPTION", "somevalue");
+
+            // Act
+            builder.LoadFromEnvironment();
+
+            // Assert
+            var newOptions = builder.Build();
+            Assert.Equal(originalOptions.DefaultTimeout, newOptions.DefaultTimeout);
+            Assert.Equal(originalOptions.EnableParallelExecution, newOptions.EnableParallelExecution);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("TESTRELAY_UNKNOWNOPTION", null);
+        }
+    }
+
+    [Fact]
+    public void LoadFromEnvironment_EmptyAndWhitespaceValues_IgnoreInvalidValues()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var originalOptions = builder.Build();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("TESTRELAY_DEFAULTTIMEOUT", "");
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLEPARALLEL", "   ");
+            Environment.SetEnvironmentVariable("TESTRELAY_MAXPARALLELISM", "");
+
+            // Act
+            builder.LoadFromEnvironment();
+
+            // Assert
+            var options = builder.Build();
+            Assert.Equal(originalOptions.DefaultTimeout, options.DefaultTimeout);
+            Assert.Equal(originalOptions.EnableParallelExecution, options.EnableParallelExecution);
+            Assert.Equal(originalOptions.MaxDegreeOfParallelism, options.MaxDegreeOfParallelism);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("TESTRELAY_DEFAULTTIMEOUT", null);
+            Environment.SetEnvironmentVariable("TESTRELAY_ENABLEPARALLEL", null);
+            Environment.SetEnvironmentVariable("TESTRELAY_MAXPARALLELISM", null);
+        }
+    }
+
+    [Fact]
+    public void LoadFromEnvironment_CaseInsensitivePrefix_WorksCorrectly()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+
+        try
+        {
+            Environment.SetEnvironmentVariable("testrelay_defaulttimeout", "00:03:00");
+            Environment.SetEnvironmentVariable("TestRelay_EnableParallel", "false");
+
+            // Act
+            builder.LoadFromEnvironment();
+
+            // Assert
+            var options = builder.Build();
+            Assert.Equal(TimeSpan.FromMinutes(3), options.DefaultTimeout);
+            Assert.False(options.EnableParallelExecution);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("testrelay_defaulttimeout", null);
+            Environment.SetEnvironmentVariable("TestRelay_EnableParallel", null);
+        }
+    }
+
+    [Fact]
+    public void Build_AspNetCoreEnvironmentVariable_TakesPrecedence()
+    {
+        // Arrange
+        var originalAspNetCore = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var originalDotnet = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Staging");
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Production");
+
+            var builder = new TestRelayOptionsBuilder()
+                .WithEnvironmentOverride("Staging", envBuilder =>
+                {
+                    envBuilder.WithDefaultTimeout(TimeSpan.FromMinutes(5));
+                })
+                .WithEnvironmentOverride("Production", envBuilder =>
+                {
+                    envBuilder.WithDefaultTimeout(TimeSpan.FromMinutes(10));
+                });
+
+            // Act
+            var options = builder.Build();
+
+            // Assert
+            Assert.Equal(TimeSpan.FromMinutes(5), options.DefaultTimeout); // Should use Staging override
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", originalAspNetCore);
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", originalDotnet);
+        }
+    }
+
+    [Fact]
+    public void Build_DotnetEnvironmentVariable_UsedWhenAspNetCoreNotSet()
+    {
+        // Arrange
+        var originalAspNetCore = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var originalDotnet = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Testing");
+
+            var builder = new TestRelayOptionsBuilder()
+                .WithEnvironmentOverride("Testing", envBuilder =>
+                {
+                    envBuilder.WithDefaultTimeout(TimeSpan.FromMinutes(7));
+                });
+
+            // Act
+            var options = builder.Build();
+
+            // Assert
+            Assert.Equal(TimeSpan.FromMinutes(7), options.DefaultTimeout);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", originalAspNetCore);
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", originalDotnet);
+        }
+    }
+
+    [Fact]
+    public void Build_NoEnvironmentVariables_DefaultsToDevelopment()
+    {
+        // Arrange
+        var originalAspNetCore = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var originalDotnet = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", null);
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", null);
+
+            var builder = new TestRelayOptionsBuilder()
+                .WithEnvironmentOverride("Development", envBuilder =>
+                {
+                    envBuilder.WithDefaultTimeout(TimeSpan.FromMinutes(15));
+                });
+
+            // Act
+            var options = builder.Build();
+
+            // Assert
+            Assert.Equal(TimeSpan.FromMinutes(15), options.DefaultTimeout);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", originalAspNetCore);
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", originalDotnet);
+        }
+    }
+
+    [Fact]
+    public void Build_NoMatchingEnvironmentOverride_UsesBaseConfiguration()
+    {
+        // Arrange
+        var originalAspNetCore = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var originalDotnet = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+        try
+        {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production");
+
+            var builder = new TestRelayOptionsBuilder()
+                .WithDefaultTimeout(TimeSpan.FromMinutes(5))
+                .WithParallelExecution(false)
+                .WithEnvironmentOverride("Staging", envBuilder => // Different environment
+                {
+                    envBuilder.WithDefaultTimeout(TimeSpan.FromMinutes(10));
+                });
+
+            // Act
+            var options = builder.Build();
+
+            // Assert
+            Assert.Equal(TimeSpan.FromMinutes(5), options.DefaultTimeout); // Should keep base config
+            Assert.False(options.EnableParallelExecution);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", originalAspNetCore);
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", originalDotnet);
+        }
+    }
+
+    [Fact]
+    public void MergeOptions_DefaultTimeoutZero_DoesNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new TestRelayOptions { DefaultTimeout = TimeSpan.FromMinutes(5) };
+        var source = new TestRelayOptions { DefaultTimeout = TimeSpan.Zero };
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergeOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal(TimeSpan.FromMinutes(5), target.DefaultTimeout); // Should not be overridden
+    }
+
+    [Fact]
+    public void MergeOptions_MaxDegreeOfParallelismZeroOrNegative_DoesNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new TestRelayOptions { MaxDegreeOfParallelism = 4 };
+        var source = new TestRelayOptions { MaxDegreeOfParallelism = 0 };
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergeOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal(4, target.MaxDegreeOfParallelism); // Should not be overridden
+    }
+
+    [Fact]
+    public void MergePerformanceProfilingOptions_ZeroThresholds_DoNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new PerformanceProfilingOptions
+        {
+            MemoryWarningThreshold = 200,
+            ExecutionTimeWarningThreshold = 3000
+        };
+        var source = new PerformanceProfilingOptions
+        {
+            MemoryWarningThreshold = 0, // Should not override
+            ExecutionTimeWarningThreshold = 0 // Should not override
+        };
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergePerformanceProfilingOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal(200, target.MemoryWarningThreshold); // Should not be overridden
+        Assert.Equal(3000, target.ExecutionTimeWarningThreshold); // Should not be overridden
+    }
+
+    [Fact]
+    public void MergeCoverageTrackingOptions_ZeroMinimumCoverage_DoesNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new CoverageTrackingOptions { MinimumCoverageThreshold = 80.0 };
+        var source = new CoverageTrackingOptions { MinimumCoverageThreshold = 0.0 }; // Should not override
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergeCoverageTrackingOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal(80.0, target.MinimumCoverageThreshold); // Should not be overridden
+    }
+
+    [Fact]
+    public void MergeCoverageTrackingOptions_EmptyReportOutputDirectory_DoesNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new CoverageTrackingOptions { ReportOutputDirectory = "/original/path" };
+        var source = new CoverageTrackingOptions { ReportOutputDirectory = "" }; // Should not override
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergeCoverageTrackingOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal("/original/path", target.ReportOutputDirectory); // Should not be overridden
+    }
+
+    [Fact]
+    public void MergeDiagnosticLoggingOptions_EmptyLogOutputDirectory_DoesNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new DiagnosticLoggingOptions { LogOutputDirectory = "/original/logs" };
+        var source = new DiagnosticLoggingOptions { LogOutputDirectory = null }; // Should not override
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergeDiagnosticLoggingOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal("/original/logs", target.LogOutputDirectory); // Should not be overridden
+    }
+
+    [Fact]
+    public void MergeTestDataOptions_EmptyDataDirectory_DoesNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new TestDataOptions { DataDirectory = "/original/data" };
+        var source = new TestDataOptions { DataDirectory = "" }; // Should not override
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergeTestDataOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal("/original/data", target.DataDirectory); // Should not be overridden
+    }
+
+    [Fact]
+    public void MergeScenarioOptions_ZeroDefaultTimeout_DoesNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new ScenarioOptions { DefaultTimeout = TimeSpan.FromMinutes(5) };
+        var source = new ScenarioOptions { DefaultTimeout = TimeSpan.Zero }; // Should not override
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergeScenarioOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal(TimeSpan.FromMinutes(5), target.DefaultTimeout); // Should not be overridden
+    }
+
+    [Fact]
+    public void MergeScenarioOptions_EmptyRecordingDirectory_DoesNotOverride()
+    {
+        // Arrange
+        var builder = new TestRelayOptionsBuilder();
+        var target = new ScenarioOptions { RecordingDirectory = "/original/recordings" };
+        var source = new ScenarioOptions { RecordingDirectory = null }; // Should not override
+
+        // Act
+        var method = typeof(TestRelayOptionsBuilder).GetMethod("MergeScenarioOptions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Invoke(builder, new object[] { target, source });
+
+        // Assert
+        Assert.Equal("/original/recordings", target.RecordingDirectory); // Should not be overridden
+    }
+
+    [Fact]
+    public void ForDevelopment_AppliesDevelopmentConfiguration()
+    {
+        // Act
+        var options = new TestRelayOptionsBuilder().ForDevelopment().Build();
+
+        // Assert
+        Assert.True(options.EnableDiagnosticLogging);
+        Assert.Equal(LogLevel.Debug, options.DiagnosticLogging.LogLevel);
+        Assert.True(options.DiagnosticLogging.EnableConsoleLogging);
+        Assert.False(options.DiagnosticLogging.EnableFileLogging);
+        Assert.True(options.EnablePerformanceProfiling);
+        Assert.True(options.PerformanceProfiling.EnableDetailedProfiling);
+        Assert.True(options.EnableCoverageTracking);
+        Assert.True(options.CoverageTracking.GenerateReports);
+    }
+
+    [Fact]
+    public void ForCI_AppliesCIConfiguration()
+    {
+        // Act
+        var options = new TestRelayOptionsBuilder().ForCI().Build();
+
+        // Assert
+        Assert.True(options.EnableParallelExecution);
+        Assert.Equal(Environment.ProcessorCount * 2, options.MaxDegreeOfParallelism);
+        Assert.True(options.EnableCoverageTracking);
+        Assert.Equal(85.0, options.CoverageTracking.MinimumCoverageThreshold);
+        Assert.True(options.CoverageTracking.GenerateReports);
+        Assert.True(options.EnableDiagnosticLogging);
+        Assert.Equal(LogLevel.Information, options.DiagnosticLogging.LogLevel);
+        Assert.True(options.DiagnosticLogging.EnableFileLogging);
+    }
+
+    [Fact]
+    public void ForPerformanceTesting_AppliesPerformanceConfiguration()
+    {
+        // Act
+        var options = new TestRelayOptionsBuilder().ForPerformanceTesting().Build();
+
+        // Assert
+        Assert.True(options.EnablePerformanceProfiling);
+        Assert.True(options.PerformanceProfiling.TrackMemoryUsage);
+        Assert.True(options.PerformanceProfiling.TrackExecutionTime);
+        Assert.True(options.PerformanceProfiling.EnableDetailedProfiling);
+        Assert.Equal(500, options.PerformanceProfiling.MemoryWarningThreshold);
+        Assert.Equal(5000, options.PerformanceProfiling.ExecutionTimeWarningThreshold);
+        Assert.False(options.EnableParallelExecution);
+        Assert.True(options.EnableDiagnosticLogging);
+        Assert.True(options.DiagnosticLogging.LogPerformanceMetrics);
+    }
+
+    [Fact]
+    public void ExtensionMethods_CanBeChainedTogether()
+    {
+        // Act
+        var options = TestRelayOptionsExtensions.CreateOptions()
+            .ForDevelopment()
+            .WithDefaultTimeout(TimeSpan.FromSeconds(45))
+            .ForCI() // This should override some settings
+            .Build();
+
+        // Assert - CI settings should take precedence
+        Assert.True(options.EnableParallelExecution); // From ForCI
+        Assert.Equal(Environment.ProcessorCount * 2, options.MaxDegreeOfParallelism); // From ForCI
+        Assert.Equal(TimeSpan.FromSeconds(45), options.DefaultTimeout); // Custom setting preserved
+        Assert.True(options.EnableDiagnosticLogging); // From both
+        Assert.Equal(LogLevel.Information, options.DiagnosticLogging.LogLevel); // ForCI overrides ForDevelopment
+    }
 }

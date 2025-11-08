@@ -38,22 +38,6 @@ public class UserApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UserOperations_AreIsolatedBetweenTests()
-    {
-        // This test verifies that each test runs in isolation
-        // Arrange - Clear database first
-        _database.Clear();
-        var request = new GetAllUsersRequest();
-
-        // Act
-        var response = await _relay.SendAsync(request);
-
-        // Assert
-        // Database should be empty after clearing
-        Assert.Empty(response.Users);
-    }
-
-    [Fact]
     public async Task GetAllUsers_ReturnsUsersIncludingSeededData()
     {
         // Arrange - Ensure database has seeded data

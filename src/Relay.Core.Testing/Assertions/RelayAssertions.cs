@@ -1,7 +1,6 @@
+using Relay.Core.Contracts.Requests;
 using System;
 using System.Linq;
-using Relay.Core.Contracts.Requests;
-using Xunit;
 
 namespace Relay.Core.Testing;
 

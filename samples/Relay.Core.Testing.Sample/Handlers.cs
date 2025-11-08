@@ -1,3 +1,4 @@
+using Relay.Core.Contracts.Handlers;
 using Relay.Core.Contracts.Requests;
 
 namespace Relay.Core.Testing.Sample;
@@ -16,7 +17,7 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, User>
         _emailService = emailService;
     }
 
-    public async Task<User> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    public async ValueTask<User> HandleAsync(CreateUserCommand request, CancellationToken cancellationToken)
     {
         var user = new User
         {
@@ -45,7 +46,7 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, User>
         _emailService = emailService;
     }
 
-    public async Task<User> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    public async ValueTask<User> HandleAsync(UpdateUserCommand request, CancellationToken cancellationToken)
     {
         var existingUser = await _userRepository.GetByIdAsync(request.UserId);
         if (existingUser == null)
@@ -75,7 +76,7 @@ public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, User>
         _userRepository = userRepository;
     }
 
-    public async Task<User> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+    public async ValueTask<User> HandleAsync(GetUserByIdQuery request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.UserId);
         if (user == null)
@@ -96,7 +97,7 @@ public class GetAllUsersHandler : IRequestHandler<GetAllUsersQuery, List<User>>
         _userRepository = userRepository;
     }
 
-    public async Task<List<User>> Handle(GetAllUsersQuery request, CancellationToken cancellationToken)
+    public async ValueTask<List<User>> HandleAsync(GetAllUsersQuery request, CancellationToken cancellationToken)
     {
         return await _userRepository.GetAllAsync();
     }
@@ -111,7 +112,7 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Produc
         _productRepository = productRepository;
     }
 
-    public async Task<Product> Handle(CreateProductCommand request, CancellationToken cancellationToken)
+    public async ValueTask<Product> HandleAsync(CreateProductCommand request, CancellationToken cancellationToken)
     {
         var product = new Product
         {
@@ -138,7 +139,7 @@ public class GetProductByIdHandler : IRequestHandler<GetProductByIdQuery, Produc
         _productRepository = productRepository;
     }
 
-    public async Task<Product> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+    public async ValueTask<Product> HandleAsync(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
         var product = await _productRepository.GetByIdAsync(request.ProductId);
         if (product == null)

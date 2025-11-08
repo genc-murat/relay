@@ -91,3 +91,33 @@ public class EmailService : IEmailService
         return Task.CompletedTask;
     }
 }
+
+public class ConsoleEmailService : IEmailService
+{
+    public Task SendWelcomeEmailAsync(string email, string name)
+    {
+        // Simulate sending email to console
+        Console.WriteLine($"[EMAIL] Welcome {name} at {email}");
+        return Task.CompletedTask;
+    }
+
+    public Task SendUserUpdatedEmailAsync(string email, string name)
+    {
+        // Simulate sending email to console
+        Console.WriteLine($"[EMAIL] User {name} updated at {email}");
+        return Task.CompletedTask;
+    }
+}
+
+public class FailingUserRepository : IUserRepository
+{
+    public Task<User?> GetByIdAsync(Guid id) => throw new NotImplementedException();
+    public Task<List<User>> GetAllAsync() => throw new NotImplementedException();
+
+    public Task<User> CreateAsync(User user)
+    {
+        throw new InvalidOperationException("Simulated database failure");
+    }
+
+    public Task<User> UpdateAsync(User user) => throw new NotImplementedException();
+}

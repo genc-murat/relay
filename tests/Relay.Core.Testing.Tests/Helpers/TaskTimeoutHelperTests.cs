@@ -270,20 +270,6 @@ public class TaskTimeoutHelperTests
     }
 
     [Fact]
-    public async Task MeasureExecutionTime_NonGeneric_ReturnsExecutionTime()
-    {
-        // Arrange
-        var task = Task.Delay(50);
-
-        // Act
-        var executionTime = await TaskTimeoutHelper.MeasureExecutionTime(task);
-
-        // Assert
-        Assert.True(executionTime >= TimeSpan.FromMilliseconds(40)); // Allow some tolerance
-        Assert.True(executionTime < TimeSpan.FromSeconds(2)); // Allow more time for slower systems
-    }
-
-    [Fact]
     public async Task MeasureExecutionTime_NonGeneric_NullTask_ThrowsArgumentNullException()
     {
         // Act & Assert

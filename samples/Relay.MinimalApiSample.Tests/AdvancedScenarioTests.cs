@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Relay.Core.Contracts.Core;
+using Relay.Core.Testing;
 using Relay.MinimalApiSample.Features.Examples.Validation;
 using Relay.MinimalApiSample.Features.Examples.Notifications;
 using Relay.MinimalApiSample.Features.Users;
@@ -132,17 +133,12 @@ public class AdvancedScenarioTests : IAsyncLifetime
         // Arrange - Test performance under load
         var users = Enumerable.Range(1, 50).Select(i => new CreateUserRequest($"User {i}", $"user{i}@example.com")).ToList();
 
-        // Act - Measure performance
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        // Act - Execute operations and verify completion within 5 seconds
         var tasks = users.Select(async request => await _relay.SendAsync(request));
-        var responses = await Task.WhenAll(tasks);
-        stopwatch.Stop();
+        var responses = await Task.WhenAll(tasks).ShouldCompleteWithinAsync(TimeSpan.FromSeconds(5));
 
         // Assert
         Assert.Equal(50, responses.Length);
         Assert.All(responses, response => Assert.NotEqual(Guid.Empty, response.Id));
-
-        // Performance assertion (should complete within reasonable time)
-        Assert.True(stopwatch.ElapsedMilliseconds < 5000, $"Operations took too long: {stopwatch.ElapsedMilliseconds}ms");
     }
 }

@@ -109,8 +109,8 @@ public class PerformanceAssertionsTests
     public async Task ShouldAllocateLessThanAsync_AllocatesLessThanLimit_Passes()
     {
         // Arrange
-        Func<Task> action = async () => { await Task.Delay(1); };
-        long maxBytes = 1000000; // 1MB limit to account for async overhead
+        Func<Task> action = async () => { await Task.CompletedTask; };
+        long maxBytes = 100000; // 100KB limit for minimal async operation
         int iterations = 3;
 
         // Act & Assert

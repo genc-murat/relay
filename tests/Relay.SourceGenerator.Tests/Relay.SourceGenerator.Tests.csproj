@@ -33,6 +33,7 @@
    </ItemGroup>
 
    <ItemGroup>
+     <PackageReference Include="DiffPlex" VersionOverride="1.9.0" />
      <ProjectReference Include="..\..\src\Relay.SourceGenerator\Relay.SourceGenerator.csproj" />
     <ProjectReference Include="..\..\src\Relay.Core\Relay.Core.csproj">
       <Aliases>RelayCore</Aliases>

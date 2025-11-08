@@ -70,6 +70,18 @@ public class ResponseBuilderTests
     }
 
     [Fact]
+    public void WithProperty_PropertyNotFound_ThrowsArgumentException()
+    {
+        // Arrange
+        var builder = new ResponseBuilder<TestResponseWithField>();
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() =>
+            builder.WithProperty(r => r.SomeField, "value"));
+        Assert.Contains("Property 'SomeField' not found on type 'TestResponseWithField'", exception.Message);
+    }
+
+    [Fact]
     public void WithSuccess_SetsSuccessProperties()
     {
         // Arrange
@@ -160,5 +172,10 @@ public class ResponseBuilderTests
     {
         public bool Success { get; set; }
         public string ErrorMessage { get; set; } = string.Empty;
+    }
+
+    public class TestResponseWithField
+    {
+        public string SomeField = string.Empty;
     }
 }

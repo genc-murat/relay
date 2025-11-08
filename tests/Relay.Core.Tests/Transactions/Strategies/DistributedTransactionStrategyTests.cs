@@ -763,9 +763,304 @@ public class DistributedTransactionStrategyTests
         }
     }
 
+    [Fact]
+    public void Constructor_WithNullUnitOfWork_ThrowsArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new DistributedTransactionStrategy(
+                null!,
+                NullLogger<DistributedTransactionStrategy>.Instance,
+                _distributedTransactionCoordinator,
+                _eventPublisher,
+                _metricsCollector,
+                _activitySourceMock.Object,
+                _transactionLogger,
+                _eventContextFactoryMock.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullLogger_ThrowsArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new DistributedTransactionStrategy(
+                _unitOfWorkMock.Object,
+                null!,
+                _distributedTransactionCoordinator,
+                _eventPublisher,
+                _metricsCollector,
+                _activitySourceMock.Object,
+                _transactionLogger,
+                _eventContextFactoryMock.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullDistributedTransactionCoordinator_ThrowsArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new DistributedTransactionStrategy(
+                _unitOfWorkMock.Object,
+                NullLogger<DistributedTransactionStrategy>.Instance,
+                null!,
+                _eventPublisher,
+                _metricsCollector,
+                _activitySourceMock.Object,
+                _transactionLogger,
+                _eventContextFactoryMock.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullEventPublisher_ThrowsArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new DistributedTransactionStrategy(
+                _unitOfWorkMock.Object,
+                NullLogger<DistributedTransactionStrategy>.Instance,
+                _distributedTransactionCoordinator,
+                null!,
+                _metricsCollector,
+                _activitySourceMock.Object,
+                _transactionLogger,
+                _eventContextFactoryMock.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullMetricsCollector_ThrowsArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new DistributedTransactionStrategy(
+                _unitOfWorkMock.Object,
+                NullLogger<DistributedTransactionStrategy>.Instance,
+                _distributedTransactionCoordinator,
+                _eventPublisher,
+                null!,
+                _activitySourceMock.Object,
+                _transactionLogger,
+                _eventContextFactoryMock.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullActivitySource_ThrowsArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new DistributedTransactionStrategy(
+                _unitOfWorkMock.Object,
+                NullLogger<DistributedTransactionStrategy>.Instance,
+                _distributedTransactionCoordinator,
+                _eventPublisher,
+                _metricsCollector,
+                null!,
+                _transactionLogger,
+                _eventContextFactoryMock.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullTransactionLogger_ThrowsArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new DistributedTransactionStrategy(
+                _unitOfWorkMock.Object,
+                NullLogger<DistributedTransactionStrategy>.Instance,
+                _distributedTransactionCoordinator,
+                _eventPublisher,
+                _metricsCollector,
+                _activitySourceMock.Object,
+                null!,
+                _eventContextFactoryMock.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullEventContextFactory_ThrowsArgumentNullException()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            new DistributedTransactionStrategy(
+                _unitOfWorkMock.Object,
+                NullLogger<DistributedTransactionStrategy>.Instance,
+                _distributedTransactionCoordinator,
+                _eventPublisher,
+                _metricsCollector,
+                _activitySourceMock.Object,
+                _transactionLogger,
+                null!));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenSaveChangesThrowsException_RollsBackTransaction()
+    {
+        // Arrange
+        var request = new TestTransactionalRequest();
+        var configuration = new TransactionConfiguration(
+            IsolationLevel.ReadCommitted,
+            TimeSpan.FromMinutes(1),
+            useDistributedTransaction: true);
+        var requestType = "TestTransactionalRequest";
+        var saveChangesException = new InvalidOperationException("SaveChanges failed");
+
+        var eventContext = new TransactionEventContext
+        {
+            TransactionId = Guid.NewGuid().ToString(),
+            RequestType = requestType,
+            IsolationLevel = configuration.IsolationLevel
+        };
+
+        _eventContextFactoryMock.Setup(x => x.CreateEventContext(requestType, configuration))
+            .Returns(eventContext);
+
+        _unitOfWorkMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(saveChangesException);
+
+        var nextDelegate = new RequestHandlerDelegate<string>(() => new ValueTask<string>("success"));
+
+        // Act & Assert
+        var actualException = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await _strategy.ExecuteAsync(request, nextDelegate, configuration, requestType, CancellationToken.None));
+
+        Assert.Equal(saveChangesException, actualException);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenEventContextFactoryThrowsException_PropagatesException()
+    {
+        // Arrange
+        var request = new TestTransactionalRequest();
+        var configuration = new TransactionConfiguration(
+            IsolationLevel.ReadCommitted,
+            TimeSpan.FromMinutes(1),
+            useDistributedTransaction: true);
+        var requestType = "TestTransactionalRequest";
+        var factoryException = new InvalidOperationException("Factory failed");
+
+        _eventContextFactoryMock.Setup(x => x.CreateEventContext(requestType, configuration))
+            .Throws(factoryException);
+
+        var nextDelegate = new RequestHandlerDelegate<string>(() => new ValueTask<string>("success"));
+
+        // Act & Assert
+        var actualException = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await _strategy.ExecuteAsync(request, nextDelegate, configuration, requestType, CancellationToken.None));
+
+        Assert.Equal(factoryException, actualException);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PublishesEventsInCorrectOrder()
+    {
+        // Arrange
+        var request = new TestTransactionalRequest();
+        var configuration = new TransactionConfiguration(
+            IsolationLevel.ReadCommitted,
+            TimeSpan.FromMinutes(1),
+            useDistributedTransaction: true);
+        var requestType = "TestTransactionalRequest";
+
+        var eventContext = new TransactionEventContext
+        {
+            TransactionId = Guid.NewGuid().ToString(),
+            RequestType = requestType,
+            IsolationLevel = configuration.IsolationLevel
+        };
+
+        _eventContextFactoryMock.Setup(x => x.CreateEventContext(requestType, configuration))
+            .Returns(eventContext);
+
+        var eventPublisherMock = new Mock<ITransactionEventPublisher>();
+        var callOrder = new List<string>();
+
+        eventPublisherMock.Setup(x => x.PublishBeforeBeginAsync(eventContext, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => callOrder.Add("BeforeBegin"));
+        eventPublisherMock.Setup(x => x.PublishAfterBeginAsync(eventContext, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => callOrder.Add("AfterBegin"));
+        eventPublisherMock.Setup(x => x.PublishBeforeCommitAsync(eventContext, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => callOrder.Add("BeforeCommit"));
+        eventPublisherMock.Setup(x => x.PublishAfterCommitAsync(eventContext, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(() => callOrder.Add("AfterCommit"));
+
+        var strategyWithMockPublisher = new DistributedTransactionStrategy(
+            _unitOfWorkMock.Object,
+            NullLogger<DistributedTransactionStrategy>.Instance,
+            _distributedTransactionCoordinator,
+            eventPublisherMock.Object,
+            _metricsCollector,
+            _activitySourceMock.Object,
+            _transactionLogger,
+            _eventContextFactoryMock.Object);
+
+        var nextDelegate = new RequestHandlerDelegate<string>(() => new ValueTask<string>("success"));
+
+        // Act
+        await strategyWithMockPublisher.ExecuteAsync(request, nextDelegate, configuration, requestType, CancellationToken.None);
+
+        // Assert
+        var expectedOrder = new[] { "BeforeBegin", "AfterBegin", "BeforeCommit", "AfterCommit" };
+        Assert.Equal(expectedOrder, callOrder);
+
+        eventPublisherMock.Verify(x => x.PublishBeforeBeginAsync(eventContext, It.IsAny<CancellationToken>()), Times.Once);
+        eventPublisherMock.Verify(x => x.PublishAfterBeginAsync(eventContext, It.IsAny<CancellationToken>()), Times.Once);
+        eventPublisherMock.Verify(x => x.PublishBeforeCommitAsync(eventContext, It.IsAny<CancellationToken>()), Times.Once);
+        eventPublisherMock.Verify(x => x.PublishAfterCommitAsync(eventContext, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithDifferentGenericTypes_WorksCorrectly()
+    {
+        // Arrange
+        var request = new TestTransactionalRequest();
+        var configuration = new TransactionConfiguration(
+            IsolationLevel.ReadCommitted,
+            TimeSpan.FromMinutes(1),
+            useDistributedTransaction: true);
+        var requestType = "TestTransactionalRequest";
+
+        var eventContext = new TransactionEventContext
+        {
+            TransactionId = Guid.NewGuid().ToString(),
+            RequestType = requestType,
+            IsolationLevel = configuration.IsolationLevel
+        };
+
+        _eventContextFactoryMock.Setup(x => x.CreateEventContext(requestType, configuration))
+            .Returns(eventContext);
+
+        // Test with int response type
+        var intDelegate = new RequestHandlerDelegate<int>(() => new ValueTask<int>(42));
+
+        // Act
+        var intResponse = await _strategy.ExecuteAsync(request, intDelegate, configuration, requestType, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(42, intResponse);
+
+        // Test with complex object response type
+        var complexDelegate = new RequestHandlerDelegate<TestResponse>(() => new ValueTask<TestResponse>(new TestResponse { Value = "test" }));
+
+        // Act
+        var complexResponse = await _strategy.ExecuteAsync(request, complexDelegate, configuration, requestType, CancellationToken.None);
+
+        // Assert
+        Assert.Equal("test", complexResponse.Value);
+    }
+
+
+
     [Transaction(IsolationLevel.ReadCommitted)]
     private class TestTransactionalRequest : ITransactionalRequest
     {
         public string Data { get; set; } = "test";
+    }
+
+    private class TestResponse
+    {
+        public string Value { get; set; } = string.Empty;
     }
 }

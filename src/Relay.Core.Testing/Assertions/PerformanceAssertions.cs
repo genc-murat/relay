@@ -58,25 +58,117 @@ public static class PerformanceAssertions
     /// </summary>
     /// <param name="action">The action to test.</param>
     /// <param name="maxBytes">The maximum allowed memory allocation in bytes.</param>
+    /// <param name="iterations">Number of iterations to run for averaging (default: 3).</param>
     /// <exception cref="Xunit.Sdk.XunitException">Thrown when the assertion fails.</exception>
-    public static void ShouldAllocateLessThan(this Action action, long maxBytes)
+    public static void ShouldAllocateLessThan(this Action action, long maxBytes, int iterations = 3)
     {
-        // Note: This is a simplified implementation. A real implementation would use
-        // memory profiling tools like BenchmarkDotNet or custom memory tracking.
-        // For now, we'll just execute the action without actual memory tracking.
+        if (iterations < 1)
+            throw new ArgumentException("Iterations must be at least 1", nameof(iterations));
 
-        var startMemory = GC.GetTotalMemory(true);
+        // Warm-up run to avoid JIT and other one-time allocations
+        ForceGarbageCollection();
         action();
-        var endMemory = GC.GetTotalMemory(false);
 
-        var allocatedBytes = endMemory - startMemory;
+        long totalAllocated = 0;
+        long minAllocated = long.MaxValue;
+        long maxAllocated = long.MinValue;
 
-        if (allocatedBytes > maxBytes)
+        // Run multiple iterations and collect statistics
+        for (int i = 0; i < iterations; i++)
+        {
+            ForceGarbageCollection();
+
+            var gen0Before = GC.CollectionCount(0);
+            var gen1Before = GC.CollectionCount(1);
+            var gen2Before = GC.CollectionCount(2);
+            var startMemory = GC.GetTotalMemory(false);
+
+            action();
+
+            var endMemory = GC.GetTotalMemory(false);
+            var gen0After = GC.CollectionCount(0);
+            var gen1After = GC.CollectionCount(1);
+            var gen2After = GC.CollectionCount(2);
+
+            var allocatedBytes = endMemory - startMemory;
+            totalAllocated += allocatedBytes;
+            minAllocated = Math.Min(minAllocated, allocatedBytes);
+            maxAllocated = Math.Max(maxAllocated, allocatedBytes);
+        }
+
+        var averageAllocated = totalAllocated / iterations;
+
+        if (averageAllocated > maxBytes)
         {
             throw new Xunit.Sdk.XunitException(
-                $"Action allocated more than {maxBytes} bytes. " +
-                $"Actual allocation: {allocatedBytes} bytes");
+                $"Action allocated more than {maxBytes:N0} bytes. " +
+                $"Average allocation: {averageAllocated:N0} bytes over {iterations} iteration(s). " +
+                $"Min: {minAllocated:N0} bytes, Max: {maxAllocated:N0} bytes");
         }
+    }
+
+    /// <summary>
+    /// Asserts that an async action allocates less than the specified maximum bytes.
+    /// </summary>
+    /// <param name="action">The async action to test.</param>
+    /// <param name="maxBytes">The maximum allowed memory allocation in bytes.</param>
+    /// <param name="iterations">Number of iterations to run for averaging (default: 3).</param>
+    /// <exception cref="Xunit.Sdk.XunitException">Thrown when the assertion fails.</exception>
+    public static async Task ShouldAllocateLessThanAsync(this Func<Task> action, long maxBytes, int iterations = 3)
+    {
+        if (iterations < 1)
+            throw new ArgumentException("Iterations must be at least 1", nameof(iterations));
+
+        // Warm-up run to avoid JIT and other one-time allocations
+        ForceGarbageCollection();
+        await action();
+
+        long totalAllocated = 0;
+        long minAllocated = long.MaxValue;
+        long maxAllocated = long.MinValue;
+
+        // Run multiple iterations and collect statistics
+        for (int i = 0; i < iterations; i++)
+        {
+            ForceGarbageCollection();
+
+            var gen0Before = GC.CollectionCount(0);
+            var gen1Before = GC.CollectionCount(1);
+            var gen2Before = GC.CollectionCount(2);
+            var startMemory = GC.GetTotalMemory(false);
+
+            await action();
+
+            var endMemory = GC.GetTotalMemory(false);
+            var gen0After = GC.CollectionCount(0);
+            var gen1After = GC.CollectionCount(1);
+            var gen2After = GC.CollectionCount(2);
+
+            var allocatedBytes = endMemory - startMemory;
+            totalAllocated += allocatedBytes;
+            minAllocated = Math.Min(minAllocated, allocatedBytes);
+            maxAllocated = Math.Max(maxAllocated, allocatedBytes);
+        }
+
+        var averageAllocated = totalAllocated / iterations;
+
+        if (averageAllocated > maxBytes)
+        {
+            throw new Xunit.Sdk.XunitException(
+                $"Async action allocated more than {maxBytes:N0} bytes. " +
+                $"Average allocation: {averageAllocated:N0} bytes over {iterations} iteration(s). " +
+                $"Min: {minAllocated:N0} bytes, Max: {maxAllocated:N0} bytes");
+        }
+    }
+
+    /// <summary>
+    /// Forces a full garbage collection across all generations.
+    /// </summary>
+    private static void ForceGarbageCollection()
+    {
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        GC.WaitForPendingFinalizers();
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
     }
 
     /// <summary>

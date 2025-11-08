@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Relay.Core.Contracts.Requests;
@@ -363,5 +364,93 @@ public class MockHandlerBuilderTests
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() => builder.Delays(TimeSpan.FromSeconds(1)));
         Assert.Contains("Must configure a return or throw behavior", exception.Message);
+    }
+
+    [Fact]
+    public async Task Returns_WithAsyncFactory_WithoutDelay_ThrowsException()
+    {
+        // Arrange
+        var relay = new TestRelay();
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+            builder.Returns(async (r, ct) => new MockTestResponse { Result = "async" }));
+            // Note: No .Delays() call, so it should execute synchronously and throw
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await relay.SendAsync(new MockTestRequest()));
+        Assert.Contains("Async factory cannot be executed synchronously", exception.Message);
+    }
+
+    [Fact]
+    public async Task SynchronousExecutionPath_WithoutDelay_UsesExecuteBehavior()
+    {
+        // Arrange
+        var relay = new TestRelay();
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+            builder.Returns(new MockTestResponse { Result = "sync" }));
+            // No delay, so should use synchronous execution path
+
+        // Act
+        var response = await relay.SendAsync(new MockTestRequest());
+
+        // Assert
+        Assert.Equal("sync", response.Result);
+    }
+
+    [Fact]
+    public async Task CancellationToken_IsPropagated_InAsyncOperations()
+    {
+        // Arrange
+        var relay = new TestRelay();
+        var cts = new CancellationTokenSource();
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+            builder.Returns(async (r, ct) =>
+            {
+                // Simulate checking cancellation token
+                ct.ThrowIfCancellationRequested();
+                await Task.Delay(10, ct);
+                return new MockTestResponse { Result = "cancelled_check" };
+            }).Delays(TimeSpan.FromMilliseconds(1))); // Force async execution
+
+        // Act & Assert
+        cts.Cancel();
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+            await relay.SendAsync(new MockTestRequest(), cts.Token));
+    }
+
+    [Fact]
+    public async Task BehaviorIndexing_HandlesLargeCallCounts()
+    {
+        // Arrange
+        var relay = new TestRelay();
+        var responses = new[] { "first", "second", "third" };
+
+        relay.WithMockHandler<MockTestRequest, MockTestResponse>(builder =>
+        {
+            foreach (var response in responses)
+            {
+                builder.Returns(new MockTestResponse { Result = response });
+            }
+        });
+
+        // Act - Make more calls than behaviors to test modulo operation
+        var results = new List<string>();
+        for (int i = 0; i < responses.Length * 2 + 1; i++)
+        {
+            var response = await relay.SendAsync(new MockTestRequest());
+            results.Add(response.Result!);
+        }
+
+        // Assert - Should cycle through responses
+        Assert.Equal("first", results[0]);
+        Assert.Equal("second", results[1]);
+        Assert.Equal("third", results[2]);
+        Assert.Equal("first", results[3]); // Cycle back
+        Assert.Equal("second", results[4]);
+        Assert.Equal("third", results[5]);
+        Assert.Equal("first", results[6]); // One more cycle
     }
 }

@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft.CodeAnalysis packages -->
-    <PackageVersion Include="Azure.Identity" Version="1.17.0" />
+    <PackageVersion Include="Azure.Identity" Version="1.17.1" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.14.0" />
@@ -116,7 +116,7 @@
     <PackageVersion Include="Scrutor" Version="6.1.0" />
     <!-- Security - JWT and Azure AD -->
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
-    <PackageVersion Include="Microsoft.Identity.Client" Version="4.76.0" />
+    <PackageVersion Include="Microsoft.Identity.Client" Version="4.78.0" />
     <!-- NuGet packages -->
     <PackageVersion Include="NuGet.Packaging" Version="6.14.0" />
     <PackageVersion Include="NuGet.Protocol" Version="6.14.0" />
